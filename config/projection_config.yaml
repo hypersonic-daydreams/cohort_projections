@@ -1,0 +1,114 @@
+# North Dakota Cohort Component Projection Configuration
+
+project:
+  name: "ND Population Projections 2025-2045"
+  base_year: 2025
+  projection_horizon: 20  # years
+  projection_interval: 1  # 1-year intervals
+
+geography:
+  state: "38"  # North Dakota FIPS
+  counties: "all"  # or list of specific FIPS codes
+  places: "all"  # or list of specific place FIPS
+
+demographics:
+  age_groups:
+    type: "single_year"  # or "5_year"
+    min_age: 0
+    max_age: 90  # 90+ is the open-ended final group
+  sex:
+    - "Male"
+    - "Female"
+  race_ethnicity:
+    # Following Census/SEER categories
+    categories:
+      - "White alone, Non-Hispanic"
+      - "Black alone, Non-Hispanic"
+      - "AIAN alone, Non-Hispanic"  # American Indian/Alaska Native
+      - "Asian/PI alone, Non-Hispanic"  # Asian/Pacific Islander
+      - "Two or more races, Non-Hispanic"
+      - "Hispanic (any race)"
+
+rates:
+  fertility:
+    source: "SEER"  # or "NVSS", "custom"
+    averaging_period: 5  # years to average (2018-2022)
+    assumption: "constant"  # "constant", "trending", "scenario"
+    apply_to_ages: [15, 49]  # reproductive age range
+
+  mortality:
+    source: "SEER"  # or "CDC_life_tables"
+    life_table_year: 2020
+    improvement_factor: 0.005  # annual mortality improvement (0.5%)
+    cap_survival_at: 1.0  # no survival rate > 100%
+
+  migration:
+    domestic:
+      method: "IRS_county_flows"  # or "ACS_mobility", "constant_rate"
+      averaging_period: 5  # 2018-2022
+      smooth_extreme_outliers: true
+    international:
+      method: "ACS_foreign_born"
+      allocation: "proportional"  # distribute to counties proportionally
+      state_total_source: "Census_PEP"
+
+scenarios:
+  baseline:
+    name: "Baseline Projection"
+    description: "Recent trends continuation"
+    fertility: "constant"
+    mortality: "improving"
+    migration: "recent_average"
+    active: true
+
+  high_growth:
+    name: "High Growth Scenario"
+    description: "Optimistic population growth"
+    fertility: "+10_percent"
+    mortality: "constant"
+    migration: "+25_percent"
+    active: false
+
+  low_growth:
+    name: "Low Growth Scenario"
+    description: "Conservative population growth"
+    fertility: "-10_percent"
+    mortality: "constant"
+    migration: "-25_percent"
+    active: false
+
+  zero_migration:
+    name: "Zero Net Migration"
+    description: "Natural increase only"
+    fertility: "constant"
+    mortality: "improving"
+    migration: "zero"
+    active: false
+
+output:
+  formats:
+    - "parquet"  # primary format
+    - "csv"
+  compression: "gzip"
+  include_zero_cells: true  # include cohorts with 0 population
+  aggregation_levels:
+    - "state"
+    - "county"
+    - "place"
+  decimal_places: 2
+
+validation:
+  compare_to_census: true
+  census_benchmark_years: [2020, 2021, 2022, 2023, 2024]
+  plausibility_checks:
+    - "negative_population"
+    - "sex_ratio"
+    - "age_distribution"
+    - "extreme_growth_rates"
+  error_tolerance: 0.05  # 5% tolerance for validation
+
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_to_file: true
+  log_directory: "logs"
+  log_format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
