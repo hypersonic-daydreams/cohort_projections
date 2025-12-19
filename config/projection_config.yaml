@@ -8,8 +8,57 @@ project:
 
 geography:
   state: "38"  # North Dakota FIPS
-  counties: "all"  # or list of specific FIPS codes
-  places: "all"  # or list of specific place FIPS
+
+  # County-level projections
+  counties:
+    mode: "all"  # "all", "list", or "threshold"
+    # mode: "list"
+    # fips_codes: ["38101", "38015", "38035"]  # Specific counties if mode="list"
+    # mode: "threshold"
+    # min_population: 1000  # Minimum population if mode="threshold"
+
+  # Place-level projections
+  places:
+    mode: "threshold"  # "all", "list", or "threshold"
+    min_population: 500  # Only places with 500+ population
+    # mode: "all"  # Project all 406 incorporated places
+    # mode: "list"
+    # fips_codes: ["3825700", "3807200", "3833900", "3841500"]  # Major cities
+
+  # Geographic reference data
+  reference_data:
+    source: "local"  # "local" or "tiger" (Census TIGER/Line files)
+    vintage: 2020  # Census vintage for geographic definitions
+    counties_file: "data/raw/geographic/nd_counties.csv"
+    places_file: "data/raw/geographic/nd_places.csv"
+
+  # Hierarchical aggregation
+  hierarchy:
+    validate_aggregation: true  # Validate county sums = state
+    aggregation_tolerance: 0.01  # 1% tolerance for rounding errors
+    include_balance: true  # Calculate unincorporated areas (county - places)
+
+# Multi-geography processing
+geographic:
+  parallel_processing:
+    enabled: true  # Use parallel processing for multiple geographies
+    max_workers: null  # null = auto-detect (cpu_count), or specify number
+    chunk_size: 10  # Geographies per batch (for memory management)
+
+  error_handling:
+    mode: "continue"  # "continue" = continue on error, "fail_fast" = stop on first error
+    log_failed_geographies: true
+    retry_failed: false  # Whether to retry failed geographies
+
+# Google BigQuery Configuration
+bigquery:
+  enabled: true
+  project_id: "antigravity-sandbox"  # Your GCP project ID
+  credentials_path: "~/.config/gcloud/cohort-projections-key.json"  # Path to service account key
+  dataset_id: "demographic_data"  # Dataset for storing/querying demographic data
+  location: "US"  # BigQuery dataset location
+  use_public_data: true  # Use bigquery-public-data for Census/demographic data
+  cache_queries: true  # Cache query results locally
 
 demographics:
   age_groups:
@@ -86,6 +135,7 @@ scenarios:
     active: false
 
 output:
+  # Basic output settings
   formats:
     - "parquet"  # primary format
     - "csv"
@@ -96,6 +146,47 @@ output:
     - "county"
     - "place"
   decimal_places: 2
+
+  # Excel export settings
+  excel:
+    include_charts: true        # Embed population charts in workbook
+    include_metadata: true      # Include metadata worksheet
+    format_numbers: true        # Apply number formatting (thousands separator)
+    auto_width_columns: true    # Auto-adjust column widths
+    freeze_panes: true          # Freeze header rows
+
+  # Report generation settings
+  reports:
+    generate_html: true         # Generate HTML reports
+    generate_text: true         # Generate plain text reports
+    include_methodology: true   # Include methodology section
+    include_diversity_metrics: true  # Calculate diversity indices
+
+  # Visualization settings
+  visualizations:
+    enabled: true
+    format: "png"               # Image format: png, svg, pdf
+    dpi: 300                    # Resolution for raster formats
+    style: "seaborn-v0_8-darkgrid"  # Matplotlib style
+    color_palette: "Set2"       # Color palette for charts
+    figure_size: [10, 6]        # Default figure size [width, height] in inches
+
+    # Population pyramids
+    pyramids:
+      age_group_size: 5         # Age grouping: 1, 5, or 10 years
+      include_race_breakdown: false  # Stacked by race (default: by sex only)
+      years: ["base", "mid", "final"]  # Which years to generate
+
+    # Trend charts
+    trends:
+      include_total: true       # Total population trends
+      include_age_groups: true  # Trends by age group
+      include_sex: true         # Trends by sex
+      include_race: true        # Trends by race
+
+    # Growth rate charts
+    growth_rates:
+      periods: ["annual"]       # Period options: annual, 5year, 10year
 
 validation:
   compare_to_census: true
@@ -112,3 +203,55 @@ logging:
   log_to_file: true
   log_directory: "logs"
   log_format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Pipeline orchestration settings
+pipeline:
+  # Data processing pipeline
+  data_processing:
+    input_dir: "data/raw"
+    output_dir: "data/processed"
+    validate_outputs: true
+    generate_report: true
+    fail_fast: false  # Continue processing on errors vs fail on first error
+
+    # Component-specific settings
+    fertility:
+      enabled: true
+      input_file: "data/raw/fertility/seer_asfr_2018_2022.csv"
+      output_file: "data/processed/fertility_rates.parquet"
+
+    survival:
+      enabled: true
+      input_file: "data/raw/mortality/seer_lifetables_2020.csv"
+      output_file: "data/processed/survival_rates.parquet"
+
+    migration:
+      enabled: true
+      domestic_input: "data/raw/migration/irs_county_flows_2018_2022.csv"
+      international_input: "data/raw/migration/acs_international_migration.csv"
+      output_file: "data/processed/migration_rates.parquet"
+
+  # Projection execution pipeline
+  projection:
+    output_dir: "data/projections"
+    scenarios: ["baseline"]  # Which scenarios to run (from scenarios section)
+    resume_on_restart: true  # Skip already-completed geographies
+    save_intermediate: false  # Save intermediate year results
+    max_retries: 2  # Number of times to retry failed geographies
+
+  # Export/dissemination pipeline
+  export:
+    output_dir: "data/exports"
+    formats: ["csv", "excel"]  # Available: csv, excel, parquet
+    create_packages: true  # Create ZIP archives
+    package_by: "level"  # "level" (state/county/place) or "geography" (one per geo)
+    include_metadata: true  # Include processing metadata in exports
+
+    # Summary statistics to generate
+    summaries:
+      - "total_population_by_year"
+      - "age_distribution_by_year"
+      - "sex_ratio_by_year"
+      - "race_composition_by_year"
+      - "growth_rates"
+      - "dependency_ratios"

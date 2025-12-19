@@ -1,0 +1,2 @@
+# This directory is reserved for future HTML/Jinja2 templates
+# Currently, HTML reports are generated programmatically in reports.py
