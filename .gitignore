@@ -54,6 +54,10 @@ data/projections/**/*.csv
 data/projections/**/*.parquet
 data/projections/**/*.xlsx
 
+# Export files (synced via rclone, not git)
+data/exports/
+data/output/
+
 # Keep directory structure
 !data/raw/.gitkeep
 !data/raw/**/.gitkeep

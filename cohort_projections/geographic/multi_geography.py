@@ -62,6 +62,7 @@ def run_single_geography_projection(
     config: dict | None = None,
     output_dir: Path | None = None,
     save_results: bool = True,
+    scenario: str = "baseline",
 ) -> dict[str, Any]:
     """
     Run projection for a single geography.
@@ -145,9 +146,8 @@ def run_single_geography_projection(
             config=config,
         )
 
-        # Run projection
-        scenario = config.get("scenarios", {}).get("baseline", {}).get("active", True)
-        scenario_name = "baseline" if scenario else None
+        # Run projection with the specified scenario
+        scenario_name = scenario
 
         projection_results = projection_engine.run_projection(scenario=scenario_name)
 
@@ -243,6 +243,7 @@ def run_multi_geography_projections(
     parallel: bool = True,
     max_workers: int | None = None,
     output_dir: Path | None = None,
+    scenario: str = "baseline",
 ) -> dict[str, Any]:
     """
     Run projections for multiple geographies.
@@ -333,6 +334,7 @@ def run_multi_geography_projections(
                 config=config,
                 output_dir=output_dir,
                 save_results=True,
+                scenario=scenario,
             )
 
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
@@ -384,6 +386,7 @@ def run_multi_geography_projections(
                     config=config,
                     output_dir=output_dir,
                     save_results=True,
+                    scenario=scenario,
                 )
 
                 results.append(result)

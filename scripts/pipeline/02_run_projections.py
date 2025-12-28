@@ -547,6 +547,82 @@ def setup_projection_run(
     return geographies, scenarios
 
 
+def apply_scenario_rate_adjustments(
+    scenario: str,
+    config: dict[str, Any],
+    fertility_rates: pd.DataFrame,
+    survival_rates: pd.DataFrame,
+    migration_rates: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    """
+    Apply scenario-specific rate adjustments to demographic rates.
+
+    For high growth scenario, this applies:
+    - Fertility: +10% multiplier
+    - Migration: +25% multiplier
+    - Mortality: constant (no change)
+
+    Args:
+        scenario: Scenario name (e.g., 'baseline', 'high_growth', 'low_growth')
+        config: Project configuration
+        fertility_rates: Base fertility rates
+        survival_rates: Base survival rates
+        migration_rates: Base migration rates
+
+    Returns:
+        Tuple of (adjusted_fertility, adjusted_survival, adjusted_migration)
+    """
+    scenario_config = config.get("scenarios", {}).get(scenario, {})
+
+    if not scenario_config:
+        logger.warning(f"Scenario '{scenario}' not found in config, using base rates")
+        return fertility_rates, survival_rates, migration_rates
+
+    # Copy rates to avoid modifying originals
+    adj_fertility = fertility_rates.copy()
+    adj_survival = survival_rates.copy()
+    adj_migration = migration_rates.copy()
+
+    # Apply fertility adjustment
+    fertility_setting = scenario_config.get("fertility", "constant")
+    if fertility_setting == "+10_percent":
+        logger.info(f"Scenario {scenario}: Applying +10% fertility adjustment")
+        adj_fertility["fertility_rate"] = adj_fertility["fertility_rate"] * 1.10
+    elif fertility_setting == "-10_percent":
+        logger.info(f"Scenario {scenario}: Applying -10% fertility adjustment")
+        adj_fertility["fertility_rate"] = adj_fertility["fertility_rate"] * 0.90
+
+    # Apply mortality adjustment (survival rates)
+    mortality_setting = scenario_config.get("mortality", "constant")
+    if mortality_setting == "constant":
+        logger.info(f"Scenario {scenario}: Keeping mortality rates constant")
+        # No change to survival rates
+    elif mortality_setting == "improving":
+        logger.info(f"Scenario {scenario}: Mortality rates set to improving (handled per-year)")
+        # Improvement is typically applied year-by-year in projection, not here
+
+    # Apply migration adjustment
+    migration_setting = scenario_config.get("migration", "recent_average")
+    migration_col = (
+        "migration_rate" if "migration_rate" in adj_migration.columns else "net_migration"
+    )
+
+    if migration_setting == "+25_percent":
+        logger.info(f"Scenario {scenario}: Applying +25% migration adjustment")
+        if migration_col in adj_migration.columns:
+            adj_migration[migration_col] = adj_migration[migration_col] * 1.25
+    elif migration_setting == "-25_percent":
+        logger.info(f"Scenario {scenario}: Applying -25% migration adjustment")
+        if migration_col in adj_migration.columns:
+            adj_migration[migration_col] = adj_migration[migration_col] * 0.75
+    elif migration_setting == "zero":
+        logger.info(f"Scenario {scenario}: Setting migration to zero")
+        if migration_col in adj_migration.columns:
+            adj_migration[migration_col] = 0.0
+
+    return adj_fertility, adj_survival, adj_migration
+
+
 def run_geographic_projections(
     geographies: dict[str, list[str]],
     scenario: str,
@@ -583,6 +659,16 @@ def run_geographic_projections(
         logger.info("[DRY RUN] Would process projections")
         metadata.finalize()
         return metadata
+
+    # Apply scenario-specific rate adjustments
+    logger.info(f"Applying scenario rate adjustments for: {scenario}")
+    adj_fertility, adj_survival, adj_migration = apply_scenario_rate_adjustments(
+        scenario=scenario,
+        config=config,
+        fertility_rates=fertility_rates,
+        survival_rates=survival_rates,
+        migration_rates=migration_rates,
+    )
 
     # Get output directory
     output_dir = (
@@ -626,14 +712,14 @@ def run_geographic_projections(
             }
 
             # Build migration rates dictionary per geography
-            # For now, use shared migration rates for all geographies
-            migration_rates_by_geography = {fips: migration_rates for fips in fips_to_process}
+            # Use adjusted migration rates for this scenario
+            migration_rates_by_geography = dict.fromkeys(fips_to_process, adj_migration)
 
             results_dict = run_multi_geography_projections(
                 level=level,
                 base_population_by_geography=base_population_by_geography,
-                fertility_rates=fertility_rates,
-                survival_rates=survival_rates,
+                fertility_rates=adj_fertility,
+                survival_rates=adj_survival,
                 migration_rates_by_geography=migration_rates_by_geography,
                 config=config,
                 fips_codes=fips_to_process,
@@ -644,6 +730,7 @@ def run_geographic_projections(
                 .get("parallel_processing", {})
                 .get("max_workers"),
                 output_dir=output_dir / level,
+                scenario=scenario,
             )
 
             # Extract results list from the returned dictionary
