@@ -453,7 +453,7 @@ def run_multi_geography_projections(
 
     metadata_file = output_dir / f"{level}s_metadata.json"
     with open(metadata_file, "w") as f:
-        json.dump(metadata, f, indent=2)
+        json.dump(metadata, f, indent=2, default=str)
     logger.info(f"Saved metadata to {metadata_file}")
 
     return {
@@ -756,7 +756,7 @@ def _save_projection_results(
     # Save metadata (JSON)
     metadata_file = output_dir / f"{base_filename}_metadata.json"
     with open(metadata_file, "w") as f:
-        json.dump(metadata, f, indent=2)
+        json.dump(metadata, f, indent=2, default=str)
 
 
 if __name__ == "__main__":

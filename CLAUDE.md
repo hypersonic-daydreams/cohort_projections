@@ -145,6 +145,7 @@ python scripts/fetch_data.py    # Copy data from sibling repos
 - Skip pre-commit hooks with `--no-verify`
 - Install packages globally (use virtual environment)
 - Commit secrets or credentials
+- Modify production code without running related tests afterward
 
 ### ALWAYS
 
@@ -154,6 +155,59 @@ python scripts/fetch_data.py    # Copy data from sibling repos
 - Use type hints in function signatures
 - Document ADRs for Tier 2 decisions
 - Run bisync before switching computers
+- Update tests when changing function signatures or behavior
+
+---
+
+## Test Workflow for AI Agents
+
+### When Modifying Production Code
+
+1. **Before changing code**: Run `pytest tests/ -v` to establish baseline
+2. **After changing code**: Run tests again - failures indicate breaking changes
+3. **If tests fail**: Either fix the code OR update the tests (if behavior change is intentional)
+4. **Pre-commit enforces this**: Tests run automatically when committing changes to `cohort_projections/`
+
+### When to Update Tests
+
+| Change Type | Test Action |
+| ----------- | ----------- |
+| Bug fix | Add test that reproduces the bug, then fix |
+| New function | Add tests for the new function |
+| Changed signature | Update all tests that call the function |
+| Changed behavior | Update tests to expect new behavior |
+| Removed function | Remove tests for that function |
+
+### Test Commands
+
+```bash
+pytest tests/ -v                           # All tests
+pytest tests/test_core/ -v                 # Just core module tests
+pytest tests/ -k "test_fertility" -v       # Tests matching pattern
+pytest tests/ -x                           # Stop on first failure
+pytest tests/ --tb=long                    # Detailed tracebacks
+```
+
+### Finding Related Tests
+
+When modifying a function, find its tests:
+
+```bash
+# Find tests for a specific function
+grep -r "function_name" tests/
+
+# Find tests for a module
+ls tests/test_core/test_fertility.py      # Tests for core/fertility.py
+```
+
+### Test File Mapping
+
+| Production Module | Test File |
+| ----------------- | --------- |
+| `cohort_projections/core/cohort_component.py` | `tests/test_core/test_cohort_component.py` |
+| `cohort_projections/core/fertility.py` | `tests/test_core/test_fertility.py` |
+| `cohort_projections/data/process/base_population.py` | `tests/test_data/test_base_population.py` |
+| `cohort_projections/output/writers.py` | `tests/test_output/test_writers.py` |
 
 ---
 

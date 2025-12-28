@@ -36,3 +36,17 @@ repos:
           - types-PyYAML
           - types-requests
           - pandas-stubs
+
+  # Pytest - run tests before committing
+  # Only runs on commits that touch production code
+  - repo: local
+    hooks:
+      - id: pytest-check
+        name: pytest (fast tests only)
+        entry: .venv/bin/python -m pytest tests/ -x -q --ignore=tests/test_integration/ -m "not slow"
+        language: system
+        pass_filenames: false
+        always_run: false
+        # Only trigger when production code changes
+        files: ^cohort_projections/.*\.py$
+        stages: [pre-commit]

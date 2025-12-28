@@ -41,7 +41,7 @@ geography:
 # Multi-geography processing
 geographic:
   parallel_processing:
-    enabled: true  # Use parallel processing for multiple geographies
+    enabled: false  # Disabled due to pickle issues with nested functions
     max_workers: null  # null = auto-detect (cpu_count), or specify number
     chunk_size: 10  # Geographies per batch (for memory management)
 

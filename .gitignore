@@ -76,3 +76,5 @@ htmlcov/
 # Environment
 .env
 .env.local
+data/projections/**/*.json
+!data/projections/.gitkeep
