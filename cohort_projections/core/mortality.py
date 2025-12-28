@@ -267,10 +267,10 @@ def validate_survival_rates(
     for (sex, race), group in survival_rates.groupby(["sex", "race"]):
         sorted_group = group.sort_values("age")
         # Allow some variation, but check for major inversions
-        survival_values = sorted_group["survival_rate"].values
+        survival_values = np.asarray(sorted_group["survival_rate"].values)
         # Check if early ages have lower survival than much older ages
-        if len(survival_values) > 10 and np.mean(survival_values[:5]) < np.mean(
-            survival_values[-5:]
+        if len(survival_values) > 10 and float(np.mean(survival_values[:5])) < float(
+            np.mean(survival_values[-5:])
         ):
             issues.append(
                 f"Implausible pattern: young ages have lower survival than old ages "

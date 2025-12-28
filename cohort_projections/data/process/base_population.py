@@ -7,6 +7,7 @@ Creates age x sex x race/ethnicity cohort matrices at state, county, and place l
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -150,7 +151,9 @@ def create_cohort_matrix(
     df["age"] = df["age"].clip(upper=max_age)
 
     # Group by cohort dimensions
-    cohort_matrix = df.groupby(["age", "sex", "race_ethnicity"], as_index=False)["population"].sum()
+    cohort_matrix: pd.DataFrame = df.groupby(["age", "sex", "race_ethnicity"], as_index=False).agg(
+        {"population": "sum"}
+    )
 
     # Create complete index (all combinations)
     ages = list(range(min_age, max_age + 1))
@@ -183,7 +186,7 @@ def create_cohort_matrix(
 
 def validate_cohort_matrix(
     df: pd.DataFrame, geography_level: str, expected_counties: int | None = None
-) -> dict[str, any]:
+) -> dict[str, Any]:
     """
     Validate cohort matrix for completeness and plausibility.
 
@@ -197,7 +200,9 @@ def validate_cohort_matrix(
     """
     logger.info(f"Validating cohort matrix for {geography_level}")
 
-    validation_results = {"valid": True, "warnings": [], "errors": []}
+    errors: list[str] = []
+    warnings: list[str] = []
+    validation_results: dict[str, Any] = {"valid": True, "warnings": warnings, "errors": errors}
 
     # Load config for validation thresholds
     config = ConfigLoader()
@@ -214,9 +219,7 @@ def validate_cohort_matrix(
 
     if geography_level == "state":
         if len(df) != total_cohorts:
-            validation_results["errors"].append(
-                f"Expected {total_cohorts} cohorts, found {len(df)}"
-            )
+            errors.append(f"Expected {total_cohorts} cohorts, found {len(df)}")
             validation_results["valid"] = False
 
     elif geography_level == "county":
@@ -224,23 +227,19 @@ def validate_cohort_matrix(
         if "geography_id" in df.columns:
             unique_counties = df["geography_id"].nunique()
             if expected_counties and unique_counties != expected_counties:
-                validation_results["warnings"].append(
-                    f"Expected {expected_counties} counties, found {unique_counties}"
-                )
+                warnings.append(f"Expected {expected_counties} counties, found {unique_counties}")
 
         # Each county should have full cohort matrix
         if "geography_id" in df.columns:
             county_sizes = df.groupby("geography_id").size()
             incomplete = county_sizes[county_sizes != total_cohorts]
             if len(incomplete) > 0:
-                validation_results["errors"].append(
-                    f"Incomplete cohort matrices for {len(incomplete)} counties"
-                )
+                errors.append(f"Incomplete cohort matrices for {len(incomplete)} counties")
                 validation_results["valid"] = False
 
     # Check for negative populations
     if (df["population"] < 0).any():
-        validation_results["errors"].append("Negative population values found")
+        errors.append("Negative population values found")
         validation_results["valid"] = False
 
     # Check for extremely high sex ratios (warning only)
@@ -254,20 +253,15 @@ def validate_cohort_matrix(
                 if female_pop > 0:
                     sex_ratio = male_pop / female_pop
                     if sex_ratio > 2.0 or sex_ratio < 0.5:
-                        validation_results["warnings"].append(
-                            f"Unusual sex ratio at age {age}, {race}: {sex_ratio:.2f}"
-                        )
+                        warnings.append(f"Unusual sex ratio at age {age}, {race}: {sex_ratio:.2f}")
 
     # Check total population is reasonable
     total_pop = df["population"].sum()
     if total_pop == 0:
-        validation_results["errors"].append("Total population is zero")
+        errors.append("Total population is zero")
         validation_results["valid"] = False
 
-    logger.info(
-        f"Validation complete: {len(validation_results['errors'])} errors, "
-        f"{len(validation_results['warnings'])} warnings"
-    )
+    logger.info(f"Validation complete: {len(errors)} errors, {len(warnings)} warnings")
 
     return validation_results
 

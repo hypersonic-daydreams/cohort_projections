@@ -153,6 +153,9 @@ class CensusDataFetcher:
                     logger.error(f"{description} - All retry attempts failed")
                     raise
 
+        # Should never reach here, but needed for type checker
+        raise requests.RequestException(f"{description} - No attempts made (max_retries=0)")
+
     def _save_metadata(
         self, file_path: Path, source: str, vintage_or_year: int, api_url: str, record_count: int
     ) -> None:

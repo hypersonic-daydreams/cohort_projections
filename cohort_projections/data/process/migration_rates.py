@@ -12,6 +12,7 @@ breakdown) and requires distribution algorithms to allocate to demographic cohor
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -598,8 +599,8 @@ def distribute_migration_by_race(
         raise ValueError(f"population_df missing required columns: {missing_cols}")
 
     # Calculate population proportions by age-sex-race
-    pop_totals = population_df.groupby(["age", "sex"], as_index=False)["population"].sum()
-    pop_totals.rename(columns={"population": "total_population"}, inplace=True)
+    pop_totals = population_df.groupby(["age", "sex"], as_index=False).agg({"population": "sum"})
+    pop_totals = pop_totals.rename(columns={"population": "total_population"})
 
     pop_with_totals = population_df.merge(pop_totals, on=["age", "sex"], how="left")
     pop_with_totals["proportion"] = (
@@ -955,7 +956,7 @@ def create_migration_rate_table(
 
 def validate_migration_data(
     df: pd.DataFrame, population_df: pd.DataFrame | None = None, config: dict | None = None
-) -> dict[str, bool | list[str] | dict[str, float]]:
+) -> dict[str, Any]:
     """
     Validate migration data for plausibility.
 
@@ -998,12 +999,15 @@ def validate_migration_data(
     """
     logger.info("Validating migration data")
 
-    validation_result = {
+    errors: list[str] = []
+    warnings: list[str] = []
+    net_by_direction: dict[str, Any] = {}
+    validation_result: dict[str, Any] = {
         "valid": True,
-        "errors": [],
-        "warnings": [],
+        "errors": errors,
+        "warnings": warnings,
         "total_net_migration": 0.0,
-        "net_by_direction": {},
+        "net_by_direction": net_by_direction,
     }
 
     # Load config if not provided
@@ -1023,9 +1027,7 @@ def validate_migration_data(
     has_migration_rate = "migration_rate" in df.columns
 
     if not has_net_migration and not has_migration_rate:
-        validation_result["errors"].append(
-            "Must have either 'net_migration' or 'migration_rate' column"
-        )
+        errors.append("Must have either 'net_migration' or 'migration_rate' column")
         validation_result["valid"] = False
         return validation_result
 
@@ -1036,21 +1038,21 @@ def validate_migration_data(
     actual_ages = set(df["age"].unique())
     missing_ages = expected_ages - actual_ages
     if missing_ages:
-        validation_result["errors"].append(f"Missing ages: {sorted(missing_ages)}")
+        errors.append(f"Missing ages: {sorted(missing_ages)}")
         validation_result["valid"] = False
 
     # Check all sex categories present
     actual_sexes = set(df["sex"].unique())
     missing_sexes = set(expected_sexes) - actual_sexes
     if missing_sexes:
-        validation_result["errors"].append(f"Missing sex categories: {list(missing_sexes)}")
+        errors.append(f"Missing sex categories: {list(missing_sexes)}")
         validation_result["valid"] = False
 
     # Check all race categories present
     actual_races = set(df["race_ethnicity"].unique())
     missing_races = set(expected_races) - actual_races
     if missing_races:
-        validation_result["errors"].append(f"Missing race categories: {list(missing_races)}")
+        errors.append(f"Missing race categories: {list(missing_races)}")
         validation_result["valid"] = False
 
     # Calculate total net migration
@@ -1074,7 +1076,7 @@ def validate_migration_data(
     if has_net_migration:
         max_abs_migration = df["net_migration"].abs().max()
         if max_abs_migration > 10000:
-            validation_result["warnings"].append(
+            warnings.append(
                 f"Very large net migration value: {max_abs_migration:,.0f} "
                 f"(possible data error)"
             )
@@ -1083,14 +1085,14 @@ def validate_migration_data(
         # Check for extreme rates
         extreme_positive = df[df["migration_rate"] > 0.20]
         if not extreme_positive.empty:
-            validation_result["warnings"].append(
+            warnings.append(
                 f"Very high migration rates (>20% of population) found in "
                 f"{len(extreme_positive)} cohorts"
             )
 
         extreme_negative = df[df["migration_rate"] < -0.20]
         if not extreme_negative.empty:
-            validation_result["warnings"].append(
+            warnings.append(
                 f"Very high out-migration rates (<-20% of population) found in "
                 f"{len(extreme_negative)} cohorts"
             )
@@ -1101,12 +1103,10 @@ def validate_migration_data(
         age_pattern = df.groupby("age")[migration_col].mean().abs()
 
         # Find peak age
-        peak_age = age_pattern.idxmax()
+        peak_age = int(age_pattern.idxmax())
 
         if peak_age < 15 or peak_age > 45:
-            validation_result["warnings"].append(
-                f"Migration peak at age {peak_age} is unusual (expected: 20-35)"
-            )
+            warnings.append(f"Migration peak at age {peak_age} is unusual (expected: 20-35)")
 
     # If population provided, check if migration would cause negative population
     if population_df is not None and has_net_migration:
@@ -1116,7 +1116,7 @@ def validate_migration_data(
 
         negative_results = merged["result_pop"] < 0
         if negative_results.any():
-            validation_result["warnings"].append(
+            warnings.append(
                 f"Migration would cause negative population for {negative_results.sum()} cohorts"
             )
 
@@ -1125,7 +1125,7 @@ def validate_migration_data(
     actual_combinations = len(df)
 
     if actual_combinations < expected_combinations:
-        validation_result["errors"].append(
+        errors.append(
             f"Missing age-sex-race combinations: expected {expected_combinations}, "
             f"got {actual_combinations}"
         )
@@ -1134,17 +1134,13 @@ def validate_migration_data(
     # Summary logging
     if validation_result["valid"]:
         logger.info(
-            f"Migration data validated successfully. " f"Total net migration: {total_net:+,.0f}"
+            f"Migration data validated successfully. Total net migration: {total_net:+,.0f}"
         )
     else:
-        logger.error(
-            f"Migration data validation failed with " f"{len(validation_result['errors'])} errors"
-        )
+        logger.error(f"Migration data validation failed with {len(errors)} errors")
 
-    if validation_result["warnings"]:
-        logger.warning(
-            f"Migration data validation produced " f"{len(validation_result['warnings'])} warnings"
-        )
+    if warnings:
+        logger.warning(f"Migration data validation produced {len(warnings)} warnings")
 
     return validation_result
 

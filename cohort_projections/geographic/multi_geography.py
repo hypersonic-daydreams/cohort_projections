@@ -8,6 +8,7 @@ with support for parallel processing and hierarchical aggregation/validation.
 import json
 import multiprocessing
 import time
+from collections.abc import Iterator
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from datetime import UTC, datetime
 from pathlib import Path
@@ -25,13 +26,13 @@ except ImportError:
 
     # Fallback: simple counter
     class TqdmFallback:
-        def __init__(self, iterable=None, **kwargs):
+        def __init__(self, iterable: Any = None, **kwargs: Any) -> None:
             self.iterable = iterable
-            self.total = kwargs.get("total", len(iterable) if iterable else 0)
-            self.desc = kwargs.get("desc", "")
-            self.current = 0
+            self.total: int = kwargs.get("total", len(iterable) if iterable else 0)
+            self.desc: str = kwargs.get("desc", "")
+            self.current: int = 0
 
-        def __iter__(self):
+        def __iter__(self) -> Iterator[Any]:
             for item in self.iterable:
                 self.current += 1
                 if self.current % 10 == 0:
@@ -634,13 +635,21 @@ def validate_aggregation(
     """
     logger.info(f"Validating aggregation: {component_level}s -> {aggregate_level}")
 
-    validation_result = {"valid": True, "errors": [], "warnings": [], "by_year": []}
+    errors: list[str] = []
+    warnings: list[str] = []
+    by_year: list[dict[str, Any]] = []
+    validation_result: dict[str, Any] = {
+        "valid": True,
+        "errors": errors,
+        "warnings": warnings,
+        "by_year": by_year,
+    }
 
     # Combine all component projections
     component_dfs = [r["projection"] for r in component_projections if not r["projection"].empty]
 
     if not component_dfs:
-        validation_result["errors"].append("No component projections to validate")
+        errors.append("No component projections to validate")
         validation_result["valid"] = False
         return validation_result
 
@@ -673,7 +682,7 @@ def validate_aggregation(
             "within_tolerance": percent_diff <= tolerance,
         }
 
-        validation_result["by_year"].append(year_result)
+        by_year.append(year_result)
 
         if percent_diff > tolerance:
             msg = (
@@ -681,10 +690,10 @@ def validate_aggregation(
                 f"tolerance {tolerance:.2%}"
             )
             if percent_diff > 0.05:  # 5% is serious
-                validation_result["errors"].append(msg)
+                errors.append(msg)
                 validation_result["valid"] = False
             else:
-                validation_result["warnings"].append(msg)
+                warnings.append(msg)
 
     # Overall summary
     total_component = component_aggregate["population"].sum()
@@ -702,9 +711,7 @@ def validate_aggregation(
     if validation_result["valid"]:
         logger.info(f"Aggregation validation passed. " f"Overall difference: {overall_pct:.3%}")
     else:
-        logger.error(
-            f"Aggregation validation failed with {len(validation_result['errors'])} errors"
-        )
+        logger.error(f"Aggregation validation failed with {len(errors)} errors")
 
     return validation_result
 

@@ -216,7 +216,10 @@ def generate_summary_statistics(
             }
 
     # 5. Growth Analysis
-    growth_analysis = {"annual_growth_rates": [], "period_growth_rates": []}
+    growth_analysis: dict[str, list[dict[str, Any]]] = {
+        "annual_growth_rates": [],
+        "period_growth_rates": [],
+    }
 
     # Annual growth rates
     for i in range(1, len(annual_stats)):

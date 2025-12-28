@@ -9,6 +9,7 @@ into standardized format for cohort-component projections.
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -305,7 +306,9 @@ def calculate_average_fertility_rates(df: pd.DataFrame, averaging_period: int = 
         logger.info("Using simple mean (no population weights available)")
 
         # Simple average
-        averaged_df = df.groupby(["age", "race_ethnicity"], as_index=False)["fertility_rate"].mean()
+        averaged_df = df.groupby(["age", "race_ethnicity"], as_index=False).agg(
+            {"fertility_rate": "mean"}
+        )
 
     # Handle any NaN values (should be rare)
     nan_count = averaged_df["fertility_rate"].isna().sum()
@@ -425,9 +428,7 @@ def create_fertility_rate_table(
     return df
 
 
-def validate_fertility_rates(
-    df: pd.DataFrame, config: dict | None = None
-) -> dict[str, bool | list[str] | dict[str, float]]:
+def validate_fertility_rates(df: pd.DataFrame, config: dict | None = None) -> dict[str, Any]:
     """
     Validate fertility rates for plausibility.
 
@@ -467,11 +468,14 @@ def validate_fertility_rates(
     """
     logger.info("Validating fertility rates")
 
-    validation_result = {
+    errors: list[str] = []
+    warnings: list[str] = []
+    tfr_by_race: dict[str, float] = {}
+    validation_result: dict[str, Any] = {
         "valid": True,
-        "errors": [],
-        "warnings": [],
-        "tfr_by_race": {},
+        "errors": errors,
+        "warnings": warnings,
+        "tfr_by_race": tfr_by_race,
         "overall_tfr": 0.0,
     }
 
@@ -491,7 +495,7 @@ def validate_fertility_rates(
     required_cols = ["age", "race_ethnicity", "fertility_rate"]
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
-        validation_result["errors"].append(f"Missing required columns: {missing_cols}")
+        errors.append(f"Missing required columns: {missing_cols}")
         validation_result["valid"] = False
         return validation_result
 
@@ -500,31 +504,27 @@ def validate_fertility_rates(
     actual_ages = set(df["age"].unique())
     missing_ages = expected_ages - actual_ages
     if missing_ages:
-        validation_result["errors"].append(
-            f"Missing ages in reproductive range: {sorted(missing_ages)}"
-        )
+        errors.append(f"Missing ages in reproductive range: {sorted(missing_ages)}")
         validation_result["valid"] = False
 
     # Check all race categories present
     actual_races = set(df["race_ethnicity"].unique())
     missing_races = set(expected_races) - actual_races
     if missing_races:
-        validation_result["errors"].append(f"Missing race categories: {list(missing_races)}")
+        errors.append(f"Missing race categories: {list(missing_races)}")
         validation_result["valid"] = False
 
     # Check for negative rates
     if (df["fertility_rate"] < 0).any():
         negative_count = (df["fertility_rate"] < 0).sum()
-        validation_result["errors"].append(
-            f"Negative fertility rates found: {negative_count} records"
-        )
+        errors.append(f"Negative fertility rates found: {negative_count} records")
         validation_result["valid"] = False
 
     # Check for implausibly high rates
     max_plausible_rate = 0.15  # 150 births per 1000 women
     high_rates = df[df["fertility_rate"] > max_plausible_rate]
     if not high_rates.empty:
-        validation_result["warnings"].append(
+        warnings.append(
             f"Very high fertility rates (>{max_plausible_rate}) found in "
             f"{len(high_rates)} records. Max rate: {df['fertility_rate'].max():.4f}"
         )
@@ -533,7 +533,7 @@ def validate_fertility_rates(
     typical_max = 0.13
     above_typical = df[df["fertility_rate"] > typical_max]
     if not above_typical.empty:
-        validation_result["warnings"].append(
+        warnings.append(
             f"Fertility rates above typical maximum ({typical_max}) found in "
             f"{len(above_typical)} records"
         )
@@ -542,7 +542,7 @@ def validate_fertility_rates(
     expected_combinations = len(expected_ages) * len(expected_races)
     actual_combinations = len(df)
     if actual_combinations < expected_combinations:
-        validation_result["errors"].append(
+        errors.append(
             f"Missing age-race combinations: expected {expected_combinations}, "
             f"got {actual_combinations}"
         )
@@ -554,23 +554,17 @@ def validate_fertility_rates(
         race_data = df[df["race_ethnicity"] == race]
         if not race_data.empty:
             tfr = race_data["fertility_rate"].sum()
-            validation_result["tfr_by_race"][race] = round(tfr, 3)
+            tfr_by_race[race] = round(tfr, 3)
 
             # Typical TFR range: 1.3-2.5 for developed countries
             if tfr < 1.0:
-                validation_result["warnings"].append(
-                    f"Very low TFR for {race}: {tfr:.2f} (typical range: 1.3-2.5)"
-                )
+                warnings.append(f"Very low TFR for {race}: {tfr:.2f} (typical range: 1.3-2.5)")
             elif tfr > 3.0:
-                validation_result["warnings"].append(
-                    f"Very high TFR for {race}: {tfr:.2f} (typical range: 1.3-2.5)"
-                )
+                warnings.append(f"Very high TFR for {race}: {tfr:.2f} (typical range: 1.3-2.5)")
 
     # Calculate overall TFR (population-weighted if possible, otherwise mean)
-    if validation_result["tfr_by_race"]:
-        validation_result["overall_tfr"] = round(
-            np.mean(list(validation_result["tfr_by_race"].values())), 3
-        )
+    if tfr_by_race:
+        validation_result["overall_tfr"] = round(np.mean(list(tfr_by_race.values())), 3)
 
     # Summary logging
     if validation_result["valid"]:
@@ -579,14 +573,10 @@ def validate_fertility_rates(
             f"Overall TFR: {validation_result['overall_tfr']:.2f}"
         )
     else:
-        logger.error(
-            f"Fertility rate validation failed with " f"{len(validation_result['errors'])} errors"
-        )
+        logger.error(f"Fertility rate validation failed with {len(errors)} errors")
 
-    if validation_result["warnings"]:
-        logger.warning(
-            f"Fertility rate validation produced " f"{len(validation_result['warnings'])} warnings"
-        )
+    if warnings:
+        logger.warning(f"Fertility rate validation produced {len(warnings)} warnings")
 
     return validation_result
 

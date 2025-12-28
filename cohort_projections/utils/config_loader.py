@@ -29,7 +29,7 @@ class ConfigLoader:
             config_dir = project_root / "config"
 
         self.config_dir = Path(config_dir)
-        self._configs = {}
+        self._configs: dict[str, dict[str, Any]] = {}
 
     def load_config(self, config_name: str) -> dict[str, Any]:
         """
@@ -98,7 +98,7 @@ class ConfigLoader:
         """
         config = self.get_projection_config()
 
-        value = config
+        value: Any = config
         for key in keys:
             if isinstance(value, dict):
                 value = value.get(key)

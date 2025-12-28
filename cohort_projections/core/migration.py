@@ -102,7 +102,7 @@ def apply_migration(
 
     # Build result DataFrame
     result = merged[["age", "sex", "race", "population_after_migration"]].copy()
-    result.columns = ["age", "sex", "race", "population"]
+    result.columns = pd.Index(["age", "sex", "race", "population"])
     result["year"] = year + 1  # Migration applied for next year
 
     # Log migration statistics

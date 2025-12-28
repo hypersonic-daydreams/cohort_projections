@@ -15,7 +15,7 @@ import json
 import warnings
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import pandas as pd
 
@@ -205,7 +205,7 @@ def write_projection_excel(
     age_pivot = projection_df.groupby(["year", "age"])["population"].sum().reset_index()
     age_pivot = age_pivot.pivot(index="age", columns="year", values="population")
     age_pivot = age_pivot.fillna(0)
-    age_pivot.columns = [f"Year {int(col)}" for col in age_pivot.columns]
+    age_pivot.columns = pd.Index([f"Year {int(col)}" for col in age_pivot.columns])
     age_pivot.index.name = "Age"
     age_pivot = age_pivot.reset_index()
 
@@ -480,9 +480,9 @@ def write_projection_csv(
         ).reset_index()
 
         # Rename year columns
-        df.columns = [
-            f"year_{int(col)}" if isinstance(col, int | float) else col for col in df.columns
-        ]
+        df.columns = pd.Index(
+            [f"year_{int(col)}" if isinstance(col, int | float) else col for col in df.columns]
+        )
 
     # Apply column ordering
     if columns_order:
@@ -491,7 +491,11 @@ def write_projection_csv(
         df = df[available_cols + other_cols]
 
     # Write to CSV
-    df.to_csv(output_path, index=False, compression=compression)
+    df.to_csv(
+        output_path,
+        index=False,
+        compression=cast(Literal["infer", "gzip", "bz2", "zip", "xz", "zstd"] | None, compression),
+    )
 
     file_size = output_path.stat().st_size
     logger.info(f"CSV written successfully: {output_path} ({file_size:,} bytes)")
@@ -578,7 +582,13 @@ def write_projection_formats(
     # Parquet
     if "parquet" in formats:
         parquet_path = output_dir / f"{base_filename}.parquet"
-        projection_df.to_parquet(parquet_path, compression=compression, index=False)
+        projection_df.to_parquet(
+            parquet_path,
+            compression=cast(
+                Literal["snappy", "gzip", "brotli", "lz4", "zstd"] | None, compression
+            ),
+            index=False,
+        )
         output_paths["parquet"] = parquet_path
         logger.info(f"Wrote Parquet: {parquet_path}")
 

@@ -25,15 +25,14 @@ repos:
       - id: ruff-format
 
   # MyPy - static type checking
-  # NOTE: Disabled for now - codebase needs type annotation work before enabling.
-  # TODO: Enable mypy incrementally as type annotations are added.
-  # When ready, uncomment this section:
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: v1.8.0
-  #   hooks:
-  #     - id: mypy
-  #       exclude: ^(scripts/|examples/|tests/)
-  #       additional_dependencies:
-  #         - types-PyYAML
-  #         - types-requests
-  #         - pandas-stubs
+  # Checks core package only (excludes scripts/examples/tests which use exploratory code)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        exclude: ^(scripts/|examples/|tests/)
+        args: ['--ignore-missing-imports']
+        additional_dependencies:
+          - types-PyYAML
+          - types-requests
+          - pandas-stubs

@@ -146,7 +146,9 @@ def interpolate_missing_ages(
 
 
 def aggregate_race_categories(
-    population: pd.DataFrame, race_column: str = "race", aggregation_map: dict = None
+    population: pd.DataFrame,
+    race_column: str = "race",
+    aggregation_map: dict[str, str] | None = None,
 ) -> pd.DataFrame:
     """
     Aggregate detailed race categories into broader groups.

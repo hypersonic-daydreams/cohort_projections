@@ -206,7 +206,7 @@ def plot_population_pyramid(
         bar_height = 0.8
 
         # Males (left, negative)
-        ax.barh(y_pos, -male_pop.values, bar_height, label="Male", color="#3498db")
+        ax.barh(y_pos, -np.asarray(male_pop.values), bar_height, label="Male", color="#3498db")
 
         # Females (right, positive)
         ax.barh(y_pos, female_pop.values, bar_height, label="Female", color="#e74c3c")

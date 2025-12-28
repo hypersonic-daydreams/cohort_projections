@@ -13,7 +13,7 @@ The method projects population forward by:
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 import numpy as np
 import pandas as pd
@@ -85,8 +85,8 @@ class CohortComponentProjection:
         self._validate_inputs()
 
         # Initialize results storage
-        self.projection_results = []
-        self.annual_summaries = []
+        self.projection_results: pd.DataFrame = pd.DataFrame()
+        self.annual_summaries: list[dict[str, Any]] = []
 
         logger.info("Cohort Component Projection initialized successfully")
 
@@ -207,7 +207,7 @@ class CohortComponentProjection:
         # Step 6: Aggregate any duplicate cohorts (shouldn't happen, but defensive)
         combined_population = combined_population.groupby(
             ["year", "age", "sex", "race"], as_index=False
-        )["population"].sum()
+        ).agg({"population": "sum"})
 
         # Step 7: Validation checks
         total_pop = combined_population["population"].sum()
@@ -396,7 +396,7 @@ class CohortComponentProjection:
         Returns:
             DataFrame with population for that year
         """
-        if self.projection_results is None or self.projection_results.empty:
+        if self.projection_results.empty:
             logger.warning("No projection results available")
             return pd.DataFrame()
 
@@ -419,7 +419,7 @@ class CohortComponentProjection:
         Returns:
             DataFrame showing cohort size over time
         """
-        if self.projection_results is None or self.projection_results.empty:
+        if self.projection_results.empty:
             logger.warning("No projection results available")
             return pd.DataFrame()
 
@@ -450,7 +450,7 @@ class CohortComponentProjection:
             format: Output format ('parquet', 'csv', 'excel')
             compression: Optional compression ('gzip', 'snappy', etc.)
         """
-        if self.projection_results is None or self.projection_results.empty:
+        if self.projection_results.empty:
             logger.error("No projection results to export")
             return
 
@@ -461,11 +461,22 @@ class CohortComponentProjection:
 
         if format == "parquet":
             self.projection_results.to_parquet(
-                output_path, compression=compression or "gzip", index=False
+                output_path,
+                compression=cast(
+                    Literal["snappy", "gzip", "brotli", "lz4", "zstd"] | None,
+                    compression or "gzip",
+                ),
+                index=False,
             )
 
         elif format == "csv":
-            self.projection_results.to_csv(output_path, index=False, compression=compression)
+            self.projection_results.to_csv(
+                output_path,
+                index=False,
+                compression=cast(
+                    Literal["infer", "gzip", "bz2", "zip", "xz", "zstd"] | None, compression
+                ),
+            )
 
         elif format == "excel":
             self.projection_results.to_excel(output_path, index=False, engine="openpyxl")

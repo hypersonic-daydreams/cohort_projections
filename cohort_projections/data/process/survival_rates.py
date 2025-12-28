@@ -9,6 +9,7 @@ survival rates by sex and race/ethnicity for cohort-component projections.
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -648,9 +649,7 @@ def calculate_life_expectancy(df: pd.DataFrame) -> dict[str, float]:
     return life_exp_results
 
 
-def validate_survival_rates(
-    df: pd.DataFrame, config: dict | None = None
-) -> dict[str, bool | list[str] | dict[str, float]]:
+def validate_survival_rates(df: pd.DataFrame, config: dict | None = None) -> dict[str, Any]:
     """
     Validate survival rates for plausibility.
 
@@ -695,7 +694,15 @@ def validate_survival_rates(
     """
     logger.info("Validating survival rates")
 
-    validation_result = {"valid": True, "errors": [], "warnings": [], "life_expectancy": {}}
+    errors: list[str] = []
+    warnings: list[str] = []
+    life_expectancy: dict[str, float] = {}
+    validation_result: dict[str, Any] = {
+        "valid": True,
+        "errors": errors,
+        "warnings": warnings,
+        "life_expectancy": life_expectancy,
+    }
 
     # Load config if not provided
     if config is None:
@@ -714,7 +721,7 @@ def validate_survival_rates(
     required_cols = ["age", "sex", "race_ethnicity", "survival_rate"]
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
-        validation_result["errors"].append(f"Missing required columns: {missing_cols}")
+        errors.append(f"Missing required columns: {missing_cols}")
         validation_result["valid"] = False
         return validation_result
 
@@ -723,34 +730,32 @@ def validate_survival_rates(
     actual_ages = set(df["age"].unique())
     missing_ages = expected_ages - actual_ages
     if missing_ages:
-        validation_result["errors"].append(f"Missing ages: {sorted(missing_ages)}")
+        errors.append(f"Missing ages: {sorted(missing_ages)}")
         validation_result["valid"] = False
 
     # Check all sex categories present
     actual_sexes = set(df["sex"].unique())
     missing_sexes = set(expected_sexes) - actual_sexes
     if missing_sexes:
-        validation_result["errors"].append(f"Missing sex categories: {list(missing_sexes)}")
+        errors.append(f"Missing sex categories: {list(missing_sexes)}")
         validation_result["valid"] = False
 
     # Check all race categories present
     actual_races = set(df["race_ethnicity"].unique())
     missing_races = set(expected_races) - actual_races
     if missing_races:
-        validation_result["errors"].append(f"Missing race categories: {list(missing_races)}")
+        errors.append(f"Missing race categories: {list(missing_races)}")
         validation_result["valid"] = False
 
     # Check for rates outside [0, 1]
     if (df["survival_rate"] < 0).any():
         negative_count = (df["survival_rate"] < 0).sum()
-        validation_result["errors"].append(
-            f"Negative survival rates found: {negative_count} records"
-        )
+        errors.append(f"Negative survival rates found: {negative_count} records")
         validation_result["valid"] = False
 
     if (df["survival_rate"] > 1).any():
         over_one_count = (df["survival_rate"] > 1).sum()
-        validation_result["errors"].append(f"Survival rates > 1.0 found: {over_one_count} records")
+        errors.append(f"Survival rates > 1.0 found: {over_one_count} records")
         validation_result["valid"] = False
 
     # Check infant survival rates (age 0)
@@ -760,22 +765,16 @@ def validate_survival_rates(
         max_infant = infant_data["survival_rate"].max()
 
         if min_infant < 0.990:
-            validation_result["warnings"].append(
-                f"Low infant survival rate: {min_infant:.4f} (typical: 0.993-0.995)"
-            )
+            warnings.append(f"Low infant survival rate: {min_infant:.4f} (typical: 0.993-0.995)")
         if max_infant > 0.998:
-            validation_result["warnings"].append(
-                f"Unusually high infant survival rate: {max_infant:.4f}"
-            )
+            warnings.append(f"Unusually high infant survival rate: {max_infant:.4f}")
 
     # Check child survival rates (ages 1-14)
     child_data = df[(df["age"] >= 1) & (df["age"] <= 14)]
     if not child_data.empty:
         min_child = child_data["survival_rate"].min()
         if min_child < 0.9990:
-            validation_result["warnings"].append(
-                f"Low child survival rate: {min_child:.4f} (typical: > 0.9995)"
-            )
+            warnings.append(f"Low child survival rate: {min_child:.4f} (typical: > 0.9995)")
 
     # Check elderly survival rates (ages 65-84)
     elderly_data = df[(df["age"] >= 65) & (df["age"] < 85)]
@@ -784,13 +783,9 @@ def validate_survival_rates(
         max_elderly = elderly_data["survival_rate"].max()
 
         if min_elderly < 0.90:
-            validation_result["warnings"].append(
-                f"Very low elderly survival rate: {min_elderly:.4f}"
-            )
+            warnings.append(f"Very low elderly survival rate: {min_elderly:.4f}")
         if max_elderly > 0.99:
-            validation_result["warnings"].append(
-                f"Unusually high elderly survival rate: {max_elderly:.4f}"
-            )
+            warnings.append(f"Unusually high elderly survival rate: {max_elderly:.4f}")
 
     # Check age 90+ survival
     age_90_data = df[df["age"] == 90]
@@ -799,19 +794,15 @@ def validate_survival_rates(
         max_90 = age_90_data["survival_rate"].max()
 
         if min_90 < 0.50:
-            validation_result["warnings"].append(
-                f"Low age 90+ survival rate: {min_90:.4f} (typical: 0.6-0.7)"
-            )
+            warnings.append(f"Low age 90+ survival rate: {min_90:.4f} (typical: 0.6-0.7)")
         if max_90 > 0.80:
-            validation_result["warnings"].append(
-                f"High age 90+ survival rate: {max_90:.4f} (typical: 0.6-0.7)"
-            )
+            warnings.append(f"High age 90+ survival rate: {max_90:.4f} (typical: 0.6-0.7)")
 
     # Check for missing data in expected combinations
     expected_combinations = len(expected_ages) * len(expected_sexes) * len(expected_races)
     actual_combinations = len(df)
     if actual_combinations < expected_combinations:
-        validation_result["errors"].append(
+        errors.append(
             f"Missing age-sex-race combinations: expected {expected_combinations}, "
             f"got {actual_combinations}"
         )
@@ -825,29 +816,21 @@ def validate_survival_rates(
         # Validate life expectancy values
         for key, e0 in life_exp.items():
             if e0 < 70:
-                validation_result["warnings"].append(
-                    f"Low life expectancy for {key}: {e0:.1f} years (typical: 75-87)"
-                )
+                warnings.append(f"Low life expectancy for {key}: {e0:.1f} years (typical: 75-87)")
             elif e0 > 90:
-                validation_result["warnings"].append(
-                    f"High life expectancy for {key}: {e0:.1f} years (typical: 75-87)"
-                )
+                warnings.append(f"High life expectancy for {key}: {e0:.1f} years (typical: 75-87)")
 
     except Exception as e:
-        validation_result["warnings"].append(f"Could not calculate life expectancy: {e}")
+        warnings.append(f"Could not calculate life expectancy: {e}")
 
     # Summary logging
     if validation_result["valid"]:
         logger.info("Survival rates validated successfully")
     else:
-        logger.error(
-            f"Survival rate validation failed with " f"{len(validation_result['errors'])} errors"
-        )
+        logger.error(f"Survival rate validation failed with {len(errors)} errors")
 
-    if validation_result["warnings"]:
-        logger.warning(
-            f"Survival rate validation produced " f"{len(validation_result['warnings'])} warnings"
-        )
+    if warnings:
+        logger.warning(f"Survival rate validation produced {len(warnings)} warnings")
 
     return validation_result
 
@@ -1034,7 +1017,7 @@ if __name__ == "__main__":
     for sex in sexes:
         for race in races:
             # Create a simple life table with lx column
-            lx = 100000  # Radix
+            lx: float = 100000.0  # Radix
 
             for age in range(91):
                 # Simplified mortality pattern

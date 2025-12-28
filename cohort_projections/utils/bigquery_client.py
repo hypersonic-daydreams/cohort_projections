@@ -71,29 +71,30 @@ class BigQueryClient:
             )
 
         # Determine credentials path
-        if credentials_path is None:
-            credentials_path = self.config.get("credentials_path")
+        creds_path_str: str | None = credentials_path
+        if creds_path_str is None:
+            creds_path_str = self.config.get("credentials_path")
 
-        if not credentials_path:
+        if not creds_path_str:
             raise ValueError(
                 "BigQuery credentials_path must be provided either as argument or in config file"
             )
 
         # Expand user path (e.g., ~/)
-        credentials_path = Path(credentials_path).expanduser()
+        creds_path = Path(creds_path_str).expanduser()
 
-        if not credentials_path.exists():
+        if not creds_path.exists():
             raise FileNotFoundError(
-                f"BigQuery credentials file not found: {credentials_path}\n"
-                f"Please create service account key and save to: {credentials_path}"
+                f"BigQuery credentials file not found: {creds_path}\n"
+                f"Please create service account key and save to: {creds_path}"
             )
 
         # Authenticate and create client
-        logger.info(f"Authenticating with BigQuery using credentials: {credentials_path}")
+        logger.info(f"Authenticating with BigQuery using credentials: {creds_path}")
 
         try:
             self.credentials = service_account.Credentials.from_service_account_file(
-                str(credentials_path)
+                str(creds_path)
             )
             self.client = bigquery.Client(credentials=self.credentials, project=self.project_id)
             logger.info(f"BigQuery client initialized for project: {self.project_id}")
