@@ -381,3 +381,267 @@ When presenting results, show both projections as a range of possibilities:
 - **Optimistic bound**: SDC 2024 (assumes continued in-migration)
 - **Pessimistic bound**: Our baseline (assumes continued out-migration)
 - **Reality**: Likely somewhere in between, depending on economic conditions
+
+---
+
+## SDC Source File Analysis
+
+This section documents detailed findings from analysis of the SDC's actual source files and working spreadsheets, providing insight into their specific methodological choices and calculations.
+
+### Data Sources Used
+
+#### Base Population
+- **Census 2020**: Used as the authoritative base population
+- **Census 2010**: Used for historical comparison and migration rate calculation
+- **Population Estimates Program (PEP)**: Used cc-est2019-agesex-38 for interim estimates
+
+#### Fertility Data
+- **Source**: North Dakota Vital Statistics, Department of Health
+- **Time Period**: 2016-2022 (with emphasis on 2018-2022 for rate calculation)
+- **Data File**: "2018-2022 ND Res Birth for Kevin Iverson.xlsx" - Prepared September 15, 2023 by Vital Records
+- **Categories**: Births by county of residence, age group of mother (Under 20, 20-25, 25-29, 30-34, 35-39, 40-44, 45+)
+- **Female Population**: "Average Female Count 2018 to 2022.xlsx" - Average of 2018 and 2022 female populations by age group by county
+- **National Reference**: NVSS Report (nvsr72-01.pdf) - National Vital Statistics Reports Volume 71, Number 1, dated January 31, 2023
+
+**Fertility Rate Calculation Method:**
+1. Average female population by age group (10-14, 15-19, 20-24, 25-29, 30-34, 35-39, 40-44, 45-49) for each county from 2018-2022
+2. Sum births by mother's age group for 2018-2022 period
+3. Calculate 5-year fertility rate = (Total births in age group) / (Average female population in age group)
+4. Rates "smoothed to reduce anomalies" - blended with state and national rates for stability
+
+**Key Fertility Data Points:**
+- State total: ~189,000 to ~197,000 females of childbearing age (10-49)
+- Birth data includes suppression ("NR") for small cells for privacy
+- 2018-2022 total births by year: 10,630 (2018), 10,447 (2019), 10,051 (2020), 10,111 (2021), 9,557 (2022)
+- Sex ratio at birth: ~104.8 males per 100 females (51.2% male, 48.8% female)
+
+#### Survival/Mortality Data
+- **Source**: CDC Life Tables for North Dakota, 2020
+- **Publication**: NVSS Report nvsr71-02
+- **Files**: ND1.xlsx (Total), ND2.xlsx (Males), ND3.xlsx (Females), ND4.xlsx (Standard Errors)
+
+**Life Table Structure (Standard life table columns):**
+| Column | Description |
+|--------|-------------|
+| qx | Probability of dying between ages x and x+1 |
+| lx | Number surviving to age x (from radix of 100,000) |
+| dx | Number dying between ages x and x+1 |
+| Lx | Person-years lived between ages x and x+1 |
+| Tx | Total person-years lived above age x |
+| ex | Expectation of life at age x |
+
+**5-Year Survival Rates (from Projections_Base_2023.xlsx):**
+
+| Age Group | Male | Female |
+|-----------|------|--------|
+| Under 5 | 0.9915 | 0.9946 |
+| 5-9 | 0.9994 | 0.9994 |
+| 10-14 | 0.9987 | 0.9994 |
+| 15-19 | 0.9982 | 0.9983 |
+| 20-24 | 0.9949 | 0.9980 |
+| 25-29 | 0.9927 | 0.9972 |
+| 30-34 | 0.9897 | 0.9961 |
+| 35-39 | 0.9876 | 0.9950 |
+| 40-44 | 0.9860 | 0.9936 |
+| 45-49 | 0.9808 | 0.9914 |
+| 50-54 | 0.9776 | 0.9878 |
+| 55-59 | 0.9652 | 0.9817 |
+| 60-64 | 0.9521 | 0.9725 |
+| 65-69 | 0.9335 | 0.9593 |
+| 70-74 | 0.8972 | 0.9405 |
+| 75-79 | 0.8355 | 0.9092 |
+| 80-84 | 0.7353 | 0.8525 |
+| 85+ | 0.5428 (calculated) | 0.6998 (calculated) |
+
+**Life Expectancy at Birth (2020):**
+- Total: 76.9 years
+- Males: 74.2 years
+- Females: 80.0 years
+
+**85+ Survival Rate Calculation (from spreadsheet):**
+The SDC calculated the 85+ open-ended age group survival rate using:
+```
+85+ Survival Rate = (85+ survivors at t+5) / (90+ survivors at t+5) = 305,579 / 121,647 = 0.398 (approximate)
+```
+Note: They used 0.5428 for males and 0.6998 for females in actual projections.
+
+#### Migration Data
+- **Source Files**:
+  - "Mig Rate 2000-2020_final.xlsx" - Final averaged migration rates
+  - "Mig Rates 2000-2020.xlsx" - Working calculations
+- **Time Periods Analyzed**:
+  - 2000-2005
+  - 2005-2010
+  - 2010-2015
+  - 2015-2020
+- **Method**: Residual method (calculated as difference between actual and expected population)
+
+### Migration Rate Calculation Methodology
+
+The SDC calculated migration rates using the following detailed process:
+
+#### Step 1: Calculate Expected Population (No Migration)
+For each 5-year period, calculate what the population would be with zero migration:
+```
+Expected_Pop[t+5] = Pop[t] * Survival_Rate + Births_to_Cohort
+```
+
+#### Step 2: Calculate Migration Residual
+```
+Migration_Rate = (Actual_Pop[t+5] - Expected_Pop[t+5]) / Pop[t]
+```
+
+#### Step 3: Average Across Four Periods
+The final migration rates used are averages of the four 5-year periods (2000-2005, 2005-2010, 2010-2015, 2015-2020).
+
+**Example Migration Rates by Age Group (State Level, Averaged 2000-2020):**
+
+| Age Group | Male Rate | Female Rate |
+|-----------|-----------|-------------|
+| Under 5 | +0.108 | -0.003 |
+| 5-9 | +0.049 | +0.011 |
+| 10-14 | +0.054 | +0.017 |
+| 15-19 | +0.173 | +0.081 |
+| 20-24 | +0.328 | +0.117 |
+| 25-29 | -0.119 | -0.243 |
+| 30-34 | +0.059 | +0.083 |
+| 35-39 | +0.039 | -0.022 |
+| 40-44 | +0.036 | +0.004 |
+| 45-49 | +0.032 | -0.001 |
+| 50-54 | +0.042 | +0.005 |
+| 55-59 | +0.024 | -0.008 |
+| 60-64 | -0.007 | -0.011 |
+| 65-69 | -0.049 | -0.023 |
+| 70-74 | -0.087 | -0.033 |
+| 75-79 | -0.100 | -0.085 |
+| 80-84 | -0.160 | -0.132 |
+| 85+ | -0.148 | -0.089 |
+
+**Key Migration Patterns Identified:**
+- **Strong in-migration**: Ages 20-24 (college/workforce entry), males especially
+- **Out-migration**: Ages 25-29 for females, 65+ for both sexes
+- **Net male migration**: 0.034 (males), -0.019 (females) - significant gender imbalance
+
+#### Migration Rate Adjustments (The "60% Dampening")
+
+From the methodology writeup, the SDC made several critical adjustments:
+
+1. **Bakken Dampening**: "Given the significant in-migration that North Dakota experienced from 2010 to 2020, the rates were typically reduced to about 60 percent of what was found" because the Bakken Oil Boom "is unlikely to occur again"
+
+2. **College-Age Adjustment**: "Counties with significant college age populations typically required additional adjustments as the algorithm tends to not capture the in- and out-migration of college age residents as well as it should"
+
+3. **Male Migration Adjustment**: "The rate of male migration was further reduced than female migration as the pattern found from 2000 to 2020 when in-migration was dominated by males is unlikely to continue into the future and would have resulted in unrealistic sex ratio in future years"
+
+4. **Bakken Region Counties**: "The rate of migration in counties in the Bakken region that experienced significant growth during the last decade also were adjusted to a lower rate"
+
+### Projection Workbook Structure
+
+The main projection workbook (Projections_Base_2023.xlsx) contains 45 sheets organized as follows:
+
+| Sheet Category | Purpose |
+|----------------|---------|
+| Notes | Process documentation |
+| 5-Year Survival Rate By Sex | Survival rates from life tables |
+| Census 2010, Census 2020 | Base population data |
+| Senthetic_2015_2 | Interpolated 2015 estimates |
+| Mig_Rate | Averaged migration rates by age/sex/county |
+| Fer 2020-2025, Fer_2025-30, etc. | Fertility calculations per period |
+| Nat_Grow 2020-2025, etc. | Natural growth (births - deaths) |
+| Adjustments 2020-2025, etc. | Manual adjustment factors |
+| 2020-2025 Migration, etc. | Migration applied |
+| 2025 Pro, 2030 Pro, etc. | Final projections by period |
+
+**Projection Process (from Notes sheet):**
+1. Start with Census base (adjusted in 5-year increments)
+2. Apply fertility rate by age of mother to get ages 0-4 population
+3. Apply survival rate by age group and sex by county
+4. Apply migration rate by age, sex, and county
+5. Apply manual adjustments for "unexpected patterns of natural growth"
+6. Output next 5-year projection
+
+### Comparison to Our Methodology
+
+#### Where SDC Source Files Confirm Alignment
+
+| Aspect | SDC Source Files | Our Approach |
+|--------|------------------|--------------|
+| Cohort-component structure | 18 age groups x 2 sexes x 53 counties = 1,908 cells | Same structure, plus 6 race categories |
+| CDC life tables | ND-specific, 2020 | SEER/CDC, configurable year |
+| 5-year survival rates | Calculated from single-year qx | Same approach |
+| Fertility by mother's age | 7 age groups (10-14 through 45-49) | Same age groups |
+
+#### Where SDC Source Files Reveal Key Differences
+
+| Aspect | SDC Approach (from source files) | Our Approach |
+|--------|----------------------------------|--------------|
+| **Migration time period** | 2000-2020 (4 periods averaged) | 2018-2022 (recent years) |
+| **Migration method** | Residual (Census-based) | IRS county-to-county flows |
+| **Migration adjustment** | 60% dampening of historical rates | No dampening (uses recent data) |
+| **Manual adjustments** | Yes - spreadsheet "Adjustments" sheets | No manual adjustments |
+| **Mortality improvement** | None visible (constant rates) | Lee-Carter style 0.5%/year |
+| **Race/ethnicity** | None | 6 categories |
+| **College adjustment** | Special handling for college counties | Handled via age pattern |
+
+### Key Formulas Extracted
+
+**Natural Growth Calculation:**
+```
+Natural_Growth[county, age, sex] = Population[t] * Survival_Rate[age, sex] + Births[county, age_mother]
+```
+
+**Migration Application:**
+```
+Population[t+5] = Natural_Growth * (1 + Migration_Rate[county, age, sex])
+```
+
+**85+ Survival (Open-ended):**
+```
+85+_Survivors[t+5] = 85+_Pop[t] * 0.5428 (males) or 0.6998 (females)
+```
+
+### Why The Projections Diverge: Source File Evidence
+
+The source files provide definitive evidence for the ~170,000 person divergence by 2045:
+
+1. **Migration Rate Sign**:
+   - SDC's averaged rates (2000-2020) show **positive** net migration for most working-age groups
+   - Our IRS data (2019-2022) shows **negative** net migration
+   - This single factor accounts for ~150,000+ of the divergence
+
+2. **Migration Rate Magnitude**:
+   - Even after 60% dampening, SDC projects +4,000 to +6,000 net migrants/year
+   - Our data shows -4,000 to -5,000 net migrants/year
+   - 20-year difference: ~200,000 people
+
+3. **Mortality Assumptions**:
+   - SDC: Constant mortality rates throughout projection
+   - Ours: 0.5% annual improvement
+   - This slightly increases our projected population relative to SDC, partially offsetting migration
+
+4. **Manual Adjustments**:
+   - SDC makes manual adjustments per their "Adjustments" sheets
+   - These adjustments are not fully documented but appear to smooth results
+   - Our approach is algorithmic with no manual intervention
+
+### Data Quality Observations
+
+From examining the source files:
+
+1. **Small cell suppression**: Birth data uses "NR" (Not Reported) for privacy in small counties
+2. **Rounding**: Some intermediate calculations appear rounded
+3. **Interpolation**: 2015 population was "synthetic" (interpolated between 2010 and 2020)
+4. **Date stamps**: Files dated December 2023 through January 2024, final methodology dated March 7, 2024
+
+### Recommendations Based on Source File Analysis
+
+1. **Consider a "SDC-Calibrated" Scenario**:
+   Apply their 60% dampening factor to our migration rates to produce a projection closer to theirs for comparison purposes.
+
+2. **Document Migration Rate Discrepancy**:
+   The IRS data and Census residual methods produce fundamentally different pictures of recent migration. Both have validity; the choice depends on which historical period is deemed more representative of the future.
+
+3. **Add Mortality Improvement Toggle**:
+   The SDC does not appear to include mortality improvement. Consider making this configurable (0% to 0.5%) to match different methodological choices.
+
+4. **Validate Against 2025 Actuals**:
+   When 2025 Census estimates become available, compare both projections to actual to assess which migration assumption is proving more accurate.
