@@ -81,31 +81,30 @@ if [[ ! -f "$FILTER_FILE" ]]; then
 - htmlcov/**
 - *.pyc
 - *.pyo
+- *.py
+- *.md
+- *.txt
+- *.yaml
+- *.yml
+- *.toml
 - *.log
 - *.tmp
 - *.swp
 - .DS_Store
 - Thumbs.db
 - .gitkeep
+- .gitignore
 
 # 2. DATA DIRECTORIES (Whitelist - the primary sync targets)
+# These are the directories for raw and processed data
 + data/raw/**
 + data/processed/**
 + data/interim/**
 
-# 3. OUTPUT DIRECTORIES (projections and exports)
-+ output/**
-+ exports/**
-
-# 4. LARGE ASSET TYPES (Whitelist - anywhere in project)
-+ *.parquet
-+ *.parquet.gzip
-+ *.feather
-+ *.arrow
-+ *.xlsx
-+ *.xls
-+ *.csv
-+ *.json
+# 3. OUTPUT DIRECTORIES (for projection results, at project root only)
+# Use anchored paths to avoid matching cohort_projections/output/
++ /output/**
++ /exports/**
 
 # 5. SENTINEL (for testing sync)
 + RCLONE_TEST
