@@ -1,0 +1,346 @@
+# Data Sources Manifest for North Dakota Cohort Projection System
+#
+# This file documents all data sources required for the projection system.
+# Used by scripts/fetch_data.py to populate data/raw/ from sibling repositories
+# or to guide manual data acquisition.
+#
+# See ADR-016 for the complete data management strategy.
+# See docs/REPOSITORY_EVALUATION.md for data availability assessment.
+
+# =============================================================================
+# GEOGRAPHIC DATA
+# =============================================================================
+# Reference data for North Dakota counties, places, and metropolitan areas.
+# These files define the geographic hierarchy for projections.
+
+data_sources:
+  geographic:
+    nd_counties:
+      description: |
+        North Dakota county reference data (53 counties).
+        Provides FIPS codes, county names, and total population estimates.
+        Used to define the geographic hierarchy for county-level projections.
+      source_paths:
+        - "${HOME}/projects/ndx-econareas/data/processed/reference/popest/2024/population_county_2024.csv"
+      destination: "data/raw/geographic/nd_counties.csv"
+      external_source: "Census Bureau Population Estimates Program"
+      external_url: "https://www.census.gov/data/tables/time-series/demo/popest/2020s-counties-total.html"
+      required_columns:
+        - "county_fips"
+        - "county_name"
+        - "state_fips"
+      notes: |
+        Filter to STATE=38 (North Dakota) if using national file.
+        The ndx-econareas version is pre-filtered to ND counties.
+
+    nd_places:
+      description: |
+        North Dakota incorporated places reference data (355 cities/places).
+        Provides place FIPS codes, names, and county containment relationships.
+        Used for sub-county place-level projections.
+      source_paths:
+        - "${HOME}/projects/popest/data/raw/cities/totals/sub-est2024_38.csv"
+      destination: "data/raw/geographic/nd_places.csv"
+      external_source: "Census Bureau Population Estimates Program - Incorporated Places"
+      external_url: "https://www.census.gov/data/tables/time-series/demo/popest/2020s-total-cities-and-towns.html"
+      required_columns:
+        - "NAME"
+        - "STNAME"
+        - "POPESTIMATE2024"
+      notes: |
+        File sub-est2024_38.csv is already filtered to North Dakota (state FIPS 38).
+        Contains 2020-2024 population estimates for all incorporated places.
+
+    metro_crosswalk:
+      description: |
+        County to Core Based Statistical Area (CBSA) crosswalk.
+        Maps each county to its metropolitan/micropolitan area for aggregation.
+        Used to generate metro-level summaries from county projections.
+      source_paths:
+        - "${HOME}/projects/ndx-econareas/data/processed/reference/omb/2023/county_to_cbsa_2023.csv"
+      destination: "data/raw/geographic/metro_crosswalk.csv"
+      external_source: "Office of Management and Budget (OMB) Delineation Files"
+      external_url: "https://www.census.gov/geographies/reference-files/time-series/demo/metro-micro/delineation-files.html"
+      required_columns:
+        - "county_fips"
+        - "cbsa_code"
+        - "cbsa_title"
+      notes: |
+        Based on OMB 2023 metropolitan area delineations.
+        North Dakota has 2 metropolitan areas (Fargo, Bismarck) and several micropolitan areas.
+
+  # ===========================================================================
+  # POPULATION DATA
+  # ===========================================================================
+  # Base population data for the projection system.
+  # Provides population by age, sex, and race/ethnicity.
+
+  population:
+    county_population:
+      description: |
+        County-level population estimates with demographic components.
+        Provides annual population estimates (2020-2024) with births, deaths,
+        and migration components for all U.S. counties.
+      source_paths:
+        - "${HOME}/projects/popest/data/raw/counties/totals/co-est2024-alldata.csv"
+      destination: "data/raw/population/co-est2024-alldata.csv"
+      external_source: "Census Bureau Population Estimates Program"
+      external_url: "https://www.census.gov/data/tables/time-series/demo/popest/2020s-counties-total.html"
+      required_columns:
+        - "STATE"
+        - "COUNTY"
+        - "STNAME"
+        - "CTYNAME"
+        - "POPESTIMATE2024"
+        - "BIRTHS2024"
+        - "DEATHS2024"
+        - "NETMIG2024"
+      notes: |
+        Filter to STATE=38 for North Dakota data only.
+        Contains all 53 ND counties with full demographic component breakdown.
+        Useful for validating projection outputs against official estimates.
+
+    state_population:
+      description: |
+        State-level population estimates with demographic components.
+        Provides annual population estimates (2020-2024) with detailed
+        births, deaths, domestic migration, and international migration.
+      source_paths:
+        - "${HOME}/projects/popest/data/raw/state/totals/NST-EST2024-ALLDATA.csv"
+      destination: "data/raw/population/NST-EST2024-ALLDATA.csv"
+      external_source: "Census Bureau Population Estimates Program"
+      external_url: "https://www.census.gov/data/tables/time-series/demo/popest/2020s-state-total.html"
+      required_columns:
+        - "NAME"
+        - "POPESTIMATE2024"
+        - "BIRTHS2024"
+        - "DEATHS2024"
+        - "DOMESTICMIG2024"
+        - "INTERNATIONALMIG2024"
+      notes: |
+        Filter to NAME="North Dakota" or row where STATE=38.
+        Used for state-level totals and validation of county sums.
+
+    pums_person:
+      description: |
+        American Community Survey Public Use Microdata Sample (PUMS) person records.
+        Provides detailed age, sex, race/ethnicity distributions from ACS microdata.
+        Essential for creating age-sex-race population pyramids as base population.
+      source_paths:
+        - "${HOME}/maps/data/raw/pums_person.parquet"
+      destination: "data/raw/population/pums_person.parquet"
+      external_source: "Census Bureau American Community Survey PUMS"
+      external_url: "https://www.census.gov/programs-surveys/acs/microdata.html"
+      required_columns:
+        - "AGEP"
+        - "SEX"
+        - "RAC1P"
+        - "HISP"
+        - "PWGTP"
+      notes: |
+        Parquet file containing ACS PUMS person records.
+        AGEP = age, SEX = sex, RAC1P = race, HISP = Hispanic origin, PWGTP = person weight.
+        Filter to North Dakota (ST=38) and apply weights for population estimates.
+        May need to use 5-year ACS for adequate sample size in small counties.
+
+  # ===========================================================================
+  # FERTILITY DATA
+  # ===========================================================================
+  # Age-specific fertility rates by race/ethnicity.
+  # Used in the projection engine to calculate births.
+
+  fertility:
+    seer_fertility_rates:
+      description: |
+        Age-Specific Fertility Rates (ASFR) by race/ethnicity from SEER.
+        Provides births per 1,000 women by single year of age (15-49) and race.
+        Required for calculating projected births in the cohort-component model.
+      source_paths: []  # Not available locally - must be downloaded
+      destination: "data/raw/fertility/seer_asfr_2018_2022.csv"
+      external_source: "SEER*Stat (Surveillance, Epidemiology, and End Results Program)"
+      external_url: "https://seer.cancer.gov/seerstat/"
+      required_columns:
+        - "age"
+        - "race_ethnicity"
+        - "asfr"
+        - "year"
+      notes: |
+        MUST BE DOWNLOADED MANUALLY from SEER*Stat or CDC WONDER.
+
+        SEER*Stat download instructions:
+        1. Install SEER*Stat software from https://seer.cancer.gov/seerstat/
+        2. Request access to SEER*Stat Database
+        3. Query: Natality > U.S. > Age of Mother, Race/Ethnicity
+        4. Export as CSV with single-year age groups (15-49)
+
+        Alternative: CDC WONDER Natality
+        1. Go to https://wonder.cdc.gov/natality.html
+        2. Select years 2018-2022
+        3. Group by: Age of Mother (single years), Race/Ethnicity
+        4. Request births and population to calculate rates
+
+    cdc_nvss_fertility:
+      description: |
+        Alternative fertility rates from CDC National Vital Statistics System.
+        Can be used if SEER rates are unavailable or for validation.
+      source_paths: []  # Not available locally - must be downloaded
+      destination: "data/raw/fertility/cdc_nvss_fertility.csv"
+      external_source: "CDC National Center for Health Statistics - NVSS"
+      external_url: "https://www.cdc.gov/nchs/nvss/births.htm"
+      required_columns:
+        - "age"
+        - "race_ethnicity"
+        - "fertility_rate"
+      notes: |
+        Alternative to SEER data. Published in annual Births reports.
+        May require extraction from PDF tables or special tabulations.
+
+  # ===========================================================================
+  # MORTALITY DATA
+  # ===========================================================================
+  # Life tables for calculating survival rates by age, sex, and race.
+  # Used to calculate cohort survival from year to year.
+
+  mortality:
+    seer_life_tables:
+      description: |
+        Complete period life tables by age, sex, and race/ethnicity.
+        Provides survival probabilities (lx, qx, Lx, Tx, ex columns).
+        Required for calculating survival rates in the projection model.
+      source_paths: []  # Not available locally - must be downloaded
+      destination: "data/raw/mortality/seer_lifetables_2020.csv"
+      external_source: "SEER*Stat or CDC National Vital Statistics System"
+      external_url: "https://www.cdc.gov/nchs/products/life_tables.htm"
+      required_columns:
+        - "age"
+        - "sex"
+        - "race_ethnicity"
+        - "qx"
+        - "lx"
+      notes: |
+        MUST BE DOWNLOADED MANUALLY from SEER or CDC.
+
+        CDC Life Tables download:
+        1. Go to https://www.cdc.gov/nchs/products/life_tables.htm
+        2. Download "United States Life Tables" for desired year(s)
+        3. Tables are typically in PDF/Excel format
+        4. Extract life table values: age, qx (probability of death), lx (survivors)
+
+        SEER*Stat Life Tables:
+        1. In SEER*Stat, use Mortality database
+        2. Generate life tables by age, sex, race
+        3. Export as CSV
+
+        Key column definitions:
+        - qx: probability of dying between ages x and x+1
+        - lx: number surviving to exact age x (from radix of 100,000)
+        - survival_rate = 1 - qx (or lx[x+1]/lx[x])
+
+    cdc_nvss_life_tables:
+      description: |
+        Alternative life tables from CDC NVSS publications.
+        Annual life tables by sex and race available in PDF and Excel.
+      source_paths: []  # Not available locally - must be downloaded
+      destination: "data/raw/mortality/cdc_nvss_life_tables.csv"
+      external_source: "CDC National Center for Health Statistics - Life Tables"
+      external_url: "https://www.cdc.gov/nchs/products/life_tables.htm"
+      required_columns:
+        - "age"
+        - "sex"
+        - "race"
+        - "qx"
+      notes: |
+        Published annually by NCHS. Available from 1900-present.
+        May require manual extraction from PDF/Excel publications.
+
+  # ===========================================================================
+  # MIGRATION DATA
+  # ===========================================================================
+  # Domestic and international migration flows.
+  # Used to calculate net migration by age/sex in the projection model.
+
+  migration:
+    irs_county_flows:
+      description: |
+        IRS Statistics of Income county-to-county migration flow data.
+        Provides inflow/outflow counts between county pairs based on tax returns.
+        Used to estimate net domestic migration rates for ND counties.
+      source_paths: []  # Not available locally - must be downloaded
+      destination: "data/raw/migration/irs_county_flows_2018_2022.csv"
+      external_source: "IRS Statistics of Income - Migration Data"
+      external_url: "https://www.irs.gov/statistics/soi-tax-stats-migration-data"
+      required_columns:
+        - "y1_statefips"
+        - "y1_countyfips"
+        - "y2_statefips"
+        - "y2_countyfips"
+        - "n1"
+        - "n2"
+        - "AGI"
+      notes: |
+        MUST BE DOWNLOADED MANUALLY from IRS SOI.
+
+        Download instructions:
+        1. Go to https://www.irs.gov/statistics/soi-tax-stats-migration-data
+        2. Download county-to-county migration files for years 2018-2022
+        3. Files are provided as CSV or Excel
+        4. Filter to flows involving North Dakota (state FIPS 38)
+
+        Column definitions:
+        - y1_statefips, y1_countyfips: Origin geography
+        - y2_statefips, y2_countyfips: Destination geography
+        - n1: Number of returns (approximate number of tax filers)
+        - n2: Number of exemptions (approximate persons)
+        - AGI: Adjusted gross income (for economic migration analysis)
+
+        Note: IRS data covers only tax filers. Adjust for non-filers
+        using population coverage ratios.
+
+    acs_international_migration:
+      description: |
+        International migration estimates from American Community Survey.
+        Provides foreign-born population and year of entry for international
+        migration estimation.
+      source_paths: []  # Not available locally - must be downloaded
+      destination: "data/raw/migration/acs_international_migration.csv"
+      external_source: "Census Bureau American Community Survey"
+      external_url: "https://data.census.gov/table?t=Foreign+Born"
+      required_columns:
+        - "geography"
+        - "year"
+        - "foreign_born_entered_last_year"
+      notes: |
+        Download from data.census.gov or via Census API.
+
+        Table B05005: Place of Birth by Year of Entry
+        Filter to North Dakota geographies.
+
+        International migration is a smaller component for ND but
+        should be included for completeness.
+
+# =============================================================================
+# METADATA
+# =============================================================================
+
+metadata:
+  version: "1.0.0"
+  created: "2025-12-28"
+  updated: "2025-12-28"
+  description: |
+    Data sources manifest for the North Dakota Cohort Component Projection System.
+    This file documents all required data sources, their locations, and acquisition
+    instructions for reproducibility and official reporting purposes.
+
+  references:
+    - "ADR-016: Raw Data Management and Cross-Computer Synchronization Strategy"
+    - "docs/REPOSITORY_EVALUATION.md"
+    - "docs/DATA_ACQUISITION_GUIDE.md"
+
+  maintainer: "North Dakota State Data Center"
+
+  data_categories:
+    geographic: "Reference data for counties, places, and metropolitan areas"
+    population: "Base population by age, sex, and race/ethnicity"
+    fertility: "Age-specific fertility rates for birth projections"
+    mortality: "Life tables for survival rate calculations"
+    migration: "Domestic and international migration flow data"

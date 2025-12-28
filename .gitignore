@@ -37,11 +37,17 @@ ENV/
 .ipynb_checkpoints/
 *.ipynb_checkpoints
 
-# Data files (large files)
+# Raw data files (synced via rclone, not git)
+# See ADR-016 for data management strategy
 data/raw/**/*.csv
 data/raw/**/*.parquet
+data/raw/**/*.xlsx
+data/raw/**/*.xls
+data/raw/**/*.json
 data/raw/**/*.txt
 data/raw/**/*.zip
+
+# Processed and projection output files
 data/processed/**/*.csv
 data/processed/**/*.parquet
 data/projections/**/*.csv
@@ -50,6 +56,7 @@ data/projections/**/*.xlsx
 
 # Keep directory structure
 !data/raw/.gitkeep
+!data/raw/**/.gitkeep
 !data/processed/.gitkeep
 !data/projections/.gitkeep
 

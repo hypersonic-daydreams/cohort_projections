@@ -48,12 +48,17 @@ micromamba activate cohort_proj
 pip install -r requirements.txt
 ```
 
-### 2. Download Base Data
+### 2. Fetch Data from Sibling Repositories
 
 ```bash
-# Fetch Census and demographic data
-python scripts/setup/02_download_base_data.py
+# Copy data from local sibling repositories (popest, ndx-econareas, maps)
+python scripts/fetch_data.py
+
+# List available data sources and their status
+python scripts/fetch_data.py --list
 ```
+
+See [ADR-016](docs/adr/016-raw-data-management-strategy.md) for data management details.
 
 ### 3. Run Projections
 
@@ -61,6 +66,31 @@ python scripts/setup/02_download_base_data.py
 # Run complete projection pipeline
 python scripts/projections/run_all_projections.py
 ```
+
+## Multi-Computer Sync (rclone bisync)
+
+This project uses **rclone bisync** to sync data files between development computers via Google Drive. Code is synced via git; data files are synced via rclone.
+
+### Initial Setup (run once per computer)
+
+```bash
+./scripts/setup_rclone_bisync.sh
+```
+
+### Regular Sync
+
+```bash
+./scripts/bisync.sh              # Normal sync
+./scripts/bisync.sh --resync     # Force resync (after conflicts)
+./scripts/bisync.sh --dry-run    # Preview changes
+```
+
+**Important**: Always run bisync after:
+- Fetching new data with `fetch_data.py`
+- Running projections that create output files
+- Before switching to another computer
+
+See [ADR-016](docs/adr/016-raw-data-management-strategy.md) for the full data management strategy.
 
 ## Data Sources
 

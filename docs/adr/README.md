@@ -251,6 +251,56 @@ Documents how projection results are exported and stored.
 
 ---
 
+#### ADR-013: Multi-Geography Projection Design
+**Status**: Accepted | **Date**: 2025-12-18
+
+Documents the design for running projections across multiple geographic levels.
+
+**File**: [`013-multi-geography-projection-design.md`](013-multi-geography-projection-design.md)
+
+---
+
+#### ADR-014: Pipeline Orchestration Design
+**Status**: Accepted | **Date**: 2025-12-18
+
+Documents the design for orchestrating the complete projection pipeline.
+
+**File**: [`014-pipeline-orchestration-design.md`](014-pipeline-orchestration-design.md)
+
+---
+
+#### ADR-015: Output Format and Visualization Design
+**Status**: Accepted | **Date**: 2025-12-18
+
+Documents the design for output formats and visualization capabilities.
+
+**File**: [`015-output-format-visualization-design.md`](015-output-format-visualization-design.md)
+
+---
+
+### Data Management
+
+#### ADR-016: Raw Data Management and Cross-Computer Synchronization Strategy
+**Status**: Accepted | **Date**: 2025-12-28
+
+Documents the strategy for managing raw data files across multiple development computers using a hybrid approach of git, rclone bisync, and a data sources manifest.
+
+**Key Decisions**:
+- Raw data files stored in `data/raw/` (actual files, not symlinks)
+- `data/raw/` excluded from git but synced via rclone bisync
+- `config/data_sources.yaml` manifest documents all data sources and provenance
+- `scripts/fetch_data.py` populates data from sibling repositories when available
+- `.gitkeep` files preserve directory structure in git
+
+**Workflow**:
+1. On primary computer: Run `fetch_data.py` to copy from sibling repos
+2. Sync via rclone bisync to cloud storage
+3. On secondary computer: rclone bisync pulls data
+
+**File**: [`016-raw-data-management-strategy.md`](016-raw-data-management-strategy.md)
+
+---
+
 ## ADR Status Summary
 
 | ADR | Title | Status | Date |
@@ -267,6 +317,10 @@ Documents how projection results are exported and stored.
 | 010 | Geographic Scope and Granularity | Accepted | 2025-12-18 |
 | 011 | Testing Strategy | Accepted | 2025-12-18 |
 | 012 | Output and Export Format Strategy | Accepted | 2025-12-18 |
+| 013 | Multi-Geography Projection Design | Accepted | 2025-12-18 |
+| 014 | Pipeline Orchestration Design | Accepted | 2025-12-18 |
+| 015 | Output Format and Visualization Design | Accepted | 2025-12-18 |
+| 016 | Raw Data Management Strategy | Accepted | 2025-12-28 |
 
 **Status Definitions**:
 - **Accepted**: Decision has been made and implemented
@@ -396,12 +450,10 @@ Across all ADRs, these principles guided decisions:
 
 Potential topics for future ADRs:
 
-- **ADR-013**: Scenario Development and Management
-- **ADR-014**: Uncertainty Quantification Methods
-- **ADR-015**: Visualization and Dashboard Integration
-- **ADR-016**: Multi-Region Aggregation Rules
 - **ADR-017**: Historical Backcasting Methodology
 - **ADR-018**: API Design for Programmatic Access
+- **ADR-019**: Scenario Development and Management
+- **ADR-020**: Uncertainty Quantification Methods
 
 ## Resources
 
@@ -426,6 +478,6 @@ For questions about these ADRs or to propose new architectural decisions, contac
 
 ---
 
-**Last Updated**: 2025-12-18
+**Last Updated**: 2025-12-28
 
-**Total ADRs**: 12 (11 accepted, 1 planned)
+**Total ADRs**: 16 (15 accepted, 1 planned)
