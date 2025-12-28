@@ -11,22 +11,20 @@ Demonstrates how to:
 This example uses synthetic data but shows the exact workflow for real IRS/Census data.
 """
 
-import pandas as pd
-import numpy as np
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
 
 # Import migration processing functions
 from cohort_projections.data.process.migration_rates import (
-    load_irs_migration_data,
-    load_international_migration_data,
-    get_standard_age_migration_pattern,
-    distribute_migration_by_age,
-    distribute_migration_by_sex,
-    distribute_migration_by_race,
-    calculate_net_migration,
     create_migration_rate_table,
+    distribute_migration_by_age,
+    distribute_migration_by_race,
+    distribute_migration_by_sex,
+    get_standard_age_migration_pattern,
+    process_migration_rates,
     validate_migration_data,
-    process_migration_rates
 )
 
 print("=" * 80)
@@ -52,21 +50,21 @@ print("-" * 80)
 
 # North Dakota counties (sample)
 nd_counties = [
-    '38001',  # Adams
-    '38003',  # Barnes
-    '38005',  # Benson
-    '38017',  # Cass (Fargo area)
-    '38035',  # Grand Forks
-    '38059',  # Morton (Bismarck area)
-    '38101',  # Ward (Minot area)
+    "38001",  # Adams
+    "38003",  # Barnes
+    "38005",  # Benson
+    "38017",  # Cass (Fargo area)
+    "38035",  # Grand Forks
+    "38059",  # Morton (Bismarck area)
+    "38101",  # Ward (Minot area)
 ]
 
 # Nearby states' counties (for out-migration)
 nearby_counties = [
-    '27053',  # Hennepin, MN (Minneapolis)
-    '27123',  # Ramsey, MN (St. Paul)
-    '46099',  # Minnehaha, SD (Sioux Falls)
-    '31055',  # Douglas, NE (Omaha)
+    "27053",  # Hennepin, MN (Minneapolis)
+    "27123",  # Ramsey, MN (St. Paul)
+    "46099",  # Minnehaha, SD (Sioux Falls)
+    "31055",  # Douglas, NE (Omaha)
 ]
 
 all_counties = nd_counties + nearby_counties
@@ -82,8 +80,8 @@ for year in years:
         for to_county in all_counties:
             if from_county != to_county:
                 # Determine migration volume based on county types
-                from_nd = from_county.startswith('38')
-                to_nd = to_county.startswith('38')
+                from_nd = from_county.startswith("38")
+                to_nd = to_county.startswith("38")
 
                 if from_nd and to_nd:
                     # Within ND: moderate flows
@@ -102,12 +100,14 @@ for year in years:
                 year_factor = 1.0 + (year - 2020) * 0.05  # Slight trend
                 migrants = int(base_migrants * year_factor)
 
-                irs_flows.append({
-                    'from_county_fips': from_county,
-                    'to_county_fips': to_county,
-                    'migrants': migrants,
-                    'year': year
-                })
+                irs_flows.append(
+                    {
+                        "from_county_fips": from_county,
+                        "to_county_fips": to_county,
+                        "migrants": migrants,
+                        "year": year,
+                    }
+                )
 
 irs_df = pd.DataFrame(irs_flows)
 
@@ -117,7 +117,7 @@ irs_df.to_csv(irs_file, index=False)
 
 print(f"Created synthetic IRS data: {len(irs_df)} migration flows")
 print(f"Saved to: {irs_file}")
-print(f"\nSample IRS flows:")
+print("\nSample IRS flows:")
 print(irs_df.head(10))
 print()
 
@@ -134,20 +134,16 @@ for year in years:
     for county in nd_counties:
         # ND has modest international migration
         # Larger counties (Cass, Grand Forks) have more
-        if county == '38017':  # Cass (Fargo)
+        if county == "38017":  # Cass (Fargo)
             base = np.random.randint(400, 600)
-        elif county == '38035':  # Grand Forks
+        elif county == "38035":  # Grand Forks
             base = np.random.randint(200, 350)
-        elif county in ['38059', '38101']:  # Bismarck, Minot
+        elif county in ["38059", "38101"]:  # Bismarck, Minot
             base = np.random.randint(100, 200)
         else:
             base = np.random.randint(10, 50)
 
-        intl_migration.append({
-            'county_fips': county,
-            'international_migrants': base,
-            'year': year
-        })
+        intl_migration.append({"county_fips": county, "international_migrants": base, "year": year})
 
 intl_df = pd.DataFrame(intl_migration)
 
@@ -157,8 +153,8 @@ intl_df.to_csv(intl_file, index=False)
 
 print(f"Created synthetic international migration data: {len(intl_df)} records")
 print(f"Saved to: {intl_file}")
-print(f"\nSample international migration:")
-print(intl_df.groupby('county_fips')['international_migrants'].mean())
+print("\nSample international migration:")
+print(intl_df.groupby("county_fips")["international_migrants"].mean())
 print()
 
 # =============================================================================
@@ -175,7 +171,7 @@ races = [
     "AIAN alone, Non-Hispanic",
     "Asian/PI alone, Non-Hispanic",
     "Two or more races, Non-Hispanic",
-    "Hispanic (any race)"
+    "Hispanic (any race)",
 ]
 
 sexes = ["Male", "Female"]
@@ -207,24 +203,21 @@ for age in ages:
             else:
                 pop = base_pop
 
-            population_records.append({
-                'age': age,
-                'sex': sex,
-                'race_ethnicity': race,
-                'population': int(pop)
-            })
+            population_records.append(
+                {"age": age, "sex": sex, "race_ethnicity": race, "population": int(pop)}
+            )
 
 population_df = pd.DataFrame(population_records)
 
 # Save synthetic base population
 pop_file = processed_dir / "base_population.parquet"
-population_df.to_parquet(pop_file, compression='gzip', index=False)
+population_df.to_parquet(pop_file, compression="gzip", index=False)
 
 print(f"Created synthetic base population: {len(population_df)} cohorts")
 print(f"Saved to: {pop_file}")
 print(f"\nTotal population: {population_df['population'].sum():,}")
-print(f"\nPopulation by race:")
-print(population_df.groupby('race_ethnicity')['population'].sum().sort_values(ascending=False))
+print("\nPopulation by race:")
+print(population_df.groupby("race_ethnicity")["population"].sum().sort_values(ascending=False))
 print()
 
 # =============================================================================
@@ -236,17 +229,21 @@ print("-" * 80)
 
 # Simplified pattern
 print("Simplified Age Pattern (default):")
-simplified_pattern = get_standard_age_migration_pattern(peak_age=25, method='simplified')
+simplified_pattern = get_standard_age_migration_pattern(peak_age=25, method="simplified")
 print(simplified_pattern.head(15))
 print(f"\nPropensities sum to: {simplified_pattern['migration_propensity'].sum():.6f}")
-print(f"Peak age: {simplified_pattern.loc[simplified_pattern['migration_propensity'].idxmax(), 'age']}")
+print(
+    f"Peak age: {simplified_pattern.loc[simplified_pattern['migration_propensity'].idxmax(), 'age']}"
+)
 
 # Rogers-Castro pattern
 print("\n\nRogers-Castro Age Pattern (optional):")
-rogers_castro_pattern = get_standard_age_migration_pattern(peak_age=25, method='rogers_castro')
+rogers_castro_pattern = get_standard_age_migration_pattern(peak_age=25, method="rogers_castro")
 print(rogers_castro_pattern.head(15))
 print(f"\nPropensities sum to: {rogers_castro_pattern['migration_propensity'].sum():.6f}")
-print(f"Peak age: {rogers_castro_pattern.loc[rogers_castro_pattern['migration_propensity'].idxmax(), 'age']}")
+print(
+    f"Peak age: {rogers_castro_pattern.loc[rogers_castro_pattern['migration_propensity'].idxmax(), 'age']}"
+)
 print()
 
 # =============================================================================
@@ -259,12 +256,12 @@ print("-" * 80)
 # Calculate net migration from IRS data
 print("Step 1: Calculate Net Domestic Migration")
 nd_irs = irs_df[
-    (irs_df['from_county_fips'].str.startswith('38')) |
-    (irs_df['to_county_fips'].str.startswith('38'))
+    (irs_df["from_county_fips"].str.startswith("38"))
+    | (irs_df["to_county_fips"].str.startswith("38"))
 ]
 
-in_migration_total = nd_irs[nd_irs['to_county_fips'].str.startswith('38')]['migrants'].sum()
-out_migration_total = nd_irs[nd_irs['from_county_fips'].str.startswith('38')]['migrants'].sum()
+in_migration_total = nd_irs[nd_irs["to_county_fips"].str.startswith("38")]["migrants"].sum()
+out_migration_total = nd_irs[nd_irs["from_county_fips"].str.startswith("38")]["migrants"].sum()
 net_domestic = in_migration_total - out_migration_total
 
 print(f"  In-migration:  {in_migration_total:,}")
@@ -273,7 +270,7 @@ print(f"  Net domestic:  {net_domestic:+,}")
 
 # Add international migration
 print("\nStep 2: Add International Migration")
-net_international = intl_df['international_migrants'].sum()
+net_international = intl_df["international_migrants"].sum()
 print(f"  Net international: {net_international:+,}")
 
 total_net = net_domestic + net_international
@@ -284,15 +281,15 @@ print("\nStep 3: Distribute to Ages")
 age_migration = distribute_migration_by_age(total_net, simplified_pattern)
 print(f"  Created age distribution: {len(age_migration)} ages")
 print(f"  Total preserved: {age_migration['migrants'].sum():,.1f}")
-print(f"\n  Top 5 ages by migration:")
-print(age_migration.nlargest(5, 'migrants'))
+print("\n  Top 5 ages by migration:")
+print(age_migration.nlargest(5, "migrants"))
 
 # Distribute to sex
 print("\nStep 4: Distribute to Sex")
 age_sex_migration = distribute_migration_by_sex(age_migration, sex_ratio=0.5)
 print(f"  Created age-sex distribution: {len(age_sex_migration)} combinations")
 print(f"  Total preserved: {age_sex_migration['migrants'].sum():,.1f}")
-print(f"\n  Sample:")
+print("\n  Sample:")
 print(age_sex_migration.head(10))
 
 # Distribute to race
@@ -302,10 +299,14 @@ print(f"  Created age-sex-race distribution: {len(age_sex_race_migration)} cohor
 print(f"  Total preserved: {age_sex_race_migration['migrants'].sum():,.1f}")
 
 # Rename for consistency
-age_sex_race_migration.rename(columns={'migrants': 'net_migration'}, inplace=True)
+age_sex_race_migration.rename(columns={"migrants": "net_migration"}, inplace=True)
 
-print(f"\n  Migration by race:")
-print(age_sex_race_migration.groupby('race_ethnicity')['net_migration'].sum().sort_values(ascending=False))
+print("\n  Migration by race:")
+print(
+    age_sex_race_migration.groupby("race_ethnicity")["net_migration"]
+    .sum()
+    .sort_values(ascending=False)
+)
 print()
 
 # =============================================================================
@@ -319,14 +320,14 @@ migration_table = create_migration_rate_table(
     age_sex_race_migration,
     population_df=population_df,
     as_rates=False,  # Use absolute numbers
-    validate=True
+    validate=True,
 )
 
 print(f"Created complete migration table: {len(migration_table)} cohorts")
 print(f"All 1,092 cohorts present: {len(migration_table) == 1092}")
-print(f"\nSample:")
+print("\nSample:")
 print(migration_table.head(20))
-print(f"\nMigration summary:")
+print("\nMigration summary:")
 print(f"  Positive net migration cohorts: {(migration_table['net_migration'] > 0).sum()}")
 print(f"  Negative net migration cohorts: {(migration_table['net_migration'] < 0).sum()}")
 print(f"  Zero migration cohorts: {(migration_table['net_migration'] == 0).sum()}")
@@ -344,21 +345,21 @@ validation_result = validate_migration_data(migration_table, population_df)
 
 print(f"Validation result: {'PASSED' if validation_result['valid'] else 'FAILED'}")
 print(f"\nTotal net migration: {validation_result['total_net_migration']:+,.0f}")
-print(f"\nMigration by direction:")
-for key, value in validation_result['net_by_direction'].items():
-    if isinstance(value, (int, float)):
+print("\nMigration by direction:")
+for key, value in validation_result["net_by_direction"].items():
+    if isinstance(value, int | float):
         print(f"  {key}: {value:,.0f}")
     else:
         print(f"  {key}: {value}")
 
-if validation_result['warnings']:
+if validation_result["warnings"]:
     print(f"\nValidation warnings ({len(validation_result['warnings'])}):")
-    for warning in validation_result['warnings']:
+    for warning in validation_result["warnings"]:
         print(f"  - {warning}")
 
-if validation_result['errors']:
+if validation_result["errors"]:
     print(f"\nValidation errors ({len(validation_result['errors'])}):")
-    for error in validation_result['errors']:
+    for error in validation_result["errors"]:
         print(f"  - {error}")
 print()
 
@@ -378,15 +379,15 @@ migration_rates_final = process_migration_rates(
     intl_path=intl_file,
     population_path=pop_file,
     year_range=(2018, 2022),
-    target_county_fips='38',  # North Dakota
-    as_rates=False  # Use absolute numbers
+    target_county_fips="38",  # North Dakota
+    as_rates=False,  # Use absolute numbers
 )
 
 print(f"\nFinal migration rates table: {len(migration_rates_final)} cohorts")
 print(f"\nOutput files created in: {processed_dir / 'migration'}")
-print(f"  - migration_rates.parquet")
-print(f"  - migration_rates.csv")
-print(f"  - migration_rates_metadata.json")
+print("  - migration_rates.parquet")
+print("  - migration_rates.csv")
+print("  - migration_rates_metadata.json")
 print()
 
 # =============================================================================

@@ -1,0 +1,271 @@
+# CLAUDE.md
+
+Quick reference for Claude Code. **For detailed guidance, see [AGENTS.md](./AGENTS.md) when available.**
+
+---
+
+## Project Overview
+
+**North Dakota Cohort Component Population Projection System**
+
+| Attribute | Value |
+|-----------|-------|
+| Purpose | Demographic projections using cohort-component method |
+| Projection Horizon | 2025-2045 (20 years) |
+| Geographic Levels | State, 53 Counties, Places (cities/CDPs) |
+| Demographic Detail | Age x Sex x Race/Ethnicity cohorts |
+| Tech Stack | Python 3.11+, pandas, pytest, ruff, mypy |
+
+**Data Sources:**
+- Census Bureau (PEP, ACS)
+- SEER (demographic rates)
+- CDC WONDER (vital statistics)
+- IRS SOI (migration flows)
+
+---
+
+## Virtual Environment (Critical)
+
+```bash
+micromamba activate cohort_proj
+```
+
+**Always activate before working.** Never install packages globally.
+
+---
+
+## Essential Commands
+
+### Testing
+
+```bash
+pytest                          # Run all tests
+pytest --cov                    # With coverage
+pytest tests/unit/              # Unit tests only
+pytest tests/integration/       # Integration tests only
+```
+
+### Code Quality
+
+```bash
+pre-commit run --all-files      # All quality checks
+ruff check src/                 # Linting
+ruff check --fix src/           # Auto-fix lint issues
+mypy src/                       # Type checking
+```
+
+### Data Operations
+
+```bash
+# Fetch data from sibling repositories
+python scripts/fetch_data.py            # Fetch all available data
+python scripts/fetch_data.py --list     # List data sources and status
+python scripts/fetch_data.py --dry-run  # Preview without copying
+
+# Sync data between computers (see Data Management section)
+./scripts/bisync.sh                     # Normal sync
+./scripts/bisync.sh --resync            # Force resync after conflicts
+./scripts/bisync.sh --dry-run           # Preview changes
+```
+
+### Run Projections
+
+```bash
+python scripts/projections/run_all_projections.py
+```
+
+---
+
+## Data Management
+
+**Reference:** [ADR-016](docs/adr/016-raw-data-management-strategy.md)
+
+### Strategy Overview
+
+| What | Where | How Synced |
+|------|-------|------------|
+| Code, configs | Git repository | `git push/pull` |
+| Raw data files | `data/raw/` | rclone bisync |
+| Processed data | `data/processed/` | rclone bisync |
+| Data sources manifest | `config/data_sources.yaml` | Git |
+
+### Workflow
+
+**Computer with sibling repos (primary):**
+```bash
+python scripts/fetch_data.py    # Copy data from sibling repos
+./scripts/bisync.sh             # Sync to Google Drive
+```
+
+**Computer without sibling repos:**
+```bash
+./scripts/bisync.sh             # Sync data from Google Drive
+```
+
+### Critical Rules
+
+- **NEVER run `rclone bisync` directly** - Use `./scripts/bisync.sh` wrapper
+- **ALWAYS run bisync after** fetching new data or generating outputs
+- **ALWAYS run bisync before** switching to another computer
+- Data files are in `.gitignore` - they sync via rclone, not git
+
+---
+
+## Decision Framework
+
+| Tier | Scope | Action |
+|------|-------|--------|
+| **Tier 1** | Implementation details, bug fixes, refactoring | Just do it |
+| **Tier 2** | New dependencies, schema changes, new config options | Document in ADR |
+| **Tier 3** | Data deletion, security changes, breaking changes | Stop and ask |
+
+### Tier 2 Examples (Require ADR)
+
+- Adding a new Python dependency
+- Changing data file formats
+- Modifying projection methodology
+- New configuration parameters
+
+### Tier 3 Examples (Stop and Ask)
+
+- Deleting raw data files
+- Changing authentication/credentials
+- Modifying BigQuery project settings
+- Breaking API changes
+
+---
+
+## Critical Rules
+
+### NEVER
+
+- Hard-code file paths (use config or `pathlib`)
+- Commit data files to git (they belong in `data/` which is gitignored)
+- Run `rclone bisync` directly (use `./scripts/bisync.sh`)
+- Skip pre-commit hooks with `--no-verify`
+- Install packages globally (use virtual environment)
+- Commit secrets or credentials
+
+### ALWAYS
+
+- Activate virtual environment before working
+- Run tests before proposing changes
+- Run `pre-commit run --all-files` before committing
+- Use type hints in function signatures
+- Document ADRs for Tier 2 decisions
+- Run bisync before switching computers
+
+---
+
+## Project Structure
+
+```
+cohort_projections/
+├── cohort_projections/     # Main Python package
+│   ├── core/               # Projection engine
+│   ├── data/               # Data fetching and processing
+│   ├── geographic/         # Geographic utilities
+│   └── output/             # Export and visualization
+├── config/                 # Configuration files
+│   ├── projection_config.yaml
+│   └── data_sources.yaml
+├── data/                   # Data directory (gitignored)
+│   ├── raw/                # Input data
+│   ├── processed/          # Transformed data
+│   └── projections/        # Output projections
+├── scripts/                # Executable scripts
+│   ├── fetch_data.py
+│   ├── bisync.sh
+│   └── projections/
+├── tests/                  # Test suite
+├── docs/                   # Documentation
+│   └── adr/                # Architecture Decision Records
+└── notebooks/              # Jupyter notebooks
+```
+
+---
+
+## Key Configuration
+
+**Main config:** `config/projection_config.yaml`
+
+Key sections:
+- `project`: Base year, horizon, intervals
+- `geography`: State, county, place settings
+- `demographics`: Age groups, sex, race/ethnicity categories
+- `rates`: Fertility, mortality, migration sources
+- `scenarios`: Baseline, high/low growth options
+- `output`: Formats, visualizations, reports
+- `bigquery`: Cloud data access settings
+
+---
+
+## Documentation References
+
+| Document | Purpose |
+|----------|---------|
+| [README.md](./README.md) | Project overview and quick start |
+| [AGENTS.md](./AGENTS.md) | Detailed agent guidance (when available) |
+| [docs/adr/](./docs/adr/) | Architecture Decision Records |
+| [docs/adr/016-raw-data-management-strategy.md](./docs/adr/016-raw-data-management-strategy.md) | Data sync strategy |
+| [config/projection_config.yaml](./config/projection_config.yaml) | Main configuration |
+| [config/data_sources.yaml](./config/data_sources.yaml) | Data source manifest |
+
+### Key ADRs
+
+- **ADR-001**: Fertility rate processing
+- **ADR-002**: Survival rate processing
+- **ADR-003**: Migration rate processing
+- **ADR-004**: Core projection engine architecture
+- **ADR-005**: Configuration management
+- **ADR-006**: Data pipeline architecture
+- **ADR-016**: Raw data management and cross-computer sync
+
+---
+
+## BigQuery Integration
+
+The project can optionally use Google BigQuery for Census/demographic data access.
+
+```yaml
+# In projection_config.yaml
+bigquery:
+  enabled: true
+  project_id: "antigravity-sandbox"
+  dataset_id: "demographic_data"
+```
+
+**Setup:** See [docs/BIGQUERY_SETUP.md](./docs/BIGQUERY_SETUP.md)
+
+---
+
+## Common Workflows
+
+### Starting a New Session
+
+```bash
+cd /home/nigel/cohort_projections
+micromamba activate cohort_proj
+./scripts/bisync.sh              # Get latest data
+git pull                         # Get latest code
+```
+
+### After Making Changes
+
+```bash
+pytest                           # Run tests
+pre-commit run --all-files       # Quality checks
+git add . && git commit -m "..."
+./scripts/bisync.sh              # Sync data changes
+```
+
+### Updating Data
+
+```bash
+python scripts/fetch_data.py     # Refresh from sibling repos
+./scripts/bisync.sh              # Sync to other computers
+```
+
+---
+
+**Last Updated:** 2025-12-28 | **Version:** 1.0.0

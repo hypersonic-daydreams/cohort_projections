@@ -5,17 +5,16 @@ This module provides a wrapper around the Google Cloud BigQuery client,
 configured for accessing Census and demographic data from BigQuery public datasets.
 """
 
-import os
 from pathlib import Path
-from typing import Optional, Dict, Any
-import pandas as pd
+from typing import Any
 
+import pandas as pd
+from google.api_core.exceptions import GoogleAPIError
 from google.cloud import bigquery
 from google.oauth2 import service_account
-from google.api_core.exceptions import GoogleAPIError
 
-from .logger import get_logger_from_config
 from .config_loader import load_projection_config
+from .logger import get_logger_from_config
 
 logger = get_logger_from_config(__name__)
 
@@ -41,9 +40,9 @@ class BigQueryClient:
 
     def __init__(
         self,
-        credentials_path: Optional[str] = None,
-        project_id: Optional[str] = None,
-        config: Optional[Dict[str, Any]] = None
+        credentials_path: str | None = None,
+        project_id: str | None = None,
+        config: dict[str, Any] | None = None,
     ):
         """
         Initialize BigQuery client with credentials.
@@ -62,10 +61,10 @@ class BigQueryClient:
         if config is None:
             config = load_projection_config()
 
-        self.config = config.get('bigquery', {})
+        self.config = config.get("bigquery", {})
 
         # Determine project ID
-        self.project_id = project_id or self.config.get('project_id')
+        self.project_id = project_id or self.config.get("project_id")
         if not self.project_id:
             raise ValueError(
                 "BigQuery project_id must be provided either as argument or in config file"
@@ -73,7 +72,7 @@ class BigQueryClient:
 
         # Determine credentials path
         if credentials_path is None:
-            credentials_path = self.config.get('credentials_path')
+            credentials_path = self.config.get("credentials_path")
 
         if not credentials_path:
             raise ValueError(
@@ -96,26 +95,20 @@ class BigQueryClient:
             self.credentials = service_account.Credentials.from_service_account_file(
                 str(credentials_path)
             )
-            self.client = bigquery.Client(
-                credentials=self.credentials,
-                project=self.project_id
-            )
+            self.client = bigquery.Client(credentials=self.credentials, project=self.project_id)
             logger.info(f"BigQuery client initialized for project: {self.project_id}")
         except Exception as e:
             logger.error(f"Failed to initialize BigQuery client: {e}")
             raise
 
         # Set attributes from config
-        self.dataset_id = self.config.get('dataset_id', 'demographic_data')
-        self.location = self.config.get('location', 'US')
-        self.use_public_data = self.config.get('use_public_data', True)
-        self.cache_queries = self.config.get('cache_queries', True)
+        self.dataset_id = self.config.get("dataset_id", "demographic_data")
+        self.location = self.config.get("location", "US")
+        self.use_public_data = self.config.get("use_public_data", True)
+        self.cache_queries = self.config.get("cache_queries", True)
 
     def query(
-        self,
-        sql: str,
-        to_dataframe: bool = True,
-        use_cache: Optional[bool] = None
+        self, sql: str, to_dataframe: bool = True, use_cache: bool | None = None
     ) -> pd.DataFrame:
         """
         Execute a SQL query and return results.
@@ -201,7 +194,7 @@ class BigQueryClient:
         """
         logger.info(f"Listing tables in dataset: {dataset}")
 
-        project, dataset_id = dataset.split('.')
+        project, dataset_id = dataset.split(".")
 
         sql = f"""
         SELECT
@@ -231,9 +224,11 @@ class BigQueryClient:
         """
         logger.info(f"Getting schema for table: {table_ref}")
 
-        parts = table_ref.split('.')
+        parts = table_ref.split(".")
         if len(parts) != 3:
-            raise ValueError(f"Table reference must be in format 'project.dataset.table', got: {table_ref}")
+            raise ValueError(
+                f"Table reference must be in format 'project.dataset.table', got: {table_ref}"
+            )
 
         project, dataset, table = parts
 
@@ -269,7 +264,7 @@ class BigQueryClient:
         sql = f"SELECT * FROM `{table_ref}` LIMIT {limit}"
         return self.query(sql)
 
-    def create_dataset(self, dataset_id: Optional[str] = None) -> None:
+    def create_dataset(self, dataset_id: str | None = None) -> None:
         """
         Create a BigQuery dataset for storing processed demographic data.
 
@@ -298,8 +293,8 @@ class BigQueryClient:
         self,
         df: pd.DataFrame,
         table_name: str,
-        dataset_id: Optional[str] = None,
-        write_disposition: str = "WRITE_TRUNCATE"
+        dataset_id: str | None = None,
+        write_disposition: str = "WRITE_TRUNCATE",
     ) -> None:
         """
         Upload a pandas DataFrame to BigQuery.
@@ -324,14 +319,10 @@ class BigQueryClient:
 
         logger.info(f"Uploading {len(df)} rows to {table_ref}")
 
-        job_config = bigquery.LoadJobConfig(
-            write_disposition=write_disposition
-        )
+        job_config = bigquery.LoadJobConfig(write_disposition=write_disposition)
 
         try:
-            job = self.client.load_table_from_dataframe(
-                df, table_ref, job_config=job_config
-            )
+            job = self.client.load_table_from_dataframe(df, table_ref, job_config=job_config)
             job.result()  # Wait for job to complete
             logger.info(f"Successfully uploaded {len(df)} rows to {table_ref}")
         except GoogleAPIError as e:
@@ -340,12 +331,12 @@ class BigQueryClient:
 
     def close(self) -> None:
         """Close the BigQuery client connection."""
-        if hasattr(self, 'client'):
+        if hasattr(self, "client"):
             self.client.close()
             logger.info("BigQuery client connection closed")
 
 
-def get_bigquery_client(config: Optional[Dict[str, Any]] = None) -> BigQueryClient:
+def get_bigquery_client(config: dict[str, Any] | None = None) -> BigQueryClient:
     """
     Get a configured BigQuery client instance.
 

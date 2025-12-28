@@ -6,15 +6,15 @@ projection engine. Converts age-specific fertility rates by race/ethnicity
 into standardized format for cohort-component projections.
 """
 
-import pandas as pd
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
-from datetime import datetime
 import json
+from datetime import UTC, datetime
+from pathlib import Path
 
+import numpy as np
+import pandas as pd
+
+from cohort_projections.utils.config_loader import load_projection_config
 from cohort_projections.utils.logger import get_logger_from_config
-from cohort_projections.utils.config_loader import ConfigLoader, load_projection_config
 
 logger = get_logger_from_config(__name__)
 
@@ -22,56 +22,50 @@ logger = get_logger_from_config(__name__)
 # SEER race/ethnicity code mappings to 6-category system
 SEER_RACE_ETHNICITY_MAP = {
     # White alone, Non-Hispanic
-    'White Non-Hispanic': 'White alone, Non-Hispanic',
-    'White NH': 'White alone, Non-Hispanic',
-    'NH White': 'White alone, Non-Hispanic',
-    'Non-Hispanic White': 'White alone, Non-Hispanic',
-    'WNH': 'White alone, Non-Hispanic',
-    '1': 'White alone, Non-Hispanic',  # Common SEER numeric code
-
+    "White Non-Hispanic": "White alone, Non-Hispanic",
+    "White NH": "White alone, Non-Hispanic",
+    "NH White": "White alone, Non-Hispanic",
+    "Non-Hispanic White": "White alone, Non-Hispanic",
+    "WNH": "White alone, Non-Hispanic",
+    "1": "White alone, Non-Hispanic",  # Common SEER numeric code
     # Black alone, Non-Hispanic
-    'Black Non-Hispanic': 'Black alone, Non-Hispanic',
-    'Black NH': 'Black alone, Non-Hispanic',
-    'NH Black': 'Black alone, Non-Hispanic',
-    'Non-Hispanic Black': 'Black alone, Non-Hispanic',
-    'BNH': 'Black alone, Non-Hispanic',
-    '2': 'Black alone, Non-Hispanic',
-
+    "Black Non-Hispanic": "Black alone, Non-Hispanic",
+    "Black NH": "Black alone, Non-Hispanic",
+    "NH Black": "Black alone, Non-Hispanic",
+    "Non-Hispanic Black": "Black alone, Non-Hispanic",
+    "BNH": "Black alone, Non-Hispanic",
+    "2": "Black alone, Non-Hispanic",
     # AIAN alone, Non-Hispanic
-    'AIAN Non-Hispanic': 'AIAN alone, Non-Hispanic',
-    'AIAN NH': 'AIAN alone, Non-Hispanic',
-    'NH AIAN': 'AIAN alone, Non-Hispanic',
-    'American Indian/Alaska Native Non-Hispanic': 'AIAN alone, Non-Hispanic',
-    'AI/AN Non-Hispanic': 'AIAN alone, Non-Hispanic',
-    '3': 'AIAN alone, Non-Hispanic',
-
+    "AIAN Non-Hispanic": "AIAN alone, Non-Hispanic",
+    "AIAN NH": "AIAN alone, Non-Hispanic",
+    "NH AIAN": "AIAN alone, Non-Hispanic",
+    "American Indian/Alaska Native Non-Hispanic": "AIAN alone, Non-Hispanic",
+    "AI/AN Non-Hispanic": "AIAN alone, Non-Hispanic",
+    "3": "AIAN alone, Non-Hispanic",
     # Asian/PI alone, Non-Hispanic
-    'Asian/PI Non-Hispanic': 'Asian/PI alone, Non-Hispanic',
-    'Asian/Pacific Islander Non-Hispanic': 'Asian/PI alone, Non-Hispanic',
-    'Asian NH': 'Asian/PI alone, Non-Hispanic',
-    'NH Asian': 'Asian/PI alone, Non-Hispanic',
-    'API Non-Hispanic': 'Asian/PI alone, Non-Hispanic',
-    '4': 'Asian/PI alone, Non-Hispanic',
-
+    "Asian/PI Non-Hispanic": "Asian/PI alone, Non-Hispanic",
+    "Asian/Pacific Islander Non-Hispanic": "Asian/PI alone, Non-Hispanic",
+    "Asian NH": "Asian/PI alone, Non-Hispanic",
+    "NH Asian": "Asian/PI alone, Non-Hispanic",
+    "API Non-Hispanic": "Asian/PI alone, Non-Hispanic",
+    "4": "Asian/PI alone, Non-Hispanic",
     # Two or more races, Non-Hispanic
-    'Two or More Races Non-Hispanic': 'Two or more races, Non-Hispanic',
-    'Two+ Races NH': 'Two or more races, Non-Hispanic',
-    'NH Two or More Races': 'Two or more races, Non-Hispanic',
-    'Multiracial Non-Hispanic': 'Two or more races, Non-Hispanic',
-    '5': 'Two or more races, Non-Hispanic',
-
+    "Two or More Races Non-Hispanic": "Two or more races, Non-Hispanic",
+    "Two+ Races NH": "Two or more races, Non-Hispanic",
+    "NH Two or More Races": "Two or more races, Non-Hispanic",
+    "Multiracial Non-Hispanic": "Two or more races, Non-Hispanic",
+    "5": "Two or more races, Non-Hispanic",
     # Hispanic (any race)
-    'Hispanic': 'Hispanic (any race)',
-    'Hispanic (any race)': 'Hispanic (any race)',
-    'All Hispanic': 'Hispanic (any race)',
-    'Hisp': 'Hispanic (any race)',
-    '6': 'Hispanic (any race)',
+    "Hispanic": "Hispanic (any race)",
+    "Hispanic (any race)": "Hispanic (any race)",
+    "All Hispanic": "Hispanic (any race)",
+    "Hisp": "Hispanic (any race)",
+    "6": "Hispanic (any race)",
 }
 
 
 def load_seer_fertility_data(
-    file_path: Union[str, Path],
-    year_range: Optional[Tuple[int, int]] = None
+    file_path: str | Path, year_range: tuple[int, int] | None = None
 ) -> pd.DataFrame:
     """
     Load raw SEER fertility data file(s).
@@ -109,14 +103,14 @@ def load_seer_fertility_data(
     suffix = file_path.suffix.lower()
 
     try:
-        if suffix == '.csv':
+        if suffix == ".csv":
             df = pd.read_csv(file_path)
-        elif suffix == '.txt':
+        elif suffix == ".txt":
             # SEER text files are typically tab-delimited
-            df = pd.read_csv(file_path, sep='\t')
-        elif suffix in ['.xlsx', '.xls']:
+            df = pd.read_csv(file_path, sep="\t")
+        elif suffix in [".xlsx", ".xls"]:
             df = pd.read_excel(file_path)
-        elif suffix == '.parquet':
+        elif suffix == ".parquet":
             df = pd.read_parquet(file_path)
         else:
             raise ValueError(
@@ -124,7 +118,7 @@ def load_seer_fertility_data(
                 f"Supported formats: .csv, .txt, .xlsx, .xls, .parquet"
             )
     except Exception as e:
-        raise ValueError(f"Error reading fertility data file: {e}")
+        raise ValueError(f"Error reading fertility data file: {e}") from e
 
     logger.info(f"Loaded {len(df)} records from {file_path.name}")
 
@@ -133,12 +127,12 @@ def load_seer_fertility_data(
 
     # Filter by year range if provided
     if year_range is not None:
-        if 'year' not in df.columns:
+        if "year" not in df.columns:
             logger.warning("No 'year' column found, cannot filter by year range")
         else:
             min_year, max_year = year_range
             original_len = len(df)
-            df = df[(df['year'] >= min_year) & (df['year'] <= max_year)].copy()
+            df = df[(df["year"] >= min_year) & (df["year"] <= max_year)].copy()
             logger.info(
                 f"Filtered to years {min_year}-{max_year}: "
                 f"{len(df)}/{original_len} records retained"
@@ -146,19 +140,17 @@ def load_seer_fertility_data(
 
     # Validate required columns exist (flexible naming)
     age_col = None
-    for col in ['age', 'age_group', 'age_of_mother']:
+    for col in ["age", "age_group", "age_of_mother"]:
         if col in df.columns:
             age_col = col
             break
 
     if age_col is None:
-        raise ValueError(
-            "No age column found. Expected one of: age, age_group, age_of_mother"
-        )
+        raise ValueError("No age column found. Expected one of: age, age_group, age_of_mother")
 
     # Standardize to 'age'
-    if age_col != 'age':
-        df['age'] = df[age_col]
+    if age_col != "age":
+        df["age"] = df[age_col]
 
     logger.info(f"Successfully loaded fertility data with {len(df)} records")
 
@@ -196,7 +188,7 @@ def harmonize_fertility_race_categories(df: pd.DataFrame) -> pd.DataFrame:
 
     # Try to find the race column
     race_col = None
-    for col in ['race_ethnicity', 'race', 'race_origin', 'origin', 'race_code']:
+    for col in ["race_ethnicity", "race", "race_origin", "origin", "race_code"]:
         if col in df.columns:
             race_col = col
             break
@@ -214,10 +206,10 @@ def harmonize_fertility_race_categories(df: pd.DataFrame) -> pd.DataFrame:
     df[race_col] = df[race_col].astype(str).str.strip()
 
     # Map race categories
-    df['race_ethnicity'] = df[race_col].map(SEER_RACE_ETHNICITY_MAP)
+    df["race_ethnicity"] = df[race_col].map(SEER_RACE_ETHNICITY_MAP)
 
     # Check for unmapped categories
-    unmapped = df[df['race_ethnicity'].isna()][race_col].unique()
+    unmapped = df[df["race_ethnicity"].isna()][race_col].unique()
     if len(unmapped) > 0:
         logger.warning(f"Unmapped race categories found: {list(unmapped)}")
         logger.warning(
@@ -225,11 +217,11 @@ def harmonize_fertility_race_categories(df: pd.DataFrame) -> pd.DataFrame:
             "if these are valid categories."
         )
         original_len = len(df)
-        df = df.dropna(subset=['race_ethnicity'])
+        df = df.dropna(subset=["race_ethnicity"])
         logger.info(f"Dropped {original_len - len(df)} records with unmapped race categories")
 
     # Drop original race column if different
-    if race_col != 'race_ethnicity' and race_col in df.columns:
+    if race_col != "race_ethnicity" and race_col in df.columns:
         df = df.drop(columns=[race_col])
 
     logger.info(
@@ -240,10 +232,7 @@ def harmonize_fertility_race_categories(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def calculate_average_fertility_rates(
-    df: pd.DataFrame,
-    averaging_period: int = 5
-) -> pd.DataFrame:
+def calculate_average_fertility_rates(df: pd.DataFrame, averaging_period: int = 5) -> pd.DataFrame:
     """
     Average fertility rates over multiple years.
 
@@ -281,13 +270,13 @@ def calculate_average_fertility_rates(
     logger.info(f"Calculating average fertility rates over {averaging_period} years")
 
     # Validate required columns
-    required_cols = ['age', 'race_ethnicity', 'fertility_rate']
+    required_cols = ["age", "race_ethnicity", "fertility_rate"]
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
         raise ValueError(f"Missing required columns: {missing_cols}")
 
     # Check if we have data for weighting
-    has_weights = 'population' in df.columns and 'births' in df.columns
+    has_weights = "population" in df.columns and "births" in df.columns
 
     if has_weights:
         logger.info("Using weighted average based on female population")
@@ -295,47 +284,42 @@ def calculate_average_fertility_rates(
         # Calculate weighted average by age and race
         # Weight = female population in reproductive ages
         df = df.copy()
-        df['weighted_rate'] = df['fertility_rate'] * df['population']
+        df["weighted_rate"] = df["fertility_rate"] * df["population"]
 
-        grouped = df.groupby(['age', 'race_ethnicity'], as_index=False).agg({
-            'weighted_rate': 'sum',
-            'population': 'sum',
-            'fertility_rate': 'count'  # count for metadata
-        })
+        grouped = df.groupby(["age", "race_ethnicity"], as_index=False).agg(
+            {
+                "weighted_rate": "sum",
+                "population": "sum",
+                "fertility_rate": "count",  # count for metadata
+            }
+        )
 
         # Calculate weighted average
-        grouped['fertility_rate'] = grouped['weighted_rate'] / grouped['population']
-        grouped['years_averaged'] = grouped['fertility_rate']  # reuse column for count
+        grouped["fertility_rate"] = grouped["weighted_rate"] / grouped["population"]
+        grouped["years_averaged"] = grouped["fertility_rate"]  # reuse column for count
 
         # Drop intermediate columns
-        averaged_df = grouped[['age', 'race_ethnicity', 'fertility_rate']].copy()
+        averaged_df = grouped[["age", "race_ethnicity", "fertility_rate"]].copy()
 
     else:
         logger.info("Using simple mean (no population weights available)")
 
         # Simple average
-        averaged_df = df.groupby(
-            ['age', 'race_ethnicity'],
-            as_index=False
-        )['fertility_rate'].mean()
+        averaged_df = df.groupby(["age", "race_ethnicity"], as_index=False)["fertility_rate"].mean()
 
     # Handle any NaN values (should be rare)
-    nan_count = averaged_df['fertility_rate'].isna().sum()
+    nan_count = averaged_df["fertility_rate"].isna().sum()
     if nan_count > 0:
         logger.warning(f"Found {nan_count} NaN values in averaged rates, setting to 0")
-        averaged_df['fertility_rate'] = averaged_df['fertility_rate'].fillna(0.0)
+        averaged_df["fertility_rate"] = averaged_df["fertility_rate"].fillna(0.0)
 
-    logger.info(
-        f"Calculated average rates for {len(averaged_df)} age-race combinations"
-    )
+    logger.info(f"Calculated average rates for {len(averaged_df)} age-race combinations")
 
     return averaged_df
 
 
 def create_fertility_rate_table(
-    df: pd.DataFrame,
-    validate: bool = True,
-    config: Optional[Dict] = None
+    df: pd.DataFrame, validate: bool = True, config: dict | None = None
 ) -> pd.DataFrame:
     """
     Create final fertility rate table for projection.
@@ -375,54 +359,48 @@ def create_fertility_rate_table(
         config = load_projection_config()
 
     # Get expected categories from config
-    demographics = config.get('demographics', {})
-    expected_races = demographics.get('race_ethnicity', {}).get('categories', [])
+    demographics = config.get("demographics", {})
+    expected_races = demographics.get("race_ethnicity", {}).get("categories", [])
 
     # Get reproductive age range from config
-    fertility_config = config.get('rates', {}).get('fertility', {})
-    reproductive_ages = fertility_config.get('apply_to_ages', [15, 49])
+    fertility_config = config.get("rates", {}).get("fertility", {})
+    reproductive_ages = fertility_config.get("apply_to_ages", [15, 49])
     min_age, max_age = reproductive_ages
 
     # Validate input has required columns
-    required_cols = ['age', 'race_ethnicity', 'fertility_rate']
+    required_cols = ["age", "race_ethnicity", "fertility_rate"]
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
         raise ValueError(f"Missing required columns: {missing_cols}")
 
     # Filter to reproductive ages
-    df = df[
-        (df['age'] >= min_age) & (df['age'] <= max_age)
-    ].copy()
+    df = df[(df["age"] >= min_age) & (df["age"] <= max_age)].copy()
 
-    logger.info(
-        f"Filtered to reproductive ages {min_age}-{max_age}: "
-        f"{len(df)} records"
-    )
+    logger.info(f"Filtered to reproductive ages {min_age}-{max_age}: " f"{len(df)} records")
 
     # Create complete index (all age-race combinations)
     ages = list(range(min_age, max_age + 1))
 
     complete_index = pd.MultiIndex.from_product(
-        [ages, expected_races],
-        names=['age', 'race_ethnicity']
+        [ages, expected_races], names=["age", "race_ethnicity"]
     )
 
     # Set index and reindex to include all combinations
-    df = df.set_index(['age', 'race_ethnicity'])
+    df = df.set_index(["age", "race_ethnicity"])
 
     # Reindex with 0 for missing combinations (ADR-001 decision)
     df = df.reindex(complete_index, fill_value=0)
     df = df.reset_index()
 
     # Ensure fertility_rate column exists
-    if 'fertility_rate' not in df.columns:
-        df['fertility_rate'] = 0.0
+    if "fertility_rate" not in df.columns:
+        df["fertility_rate"] = 0.0
 
     # Ensure non-negative rates
-    df['fertility_rate'] = df['fertility_rate'].clip(lower=0)
+    df["fertility_rate"] = df["fertility_rate"].clip(lower=0)
 
     # Add metadata
-    df['processing_date'] = datetime.now().strftime('%Y-%m-%d')
+    df["processing_date"] = datetime.now(UTC).strftime("%Y-%m-%d")
 
     logger.info(
         f"Created fertility rate table with {len(df)} cells "
@@ -433,24 +411,23 @@ def create_fertility_rate_table(
     if validate:
         validation_result = validate_fertility_rates(df, config)
 
-        if not validation_result['valid']:
+        if not validation_result["valid"]:
             error_msg = "Fertility rate validation failed:\n" + "\n".join(
-                validation_result['errors']
+                validation_result["errors"]
             )
             logger.error(error_msg)
             raise ValueError(error_msg)
 
-        if validation_result['warnings']:
-            for warning in validation_result['warnings']:
+        if validation_result["warnings"]:
+            for warning in validation_result["warnings"]:
                 logger.warning(f"Fertility validation: {warning}")
 
     return df
 
 
 def validate_fertility_rates(
-    df: pd.DataFrame,
-    config: Optional[Dict] = None
-) -> Dict[str, Union[bool, List[str], Dict[str, float]]]:
+    df: pd.DataFrame, config: dict | None = None
+) -> dict[str, bool | list[str] | dict[str, float]]:
     """
     Validate fertility rates for plausibility.
 
@@ -491,11 +468,11 @@ def validate_fertility_rates(
     logger.info("Validating fertility rates")
 
     validation_result = {
-        'valid': True,
-        'errors': [],
-        'warnings': [],
-        'tfr_by_race': {},
-        'overall_tfr': 0.0
+        "valid": True,
+        "errors": [],
+        "warnings": [],
+        "tfr_by_race": {},
+        "overall_tfr": 0.0,
     }
 
     # Load config if not provided
@@ -503,62 +480,60 @@ def validate_fertility_rates(
         config = load_projection_config()
 
     # Get expected values from config
-    demographics = config.get('demographics', {})
-    expected_races = demographics.get('race_ethnicity', {}).get('categories', [])
+    demographics = config.get("demographics", {})
+    expected_races = demographics.get("race_ethnicity", {}).get("categories", [])
 
-    fertility_config = config.get('rates', {}).get('fertility', {})
-    reproductive_ages = fertility_config.get('apply_to_ages', [15, 49])
+    fertility_config = config.get("rates", {}).get("fertility", {})
+    reproductive_ages = fertility_config.get("apply_to_ages", [15, 49])
     min_age, max_age = reproductive_ages
 
     # Check for required columns
-    required_cols = ['age', 'race_ethnicity', 'fertility_rate']
+    required_cols = ["age", "race_ethnicity", "fertility_rate"]
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
-        validation_result['errors'].append(f"Missing required columns: {missing_cols}")
-        validation_result['valid'] = False
+        validation_result["errors"].append(f"Missing required columns: {missing_cols}")
+        validation_result["valid"] = False
         return validation_result
 
     # Check all ages present
     expected_ages = set(range(min_age, max_age + 1))
-    actual_ages = set(df['age'].unique())
+    actual_ages = set(df["age"].unique())
     missing_ages = expected_ages - actual_ages
     if missing_ages:
-        validation_result['errors'].append(
+        validation_result["errors"].append(
             f"Missing ages in reproductive range: {sorted(missing_ages)}"
         )
-        validation_result['valid'] = False
+        validation_result["valid"] = False
 
     # Check all race categories present
-    actual_races = set(df['race_ethnicity'].unique())
+    actual_races = set(df["race_ethnicity"].unique())
     missing_races = set(expected_races) - actual_races
     if missing_races:
-        validation_result['errors'].append(
-            f"Missing race categories: {list(missing_races)}"
-        )
-        validation_result['valid'] = False
+        validation_result["errors"].append(f"Missing race categories: {list(missing_races)}")
+        validation_result["valid"] = False
 
     # Check for negative rates
-    if (df['fertility_rate'] < 0).any():
-        negative_count = (df['fertility_rate'] < 0).sum()
-        validation_result['errors'].append(
+    if (df["fertility_rate"] < 0).any():
+        negative_count = (df["fertility_rate"] < 0).sum()
+        validation_result["errors"].append(
             f"Negative fertility rates found: {negative_count} records"
         )
-        validation_result['valid'] = False
+        validation_result["valid"] = False
 
     # Check for implausibly high rates
     max_plausible_rate = 0.15  # 150 births per 1000 women
-    high_rates = df[df['fertility_rate'] > max_plausible_rate]
+    high_rates = df[df["fertility_rate"] > max_plausible_rate]
     if not high_rates.empty:
-        validation_result['warnings'].append(
+        validation_result["warnings"].append(
             f"Very high fertility rates (>{max_plausible_rate}) found in "
             f"{len(high_rates)} records. Max rate: {df['fertility_rate'].max():.4f}"
         )
 
     # Warn about rates above 0.13 (typical maximum)
     typical_max = 0.13
-    above_typical = df[df['fertility_rate'] > typical_max]
+    above_typical = df[df["fertility_rate"] > typical_max]
     if not above_typical.empty:
-        validation_result['warnings'].append(
+        validation_result["warnings"].append(
             f"Fertility rates above typical maximum ({typical_max}) found in "
             f"{len(above_typical)} records"
         )
@@ -567,64 +542,61 @@ def validate_fertility_rates(
     expected_combinations = len(expected_ages) * len(expected_races)
     actual_combinations = len(df)
     if actual_combinations < expected_combinations:
-        validation_result['errors'].append(
+        validation_result["errors"].append(
             f"Missing age-race combinations: expected {expected_combinations}, "
             f"got {actual_combinations}"
         )
-        validation_result['valid'] = False
+        validation_result["valid"] = False
 
     # Calculate Total Fertility Rate (TFR) by race
     # TFR = sum of age-specific fertility rates (represents births per woman)
     for race in expected_races:
-        race_data = df[df['race_ethnicity'] == race]
+        race_data = df[df["race_ethnicity"] == race]
         if not race_data.empty:
-            tfr = race_data['fertility_rate'].sum()
-            validation_result['tfr_by_race'][race] = round(tfr, 3)
+            tfr = race_data["fertility_rate"].sum()
+            validation_result["tfr_by_race"][race] = round(tfr, 3)
 
             # Typical TFR range: 1.3-2.5 for developed countries
             if tfr < 1.0:
-                validation_result['warnings'].append(
+                validation_result["warnings"].append(
                     f"Very low TFR for {race}: {tfr:.2f} (typical range: 1.3-2.5)"
                 )
             elif tfr > 3.0:
-                validation_result['warnings'].append(
+                validation_result["warnings"].append(
                     f"Very high TFR for {race}: {tfr:.2f} (typical range: 1.3-2.5)"
                 )
 
     # Calculate overall TFR (population-weighted if possible, otherwise mean)
-    if validation_result['tfr_by_race']:
-        validation_result['overall_tfr'] = round(
-            np.mean(list(validation_result['tfr_by_race'].values())),
-            3
+    if validation_result["tfr_by_race"]:
+        validation_result["overall_tfr"] = round(
+            np.mean(list(validation_result["tfr_by_race"].values())), 3
         )
 
     # Summary logging
-    if validation_result['valid']:
+    if validation_result["valid"]:
         logger.info(
             f"Fertility rates validated successfully. "
             f"Overall TFR: {validation_result['overall_tfr']:.2f}"
         )
     else:
         logger.error(
-            f"Fertility rate validation failed with "
-            f"{len(validation_result['errors'])} errors"
+            f"Fertility rate validation failed with " f"{len(validation_result['errors'])} errors"
         )
 
-    if validation_result['warnings']:
+    if validation_result["warnings"]:
         logger.warning(
-            f"Fertility rate validation produced "
-            f"{len(validation_result['warnings'])} warnings"
+            f"Fertility rate validation produced " f"{len(validation_result['warnings'])} warnings"
         )
 
     return validation_result
 
 
 def process_fertility_rates(
-    input_path: Union[str, Path],
-    output_dir: Optional[Path] = None,
-    config: Optional[Dict] = None,
-    year_range: Optional[Tuple[int, int]] = None,
-    averaging_period: int = 5
+    input_path: str | Path,
+    output_dir: Path | None = None,
+    config: dict | None = None,
+    year_range: tuple[int, int] | None = None,
+    averaging_period: int = 5,
 ) -> pd.DataFrame:
     """
     Main processing function for fertility rates.
@@ -679,30 +651,21 @@ def process_fertility_rates(
     # Step 3: Calculate average rates
     logger.info("Step 3: Calculating multi-year average rates")
     averaged_df = calculate_average_fertility_rates(
-        harmonized_df,
-        averaging_period=averaging_period
+        harmonized_df, averaging_period=averaging_period
     )
 
     # Step 4: Create complete fertility rate table
     logger.info("Step 4: Creating fertility rate table")
-    fertility_table = create_fertility_rate_table(
-        averaged_df,
-        validate=True,
-        config=config
-    )
+    fertility_table = create_fertility_rate_table(averaged_df, validate=True, config=config)
 
     # Step 5: Save processed data
     logger.info("Step 5: Saving processed fertility rates")
 
     # Save as parquet (primary format)
     output_file = output_dir / "fertility_rates.parquet"
-    compression = config.get('output', {}).get('compression', 'gzip')
+    compression = config.get("output", {}).get("compression", "gzip")
 
-    fertility_table.to_parquet(
-        output_file,
-        compression=compression,
-        index=False
-    )
+    fertility_table.to_parquet(output_file, compression=compression, index=False)
     logger.info(f"Saved fertility rates to {output_file}")
 
     # Also save as CSV for human readability
@@ -716,24 +679,28 @@ def process_fertility_rates(
     validation_result = validate_fertility_rates(fertility_table, config)
 
     metadata = {
-        'processing_date': datetime.now().isoformat(),
-        'source_file': str(input_path),
-        'year_range': year_range,
-        'averaging_period': averaging_period,
-        'total_records': len(fertility_table),
-        'age_range': [int(fertility_table['age'].min()), int(fertility_table['age'].max())],
-        'race_categories': list(fertility_table['race_ethnicity'].unique()),
-        'tfr_by_race': validation_result['tfr_by_race'],
-        'overall_tfr': validation_result['overall_tfr'],
-        'validation_warnings': validation_result['warnings'],
-        'config_used': {
-            'reproductive_ages': config.get('rates', {}).get('fertility', {}).get('apply_to_ages', [15, 49]),
-            'race_categories': config.get('demographics', {}).get('race_ethnicity', {}).get('categories', [])
-        }
+        "processing_date": datetime.now(UTC).isoformat(),
+        "source_file": str(input_path),
+        "year_range": year_range,
+        "averaging_period": averaging_period,
+        "total_records": len(fertility_table),
+        "age_range": [int(fertility_table["age"].min()), int(fertility_table["age"].max())],
+        "race_categories": list(fertility_table["race_ethnicity"].unique()),
+        "tfr_by_race": validation_result["tfr_by_race"],
+        "overall_tfr": validation_result["overall_tfr"],
+        "validation_warnings": validation_result["warnings"],
+        "config_used": {
+            "reproductive_ages": config.get("rates", {})
+            .get("fertility", {})
+            .get("apply_to_ages", [15, 49]),
+            "race_categories": config.get("demographics", {})
+            .get("race_ethnicity", {})
+            .get("categories", []),
+        },
     }
 
     metadata_file = output_dir / "fertility_rates_metadata.json"
-    with open(metadata_file, 'w') as f:
+    with open(metadata_file, "w") as f:
         json.dump(metadata, f, indent=2)
 
     logger.info(f"Saved metadata to {metadata_file}")
@@ -747,7 +714,7 @@ def process_fertility_rates(
     logger.info(f"Race categories: {fertility_table['race_ethnicity'].nunique()}")
     logger.info(f"Overall TFR: {validation_result['overall_tfr']:.2f}")
     logger.info("\nTFR by Race/Ethnicity:")
-    for race, tfr in validation_result['tfr_by_race'].items():
+    for race, tfr in validation_result["tfr_by_race"].items():
         logger.info(f"  {race}: {tfr:.2f}")
     logger.info("=" * 70)
 
@@ -774,7 +741,7 @@ if __name__ == "__main__":
 
     # Create sample data
     sample_data = []
-    races = ['White NH', 'Black NH', 'Hispanic', 'AIAN NH', 'Asian/PI NH', 'Two+ Races NH']
+    races = ["White NH", "Black NH", "Hispanic", "AIAN NH", "Asian/PI NH", "Two+ Races NH"]
 
     for year in range(2018, 2023):
         for age in range(15, 50):
@@ -782,18 +749,20 @@ if __name__ == "__main__":
                 # Simplified fertility pattern (peaks around age 28)
                 base_rate = 0.001 + 0.004 * np.exp(-((age - 28) ** 2) / 50)
                 # Add some variation by race
-                if 'Hispanic' in race:
+                if "Hispanic" in race:
                     base_rate *= 1.2
-                elif 'AIAN' in race:
+                elif "AIAN" in race:
                     base_rate *= 1.1
 
-                sample_data.append({
-                    'year': year,
-                    'age': age,
-                    'race': race,
-                    'fertility_rate': base_rate,
-                    'population': 1000 + np.random.randint(-100, 100)
-                })
+                sample_data.append(
+                    {
+                        "year": year,
+                        "age": age,
+                        "race": race,
+                        "fertility_rate": base_rate,
+                        "population": 1000 + np.random.randint(-100, 100),
+                    }
+                )
 
     sample_df = pd.DataFrame(sample_data)
 

@@ -4,9 +4,10 @@ Migration module for cohort component projection.
 Applies net migration (domestic + international) to population cohorts.
 """
 
+from typing import Any
+
 import pandas as pd
-import numpy as np
-from typing import Dict, Any, Optional, Tuple
+
 from ..utils.logger import get_logger_from_config
 
 logger = get_logger_from_config(__name__)
@@ -16,7 +17,7 @@ def apply_migration(
     population: pd.DataFrame,
     migration_rates: pd.DataFrame,
     year: int,
-    config: Optional[Dict[str, Any]] = None
+    config: dict[str, Any] | None = None,
 ) -> pd.DataFrame:
     """
     Apply net migration to population cohorts.
@@ -56,14 +57,14 @@ def apply_migration(
     logger.debug(f"Year {year}: Applying migration")
 
     # Validate inputs
-    required_pop_cols = ['age', 'sex', 'race', 'population']
+    required_pop_cols = ["age", "sex", "race", "population"]
     missing_cols = [col for col in required_pop_cols if col not in population.columns]
     if missing_cols:
         raise ValueError(f"population must have columns: {missing_cols}")
 
     # Check migration data format
-    has_net_migration = 'net_migration' in migration_rates.columns
-    has_migration_rate = 'migration_rate' in migration_rates.columns
+    has_net_migration = "net_migration" in migration_rates.columns
+    has_migration_rate = "migration_rate" in migration_rates.columns
 
     if not has_net_migration and not has_migration_rate:
         raise ValueError(
@@ -72,44 +73,41 @@ def apply_migration(
 
     # Merge population with migration data
     merged = population.merge(
-        migration_rates,
-        on=['age', 'sex', 'race'],
-        how='left',
-        suffixes=('_pop', '_mig')
+        migration_rates, on=["age", "sex", "race"], how="left", suffixes=("_pop", "_mig")
     )
 
     # Calculate net migration amount
     if has_net_migration:
         # Absolute migration numbers provided
-        merged['net_migration'] = merged['net_migration'].fillna(0.0)
-        migration_amount = merged['net_migration']
+        merged["net_migration"] = merged["net_migration"].fillna(0.0)
+        migration_amount = merged["net_migration"]
 
     elif has_migration_rate:
         # Migration rate provided (proportion of population)
-        merged['migration_rate'] = merged['migration_rate'].fillna(0.0)
-        migration_amount = merged['population'] * merged['migration_rate']
+        merged["migration_rate"] = merged["migration_rate"].fillna(0.0)
+        migration_amount = merged["population"] * merged["migration_rate"]
 
     # Apply migration
-    merged['population_after_migration'] = merged['population'] + migration_amount
+    merged["population_after_migration"] = merged["population"] + migration_amount
 
     # Ensure non-negative population
-    negative_pops = merged['population_after_migration'] < 0
+    negative_pops = merged["population_after_migration"] < 0
     if negative_pops.any():
         num_negative = negative_pops.sum()
         logger.warning(
             f"Year {year}: {num_negative} cohorts have negative population after migration, "
             f"setting to 0"
         )
-        merged.loc[negative_pops, 'population_after_migration'] = 0.0
+        merged.loc[negative_pops, "population_after_migration"] = 0.0
 
     # Build result DataFrame
-    result = merged[['age', 'sex', 'race', 'population_after_migration']].copy()
-    result.columns = ['age', 'sex', 'race', 'population']
-    result['year'] = year + 1  # Migration applied for next year
+    result = merged[["age", "sex", "race", "population_after_migration"]].copy()
+    result.columns = ["age", "sex", "race", "population"]
+    result["year"] = year + 1  # Migration applied for next year
 
     # Log migration statistics
-    total_before = population['population'].sum()
-    total_after = result['population'].sum()
+    total_before = population["population"].sum()
+    total_after = result["population"].sum()
     net_migration_total = total_after - total_before
 
     logger.info(
@@ -128,10 +126,7 @@ def apply_migration(
 
 
 def apply_migration_scenario(
-    migration_rates: pd.DataFrame,
-    scenario: str,
-    year: int,
-    base_year: int
+    migration_rates: pd.DataFrame, scenario: str, year: int, base_year: int
 ) -> pd.DataFrame:
     """
     Apply migration scenario adjustments to base migration data.
@@ -148,31 +143,31 @@ def apply_migration_scenario(
     adjusted_rates = migration_rates.copy()
 
     # Determine which column to adjust
-    if 'net_migration' in adjusted_rates.columns:
-        migration_col = 'net_migration'
-    elif 'migration_rate' in adjusted_rates.columns:
-        migration_col = 'migration_rate'
+    if "net_migration" in adjusted_rates.columns:
+        migration_col = "net_migration"
+    elif "migration_rate" in adjusted_rates.columns:
+        migration_col = "migration_rate"
     else:
         logger.warning("No migration column found, returning unchanged")
         return adjusted_rates
 
-    if scenario == 'recent_average' or scenario == 'constant':
+    if scenario == "recent_average" or scenario == "constant":
         # No change - use base migration
         pass
 
-    elif scenario == '+25_percent':
+    elif scenario == "+25_percent":
         adjusted_rates[migration_col] = adjusted_rates[migration_col] * 1.25
 
-    elif scenario == '-25_percent':
+    elif scenario == "-25_percent":
         adjusted_rates[migration_col] = adjusted_rates[migration_col] * 0.75
 
-    elif scenario == 'zero':
+    elif scenario == "zero":
         adjusted_rates[migration_col] = 0.0
 
-    elif scenario == 'double':
+    elif scenario == "double":
         adjusted_rates[migration_col] = adjusted_rates[migration_col] * 2.0
 
-    elif scenario == 'half':
+    elif scenario == "half":
         adjusted_rates[migration_col] = adjusted_rates[migration_col] * 0.5
 
     else:
@@ -183,9 +178,9 @@ def apply_migration_scenario(
 
 def validate_migration_data(
     migration_rates: pd.DataFrame,
-    population: Optional[pd.DataFrame] = None,
-    config: Optional[Dict[str, Any]] = None
-) -> Tuple[bool, list]:
+    population: pd.DataFrame | None = None,
+    config: dict[str, Any] | None = None,
+) -> tuple[bool, list]:
     """
     Validate migration data for plausibility.
 
@@ -200,14 +195,14 @@ def validate_migration_data(
     issues = []
 
     # Check for required columns
-    has_net_migration = 'net_migration' in migration_rates.columns
-    has_migration_rate = 'migration_rate' in migration_rates.columns
+    has_net_migration = "net_migration" in migration_rates.columns
+    has_migration_rate = "migration_rate" in migration_rates.columns
 
     if not has_net_migration and not has_migration_rate:
         issues.append("Must have either 'net_migration' or 'migration_rate' column")
         return False, issues
 
-    required_id_cols = ['age', 'sex', 'race']
+    required_id_cols = ["age", "sex", "race"]
     missing_cols = [col for col in required_id_cols if col not in migration_rates.columns]
     if missing_cols:
         issues.append(f"Missing required columns: {missing_cols}")
@@ -216,7 +211,7 @@ def validate_migration_data(
     # Check for extreme values
     if has_net_migration:
         # Check for implausibly large absolute migration
-        max_abs_migration = migration_rates['net_migration'].abs().max()
+        max_abs_migration = migration_rates["net_migration"].abs().max()
         if max_abs_migration > 10000:
             issues.append(
                 f"Very large net migration value found: {max_abs_migration:,.0f} "
@@ -225,39 +220,33 @@ def validate_migration_data(
 
     if has_migration_rate:
         # Check for rates outside reasonable bounds
-        if (migration_rates['migration_rate'] < -1).any():
+        if (migration_rates["migration_rate"] < -1).any():
             issues.append("Migration rates < -1.0 found (more than 100% out-migration)")
 
-        if (migration_rates['migration_rate'] > 1).any():
+        if (migration_rates["migration_rate"] > 1).any():
             issues.append("Migration rates > 1.0 found (more than 100% in-migration)")
 
         # Check for extreme rates
-        extreme_rates = migration_rates[migration_rates['migration_rate'].abs() > 0.5]
+        extreme_rates = migration_rates[migration_rates["migration_rate"].abs() > 0.5]
         if not extreme_rates.empty:
-            issues.append(
-                f"Extreme migration rates (>50%) found for {len(extreme_rates)} cohorts"
-            )
+            issues.append(f"Extreme migration rates (>50%) found for {len(extreme_rates)} cohorts")
 
     # If population provided, check if migration would cause negative population
     if population is not None and has_net_migration:
-        merged = population.merge(
-            migration_rates,
-            on=['age', 'sex', 'race'],
-            how='left'
-        )
-        merged['net_migration'] = merged['net_migration'].fillna(0.0)
-        merged['result_pop'] = merged['population'] + merged['net_migration']
+        merged = population.merge(migration_rates, on=["age", "sex", "race"], how="left")
+        merged["net_migration"] = merged["net_migration"].fillna(0.0)
+        merged["result_pop"] = merged["population"] + merged["net_migration"]
 
-        negative_results = merged['result_pop'] < 0
+        negative_results = merged["result_pop"] < 0
         if negative_results.any():
             issues.append(
                 f"Migration would cause negative population for {negative_results.sum()} cohorts"
             )
 
     # Check for missing age-sex-race combinations
-    expected_sexes = migration_rates['sex'].unique()
-    expected_races = migration_rates['race'].unique()
-    expected_ages = migration_rates['age'].unique()
+    expected_sexes = migration_rates["sex"].unique()
+    expected_races = migration_rates["race"].unique()
+    expected_ages = migration_rates["age"].unique()
     expected_combinations = len(expected_sexes) * len(expected_races) * len(expected_ages)
     actual_combinations = len(migration_rates)
 
@@ -280,7 +269,7 @@ def validate_migration_data(
 def distribute_international_migration(
     total_international: float,
     population: pd.DataFrame,
-    age_distribution: Optional[pd.DataFrame] = None
+    age_distribution: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """
     Distribute total international migration to cohorts.
@@ -299,40 +288,36 @@ def distribute_international_migration(
     """
     if age_distribution is None:
         # Distribute proportional to population
-        total_pop = population['population'].sum()
+        total_pop = population["population"].sum()
 
         if total_pop == 0:
             logger.warning("Cannot distribute migration to zero population")
-            result = population[['age', 'sex', 'race']].copy()
-            result['net_migration'] = 0.0
+            result = population[["age", "sex", "race"]].copy()
+            result["net_migration"] = 0.0
             return result
 
-        population['proportion'] = population['population'] / total_pop
-        population['net_migration'] = total_international * population['proportion']
+        population["proportion"] = population["population"] / total_pop
+        population["net_migration"] = total_international * population["proportion"]
 
-        result = population[['age', 'sex', 'race', 'net_migration']].copy()
+        result = population[["age", "sex", "race", "net_migration"]].copy()
 
     else:
         # Use provided age distribution
         # Merge population with age distribution
-        merged = population.merge(
-            age_distribution,
-            on=['age', 'sex', 'race'],
-            how='left'
-        )
+        merged = population.merge(age_distribution, on=["age", "sex", "race"], how="left")
 
         # Normalize distribution
-        if 'weight' in age_distribution.columns:
-            total_weight = merged['weight'].sum()
-            merged['weight'] = merged['weight'].fillna(0.0)
-            merged['proportion'] = merged['weight'] / total_weight if total_weight > 0 else 0
+        if "weight" in age_distribution.columns:
+            total_weight = merged["weight"].sum()
+            merged["weight"] = merged["weight"].fillna(0.0)
+            merged["proportion"] = merged["weight"] / total_weight if total_weight > 0 else 0
         else:
             logger.warning("No 'weight' column in age_distribution, using equal distribution")
-            merged['proportion'] = 1.0 / len(merged)
+            merged["proportion"] = 1.0 / len(merged)
 
-        merged['net_migration'] = total_international * merged['proportion']
+        merged["net_migration"] = total_international * merged["proportion"]
 
-        result = merged[['age', 'sex', 'race', 'net_migration']].copy()
+        result = merged[["age", "sex", "race", "net_migration"]].copy()
 
     logger.info(
         f"Distributed {total_international:,.0f} international migrants "
@@ -343,8 +328,7 @@ def distribute_international_migration(
 
 
 def combine_domestic_international(
-    domestic_migration: pd.DataFrame,
-    international_migration: pd.DataFrame
+    domestic_migration: pd.DataFrame, international_migration: pd.DataFrame
 ) -> pd.DataFrame:
     """
     Combine domestic and international migration into total net migration.
@@ -357,34 +341,34 @@ def combine_domestic_international(
         Combined net migration DataFrame
     """
     # Ensure both have net_migration column
-    if 'net_migration' not in domestic_migration.columns:
+    if "net_migration" not in domestic_migration.columns:
         raise ValueError("domestic_migration must have 'net_migration' column")
 
-    if 'net_migration' not in international_migration.columns:
+    if "net_migration" not in international_migration.columns:
         raise ValueError("international_migration must have 'net_migration' column")
 
     # Merge on cohort identifiers
     combined = domestic_migration.merge(
         international_migration,
-        on=['age', 'sex', 'race'],
-        how='outer',
-        suffixes=('_domestic', '_international')
+        on=["age", "sex", "race"],
+        how="outer",
+        suffixes=("_domestic", "_international"),
     )
 
     # Fill NaN with 0
-    combined['net_migration_domestic'] = combined['net_migration_domestic'].fillna(0.0)
-    combined['net_migration_international'] = combined['net_migration_international'].fillna(0.0)
+    combined["net_migration_domestic"] = combined["net_migration_domestic"].fillna(0.0)
+    combined["net_migration_international"] = combined["net_migration_international"].fillna(0.0)
 
     # Sum migration components
-    combined['net_migration'] = (
-        combined['net_migration_domestic'] + combined['net_migration_international']
+    combined["net_migration"] = (
+        combined["net_migration_domestic"] + combined["net_migration_international"]
     )
 
-    result = combined[['age', 'sex', 'race', 'net_migration']].copy()
+    result = combined[["age", "sex", "race", "net_migration"]].copy()
 
-    total_domestic = combined['net_migration_domestic'].sum()
-    total_international = combined['net_migration_international'].sum()
-    total_combined = result['net_migration'].sum()
+    total_domestic = combined["net_migration_domestic"].sum()
+    total_international = combined["net_migration_international"].sum()
+    total_combined = result["net_migration"].sum()
 
     logger.info(
         f"Combined migration - Domestic: {total_domestic:+,.0f}, "

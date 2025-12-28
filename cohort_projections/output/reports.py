@@ -11,12 +11,11 @@ Functions:
     generate_text_report: Create plain text/markdown report
 """
 
-import pandas as pd
-import numpy as np
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Literal, Any, Union
-from datetime import datetime
-import json
+from typing import Any, Literal
+
+import pandas as pd
 
 from ..utils.logger import get_logger_from_config
 
@@ -25,9 +24,9 @@ logger = get_logger_from_config(__name__)
 
 def generate_summary_statistics(
     projection_df: pd.DataFrame,
-    base_year: Optional[int] = None,
-    include_diversity_metrics: bool = True
-) -> Dict[str, Any]:
+    base_year: int | None = None,
+    include_diversity_metrics: bool = True,
+) -> dict[str, Any]:
     """
     Calculate comprehensive summary statistics from projection data.
 
@@ -66,12 +65,12 @@ def generate_summary_statistics(
         return {}
 
     # Validate columns
-    required_cols = ['year', 'age', 'sex', 'race', 'population']
+    required_cols = ["year", "age", "sex", "race", "population"]
     missing_cols = [col for col in required_cols if col not in projection_df.columns]
     if missing_cols:
         raise ValueError(f"projection_df missing required columns: {missing_cols}")
 
-    years = sorted(projection_df['year'].unique())
+    years = sorted(projection_df["year"].unique())
     if base_year is None:
         base_year = years[0]
 
@@ -81,18 +80,20 @@ def generate_summary_statistics(
     annual_stats = []
 
     for year in years:
-        year_data = projection_df[projection_df['year'] == year]
-        total_pop = year_data['population'].sum()
+        year_data = projection_df[projection_df["year"] == year]
+        total_pop = year_data["population"].sum()
 
         # By sex
-        male_pop = year_data[year_data['sex'] == 'Male']['population'].sum()
-        female_pop = year_data[year_data['sex'] == 'Female']['population'].sum()
+        male_pop = year_data[year_data["sex"] == "Male"]["population"].sum()
+        female_pop = year_data[year_data["sex"] == "Female"]["population"].sum()
         sex_ratio = (male_pop / female_pop * 100) if female_pop > 0 else 0
 
         # By age groups
-        youth = year_data[year_data['age'] < 18]['population'].sum()
-        working_age = year_data[(year_data['age'] >= 18) & (year_data['age'] < 65)]['population'].sum()
-        elderly = year_data[year_data['age'] >= 65]['population'].sum()
+        youth = year_data[year_data["age"] < 18]["population"].sum()
+        working_age = year_data[(year_data["age"] >= 18) & (year_data["age"] < 65)][
+            "population"
+        ].sum()
+        elderly = year_data[year_data["age"] >= 65]["population"].sum()
 
         # Dependency ratios
         total_dependent = youth + elderly
@@ -103,75 +104,83 @@ def generate_summary_statistics(
         # Median age (approximate)
         median_age = _calculate_median_age(year_data)
 
-        annual_stats.append({
-            'year': int(year),
-            'total_population': float(total_pop),
-            'male': float(male_pop),
-            'female': float(female_pop),
-            'sex_ratio': float(sex_ratio),
-            'youth_0_17': float(youth),
-            'working_age_18_64': float(working_age),
-            'elderly_65_plus': float(elderly),
-            'dependency_ratio': float(dependency_ratio),
-            'youth_dependency_ratio': float(youth_dependency),
-            'elderly_dependency_ratio': float(elderly_dependency),
-            'median_age': float(median_age)
-        })
+        annual_stats.append(
+            {
+                "year": int(year),
+                "total_population": float(total_pop),
+                "male": float(male_pop),
+                "female": float(female_pop),
+                "sex_ratio": float(sex_ratio),
+                "youth_0_17": float(youth),
+                "working_age_18_64": float(working_age),
+                "elderly_65_plus": float(elderly),
+                "dependency_ratio": float(dependency_ratio),
+                "youth_dependency_ratio": float(youth_dependency),
+                "elderly_dependency_ratio": float(elderly_dependency),
+                "median_age": float(median_age),
+            }
+        )
 
     # 2. Age Structure Summary
     age_structure = {}
 
-    for year in [years[0], years[len(years)//2], years[-1]]:
-        year_data = projection_df[projection_df['year'] == year]
+    for year in [years[0], years[len(years) // 2], years[-1]]:
+        year_data = projection_df[projection_df["year"] == year]
 
         # Standard age groups
         age_groups = {
-            '0-4': (0, 4),
-            '5-17': (5, 17),
-            '18-24': (18, 24),
-            '25-44': (25, 44),
-            '45-64': (45, 64),
-            '65-74': (65, 74),
-            '75-84': (75, 84),
-            '85+': (85, 150)
+            "0-4": (0, 4),
+            "5-17": (5, 17),
+            "18-24": (18, 24),
+            "25-44": (25, 44),
+            "45-64": (45, 64),
+            "65-74": (65, 74),
+            "75-84": (75, 84),
+            "85+": (85, 150),
         }
 
         year_structure = {}
-        total = year_data['population'].sum()
+        total = year_data["population"].sum()
 
         for group_name, (min_age, max_age) in age_groups.items():
-            group_pop = year_data[(year_data['age'] >= min_age) & (year_data['age'] <= max_age)]['population'].sum()
+            group_pop = year_data[(year_data["age"] >= min_age) & (year_data["age"] <= max_age)][
+                "population"
+            ].sum()
             year_structure[group_name] = {
-                'population': float(group_pop),
-                'percent': float((group_pop / total * 100) if total > 0 else 0)
+                "population": float(group_pop),
+                "percent": float((group_pop / total * 100) if total > 0 else 0),
             }
 
-        age_structure[f'year_{int(year)}'] = year_structure
+        age_structure[f"year_{int(year)}"] = year_structure
 
     # 3. Demographic Indicators
-    base_pop = annual_stats[0]['total_population']
-    final_pop = annual_stats[-1]['total_population']
+    base_pop = annual_stats[0]["total_population"]
+    final_pop = annual_stats[-1]["total_population"]
     total_years = years[-1] - years[0]
 
     # Growth metrics
     absolute_growth = final_pop - base_pop
     percent_growth = ((final_pop / base_pop - 1) * 100) if base_pop > 0 else 0
-    annual_growth_rate = (((final_pop / base_pop) ** (1 / total_years)) - 1) * 100 if total_years > 0 and base_pop > 0 else 0
+    annual_growth_rate = (
+        (((final_pop / base_pop) ** (1 / total_years)) - 1) * 100
+        if total_years > 0 and base_pop > 0
+        else 0
+    )
 
     demographic_indicators = {
-        'base_year': int(base_year),
-        'final_year': int(years[-1]),
-        'base_population': float(base_pop),
-        'final_population': float(final_pop),
-        'absolute_growth': float(absolute_growth),
-        'percent_growth': float(percent_growth),
-        'annual_growth_rate': float(annual_growth_rate),
-        'dependency_ratio_base': float(annual_stats[0]['dependency_ratio']),
-        'dependency_ratio_final': float(annual_stats[-1]['dependency_ratio']),
-        'median_age_base': float(annual_stats[0]['median_age']),
-        'median_age_final': float(annual_stats[-1]['median_age']),
-        'sex_ratio_base': float(annual_stats[0]['sex_ratio']),
-        'sex_ratio_final': float(annual_stats[-1]['sex_ratio'])
+        "base_year": int(base_year),
+        "final_year": int(years[-1]),
+        "base_population": float(base_pop),
+        "final_population": float(final_pop),
+        "absolute_growth": float(absolute_growth),
+        "percent_growth": float(percent_growth),
+        "annual_growth_rate": float(annual_growth_rate),
+        "dependency_ratio_base": float(annual_stats[0]["dependency_ratio"]),
+        "dependency_ratio_final": float(annual_stats[-1]["dependency_ratio"]),
+        "median_age_base": float(annual_stats[0]["median_age"]),
+        "median_age_final": float(annual_stats[-1]["median_age"]),
+        "sex_ratio_base": float(annual_stats[0]["sex_ratio"]),
+        "sex_ratio_final": float(annual_stats[-1]["sex_ratio"]),
     }
 
     # 4. Diversity Metrics (if requested)
@@ -181,74 +190,77 @@ def generate_summary_statistics(
         logger.debug("Calculating diversity metrics")
 
         for year in [years[0], years[-1]]:
-            year_data = projection_df[projection_df['year'] == year]
-            total = year_data['population'].sum()
+            year_data = projection_df[projection_df["year"] == year]
+            total = year_data["population"].sum()
 
             # Race/ethnicity distribution
             race_dist = {}
-            for race in year_data['race'].unique():
-                race_pop = year_data[year_data['race'] == race]['population'].sum()
+            for race in year_data["race"].unique():
+                race_pop = year_data[year_data["race"] == race]["population"].sum()
                 race_dist[race] = {
-                    'population': float(race_pop),
-                    'percent': float((race_pop / total * 100) if total > 0 else 0)
+                    "population": float(race_pop),
+                    "percent": float((race_pop / total * 100) if total > 0 else 0),
                 }
 
             # Diversity index (Simpson's Diversity Index)
             # D = 1 - sum(p_i^2) where p_i is proportion of group i
-            proportions = [v['population'] / total for v in race_dist.values() if total > 0]
+            proportions = [v["population"] / total for v in race_dist.values() if total > 0]
             diversity_index = 1 - sum(p**2 for p in proportions) if proportions else 0
 
-            diversity[f'year_{int(year)}'] = {
-                'race_distribution': race_dist,
-                'diversity_index': float(diversity_index),
-                'majority_group': max(race_dist.items(), key=lambda x: x[1]['population'])[0] if race_dist else None
+            diversity[f"year_{int(year)}"] = {
+                "race_distribution": race_dist,
+                "diversity_index": float(diversity_index),
+                "majority_group": max(race_dist.items(), key=lambda x: x[1]["population"])[0]
+                if race_dist
+                else None,
             }
 
     # 5. Growth Analysis
-    growth_analysis = {
-        'annual_growth_rates': [],
-        'period_growth_rates': []
-    }
+    growth_analysis = {"annual_growth_rates": [], "period_growth_rates": []}
 
     # Annual growth rates
     for i in range(1, len(annual_stats)):
-        prev_pop = annual_stats[i-1]['total_population']
-        curr_pop = annual_stats[i]['total_population']
+        prev_pop = annual_stats[i - 1]["total_population"]
+        curr_pop = annual_stats[i]["total_population"]
         growth_rate = ((curr_pop / prev_pop - 1) * 100) if prev_pop > 0 else 0
 
-        growth_analysis['annual_growth_rates'].append({
-            'year': annual_stats[i]['year'],
-            'growth_rate': float(growth_rate),
-            'absolute_change': float(curr_pop - prev_pop)
-        })
+        growth_analysis["annual_growth_rates"].append(
+            {
+                "year": annual_stats[i]["year"],
+                "growth_rate": float(growth_rate),
+                "absolute_change": float(curr_pop - prev_pop),
+            }
+        )
 
     # 5-year period growth rates
     for i in range(0, len(years), 5):
         if i + 5 < len(years):
             start_year = years[i]
             end_year = years[i + 5]
-            start_pop = annual_stats[i]['total_population']
-            end_pop = annual_stats[i + 5]['total_population']
+            start_pop = annual_stats[i]["total_population"]
+            end_pop = annual_stats[i + 5]["total_population"]
 
             period_growth = ((end_pop / start_pop - 1) * 100) if start_pop > 0 else 0
             annual_avg = (((end_pop / start_pop) ** (1 / 5)) - 1) * 100 if start_pop > 0 else 0
 
-            growth_analysis['period_growth_rates'].append({
-                'period': f'{int(start_year)}-{int(end_year)}',
-                'start_population': float(start_pop),
-                'end_population': float(end_pop),
-                'period_growth': float(period_growth),
-                'annual_average': float(annual_avg)
-            })
+            growth_analysis["period_growth_rates"].append(
+                {
+                    "period": f"{int(start_year)}-{int(end_year)}",
+                    "start_population": float(start_pop),
+                    "end_population": float(end_pop),
+                    "period_growth": float(period_growth),
+                    "annual_average": float(annual_avg),
+                }
+            )
 
     # Assemble final statistics
     statistics = {
-        'by_year': annual_stats,
-        'age_structure': age_structure,
-        'demographic_indicators': demographic_indicators,
-        'diversity': diversity,
-        'growth_analysis': growth_analysis,
-        'generated_at': datetime.now().isoformat()
+        "by_year": annual_stats,
+        "age_structure": age_structure,
+        "demographic_indicators": demographic_indicators,
+        "diversity": diversity,
+        "growth_analysis": growth_analysis,
+        "generated_at": datetime.now(UTC).isoformat(),
     }
 
     logger.info(f"Summary statistics generated for {len(years)} years")
@@ -261,7 +273,7 @@ def compare_scenarios(
     scenario_df: pd.DataFrame,
     baseline_name: str = "Baseline",
     scenario_name: str = "Alternative",
-    years_to_compare: Optional[List[int]] = None
+    years_to_compare: list[int] | None = None,
 ) -> pd.DataFrame:
     """
     Compare baseline projection vs alternative scenario.
@@ -292,8 +304,8 @@ def compare_scenarios(
     logger.info(f"Comparing scenarios: {baseline_name} vs {scenario_name}")
 
     # Get years
-    baseline_years = set(baseline_df['year'].unique())
-    scenario_years = set(scenario_df['year'].unique())
+    baseline_years = set(baseline_df["year"].unique())
+    scenario_years = set(scenario_df["year"].unique())
     common_years = sorted(baseline_years & scenario_years)
 
     if years_to_compare:
@@ -305,38 +317,44 @@ def compare_scenarios(
     comparison_data = []
 
     for year in common_years:
-        baseline_year = baseline_df[baseline_df['year'] == year]
-        scenario_year = scenario_df[scenario_df['year'] == year]
+        baseline_year = baseline_df[baseline_df["year"] == year]
+        scenario_year = scenario_df[scenario_df["year"] == year]
 
-        baseline_total = baseline_year['population'].sum()
-        scenario_total = scenario_year['population'].sum()
+        baseline_total = baseline_year["population"].sum()
+        scenario_total = scenario_year["population"].sum()
 
         difference = scenario_total - baseline_total
         pct_difference = ((difference / baseline_total) * 100) if baseline_total > 0 else 0
 
         # Age group comparisons
-        baseline_youth = baseline_year[baseline_year['age'] < 18]['population'].sum()
-        scenario_youth = scenario_year[scenario_year['age'] < 18]['population'].sum()
+        baseline_youth = baseline_year[baseline_year["age"] < 18]["population"].sum()
+        scenario_youth = scenario_year[scenario_year["age"] < 18]["population"].sum()
 
-        baseline_working = baseline_year[(baseline_year['age'] >= 18) & (baseline_year['age'] < 65)]['population'].sum()
-        scenario_working = scenario_year[(scenario_year['age'] >= 18) & (scenario_year['age'] < 65)]['population'].sum()
+        baseline_working = baseline_year[
+            (baseline_year["age"] >= 18) & (baseline_year["age"] < 65)
+        ]["population"].sum()
+        scenario_working = scenario_year[
+            (scenario_year["age"] >= 18) & (scenario_year["age"] < 65)
+        ]["population"].sum()
 
-        baseline_elderly = baseline_year[baseline_year['age'] >= 65]['population'].sum()
-        scenario_elderly = scenario_year[scenario_year['age'] >= 65]['population'].sum()
+        baseline_elderly = baseline_year[baseline_year["age"] >= 65]["population"].sum()
+        scenario_elderly = scenario_year[scenario_year["age"] >= 65]["population"].sum()
 
-        comparison_data.append({
-            'year': int(year),
-            f'{baseline_name}_total': float(baseline_total),
-            f'{scenario_name}_total': float(scenario_total),
-            'difference': float(difference),
-            'percent_difference': float(pct_difference),
-            f'{baseline_name}_youth': float(baseline_youth),
-            f'{scenario_name}_youth': float(scenario_youth),
-            f'{baseline_name}_working': float(baseline_working),
-            f'{scenario_name}_working': float(scenario_working),
-            f'{baseline_name}_elderly': float(baseline_elderly),
-            f'{scenario_name}_elderly': float(scenario_elderly)
-        })
+        comparison_data.append(
+            {
+                "year": int(year),
+                f"{baseline_name}_total": float(baseline_total),
+                f"{scenario_name}_total": float(scenario_total),
+                "difference": float(difference),
+                "percent_difference": float(pct_difference),
+                f"{baseline_name}_youth": float(baseline_youth),
+                f"{scenario_name}_youth": float(scenario_youth),
+                f"{baseline_name}_working": float(baseline_working),
+                f"{scenario_name}_working": float(scenario_working),
+                f"{baseline_name}_elderly": float(baseline_elderly),
+                f"{scenario_name}_elderly": float(scenario_elderly),
+            }
+        )
 
     comparison_df = pd.DataFrame(comparison_data)
 
@@ -347,12 +365,12 @@ def compare_scenarios(
 
 def generate_html_report(
     projection_df: pd.DataFrame,
-    output_path: Union[str, Path],
+    output_path: str | Path,
     title: str = "Population Projection Report",
-    summary_stats: Optional[Dict[str, Any]] = None,
-    metadata: Optional[Dict[str, Any]] = None,
+    summary_stats: dict[str, Any] | None = None,
+    metadata: dict[str, Any] | None = None,
     include_methodology: bool = True,
-    template_path: Optional[Path] = None
+    template_path: Path | None = None,
 ) -> Path:
     """
     Generate formatted HTML report.
@@ -398,11 +416,11 @@ def generate_html_report(
         projection_df=projection_df,
         summary_stats=summary_stats,
         metadata=metadata,
-        include_methodology=include_methodology
+        include_methodology=include_methodology,
     )
 
     # Write to file
-    with open(output_path, 'w', encoding='utf-8') as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(html)
 
     logger.info(f"HTML report generated: {output_path}")
@@ -412,11 +430,11 @@ def generate_html_report(
 
 def generate_text_report(
     projection_df: pd.DataFrame,
-    output_path: Union[str, Path],
+    output_path: str | Path,
     title: str = "Population Projection Report",
-    format_type: Literal['text', 'markdown'] = 'text',
-    summary_stats: Optional[Dict[str, Any]] = None,
-    include_tables: bool = True
+    format_type: Literal["text", "markdown"] = "text",
+    summary_stats: dict[str, Any] | None = None,
+    include_tables: bool = True,
 ) -> Path:
     """
     Generate plain text or Markdown report.
@@ -457,7 +475,7 @@ def generate_text_report(
     lines = []
 
     # Title
-    if format_type == 'markdown':
+    if format_type == "markdown":
         lines.append(f"# {title}\n")
     else:
         lines.append("=" * len(title))
@@ -466,24 +484,24 @@ def generate_text_report(
         lines.append("")
 
     # Generation info
-    lines.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    lines.append(f"Generated: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}")
     lines.append("")
 
     # Executive Summary
-    if format_type == 'markdown':
+    if format_type == "markdown":
         lines.append("## Executive Summary\n")
     else:
         lines.append("EXECUTIVE SUMMARY")
         lines.append("-" * 40)
 
-    indicators = summary_stats.get('demographic_indicators', {})
+    indicators = summary_stats.get("demographic_indicators", {})
 
-    base_year = indicators.get('base_year', 'N/A')
-    final_year = indicators.get('final_year', 'N/A')
-    base_pop = indicators.get('base_population', 0)
-    final_pop = indicators.get('final_population', 0)
-    growth = indicators.get('absolute_growth', 0)
-    pct_growth = indicators.get('percent_growth', 0)
+    base_year = indicators.get("base_year", "N/A")
+    final_year = indicators.get("final_year", "N/A")
+    base_pop = indicators.get("base_population", 0)
+    final_pop = indicators.get("final_population", 0)
+    growth = indicators.get("absolute_growth", 0)
+    pct_growth = indicators.get("percent_growth", 0)
 
     lines.append(f"Projection Period: {base_year} - {final_year}")
     lines.append(f"Base Year Population: {base_pop:,.0f}")
@@ -492,27 +510,29 @@ def generate_text_report(
     lines.append("")
 
     # Key Findings
-    if format_type == 'markdown':
+    if format_type == "markdown":
         lines.append("## Key Findings\n")
     else:
         lines.append("KEY FINDINGS")
         lines.append("-" * 40)
 
-    median_age_base = indicators.get('median_age_base', 0)
-    median_age_final = indicators.get('median_age_final', 0)
-    dep_ratio_base = indicators.get('dependency_ratio_base', 0)
-    dep_ratio_final = indicators.get('dependency_ratio_final', 0)
+    median_age_base = indicators.get("median_age_base", 0)
+    median_age_final = indicators.get("median_age_final", 0)
+    dep_ratio_base = indicators.get("dependency_ratio_base", 0)
+    dep_ratio_final = indicators.get("dependency_ratio_final", 0)
 
-    lines.append(f"- Median age increases from {median_age_base:.1f} to {median_age_final:.1f} years")
+    lines.append(
+        f"- Median age increases from {median_age_base:.1f} to {median_age_final:.1f} years"
+    )
     lines.append(f"- Dependency ratio changes from {dep_ratio_base:.2f} to {dep_ratio_final:.2f}")
 
     # Add age structure findings
-    by_year = summary_stats.get('by_year', [])
+    by_year = summary_stats.get("by_year", [])
     if len(by_year) >= 2:
-        base_youth_pct = (by_year[0]['youth_0_17'] / by_year[0]['total_population']) * 100
-        final_youth_pct = (by_year[-1]['youth_0_17'] / by_year[-1]['total_population']) * 100
-        base_elderly_pct = (by_year[0]['elderly_65_plus'] / by_year[0]['total_population']) * 100
-        final_elderly_pct = (by_year[-1]['elderly_65_plus'] / by_year[-1]['total_population']) * 100
+        base_youth_pct = (by_year[0]["youth_0_17"] / by_year[0]["total_population"]) * 100
+        final_youth_pct = (by_year[-1]["youth_0_17"] / by_year[-1]["total_population"]) * 100
+        base_elderly_pct = (by_year[0]["elderly_65_plus"] / by_year[0]["total_population"]) * 100
+        final_elderly_pct = (by_year[-1]["elderly_65_plus"] / by_year[-1]["total_population"]) * 100
 
         lines.append(f"- Youth (0-17) share: {base_youth_pct:.1f}% -> {final_youth_pct:.1f}%")
         lines.append(f"- Elderly (65+) share: {base_elderly_pct:.1f}% -> {final_elderly_pct:.1f}%")
@@ -521,19 +541,19 @@ def generate_text_report(
 
     # Population by Year Table
     if include_tables and by_year:
-        if format_type == 'markdown':
+        if format_type == "markdown":
             lines.append("## Population Trends\n")
             lines.append("| Year | Total Population | Growth Rate | Dependency Ratio |")
             lines.append("|------|------------------|-------------|------------------|")
 
             for i, year_data in enumerate(by_year):
-                year = year_data['year']
-                pop = year_data['total_population']
-                dep_ratio = year_data['dependency_ratio']
+                year = year_data["year"]
+                pop = year_data["total_population"]
+                dep_ratio = year_data["dependency_ratio"]
 
                 # Calculate growth rate from previous year
                 if i > 0:
-                    prev_pop = by_year[i-1]['total_population']
+                    prev_pop = by_year[i - 1]["total_population"]
                     growth_rate = ((pop / prev_pop - 1) * 100) if prev_pop > 0 else 0
                     lines.append(f"| {year} | {pop:,.0f} | {growth_rate:+.2f}% | {dep_ratio:.2f} |")
                 else:
@@ -547,21 +567,23 @@ def generate_text_report(
             lines.append("-" * 70)
 
             for i, year_data in enumerate(by_year):
-                year = year_data['year']
-                pop = year_data['total_population']
-                dep_ratio = year_data['dependency_ratio']
+                year = year_data["year"]
+                pop = year_data["total_population"]
+                dep_ratio = year_data["dependency_ratio"]
 
                 if i > 0:
-                    prev_pop = by_year[i-1]['total_population']
+                    prev_pop = by_year[i - 1]["total_population"]
                     growth_rate = ((pop / prev_pop - 1) * 100) if prev_pop > 0 else 0
-                    lines.append(f"{year:<8} {pop:>15,.0f} {growth_rate:>11.2f}% {dep_ratio:>12.2f}")
+                    lines.append(
+                        f"{year:<8} {pop:>15,.0f} {growth_rate:>11.2f}% {dep_ratio:>12.2f}"
+                    )
                 else:
                     lines.append(f"{year:<8} {pop:>15,.0f} {'--':>12} {dep_ratio:>12.2f}")
 
             lines.append("")
 
     # Methodology
-    if format_type == 'markdown':
+    if format_type == "markdown":
         lines.append("## Methodology\n")
     else:
         lines.append("METHODOLOGY")
@@ -580,7 +602,7 @@ def generate_text_report(
 
     # Write to file
     content = "\n".join(lines)
-    with open(output_path, 'w', encoding='utf-8') as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(content)
 
     logger.info(f"{format_type.title()} report generated: {output_path}")
@@ -602,7 +624,7 @@ def _calculate_median_age(population_df: pd.DataFrame) -> float:
         return 0.0
 
     # Create age distribution
-    age_dist = population_df.groupby('age')['population'].sum().sort_index()
+    age_dist = population_df.groupby("age")["population"].sum().sort_index()
 
     if age_dist.sum() == 0:
         return 0.0
@@ -618,14 +640,14 @@ def _calculate_median_age(population_df: pd.DataFrame) -> float:
 def _build_html_report(
     title: str,
     projection_df: pd.DataFrame,
-    summary_stats: Dict[str, Any],
-    metadata: Optional[Dict[str, Any]],
-    include_methodology: bool
+    summary_stats: dict[str, Any],
+    metadata: dict[str, Any] | None,
+    include_methodology: bool,
 ) -> str:
     """Build HTML report content."""
 
-    indicators = summary_stats.get('demographic_indicators', {})
-    by_year = summary_stats.get('by_year', [])
+    indicators = summary_stats.get("demographic_indicators", {})
+    by_year = summary_stats.get("by_year", [])
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -720,7 +742,7 @@ def _build_html_report(
     <h1>{title}</h1>
 
     <div class="summary-box">
-        <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p><strong>Generated:</strong> {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}</p>
         <p><strong>Projection Period:</strong> {indicators.get('base_year', 'N/A')} - {indicators.get('final_year', 'N/A')}</p>
     </div>
 
@@ -823,7 +845,7 @@ def _build_html_report(
     html += f"""
     <div class="footer">
         <p><strong>North Dakota Cohort Component Projection System</strong></p>
-        <p>Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p>Generated: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}</p>
     </div>
 
 </body>

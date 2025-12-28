@@ -1,0 +1,251 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cohort_projections"
+version = "0.1.0"
+description = "North Dakota cohort component population projections 2025-2045"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+keywords = ["demographics", "population", "projections", "cohort-component", "north-dakota"]
+
+dependencies = [
+    # Core data science
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "pyarrow>=12.0.0",
+    # Data acquisition
+    "requests>=2.31.0",
+    "tqdm>=4.66.0",
+    # Google BigQuery
+    "google-cloud-bigquery>=3.11.0",
+    "google-auth>=2.22.0",
+    "db-dtypes>=1.1.1",
+    # Configuration
+    "pyyaml>=6.0",
+    # Excel export
+    "openpyxl>=3.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0",
+    "black>=23.0.0",
+    "ipython>=8.14.0",
+    "jupyter>=1.0.0",
+]
+viz = [
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "plotly>=5.14.0",
+]
+geo = [
+    "geopandas>=0.13.0",
+    "shapely>=2.0.0",
+]
+all = [
+    "cohort_projections[dev,viz,geo]",
+]
+
+[project.urls]
+Homepage = "https://github.com/nigel/cohort_projections"
+Documentation = "https://github.com/nigel/cohort_projections#readme"
+Repository = "https://github.com/nigel/cohort_projections"
+Issues = "https://github.com/nigel/cohort_projections/issues"
+
+# =============================================================================
+# Ruff Configuration
+# =============================================================================
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "N",      # pep8-naming
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "SIM",    # flake8-simplify
+    "PIE",    # flake8-pie
+    "DTZ",    # flake8-datetimez
+]
+ignore = [
+    "E501",      # Line too long - Ruff formatter handles this
+    "PLR2004",   # Magic value comparison - acceptable for demographic constants
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101",    # Allow assert statements in tests
+    "PLR2004", # Allow magic values in tests
+    "D",       # Ignore docstring requirements in tests
+]
+"scripts/**/*.py" = [
+    "T201",    # Allow print statements in scripts
+    "PLR2004", # Allow magic values in scripts
+    "D",       # Ignore docstring requirements in scripts
+    "N999",    # Allow invalid module names (numbered scripts for ordering)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["cohort_projections"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+# =============================================================================
+# MyPy Configuration
+# =============================================================================
+# Note: Using relaxed settings initially. Strict mode can be enabled
+# incrementally as type annotations are added to the codebase.
+[tool.mypy]
+python_version = "3.11"
+# Relaxed settings for initial adoption
+strict = false
+warn_return_any = false
+warn_unused_ignores = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_configs = true
+show_error_codes = true
+# Ignore missing imports for libraries without stubs
+ignore_missing_imports = true
+exclude = [
+    "scripts/",
+    "examples/",
+    "tests/",
+    "venv/",
+    ".venv/",
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "pandas.*",
+    "numpy.*",
+    "pyarrow.*",
+    "geopandas.*",
+    "shapely.*",
+    "matplotlib.*",
+    "seaborn.*",
+    "plotly.*",
+    "google.cloud.*",
+    "google.auth.*",
+    "db_dtypes.*",
+    "tqdm.*",
+    "openpyxl.*",
+    "yaml.*",
+]
+ignore_missing_imports = true
+
+# =============================================================================
+# Pytest Configuration
+# =============================================================================
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--cov=cohort_projections",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "data_fetch: marks tests that fetch external data",
+    "integration: marks integration tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+# =============================================================================
+# Coverage Configuration
+# =============================================================================
+[tool.coverage.run]
+source = ["cohort_projections"]
+branch = true
+omit = [
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/.venv/*",
+    "*/tests/*",
+    "*/scripts/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+show_missing = true
+precision = 2
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+# =============================================================================
+# Black Configuration (for compatibility, though Ruff can handle formatting)
+# =============================================================================
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+# =============================================================================
+# Setuptools Configuration
+# =============================================================================
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["cohort_projections*"]
+exclude = ["tests*", "scripts*", "docs*"]
+
+[tool.setuptools.package-data]
+cohort_projections = ["py.typed", "*.yaml", "*.yml"]

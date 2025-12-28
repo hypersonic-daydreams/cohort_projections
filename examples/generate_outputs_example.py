@@ -13,38 +13,35 @@ Run this script from the project root:
     python examples/generate_outputs_example.py
 """
 
-import pandas as pd
-import numpy as np
-from pathlib import Path
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
+from pathlib import Path
+
+import pandas as pd
 
 # Add project to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from cohort_projections.core import CohortComponentProjection
-from cohort_projections.utils.config_loader import ConfigLoader
+from cohort_projections.core import CohortComponentProjection  # noqa: E402
 
 # Import all output functions
-from cohort_projections.output import (
-    # Writers
-    write_projection_excel,
-    write_projection_csv,
-    write_projection_formats,
-
-    # Reports
-    generate_summary_statistics,
+from cohort_projections.output import (  # noqa: E402
     compare_scenarios,
     generate_html_report,
+    # Reports
+    generate_summary_statistics,
     generate_text_report,
-
+    plot_growth_rates,
     # Visualizations
     plot_population_pyramid,
     plot_population_trends,
-    plot_growth_rates,
     plot_scenario_comparison,
     save_all_visualizations,
+    write_projection_csv,
+    # Writers
+    write_projection_excel,
+    write_projection_formats,
 )
 
 
@@ -56,13 +53,9 @@ def create_sample_data():
     """
     print("Creating sample input data...")
 
-    ages = list(range(0, 91))
-    sexes = ['Male', 'Female']
-    races = [
-        'White alone, Non-Hispanic',
-        'Black alone, Non-Hispanic',
-        'Hispanic (any race)'
-    ]
+    ages = list(range(91))
+    sexes = ["Male", "Female"]
+    races = ["White alone, Non-Hispanic", "Black alone, Non-Hispanic", "Hispanic (any race)"]
 
     # Base Population
     base_pop_data = []
@@ -78,18 +71,14 @@ def create_sample_data():
                 else:
                     base_pop = max(100, 1200 - (age - 65) * 40)
 
-                if race == 'White alone, Non-Hispanic':
+                if race == "White alone, Non-Hispanic":
                     base_pop *= 3.0
-                elif race == 'Hispanic (any race)':
+                elif race == "Hispanic (any race)":
                     base_pop *= 1.5
 
-                base_pop_data.append({
-                    'year': 2025,
-                    'age': age,
-                    'sex': sex,
-                    'race': race,
-                    'population': base_pop
-                })
+                base_pop_data.append(
+                    {"year": 2025, "age": age, "sex": sex, "race": race, "population": base_pop}
+                )
 
     base_population = pd.DataFrame(base_pop_data)
 
@@ -110,14 +99,10 @@ def create_sample_data():
             else:
                 rate = 0.01
 
-            if race == 'Hispanic (any race)':
+            if race == "Hispanic (any race)":
                 rate *= 1.2
 
-            fertility_data.append({
-                'age': age,
-                'race': race,
-                'fertility_rate': rate
-            })
+            fertility_data.append({"age": age, "race": race, "fertility_rate": rate})
 
     fertility_rates = pd.DataFrame(fertility_data)
 
@@ -141,15 +126,12 @@ def create_sample_data():
                 else:
                     survival_rate = 0.80
 
-                if sex == 'Male':
+                if sex == "Male":
                     survival_rate *= 0.995
 
-                survival_data.append({
-                    'age': age,
-                    'sex': sex,
-                    'race': race,
-                    'survival_rate': survival_rate
-                })
+                survival_data.append(
+                    {"age": age, "sex": sex, "race": race, "survival_rate": survival_rate}
+                )
 
     survival_rates = pd.DataFrame(survival_data)
 
@@ -171,15 +153,12 @@ def create_sample_data():
                 else:
                     net_mig = -5
 
-                if race == 'Hispanic (any race)':
+                if race == "Hispanic (any race)":
                     net_mig *= 1.5
 
-                migration_data.append({
-                    'age': age,
-                    'sex': sex,
-                    'race': race,
-                    'net_migration': net_mig
-                })
+                migration_data.append(
+                    {"age": age, "sex": sex, "race": race, "net_migration": net_mig}
+                )
 
     migration_rates = pd.DataFrame(migration_data)
 
@@ -191,27 +170,27 @@ def run_projection_with_scenario(
     fertility_rates,
     survival_rates,
     migration_rates,
-    scenario_name='baseline',
-    migration_multiplier=1.0
+    scenario_name="baseline",
+    migration_multiplier=1.0,
 ):
     """Run projection with scenario adjustments."""
     print(f"\nRunning {scenario_name} projection...")
 
     # Adjust migration for scenario
     adjusted_migration = migration_rates.copy()
-    adjusted_migration['net_migration'] *= migration_multiplier
+    adjusted_migration["net_migration"] *= migration_multiplier
 
     projection = CohortComponentProjection(
         base_population=base_population,
         fertility_rates=fertility_rates,
         survival_rates=survival_rates,
-        migration_rates=adjusted_migration
+        migration_rates=adjusted_migration,
     )
 
     results = projection.run_projection(
         start_year=2025,
         end_year=2030,  # 5 years for quick demo
-        scenario=scenario_name
+        scenario=scenario_name,
     )
 
     summary = projection.get_projection_summary()
@@ -242,23 +221,32 @@ def main():
 
     # Run baseline projection
     baseline_results, baseline_summary = run_projection_with_scenario(
-        base_population, fertility_rates, survival_rates, migration_rates,
-        scenario_name='baseline',
-        migration_multiplier=1.0
+        base_population,
+        fertility_rates,
+        survival_rates,
+        migration_rates,
+        scenario_name="baseline",
+        migration_multiplier=1.0,
     )
 
     # Run high growth scenario
     high_growth_results, high_growth_summary = run_projection_with_scenario(
-        base_population, fertility_rates, survival_rates, migration_rates,
-        scenario_name='high_growth',
-        migration_multiplier=1.5
+        base_population,
+        fertility_rates,
+        survival_rates,
+        migration_rates,
+        scenario_name="high_growth",
+        migration_multiplier=1.5,
     )
 
     # Run low growth scenario
     low_growth_results, low_growth_summary = run_projection_with_scenario(
-        base_population, fertility_rates, survival_rates, migration_rates,
-        scenario_name='low_growth',
-        migration_multiplier=0.5
+        base_population,
+        fertility_rates,
+        survival_rates,
+        migration_rates,
+        scenario_name="low_growth",
+        migration_multiplier=0.5,
     )
 
     print("\n" + "=" * 80)
@@ -267,23 +255,19 @@ def main():
 
     # Create metadata
     metadata = {
-        'geography': {
-            'level': 'example',
-            'name': 'Example Projection',
-            'fips': 'EX001'
+        "geography": {"level": "example", "name": "Example Projection", "fips": "EX001"},
+        "projection": {
+            "base_year": 2025,
+            "end_year": 2030,
+            "scenario": "baseline",
+            "processing_date": datetime.now(UTC).isoformat(),
         },
-        'projection': {
-            'base_year': 2025,
-            'end_year': 2030,
-            'scenario': 'baseline',
-            'processing_date': datetime.now().isoformat()
+        "data_sources": {
+            "population": "Sample Data",
+            "fertility": "Sample Rates",
+            "mortality": "Sample Rates",
+            "migration": "Sample Rates",
         },
-        'data_sources': {
-            'population': 'Sample Data',
-            'fertility': 'Sample Rates',
-            'mortality': 'Sample Rates',
-            'migration': 'Sample Rates'
-        }
     }
 
     # 1. Export to all formats at once
@@ -291,11 +275,11 @@ def main():
     format_paths = write_projection_formats(
         projection_df=baseline_results,
         output_dir=data_dir,
-        base_filename='example_projection_baseline',
-        formats=['csv', 'excel', 'parquet', 'json'],
+        base_filename="example_projection_baseline",
+        formats=["csv", "excel", "parquet", "json"],
         summary_df=baseline_summary,
         metadata=metadata,
-        compression='gzip'
+        compression="gzip",
     )
 
     print("   Exported files:")
@@ -307,12 +291,12 @@ def main():
     print("\n2. Creating formatted Excel workbook...")
     excel_path = write_projection_excel(
         projection_df=baseline_results,
-        output_path=data_dir / 'example_projection_formatted.xlsx',
+        output_path=data_dir / "example_projection_formatted.xlsx",
         summary_df=baseline_summary,
         metadata=metadata,
         include_charts=True,
         include_formatting=True,
-        title='Example Population Projection 2025-2030'
+        title="Example Population Projection 2025-2030",
     )
     print(f"   Created: {excel_path.name}")
 
@@ -322,18 +306,18 @@ def main():
     # Wide format
     csv_wide = write_projection_csv(
         projection_df=baseline_results,
-        output_path=data_dir / 'example_projection_wide.csv',
-        format_type='wide'
+        output_path=data_dir / "example_projection_wide.csv",
+        format_type="wide",
     )
     print(f"   - Wide format: {csv_wide.name}")
 
     # Filtered by age groups
     csv_filtered = write_projection_csv(
         projection_df=baseline_results,
-        output_path=data_dir / 'example_projection_age_groups.csv.gz',
-        format_type='long',
+        output_path=data_dir / "example_projection_age_groups.csv.gz",
+        format_type="long",
         age_ranges=[(0, 17), (18, 64), (65, 90)],
-        compression='gzip'
+        compression="gzip",
     )
     print(f"   - Age groups: {csv_filtered.name}")
 
@@ -344,44 +328,52 @@ def main():
     # 4. Generate comprehensive statistics
     print("\n4. Generating summary statistics...")
     stats = generate_summary_statistics(
-        projection_df=baseline_results,
-        base_year=2025,
-        include_diversity_metrics=True
+        projection_df=baseline_results, base_year=2025, include_diversity_metrics=True
     )
 
     print("\n   Key Statistics:")
-    indicators = stats['demographic_indicators']
+    indicators = stats["demographic_indicators"]
     print(f"   - Base Population: {indicators['base_population']:,.0f}")
     print(f"   - Final Population: {indicators['final_population']:,.0f}")
-    print(f"   - Growth: {indicators['absolute_growth']:+,.0f} ({indicators['percent_growth']:+.1f}%)")
-    print(f"   - Median Age Change: {indicators['median_age_base']:.1f} -> {indicators['median_age_final']:.1f}")
-    print(f"   - Dependency Ratio Change: {indicators['dependency_ratio_base']:.2f} -> {indicators['dependency_ratio_final']:.2f}")
+    print(
+        f"   - Growth: {indicators['absolute_growth']:+,.0f} ({indicators['percent_growth']:+.1f}%)"
+    )
+    print(
+        f"   - Median Age Change: {indicators['median_age_base']:.1f} -> {indicators['median_age_final']:.1f}"
+    )
+    print(
+        f"   - Dependency Ratio Change: {indicators['dependency_ratio_base']:.2f} -> {indicators['dependency_ratio_final']:.2f}"
+    )
 
     # 5. Compare scenarios
     print("\n5. Comparing scenarios...")
     comparison = compare_scenarios(
         baseline_df=baseline_results,
         scenario_df=high_growth_results,
-        baseline_name='Baseline',
-        scenario_name='High Growth'
+        baseline_name="Baseline",
+        scenario_name="High Growth",
     )
 
     print("\n   Scenario Comparison:")
-    print(comparison[['year', 'Baseline_total', 'High Growth_total', 'difference', 'percent_difference']].to_string(index=False))
+    print(
+        comparison[
+            ["year", "Baseline_total", "High Growth_total", "difference", "percent_difference"]
+        ].to_string(index=False)
+    )
 
     # Save comparison
-    comparison.to_csv(reports_dir / 'scenario_comparison.csv', index=False)
+    comparison.to_csv(reports_dir / "scenario_comparison.csv", index=False)
     print(f"\n   Saved: {reports_dir / 'scenario_comparison.csv'}")
 
     # 6. Generate HTML report
     print("\n6. Generating HTML report...")
     html_report = generate_html_report(
         projection_df=baseline_results,
-        output_path=reports_dir / 'projection_report.html',
-        title='Example Population Projection Report 2025-2030',
+        output_path=reports_dir / "projection_report.html",
+        title="Example Population Projection Report 2025-2030",
         summary_stats=stats,
         metadata=metadata,
-        include_methodology=True
+        include_methodology=True,
     )
     print(f"   Created: {html_report.name}")
 
@@ -391,22 +383,22 @@ def main():
     # Plain text
     text_report = generate_text_report(
         projection_df=baseline_results,
-        output_path=reports_dir / 'projection_report.txt',
-        title='Example Population Projection Report',
-        format_type='text',
+        output_path=reports_dir / "projection_report.txt",
+        title="Example Population Projection Report",
+        format_type="text",
         summary_stats=stats,
-        include_tables=True
+        include_tables=True,
     )
     print(f"   - Plain text: {text_report.name}")
 
     # Markdown
     md_report = generate_text_report(
         projection_df=baseline_results,
-        output_path=reports_dir / 'projection_report.md',
-        title='Example Population Projection Report',
-        format_type='markdown',
+        output_path=reports_dir / "projection_report.md",
+        title="Example Population Projection Report",
+        format_type="markdown",
         summary_stats=stats,
-        include_tables=True
+        include_tables=True,
     )
     print(f"   - Markdown: {md_report.name}")
 
@@ -421,9 +413,9 @@ def main():
     pyramid_2030 = plot_population_pyramid(
         projection_df=baseline_results,
         year=2030,
-        output_path=charts_dir / 'pyramid_2030_simple.png',
+        output_path=charts_dir / "pyramid_2030_simple.png",
         age_group_size=5,
-        dpi=300
+        dpi=300,
     )
     print(f"   - Simple pyramid (2030): {pyramid_2030.name}")
 
@@ -431,10 +423,10 @@ def main():
     pyramid_2030_race = plot_population_pyramid(
         projection_df=baseline_results,
         year=2030,
-        output_path=charts_dir / 'pyramid_2030_by_race.png',
+        output_path=charts_dir / "pyramid_2030_by_race.png",
         by_race=True,
         age_group_size=5,
-        dpi=300
+        dpi=300,
     )
     print(f"   - Race pyramid (2030): {pyramid_2030_race.name}")
 
@@ -444,45 +436,45 @@ def main():
     # Total population
     trends_total = plot_population_trends(
         projection_df=baseline_results,
-        output_path=charts_dir / 'trends_total.png',
-        by='total',
-        title='Total Population Trends 2025-2030',
-        dpi=300
+        output_path=charts_dir / "trends_total.png",
+        by="total",
+        title="Total Population Trends 2025-2030",
+        dpi=300,
     )
     print(f"   - Total trends: {trends_total.name}")
 
     # By age group
     trends_age = plot_population_trends(
         projection_df=baseline_results,
-        output_path=charts_dir / 'trends_age_groups.png',
-        by='age_group',
+        output_path=charts_dir / "trends_age_groups.png",
+        by="age_group",
         age_groups={
-            'Youth (0-17)': (0, 17),
-            'Working Age (18-64)': (18, 64),
-            'Elderly (65+)': (65, 90)
+            "Youth (0-17)": (0, 17),
+            "Working Age (18-64)": (18, 64),
+            "Elderly (65+)": (65, 90),
         },
-        title='Population Trends by Age Group',
-        dpi=300
+        title="Population Trends by Age Group",
+        dpi=300,
     )
     print(f"   - Age group trends: {trends_age.name}")
 
     # By sex
     trends_sex = plot_population_trends(
         projection_df=baseline_results,
-        output_path=charts_dir / 'trends_sex.png',
-        by='sex',
-        title='Population Trends by Sex',
-        dpi=300
+        output_path=charts_dir / "trends_sex.png",
+        by="sex",
+        title="Population Trends by Sex",
+        dpi=300,
     )
     print(f"   - Sex trends: {trends_sex.name}")
 
     # By race
     trends_race = plot_population_trends(
         projection_df=baseline_results,
-        output_path=charts_dir / 'trends_race.png',
-        by='race',
-        title='Population Trends by Race/Ethnicity',
-        dpi=300
+        output_path=charts_dir / "trends_race.png",
+        by="race",
+        title="Population Trends by Race/Ethnicity",
+        dpi=300,
     )
     print(f"   - Race trends: {trends_race.name}")
 
@@ -490,26 +482,26 @@ def main():
     print("\n10. Creating growth rate chart...")
     growth_rates = plot_growth_rates(
         projection_df=baseline_results,
-        output_path=charts_dir / 'growth_rates_annual.png',
-        period='annual',
-        title='Annual Population Growth Rates',
-        dpi=300
+        output_path=charts_dir / "growth_rates_annual.png",
+        period="annual",
+        title="Annual Population Growth Rates",
+        dpi=300,
     )
     print(f"    Created: {growth_rates.name}")
 
     # 11. Scenario comparison
     print("\n11. Creating scenario comparison chart...")
     scenarios = {
-        'Baseline': baseline_results,
-        'High Growth': high_growth_results,
-        'Low Growth': low_growth_results
+        "Baseline": baseline_results,
+        "High Growth": high_growth_results,
+        "Low Growth": low_growth_results,
     }
 
     scenario_chart = plot_scenario_comparison(
         scenario_projections=scenarios,
-        output_path=charts_dir / 'scenario_comparison.png',
-        title='Population Projection Scenarios',
-        dpi=300
+        output_path=charts_dir / "scenario_comparison.png",
+        title="Population Projection Scenarios",
+        dpi=300,
     )
     print(f"    Created: {scenario_chart.name}")
 
@@ -517,11 +509,11 @@ def main():
     print("\n12. Generating all standard visualizations...")
     all_viz_paths = save_all_visualizations(
         projection_df=baseline_results,
-        output_dir=charts_dir / 'complete_set',
-        base_filename='example_projection',
+        output_dir=charts_dir / "complete_set",
+        base_filename="example_projection",
         years_for_pyramids=[2025, 2030],
-        image_format='png',
-        dpi=300
+        image_format="png",
+        dpi=300,
     )
 
     print(f"    Generated {len(all_viz_paths)} charts:")
@@ -533,13 +525,13 @@ def main():
     print("=" * 80)
 
     print(f"\nAll outputs saved to: {output_root}")
-    print(f"\nDirectory structure:")
+    print("\nDirectory structure:")
     print(f"  {data_dir.relative_to(output_root)}/")
-    print(f"    - Excel, CSV, Parquet, JSON exports")
+    print("    - Excel, CSV, Parquet, JSON exports")
     print(f"  {charts_dir.relative_to(output_root)}/")
-    print(f"    - All visualizations (pyramids, trends, growth rates)")
+    print("    - All visualizations (pyramids, trends, growth rates)")
     print(f"  {reports_dir.relative_to(output_root)}/")
-    print(f"    - HTML, text, and markdown reports")
+    print("    - HTML, text, and markdown reports")
 
     print("\n" + "=" * 80)
     print("EXAMPLE COMPLETE!")
@@ -552,11 +544,12 @@ def main():
     print()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         main()
     except Exception as e:
         print(f"\nError: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

@@ -16,7 +16,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from cohort_projections.utils import get_bigquery_client, get_logger_from_config
+from cohort_projections.utils import get_bigquery_client, get_logger_from_config  # noqa: E402
 
 logger = get_logger_from_config(__name__)
 
@@ -169,12 +169,11 @@ def check_available_public_datasets(bq):
     for dataset in datasets_to_try:
         try:
             # Try to get dataset metadata
-            parts = dataset.split('.')
             test_query = f"SELECT 1 FROM `{dataset}.__TABLES__` LIMIT 1"
             bq.query(test_query)
             available.append(dataset)
             logger.info(f"  ✓ {dataset}")
-        except:
+        except Exception:
             logger.info(f"  ✗ {dataset} - not accessible")
 
     return available
@@ -208,10 +207,10 @@ def check_north_dakota_data_availability(bq):
     for name, sql in queries.items():
         try:
             df = bq.query(sql)
-            count = df['count'].iloc[0]
+            count = df["count"].iloc[0]
             results[name] = count
             logger.info(f"  ✓ {name}: {count:,} records")
-        except Exception as e:
+        except Exception:
             results[name] = None
             logger.warning(f"  ✗ {name}: Not accessible")
 
@@ -231,10 +230,10 @@ def main():
         return 1
 
     # Check available datasets
-    available = check_available_public_datasets(bq)
+    check_available_public_datasets(bq)
 
     # Check ND data availability
-    nd_data = check_north_dakota_data_availability(bq)
+    check_north_dakota_data_availability(bq)
 
     # Explore population data
     pop_df = explore_census_population_data(bq)

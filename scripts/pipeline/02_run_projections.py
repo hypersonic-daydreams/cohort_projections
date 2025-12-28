@@ -36,35 +36,30 @@ Usage:
     python 02_run_projections.py --all --dry-run
 """
 
-import sys
 import argparse
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any, Set
-from datetime import datetime
 import json
+import sys
 import traceback
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
 
 import pandas as pd
-import numpy as np
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from cohort_projections.geographic.multi_geography import (
-    run_single_geography_projection,
-    run_multiple_geography_projections,
-    aggregate_county_to_state,
-    aggregate_place_to_county,
-    validate_aggregation,
-)
-from cohort_projections.geographic.geography_loader import (
+from cohort_projections.geographic.geography_loader import (  # noqa: E402
     load_geography_list,
     load_nd_counties,
-    get_geography_name,
 )
-from cohort_projections.utils.config_loader import load_projection_config
-from cohort_projections.utils.logger import setup_logger
+from cohort_projections.geographic.multi_geography import (  # noqa: E402
+    run_multiple_geography_projections,
+    validate_aggregation,
+)
+from cohort_projections.utils.config_loader import load_projection_config  # noqa: E402
+from cohort_projections.utils.logger import setup_logger  # noqa: E402
 
 # Set up logging
 logger = setup_logger(__name__, log_level="INFO")
@@ -75,29 +70,27 @@ class ProjectionRunMetadata:
 
     def __init__(self, scenario: str):
         self.scenario = scenario
-        self.start_time = datetime.now()
-        self.end_time: Optional[datetime] = None
+        self.start_time = datetime.now(UTC)
+        self.end_time: datetime | None = None
         self.geographies_total = 0
         self.geographies_completed = 0
         self.geographies_failed = 0
         self.geographies_skipped = 0
-        self.failed_geographies: List[Dict[str, str]] = []
-        self.output_files: List[Path] = []
+        self.failed_geographies: list[dict[str, str]] = []
+        self.output_files: list[Path] = []
 
     def finalize(self):
         """Finalize the metadata."""
-        self.end_time = datetime.now()
+        self.end_time = datetime.now(UTC)
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get metadata summary."""
         return {
             "scenario": self.scenario,
             "start_time": self.start_time.isoformat(),
             "end_time": self.end_time.isoformat() if self.end_time else None,
             "duration_seconds": (
-                (self.end_time - self.start_time).total_seconds()
-                if self.end_time
-                else None
+                (self.end_time - self.start_time).total_seconds() if self.end_time else None
             ),
             "geographies": {
                 "total": self.geographies_total,
@@ -110,7 +103,7 @@ class ProjectionRunMetadata:
         }
 
 
-def get_completed_geographies(output_dir: Path, scenario: str) -> Set[str]:
+def get_completed_geographies(output_dir: Path, scenario: str) -> set[str]:
     """
     Get set of already-completed geographies for resume capability.
 
@@ -139,7 +132,9 @@ def get_completed_geographies(output_dir: Path, scenario: str) -> Set[str]:
     return completed
 
 
-def load_demographic_rates(config: Dict[str, Any]) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def load_demographic_rates(
+    config: dict[str, Any],
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Load processed demographic rates.
 
@@ -178,7 +173,7 @@ def load_demographic_rates(config: Dict[str, Any]) -> Tuple[pd.DataFrame, pd.Dat
     return fertility_rates, survival_rates, migration_rates
 
 
-def load_base_population(config: Dict[str, Any], fips: str) -> pd.DataFrame:
+def load_base_population(config: dict[str, Any], fips: str) -> pd.DataFrame:
     """
     Load base year population for a geography.
 
@@ -200,11 +195,11 @@ def load_base_population(config: Dict[str, Any], fips: str) -> pd.DataFrame:
 
 
 def setup_projection_run(
-    config: Dict[str, Any],
-    levels: List[str],
-    fips_filter: Optional[List[str]] = None,
-    scenarios: Optional[List[str]] = None,
-) -> Tuple[Dict[str, List[str]], List[str]]:
+    config: dict[str, Any],
+    levels: list[str],
+    fips_filter: list[str] | None = None,
+    scenarios: list[str] | None = None,
+) -> tuple[dict[str, list[str]], list[str]]:
     """
     Set up projection run by determining which geographies to process.
 
@@ -231,7 +226,9 @@ def setup_projection_run(
         ]
         if not scenarios:
             # Fallback to pipeline config
-            scenarios = config.get("pipeline", {}).get("projection", {}).get("scenarios", ["baseline"])
+            scenarios = (
+                config.get("pipeline", {}).get("projection", {}).get("scenarios", ["baseline"])
+            )
 
     logger.info(f"Scenarios to run: {', '.join(scenarios)}")
 
@@ -260,9 +257,9 @@ def setup_projection_run(
             # Load counties above population threshold
             counties_df = load_nd_counties(config)
             min_pop = county_config.get("min_population", 1000)
-            geographies["county"] = counties_df[
-                counties_df["population"] >= min_pop
-            ]["fips"].tolist()
+            geographies["county"] = counties_df[counties_df["population"] >= min_pop][
+                "fips"
+            ].tolist()
 
         logger.info(f"Counties: {len(geographies['county'])} to process")
 
@@ -292,9 +289,9 @@ def setup_projection_run(
 
 
 def run_geographic_projections(
-    geographies: Dict[str, List[str]],
+    geographies: dict[str, list[str]],
     scenario: str,
-    config: Dict[str, Any],
+    config: dict[str, Any],
     fertility_rates: pd.DataFrame,
     survival_rates: pd.DataFrame,
     migration_rates: pd.DataFrame,
@@ -329,9 +326,10 @@ def run_geographic_projections(
         return metadata
 
     # Get output directory
-    output_dir = Path(
-        config.get("pipeline", {}).get("projection", {}).get("output_dir", "data/projections")
-    ) / scenario
+    output_dir = (
+        Path(config.get("pipeline", {}).get("projection", {}).get("output_dir", "data/projections"))
+        / scenario
+    )
 
     # Get completed geographies for resume
     completed = set()
@@ -370,8 +368,12 @@ def run_geographic_projections(
                 migration_rates=migration_rates,
                 config=config,
                 output_dir=output_dir / level,
-                parallel=config.get("geographic", {}).get("parallel_processing", {}).get("enabled", True),
-                max_workers=config.get("geographic", {}).get("parallel_processing", {}).get("max_workers"),
+                parallel=config.get("geographic", {})
+                .get("parallel_processing", {})
+                .get("enabled", True),
+                max_workers=config.get("geographic", {})
+                .get("parallel_processing", {})
+                .get("max_workers"),
             )
 
             # Process results
@@ -382,11 +384,13 @@ def run_geographic_projections(
                         metadata.output_files.append(Path(result["output_file"]))
                 else:
                     metadata.geographies_failed += 1
-                    metadata.failed_geographies.append({
-                        "fips": result.get("fips", "unknown"),
-                        "level": level,
-                        "error": result.get("error", "Unknown error"),
-                    })
+                    metadata.failed_geographies.append(
+                        {
+                            "fips": result.get("fips", "unknown"),
+                            "level": level,
+                            "error": result.get("error", "Unknown error"),
+                        }
+                    )
 
         except Exception as e:
             logger.error(f"Error processing {level} level: {e}")
@@ -398,9 +402,9 @@ def run_geographic_projections(
 
 
 def validate_projection_results(
-    geographies: Dict[str, List[str]],
+    geographies: dict[str, list[str]],
     scenario: str,
-    config: Dict[str, Any],
+    config: dict[str, Any],
 ) -> bool:
     """
     Validate projection results including hierarchical aggregation.
@@ -416,9 +420,14 @@ def validate_projection_results(
     logger.info("Validating projection results...")
 
     try:
-        output_dir = Path(
-            config.get("pipeline", {}).get("projection", {}).get("output_dir", "data/projections")
-        ) / scenario
+        output_dir = (
+            Path(
+                config.get("pipeline", {})
+                .get("projection", {})
+                .get("output_dir", "data/projections")
+            )
+            / scenario
+        )
 
         # Validate hierarchical aggregation if configured
         if config.get("geography", {}).get("hierarchy", {}).get("validate_aggregation", True):
@@ -431,7 +440,9 @@ def validate_projection_results(
                     upper_level_dir=output_dir / "state",
                     lower_fips_codes=geographies["county"],
                     upper_fips_code=geographies["state"][0],
-                    tolerance=config.get("geography", {}).get("hierarchy", {}).get("aggregation_tolerance", 0.01),
+                    tolerance=config.get("geography", {})
+                    .get("hierarchy", {})
+                    .get("aggregation_tolerance", 0.01),
                 )
                 if not is_valid:
                     logger.warning("County to state aggregation validation failed")
@@ -446,9 +457,7 @@ def validate_projection_results(
         return False
 
 
-def generate_projection_summary(
-    metadata: ProjectionRunMetadata, config: Dict[str, Any]
-) -> Path:
+def generate_projection_summary(metadata: ProjectionRunMetadata, config: dict[str, Any]) -> Path:
     """
     Generate projection run summary report.
 
@@ -461,13 +470,15 @@ def generate_projection_summary(
     """
     logger.info("Generating projection summary...")
 
-    output_dir = Path(
-        config.get("pipeline", {}).get("projection", {}).get("output_dir", "data/projections")
-    ) / metadata.scenario / "metadata"
+    output_dir = (
+        Path(config.get("pipeline", {}).get("projection", {}).get("output_dir", "data/projections"))
+        / metadata.scenario
+        / "metadata"
+    )
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     summary_file = output_dir / f"projection_run_{timestamp}.json"
 
     with open(summary_file, "w") as f:
@@ -485,14 +496,14 @@ def generate_projection_summary(
     print(f"End Time: {summary['end_time']}")
     print(f"Duration: {summary['duration_seconds']:.2f} seconds")
 
-    print(f"\nGeographies:")
+    print("\nGeographies:")
     print(f"  Total: {summary['geographies']['total']}")
     print(f"  Completed: {summary['geographies']['completed']}")
     print(f"  Failed: {summary['geographies']['failed']}")
     print(f"  Skipped: {summary['geographies']['skipped']}")
 
     if summary["failed_geographies"]:
-        print(f"\nFailed Geographies:")
+        print("\nFailed Geographies:")
         for failed in summary["failed_geographies"]:
             print(f"  - {failed['fips']} ({failed['level']}): {failed['error']}")
 
@@ -503,10 +514,10 @@ def generate_projection_summary(
 
 
 def run_all_projections(
-    config: Dict[str, Any],
-    levels: List[str],
-    fips_filter: Optional[List[str]] = None,
-    scenarios: Optional[List[str]] = None,
+    config: dict[str, Any],
+    levels: list[str],
+    fips_filter: list[str] | None = None,
+    scenarios: list[str] | None = None,
     dry_run: bool = False,
     resume: bool = False,
 ) -> int:
@@ -537,9 +548,7 @@ def run_all_projections(
         fertility_rates, survival_rates, migration_rates = load_demographic_rates(config)
 
         # Setup projection run
-        geographies, scenario_list = setup_projection_run(
-            config, levels, fips_filter, scenarios
-        )
+        geographies, scenario_list = setup_projection_run(config, levels, fips_filter, scenarios)
 
         # Run each scenario
         for scenario in scenario_list:
@@ -612,18 +621,10 @@ Examples:
     )
 
     # Geography selection
-    parser.add_argument(
-        "--all", action="store_true", help="Run all geographic levels"
-    )
-    parser.add_argument(
-        "--state", action="store_true", help="Run state-level projection"
-    )
-    parser.add_argument(
-        "--counties", action="store_true", help="Run county-level projections"
-    )
-    parser.add_argument(
-        "--places", action="store_true", help="Run place-level projections"
-    )
+    parser.add_argument("--all", action="store_true", help="Run all geographic levels")
+    parser.add_argument("--state", action="store_true", help="Run state-level projection")
+    parser.add_argument("--counties", action="store_true", help="Run county-level projections")
+    parser.add_argument("--places", action="store_true", help="Run place-level projections")
     parser.add_argument(
         "--fips",
         nargs="+",
@@ -678,9 +679,8 @@ Examples:
             elif len(fips) == 5:
                 if "county" not in levels:
                     levels.append("county")
-            elif len(fips) == 7:
-                if "place" not in levels:
-                    levels.append("place")
+            elif len(fips) == 7 and "place" not in levels:
+                levels.append("place")
 
     if not levels:
         parser.error("No geographic levels specified. Use --all or specify individual levels.")

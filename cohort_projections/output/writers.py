@@ -11,28 +11,30 @@ Functions:
     write_projection_shapefile: Export with geographic boundaries (optional)
 """
 
-import pandas as pd
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional, Literal, Any, Union
-from datetime import datetime
 import json
 import warnings
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any, Literal
+
+import pandas as pd
 
 # Excel formatting (openpyxl is optional but recommended)
 try:
-    from openpyxl import Workbook, load_workbook
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl import Workbook
+    from openpyxl.chart import LineChart, Reference
+    from openpyxl.styles import Alignment, Font, PatternFill
     from openpyxl.utils.dataframe import dataframe_to_rows
-    from openpyxl.chart import BarChart, LineChart, Reference
+
     OPENPYXL_AVAILABLE = True
 except ImportError:
     OPENPYXL_AVAILABLE = False
-    warnings.warn("openpyxl not available - Excel formatting will be limited")
+    warnings.warn("openpyxl not available - Excel formatting will be limited", stacklevel=2)
 
 # Geospatial exports (geopandas is optional)
 try:
-    import geopandas as gpd
+    import geopandas as gpd  # noqa: F401
+
     GEOPANDAS_AVAILABLE = True
 except ImportError:
     GEOPANDAS_AVAILABLE = False
@@ -44,12 +46,12 @@ logger = get_logger_from_config(__name__)
 
 def write_projection_excel(
     projection_df: pd.DataFrame,
-    output_path: Union[str, Path],
-    summary_df: Optional[pd.DataFrame] = None,
-    metadata: Optional[Dict[str, Any]] = None,
+    output_path: str | Path,
+    summary_df: pd.DataFrame | None = None,
+    metadata: dict[str, Any] | None = None,
     include_charts: bool = True,
     include_formatting: bool = True,
-    title: Optional[str] = None
+    title: str | None = None,
 ) -> Path:
     """
     Write projection data to a formatted Excel workbook.
@@ -97,7 +99,7 @@ def write_projection_excel(
     logger.info(f"Creating formatted Excel workbook: {output_path}")
 
     # Validate input
-    required_cols = ['year', 'age', 'sex', 'race', 'population']
+    required_cols = ["year", "age", "sex", "race", "population"]
     missing_cols = [col for col in required_cols if col not in projection_df.columns]
     if missing_cols:
         raise ValueError(f"projection_df missing required columns: {missing_cols}")
@@ -115,16 +117,8 @@ def write_projection_excel(
         header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
         header_alignment = Alignment(horizontal="center", vertical="center")
 
-        number_format = '#,##0'
-        decimal_format = '#,##0.00'
-        percent_format = '0.0%'
-
-        border = Border(
-            left=Side(style='thin'),
-            right=Side(style='thin'),
-            top=Side(style='thin'),
-            bottom=Side(style='thin')
-        )
+        number_format = "#,##0"
+        decimal_format = "#,##0.00"
 
     # 1. Summary Sheet
     logger.debug("Creating Summary sheet")
@@ -141,7 +135,7 @@ def write_projection_excel(
                         cell.font = header_font
                         cell.fill = header_fill
                         cell.alignment = header_alignment
-                    elif isinstance(value, (int, float)) and not pd.isna(value):
+                    elif isinstance(value, int | float) and not pd.isna(value):
                         cell.number_format = number_format
 
         # Auto-width columns
@@ -155,25 +149,27 @@ def write_projection_excel(
                 ws_summary.column_dimensions[column_letter].width = min(max_length + 2, 50)
 
         # Freeze panes
-        ws_summary.freeze_panes = 'A2'
+        ws_summary.freeze_panes = "A2"
     else:
         # Create basic summary from projection data
-        years = sorted(projection_df['year'].unique())
+        years = sorted(projection_df["year"].unique())
         summary_data = []
 
         for year in years:
-            year_data = projection_df[projection_df['year'] == year]
-            total_pop = year_data['population'].sum()
-            male_pop = year_data[year_data['sex'] == 'Male']['population'].sum()
-            female_pop = year_data[year_data['sex'] == 'Female']['population'].sum()
+            year_data = projection_df[projection_df["year"] == year]
+            total_pop = year_data["population"].sum()
+            male_pop = year_data[year_data["sex"] == "Male"]["population"].sum()
+            female_pop = year_data[year_data["sex"] == "Female"]["population"].sum()
 
-            summary_data.append({
-                'Year': int(year),
-                'Total Population': int(total_pop),
-                'Male': int(male_pop),
-                'Female': int(female_pop),
-                'Sex Ratio': (male_pop / female_pop * 100) if female_pop > 0 else 0
-            })
+            summary_data.append(
+                {
+                    "Year": int(year),
+                    "Total Population": int(total_pop),
+                    "Male": int(male_pop),
+                    "Female": int(female_pop),
+                    "Sex Ratio": (male_pop / female_pop * 100) if female_pop > 0 else 0,
+                }
+            )
 
         summary_df = pd.DataFrame(summary_data)
 
@@ -187,8 +183,8 @@ def write_projection_excel(
                         cell.font = header_font
                         cell.fill = header_fill
                         cell.alignment = header_alignment
-                    elif c_idx > 1 and isinstance(value, (int, float)):
-                        if 'Ratio' in summary_df.columns[c_idx - 1]:
+                    elif c_idx > 1 and isinstance(value, int | float):
+                        if "Ratio" in summary_df.columns[c_idx - 1]:
                             cell.number_format = decimal_format
                         else:
                             cell.number_format = number_format
@@ -199,18 +195,18 @@ def write_projection_excel(
                 max_length = len(summary_df.columns[col_idx - 1]) + 2
                 ws_summary.column_dimensions[column_letter].width = max_length + 5
 
-        ws_summary.freeze_panes = 'A2'
+        ws_summary.freeze_panes = "A2"
 
     # 2. By Age Sheet
     logger.debug("Creating By Age sheet")
     ws_age = wb.create_sheet("By Age")
 
     # Pivot: years as columns, ages as rows
-    age_pivot = projection_df.groupby(['year', 'age'])['population'].sum().reset_index()
-    age_pivot = age_pivot.pivot(index='age', columns='year', values='population')
+    age_pivot = projection_df.groupby(["year", "age"])["population"].sum().reset_index()
+    age_pivot = age_pivot.pivot(index="age", columns="year", values="population")
     age_pivot = age_pivot.fillna(0)
-    age_pivot.columns = [f'Year {int(col)}' for col in age_pivot.columns]
-    age_pivot.index.name = 'Age'
+    age_pivot.columns = [f"Year {int(col)}" for col in age_pivot.columns]
+    age_pivot.index.name = "Age"
     age_pivot = age_pivot.reset_index()
 
     # Write to sheet
@@ -223,7 +219,7 @@ def write_projection_excel(
                     cell.font = header_font
                     cell.fill = header_fill
                     cell.alignment = header_alignment
-                elif c_idx > 1 and isinstance(value, (int, float)):
+                elif c_idx > 1 and isinstance(value, int | float):
                     cell.number_format = number_format
 
     if include_formatting:
@@ -231,16 +227,16 @@ def write_projection_excel(
             column_letter = column[0].column_letter
             ws_age.column_dimensions[column_letter].width = 12
 
-    ws_age.freeze_panes = 'B2'
+    ws_age.freeze_panes = "B2"
 
     # 3. By Sex Sheet
     logger.debug("Creating By Sex sheet")
     ws_sex = wb.create_sheet("By Sex")
 
-    sex_data = projection_df.groupby(['year', 'sex'])['population'].sum().reset_index()
-    sex_pivot = sex_data.pivot(index='year', columns='sex', values='population')
-    sex_pivot['Total'] = sex_pivot.sum(axis=1)
-    sex_pivot.index.name = 'Year'
+    sex_data = projection_df.groupby(["year", "sex"])["population"].sum().reset_index()
+    sex_pivot = sex_data.pivot(index="year", columns="sex", values="population")
+    sex_pivot["Total"] = sex_pivot.sum(axis=1)
+    sex_pivot.index.name = "Year"
     sex_pivot = sex_pivot.reset_index()
 
     for r_idx, row in enumerate(dataframe_to_rows(sex_pivot, index=False, header=True), 1):
@@ -252,7 +248,7 @@ def write_projection_excel(
                     cell.font = header_font
                     cell.fill = header_fill
                     cell.alignment = header_alignment
-                elif c_idx > 1 and isinstance(value, (int, float)):
+                elif c_idx > 1 and isinstance(value, int | float):
                     cell.number_format = number_format
 
     if include_formatting:
@@ -260,16 +256,16 @@ def write_projection_excel(
             column_letter = column[0].column_letter
             ws_sex.column_dimensions[column_letter].width = 15
 
-    ws_sex.freeze_panes = 'A2'
+    ws_sex.freeze_panes = "A2"
 
     # 4. By Race Sheet
     logger.debug("Creating By Race sheet")
     ws_race = wb.create_sheet("By Race")
 
-    race_data = projection_df.groupby(['year', 'race'])['population'].sum().reset_index()
-    race_pivot = race_data.pivot(index='year', columns='race', values='population')
-    race_pivot['Total'] = race_pivot.sum(axis=1)
-    race_pivot.index.name = 'Year'
+    race_data = projection_df.groupby(["year", "race"])["population"].sum().reset_index()
+    race_pivot = race_data.pivot(index="year", columns="race", values="population")
+    race_pivot["Total"] = race_pivot.sum(axis=1)
+    race_pivot.index.name = "Year"
     race_pivot = race_pivot.reset_index()
 
     for r_idx, row in enumerate(dataframe_to_rows(race_pivot, index=False, header=True), 1):
@@ -281,7 +277,7 @@ def write_projection_excel(
                     cell.font = header_font
                     cell.fill = header_fill
                     cell.alignment = header_alignment
-                elif c_idx > 1 and isinstance(value, (int, float)):
+                elif c_idx > 1 and isinstance(value, int | float):
                     cell.number_format = number_format
 
     if include_formatting:
@@ -289,14 +285,14 @@ def write_projection_excel(
             column_letter = column[0].column_letter
             ws_race.column_dimensions[column_letter].width = 25
 
-    ws_race.freeze_panes = 'A2'
+    ws_race.freeze_panes = "A2"
 
     # 5. Detail Sheet (full data - limit to 1M rows for Excel)
     logger.debug("Creating Detail sheet")
     ws_detail = wb.create_sheet("Detail")
 
     # Sort and limit if necessary
-    detail_df = projection_df.copy().sort_values(['year', 'age', 'sex', 'race'])
+    detail_df = projection_df.copy().sort_values(["year", "age", "sex", "race"])
     if len(detail_df) > 1000000:
         logger.warning(f"Detail data has {len(detail_df)} rows, truncating to 1M for Excel")
         detail_df = detail_df.head(1000000)
@@ -310,8 +306,11 @@ def write_projection_excel(
                     cell.font = header_font
                     cell.fill = header_fill
                     cell.alignment = header_alignment
-                elif 'population' in detail_df.columns and c_idx == list(detail_df.columns).index('population') + 1:
-                    if isinstance(value, (int, float)):
+                elif (
+                    "population" in detail_df.columns
+                    and c_idx == list(detail_df.columns).index("population") + 1
+                ):
+                    if isinstance(value, int | float):
                         cell.number_format = decimal_format
 
     if include_formatting:
@@ -319,7 +318,7 @@ def write_projection_excel(
             column_letter = column[0].column_letter
             ws_detail.column_dimensions[column_letter].width = 15
 
-    ws_detail.freeze_panes = 'A2'
+    ws_detail.freeze_panes = "A2"
 
     # 6. Metadata Sheet
     logger.debug("Creating Metadata sheet")
@@ -336,11 +335,13 @@ def write_projection_excel(
 
     # Generation info
     ws_metadata.cell(row=meta_row, column=1, value="Generated")
-    ws_metadata.cell(row=meta_row, column=2, value=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    ws_metadata.cell(row=meta_row, column=2, value=datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S"))
     meta_row += 1
 
     ws_metadata.cell(row=meta_row, column=1, value="Software")
-    ws_metadata.cell(row=meta_row, column=2, value="North Dakota Cohort Component Projection System")
+    ws_metadata.cell(
+        row=meta_row, column=2, value="North Dakota Cohort Component Projection System"
+    )
     meta_row += 2
 
     # Projection parameters
@@ -368,8 +369,8 @@ def write_projection_excel(
                 meta_row += 1
 
     # Column widths
-    ws_metadata.column_dimensions['A'].width = 30
-    ws_metadata.column_dimensions['B'].width = 50
+    ws_metadata.column_dimensions["A"].width = 30
+    ws_metadata.column_dimensions["B"].width = 50
 
     # 7. Add Charts (if requested and data available)
     if include_charts and len(projection_df) > 0:
@@ -384,7 +385,9 @@ def write_projection_excel(
             chart.x_axis.title = "Year"
 
             # Data from summary sheet
-            data = Reference(ws_summary, min_col=2, min_row=1, max_row=len(summary_df) + 1, max_col=2)
+            data = Reference(
+                ws_summary, min_col=2, min_row=1, max_row=len(summary_df) + 1, max_col=2
+            )
             cats = Reference(ws_summary, min_col=1, min_row=2, max_row=len(summary_df) + 1)
             chart.add_data(data, titles_from_data=True)
             chart.set_categories(cats)
@@ -403,13 +406,13 @@ def write_projection_excel(
 
 def write_projection_csv(
     projection_df: pd.DataFrame,
-    output_path: Union[str, Path],
-    format_type: Literal['wide', 'long'] = 'long',
-    age_ranges: Optional[List[tuple]] = None,
-    sexes: Optional[List[str]] = None,
-    races: Optional[List[str]] = None,
-    columns_order: Optional[List[str]] = None,
-    compression: Optional[str] = None
+    output_path: str | Path,
+    format_type: Literal["wide", "long"] = "long",
+    age_ranges: list[tuple] | None = None,
+    sexes: list[str] | None = None,
+    races: list[str] | None = None,
+    columns_order: list[str] | None = None,
+    compression: str | None = None,
 ) -> Path:
     """
     Write projection data to CSV with enhanced options.
@@ -455,33 +458,31 @@ def write_projection_csv(
         logger.debug(f"Filtering to age ranges: {age_ranges}")
         age_mask = pd.Series([False] * len(df), index=df.index)
         for min_age, max_age in age_ranges:
-            age_mask |= (df['age'] >= min_age) & (df['age'] <= max_age)
+            age_mask |= (df["age"] >= min_age) & (df["age"] <= max_age)
         df = df[age_mask]
 
     if sexes:
         logger.debug(f"Filtering to sexes: {sexes}")
-        df = df[df['sex'].isin(sexes)]
+        df = df[df["sex"].isin(sexes)]
 
     if races:
         logger.debug(f"Filtering to races: {races}")
-        df = df[df['race'].isin(races)]
+        df = df[df["race"].isin(races)]
 
     # Format data
-    if format_type == 'wide':
+    if format_type == "wide":
         # Pivot to wide format (years as columns)
         # Group by cohort characteristics
-        group_cols = [col for col in ['age', 'sex', 'race'] if col in df.columns]
+        group_cols = [col for col in ["age", "sex", "race"] if col in df.columns]
 
         df = df.pivot_table(
-            index=group_cols,
-            columns='year',
-            values='population',
-            aggfunc='sum'
+            index=group_cols, columns="year", values="population", aggfunc="sum"
         ).reset_index()
 
         # Rename year columns
-        df.columns = [f'year_{int(col)}' if isinstance(col, (int, float)) else col
-                     for col in df.columns]
+        df.columns = [
+            f"year_{int(col)}" if isinstance(col, int | float) else col for col in df.columns
+        ]
 
     # Apply column ordering
     if columns_order:
@@ -500,13 +501,13 @@ def write_projection_csv(
 
 def write_projection_formats(
     projection_df: pd.DataFrame,
-    output_dir: Union[str, Path],
+    output_dir: str | Path,
     base_filename: str,
-    formats: List[Literal['csv', 'excel', 'parquet', 'json']] = ['csv', 'excel', 'parquet'],
-    summary_df: Optional[pd.DataFrame] = None,
-    metadata: Optional[Dict[str, Any]] = None,
-    compression: Optional[str] = 'gzip'
-) -> Dict[str, Path]:
+    formats: list[Literal["csv", "excel", "parquet", "json"]] | None = None,
+    summary_df: pd.DataFrame | None = None,
+    metadata: dict[str, Any] | None = None,
+    compression: str | None = "gzip",
+) -> dict[str, Path]:
     """
     Write projection data to multiple formats at once.
 
@@ -535,6 +536,9 @@ def write_projection_formats(
         >>> paths['excel']
         PosixPath('output/projections/nd_state_2025_2045.xlsx')
     """
+    if formats is None:
+        formats = ["csv", "excel", "parquet"]
+
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -543,7 +547,7 @@ def write_projection_formats(
     output_paths = {}
 
     # CSV
-    if 'csv' in formats:
+    if "csv" in formats:
         csv_path = output_dir / f"{base_filename}.csv"
         if compression:
             csv_path = output_dir / f"{base_filename}.csv.gz"
@@ -551,13 +555,13 @@ def write_projection_formats(
         write_projection_csv(
             projection_df,
             csv_path,
-            format_type='long',
-            compression=compression if compression else None
+            format_type="long",
+            compression=compression if compression else None,
         )
-        output_paths['csv'] = csv_path
+        output_paths["csv"] = csv_path
 
     # Excel
-    if 'excel' in formats:
+    if "excel" in formats:
         if OPENPYXL_AVAILABLE:
             excel_path = output_dir / f"{base_filename}.xlsx"
             write_projection_excel(
@@ -565,48 +569,44 @@ def write_projection_formats(
                 excel_path,
                 summary_df=summary_df,
                 metadata=metadata,
-                include_charts=True
+                include_charts=True,
             )
-            output_paths['excel'] = excel_path
+            output_paths["excel"] = excel_path
         else:
             logger.warning("openpyxl not available - skipping Excel export")
 
     # Parquet
-    if 'parquet' in formats:
+    if "parquet" in formats:
         parquet_path = output_dir / f"{base_filename}.parquet"
-        projection_df.to_parquet(
-            parquet_path,
-            compression=compression,
-            index=False
-        )
-        output_paths['parquet'] = parquet_path
+        projection_df.to_parquet(parquet_path, compression=compression, index=False)
+        output_paths["parquet"] = parquet_path
         logger.info(f"Wrote Parquet: {parquet_path}")
 
     # JSON
-    if 'json' in formats:
+    if "json" in formats:
         json_path = output_dir / f"{base_filename}.json"
 
         # Convert to JSON-friendly format
         json_data = {
-            'metadata': metadata or {},
-            'projection': projection_df.to_dict(orient='records')
+            "metadata": metadata or {},
+            "projection": projection_df.to_dict(orient="records"),
         }
 
         if summary_df is not None:
-            json_data['summary'] = summary_df.to_dict(orient='records')
+            json_data["summary"] = summary_df.to_dict(orient="records")
 
-        with open(json_path, 'w') as f:
+        with open(json_path, "w") as f:
             json.dump(json_data, f, indent=2, default=str)
 
-        output_paths['json'] = json_path
+        output_paths["json"] = json_path
         logger.info(f"Wrote JSON: {json_path}")
 
     # Create metadata file
     if metadata:
         metadata_path = output_dir / f"{base_filename}_metadata.json"
-        with open(metadata_path, 'w') as f:
+        with open(metadata_path, "w") as f:
             json.dump(metadata, f, indent=2, default=str)
-        output_paths['metadata'] = metadata_path
+        output_paths["metadata"] = metadata_path
         logger.info(f"Wrote metadata: {metadata_path}")
 
     logger.info(f"Successfully wrote {len(output_paths)} output files")
@@ -616,12 +616,12 @@ def write_projection_formats(
 
 def write_projection_shapefile(
     projection_df: pd.DataFrame,
-    geography_level: Literal['state', 'county', 'place'],
-    output_path: Union[str, Path],
-    year: Optional[int] = None,
-    geography_fips: Optional[str] = None,
-    format_type: Literal['shapefile', 'geojson'] = 'geojson',
-    tiger_vintage: int = 2020
+    geography_level: Literal["state", "county", "place"],
+    output_path: str | Path,
+    year: int | None = None,
+    geography_fips: str | None = None,
+    format_type: Literal["shapefile", "geojson"] = "geojson",
+    tiger_vintage: int = 2020,
 ) -> Path:
     """
     Export projection data with geographic boundaries.
@@ -659,7 +659,9 @@ def write_projection_shapefile(
     """
     if not GEOPANDAS_AVAILABLE:
         logger.error("geopandas not available - cannot create geospatial file")
-        raise ImportError("geopandas required for shapefile export. Install with: pip install geopandas")
+        raise ImportError(
+            "geopandas required for shapefile export. Install with: pip install geopandas"
+        )
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -672,7 +674,9 @@ def write_projection_shapefile(
     # 2. Joining projection data to boundaries
     # 3. Exporting to shapefile or GeoJSON
 
-    logger.warning("write_projection_shapefile is not fully implemented - requires TIGER boundary data")
+    logger.warning(
+        "write_projection_shapefile is not fully implemented - requires TIGER boundary data"
+    )
 
     # Basic implementation outline:
     # 1. Load TIGER boundaries (would need to download or have local copies)

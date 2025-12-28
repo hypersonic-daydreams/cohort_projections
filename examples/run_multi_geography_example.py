@@ -19,28 +19,28 @@ Requirements:
 """
 
 import sys
-from pathlib import Path
-import pandas as pd
-import numpy as np
 import time
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from cohort_projections.geographic import (
-    load_nd_counties,
-    load_nd_places,
-    load_geography_list,
-    get_geography_name,
-    run_single_geography_projection,
-    run_multi_geography_projections,
+from cohort_projections.geographic import (  # noqa: E402
     aggregate_to_county,
     aggregate_to_state,
-    validate_aggregation
+    get_geography_name,
+    load_nd_counties,
+    load_nd_places,
+    run_multi_geography_projections,
+    run_single_geography_projection,
+    validate_aggregation,
 )
-from cohort_projections.utils.logger import get_logger_from_config
-from cohort_projections.utils.config_loader import load_projection_config
+from cohort_projections.utils.config_loader import load_projection_config  # noqa: E402
+from cohort_projections.utils.logger import get_logger_from_config  # noqa: E402
 
 logger = get_logger_from_config(__name__)
 
@@ -59,12 +59,12 @@ def create_synthetic_data():
 
     # Configuration
     config = load_projection_config()
-    base_year = config['project']['base_year']
+    base_year = config["project"]["base_year"]
 
     # Ages, sexes, races from config
     ages = list(range(91))  # 0-90
-    sexes = ['Male', 'Female']
-    races = config['demographics']['race_ethnicity']['categories']
+    sexes = ["Male", "Female"]
+    races = config["demographics"]["race_ethnicity"]["categories"]
 
     # 1. Create base population for a county (Cass County, 38017)
     base_pop_records = []
@@ -84,13 +84,9 @@ def create_synthetic_data():
                 # Add some noise
                 pop = int(pop_base * np.random.uniform(0.8, 1.2))
 
-                base_pop_records.append({
-                    'year': base_year,
-                    'age': age,
-                    'sex': sex,
-                    'race': race,
-                    'population': pop
-                })
+                base_pop_records.append(
+                    {"year": base_year, "age": age, "sex": sex, "race": race, "population": pop}
+                )
 
     base_population = pd.DataFrame(base_pop_records)
 
@@ -110,11 +106,7 @@ def create_synthetic_data():
             else:
                 rate = 0.015
 
-            fertility_records.append({
-                'age': age,
-                'race': race,
-                'fertility_rate': rate
-            })
+            fertility_records.append({"age": age, "race": race, "fertility_rate": rate})
 
     fertility_rates = pd.DataFrame(fertility_records)
 
@@ -135,12 +127,9 @@ def create_synthetic_data():
                 else:
                     rate = 0.950
 
-                survival_records.append({
-                    'age': age,
-                    'sex': sex,
-                    'race': race,
-                    'survival_rate': rate
-                })
+                survival_records.append(
+                    {"age": age, "sex": sex, "race": race, "survival_rate": rate}
+                )
 
     survival_rates = pd.DataFrame(survival_records)
 
@@ -159,16 +148,13 @@ def create_synthetic_data():
                 else:
                     net_mig = np.random.randint(-5, 5)
 
-                migration_records.append({
-                    'age': age,
-                    'sex': sex,
-                    'race_ethnicity': race,
-                    'net_migration': net_mig
-                })
+                migration_records.append(
+                    {"age": age, "sex": sex, "race_ethnicity": race, "net_migration": net_mig}
+                )
 
     migration_rates = pd.DataFrame(migration_records)
 
-    total_pop = base_population['population'].sum()
+    total_pop = base_population["population"].sum()
     logger.info(f"Created synthetic data. Base population: {total_pop:,.0f}")
 
     return base_population, fertility_rates, survival_rates, migration_rates
@@ -190,20 +176,24 @@ def example_1_single_geography():
     logger.info("\nRunning projection for Cass County (38017)...")
 
     result = run_single_geography_projection(
-        fips='38017',
-        level='county',
+        fips="38017",
+        level="county",
         base_population=base_pop,
         fertility_rates=fertility,
         survival_rates=survival,
         migration_rates=migration,
         config=config,
-        save_results=False  # Don't save for demo
+        save_results=False,  # Don't save for demo
     )
 
     # Display results
     logger.info(f"\nProjection complete for {result['geography']['name']}")
-    logger.info(f"Base population: {result['metadata']['summary_statistics']['base_population']:,.0f}")
-    logger.info(f"Final population: {result['metadata']['summary_statistics']['final_population']:,.0f}")
+    logger.info(
+        f"Base population: {result['metadata']['summary_statistics']['base_population']:,.0f}"
+    )
+    logger.info(
+        f"Final population: {result['metadata']['summary_statistics']['final_population']:,.0f}"
+    )
     logger.info(f"Growth rate: {result['metadata']['summary_statistics']['growth_rate']:+.1%}")
     logger.info(f"Processing time: {result['processing_time']:.2f} seconds")
 
@@ -221,7 +211,7 @@ def example_2_multiple_counties():
     logger.info(f"\nLoaded {len(counties)} North Dakota counties")
 
     # For demo, use subset of counties
-    county_fips = counties['county_fips'].tolist()[:5]  # First 5 counties
+    county_fips = counties["county_fips"].tolist()[:5]  # First 5 counties
     logger.info(f"Demo: Projecting {len(county_fips)} counties")
 
     for fips in county_fips:
@@ -238,8 +228,8 @@ def example_2_multiple_counties():
         # For demo, use same data with slight variation
         pop_multiplier = np.random.uniform(0.5, 1.5)
         base_populations[fips] = base_pop.copy()
-        base_populations[fips]['population'] = (
-            base_populations[fips]['population'] * pop_multiplier
+        base_populations[fips]["population"] = (
+            base_populations[fips]["population"] * pop_multiplier
         ).astype(int)
 
         migration_rates[fips] = migration.copy()
@@ -249,14 +239,14 @@ def example_2_multiple_counties():
     start_time = time.time()
 
     results = run_multi_geography_projections(
-        level='county',
+        level="county",
         base_population_by_geography=base_populations,
         fertility_rates=fertility,
         survival_rates=survival,
         migration_rates_by_geography=migration_rates,
         fips_codes=county_fips,
         parallel=False,  # Serial for demo
-        save_results=False
+        save_results=False,
     )
 
     elapsed = time.time() - start_time
@@ -267,7 +257,7 @@ def example_2_multiple_counties():
     logger.info(f"Failed: {results['metadata']['failed']}")
 
     logger.info("\nSummary:")
-    print(results['summary'][['name', 'base_population', 'final_population', 'growth_rate']])
+    print(results["summary"][["name", "base_population", "final_population", "growth_rate"]])
 
     return results
 
@@ -280,7 +270,7 @@ def example_3_parallel_processing():
 
     # Load counties
     counties = load_nd_counties()
-    county_fips = counties['county_fips'].tolist()[:10]  # First 10 counties
+    county_fips = counties["county_fips"].tolist()[:10]  # First 10 counties
 
     logger.info(f"\nComparing serial vs parallel for {len(county_fips)} counties")
 
@@ -299,14 +289,14 @@ def example_3_parallel_processing():
     start_time = time.time()
 
     results_serial = run_multi_geography_projections(
-        level='county',
+        level="county",
         base_population_by_geography=base_populations,
         fertility_rates=fertility,
         survival_rates=survival,
         migration_rates_by_geography=migration_rates,
         fips_codes=county_fips,
         parallel=False,
-        save_results=False
+        save_results=False,
     )
 
     serial_time = time.time() - start_time
@@ -317,7 +307,7 @@ def example_3_parallel_processing():
     start_time = time.time()
 
     results_parallel = run_multi_geography_projections(
-        level='county',
+        level="county",
         base_population_by_geography=base_populations,
         fertility_rates=fertility,
         survival_rates=survival,
@@ -325,7 +315,7 @@ def example_3_parallel_processing():
         fips_codes=county_fips,
         parallel=True,
         max_workers=4,
-        save_results=False
+        save_results=False,
     )
 
     parallel_time = time.time() - start_time
@@ -347,7 +337,7 @@ def example_4_hierarchical_aggregation():
 
     # Load places for a county (Cass County: 38017)
     places = load_nd_places()
-    cass_places = places[places['county_fips'] == '38017']
+    cass_places = places[places["county_fips"] == "38017"]
 
     logger.info(f"\nCass County contains {len(cass_places)} incorporated places:")
     for _, place in cass_places.iterrows():
@@ -356,7 +346,7 @@ def example_4_hierarchical_aggregation():
     # Prepare synthetic data
     base_pop, fertility, survival, migration = create_synthetic_data()
 
-    place_fips = cass_places['place_fips'].tolist()
+    place_fips = cass_places["place_fips"].tolist()
     base_populations = {}
     migration_rates_dict = {}
 
@@ -364,8 +354,8 @@ def example_4_hierarchical_aggregation():
         # Scale population for each place
         scale = np.random.uniform(0.2, 0.8)
         base_populations[fips] = base_pop.copy()
-        base_populations[fips]['population'] = (
-            base_populations[fips]['population'] * scale
+        base_populations[fips]["population"] = (
+            base_populations[fips]["population"] * scale
         ).astype(int)
         migration_rates_dict[fips] = migration.copy()
 
@@ -373,25 +363,25 @@ def example_4_hierarchical_aggregation():
     logger.info("\nRunning projections for places in Cass County...")
 
     place_results = run_multi_geography_projections(
-        level='place',
+        level="place",
         base_population_by_geography=base_populations,
         fertility_rates=fertility,
         survival_rates=survival,
         migration_rates_by_geography=migration_rates_dict,
         fips_codes=place_fips,
         parallel=False,
-        save_results=False
+        save_results=False,
     )
 
     # Aggregate places to county
     logger.info("\nAggregating places to county level...")
 
-    county_aggregated = aggregate_to_county(place_results['results'])
+    county_aggregated = aggregate_to_county(place_results["results"])
 
-    if '38017' in county_aggregated:
-        aggregated_df = county_aggregated['38017']
-        base_year_agg = aggregated_df[aggregated_df['year'] == aggregated_df['year'].min()]
-        total_pop = base_year_agg['population'].sum()
+    if "38017" in county_aggregated:
+        aggregated_df = county_aggregated["38017"]
+        base_year_agg = aggregated_df[aggregated_df["year"] == aggregated_df["year"].min()]
+        total_pop = base_year_agg["population"].sum()
 
         logger.info(f"Cass County aggregated population (from places): {total_pop:,.0f}")
 
@@ -399,20 +389,20 @@ def example_4_hierarchical_aggregation():
         logger.info("\nValidating aggregation...")
 
         validation = validate_aggregation(
-            component_projections=place_results['results'],
+            component_projections=place_results["results"],
             aggregated_projection=aggregated_df,
-            component_level='place',
-            aggregate_level='county',
-            tolerance=0.01
+            component_level="place",
+            aggregate_level="county",
+            tolerance=0.01,
         )
 
         logger.info(f"Validation passed: {validation['valid']}")
         logger.info(f"Overall difference: {validation['overall']['percent_difference']:.3%}")
 
-        if validation['warnings']:
+        if validation["warnings"]:
             logger.warning(f"Warnings: {validation['warnings']}")
 
-        if validation['errors']:
+        if validation["errors"]:
             logger.error(f"Errors: {validation['errors']}")
 
     return place_results, county_aggregated
@@ -426,7 +416,7 @@ def example_5_full_state_projection():
 
     # Load counties
     counties = load_nd_counties()
-    county_fips = counties['county_fips'].tolist()[:5]  # Demo: first 5
+    county_fips = counties["county_fips"].tolist()[:5]  # Demo: first 5
 
     logger.info(f"\nProjecting {len(county_fips)} counties and aggregating to state...")
 
@@ -444,7 +434,7 @@ def example_5_full_state_projection():
     logger.info("\n1. Running county projections...")
 
     county_results = run_multi_geography_projections(
-        level='county',
+        level="county",
         base_population_by_geography=base_populations,
         fertility_rates=fertility,
         survival_rates=survival,
@@ -452,21 +442,21 @@ def example_5_full_state_projection():
         fips_codes=county_fips,
         parallel=True,
         max_workers=4,
-        save_results=False
+        save_results=False,
     )
 
     # Aggregate to state
     logger.info("\n2. Aggregating counties to state level...")
 
-    state_projection = aggregate_to_state(county_results['results'])
+    state_projection = aggregate_to_state(county_results["results"])
 
     # Display state results
-    years = sorted(state_projection['year'].unique())
+    years = sorted(state_projection["year"].unique())
     base_year = years[0]
     final_year = years[-1]
 
-    base_pop_state = state_projection[state_projection['year'] == base_year]['population'].sum()
-    final_pop_state = state_projection[state_projection['year'] == final_year]['population'].sum()
+    base_pop_state = state_projection[state_projection["year"] == base_year]["population"].sum()
+    final_pop_state = state_projection[state_projection["year"] == final_year]["population"].sum()
     growth = final_pop_state - base_pop_state
     growth_rate = (growth / base_pop_state) if base_pop_state > 0 else 0
 
@@ -477,9 +467,9 @@ def example_5_full_state_projection():
     logger.info(f"  Growth rate: {growth_rate:+.1%}")
 
     # Population by year
-    logger.info(f"\nPopulation by year:")
+    logger.info("\nPopulation by year:")
     for year in years:
-        year_pop = state_projection[state_projection['year'] == year]['population'].sum()
+        year_pop = state_projection[state_projection["year"] == year]["population"].sum()
         logger.info(f"  {year}: {year_pop:,.0f}")
 
     return county_results, state_projection

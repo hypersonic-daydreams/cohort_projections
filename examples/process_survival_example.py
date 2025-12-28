@@ -11,26 +11,26 @@ This script shows:
 4. Integrating with the projection engine
 """
 
-import pandas as pd
-import numpy as np
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import pandas as pd
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from cohort_projections.data.process.survival_rates import (
-    load_life_table_data,
-    harmonize_mortality_race_categories,
-    calculate_survival_rates_from_life_table,
+from cohort_projections.data.process.survival_rates import (  # noqa: E402
     apply_mortality_improvement,
-    create_survival_rate_table,
-    validate_survival_rates,
     calculate_life_expectancy,
-    process_survival_rates
+    calculate_survival_rates_from_life_table,
+    create_survival_rate_table,
+    harmonize_mortality_race_categories,
+    load_life_table_data,
+    process_survival_rates,
+    validate_survival_rates,
 )
-from cohort_projections.utils.logger import get_logger_from_config
+from cohort_projections.utils.logger import get_logger_from_config  # noqa: E402
 
 logger = get_logger_from_config(__name__)
 
@@ -51,14 +51,13 @@ def create_synthetic_life_table():
     logger.info("Creating synthetic life table data...")
 
     data = []
-    races = ['White NH', 'Black NH', 'Hispanic', 'AIAN NH', 'Asian/PI NH', 'Two+ Races NH']
-    sexes = ['Male', 'Female']
+    races = ["White NH", "Black NH", "Hispanic", "AIAN NH", "Asian/PI NH", "Two+ Races NH"]
+    sexes = ["Male", "Female"]
 
     for sex in sexes:
         for race in races:
             # Start with radix of 100,000
             lx = 100000
-            Tx = 0  # Will calculate backwards
 
             # Temporary storage for this race-sex group
             group_data = []
@@ -79,15 +78,15 @@ def create_synthetic_life_table():
                     qx = 0.15 + (age - 85) * 0.03  # Very high elderly
 
                 # Adjust by sex (females live longer)
-                if sex == 'Female':
+                if sex == "Female":
                     qx *= 0.80  # 20% lower mortality
 
                 # Adjust by race (based on CDC patterns)
-                if 'Hispanic' in race or 'Asian' in race:
+                if "Hispanic" in race or "Asian" in race:
                     qx *= 0.85  # Hispanic and Asian/PI have lower mortality
-                elif 'Black' in race:
+                elif "Black" in race:
                     qx *= 1.20  # Black NH has higher mortality
-                elif 'AIAN' in race:
+                elif "AIAN" in race:
                     qx *= 1.25  # AIAN has higher mortality
 
                 # Cap at 1.0
@@ -96,27 +95,18 @@ def create_synthetic_life_table():
                 # Calculate dx (deaths in interval)
                 dx = lx * qx
 
-                # Calculate Lx (person-years lived in interval)
+                # Calculate person_years (person-years lived in interval)
                 # For infants, use special formula
                 if age == 0:
-                    Lx = 0.1 * lx + 0.9 * (lx - dx)  # Infants die early in year
+                    person_years = 0.1 * lx + 0.9 * (lx - dx)  # Infants die early in year
                 elif age == 90:
                     # Open-ended interval - use formula from life table theory
                     # Assume stationary population
-                    if qx < 1.0:
-                        Lx = lx / qx  # T(90) approximately
-                    else:
-                        Lx = lx * 0.5
+                    person_years = lx / qx if qx < 1.0 else lx * 0.5
                 else:
-                    Lx = (lx + (lx - dx)) / 2  # Average population
+                    person_years = (lx + (lx - dx)) / 2  # Average population
 
-                group_data.append({
-                    'age': age,
-                    'lx': lx,
-                    'qx': qx,
-                    'dx': dx,
-                    'Lx': Lx
-                })
+                group_data.append({"age": age, "lx": lx, "qx": qx, "dx": dx, "Lx": person_years})
 
                 # Update lx for next age
                 lx = lx - dx
@@ -126,21 +116,21 @@ def create_synthetic_life_table():
             # Calculate Tx (total person-years) backwards
             for i in range(90, -1, -1):
                 if i == 90:
-                    group_data[i]['Tx'] = group_data[i]['Lx']
+                    group_data[i]["Tx"] = group_data[i]["Lx"]
                 else:
-                    group_data[i]['Tx'] = group_data[i]['Lx'] + group_data[i+1]['Tx']
+                    group_data[i]["Tx"] = group_data[i]["Lx"] + group_data[i + 1]["Tx"]
 
             # Calculate ex (life expectancy)
             for i in range(91):
-                if group_data[i]['lx'] > 0:
-                    group_data[i]['ex'] = group_data[i]['Tx'] / group_data[i]['lx']
+                if group_data[i]["lx"] > 0:
+                    group_data[i]["ex"] = group_data[i]["Tx"] / group_data[i]["lx"]
                 else:
-                    group_data[i]['ex'] = 0
+                    group_data[i]["ex"] = 0
 
             # Add sex and race to each record
             for record in group_data:
-                record['sex'] = sex
-                record['race'] = race
+                record["sex"] = sex
+                record["race"] = race
                 data.append(record)
 
     df = pd.DataFrame(data)
@@ -149,7 +139,9 @@ def create_synthetic_life_table():
     logger.info(f"  Ages: {df['age'].min()}-{df['age'].max()}")
     logger.info(f"  Sexes: {df['sex'].nunique()}")
     logger.info(f"  Races: {df['race'].nunique()}")
-    logger.info(f"  Life expectancy at birth (e0) range: {df[df['age']==0]['ex'].min():.1f}-{df[df['age']==0]['ex'].max():.1f}")
+    logger.info(
+        f"  Life expectancy at birth (e0) range: {df[df['age']==0]['ex'].min():.1f}-{df[df['age']==0]['ex'].max():.1f}"
+    )
 
     return df
 
@@ -183,22 +175,25 @@ def demo_step_by_step_processing():
 
     # Step 3: Calculate survival rates
     logger.info("\n--- Step 3: Calculate Survival Rates ---")
-    survival_df = calculate_survival_rates_from_life_table(df, method='lx')
+    survival_df = calculate_survival_rates_from_life_table(df, method="lx")
     logger.info(f"Calculated survival rates for {len(survival_df)} cohorts")
     logger.info(f"  Mean survival rate: {survival_df['survival_rate'].mean():.6f}")
-    logger.info(f"  Min survival rate: {survival_df['survival_rate'].min():.6f} (age {survival_df.loc[survival_df['survival_rate'].idxmin(), 'age']:.0f})")
-    logger.info(f"  Max survival rate: {survival_df['survival_rate'].max():.6f} (age {survival_df.loc[survival_df['survival_rate'].idxmax(), 'age']:.0f})")
+    logger.info(
+        f"  Min survival rate: {survival_df['survival_rate'].min():.6f} (age {survival_df.loc[survival_df['survival_rate'].idxmin(), 'age']:.0f})"
+    )
+    logger.info(
+        f"  Max survival rate: {survival_df['survival_rate'].max():.6f} (age {survival_df.loc[survival_df['survival_rate'].idxmax(), 'age']:.0f})"
+    )
 
     # Step 4: Apply mortality improvement (optional)
     logger.info("\n--- Step 4: Apply Mortality Improvement ---")
     improved_df = apply_mortality_improvement(
-        survival_df,
-        base_year=2020,
-        projection_year=2030,
-        improvement_factor=0.005
+        survival_df, base_year=2020, projection_year=2030, improvement_factor=0.005
     )
-    logger.info(f"Applied 10 years of 0.5% annual improvement")
-    logger.info(f"  Mean survival rate improved from {survival_df['survival_rate'].mean():.6f} to {improved_df['survival_rate'].mean():.6f}")
+    logger.info("Applied 10 years of 0.5% annual improvement")
+    logger.info(
+        f"  Mean survival rate improved from {survival_df['survival_rate'].mean():.6f} to {improved_df['survival_rate'].mean():.6f}"
+    )
 
     # Step 5: Create complete survival table
     logger.info("\n--- Step 5: Create Complete Survival Rate Table ---")
@@ -216,9 +211,9 @@ def demo_step_by_step_processing():
     logger.info("\n--- Step 7: Validate Survival Rates ---")
     validation = validate_survival_rates(survival_table)
     logger.info(f"Validation result: {'PASS' if validation['valid'] else 'FAIL'}")
-    if validation['errors']:
+    if validation["errors"]:
         logger.error(f"Errors: {validation['errors']}")
-    if validation['warnings']:
+    if validation["warnings"]:
         logger.warning(f"Warnings: {validation['warnings']}")
 
     logger.info("\n" + "=" * 70)
@@ -248,13 +243,11 @@ def demo_complete_pipeline():
     # Process in one function call
     logger.info("\n--- Processing with single function call ---")
     survival_rates = process_survival_rates(
-        input_path=temp_file,
-        base_year=2020,
-        improvement_factor=0.005
+        input_path=temp_file, base_year=2020, improvement_factor=0.005
     )
 
     logger.info(f"\nProcessed {len(survival_rates)} survival rate records")
-    logger.info(f"Output files created in: data/processed/mortality/")
+    logger.info("Output files created in: data/processed/mortality/")
 
     logger.info("\n" + "=" * 70)
     logger.info("Complete pipeline demo finished!")
@@ -311,10 +304,10 @@ def main():
     logger.info("=" * 70)
 
     # Demo 1: Step-by-step processing
-    survival_table = demo_step_by_step_processing()
+    demo_step_by_step_processing()
 
     # Demo 2: Complete pipeline
-    survival_rates = demo_complete_pipeline()
+    demo_complete_pipeline()
 
     # Demo 3: Integration example
     demo_integration_with_projection()

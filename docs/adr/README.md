@@ -15,320 +15,142 @@ Architecture Decision Records are documents that capture important architectural
 
 ADRs serve as a historical record, helping current and future developers understand **why** the system is built the way it is, not just **how** it works.
 
+## How to Create a New ADR
+
+### Step 1: Determine the Next ADR Number
+
+Check existing ADRs and use the next sequential number:
+```bash
+ls docs/adr/*.md | grep -E '^docs/adr/[0-9]{3}' | sort | tail -1
+```
+
+### Step 2: Create the ADR File
+
+Use the naming convention: `NNN-short-title.md`
+
+Examples:
+- `001-fertility-rate-processing.md`
+- `016-raw-data-management-strategy.md`
+- `017-api-design.md`
+
+### Step 3: Copy the Template
+
+Copy `TEMPLATE.md` to your new file:
+```bash
+cp docs/adr/TEMPLATE.md docs/adr/NNN-your-title.md
+```
+
+### Step 4: Fill in the Template
+
+At minimum, complete these sections:
+- **Title**: Use format `ADR-NNN: Descriptive Title`
+- **Status**: Start with `Proposed`, change to `Accepted` when approved
+- **Date**: Use `YYYY-MM-DD` format
+- **Context**: Explain what problem requires a decision
+- **Decision**: Document what was decided and why
+- **Consequences**: List positive and negative outcomes
+
+### Step 5: Update This README
+
+Add an entry to the ADR Index below with:
+- Title and status
+- One-line summary
+- Link to the file
+
+### Naming Convention
+
+All ADRs must follow this naming pattern:
+
+```
+NNN-short-descriptive-title.md
+```
+
+Where:
+- `NNN` = Three-digit zero-padded number (001, 002, ..., 016, 017)
+- `short-descriptive-title` = Lowercase words separated by hyphens
+- `.md` = Markdown file extension
+
+**Good examples:**
+- `017-api-design.md`
+- `018-caching-strategy.md`
+- `019-error-recovery-mechanism.md`
+
+**Avoid:**
+- `17-api-design.md` (missing zero padding)
+- `ADR-017-api-design.md` (don't include ADR prefix in filename)
+- `017_api_design.md` (use hyphens, not underscores)
+- `017-API-Design.md` (use lowercase)
+
+## ADR Statuses
+
+| Status | Description |
+|--------|-------------|
+| **Proposed** | Decision documented but not yet approved |
+| **Accepted** | Decision has been made and implemented |
+| **Deprecated** | Decision no longer applicable |
+| **Superseded** | Decision replaced by a later ADR (note which one) |
+
+---
+
 ## ADR Index
 
 ### Data Processing
 
-#### ADR-001: Fertility Rate Processing Methodology
-**Status**: Accepted | **Date**: 2025-12-18
-
-Documents the methodology for processing SEER/NVSS fertility data into age-specific fertility rates suitable for population projections.
-
-**Key Decisions**:
-- 5-year weighted averaging for stability
-- Zero-fill for missing age-race combinations
-- SEER race code mapping to 6 standard categories
-- Plausibility thresholds for validation
-- Multi-format input support (CSV, TXT, Excel, Parquet)
-- Metadata generation for provenance
-
-**File**: [`001-fertility-rate-processing.md`](001-fertility-rate-processing.md)
-
----
-
-#### ADR-002: Survival Rate Processing Methodology
-**Status**: Accepted | **Date**: 2025-12-18
-
-Documents the methodology for converting SEER/CDC life tables into survival rates for the cohort-component projection engine.
-
-**Key Decisions**:
-- Multi-method life table conversion (lx, qx, Lx) with automatic selection
-- Special handling for age 90+ open-ended group using Tx-based formula
-- Lee-Carter style mortality improvement (0.5% annual default)
-- Age-specific plausibility thresholds
-- Age-appropriate default values for missing data
-- Life expectancy calculation for quality assurance
-
-**File**: [`002-survival-rate-processing.md`](002-survival-rate-processing.md)
-
----
-
-#### ADR-003: Migration Rate Processing Methodology
-**Status**: Planned | **Date**: TBD
-
-Will document the methodology for processing IRS county flows and ACS migration data into net migration rates.
-
-**Planned Topics**:
-- IRS county-to-county flow processing
-- ACS mobility data integration
-- International migration allocation
-- Age-sex-race distribution of migration
-- Smoothing extreme outliers
-
-**File**: `003-migration-rate-processing.md` (to be created)
-
----
+| ADR | Title | Status | Date | Summary |
+|-----|-------|--------|------|---------|
+| [001](001-fertility-rate-processing.md) | Fertility Rate Processing | Accepted | 2025-12-18 | 5-year weighted averaging, zero-fill missing data, SEER race mapping |
+| [002](002-survival-rate-processing.md) | Survival Rate Processing | Accepted | 2025-12-18 | Multi-method life table conversion, Lee-Carter mortality improvement |
+| [003](003-migration-rate-processing.md) | Migration Rate Processing | Accepted | 2025-12-18 | IRS flow processing, ACS integration, age-sex-race distribution |
 
 ### System Architecture
 
-#### ADR-004: Core Projection Engine Architecture
-**Status**: Accepted | **Date**: 2025-12-18
-
-Documents the architecture of the main cohort-component projection engine that implements the standard demographic method.
-
-**Key Decisions**:
-- Modular component architecture (fertility, mortality, migration modules)
-- Cohort-component method as core algorithm (Census Bureau standard)
-- Vectorized pandas operations (no explicit loops)
-- DataFrame-based data structures with standardized schemas
-- Annual projection intervals (not monthly/quarterly)
-- Built-in scenario support (baseline, high/low growth, zero migration)
-- Comprehensive validation at every step
-
-**File**: [`004-core-projection-engine-architecture.md`](004-core-projection-engine-architecture.md)
-
----
-
-#### ADR-005: Configuration Management Strategy
-**Status**: Accepted | **Date**: 2025-12-18
-
-Documents how configuration is managed across the projection system.
-
-**Key Decisions**:
-- YAML as configuration format (not JSON, TOML, or code)
-- Single centralized configuration file (`projection_config.yaml`)
-- Nested sections by functional area
-- ConfigLoader class for programmatic access
-- Sensible default values throughout codebase
-- No environment-specific configuration files
-- Configuration validation at load time
-- Inline documentation via YAML comments
-
-**File**: [`005-configuration-management-strategy.md`](005-configuration-management-strategy.md)
-
----
-
-#### ADR-006: Data Pipeline Architecture
-**Status**: Accepted | **Date**: 2025-12-18
-
-Documents the architecture of the data pipeline that transforms raw data into projection-ready inputs.
-
-**Key Decisions**:
-- Two-stage pipeline architecture (Fetch → Process)
-- Standardized processor pattern (Load → Harmonize → Process → Validate → Save)
-- Parquet as primary storage format (CSV as secondary)
-- Multi-format input support with flexible column naming
-- Metadata generation for provenance
-- Defensive programming with comprehensive validation
-- Directory structure by data type and processing stage
-
-**File**: [`006-data-pipeline-architecture.md`](006-data-pipeline-architecture.md)
-
----
+| ADR | Title | Status | Date | Summary |
+|-----|-------|--------|------|---------|
+| [004](004-core-projection-engine-architecture.md) | Core Projection Engine | Accepted | 2025-12-18 | Modular cohort-component method, vectorized pandas operations |
+| [005](005-configuration-management-strategy.md) | Configuration Management | Accepted | 2025-12-18 | Centralized YAML config, ConfigLoader class, sensible defaults |
+| [006](006-data-pipeline-architecture.md) | Data Pipeline Architecture | Accepted | 2025-12-18 | Two-stage Fetch/Process pipeline, Parquet primary storage |
 
 ### Demographic Methodology
 
-#### ADR-007: Race and Ethnicity Categorization
-**Status**: Accepted | **Date**: 2025-12-18
-
-Documents the race and ethnicity classification system used throughout the projection system.
-
-**Key Decisions**:
-- 6-category system balancing detail with data availability
-- Hispanic ethnicity as single category (not crossed with race)
-- Combined Asian/Pacific Islander category
-- "Two or more races" as distinct category
-- Explicit mapping from source categories (Census, SEER)
-- Consistent ordering across all outputs
-- No residual/unknown category
-
-**Categories**:
-1. White alone, Non-Hispanic
-2. Black alone, Non-Hispanic
-3. AIAN alone, Non-Hispanic
-4. Asian/PI alone, Non-Hispanic
-5. Two or more races, Non-Hispanic
-6. Hispanic (any race)
-
-**File**: [`007-race-ethnicity-categorization.md`](007-race-ethnicity-categorization.md)
-
----
-
-#### ADR-010: Geographic Scope and Granularity
-**Status**: Accepted | **Date**: 2025-12-18
-
-Documents the geographic levels at which projections are produced.
-
-**Key Decisions**:
-- Three geographic levels (State, County, Place)
-- FIPS codes as primary geographic identifier
-- All 53 counties, subset of places (configuration-driven)
-- Single-year ages (0-90+), not age groups
-- Age 90+ as open-ended group
-- Geographic hierarchy with aggregation capabilities
-- No sub-county geographies beyond places (no tracts/blocks)
-
-**File**: [`010-geographic-scope-granularity.md`](010-geographic-scope-granularity.md)
-
----
+| ADR | Title | Status | Date | Summary |
+|-----|-------|--------|------|---------|
+| [007](007-race-ethnicity-categorization.md) | Race/Ethnicity Categorization | Accepted | 2025-12-18 | 6-category system, Hispanic as single category, explicit mappings |
+| [010](010-geographic-scope-granularity.md) | Geographic Scope | Accepted | 2025-12-18 | State/County/Place levels, FIPS identifiers, age 90+ open-ended |
 
 ### Technical Infrastructure
 
-#### ADR-008: BigQuery Integration Design
-**Status**: Accepted | **Date**: 2025-12-18
-
-Documents how Google BigQuery is integrated for supplementary data access.
-
-**Key Decisions**:
-- BigQuery as supplementary (not primary) data source
-- Service account authentication
-- Query result caching
-- Public dataset usage over custom storage
-- Wrapper client class for convenience
-- Graceful degradation without BigQuery
-- No BigQuery for storing primary projection outputs
-
-**Use Cases**: Geographic reference data, historical validation, data exploration
-
-**File**: [`008-bigquery-integration-design.md`](008-bigquery-integration-design.md)
-
----
-
-#### ADR-009: Logging and Error Handling Strategy
-**Status**: Accepted | **Date**: 2025-12-18
-
-Documents how logging and error handling are implemented across the system.
-
-**Key Decisions**:
-- Python standard logging module (not print statements)
-- Centralized logger configuration
-- Hierarchical log levels philosophy (DEBUG, INFO, WARNING, ERROR)
-- Log to both file and console
-- Defensive programming with explicit validation
-- Error vs. warning philosophy (errors for fatal, warnings for recoverable)
-- Structured logging for key events
-
-**File**: [`009-logging-error-handling-strategy.md`](009-logging-error-handling-strategy.md)
-
----
-
-#### ADR-011: Testing Strategy
-**Status**: Accepted | **Date**: 2025-12-18
-
-Documents the testing approach for ensuring system correctness.
-
-**Key Decisions**:
-- Pragmatic testing approach (not full TDD)
-- Built-in validation functions as primary quality assurance
-- Example scripts as integration tests
-- Selective unit tests for critical functions
-- Manual validation against known benchmarks
-- pytest as unit test framework
-- Synthetic test data generation
-
-**Testing Pyramid**: Manual Review > Integration Examples > Built-In Validation > Unit Tests (selective)
-
-**File**: [`011-testing-strategy.md`](011-testing-strategy.md)
-
----
-
-#### ADR-012: Output and Export Format Strategy
-**Status**: Accepted | **Date**: 2025-12-18
-
-Documents how projection results are exported and stored.
-
-**Key Decisions**:
-- Dual format strategy (Parquet primary + CSV secondary)
-- Gzip compression for Parquet
-- Include zero cells in output
-- Two decimal places for population values
-- Separate files by geography and year range
-- JSON metadata files with comprehensive provenance
-- Optional Excel export for stakeholder reports
-- Summary tables in addition to detailed outputs
-
-**File**: [`012-output-export-format-strategy.md`](012-output-export-format-strategy.md)
-
----
-
-#### ADR-013: Multi-Geography Projection Design
-**Status**: Accepted | **Date**: 2025-12-18
-
-Documents the design for running projections across multiple geographic levels.
-
-**File**: [`013-multi-geography-projection-design.md`](013-multi-geography-projection-design.md)
-
----
-
-#### ADR-014: Pipeline Orchestration Design
-**Status**: Accepted | **Date**: 2025-12-18
-
-Documents the design for orchestrating the complete projection pipeline.
-
-**File**: [`014-pipeline-orchestration-design.md`](014-pipeline-orchestration-design.md)
-
----
-
-#### ADR-015: Output Format and Visualization Design
-**Status**: Accepted | **Date**: 2025-12-18
-
-Documents the design for output formats and visualization capabilities.
-
-**File**: [`015-output-format-visualization-design.md`](015-output-format-visualization-design.md)
-
----
+| ADR | Title | Status | Date | Summary |
+|-----|-------|--------|------|---------|
+| [008](008-bigquery-integration-design.md) | BigQuery Integration | Accepted | 2025-12-18 | Supplementary data source, service account auth, graceful degradation |
+| [009](009-logging-error-handling-strategy.md) | Logging and Error Handling | Accepted | 2025-12-18 | Python standard logging, hierarchical levels, defensive programming |
+| [011](011-testing-strategy.md) | Testing Strategy | Accepted | 2025-12-18 | Pragmatic approach, built-in validation, example scripts as tests |
+| [012](012-output-export-format-strategy.md) | Output and Export Formats | Accepted | 2025-12-18 | Parquet + CSV dual format, JSON metadata, optional Excel export |
+| [013](013-multi-geography-projection-design.md) | Multi-Geography Projections | Accepted | 2025-12-18 | Design for running projections across multiple geographic levels |
+| [014](014-pipeline-orchestration-design.md) | Pipeline Orchestration | Accepted | 2025-12-18 | Complete pipeline orchestration design |
+| [015](015-output-format-visualization-design.md) | Output Visualization | Accepted | 2025-12-18 | Output formats and visualization capabilities |
 
 ### Data Management
 
-#### ADR-016: Raw Data Management and Cross-Computer Synchronization Strategy
-**Status**: Accepted | **Date**: 2025-12-28
-
-Documents the strategy for managing raw data files across multiple development computers using a hybrid approach of git, rclone bisync, and a data sources manifest.
-
-**Key Decisions**:
-- Raw data files stored in `data/raw/` (actual files, not symlinks)
-- `data/raw/` excluded from git but synced via rclone bisync
-- `config/data_sources.yaml` manifest documents all data sources and provenance
-- `scripts/fetch_data.py` populates data from sibling repositories when available
-- `.gitkeep` files preserve directory structure in git
-
-**Workflow**:
-1. On primary computer: Run `fetch_data.py` to copy from sibling repos
-2. Sync via rclone bisync to cloud storage
-3. On secondary computer: rclone bisync pulls data
-
-**File**: [`016-raw-data-management-strategy.md`](016-raw-data-management-strategy.md)
+| ADR | Title | Status | Date | Summary |
+|-----|-------|--------|------|---------|
+| [016](016-raw-data-management-strategy.md) | Raw Data Management | Accepted | 2025-12-28 | Hybrid git/rclone strategy, data manifest, fetch script |
 
 ---
 
 ## ADR Status Summary
 
-| ADR | Title | Status | Date |
-|-----|-------|--------|------|
-| 001 | Fertility Rate Processing | Accepted | 2025-12-18 |
-| 002 | Survival Rate Processing | Accepted | 2025-12-18 |
-| 003 | Migration Rate Processing | Planned | TBD |
-| 004 | Core Projection Engine Architecture | Accepted | 2025-12-18 |
-| 005 | Configuration Management Strategy | Accepted | 2025-12-18 |
-| 006 | Data Pipeline Architecture | Accepted | 2025-12-18 |
-| 007 | Race and Ethnicity Categorization | Accepted | 2025-12-18 |
-| 008 | BigQuery Integration Design | Accepted | 2025-12-18 |
-| 009 | Logging and Error Handling Strategy | Accepted | 2025-12-18 |
-| 010 | Geographic Scope and Granularity | Accepted | 2025-12-18 |
-| 011 | Testing Strategy | Accepted | 2025-12-18 |
-| 012 | Output and Export Format Strategy | Accepted | 2025-12-18 |
-| 013 | Multi-Geography Projection Design | Accepted | 2025-12-18 |
-| 014 | Pipeline Orchestration Design | Accepted | 2025-12-18 |
-| 015 | Output Format and Visualization Design | Accepted | 2025-12-18 |
-| 016 | Raw Data Management Strategy | Accepted | 2025-12-28 |
+| Status | Count |
+|--------|-------|
+| Accepted | 16 |
+| Proposed | 0 |
+| Deprecated | 0 |
+| Superseded | 0 |
 
-**Status Definitions**:
-- **Accepted**: Decision has been made and implemented
-- **Planned**: Decision documented but implementation pending
-- **Superseded**: Decision replaced by later ADR
-- **Deprecated**: Decision no longer applicable
+**Naming Convention Compliance**: All 16 ADRs follow the `NNN-short-title.md` naming convention.
 
-## How to Use These ADRs
+---
+
+## Quick Reference
 
 ### For New Team Members
 
@@ -338,76 +160,17 @@ Start with these ADRs to understand the system:
 3. **ADR-010**: Geographic Scope (what geographies are projected)
 4. **ADR-006**: Data Pipeline Architecture (how data flows)
 
-### For Understanding a Specific Topic
+### By Topic
 
-**Demographic Methodology**:
-- ADR-001: Fertility processing
-- ADR-002: Survival/mortality processing
-- ADR-003: Migration processing (planned)
-- ADR-007: Race/ethnicity categories
+**Demographic Methodology**: ADR-001, ADR-002, ADR-003, ADR-007
 
-**System Design**:
-- ADR-004: Core engine
-- ADR-005: Configuration
-- ADR-006: Data pipeline
-- ADR-008: BigQuery integration
+**System Design**: ADR-004, ADR-005, ADR-006, ADR-008
 
-**Quality and Operations**:
-- ADR-009: Logging and errors
-- ADR-011: Testing approach
-- ADR-012: Output formats
+**Quality and Operations**: ADR-009, ADR-011, ADR-012
 
-### For Making New Decisions
+**Data Management**: ADR-016
 
-When making a new architectural decision:
-
-1. **Review Related ADRs**: Check if similar decisions were made
-2. **Document Your Decision**: Create new ADR using template below
-3. **Update This Index**: Add entry to appropriate section
-4. **Reference in Code**: Link to ADR in comments for critical code
-
-### ADR Template
-
-```markdown
-# ADR-XXX: [Decision Title]
-
-## Status
-[Proposed | Accepted | Superseded | Deprecated]
-
-## Date
-YYYY-MM-DD
-
-## Context
-[What is the situation requiring a decision?]
-[What constraints exist?]
-[What requirements drive this?]
-
-## Decision
-[What was decided?]
-[How does it work?]
-
-## Consequences
-
-### Positive
-- [Benefit 1]
-- [Benefit 2]
-
-### Negative
-- [Tradeoff 1]
-- [Tradeoff 2]
-
-## Alternatives Considered
-
-### Alternative 1: [Name]
-- **Description**: ...
-- **Pros**: ...
-- **Cons**: ...
-- **Why rejected**: ...
-
-## References
-- [Relevant documentation]
-- [External resources]
-```
+---
 
 ## Decision Principles
 
@@ -422,62 +185,28 @@ Across all ADRs, these principles guided decisions:
 7. **Maintainability**: Code should be understandable and modifiable
 8. **Flexibility**: Support multiple scenarios and configurations
 
-## Cross-Cutting Concerns
-
-### Data Quality
-- Comprehensive validation (ADR-006, ADR-009, ADR-011)
-- Plausibility checks (ADR-001, ADR-002)
-- Metadata and provenance (ADR-006, ADR-012)
-
-### Performance
-- Vectorized operations (ADR-004)
-- Parquet compression (ADR-006, ADR-012)
-- Geographic modularity (ADR-010)
-
-### Usability
-- Multiple output formats (ADR-012)
-- Clear error messages (ADR-009)
-- Configuration flexibility (ADR-005)
-- Example scripts (ADR-011)
-
-### Maintainability
-- Modular architecture (ADR-004, ADR-006)
-- Consistent patterns (ADR-006)
-- Comprehensive logging (ADR-009)
-- Documentation throughout
-
-## Future ADRs
-
-Potential topics for future ADRs:
-
-- **ADR-017**: Historical Backcasting Methodology
-- **ADR-018**: API Design for Programmatic Access
-- **ADR-019**: Scenario Development and Management
-- **ADR-020**: Uncertainty Quantification Methods
+---
 
 ## Resources
+
+### ADR Methodology
+- [Documenting Architecture Decisions](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions) - Michael Nygard
+- [ADR GitHub Organization](https://adr.github.io/)
 
 ### Demographic Methodology
 - Preston, Heuveline, Guillot: "Demography: Measuring and Modeling Population Processes" (2001)
 - Smith, Tayman, Swanson: "State and Local Population Projections" (2001)
 - U.S. Census Bureau Methodology Documentation
 
-### Technical References
-- Pandas Documentation: https://pandas.pydata.org/docs/
-- Apache Parquet: https://parquet.apache.org/
-- Python Logging: https://docs.python.org/3/howto/logging.html
-
 ### Data Sources
 - SEER: https://seer.cancer.gov/popdata/
 - Census Bureau: https://www.census.gov/programs-surveys/popproj.html
 - CDC NVSS: https://www.cdc.gov/nchs/nvss/index.htm
 
-## Contact
-
-For questions about these ADRs or to propose new architectural decisions, contact the project team.
-
 ---
 
 **Last Updated**: 2025-12-28
 
-**Total ADRs**: 16 (15 accepted, 1 planned)
+**Total ADRs**: 16 (16 accepted)
+
+**Template**: See [TEMPLATE.md](TEMPLATE.md) for creating new ADRs

@@ -1,0 +1,39 @@
+# Pre-commit hooks for cohort_projections
+# Install: pip install pre-commit && pre-commit install
+
+repos:
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-added-large-files
+        args: ['--maxkb=5000']
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+
+  # Ruff - fast Python linter and formatter
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        args: ['--fix']
+      - id: ruff-format
+
+  # MyPy - static type checking
+  # NOTE: Disabled for now - codebase needs type annotation work before enabling.
+  # TODO: Enable mypy incrementally as type annotations are added.
+  # When ready, uncomment this section:
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v1.8.0
+  #   hooks:
+  #     - id: mypy
+  #       exclude: ^(scripts/|examples/|tests/)
+  #       additional_dependencies:
+  #         - types-PyYAML
+  #         - types-requests
+  #         - pandas-stubs

@@ -5,24 +5,25 @@ Demonstrates the complete fertility rate processing pipeline from raw SEER data
 to projection-ready format.
 """
 
-import pandas as pd
-import numpy as np
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from cohort_projections.data.process.fertility_rates import (
-    load_seer_fertility_data,
-    harmonize_fertility_race_categories,
+from cohort_projections.data.process.fertility_rates import (  # noqa: E402
     calculate_average_fertility_rates,
     create_fertility_rate_table,
+    harmonize_fertility_race_categories,
+    load_seer_fertility_data,
+    process_fertility_rates,
     validate_fertility_rates,
-    process_fertility_rates
 )
-from cohort_projections.utils.logger import get_logger_from_config
+from cohort_projections.utils.logger import get_logger_from_config  # noqa: E402
 
 logger = get_logger_from_config(__name__)
 
@@ -43,19 +44,18 @@ def create_sample_seer_data(output_path: Path) -> None:
 
     # SEER-style race codes (as they appear in real data)
     races = {
-        'White NH': 1.8,      # TFR target
-        'Black NH': 1.7,
-        'Hispanic': 2.0,
-        'AIAN NH': 1.9,
-        'Asian/PI NH': 1.5,
-        'Two+ Races NH': 1.8
+        "White NH": 1.8,  # TFR target
+        "Black NH": 1.7,
+        "Hispanic": 2.0,
+        "AIAN NH": 1.9,
+        "Asian/PI NH": 1.5,
+        "Two+ Races NH": 1.8,
     }
 
     # Generate 5 years of data (2018-2022)
     for year in range(2018, 2023):
         for age in range(15, 50):  # Reproductive ages
             for race, target_tfr in races.items():
-
                 # Create realistic age pattern (Hadwiger function approximation)
                 # Peak around age 28, standard deviation ~6 years
                 age_effect = np.exp(-((age - 28) ** 2) / 72)
@@ -69,20 +69,22 @@ def create_sample_seer_data(output_path: Path) -> None:
 
                 # Simulate female population (for weighted averaging)
                 # Larger populations for White, Hispanic; smaller for others
-                base_pop = 5000 if race in ['White NH', 'Hispanic'] else 500
+                base_pop = 5000 if race in ["White NH", "Hispanic"] else 500
                 population = base_pop + np.random.randint(-100, 100)
 
                 # Calculate births (for metadata)
                 births = int(population * fertility_rate)
 
-                sample_data.append({
-                    'year': year,
-                    'age': age,
-                    'race': race,  # SEER codes that need harmonization
-                    'fertility_rate': round(fertility_rate, 6),
-                    'births': births,
-                    'population': population
-                })
+                sample_data.append(
+                    {
+                        "year": year,
+                        "age": age,
+                        "race": race,  # SEER codes that need harmonization
+                        "fertility_rate": round(fertility_rate, 6),
+                        "births": births,
+                        "population": population,
+                    }
+                )
 
     df = pd.DataFrame(sample_data)
 
@@ -113,34 +115,28 @@ def demo_step_by_step_processing():
 
     # Step 1: Load data
     logger.info("\n--- Step 1: Load SEER Data ---")
-    raw_df = load_seer_fertility_data(
-        sample_file,
-        year_range=(2018, 2022)
-    )
+    raw_df = load_seer_fertility_data(sample_file, year_range=(2018, 2022))
     logger.info(f"Loaded {len(raw_df)} records")
     logger.info(f"Columns: {list(raw_df.columns)}")
 
     # Step 2: Harmonize race categories
     logger.info("\n--- Step 2: Harmonize Race Categories ---")
     harmonized_df = harmonize_fertility_race_categories(raw_df)
-    logger.info(f"Race categories after harmonization:")
-    for race in sorted(harmonized_df['race_ethnicity'].unique()):
-        count = (harmonized_df['race_ethnicity'] == race).sum()
+    logger.info("Race categories after harmonization:")
+    for race in sorted(harmonized_df["race_ethnicity"].unique()):
+        count = (harmonized_df["race_ethnicity"] == race).sum()
         logger.info(f"  {race}: {count} records")
 
     # Step 3: Calculate averages
     logger.info("\n--- Step 3: Calculate 5-Year Averages ---")
-    averaged_df = calculate_average_fertility_rates(
-        harmonized_df,
-        averaging_period=5
-    )
+    averaged_df = calculate_average_fertility_rates(harmonized_df, averaging_period=5)
     logger.info(f"Averaged rates: {len(averaged_df)} age-race combinations")
 
     # Step 4: Create complete table
     logger.info("\n--- Step 4: Create Complete Fertility Table ---")
     fertility_table = create_fertility_rate_table(
         averaged_df,
-        validate=False  # We'll validate separately
+        validate=False,  # We'll validate separately
     )
     logger.info(f"Complete table: {len(fertility_table)} cells")
     logger.info(f"Ages: {fertility_table['age'].min()}-{fertility_table['age'].max()}")
@@ -154,32 +150,31 @@ def demo_step_by_step_processing():
     logger.info(f"Errors: {len(validation['errors'])}")
     logger.info(f"Warnings: {len(validation['warnings'])}")
 
-    if validation['errors']:
+    if validation["errors"]:
         logger.error("Validation errors:")
-        for error in validation['errors']:
+        for error in validation["errors"]:
             logger.error(f"  - {error}")
 
-    if validation['warnings']:
+    if validation["warnings"]:
         logger.warning("Validation warnings:")
-        for warning in validation['warnings'][:5]:  # Show first 5
+        for warning in validation["warnings"][:5]:  # Show first 5
             logger.warning(f"  - {warning}")
 
     logger.info("\nTotal Fertility Rates (TFR) by Race:")
-    for race, tfr in sorted(validation['tfr_by_race'].items()):
+    for race, tfr in sorted(validation["tfr_by_race"].items()):
         logger.info(f"  {race}: {tfr:.2f}")
     logger.info(f"\nOverall TFR: {validation['overall_tfr']:.2f}")
 
     # Step 6: Show sample rates
     logger.info("\n--- Sample Fertility Rates ---")
     sample_ages = [20, 25, 30, 35, 40]
-    sample_race = 'White alone, Non-Hispanic'
+    sample_race = "White alone, Non-Hispanic"
 
     logger.info(f"Fertility rates for {sample_race}:")
     for age in sample_ages:
         rate = fertility_table[
-            (fertility_table['age'] == age) &
-            (fertility_table['race_ethnicity'] == sample_race)
-        ]['fertility_rate'].values[0]
+            (fertility_table["age"] == age) & (fertility_table["race_ethnicity"] == sample_race)
+        ]["fertility_rate"].values[0]
         logger.info(f"  Age {age}: {rate:.4f} (births per woman)")
 
     logger.info("\n" + "=" * 70)
@@ -203,9 +198,7 @@ def demo_complete_pipeline():
     logger.info("\nRunning complete processing pipeline...")
 
     fertility_rates = process_fertility_rates(
-        input_path=sample_file,
-        year_range=(2018, 2022),
-        averaging_period=5
+        input_path=sample_file, year_range=(2018, 2022), averaging_period=5
     )
 
     logger.info("\n" + "=" * 70)
@@ -259,7 +252,7 @@ def demo_integration_with_projection_engine():
     logger.info(f"Loaded {len(fertility_rates)} records")
     logger.info("\nData structure:")
     logger.info(f"Columns: {list(fertility_rates.columns)}")
-    logger.info(f"\nFirst few rows:")
+    logger.info("\nFirst few rows:")
     print(fertility_rates.head(10))
 
     logger.info("\n--- Ready for Projection Engine ---")
@@ -304,5 +297,6 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"\n✗ Example failed with error: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)

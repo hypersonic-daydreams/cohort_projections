@@ -37,14 +37,14 @@ Examples:
     python scripts/fetch_data.py --category population --force
 """
 
-import sys
 import argparse
-import shutil
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
-from datetime import datetime
-from dataclasses import dataclass, field
 import os
+import shutil
+import sys
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -65,21 +65,21 @@ class FetchResult:
     source_name: str
     category: str
     status: str = "pending"  # "fetched", "exists", "not_found", "error", "skipped"
-    source_path: Optional[Path] = None
-    destination_path: Optional[Path] = None
+    source_path: Path | None = None
+    destination_path: Path | None = None
     message: str = ""
-    rows_count: Optional[int] = None
-    file_size_bytes: Optional[int] = None
-    missing_columns: List[str] = field(default_factory=list)
+    rows_count: int | None = None
+    file_size_bytes: int | None = None
+    missing_columns: list[str] = field(default_factory=list)
 
 
 @dataclass
 class FetchReport:
     """Summary report of all fetch operations."""
 
-    start_time: datetime = field(default_factory=datetime.now)
-    end_time: Optional[datetime] = None
-    results: List[FetchResult] = field(default_factory=list)
+    start_time: datetime = field(default_factory=lambda: datetime.now(UTC))
+    end_time: datetime | None = None
+    results: list[FetchResult] = field(default_factory=list)
     dry_run: bool = False
 
     def add_result(self, result: FetchResult) -> None:
@@ -88,7 +88,7 @@ class FetchReport:
 
     def finalize(self) -> None:
         """Mark the report as complete."""
-        self.end_time = datetime.now()
+        self.end_time = datetime.now(UTC)
 
     @property
     def fetched_count(self) -> int:
@@ -116,7 +116,7 @@ class FetchReport:
 # =============================================================================
 
 
-def load_data_sources(config_path: Optional[Path] = None) -> Dict[str, Any]:
+def load_data_sources(config_path: Path | None = None) -> dict[str, Any]:
     """
     Load the data sources manifest from YAML.
 
@@ -132,7 +132,7 @@ def load_data_sources(config_path: Optional[Path] = None) -> Dict[str, Any]:
     if not config_path.exists():
         raise FileNotFoundError(f"Data sources manifest not found: {config_path}")
 
-    with open(config_path, "r") as f:
+    with open(config_path) as f:
         config = yaml.safe_load(f)
 
     return config
@@ -155,7 +155,7 @@ def expand_path(path_str: str) -> Path:
     return Path(expanded)
 
 
-def find_source_file(source_paths: List[str]) -> Optional[Path]:
+def find_source_file(source_paths: list[str]) -> Path | None:
     """
     Find the first existing source file from a list of potential paths.
 
@@ -173,8 +173,8 @@ def find_source_file(source_paths: List[str]) -> Optional[Path]:
 
 
 def validate_columns(
-    file_path: Path, required_columns: List[str], verbose: bool = False
-) -> Tuple[bool, List[str]]:
+    file_path: Path, required_columns: list[str], verbose: bool = False
+) -> tuple[bool, list[str]]:
     """
     Validate that a data file contains required columns.
 
@@ -219,7 +219,7 @@ def validate_columns(
         return True, []  # Assume valid if we can't check
 
 
-def get_file_info(file_path: Path) -> Tuple[Optional[int], Optional[int]]:
+def get_file_info(file_path: Path) -> tuple[int | None, int | None]:
     """
     Get file size and row count for a data file.
 
@@ -238,7 +238,7 @@ def get_file_info(file_path: Path) -> Tuple[Optional[int], Optional[int]]:
         suffix = file_path.suffix.lower()
         if suffix == ".csv":
             # Count lines (minus header)
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 row_count = sum(1 for _ in f) - 1
         elif suffix == ".parquet":
             df = pd.read_parquet(file_path)
@@ -269,7 +269,7 @@ def copy_file(
 
     if dest_path.exists() and not force:
         if verbose:
-            print(f"  Destination exists, skipping (use --force to overwrite)")
+            print("  Destination exists, skipping (use --force to overwrite)")
         return False
 
     try:
@@ -284,7 +284,7 @@ def copy_file(
 def fetch_data_source(
     name: str,
     category: str,
-    source_config: Dict[str, Any],
+    source_config: dict[str, Any],
     dry_run: bool = False,
     force: bool = False,
     verbose: bool = False,
@@ -377,8 +377,8 @@ def fetch_data_source(
 
 
 def fetch_all_data(
-    config: Dict[str, Any],
-    categories: Optional[List[str]] = None,
+    config: dict[str, Any],
+    categories: list[str] | None = None,
     dry_run: bool = False,
     force: bool = False,
     verbose: bool = False,
@@ -451,7 +451,7 @@ def fetch_all_data(
     return report
 
 
-def list_data_sources(config: Dict[str, Any]) -> None:
+def list_data_sources(config: dict[str, Any]) -> None:
     """
     Print a formatted list of all data sources.
 
@@ -508,15 +508,11 @@ def print_report(report: FetchReport) -> None:
     if report.dry_run:
         print("\n[DRY RUN - No files were actually copied]")
 
-    duration = (
-        (report.end_time - report.start_time).total_seconds()
-        if report.end_time
-        else 0
-    )
+    duration = (report.end_time - report.start_time).total_seconds() if report.end_time else 0
 
     print(f"\nStart Time: {report.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Duration: {duration:.1f} seconds")
-    print(f"\nResults:")
+    print("\nResults:")
     print(f"  Fetched:    {report.fetched_count}")
     print(f"  Exists:     {report.exists_count}")
     print(f"  Not Found:  {report.not_found_count}")
@@ -608,7 +604,8 @@ Data Categories:
         help="Fetch only specified category (can be repeated)",
     )
     parser.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Print detailed output",
     )
@@ -666,6 +663,7 @@ Data Categories:
         print(f"Unexpected error: {e}", file=sys.stderr)
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         return 1
 

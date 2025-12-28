@@ -7,15 +7,12 @@ Provides consistent logging across all modules with file and console output.
 import logging
 import sys
 from pathlib import Path
-from typing import Optional
+
 import yaml
 
 
 def setup_logger(
-    name: str,
-    log_level: str = "INFO",
-    log_dir: Optional[Path] = None,
-    log_to_file: bool = True
+    name: str, log_level: str = "INFO", log_dir: Path | None = None, log_to_file: bool = True
 ) -> logging.Logger:
     """
     Set up logger with console and optional file output.
@@ -38,8 +35,7 @@ def setup_logger(
 
     # Formatter
     formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
 
     # Console handler
@@ -65,10 +61,7 @@ def setup_logger(
     return logger
 
 
-def get_logger_from_config(
-    name: str,
-    config_path: Optional[Path] = None
-) -> logging.Logger:
+def get_logger_from_config(name: str, config_path: Path | None = None) -> logging.Logger:
     """
     Get logger configured from YAML config file.
 
@@ -92,7 +85,7 @@ def get_logger_from_config(
             name=name,
             log_level=logging_config.get("level", "INFO"),
             log_dir=Path(logging_config.get("log_directory", "logs")),
-            log_to_file=logging_config.get("log_to_file", True)
+            log_to_file=logging_config.get("log_to_file", True),
         )
     except Exception as e:
         # Fallback to default logger if config fails

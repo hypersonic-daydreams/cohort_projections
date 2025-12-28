@@ -8,17 +8,16 @@ This script shows how to:
 4. Export and analyze results
 """
 
-import pandas as pd
-import numpy as np
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import pandas as pd
 
 # Add project to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from cohort_projections.core import CohortComponentProjection
-from cohort_projections.utils.config_loader import ConfigLoader
+from cohort_projections.core import CohortComponentProjection  # noqa: E402
 
 
 def create_sample_data():
@@ -34,13 +33,9 @@ def create_sample_data():
     print("Creating sample input data...")
 
     # Configuration
-    ages = list(range(0, 91))  # 0-90 (90+ is open-ended)
-    sexes = ['Male', 'Female']
-    races = [
-        'White alone, Non-Hispanic',
-        'Black alone, Non-Hispanic',
-        'Hispanic (any race)'
-    ]
+    ages = list(range(91))  # 0-90 (90+ is open-ended)
+    sexes = ["Male", "Female"]
+    races = ["White alone, Non-Hispanic", "Black alone, Non-Hispanic", "Hispanic (any race)"]
 
     # 1. Base Population (2025)
     print("  - Base population...")
@@ -63,21 +58,17 @@ def create_sample_data():
                     base_pop = max(100, 1500 - (age - 65) * 50)
 
                 # Vary by race (simple example)
-                if race == 'White alone, Non-Hispanic':
+                if race == "White alone, Non-Hispanic":
                     base_pop *= 3.0
-                elif race == 'Hispanic (any race)':
+                elif race == "Hispanic (any race)":
                     base_pop *= 1.5
 
-                base_pop_data.append({
-                    'year': 2025,
-                    'age': age,
-                    'sex': sex,
-                    'race': race,
-                    'population': base_pop
-                })
+                base_pop_data.append(
+                    {"year": 2025, "age": age, "sex": sex, "race": race, "population": base_pop}
+                )
 
     base_population = pd.DataFrame(base_pop_data)
-    total_pop = base_population['population'].sum()
+    total_pop = base_population["population"].sum()
     print(f"    Total base population: {total_pop:,.0f}")
 
     # 2. Fertility Rates
@@ -101,16 +92,12 @@ def create_sample_data():
                 rate = 0.01  # Low for late 40s
 
             # Vary by race (general patterns)
-            if race == 'Hispanic (any race)':
+            if race == "Hispanic (any race)":
                 rate *= 1.2  # Slightly higher Hispanic fertility
-            elif race == 'Black alone, Non-Hispanic':
+            elif race == "Black alone, Non-Hispanic":
                 rate *= 1.1
 
-            fertility_data.append({
-                'age': age,
-                'race': race,
-                'fertility_rate': rate
-            })
+            fertility_data.append({"age": age, "race": race, "fertility_rate": rate})
 
     fertility_rates = pd.DataFrame(fertility_data)
     print(f"    Fertility rate records: {len(fertility_rates)}")
@@ -144,22 +131,19 @@ def create_sample_data():
                     survival_rate = 0.70  # 90+ group
 
                 # Sex differential (females live longer)
-                if sex == 'Male':
+                if sex == "Male":
                     survival_rate *= 0.995  # Slightly lower male survival
 
                 # Race differential (simplified)
-                if race == 'Black alone, Non-Hispanic':
+                if race == "Black alone, Non-Hispanic":
                     survival_rate *= 0.997  # Small mortality disadvantage
 
                 # Ensure within bounds
                 survival_rate = max(0.5, min(1.0, survival_rate))
 
-                survival_data.append({
-                    'age': age,
-                    'sex': sex,
-                    'race': race,
-                    'survival_rate': survival_rate
-                })
+                survival_data.append(
+                    {"age": age, "sex": sex, "race": race, "survival_rate": survival_rate}
+                )
 
     survival_rates = pd.DataFrame(survival_data)
     print(f"    Survival rate records: {len(survival_rates)}")
@@ -187,15 +171,12 @@ def create_sample_data():
                     net_mig = -5  # Slight out-migration of retirees
 
                 # Vary by race
-                if race == 'Hispanic (any race)':
+                if race == "Hispanic (any race)":
                     net_mig *= 1.5  # Higher Hispanic migration
 
-                migration_data.append({
-                    'age': age,
-                    'sex': sex,
-                    'race': race,
-                    'net_migration': net_mig
-                })
+                migration_data.append(
+                    {"age": age, "sex": sex, "race": race, "net_migration": net_mig}
+                )
 
     migration_rates = pd.DataFrame(migration_data)
     print(f"    Migration rate records: {len(migration_rates)}")
@@ -220,17 +201,13 @@ def main():
         base_population=base_population,
         fertility_rates=fertility_rates,
         survival_rates=survival_rates,
-        migration_rates=migration_rates
+        migration_rates=migration_rates,
     )
     print()
 
     # Run projection (5 years for quick demo)
     print("Running projection (2025-2030)...")
-    results = projection.run_projection(
-        start_year=2025,
-        end_year=2030,
-        scenario='baseline'
-    )
+    projection.run_projection(start_year=2025, end_year=2030, scenario="baseline")
     print()
 
     # Display results summary
@@ -240,16 +217,16 @@ def main():
     print()
 
     summary = projection.get_projection_summary()
-    print(summary[['year', 'total_population', 'male_population', 'female_population']])
+    print(summary[["year", "total_population", "male_population", "female_population"]])
     print()
 
     # Population growth
     print("Population Growth:")
     for i in range(len(summary)):
-        year = summary.iloc[i]['year']
-        total = summary.iloc[i]['total_population']
+        year = summary.iloc[i]["year"]
+        total = summary.iloc[i]["total_population"]
         if i > 0:
-            prev_total = summary.iloc[i-1]['total_population']
+            prev_total = summary.iloc[i - 1]["total_population"]
             change = total - prev_total
             pct_change = (change / prev_total) * 100
             print(f"  {year}: {total:,.0f} ({change:+,.0f}, {pct_change:+.2f}%)")
@@ -260,10 +237,10 @@ def main():
     # Age structure
     print("Age Structure (2030):")
     final_pop = projection.get_population_by_year(2030)
-    under_18 = final_pop[final_pop['age'] < 18]['population'].sum()
-    working_age = final_pop[(final_pop['age'] >= 18) & (final_pop['age'] < 65)]['population'].sum()
-    seniors = final_pop[final_pop['age'] >= 65]['population'].sum()
-    total = final_pop['population'].sum()
+    under_18 = final_pop[final_pop["age"] < 18]["population"].sum()
+    working_age = final_pop[(final_pop["age"] >= 18) & (final_pop["age"] < 65)]["population"].sum()
+    seniors = final_pop[final_pop["age"] >= 65]["population"].sum()
+    total = final_pop["population"].sum()
 
     print(f"  Under 18:    {under_18:>12,.0f}  ({under_18/total*100:>5.1f}%)")
     print(f"  Working Age: {working_age:>12,.0f}  ({working_age/total*100:>5.1f}%)")
@@ -275,14 +252,8 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print("Exporting results...")
-    projection.export_results(
-        output_dir / "example_projection.parquet",
-        format='parquet'
-    )
-    projection.export_summary(
-        output_dir / "example_summary.csv",
-        format='csv'
-    )
+    projection.export_results(output_dir / "example_projection.parquet", format="parquet")
+    projection.export_summary(output_dir / "example_summary.csv", format="csv")
     print(f"  Results saved to: {output_dir}")
     print()
 
@@ -291,5 +262,5 @@ def main():
     print("=" * 70)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

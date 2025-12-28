@@ -27,38 +27,35 @@ Usage:
     python 01_process_demographic_data.py --all --fail-fast
 """
 
-import sys
 import argparse
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
-from datetime import datetime
 import json
+import sys
 import traceback
-
-import pandas as pd
-import numpy as np
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from cohort_projections.data.process.fertility_rates import (
+from cohort_projections.data.process.fertility_rates import (  # noqa: E402
     load_seer_fertility_data,
     process_seer_fertility_rates,
-    validate_fertility_rates
+    validate_fertility_rates,
 )
-from cohort_projections.data.process.survival_rates import (
-    load_life_table_data,
-    process_life_table_to_survival_rates,
-    validate_survival_rates
-)
-from cohort_projections.data.process.migration_rates import (
+from cohort_projections.data.process.migration_rates import (  # noqa: E402
     load_irs_migration_data,
     process_migration_flows_to_rates,
-    validate_migration_rates
+    validate_migration_rates,
 )
-from cohort_projections.utils.config_loader import load_projection_config
-from cohort_projections.utils.logger import setup_logger
+from cohort_projections.data.process.survival_rates import (  # noqa: E402
+    load_life_table_data,
+    process_life_table_to_survival_rates,
+    validate_survival_rates,
+)
+from cohort_projections.utils.config_loader import load_projection_config  # noqa: E402
+from cohort_projections.utils.logger import setup_logger  # noqa: E402
 
 # Set up logging
 logger = setup_logger(__name__, log_level="INFO")
@@ -70,21 +67,21 @@ class DataProcessingResult:
     def __init__(self, component: str):
         self.component = component
         self.success = False
-        self.error: Optional[str] = None
-        self.output_file: Optional[Path] = None
+        self.error: str | None = None
+        self.output_file: Path | None = None
         self.records_processed = 0
         self.processing_time = 0.0
-        self.validation_results: Dict[str, Any] = {}
-        self.metadata: Dict[str, Any] = {}
+        self.validation_results: dict[str, Any] = {}
+        self.metadata: dict[str, Any] = {}
 
 
 class DataProcessingReport:
     """Generate processing report with statistics."""
 
     def __init__(self):
-        self.results: List[DataProcessingResult] = []
-        self.start_time = datetime.now()
-        self.end_time: Optional[datetime] = None
+        self.results: list[DataProcessingResult] = []
+        self.start_time = datetime.now(UTC)
+        self.end_time: datetime | None = None
 
     def add_result(self, result: DataProcessingResult):
         """Add a processing result."""
@@ -92,9 +89,9 @@ class DataProcessingReport:
 
     def finalize(self):
         """Finalize the report."""
-        self.end_time = datetime.now()
+        self.end_time = datetime.now(UTC)
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get report summary."""
         successful = sum(1 for r in self.results if r.success)
         failed = sum(1 for r in self.results if not r.success)
@@ -106,9 +103,7 @@ class DataProcessingReport:
             "start_time": self.start_time.isoformat(),
             "end_time": self.end_time.isoformat() if self.end_time else None,
             "total_duration": (
-                (self.end_time - self.start_time).total_seconds()
-                if self.end_time
-                else None
+                (self.end_time - self.start_time).total_seconds() if self.end_time else None
             ),
             "components": [
                 {
@@ -119,9 +114,7 @@ class DataProcessingReport:
                     "records_processed": r.records_processed,
                     "processing_time": r.processing_time,
                     "validation_passed": (
-                        r.validation_results.get("valid", False)
-                        if r.validation_results
-                        else None
+                        r.validation_results.get("valid", False) if r.validation_results else None
                     ),
                 }
                 for r in self.results
@@ -157,9 +150,7 @@ class DataProcessingReport:
                 print(f"  Output: {comp['output_file']}")
                 print(f"  Records: {comp['records_processed']:,}")
                 print(f"  Processing Time: {comp['processing_time']:.2f}s")
-                print(
-                    f"  Validation: {'Passed' if comp['validation_passed'] else 'Failed'}"
-                )
+                print(f"  Validation: {'Passed' if comp['validation_passed'] else 'Failed'}")
             else:
                 print(f"  Error: {comp['error']}")
 
@@ -170,7 +161,7 @@ class DataProcessingReport:
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         report_file = output_dir / f"data_processing_report_{timestamp}.json"
 
         with open(report_file, "w") as f:
@@ -180,9 +171,7 @@ class DataProcessingReport:
         return report_file
 
 
-def process_fertility_data(
-    config: Dict[str, Any], dry_run: bool = False
-) -> DataProcessingResult:
+def process_fertility_data(config: dict[str, Any], dry_run: bool = False) -> DataProcessingResult:
     """
     Process fertility rates data.
 
@@ -194,7 +183,7 @@ def process_fertility_data(
         DataProcessingResult with processing outcome
     """
     result = DataProcessingResult("fertility")
-    start_time = datetime.now()
+    start_time = datetime.now(UTC)
 
     try:
         logger.info("Processing fertility rates...")
@@ -246,9 +235,7 @@ def process_fertility_data(
         result.validation_results = validation
 
         if not validation.get("valid", False):
-            logger.warning(
-                f"Validation warnings: {validation.get('warnings', [])}"
-            )
+            logger.warning(f"Validation warnings: {validation.get('warnings', [])}")
 
         # Save processed data
         output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -259,14 +246,12 @@ def process_fertility_data(
         result.success = True
         result.output_file = output_file
         result.records_processed = len(fertility_rates)
-        result.processing_time = (datetime.now() - start_time).total_seconds()
+        result.processing_time = (datetime.now(UTC) - start_time).total_seconds()
         result.metadata = {
             "input_file": str(input_file),
             "year_range": year_range,
             "age_groups": len(fertility_rates["age"].unique()),
-            "race_ethnicity_groups": len(
-                fertility_rates["race_ethnicity"].unique()
-            ),
+            "race_ethnicity_groups": len(fertility_rates["race_ethnicity"].unique()),
         }
 
     except Exception as e:
@@ -275,13 +260,11 @@ def process_fertility_data(
         result.success = False
         result.error = str(e)
 
-    result.processing_time = (datetime.now() - start_time).total_seconds()
+    result.processing_time = (datetime.now(UTC) - start_time).total_seconds()
     return result
 
 
-def process_survival_data(
-    config: Dict[str, Any], dry_run: bool = False
-) -> DataProcessingResult:
+def process_survival_data(config: dict[str, Any], dry_run: bool = False) -> DataProcessingResult:
     """
     Process survival rates data.
 
@@ -293,7 +276,7 @@ def process_survival_data(
         DataProcessingResult with processing outcome
     """
     result = DataProcessingResult("survival")
-    start_time = datetime.now()
+    start_time = datetime.now(UTC)
 
     try:
         logger.info("Processing survival rates...")
@@ -342,9 +325,7 @@ def process_survival_data(
         result.validation_results = validation
 
         if not validation.get("valid", False):
-            logger.warning(
-                f"Validation warnings: {validation.get('warnings', [])}"
-            )
+            logger.warning(f"Validation warnings: {validation.get('warnings', [])}")
 
         # Save processed data
         output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -355,15 +336,13 @@ def process_survival_data(
         result.success = True
         result.output_file = output_file
         result.records_processed = len(survival_rates)
-        result.processing_time = (datetime.now() - start_time).total_seconds()
+        result.processing_time = (datetime.now(UTC) - start_time).total_seconds()
         result.metadata = {
             "input_file": str(input_file),
             "life_table_year": life_table_year,
             "age_groups": len(survival_rates["age"].unique()),
             "sex_groups": len(survival_rates["sex"].unique()),
-            "race_ethnicity_groups": len(
-                survival_rates["race_ethnicity"].unique()
-            ),
+            "race_ethnicity_groups": len(survival_rates["race_ethnicity"].unique()),
         }
 
     except Exception as e:
@@ -372,13 +351,11 @@ def process_survival_data(
         result.success = False
         result.error = str(e)
 
-    result.processing_time = (datetime.now() - start_time).total_seconds()
+    result.processing_time = (datetime.now(UTC) - start_time).total_seconds()
     return result
 
 
-def process_migration_data(
-    config: Dict[str, Any], dry_run: bool = False
-) -> DataProcessingResult:
+def process_migration_data(config: dict[str, Any], dry_run: bool = False) -> DataProcessingResult:
     """
     Process migration rates data.
 
@@ -390,7 +367,7 @@ def process_migration_data(
         DataProcessingResult with processing outcome
     """
     result = DataProcessingResult("migration")
-    start_time = datetime.now()
+    start_time = datetime.now(UTC)
 
     try:
         logger.info("Processing migration rates...")
@@ -442,9 +419,7 @@ def process_migration_data(
         result.validation_results = validation
 
         if not validation.get("valid", False):
-            logger.warning(
-                f"Validation warnings: {validation.get('warnings', [])}"
-            )
+            logger.warning(f"Validation warnings: {validation.get('warnings', [])}")
 
         # Save processed data
         output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -455,7 +430,7 @@ def process_migration_data(
         result.success = True
         result.output_file = output_file
         result.records_processed = len(migration_rates)
-        result.processing_time = (datetime.now() - start_time).total_seconds()
+        result.processing_time = (datetime.now(UTC) - start_time).total_seconds()
         result.metadata = {
             "domestic_input": str(domestic_input),
             "year_range": year_range,
@@ -468,7 +443,7 @@ def process_migration_data(
         result.success = False
         result.error = str(e)
 
-    result.processing_time = (datetime.now() - start_time).total_seconds()
+    result.processing_time = (datetime.now(UTC) - start_time).total_seconds()
     return result
 
 
@@ -504,9 +479,7 @@ def validate_processed_data(report: DataProcessingReport) -> bool:
     return all_valid
 
 
-def generate_processing_report(
-    report: DataProcessingReport, config: Dict[str, Any]
-) -> Path:
+def generate_processing_report(report: DataProcessingReport, config: dict[str, Any]) -> Path:
     """
     Generate and save processing report.
 
@@ -519,11 +492,14 @@ def generate_processing_report(
     """
     logger.info("Generating processing report...")
 
-    output_dir = Path(
-        config.get("pipeline", {})
-        .get("data_processing", {})
-        .get("output_dir", "data/processed")
-    ) / "reports"
+    output_dir = (
+        Path(
+            config.get("pipeline", {})
+            .get("data_processing", {})
+            .get("output_dir", "data/processed")
+        )
+        / "reports"
+    )
 
     report_file = report.save_report(output_dir)
     report.print_summary()
@@ -532,8 +508,8 @@ def generate_processing_report(
 
 
 def process_all_demographic_data(
-    config: Dict[str, Any],
-    components: List[str],
+    config: dict[str, Any],
+    components: list[str],
     dry_run: bool = False,
     fail_fast: bool = False,
 ) -> DataProcessingReport:
@@ -585,7 +561,9 @@ def process_all_demographic_data(
             return report
 
     # Validate all processed data
-    if not dry_run and config.get("pipeline", {}).get("data_processing", {}).get("validate_outputs", True):
+    if not dry_run and config.get("pipeline", {}).get("data_processing", {}).get(
+        "validate_outputs", True
+    ):
         validate_processed_data(report)
 
     report.finalize()
@@ -615,18 +593,10 @@ Examples:
     )
 
     # Component selection
-    parser.add_argument(
-        "--all", action="store_true", help="Process all demographic data types"
-    )
-    parser.add_argument(
-        "--fertility", action="store_true", help="Process fertility rates"
-    )
-    parser.add_argument(
-        "--survival", action="store_true", help="Process survival rates"
-    )
-    parser.add_argument(
-        "--migration", action="store_true", help="Process migration rates"
-    )
+    parser.add_argument("--all", action="store_true", help="Process all demographic data types")
+    parser.add_argument("--fertility", action="store_true", help="Process fertility rates")
+    parser.add_argument("--survival", action="store_true", help="Process survival rates")
+    parser.add_argument("--migration", action="store_true", help="Process migration rates")
 
     # Options
     parser.add_argument(
@@ -673,9 +643,7 @@ Examples:
 
         # Override fail-fast setting if specified
         if args.fail_fast:
-            config.setdefault("pipeline", {}).setdefault("data_processing", {})[
-                "fail_fast"
-            ] = True
+            config.setdefault("pipeline", {}).setdefault("data_processing", {})["fail_fast"] = True
 
         # Process data
         report = process_all_demographic_data(
@@ -686,7 +654,9 @@ Examples:
         )
 
         # Generate report
-        if not args.no_report and config.get("pipeline", {}).get("data_processing", {}).get("generate_report", True):
+        if not args.no_report and config.get("pipeline", {}).get("data_processing", {}).get(
+            "generate_report", True
+        ):
             generate_processing_report(report, config)
         else:
             report.print_summary()

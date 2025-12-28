@@ -20,7 +20,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from cohort_projections.utils import get_bigquery_client, get_logger_from_config
+from cohort_projections.utils import get_bigquery_client, get_logger_from_config  # noqa: E402
 
 logger = get_logger_from_config(__name__)
 
@@ -59,7 +59,7 @@ def explore_census_datasets(bq):
         datasets = bq.list_public_datasets(filter_census=True)
         logger.info(f"\nFound {len(datasets)} Census-related datasets:")
 
-        for idx, row in datasets.head(20).iterrows():
+        for _idx, row in datasets.head(20).iterrows():
             print(f"  - {row['dataset_id']}")
 
         return datasets
@@ -80,9 +80,9 @@ def explore_census_bureau_usa(bq):
         tables = bq.list_tables(dataset)
         logger.info(f"\nFound {len(tables)} tables:")
 
-        for idx, row in tables.iterrows():
+        for _idx, row in tables.iterrows():
             print(f"  - {row['table_name']}")
-            if 'size_mb' in row and row['size_mb']:
+            if "size_mb" in row and row["size_mb"]:
                 print(f"    Size: {row['size_mb']:.2f} MB, Rows: {row['row_count']:,}")
 
         return tables
@@ -111,7 +111,7 @@ def preview_population_data(bq):
             # Get schema
             schema = bq.get_table_schema(table_ref)
             logger.info(f"Columns ({len(schema)}):")
-            for idx, col in schema.head(10).iterrows():
+            for _idx, col in schema.head(10).iterrows():
                 print(f"  - {col['column_name']}: {col['data_type']}")
 
             # Preview data
@@ -144,14 +144,14 @@ def check_acs_datasets(bq):
         datasets = bq.query(sql)
         logger.info(f"\nFound {len(datasets)} ACS-related datasets:")
 
-        for idx, row in datasets.iterrows():
+        for _idx, row in datasets.iterrows():
             print(f"  - {row['dataset_id']}")
 
         # Explore census_bureau_acs dataset
         if len(datasets) > 0:
             logger.info("\n--- Tables in census_bureau_acs ---")
             tables = bq.list_tables("bigquery-public-data.census_bureau_acs")
-            for idx, row in tables.head(15).iterrows():
+            for _idx, row in tables.head(15).iterrows():
                 print(f"  - {row['table_name']}")
 
     except Exception as e:
@@ -190,7 +190,9 @@ def main():
     logger.info("=" * 80)
     logger.info("\nNext steps:")
     logger.info("  1. Review available datasets and tables above")
-    logger.info("  2. Identify which tables contain demographic rates (fertility, mortality, migration)")
+    logger.info(
+        "  2. Identify which tables contain demographic rates (fertility, mortality, migration)"
+    )
     logger.info("  3. Start implementing data fetchers for those tables")
 
     bq.close()

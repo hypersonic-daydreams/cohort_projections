@@ -33,24 +33,23 @@ Usage:
     python 03_export_results.py --all --dry-run
 """
 
-import sys
 import argparse
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any
-from datetime import datetime
 import json
+import sys
 import traceback
 import zipfile
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
 
 import pandas as pd
-import numpy as np
 
 # Add project root to path for imports
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from cohort_projections.utils.config_loader import load_projection_config
-from cohort_projections.utils.logger import setup_logger
+from cohort_projections.utils.config_loader import load_projection_config  # noqa: E402
+from cohort_projections.utils.logger import setup_logger  # noqa: E402
 
 # Set up logging
 logger = setup_logger(__name__, log_level="INFO")
@@ -62,9 +61,9 @@ class ExportResult:
     def __init__(self, component: str):
         self.component = component
         self.success = False
-        self.error: Optional[str] = None
+        self.error: str | None = None
         self.files_exported = 0
-        self.output_files: List[Path] = []
+        self.output_files: list[Path] = []
         self.export_time = 0.0
 
 
@@ -72,11 +71,11 @@ class ExportReport:
     """Generate export report with statistics."""
 
     def __init__(self):
-        self.results: List[ExportResult] = []
-        self.start_time = datetime.now()
-        self.end_time: Optional[datetime] = None
+        self.results: list[ExportResult] = []
+        self.start_time = datetime.now(UTC)
+        self.end_time: datetime | None = None
         self.total_files_exported = 0
-        self.packages_created: List[Path] = []
+        self.packages_created: list[Path] = []
 
     def add_result(self, result: ExportResult):
         """Add an export result."""
@@ -86,9 +85,9 @@ class ExportReport:
 
     def finalize(self):
         """Finalize the report."""
-        self.end_time = datetime.now()
+        self.end_time = datetime.now(UTC)
 
-    def get_summary(self) -> Dict[str, Any]:
+    def get_summary(self) -> dict[str, Any]:
         """Get report summary."""
         successful = sum(1 for r in self.results if r.success)
         failed = sum(1 for r in self.results if not r.success)
@@ -97,9 +96,7 @@ class ExportReport:
             "start_time": self.start_time.isoformat(),
             "end_time": self.end_time.isoformat() if self.end_time else None,
             "duration_seconds": (
-                (self.end_time - self.start_time).total_seconds()
-                if self.end_time
-                else None
+                (self.end_time - self.start_time).total_seconds() if self.end_time else None
             ),
             "components": {
                 "total": len(self.results),
@@ -127,7 +124,11 @@ class ExportReport:
         print("=" * 80)
 
         summary = self.get_summary()
-        print(f"\nDuration: {summary['duration_seconds']:.2f} seconds" if summary['duration_seconds'] else "N/A")
+        print(
+            f"\nDuration: {summary['duration_seconds']:.2f} seconds"
+            if summary["duration_seconds"]
+            else "N/A"
+        )
         print(f"Files Exported: {summary['files_exported']}")
         print(f"Packages Created: {len(summary['packages_created'])}")
 
@@ -143,9 +144,7 @@ class ExportReport:
         print("\n" + "=" * 80 + "\n")
 
 
-def convert_parquet_to_csv(
-    parquet_file: Path, output_dir: Path, compression: str = "gzip"
-) -> Path:
+def convert_parquet_to_csv(parquet_file: Path, output_dir: Path, compression: str = "gzip") -> Path:
     """
     Convert Parquet file to CSV.
 
@@ -171,7 +170,7 @@ def convert_parquet_to_csv(
 
 
 def convert_parquet_to_excel(
-    parquet_files: List[Path], output_file: Path, sheet_name_map: Optional[Dict[str, str]] = None
+    parquet_files: list[Path], output_file: Path, sheet_name_map: dict[str, str] | None = None
 ) -> Path:
     """
     Convert Parquet files to Excel workbook with multiple sheets.
@@ -201,9 +200,9 @@ def convert_parquet_to_excel(
 
 def convert_projection_formats(
     scenario: str,
-    levels: List[str],
-    config: Dict[str, Any],
-    formats: List[str],
+    levels: list[str],
+    config: dict[str, Any],
+    formats: list[str],
     output_dir: Path,
     dry_run: bool = False,
 ) -> ExportResult:
@@ -222,15 +221,20 @@ def convert_projection_formats(
         ExportResult with conversion results
     """
     result = ExportResult(f"format_conversion_{scenario}")
-    start_time = datetime.now()
+    start_time = datetime.now(UTC)
 
     try:
         logger.info(f"Converting projection formats for scenario: {scenario}")
 
         # Get projection directory
-        proj_dir = Path(
-            config.get("pipeline", {}).get("projection", {}).get("output_dir", "data/projections")
-        ) / scenario
+        proj_dir = (
+            Path(
+                config.get("pipeline", {})
+                .get("projection", {})
+                .get("output_dir", "data/projections")
+            )
+            / scenario
+        )
 
         if not proj_dir.exists():
             raise FileNotFoundError(f"Projection directory not found: {proj_dir}")
@@ -303,14 +307,14 @@ def convert_projection_formats(
         result.success = False
         result.error = str(e)
 
-    result.export_time = (datetime.now() - start_time).total_seconds()
+    result.export_time = (datetime.now(UTC) - start_time).total_seconds()
     return result
 
 
 def create_summary_tables(
     scenario: str,
-    levels: List[str],
-    config: Dict[str, Any],
+    levels: list[str],
+    config: dict[str, Any],
     output_dir: Path,
     dry_run: bool = False,
 ) -> ExportResult:
@@ -328,7 +332,7 @@ def create_summary_tables(
         ExportResult with summary creation results
     """
     result = ExportResult(f"summaries_{scenario}")
-    start_time = datetime.now()
+    start_time = datetime.now(UTC)
 
     try:
         logger.info(f"Creating summary tables for scenario: {scenario}")
@@ -339,9 +343,14 @@ def create_summary_tables(
             return result
 
         # Get projection directory
-        proj_dir = Path(
-            config.get("pipeline", {}).get("projection", {}).get("output_dir", "data/projections")
-        ) / scenario
+        proj_dir = (
+            Path(
+                config.get("pipeline", {})
+                .get("projection", {})
+                .get("output_dir", "data/projections")
+            )
+            / scenario
+        )
 
         # Get summary types from config
         summary_types = (
@@ -364,7 +373,9 @@ def create_summary_tables(
             if not projection_files:
                 continue
 
-            logger.info(f"Creating summaries for {level} level ({len(projection_files)} geographies)")
+            logger.info(
+                f"Creating summaries for {level} level ({len(projection_files)} geographies)"
+            )
 
             # Create each summary type
             for summary_type in summary_types:
@@ -404,11 +415,11 @@ def create_summary_tables(
         result.success = False
         result.error = str(e)
 
-    result.export_time = (datetime.now() - start_time).total_seconds()
+    result.export_time = (datetime.now(UTC) - start_time).total_seconds()
     return result
 
 
-def create_total_population_summary(projection_files: List[Path]) -> pd.DataFrame:
+def create_total_population_summary(projection_files: list[Path]) -> pd.DataFrame:
     """Create total population by year summary."""
     summaries = []
 
@@ -432,35 +443,35 @@ def create_total_population_summary(projection_files: List[Path]) -> pd.DataFram
     return pd.DataFrame()
 
 
-def create_age_distribution_summary(projection_files: List[Path]) -> pd.DataFrame:
+def create_age_distribution_summary(projection_files: list[Path]) -> pd.DataFrame:
     """Create age distribution summary."""
     # Placeholder implementation
     logger.info("Creating age distribution summary...")
     return pd.DataFrame()
 
 
-def create_sex_ratio_summary(projection_files: List[Path]) -> pd.DataFrame:
+def create_sex_ratio_summary(projection_files: list[Path]) -> pd.DataFrame:
     """Create sex ratio summary."""
     # Placeholder implementation
     logger.info("Creating sex ratio summary...")
     return pd.DataFrame()
 
 
-def create_race_composition_summary(projection_files: List[Path]) -> pd.DataFrame:
+def create_race_composition_summary(projection_files: list[Path]) -> pd.DataFrame:
     """Create race composition summary."""
     # Placeholder implementation
     logger.info("Creating race composition summary...")
     return pd.DataFrame()
 
 
-def create_growth_rates_summary(projection_files: List[Path]) -> pd.DataFrame:
+def create_growth_rates_summary(projection_files: list[Path]) -> pd.DataFrame:
     """Create growth rates summary."""
     # Placeholder implementation
     logger.info("Creating growth rates summary...")
     return pd.DataFrame()
 
 
-def create_dependency_ratios_summary(projection_files: List[Path]) -> pd.DataFrame:
+def create_dependency_ratios_summary(projection_files: list[Path]) -> pd.DataFrame:
     """Create dependency ratios summary."""
     # Placeholder implementation
     logger.info("Creating dependency ratios summary...")
@@ -468,7 +479,7 @@ def create_dependency_ratios_summary(projection_files: List[Path]) -> pd.DataFra
 
 
 def generate_data_dictionary(
-    config: Dict[str, Any], output_dir: Path, dry_run: bool = False
+    config: dict[str, Any], output_dir: Path, dry_run: bool = False
 ) -> ExportResult:
     """
     Generate data dictionary documenting output variables.
@@ -482,7 +493,7 @@ def generate_data_dictionary(
         ExportResult with data dictionary generation results
     """
     result = ExportResult("data_dictionary")
-    start_time = datetime.now()
+    start_time = datetime.now(UTC)
 
     try:
         logger.info("Generating data dictionary...")
@@ -496,7 +507,7 @@ def generate_data_dictionary(
         data_dict = {
             "metadata": {
                 "title": "North Dakota Population Projections - Data Dictionary",
-                "generated": datetime.now().isoformat(),
+                "generated": datetime.now(UTC).isoformat(),
                 "project": config.get("project", {}).get("name", "ND Population Projections"),
             },
             "variables": [
@@ -617,14 +628,14 @@ def generate_data_dictionary(
         result.success = False
         result.error = str(e)
 
-    result.export_time = (datetime.now() - start_time).total_seconds()
+    result.export_time = (datetime.now(UTC) - start_time).total_seconds()
     return result
 
 
 def package_for_distribution(
-    scenarios: List[str],
-    levels: List[str],
-    config: Dict[str, Any],
+    scenarios: list[str],
+    levels: list[str],
+    config: dict[str, Any],
     export_dir: Path,
     package_by: str = "level",
     dry_run: bool = False,
@@ -644,7 +655,7 @@ def package_for_distribution(
         ExportResult with packaging results
     """
     result = ExportResult("packaging")
-    start_time = datetime.now()
+    start_time = datetime.now(UTC)
 
     try:
         logger.info("Creating distribution packages...")
@@ -662,7 +673,7 @@ def package_for_distribution(
         if package_by == "level":
             # Create one package per level across all scenarios
             for level in levels:
-                package_name = f"nd_projections_{level}_{datetime.now().strftime('%Y%m%d')}.zip"
+                package_name = f"nd_projections_{level}_{datetime.now(UTC).strftime('%Y%m%d')}.zip"
                 package_file = packages_dir / package_name
 
                 with zipfile.ZipFile(package_file, "w", zipfile.ZIP_DEFLATED) as zipf:
@@ -693,15 +704,15 @@ def package_for_distribution(
         result.success = False
         result.error = str(e)
 
-    result.export_time = (datetime.now() - start_time).total_seconds()
+    result.export_time = (datetime.now(UTC) - start_time).total_seconds()
     return result
 
 
 def export_all_results(
-    config: Dict[str, Any],
-    scenarios: List[str],
-    levels: List[str],
-    formats: List[str],
+    config: dict[str, Any],
+    scenarios: list[str],
+    levels: list[str],
+    formats: list[str],
     create_packages: bool = True,
     dry_run: bool = False,
 ) -> ExportReport:
@@ -871,12 +882,18 @@ Examples:
         if not scenarios:
             # Find scenarios with projection outputs
             proj_dir = Path(
-                config.get("pipeline", {}).get("projection", {}).get("output_dir", "data/projections")
+                config.get("pipeline", {})
+                .get("projection", {})
+                .get("output_dir", "data/projections")
             )
             if proj_dir.exists():
-                scenarios = [d.name for d in proj_dir.iterdir() if d.is_dir() and not d.name.startswith(".")]
+                scenarios = [
+                    d.name for d in proj_dir.iterdir() if d.is_dir() and not d.name.startswith(".")
+                ]
             else:
-                scenarios = config.get("pipeline", {}).get("projection", {}).get("scenarios", ["baseline"])
+                scenarios = (
+                    config.get("pipeline", {}).get("projection", {}).get("scenarios", ["baseline"])
+                )
 
         # Determine formats
         formats = args.formats
@@ -907,7 +924,9 @@ Examples:
         export_dir = Path(
             config.get("pipeline", {}).get("export", {}).get("output_dir", "data/exports")
         )
-        report_file = export_dir / f"export_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        report_file = (
+            export_dir / f"export_report_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
+        )
         with open(report_file, "w") as f:
             json.dump(report.get_summary(), f, indent=2)
         logger.info(f"Export report saved to {report_file}")

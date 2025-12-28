@@ -6,22 +6,21 @@ state, counties, and incorporated places. Supports loading from Census
 TIGER files or local reference CSV files.
 """
 
-import pandas as pd
-import numpy as np
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union, Literal
-import json
+from typing import Literal
 
-from cohort_projections.utils.logger import get_logger_from_config
+import pandas as pd
+
 from cohort_projections.utils.config_loader import load_projection_config
+from cohort_projections.utils.logger import get_logger_from_config
 
 logger = get_logger_from_config(__name__)
 
 
 def load_nd_counties(
-    source: Literal['local', 'tiger'] = 'local',
+    source: Literal["local", "tiger"] = "local",
     vintage: int = 2020,
-    reference_path: Optional[Path] = None
+    reference_path: Path | None = None,
 ) -> pd.DataFrame:
     """
     Load North Dakota county reference data.
@@ -52,7 +51,7 @@ def load_nd_counties(
     """
     logger.info(f"Loading North Dakota counties (source: {source}, vintage: {vintage})")
 
-    if source == 'local':
+    if source == "local":
         # Load from local CSV file
         if reference_path is None:
             project_root = Path(__file__).parent.parent.parent
@@ -74,9 +73,9 @@ def load_nd_counties(
             return counties_df
 
         logger.info(f"Loading counties from {reference_path}")
-        counties_df = pd.read_csv(reference_path, dtype={'county_fips': str, 'state_fips': str})
+        counties_df = pd.read_csv(reference_path, dtype={"county_fips": str, "state_fips": str})
 
-    elif source == 'tiger':
+    elif source == "tiger":
         # Load from Census TIGER files
         logger.info("Loading counties from Census TIGER files")
         counties_df = _load_counties_from_tiger(vintage)
@@ -93,10 +92,10 @@ def load_nd_counties(
 
 
 def load_nd_places(
-    source: Literal['local', 'tiger'] = 'local',
+    source: Literal["local", "tiger"] = "local",
     vintage: int = 2020,
-    reference_path: Optional[Path] = None,
-    min_population: Optional[int] = None
+    reference_path: Path | None = None,
+    min_population: int | None = None,
 ) -> pd.DataFrame:
     """
     Load North Dakota incorporated place reference data.
@@ -130,7 +129,7 @@ def load_nd_places(
     """
     logger.info(f"Loading North Dakota places (source: {source}, vintage: {vintage})")
 
-    if source == 'local':
+    if source == "local":
         # Load from local CSV file
         if reference_path is None:
             project_root = Path(__file__).parent.parent.parent
@@ -151,17 +150,16 @@ def load_nd_places(
 
             # Filter by population if specified
             if min_population is not None:
-                places_df = places_df[places_df['population'] >= min_population].copy()
+                places_df = places_df[places_df["population"] >= min_population].copy()
 
             return places_df
 
         logger.info(f"Loading places from {reference_path}")
         places_df = pd.read_csv(
-            reference_path,
-            dtype={'place_fips': str, 'state_fips': str, 'county_fips': str}
+            reference_path, dtype={"place_fips": str, "state_fips": str, "county_fips": str}
         )
 
-    elif source == 'tiger':
+    elif source == "tiger":
         # Load from Census TIGER files
         logger.info("Loading places from Census TIGER files")
         places_df = _load_places_from_tiger(vintage)
@@ -173,9 +171,9 @@ def load_nd_places(
     places_df = _validate_place_data(places_df)
 
     # Filter by population if specified
-    if min_population is not None and 'population' in places_df.columns:
+    if min_population is not None and "population" in places_df.columns:
         original_count = len(places_df)
-        places_df = places_df[places_df['population'] >= min_population].copy()
+        places_df = places_df[places_df["population"] >= min_population].copy()
         logger.info(
             f"Filtered to {len(places_df)}/{original_count} places "
             f"with population >= {min_population}"
@@ -186,9 +184,7 @@ def load_nd_places(
     return places_df
 
 
-def get_place_to_county_mapping(
-    places_df: Optional[pd.DataFrame] = None
-) -> pd.DataFrame:
+def get_place_to_county_mapping(places_df: pd.DataFrame | None = None) -> pd.DataFrame:
     """
     Get mapping from places to their containing counties.
 
@@ -220,21 +216,19 @@ def get_place_to_county_mapping(
         places_df = load_nd_places()
 
     # Ensure required columns exist
-    required_cols = ['place_fips', 'county_fips', 'place_name']
+    required_cols = ["place_fips", "county_fips", "place_name"]
     missing_cols = [col for col in required_cols if col not in places_df.columns]
     if missing_cols:
         raise ValueError(f"places_df missing required columns: {missing_cols}")
 
     # Create mapping
-    mapping = places_df[['place_fips', 'county_fips', 'place_name']].copy()
+    mapping = places_df[["place_fips", "county_fips", "place_name"]].copy()
 
     # Add county names if available
     try:
         counties_df = load_nd_counties()
         mapping = mapping.merge(
-            counties_df[['county_fips', 'county_name']],
-            on='county_fips',
-            how='left'
+            counties_df[["county_fips", "county_name"]], on="county_fips", how="left"
         )
     except Exception as e:
         logger.warning(f"Could not load county names: {e}")
@@ -245,10 +239,10 @@ def get_place_to_county_mapping(
 
 
 def load_geography_list(
-    level: Literal['state', 'county', 'place'],
-    config: Optional[Dict] = None,
-    fips_codes: Optional[List[str]] = None
-) -> List[str]:
+    level: Literal["state", "county", "place"],
+    config: dict | None = None,
+    fips_codes: list[str] | None = None,
+) -> list[str]:
     """
     Load list of FIPS codes for geographies to project.
 
@@ -299,39 +293,40 @@ def load_geography_list(
         logger.info(f"Using explicit FIPS codes list: {len(fips_codes)} geographies")
         return fips_codes
 
-    geographic_config = config.get('geographic', {})
+    geographic_config = config.get("geographic", {})
 
-    if level == 'state':
+    if level == "state":
         # State level - just North Dakota
-        state_fips = geographic_config.get('state', '38')
+        state_fips = geographic_config.get("state", "38")
         return [state_fips]
 
-    elif level == 'county':
+    elif level == "county":
         # County level
-        county_config = geographic_config.get('counties', 'all')
+        county_config = geographic_config.get("counties", "all")
 
-        if county_config == 'all' or (isinstance(county_config, dict) and
-                                      county_config.get('mode') == 'all'):
+        if county_config == "all" or (
+            isinstance(county_config, dict) and county_config.get("mode") == "all"
+        ):
             # All counties
             counties_df = load_nd_counties()
-            fips_list = counties_df['county_fips'].tolist()
+            fips_list = counties_df["county_fips"].tolist()
 
         elif isinstance(county_config, dict):
-            mode = county_config.get('mode', 'all')
+            mode = county_config.get("mode", "all")
 
-            if mode == 'list':
+            if mode == "list":
                 # Explicit list
-                fips_list = county_config.get('fips_codes', [])
+                fips_list = county_config.get("fips_codes", [])
 
-            elif mode == 'threshold':
+            elif mode == "threshold":
                 # Filter by population
-                min_pop = county_config.get('min_population', 0)
+                min_pop = county_config.get("min_population", 0)
                 counties_df = load_nd_counties()
 
-                if 'population' in counties_df.columns:
-                    counties_df = counties_df[counties_df['population'] >= min_pop]
+                if "population" in counties_df.columns:
+                    counties_df = counties_df[counties_df["population"] >= min_pop]
 
-                fips_list = counties_df['county_fips'].tolist()
+                fips_list = counties_df["county_fips"].tolist()
 
             else:
                 raise ValueError(f"Unknown county mode: {mode}")
@@ -339,33 +334,34 @@ def load_geography_list(
         else:
             # Default to all
             counties_df = load_nd_counties()
-            fips_list = counties_df['county_fips'].tolist()
+            fips_list = counties_df["county_fips"].tolist()
 
         logger.info(f"Loaded {len(fips_list)} counties")
         return fips_list
 
-    elif level == 'place':
+    elif level == "place":
         # Place level
-        place_config = geographic_config.get('places', 'all')
+        place_config = geographic_config.get("places", "all")
 
-        if place_config == 'all' or (isinstance(place_config, dict) and
-                                     place_config.get('mode') == 'all'):
+        if place_config == "all" or (
+            isinstance(place_config, dict) and place_config.get("mode") == "all"
+        ):
             # All places
             places_df = load_nd_places()
-            fips_list = places_df['place_fips'].tolist()
+            fips_list = places_df["place_fips"].tolist()
 
         elif isinstance(place_config, dict):
-            mode = place_config.get('mode', 'all')
+            mode = place_config.get("mode", "all")
 
-            if mode == 'list':
+            if mode == "list":
                 # Explicit list
-                fips_list = place_config.get('fips_codes', [])
+                fips_list = place_config.get("fips_codes", [])
 
-            elif mode == 'threshold':
+            elif mode == "threshold":
                 # Filter by population
-                min_pop = place_config.get('min_population', 0)
+                min_pop = place_config.get("min_population", 0)
                 places_df = load_nd_places(min_population=min_pop)
-                fips_list = places_df['place_fips'].tolist()
+                fips_list = places_df["place_fips"].tolist()
 
             else:
                 raise ValueError(f"Unknown place mode: {mode}")
@@ -373,7 +369,7 @@ def load_geography_list(
         else:
             # Default to all
             places_df = load_nd_places()
-            fips_list = places_df['place_fips'].tolist()
+            fips_list = places_df["place_fips"].tolist()
 
         logger.info(f"Loaded {len(fips_list)} places")
         return fips_list
@@ -382,10 +378,7 @@ def load_geography_list(
         raise ValueError(f"Unknown geographic level: {level}")
 
 
-def get_geography_name(
-    fips: str,
-    level: Optional[Literal['state', 'county', 'place']] = None
-) -> str:
+def get_geography_name(fips: str, level: Literal["state", "county", "place"] | None = None) -> str:
     """
     Get human-readable name for a FIPS code.
 
@@ -407,38 +400,39 @@ def get_geography_name(
     # Auto-detect level from FIPS length if not provided
     if level is None:
         if len(fips) == 2:
-            level = 'state'
+            level = "state"
         elif len(fips) == 5:
-            level = 'county'
+            level = "county"
         elif len(fips) == 7:
-            level = 'place'
+            level = "place"
         else:
             raise ValueError(f"Cannot determine level for FIPS: {fips}")
 
-    if level == 'state':
-        return 'North Dakota' if fips == '38' else f'State {fips}'
+    if level == "state":
+        return "North Dakota" if fips == "38" else f"State {fips}"
 
-    elif level == 'county':
+    elif level == "county":
         try:
             counties_df = load_nd_counties()
-            name = counties_df[counties_df['county_fips'] == fips]['county_name'].values
-            return name[0] if len(name) > 0 else f'County {fips}'
+            name = counties_df[counties_df["county_fips"] == fips]["county_name"].values
+            return name[0] if len(name) > 0 else f"County {fips}"
         except Exception:
-            return f'County {fips}'
+            return f"County {fips}"
 
-    elif level == 'place':
+    elif level == "place":
         try:
             places_df = load_nd_places()
-            name = places_df[places_df['place_fips'] == fips]['place_name'].values
-            return name[0] if len(name) > 0 else f'Place {fips}'
+            name = places_df[places_df["place_fips"] == fips]["place_name"].values
+            return name[0] if len(name) > 0 else f"Place {fips}"
         except Exception:
-            return f'Place {fips}'
+            return f"Place {fips}"
 
     else:
         raise ValueError(f"Unknown level: {level}")
 
 
 # Helper functions for creating default reference data
+
 
 def _create_default_nd_counties() -> pd.DataFrame:
     """
@@ -449,16 +443,66 @@ def _create_default_nd_counties() -> pd.DataFrame:
     """
     # Major ND counties (subset - full list would have all 53)
     counties = [
-        {'state_fips': '38', 'county_fips': '38015', 'county_name': 'Burleigh County', 'population': 98458},
-        {'state_fips': '38', 'county_fips': '38017', 'county_name': 'Cass County', 'population': 184525},
-        {'state_fips': '38', 'county_fips': '38035', 'county_name': 'Grand Forks County', 'population': 73959},
-        {'state_fips': '38', 'county_fips': '38101', 'county_name': 'Ward County', 'population': 69919},
-        {'state_fips': '38', 'county_fips': '38059', 'county_name': 'Morton County', 'population': 33291},
-        {'state_fips': '38', 'county_fips': '38089', 'county_name': 'Stark County', 'population': 33646},
-        {'state_fips': '38', 'county_fips': '38091', 'county_name': 'Steele County', 'population': 1798},
-        {'state_fips': '38', 'county_fips': '38093', 'county_name': 'Stutsman County', 'population': 21593},
-        {'state_fips': '38', 'county_fips': '38097', 'county_name': 'Traill County', 'population': 8052},
-        {'state_fips': '38', 'county_fips': '38099', 'county_name': 'Walsh County', 'population': 10563},
+        {
+            "state_fips": "38",
+            "county_fips": "38015",
+            "county_name": "Burleigh County",
+            "population": 98458,
+        },
+        {
+            "state_fips": "38",
+            "county_fips": "38017",
+            "county_name": "Cass County",
+            "population": 184525,
+        },
+        {
+            "state_fips": "38",
+            "county_fips": "38035",
+            "county_name": "Grand Forks County",
+            "population": 73959,
+        },
+        {
+            "state_fips": "38",
+            "county_fips": "38101",
+            "county_name": "Ward County",
+            "population": 69919,
+        },
+        {
+            "state_fips": "38",
+            "county_fips": "38059",
+            "county_name": "Morton County",
+            "population": 33291,
+        },
+        {
+            "state_fips": "38",
+            "county_fips": "38089",
+            "county_name": "Stark County",
+            "population": 33646,
+        },
+        {
+            "state_fips": "38",
+            "county_fips": "38091",
+            "county_name": "Steele County",
+            "population": 1798,
+        },
+        {
+            "state_fips": "38",
+            "county_fips": "38093",
+            "county_name": "Stutsman County",
+            "population": 21593,
+        },
+        {
+            "state_fips": "38",
+            "county_fips": "38097",
+            "county_name": "Traill County",
+            "population": 8052,
+        },
+        {
+            "state_fips": "38",
+            "county_fips": "38099",
+            "county_name": "Walsh County",
+            "population": 10563,
+        },
     ]
 
     logger.info("Created default county reference with 10 major counties")
@@ -476,22 +520,62 @@ def _create_default_nd_places() -> pd.DataFrame:
     """
     # Major ND cities
     places = [
-        {'state_fips': '38', 'place_fips': '3807200', 'place_name': 'Bismarck city',
-         'county_fips': '38015', 'population': 73622},
-        {'state_fips': '38', 'place_fips': '3825700', 'place_name': 'Fargo city',
-         'county_fips': '38017', 'population': 125990},
-        {'state_fips': '38', 'place_fips': '3833900', 'place_name': 'Grand Forks city',
-         'county_fips': '38035', 'population': 59166},
-        {'state_fips': '38', 'place_fips': '3841500', 'place_name': 'Minot city',
-         'county_fips': '38101', 'population': 48415},
-        {'state_fips': '38', 'place_fips': '3850420', 'place_name': 'Mandan city',
-         'county_fips': '38059', 'population': 24206},
-        {'state_fips': '38', 'place_fips': '3885100', 'place_name': 'West Fargo city',
-         'county_fips': '38017', 'population': 38626},
-        {'state_fips': '38', 'place_fips': '3877100', 'place_name': 'Williston city',
-         'county_fips': '38105', 'population': 29160},
-        {'state_fips': '38', 'place_fips': '3811380', 'place_name': 'Dickinson city',
-         'county_fips': '38089', 'population': 25679},
+        {
+            "state_fips": "38",
+            "place_fips": "3807200",
+            "place_name": "Bismarck city",
+            "county_fips": "38015",
+            "population": 73622,
+        },
+        {
+            "state_fips": "38",
+            "place_fips": "3825700",
+            "place_name": "Fargo city",
+            "county_fips": "38017",
+            "population": 125990,
+        },
+        {
+            "state_fips": "38",
+            "place_fips": "3833900",
+            "place_name": "Grand Forks city",
+            "county_fips": "38035",
+            "population": 59166,
+        },
+        {
+            "state_fips": "38",
+            "place_fips": "3841500",
+            "place_name": "Minot city",
+            "county_fips": "38101",
+            "population": 48415,
+        },
+        {
+            "state_fips": "38",
+            "place_fips": "3850420",
+            "place_name": "Mandan city",
+            "county_fips": "38059",
+            "population": 24206,
+        },
+        {
+            "state_fips": "38",
+            "place_fips": "3885100",
+            "place_name": "West Fargo city",
+            "county_fips": "38017",
+            "population": 38626,
+        },
+        {
+            "state_fips": "38",
+            "place_fips": "3877100",
+            "place_name": "Williston city",
+            "county_fips": "38105",
+            "population": 29160,
+        },
+        {
+            "state_fips": "38",
+            "place_fips": "3811380",
+            "place_name": "Dickinson city",
+            "county_fips": "38089",
+            "population": 25679,
+        },
     ]
 
     logger.info("Created default place reference with 8 major cities")
@@ -524,43 +608,43 @@ def _load_places_from_tiger(vintage: int) -> pd.DataFrame:
 
 def _validate_county_data(df: pd.DataFrame) -> pd.DataFrame:
     """Validate and standardize county DataFrame."""
-    required_cols = ['state_fips', 'county_fips', 'county_name']
+    required_cols = ["state_fips", "county_fips", "county_name"]
     missing_cols = [col for col in required_cols if col not in df.columns]
 
     if missing_cols:
         raise ValueError(f"County data missing required columns: {missing_cols}")
 
     # Ensure FIPS codes are strings
-    df['state_fips'] = df['state_fips'].astype(str).str.zfill(2)
-    df['county_fips'] = df['county_fips'].astype(str).str.zfill(5)
+    df["state_fips"] = df["state_fips"].astype(str).str.zfill(2)
+    df["county_fips"] = df["county_fips"].astype(str).str.zfill(5)
 
     # Filter to North Dakota
-    df = df[df['state_fips'] == '38'].copy()
+    df = df[df["state_fips"] == "38"].copy()
 
     # Sort by FIPS
-    df = df.sort_values('county_fips').reset_index(drop=True)
+    df = df.sort_values("county_fips").reset_index(drop=True)
 
     return df
 
 
 def _validate_place_data(df: pd.DataFrame) -> pd.DataFrame:
     """Validate and standardize place DataFrame."""
-    required_cols = ['state_fips', 'place_fips', 'place_name', 'county_fips']
+    required_cols = ["state_fips", "place_fips", "place_name", "county_fips"]
     missing_cols = [col for col in required_cols if col not in df.columns]
 
     if missing_cols:
         raise ValueError(f"Place data missing required columns: {missing_cols}")
 
     # Ensure FIPS codes are strings
-    df['state_fips'] = df['state_fips'].astype(str).str.zfill(2)
-    df['place_fips'] = df['place_fips'].astype(str).str.zfill(7)
-    df['county_fips'] = df['county_fips'].astype(str).str.zfill(5)
+    df["state_fips"] = df["state_fips"].astype(str).str.zfill(2)
+    df["place_fips"] = df["place_fips"].astype(str).str.zfill(7)
+    df["county_fips"] = df["county_fips"].astype(str).str.zfill(5)
 
     # Filter to North Dakota
-    df = df[df['state_fips'] == '38'].copy()
+    df = df[df["state_fips"] == "38"].copy()
 
     # Sort by FIPS
-    df = df.sort_values('place_fips').reset_index(drop=True)
+    df = df.sort_values("place_fips").reset_index(drop=True)
 
     return df
 
@@ -593,13 +677,13 @@ if __name__ == "__main__":
     # Test geography list loading
     logger.info("\n4. Loading geography lists...")
 
-    state_list = load_geography_list('state')
+    state_list = load_geography_list("state")
     logger.info(f"   State level: {len(state_list)} geographies - {state_list}")
 
-    county_list = load_geography_list('county')
+    county_list = load_geography_list("county")
     logger.info(f"   County level: {len(county_list)} geographies")
 
-    place_list = load_geography_list('place')
+    place_list = load_geography_list("place")
     logger.info(f"   Place level: {len(place_list)} geographies")
 
     # Test name lookup

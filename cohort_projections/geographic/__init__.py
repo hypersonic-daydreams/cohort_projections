@@ -49,33 +49,33 @@ Example Usage:
 
 # Geography loader functions
 from .geography_loader import (
-    load_nd_counties,
-    load_nd_places,
+    get_geography_name,
     get_place_to_county_mapping,
     load_geography_list,
-    get_geography_name
+    load_nd_counties,
+    load_nd_places,
 )
 
 # Multi-geography projection functions
 from .multi_geography import (
-    run_single_geography_projection,
-    run_multi_geography_projections,
     aggregate_to_county,
     aggregate_to_state,
-    validate_aggregation
+    run_multi_geography_projections,
+    run_single_geography_projection,
+    validate_aggregation,
 )
 
 __all__ = [
     # Geography loader
-    'load_nd_counties',
-    'load_nd_places',
-    'get_place_to_county_mapping',
-    'load_geography_list',
-    'get_geography_name',
+    "load_nd_counties",
+    "load_nd_places",
+    "get_place_to_county_mapping",
+    "load_geography_list",
+    "get_geography_name",
     # Multi-geography projections
-    'run_single_geography_projection',
-    'run_multi_geography_projections',
-    'aggregate_to_county',
-    'aggregate_to_state',
-    'validate_aggregation',
+    "run_single_geography_projection",
+    "run_multi_geography_projections",
+    "aggregate_to_county",
+    "aggregate_to_state",
+    "validate_aggregation",
 ]

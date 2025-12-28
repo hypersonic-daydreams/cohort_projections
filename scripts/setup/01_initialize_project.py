@@ -12,8 +12,8 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from cohort_projections.utils.logger import setup_logger
-from cohort_projections.utils.config_loader import ConfigLoader
+from cohort_projections.utils.config_loader import ConfigLoader  # noqa: E402
+from cohort_projections.utils.logger import setup_logger  # noqa: E402
 
 logger = setup_logger(__name__)
 
@@ -62,15 +62,17 @@ def validate_config():
         logger.info("✓ Projection configuration loaded successfully")
 
         # Validate key parameters
-        base_year = config['project']['base_year']
-        horizon = config['project']['projection_horizon']
+        base_year = config["project"]["base_year"]
+        horizon = config["project"]["projection_horizon"]
         logger.info(f"  Base year: {base_year}")
         logger.info(f"  Projection horizon: {horizon} years")
         logger.info(f"  End year: {base_year + horizon}")
 
         # Check demographics
-        demo = config['demographics']
-        logger.info(f"  Age range: {demo['age_groups']['min_age']}-{demo['age_groups']['max_age']}+")
+        demo = config["demographics"]
+        logger.info(
+            f"  Age range: {demo['age_groups']['min_age']}-{demo['age_groups']['max_age']}+"
+        )
         logger.info(f"  Race/ethnicity categories: {len(demo['race_ethnicity']['categories'])}")
 
         return True
@@ -87,12 +89,12 @@ def check_environment():
     import importlib
 
     required_packages = [
-        'pandas',
-        'numpy',
-        'pyarrow',
-        'requests',
-        'yaml',
-        'tqdm',
+        "pandas",
+        "numpy",
+        "pyarrow",
+        "requests",
+        "yaml",
+        "tqdm",
     ]
 
     missing_packages = []
@@ -116,7 +118,7 @@ def check_environment():
 
 def main():
     """Main initialization function."""
-    logger.info("="  * 60)
+    logger.info("=" * 60)
     logger.info("Cohort Projections - Project Initialization")
     logger.info("=" * 60)
 

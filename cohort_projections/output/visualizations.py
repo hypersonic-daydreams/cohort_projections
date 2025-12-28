@@ -13,28 +13,30 @@ Functions:
     save_all_visualizations: Generate all standard charts
 """
 
-import pandas as pd
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional, Literal, Any, Union, Tuple
 import warnings
+from pathlib import Path
+from typing import Literal
+
+import numpy as np
+import pandas as pd
 
 # Matplotlib for static visualizations
 try:
     import matplotlib
-    matplotlib.use('Agg')  # Non-interactive backend
-    import matplotlib.pyplot as plt
+
+    matplotlib.use("Agg")  # Non-interactive backend
     import matplotlib.patches as mpatches
-    from matplotlib.figure import Figure
-    from matplotlib.axes import Axes
+    import matplotlib.pyplot as plt
+
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
-    warnings.warn("matplotlib not available - visualizations will not work")
+    warnings.warn("matplotlib not available - visualizations will not work", stacklevel=2)
 
 # Optional: seaborn for enhanced styling
 try:
     import seaborn as sns
+
     SEABORN_AVAILABLE = True
 except ImportError:
     SEABORN_AVAILABLE = False
@@ -47,13 +49,13 @@ logger = get_logger_from_config(__name__)
 def plot_population_pyramid(
     projection_df: pd.DataFrame,
     year: int,
-    output_path: Union[str, Path],
+    output_path: str | Path,
     by_race: bool = False,
     age_group_size: int = 5,
-    title: Optional[str] = None,
-    figsize: Tuple[float, float] = (10, 8),
+    title: str | None = None,
+    figsize: tuple[float, float] = (10, 8),
     dpi: int = 300,
-    style: str = 'seaborn-v0_8-darkgrid'
+    style: str = "seaborn-v0_8-darkgrid",
 ) -> Path:
     """
     Create a population pyramid for a specific year.
@@ -84,7 +86,9 @@ def plot_population_pyramid(
         ... )
     """
     if not MATPLOTLIB_AVAILABLE:
-        raise ImportError("matplotlib required for visualizations. Install with: pip install matplotlib")
+        raise ImportError(
+            "matplotlib required for visualizations. Install with: pip install matplotlib"
+        )
 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -92,36 +96,46 @@ def plot_population_pyramid(
     logger.info(f"Creating population pyramid for year {year}: {output_path}")
 
     # Filter to specific year
-    year_data = projection_df[projection_df['year'] == year].copy()
+    year_data = projection_df[projection_df["year"] == year].copy()
 
     if year_data.empty:
         raise ValueError(f"No data for year {year}")
 
     # Create age groups
     if age_group_size > 1:
-        year_data['age_group'] = (year_data['age'] // age_group_size) * age_group_size
+        year_data["age_group"] = (year_data["age"] // age_group_size) * age_group_size
     else:
-        year_data['age_group'] = year_data['age']
+        year_data["age_group"] = year_data["age"]
 
     # Set style
-    if SEABORN_AVAILABLE and style.startswith('seaborn'):
-        sns.set_style('darkgrid')
+    if SEABORN_AVAILABLE and style.startswith("seaborn"):
+        sns.set_style("darkgrid")
     else:
         try:
             plt.style.use(style)
-        except:
-            plt.style.use('default')
+        except Exception:
+            plt.style.use("default")
 
     # Create figure
     fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
 
     if by_race:
         # Stacked pyramid by race
-        races = sorted(year_data['race'].unique())
+        races = sorted(year_data["race"].unique())
 
         # Get data for males and females by age group and race
-        male_data = year_data[year_data['sex'] == 'Male'].groupby(['age_group', 'race'])['population'].sum().unstack(fill_value=0)
-        female_data = year_data[year_data['sex'] == 'Female'].groupby(['age_group', 'race'])['population'].sum().unstack(fill_value=0)
+        male_data = (
+            year_data[year_data["sex"] == "Male"]
+            .groupby(["age_group", "race"])["population"]
+            .sum()
+            .unstack(fill_value=0)
+        )
+        female_data = (
+            year_data[year_data["sex"] == "Female"]
+            .groupby(["age_group", "race"])["population"]
+            .sum()
+            .unstack(fill_value=0)
+        )
 
         # Ensure all races present in both
         for race in races:
@@ -153,7 +167,14 @@ def plot_population_pyramid(
         left_cumsum = np.zeros(len(age_groups))
         for i, race in enumerate(races):
             male_vals = -male_data[race].values  # Negative for left side
-            ax.barh(y_pos, male_vals, bar_height, left=left_cumsum, label=race if i == 0 else "", color=colors[i])
+            ax.barh(
+                y_pos,
+                male_vals,
+                bar_height,
+                left=left_cumsum,
+                label=race if i == 0 else "",
+                color=colors[i],
+            )
             left_cumsum += male_vals
 
         # Females (right side, positive values)
@@ -164,13 +185,17 @@ def plot_population_pyramid(
             right_cumsum += female_vals
 
         # Legend for races
-        legend_patches = [mpatches.Patch(color=colors[i], label=race) for i, race in enumerate(races)]
-        ax.legend(handles=legend_patches, loc='upper right', title='Race/Ethnicity')
+        legend_patches = [
+            mpatches.Patch(color=colors[i], label=race) for i, race in enumerate(races)
+        ]
+        ax.legend(handles=legend_patches, loc="upper right", title="Race/Ethnicity")
 
     else:
         # Simple pyramid by sex
-        male_pop = year_data[year_data['sex'] == 'Male'].groupby('age_group')['population'].sum()
-        female_pop = year_data[year_data['sex'] == 'Female'].groupby('age_group')['population'].sum()
+        male_pop = year_data[year_data["sex"] == "Male"].groupby("age_group")["population"].sum()
+        female_pop = (
+            year_data[year_data["sex"] == "Female"].groupby("age_group")["population"].sum()
+        )
 
         age_groups = sorted(set(male_pop.index) | set(female_pop.index))
 
@@ -181,12 +206,12 @@ def plot_population_pyramid(
         bar_height = 0.8
 
         # Males (left, negative)
-        ax.barh(y_pos, -male_pop.values, bar_height, label='Male', color='#3498db')
+        ax.barh(y_pos, -male_pop.values, bar_height, label="Male", color="#3498db")
 
         # Females (right, positive)
-        ax.barh(y_pos, female_pop.values, bar_height, label='Female', color='#e74c3c')
+        ax.barh(y_pos, female_pop.values, bar_height, label="Female", color="#e74c3c")
 
-        ax.legend(loc='upper right')
+        ax.legend(loc="upper right")
 
     # Age group labels
     if age_group_size > 1:
@@ -196,7 +221,7 @@ def plot_population_pyramid(
 
     ax.set_yticks(np.arange(len(age_groups)))
     ax.set_yticklabels(age_labels)
-    ax.set_ylabel('Age Group')
+    ax.set_ylabel("Age Group")
 
     # X-axis formatting
     max_val = max(abs(ax.get_xlim()[0]), abs(ax.get_xlim()[1]))
@@ -204,21 +229,21 @@ def plot_population_pyramid(
 
     # Format x-axis labels as absolute values
     x_ticks = ax.get_xticks()
-    ax.set_xticklabels([f'{abs(int(x)):,}' for x in x_ticks])
-    ax.set_xlabel('Population')
+    ax.set_xticklabels([f"{abs(int(x)):,}" for x in x_ticks])
+    ax.set_xlabel("Population")
 
     # Center line
-    ax.axvline(0, color='black', linewidth=0.8)
+    ax.axvline(0, color="black", linewidth=0.8)
 
     # Title
     if title is None:
-        total_pop = year_data['population'].sum()
-        title = f'Population Pyramid - {year}\nTotal Population: {total_pop:,.0f}'
+        total_pop = year_data["population"].sum()
+        title = f"Population Pyramid - {year}\nTotal Population: {total_pop:,.0f}"
 
-    ax.set_title(title, fontsize=14, fontweight='bold')
+    ax.set_title(title, fontsize=14, fontweight="bold")
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=dpi, bbox_inches='tight')
+    plt.savefig(output_path, dpi=dpi, bbox_inches="tight")
     plt.close()
 
     logger.info(f"Population pyramid saved: {output_path}")
@@ -228,13 +253,13 @@ def plot_population_pyramid(
 
 def plot_population_trends(
     projection_df: pd.DataFrame,
-    output_path: Union[str, Path],
-    by: Literal['total', 'sex', 'age_group', 'race'] = 'total',
-    age_groups: Optional[Dict[str, Tuple[int, int]]] = None,
-    title: Optional[str] = None,
-    figsize: Tuple[float, float] = (12, 6),
+    output_path: str | Path,
+    by: Literal["total", "sex", "age_group", "race"] = "total",
+    age_groups: dict[str, tuple[int, int]] | None = None,
+    title: str | None = None,
+    figsize: tuple[float, float] = (12, 6),
     dpi: int = 300,
-    style: str = 'seaborn-v0_8-darkgrid'
+    style: str = "seaborn-v0_8-darkgrid",
 ) -> Path:
     """
     Create line chart of population trends over time.
@@ -269,72 +294,94 @@ def plot_population_trends(
     logger.info(f"Creating population trends chart: {output_path}")
 
     # Set style
-    if SEABORN_AVAILABLE and style.startswith('seaborn'):
-        sns.set_style('darkgrid')
+    if SEABORN_AVAILABLE and style.startswith("seaborn"):
+        sns.set_style("darkgrid")
     else:
         try:
             plt.style.use(style)
-        except:
-            plt.style.use('default')
+        except Exception:
+            plt.style.use("default")
 
     fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
 
-    years = sorted(projection_df['year'].unique())
-
-    if by == 'total':
+    if by == "total":
         # Total population over time
-        totals = projection_df.groupby('year')['population'].sum()
-        ax.plot(totals.index, totals.values, marker='o', linewidth=2, markersize=4, label='Total Population')
+        totals = projection_df.groupby("year")["population"].sum()
+        ax.plot(
+            totals.index,
+            totals.values,
+            marker="o",
+            linewidth=2,
+            markersize=4,
+            label="Total Population",
+        )
 
-    elif by == 'sex':
+    elif by == "sex":
         # By sex
-        for sex in ['Male', 'Female']:
-            sex_data = projection_df[projection_df['sex'] == sex].groupby('year')['population'].sum()
-            ax.plot(sex_data.index, sex_data.values, marker='o', linewidth=2, markersize=4, label=sex)
+        for sex in ["Male", "Female"]:
+            sex_data = (
+                projection_df[projection_df["sex"] == sex].groupby("year")["population"].sum()
+            )
+            ax.plot(
+                sex_data.index, sex_data.values, marker="o", linewidth=2, markersize=4, label=sex
+            )
 
-    elif by == 'age_group':
+    elif by == "age_group":
         # By age groups
         if age_groups is None:
             age_groups = {
-                'Youth (0-17)': (0, 17),
-                'Working Age (18-64)': (18, 64),
-                'Elderly (65+)': (65, 150)
+                "Youth (0-17)": (0, 17),
+                "Working Age (18-64)": (18, 64),
+                "Elderly (65+)": (65, 150),
             }
 
         for group_name, (min_age, max_age) in age_groups.items():
-            group_data = projection_df[
-                (projection_df['age'] >= min_age) & (projection_df['age'] <= max_age)
-            ].groupby('year')['population'].sum()
+            group_data = (
+                projection_df[(projection_df["age"] >= min_age) & (projection_df["age"] <= max_age)]
+                .groupby("year")["population"]
+                .sum()
+            )
 
-            ax.plot(group_data.index, group_data.values, marker='o', linewidth=2, markersize=4, label=group_name)
+            ax.plot(
+                group_data.index,
+                group_data.values,
+                marker="o",
+                linewidth=2,
+                markersize=4,
+                label=group_name,
+            )
 
-    elif by == 'race':
+    elif by == "race":
         # By race
-        races = sorted(projection_df['race'].unique())
+        races = sorted(projection_df["race"].unique())
         for race in races:
-            race_data = projection_df[projection_df['race'] == race].groupby('year')['population'].sum()
-            ax.plot(race_data.index, race_data.values, marker='o', linewidth=2, markersize=4, label=race)
+            race_data = (
+                projection_df[projection_df["race"] == race].groupby("year")["population"].sum()
+            )
+            ax.plot(
+                race_data.index, race_data.values, marker="o", linewidth=2, markersize=4, label=race
+            )
 
     # Formatting
-    ax.set_xlabel('Year', fontsize=12)
-    ax.set_ylabel('Population', fontsize=12)
+    ax.set_xlabel("Year", fontsize=12)
+    ax.set_ylabel("Population", fontsize=12)
 
     if title is None:
         title = f'Population Trends by {by.replace("_", " ").title()}'
 
-    ax.set_title(title, fontsize=14, fontweight='bold')
+    ax.set_title(title, fontsize=14, fontweight="bold")
 
     # Format y-axis with thousands separator
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{int(x):,}'))
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f"{int(x):,}"))
 
     # Legend
-    ax.legend(loc='best', frameon=True)
+    ax.legend(loc="best", frameon=True)
 
     # Grid
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=dpi, bbox_inches='tight')
+    plt.savefig(output_path, dpi=dpi, bbox_inches="tight")
     plt.close()
 
     logger.info(f"Population trends chart saved: {output_path}")
@@ -344,12 +391,12 @@ def plot_population_trends(
 
 def plot_growth_rates(
     projection_df: pd.DataFrame,
-    output_path: Union[str, Path],
-    period: Literal['annual', '5year', '10year'] = 'annual',
-    title: Optional[str] = None,
-    figsize: Tuple[float, float] = (12, 6),
+    output_path: str | Path,
+    period: Literal["annual", "5year", "10year"] = "annual",
+    title: str | None = None,
+    figsize: tuple[float, float] = (12, 6),
     dpi: int = 300,
-    style: str = 'seaborn-v0_8-darkgrid'
+    style: str = "seaborn-v0_8-darkgrid",
 ) -> Path:
     """
     Create chart showing population growth rates over time.
@@ -382,7 +429,7 @@ def plot_growth_rates(
     logger.info(f"Creating growth rates chart: {output_path}")
 
     # Calculate population by year
-    pop_by_year = projection_df.groupby('year')['population'].sum().sort_index()
+    pop_by_year = projection_df.groupby("year")["population"].sum().sort_index()
     years = pop_by_year.index.values
     populations = pop_by_year.values
 
@@ -390,72 +437,72 @@ def plot_growth_rates(
     growth_years = []
     growth_rates = []
 
-    if period == 'annual':
+    if period == "annual":
         # Year-over-year growth
         for i in range(1, len(years)):
-            prev_pop = populations[i-1]
+            prev_pop = populations[i - 1]
             curr_pop = populations[i]
             growth_rate = ((curr_pop / prev_pop - 1) * 100) if prev_pop > 0 else 0
 
             growth_years.append(years[i])
             growth_rates.append(growth_rate)
 
-    elif period == '5year':
+    elif period == "5year":
         # 5-year period growth
         for i in range(5, len(years)):
-            prev_pop = populations[i-5]
+            prev_pop = populations[i - 5]
             curr_pop = populations[i]
             # Annualized growth rate
-            growth_rate = (((curr_pop / prev_pop) ** (1/5) - 1) * 100) if prev_pop > 0 else 0
+            growth_rate = (((curr_pop / prev_pop) ** (1 / 5) - 1) * 100) if prev_pop > 0 else 0
 
             growth_years.append(years[i])
             growth_rates.append(growth_rate)
 
-    elif period == '10year':
+    elif period == "10year":
         # 10-year period growth
         for i in range(10, len(years)):
-            prev_pop = populations[i-10]
+            prev_pop = populations[i - 10]
             curr_pop = populations[i]
             # Annualized growth rate
-            growth_rate = (((curr_pop / prev_pop) ** (1/10) - 1) * 100) if prev_pop > 0 else 0
+            growth_rate = (((curr_pop / prev_pop) ** (1 / 10) - 1) * 100) if prev_pop > 0 else 0
 
             growth_years.append(years[i])
             growth_rates.append(growth_rate)
 
     # Set style
-    if SEABORN_AVAILABLE and style.startswith('seaborn'):
-        sns.set_style('darkgrid')
+    if SEABORN_AVAILABLE and style.startswith("seaborn"):
+        sns.set_style("darkgrid")
     else:
         try:
             plt.style.use(style)
-        except:
-            plt.style.use('default')
+        except Exception:
+            plt.style.use("default")
 
     # Create figure
     fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
 
     # Bar chart with color coding (positive = green, negative = red)
-    colors = ['#27ae60' if rate >= 0 else '#e74c3c' for rate in growth_rates]
-    ax.bar(growth_years, growth_rates, color=colors, alpha=0.7, edgecolor='black', linewidth=0.5)
+    colors = ["#27ae60" if rate >= 0 else "#e74c3c" for rate in growth_rates]
+    ax.bar(growth_years, growth_rates, color=colors, alpha=0.7, edgecolor="black", linewidth=0.5)
 
     # Zero line
-    ax.axhline(0, color='black', linewidth=1, linestyle='-')
+    ax.axhline(0, color="black", linewidth=1, linestyle="-")
 
     # Formatting
-    ax.set_xlabel('Year', fontsize=12)
-    ax.set_ylabel('Growth Rate (%)', fontsize=12)
+    ax.set_xlabel("Year", fontsize=12)
+    ax.set_ylabel("Growth Rate (%)", fontsize=12)
 
     if title is None:
-        period_label = {'annual': 'Annual', '5year': '5-Year', '10year': '10-Year'}[period]
-        title = f'{period_label} Population Growth Rates'
+        period_label = {"annual": "Annual", "5year": "5-Year", "10year": "10-Year"}[period]
+        title = f"{period_label} Population Growth Rates"
 
-    ax.set_title(title, fontsize=14, fontweight='bold')
+    ax.set_title(title, fontsize=14, fontweight="bold")
 
     # Grid
-    ax.grid(True, alpha=0.3, axis='y')
+    ax.grid(True, alpha=0.3, axis="y")
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=dpi, bbox_inches='tight')
+    plt.savefig(output_path, dpi=dpi, bbox_inches="tight")
     plt.close()
 
     logger.info(f"Growth rates chart saved: {output_path}")
@@ -464,15 +511,15 @@ def plot_growth_rates(
 
 
 def plot_component_analysis(
-    births_df: Optional[pd.DataFrame],
-    deaths_df: Optional[pd.DataFrame],
-    migration_df: Optional[pd.DataFrame],
-    output_path: Union[str, Path],
-    chart_type: Literal['stacked_area', 'grouped_bar'] = 'stacked_area',
-    title: Optional[str] = None,
-    figsize: Tuple[float, float] = (12, 6),
+    births_df: pd.DataFrame | None,
+    deaths_df: pd.DataFrame | None,
+    migration_df: pd.DataFrame | None,
+    output_path: str | Path,
+    chart_type: Literal["stacked_area", "grouped_bar"] = "stacked_area",
+    title: str | None = None,
+    figsize: tuple[float, float] = (12, 6),
     dpi: int = 300,
-    style: str = 'seaborn-v0_8-darkgrid'
+    style: str = "seaborn-v0_8-darkgrid",
 ) -> Path:
     """
     Visualize demographic components (births, deaths, migration) over time.
@@ -516,28 +563,35 @@ def plot_component_analysis(
     logger.warning("plot_component_analysis requires component tracking during projection")
 
     # Set style
-    if SEABORN_AVAILABLE and style.startswith('seaborn'):
-        sns.set_style('darkgrid')
+    if SEABORN_AVAILABLE and style.startswith("seaborn"):
+        sns.set_style("darkgrid")
     else:
         try:
             plt.style.use(style)
-        except:
-            plt.style.use('default')
+        except Exception:
+            plt.style.use("default")
 
     fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
 
     # Placeholder chart
-    ax.text(0.5, 0.5, 'Component analysis requires component data\ntracking during projection runs',
-            ha='center', va='center', fontsize=14, transform=ax.transAxes)
+    ax.text(
+        0.5,
+        0.5,
+        "Component analysis requires component data\ntracking during projection runs",
+        ha="center",
+        va="center",
+        fontsize=14,
+        transform=ax.transAxes,
+    )
 
     if title is None:
-        title = 'Demographic Components Analysis'
+        title = "Demographic Components Analysis"
 
-    ax.set_title(title, fontsize=14, fontweight='bold')
-    ax.axis('off')
+    ax.set_title(title, fontsize=14, fontweight="bold")
+    ax.axis("off")
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=dpi, bbox_inches='tight')
+    plt.savefig(output_path, dpi=dpi, bbox_inches="tight")
     plt.close()
 
     logger.info(f"Component analysis placeholder saved: {output_path}")
@@ -546,12 +600,12 @@ def plot_component_analysis(
 
 
 def plot_scenario_comparison(
-    scenario_projections: Dict[str, pd.DataFrame],
-    output_path: Union[str, Path],
-    title: Optional[str] = None,
-    figsize: Tuple[float, float] = (12, 6),
+    scenario_projections: dict[str, pd.DataFrame],
+    output_path: str | Path,
+    title: str | None = None,
+    figsize: tuple[float, float] = (12, 6),
     dpi: int = 300,
-    style: str = 'seaborn-v0_8-darkgrid'
+    style: str = "seaborn-v0_8-darkgrid",
 ) -> Path:
     """
     Compare multiple projection scenarios on one chart.
@@ -587,13 +641,13 @@ def plot_scenario_comparison(
     logger.info(f"Creating scenario comparison chart: {output_path}")
 
     # Set style
-    if SEABORN_AVAILABLE and style.startswith('seaborn'):
-        sns.set_style('darkgrid')
+    if SEABORN_AVAILABLE and style.startswith("seaborn"):
+        sns.set_style("darkgrid")
     else:
         try:
             plt.style.use(style)
-        except:
-            plt.style.use('default')
+        except Exception:
+            plt.style.use("default")
 
     fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
 
@@ -605,32 +659,38 @@ def plot_scenario_comparison(
 
     # Plot each scenario
     for i, (scenario_name, projection_df) in enumerate(scenario_projections.items()):
-        pop_by_year = projection_df.groupby('year')['population'].sum().sort_index()
+        pop_by_year = projection_df.groupby("year")["population"].sum().sort_index()
 
-        ax.plot(pop_by_year.index, pop_by_year.values,
-                marker='o', linewidth=2, markersize=4,
-                label=scenario_name, color=colors[i])
+        ax.plot(
+            pop_by_year.index,
+            pop_by_year.values,
+            marker="o",
+            linewidth=2,
+            markersize=4,
+            label=scenario_name,
+            color=colors[i],
+        )
 
     # Formatting
-    ax.set_xlabel('Year', fontsize=12)
-    ax.set_ylabel('Population', fontsize=12)
+    ax.set_xlabel("Year", fontsize=12)
+    ax.set_ylabel("Population", fontsize=12)
 
     if title is None:
-        title = 'Scenario Comparison'
+        title = "Scenario Comparison"
 
-    ax.set_title(title, fontsize=14, fontweight='bold')
+    ax.set_title(title, fontsize=14, fontweight="bold")
 
     # Format y-axis
-    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{int(x):,}'))
+    ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f"{int(x):,}"))
 
     # Legend
-    ax.legend(loc='best', frameon=True, fontsize=10)
+    ax.legend(loc="best", frameon=True, fontsize=10)
 
     # Grid
     ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=dpi, bbox_inches='tight')
+    plt.savefig(output_path, dpi=dpi, bbox_inches="tight")
     plt.close()
 
     logger.info(f"Scenario comparison chart saved: {output_path}")
@@ -640,13 +700,13 @@ def plot_scenario_comparison(
 
 def save_all_visualizations(
     projection_df: pd.DataFrame,
-    output_dir: Union[str, Path],
+    output_dir: str | Path,
     base_filename: str,
-    years_for_pyramids: Optional[List[int]] = None,
-    image_format: str = 'png',
+    years_for_pyramids: list[int] | None = None,
+    image_format: str = "png",
     dpi: int = 300,
-    style: str = 'seaborn-v0_8-darkgrid'
-) -> Dict[str, Path]:
+    style: str = "seaborn-v0_8-darkgrid",
+) -> dict[str, Path]:
     """
     Generate all standard visualizations.
 
@@ -689,14 +749,14 @@ def save_all_visualizations(
 
     output_paths = {}
 
-    years = sorted(projection_df['year'].unique())
+    years = sorted(projection_df["year"].unique())
 
     # Determine years for pyramids
     if years_for_pyramids is None:
         years_for_pyramids = [
             years[0],  # Base year
             years[len(years) // 2],  # Mid-point
-            years[-1]  # Final year
+            years[-1],  # Final year
         ]
 
     # 1. Population Pyramids
@@ -707,9 +767,9 @@ def save_all_visualizations(
             year=year,
             output_path=output_dir / f"{base_filename}_pyramid_{year}.{image_format}",
             dpi=dpi,
-            style=style
+            style=style,
         )
-        key = f'pyramid_{year}'
+        key = f"pyramid_{year}"
         output_paths[key] = path
 
     # 2. Total population trends
@@ -717,55 +777,55 @@ def save_all_visualizations(
     path = plot_population_trends(
         projection_df,
         output_path=output_dir / f"{base_filename}_trends_total.{image_format}",
-        by='total',
+        by="total",
         dpi=dpi,
-        style=style
+        style=style,
     )
-    output_paths['trends_total'] = path
+    output_paths["trends_total"] = path
 
     # 3. Trends by age group
     logger.debug("Creating age group trends")
     path = plot_population_trends(
         projection_df,
         output_path=output_dir / f"{base_filename}_trends_age_groups.{image_format}",
-        by='age_group',
+        by="age_group",
         dpi=dpi,
-        style=style
+        style=style,
     )
-    output_paths['trends_age_groups'] = path
+    output_paths["trends_age_groups"] = path
 
     # 4. Trends by sex
     logger.debug("Creating sex trends")
     path = plot_population_trends(
         projection_df,
         output_path=output_dir / f"{base_filename}_trends_sex.{image_format}",
-        by='sex',
+        by="sex",
         dpi=dpi,
-        style=style
+        style=style,
     )
-    output_paths['trends_sex'] = path
+    output_paths["trends_sex"] = path
 
     # 5. Trends by race
     logger.debug("Creating race trends")
     path = plot_population_trends(
         projection_df,
         output_path=output_dir / f"{base_filename}_trends_race.{image_format}",
-        by='race',
+        by="race",
         dpi=dpi,
-        style=style
+        style=style,
     )
-    output_paths['trends_race'] = path
+    output_paths["trends_race"] = path
 
     # 6. Growth rates
     logger.debug("Creating growth rates chart")
     path = plot_growth_rates(
         projection_df,
         output_path=output_dir / f"{base_filename}_growth_rates.{image_format}",
-        period='annual',
+        period="annual",
         dpi=dpi,
-        style=style
+        style=style,
     )
-    output_paths['growth_rates'] = path
+    output_paths["growth_rates"] = path
 
     logger.info(f"Generated {len(output_paths)} visualizations")
 

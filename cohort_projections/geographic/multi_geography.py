@@ -5,28 +5,30 @@ Runs cohort-component projections for multiple geographies (state, counties, pla
 with support for parallel processing and hierarchical aggregation/validation.
 """
 
-import pandas as pd
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Any, Literal
-from datetime import datetime
 import json
+import multiprocessing
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
-import multiprocessing
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any, Literal
+
+import pandas as pd
 
 # Progress bar for long-running jobs
 try:
     from tqdm import tqdm
+
     TQDM_AVAILABLE = True
 except ImportError:
     TQDM_AVAILABLE = False
+
     # Fallback: simple counter
-    class tqdm:
+    class TqdmFallback:
         def __init__(self, iterable=None, **kwargs):
             self.iterable = iterable
-            self.total = kwargs.get('total', len(iterable) if iterable else 0)
-            self.desc = kwargs.get('desc', '')
+            self.total = kwargs.get("total", len(iterable) if iterable else 0)
+            self.desc = kwargs.get("desc", "")
             self.current = 0
 
         def __iter__(self):
@@ -36,30 +38,30 @@ except ImportError:
                     print(f"{self.desc}: {self.current}/{self.total}")
                 yield item
 
+
 from cohort_projections.core.cohort_component import CohortComponentProjection
 from cohort_projections.geographic.geography_loader import (
-    load_geography_list,
     get_geography_name,
     get_place_to_county_mapping,
-    load_nd_counties
+    load_geography_list,
 )
-from cohort_projections.utils.logger import get_logger_from_config
 from cohort_projections.utils.config_loader import load_projection_config
+from cohort_projections.utils.logger import get_logger_from_config
 
 logger = get_logger_from_config(__name__)
 
 
 def run_single_geography_projection(
     fips: str,
-    level: Literal['state', 'county', 'place'],
+    level: Literal["state", "county", "place"],
     base_population: pd.DataFrame,
     fertility_rates: pd.DataFrame,
     survival_rates: pd.DataFrame,
     migration_rates: pd.DataFrame,
-    config: Optional[Dict] = None,
-    output_dir: Optional[Path] = None,
-    save_results: bool = True
-) -> Dict[str, Any]:
+    config: dict | None = None,
+    output_dir: Path | None = None,
+    save_results: bool = True,
+) -> dict[str, Any]:
     """
     Run projection for a single geography.
 
@@ -113,24 +115,24 @@ def run_single_geography_projection(
 
     try:
         # Filter base population to this geography if needed
-        if 'geography_fips' in base_population.columns:
-            base_pop = base_population[base_population['geography_fips'] == fips].copy()
+        if "geography_fips" in base_population.columns:
+            base_pop = base_population[base_population["geography_fips"] == fips].copy()
             # Drop geography_fips column for projection engine
-            base_pop = base_pop.drop(columns=['geography_fips'])
+            base_pop = base_pop.drop(columns=["geography_fips"])
         else:
             base_pop = base_population.copy()
 
         if base_pop.empty:
             logger.warning(f"No base population data for {geo_name} (FIPS: {fips})")
             return {
-                'geography': {'fips': fips, 'level': level, 'name': geo_name},
-                'projection': pd.DataFrame(),
-                'summary': pd.DataFrame(),
-                'metadata': {'error': 'No base population data'},
-                'processing_time': time.time() - start_time
+                "geography": {"fips": fips, "level": level, "name": geo_name},
+                "projection": pd.DataFrame(),
+                "summary": pd.DataFrame(),
+                "metadata": {"error": "No base population data"},
+                "processing_time": time.time() - start_time,
             }
 
-        base_year_pop = base_pop['population'].sum()
+        base_year_pop = base_pop["population"].sum()
         logger.info(f"{geo_name}: Base year population = {base_year_pop:,.0f}")
 
         # Initialize projection engine
@@ -139,12 +141,12 @@ def run_single_geography_projection(
             fertility_rates=fertility_rates,
             survival_rates=survival_rates,
             migration_rates=migration_rates,
-            config=config
+            config=config,
         )
 
         # Run projection
-        scenario = config.get('scenarios', {}).get('baseline', {}).get('active', True)
-        scenario_name = 'baseline' if scenario else None
+        scenario = config.get("scenarios", {}).get("baseline", {}).get("active", True)
+        scenario_name = "baseline" if scenario else None
 
         projection_results = projection_engine.run_projection(scenario=scenario_name)
 
@@ -152,41 +154,43 @@ def run_single_geography_projection(
         summary = projection_engine.get_projection_summary()
 
         # Calculate summary statistics
-        final_year = projection_results['year'].max()
-        final_pop = projection_results[projection_results['year'] == final_year]['population'].sum()
+        final_year = projection_results["year"].max()
+        final_pop = projection_results[projection_results["year"] == final_year]["population"].sum()
         growth = final_pop - base_year_pop
         growth_rate = (final_pop / base_year_pop - 1.0) if base_year_pop > 0 else 0.0
 
         # Create metadata
         metadata = {
-            'geography': {
-                'level': level,
-                'fips': fips,
-                'name': geo_name,
-                'base_population': float(base_year_pop)
+            "geography": {
+                "level": level,
+                "fips": fips,
+                "name": geo_name,
+                "base_population": float(base_year_pop),
             },
-            'projection': {
-                'base_year': int(config.get('project', {}).get('base_year', 2025)),
-                'end_year': int(config.get('project', {}).get('base_year', 2025) +
-                               config.get('project', {}).get('projection_horizon', 20)),
-                'scenario': scenario_name,
-                'processing_date': datetime.now().isoformat()
+            "projection": {
+                "base_year": int(config.get("project", {}).get("base_year", 2025)),
+                "end_year": int(
+                    config.get("project", {}).get("base_year", 2025)
+                    + config.get("project", {}).get("projection_horizon", 20)
+                ),
+                "scenario": scenario_name,
+                "processing_date": datetime.now(UTC).isoformat(),
             },
-            'summary_statistics': {
-                'base_population': float(base_year_pop),
-                'final_population': float(final_pop),
-                'absolute_growth': float(growth),
-                'growth_rate': float(growth_rate),
-                'years_projected': int(final_year - projection_results['year'].min())
+            "summary_statistics": {
+                "base_population": float(base_year_pop),
+                "final_population": float(final_pop),
+                "absolute_growth": float(growth),
+                "growth_rate": float(growth_rate),
+                "years_projected": int(final_year - projection_results["year"].min()),
             },
-            'validation': {
-                'negative_populations': int((projection_results['population'] < 0).sum()),
-                'all_checks_passed': (projection_results['population'] < 0).sum() == 0
-            }
+            "validation": {
+                "negative_populations": int((projection_results["population"] < 0).sum()),
+                "all_checks_passed": (projection_results["population"] < 0).sum() == 0,
+            },
         }
 
         processing_time = time.time() - start_time
-        metadata['processing_time_seconds'] = round(processing_time, 2)
+        metadata["processing_time_seconds"] = round(processing_time, 2)
 
         logger.info(
             f"{geo_name}: Projection complete. "
@@ -203,15 +207,15 @@ def run_single_geography_projection(
                 summary=summary,
                 metadata=metadata,
                 output_dir=output_dir,
-                config=config
+                config=config,
             )
 
         return {
-            'geography': {'fips': fips, 'level': level, 'name': geo_name},
-            'projection': projection_results,
-            'summary': summary,
-            'metadata': metadata,
-            'processing_time': processing_time
+            "geography": {"fips": fips, "level": level, "name": geo_name},
+            "projection": projection_results,
+            "summary": summary,
+            "metadata": metadata,
+            "processing_time": processing_time,
         }
 
     except Exception as e:
@@ -219,26 +223,26 @@ def run_single_geography_projection(
         logger.error(f"Projection failed for {geo_name} (FIPS: {fips}): {str(e)}")
 
         return {
-            'geography': {'fips': fips, 'level': level, 'name': geo_name},
-            'projection': pd.DataFrame(),
-            'summary': pd.DataFrame(),
-            'metadata': {'error': str(e)},
-            'processing_time': processing_time
+            "geography": {"fips": fips, "level": level, "name": geo_name},
+            "projection": pd.DataFrame(),
+            "summary": pd.DataFrame(),
+            "metadata": {"error": str(e)},
+            "processing_time": processing_time,
         }
 
 
 def run_multi_geography_projections(
-    level: Literal['state', 'county', 'place'],
-    base_population_by_geography: Dict[str, pd.DataFrame],
+    level: Literal["state", "county", "place"],
+    base_population_by_geography: dict[str, pd.DataFrame],
     fertility_rates: pd.DataFrame,
     survival_rates: pd.DataFrame,
-    migration_rates_by_geography: Optional[Dict[str, pd.DataFrame]] = None,
-    config: Optional[Dict] = None,
-    fips_codes: Optional[List[str]] = None,
+    migration_rates_by_geography: dict[str, pd.DataFrame] | None = None,
+    config: dict | None = None,
+    fips_codes: list[str] | None = None,
     parallel: bool = True,
-    max_workers: Optional[int] = None,
-    output_dir: Optional[Path] = None
-) -> Dict[str, Any]:
+    max_workers: int | None = None,
+    output_dir: Path | None = None,
+) -> dict[str, Any]:
     """
     Run projections for multiple geographies.
 
@@ -287,17 +291,18 @@ def run_multi_geography_projections(
         fips_codes = load_geography_list(level, config)
 
     num_geographies = len(fips_codes)
-    logger.info(f"=" * 70)
-    logger.info(f"Starting multi-geography projections")
+    logger.info("=" * 70)
+    logger.info("Starting multi-geography projections")
     logger.info(f"Level: {level}, Geographies: {num_geographies}, Parallel: {parallel}")
-    logger.info(f"=" * 70)
+    logger.info("=" * 70)
 
     # Prepare migration rates (shared if not geography-specific)
     if migration_rates_by_geography is None:
-        # Use a shared migration rate for all geographies
-        # In practice, migration should vary by geography
-        logger.warning("Using shared migration rates for all geographies (not recommended)")
-        migration_rates_by_geography = {fips: migration_rates for fips in fips_codes}
+        # Migration rates are required - must be provided per geography
+        raise ValueError(
+            "migration_rates_by_geography is required. "
+            "Please provide a dictionary mapping FIPS codes to migration rate DataFrames."
+        )
 
     # Run projections
     results = []
@@ -326,22 +331,19 @@ def run_multi_geography_projections(
                 migration_rates=migration_rates,
                 config=config,
                 output_dir=output_dir,
-                save_results=True
+                save_results=True,
             )
 
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
             # Submit all tasks
             future_to_fips = {
-                executor.submit(_projection_worker, fips): fips
-                for fips in fips_codes
+                executor.submit(_projection_worker, fips): fips for fips in fips_codes
             }
 
             # Collect results with progress bar
             if TQDM_AVAILABLE:
                 iterator = tqdm(
-                    as_completed(future_to_fips),
-                    total=num_geographies,
-                    desc=f"Projecting {level}s"
+                    as_completed(future_to_fips), total=num_geographies, desc=f"Projecting {level}s"
                 )
             else:
                 iterator = as_completed(future_to_fips)
@@ -353,7 +355,7 @@ def run_multi_geography_projections(
                     results.append(result)
 
                     # Check for errors
-                    if 'error' in result['metadata']:
+                    if "error" in result["metadata"]:
                         failed_geographies.append(fips)
 
                 except Exception as e:
@@ -380,13 +382,13 @@ def run_multi_geography_projections(
                     migration_rates=migration_rates,
                     config=config,
                     output_dir=output_dir,
-                    save_results=True
+                    save_results=True,
                 )
 
                 results.append(result)
 
                 # Check for errors
-                if 'error' in result['metadata']:
+                if "error" in result["metadata"]:
                     failed_geographies.append(fips)
 
             except Exception as e:
@@ -396,39 +398,45 @@ def run_multi_geography_projections(
     # Create summary DataFrame
     summary_data = []
     for result in results:
-        if not result['projection'].empty:
-            summary_data.append({
-                'fips': result['geography']['fips'],
-                'name': result['geography']['name'],
-                'level': result['geography']['level'],
-                'base_population': result['metadata']['summary_statistics']['base_population'],
-                'final_population': result['metadata']['summary_statistics']['final_population'],
-                'absolute_growth': result['metadata']['summary_statistics']['absolute_growth'],
-                'growth_rate': result['metadata']['summary_statistics']['growth_rate'],
-                'processing_time': result['processing_time']
-            })
+        if not result["projection"].empty:
+            summary_data.append(
+                {
+                    "fips": result["geography"]["fips"],
+                    "name": result["geography"]["name"],
+                    "level": result["geography"]["level"],
+                    "base_population": result["metadata"]["summary_statistics"]["base_population"],
+                    "final_population": result["metadata"]["summary_statistics"][
+                        "final_population"
+                    ],
+                    "absolute_growth": result["metadata"]["summary_statistics"]["absolute_growth"],
+                    "growth_rate": result["metadata"]["summary_statistics"]["growth_rate"],
+                    "processing_time": result["processing_time"],
+                }
+            )
 
     summary_df = pd.DataFrame(summary_data)
 
     # Overall metadata
     total_time = time.time() - start_time
     metadata = {
-        'level': level,
-        'num_geographies': num_geographies,
-        'successful': num_geographies - len(failed_geographies),
-        'failed': len(failed_geographies),
-        'parallel': parallel,
-        'max_workers': max_workers if parallel else 1,
-        'total_processing_time_seconds': round(total_time, 2),
-        'processing_date': datetime.now().isoformat()
+        "level": level,
+        "num_geographies": num_geographies,
+        "successful": num_geographies - len(failed_geographies),
+        "failed": len(failed_geographies),
+        "parallel": parallel,
+        "max_workers": max_workers if parallel else 1,
+        "total_processing_time_seconds": round(total_time, 2),
+        "processing_date": datetime.now(UTC).isoformat(),
     }
 
-    logger.info(f"=" * 70)
-    logger.info(f"Multi-geography projections complete")
-    logger.info(f"Total: {num_geographies}, Successful: {metadata['successful']}, "
-                f"Failed: {metadata['failed']}")
+    logger.info("=" * 70)
+    logger.info("Multi-geography projections complete")
+    logger.info(
+        f"Total: {num_geographies}, Successful: {metadata['successful']}, "
+        f"Failed: {metadata['failed']}"
+    )
     logger.info(f"Total time: {total_time:.1f}s")
-    logger.info(f"=" * 70)
+    logger.info("=" * 70)
 
     # Save summary
     if output_dir is None:
@@ -443,22 +451,21 @@ def run_multi_geography_projections(
     logger.info(f"Saved summary to {summary_file}")
 
     metadata_file = output_dir / f"{level}s_metadata.json"
-    with open(metadata_file, 'w') as f:
+    with open(metadata_file, "w") as f:
         json.dump(metadata, f, indent=2)
     logger.info(f"Saved metadata to {metadata_file}")
 
     return {
-        'results': results,
-        'summary': summary_df,
-        'metadata': metadata,
-        'failed_geographies': failed_geographies
+        "results": results,
+        "summary": summary_df,
+        "metadata": metadata,
+        "failed_geographies": failed_geographies,
     }
 
 
 def aggregate_to_county(
-    place_projections: List[Dict[str, Any]],
-    config: Optional[Dict] = None
-) -> Dict[str, pd.DataFrame]:
+    place_projections: list[dict[str, Any]], config: dict | None = None
+) -> dict[str, pd.DataFrame]:
     """
     Aggregate place-level projections to county level.
 
@@ -488,37 +495,33 @@ def aggregate_to_county(
     county_aggregates = {}
 
     for place_result in place_projections:
-        if place_result['projection'].empty:
+        if place_result["projection"].empty:
             continue
 
-        place_fips = place_result['geography']['fips']
+        place_fips = place_result["geography"]["fips"]
 
         # Get containing county
-        county_match = mapping[mapping['place_fips'] == place_fips]
+        county_match = mapping[mapping["place_fips"] == place_fips]
         if county_match.empty:
             logger.warning(f"No county mapping found for place {place_fips}")
             continue
 
-        county_fips = county_match['county_fips'].values[0]
+        county_fips = county_match["county_fips"].values[0]
 
         # Add projection to county aggregate
-        projection = place_result['projection'].copy()
+        projection = place_result["projection"].copy()
 
         if county_fips not in county_aggregates:
             county_aggregates[county_fips] = projection
         else:
             # Sum with existing county data
             county_aggregates[county_fips] = pd.concat(
-                [county_aggregates[county_fips], projection],
-                ignore_index=True
+                [county_aggregates[county_fips], projection], ignore_index=True
             )
 
     # Aggregate by cohort (sum populations)
     for county_fips, df in county_aggregates.items():
-        aggregated = df.groupby(
-            ['year', 'age', 'sex', 'race'],
-            as_index=False
-        )['population'].sum()
+        aggregated = df.groupby(["year", "age", "sex", "race"], as_index=False)["population"].sum()
 
         county_aggregates[county_fips] = aggregated
 
@@ -528,8 +531,7 @@ def aggregate_to_county(
 
 
 def aggregate_to_state(
-    county_projections: List[Dict[str, Any]],
-    config: Optional[Dict] = None
+    county_projections: list[dict[str, Any]], config: dict | None = None
 ) -> pd.DataFrame:
     """
     Aggregate county-level projections to state level.
@@ -556,8 +558,8 @@ def aggregate_to_state(
     all_counties = []
 
     for county_result in county_projections:
-        if not county_result['projection'].empty:
-            all_counties.append(county_result['projection'])
+        if not county_result["projection"].empty:
+            all_counties.append(county_result["projection"])
 
     if not all_counties:
         logger.warning("No county projections to aggregate")
@@ -567,14 +569,13 @@ def aggregate_to_state(
     combined = pd.concat(all_counties, ignore_index=True)
 
     # Aggregate by year-age-sex-race (sum populations)
-    state_projection = combined.groupby(
-        ['year', 'age', 'sex', 'race'],
-        as_index=False
-    )['population'].sum()
+    state_projection = combined.groupby(["year", "age", "sex", "race"], as_index=False)[
+        "population"
+    ].sum()
 
-    total_pop = state_projection[
-        state_projection['year'] == state_projection['year'].min()
-    ]['population'].sum()
+    total_pop = state_projection[state_projection["year"] == state_projection["year"].min()][
+        "population"
+    ].sum()
 
     logger.info(
         f"Aggregated {len(county_projections)} counties to state level. "
@@ -585,13 +586,13 @@ def aggregate_to_state(
 
 
 def validate_aggregation(
-    component_projections: List[Dict[str, Any]],
+    component_projections: list[dict[str, Any]],
     aggregated_projection: pd.DataFrame,
-    component_level: Literal['place', 'county'],
-    aggregate_level: Literal['county', 'state'],
+    component_level: Literal["place", "county"],
+    aggregate_level: Literal["county", "state"],
     tolerance: float = 0.01,
-    config: Optional[Dict] = None
-) -> Dict[str, Any]:
+    config: dict | None = None,
+) -> dict[str, Any]:
     """
     Validate that aggregated projection matches sum of components.
 
@@ -633,55 +634,46 @@ def validate_aggregation(
     """
     logger.info(f"Validating aggregation: {component_level}s -> {aggregate_level}")
 
-    validation_result = {
-        'valid': True,
-        'errors': [],
-        'warnings': [],
-        'by_year': []
-    }
+    validation_result = {"valid": True, "errors": [], "warnings": [], "by_year": []}
 
     # Combine all component projections
-    component_dfs = [
-        r['projection'] for r in component_projections
-        if not r['projection'].empty
-    ]
+    component_dfs = [r["projection"] for r in component_projections if not r["projection"].empty]
 
     if not component_dfs:
-        validation_result['errors'].append("No component projections to validate")
-        validation_result['valid'] = False
+        validation_result["errors"].append("No component projections to validate")
+        validation_result["valid"] = False
         return validation_result
 
     combined_components = pd.concat(component_dfs, ignore_index=True)
 
     # Aggregate components
     component_aggregate = combined_components.groupby(
-        ['year', 'age', 'sex', 'race'],
-        as_index=False
-    )['population'].sum()
+        ["year", "age", "sex", "race"], as_index=False
+    )["population"].sum()
 
     # Compare year by year
-    years = sorted(component_aggregate['year'].unique())
+    years = sorted(component_aggregate["year"].unique())
 
     for year in years:
-        component_year = component_aggregate[component_aggregate['year'] == year]
-        aggregate_year = aggregated_projection[aggregated_projection['year'] == year]
+        component_year = component_aggregate[component_aggregate["year"] == year]
+        aggregate_year = aggregated_projection[aggregated_projection["year"] == year]
 
-        component_total = component_year['population'].sum()
-        aggregate_total = aggregate_year['population'].sum()
+        component_total = component_year["population"].sum()
+        aggregate_total = aggregate_year["population"].sum()
 
         difference = abs(aggregate_total - component_total)
         percent_diff = (difference / component_total) if component_total > 0 else 0.0
 
         year_result = {
-            'year': int(year),
-            'component_total': float(component_total),
-            'aggregate_total': float(aggregate_total),
-            'difference': float(difference),
-            'percent_difference': float(percent_diff),
-            'within_tolerance': percent_diff <= tolerance
+            "year": int(year),
+            "component_total": float(component_total),
+            "aggregate_total": float(aggregate_total),
+            "difference": float(difference),
+            "percent_difference": float(percent_diff),
+            "within_tolerance": percent_diff <= tolerance,
         }
 
-        validation_result['by_year'].append(year_result)
+        validation_result["by_year"].append(year_result)
 
         if percent_diff > tolerance:
             msg = (
@@ -689,29 +681,26 @@ def validate_aggregation(
                 f"tolerance {tolerance:.2%}"
             )
             if percent_diff > 0.05:  # 5% is serious
-                validation_result['errors'].append(msg)
-                validation_result['valid'] = False
+                validation_result["errors"].append(msg)
+                validation_result["valid"] = False
             else:
-                validation_result['warnings'].append(msg)
+                validation_result["warnings"].append(msg)
 
     # Overall summary
-    total_component = component_aggregate['population'].sum()
-    total_aggregate = aggregated_projection['population'].sum()
+    total_component = component_aggregate["population"].sum()
+    total_aggregate = aggregated_projection["population"].sum()
     overall_diff = abs(total_aggregate - total_component)
     overall_pct = (overall_diff / total_component) if total_component > 0 else 0.0
 
-    validation_result['overall'] = {
-        'component_total': float(total_component),
-        'aggregate_total': float(total_aggregate),
-        'difference': float(overall_diff),
-        'percent_difference': float(overall_pct)
+    validation_result["overall"] = {
+        "component_total": float(total_component),
+        "aggregate_total": float(total_aggregate),
+        "difference": float(overall_diff),
+        "percent_difference": float(overall_pct),
     }
 
-    if validation_result['valid']:
-        logger.info(
-            f"Aggregation validation passed. "
-            f"Overall difference: {overall_pct:.3%}"
-        )
+    if validation_result["valid"]:
+        logger.info(f"Aggregation validation passed. " f"Overall difference: {overall_pct:.3%}")
     else:
         logger.error(
             f"Aggregation validation failed with {len(validation_result['errors'])} errors"
@@ -726,8 +715,8 @@ def _save_projection_results(
     projection: pd.DataFrame,
     summary: pd.DataFrame,
     metadata: dict,
-    output_dir: Optional[Path],
-    config: Dict
+    output_dir: Path | None,
+    config: dict,
 ):
     """Save projection results to files."""
     # Set output directory
@@ -739,17 +728,17 @@ def _save_projection_results(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Get scenario and years for filename
-    base_year = config.get('project', {}).get('base_year', 2025)
-    horizon = config.get('project', {}).get('projection_horizon', 20)
+    base_year = config.get("project", {}).get("base_year", 2025)
+    horizon = config.get("project", {}).get("projection_horizon", 20)
     end_year = base_year + horizon
-    scenario = metadata['projection'].get('scenario', 'baseline')
+    scenario = metadata["projection"].get("scenario", "baseline")
 
     # File naming: nd_{level}_{fips}_projection_{base_year}_{end_year}_{scenario}.ext
     base_filename = f"nd_{level}_{fips}_projection_{base_year}_{end_year}_{scenario}"
 
     # Save projection (parquet)
     projection_file = output_dir / f"{base_filename}.parquet"
-    compression = config.get('output', {}).get('compression', 'gzip')
+    compression = config.get("output", {}).get("compression", "gzip")
     projection.to_parquet(projection_file, compression=compression, index=False)
 
     # Save summary (CSV)
@@ -759,7 +748,7 @@ def _save_projection_results(
 
     # Save metadata (JSON)
     metadata_file = output_dir / f"{base_filename}_metadata.json"
-    with open(metadata_file, 'w') as f:
+    with open(metadata_file, "w") as f:
         json.dump(metadata, f, indent=2)
 
 

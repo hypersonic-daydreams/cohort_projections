@@ -4,9 +4,11 @@ Configuration file loader for cohort projections.
 Loads and validates YAML configuration files.
 """
 
-import yaml
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any
+
+import yaml
+
 from .logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -15,7 +17,7 @@ logger = setup_logger(__name__)
 class ConfigLoader:
     """Load and manage project configuration."""
 
-    def __init__(self, config_dir: Optional[Path] = None):
+    def __init__(self, config_dir: Path | None = None):
         """
         Initialize config loader.
 
@@ -29,7 +31,7 @@ class ConfigLoader:
         self.config_dir = Path(config_dir)
         self._configs = {}
 
-    def load_config(self, config_name: str) -> Dict[str, Any]:
+    def load_config(self, config_name: str) -> dict[str, Any]:
         """
         Load a configuration file.
 
@@ -45,9 +47,7 @@ class ConfigLoader:
         config_path = self.config_dir / f"{config_name}.yaml"
 
         if not config_path.exists():
-            raise FileNotFoundError(
-                f"Configuration file not found: {config_path}"
-            )
+            raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
         logger.info(f"Loading configuration from {config_path}")
 
@@ -57,11 +57,11 @@ class ConfigLoader:
         self._configs[config_name] = config
         return config
 
-    def get_projection_config(self) -> Dict[str, Any]:
+    def get_projection_config(self) -> dict[str, Any]:
         """Load main projection configuration."""
         return self.load_config("projection_config")
 
-    def get_fertility_schedules(self) -> Dict[str, Any]:
+    def get_fertility_schedules(self) -> dict[str, Any]:
         """Load fertility schedules (when available)."""
         try:
             return self.load_config("fertility_schedules")
@@ -69,7 +69,7 @@ class ConfigLoader:
             logger.warning("Fertility schedules not found, will be calculated")
             return {}
 
-    def get_mortality_schedules(self) -> Dict[str, Any]:
+    def get_mortality_schedules(self) -> dict[str, Any]:
         """Load mortality schedules (when available)."""
         try:
             return self.load_config("mortality_schedules")
@@ -77,7 +77,7 @@ class ConfigLoader:
             logger.warning("Mortality schedules not found, will be calculated")
             return {}
 
-    def get_migration_assumptions(self) -> Dict[str, Any]:
+    def get_migration_assumptions(self) -> dict[str, Any]:
         """Load migration assumptions (when available)."""
         try:
             return self.load_config("migration_assumptions")
@@ -110,7 +110,7 @@ class ConfigLoader:
         return value
 
 
-def load_projection_config(config_path: Optional[Path] = None) -> Dict[str, Any]:
+def load_projection_config(config_path: Path | None = None) -> dict[str, Any]:
     """
     Convenience function to load projection configuration.
 

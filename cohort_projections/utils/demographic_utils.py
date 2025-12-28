@@ -4,16 +4,11 @@ Demographic utility functions for cohort projections.
 Common demographic calculations and helper functions.
 """
 
-import pandas as pd
 import numpy as np
-from typing import List, Tuple
+import pandas as pd
 
 
-def create_age_groups(
-    min_age: int = 0,
-    max_age: int = 90,
-    group_size: int = 1
-) -> List[str]:
+def create_age_groups(min_age: int = 0, max_age: int = 90, group_size: int = 1) -> list[str]:
     """
     Create age group labels.
 
@@ -54,8 +49,8 @@ def calculate_sex_ratio(population: pd.DataFrame) -> float:
     Returns:
         Sex ratio
     """
-    male_pop = population[population['sex'] == 'Male']['population'].sum()
-    female_pop = population[population['sex'] == 'Female']['population'].sum()
+    male_pop = population[population["sex"] == "Male"]["population"].sum()
+    female_pop = population[population["sex"] == "Female"]["population"].sum()
 
     if female_pop == 0:
         return np.nan
@@ -74,23 +69,23 @@ def calculate_dependency_ratio(population: pd.DataFrame) -> dict:
         Dictionary with youth, old-age, and total dependency ratios
     """
     # Assuming single-year ages
-    youth_pop = population[population['age'] < 18]['population'].sum()
-    working_pop = population[
-        (population['age'] >= 18) & (population['age'] < 65)
-    ]['population'].sum()
-    elderly_pop = population[population['age'] >= 65]['population'].sum()
+    youth_pop = population[population["age"] < 18]["population"].sum()
+    working_pop = population[(population["age"] >= 18) & (population["age"] < 65)][
+        "population"
+    ].sum()
+    elderly_pop = population[population["age"] >= 65]["population"].sum()
 
     if working_pop == 0:
         return {
-            'youth_dependency': np.nan,
-            'old_age_dependency': np.nan,
-            'total_dependency': np.nan
+            "youth_dependency": np.nan,
+            "old_age_dependency": np.nan,
+            "total_dependency": np.nan,
         }
 
     return {
-        'youth_dependency': (youth_pop / working_pop) * 100,
-        'old_age_dependency': (elderly_pop / working_pop) * 100,
-        'total_dependency': ((youth_pop + elderly_pop) / working_pop) * 100
+        "youth_dependency": (youth_pop / working_pop) * 100,
+        "old_age_dependency": (elderly_pop / working_pop) * 100,
+        "total_dependency": ((youth_pop + elderly_pop) / working_pop) * 100,
     }
 
 
@@ -107,11 +102,11 @@ def calculate_median_age(population: pd.DataFrame) -> float:
     # Expand to individual records
     ages = []
     for _, row in population.iterrows():
-        age = row['age']
-        count = int(row['population'])
+        age = row["age"]
+        count = int(row["population"])
         # Handle age groups like "90+"
-        if isinstance(age, str) and '+' in age:
-            age = int(age.replace('+', ''))
+        if isinstance(age, str) and "+" in age:
+            age = int(age.replace("+", ""))
         ages.extend([age] * count)
 
     if not ages:
@@ -121,9 +116,7 @@ def calculate_median_age(population: pd.DataFrame) -> float:
 
 
 def interpolate_missing_ages(
-    population: pd.DataFrame,
-    age_column: str = 'age',
-    value_column: str = 'population'
+    population: pd.DataFrame, age_column: str = "age", value_column: str = "population"
 ) -> pd.DataFrame:
     """
     Interpolate missing age groups.
@@ -139,23 +132,21 @@ def interpolate_missing_ages(
     df = population.copy()
 
     # Convert age to numeric (handle "90+" etc.)
-    df['age_numeric'] = df[age_column].apply(
-        lambda x: int(str(x).replace('+', '')) if pd.notna(x) else np.nan
+    df["age_numeric"] = df[age_column].apply(
+        lambda x: int(str(x).replace("+", "")) if pd.notna(x) else np.nan
     )
 
     # Sort by age
-    df = df.sort_values('age_numeric')
+    df = df.sort_values("age_numeric")
 
     # Interpolate missing values
-    df[value_column] = df[value_column].interpolate(method='linear')
+    df[value_column] = df[value_column].interpolate(method="linear")
 
     return df
 
 
 def aggregate_race_categories(
-    population: pd.DataFrame,
-    race_column: str = 'race',
-    aggregation_map: dict = None
+    population: pd.DataFrame, race_column: str = "race", aggregation_map: dict = None
 ) -> pd.DataFrame:
     """
     Aggregate detailed race categories into broader groups.
@@ -171,27 +162,28 @@ def aggregate_race_categories(
     if aggregation_map is None:
         # Default aggregation to 6 major categories
         aggregation_map = {
-            'White alone, Non-Hispanic': 'White NH',
-            'Black alone, Non-Hispanic': 'Black NH',
-            'AIAN alone, Non-Hispanic': 'AIAN NH',
-            'Asian/PI alone, Non-Hispanic': 'Asian/PI NH',
-            'Two or more races, Non-Hispanic': 'Multiracial NH',
-            'Hispanic (any race)': 'Hispanic'
+            "White alone, Non-Hispanic": "White NH",
+            "Black alone, Non-Hispanic": "Black NH",
+            "AIAN alone, Non-Hispanic": "AIAN NH",
+            "Asian/PI alone, Non-Hispanic": "Asian/PI NH",
+            "Two or more races, Non-Hispanic": "Multiracial NH",
+            "Hispanic (any race)": "Hispanic",
         }
 
     df = population.copy()
-    df['race_aggregated'] = df[race_column].map(aggregation_map)
+    df["race_aggregated"] = df[race_column].map(aggregation_map)
 
-    return df.groupby(
-        [col for col in df.columns if col not in [race_column, 'population', 'race_aggregated']] + ['race_aggregated']
-    )['population'].sum().reset_index()
+    return (
+        df.groupby(
+            [col for col in df.columns if col not in [race_column, "population", "race_aggregated"]]
+            + ["race_aggregated"]
+        )["population"]
+        .sum()
+        .reset_index()
+    )
 
 
-def calculate_growth_rate(
-    pop_start: float,
-    pop_end: float,
-    years: int
-) -> float:
+def calculate_growth_rate(pop_start: float, pop_end: float, years: int) -> float:
     """
     Calculate compound annual growth rate.
 
@@ -210,10 +202,8 @@ def calculate_growth_rate(
 
 
 def validate_cohort_sums(
-    cohorts: pd.DataFrame,
-    total: float,
-    tolerance: float = 0.01
-) -> Tuple[bool, float]:
+    cohorts: pd.DataFrame, total: float, tolerance: float = 0.01
+) -> tuple[bool, float]:
     """
     Validate that cohort populations sum to expected total.
 
@@ -225,7 +215,7 @@ def validate_cohort_sums(
     Returns:
         Tuple of (is_valid, relative_error)
     """
-    cohort_sum = cohorts['population'].sum()
+    cohort_sum = cohorts["population"].sum()
     relative_error = abs(cohort_sum - total) / total if total > 0 else np.nan
 
     is_valid = relative_error <= tolerance

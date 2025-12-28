@@ -32,49 +32,45 @@ Modules:
     visualizations: Chart and graph creation
 """
 
+from .reports import (
+    compare_scenarios,
+    generate_html_report,
+    generate_summary_statistics,
+    generate_text_report,
+)
+from .visualizations import (
+    plot_component_analysis,
+    plot_growth_rates,
+    plot_population_pyramid,
+    plot_population_trends,
+    plot_scenario_comparison,
+    save_all_visualizations,
+)
 from .writers import (
-    write_projection_excel,
     write_projection_csv,
+    write_projection_excel,
     write_projection_formats,
     write_projection_shapefile,
 )
 
-from .reports import (
-    generate_summary_statistics,
-    compare_scenarios,
-    generate_html_report,
-    generate_text_report,
-)
-
-from .visualizations import (
-    plot_population_pyramid,
-    plot_population_trends,
-    plot_growth_rates,
-    plot_component_analysis,
-    plot_scenario_comparison,
-    save_all_visualizations,
-)
-
 __all__ = [
     # Writers
-    'write_projection_excel',
-    'write_projection_csv',
-    'write_projection_formats',
-    'write_projection_shapefile',
-
+    "write_projection_excel",
+    "write_projection_csv",
+    "write_projection_formats",
+    "write_projection_shapefile",
     # Reports
-    'generate_summary_statistics',
-    'compare_scenarios',
-    'generate_html_report',
-    'generate_text_report',
-
+    "generate_summary_statistics",
+    "compare_scenarios",
+    "generate_html_report",
+    "generate_text_report",
     # Visualizations
-    'plot_population_pyramid',
-    'plot_population_trends',
-    'plot_growth_rates',
-    'plot_component_analysis',
-    'plot_scenario_comparison',
-    'save_all_visualizations',
+    "plot_population_pyramid",
+    "plot_population_trends",
+    "plot_growth_rates",
+    "plot_component_analysis",
+    "plot_scenario_comparison",
+    "save_all_visualizations",
 ]
 
-__version__ = '1.0.0'
+__version__ = "1.0.0"

@@ -22,7 +22,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from cohort_projections.data.fetch.census_api import CensusDataFetcher
+from cohort_projections.data.fetch.census_api import CensusDataFetcher  # noqa: E402
 
 
 def example_basic_usage():
@@ -61,7 +61,7 @@ def example_county_data():
 
     # Show unique counties
     print("\nSample counties:")
-    print(county_df['county'].unique()[:10])
+    print(county_df["county"].unique()[:10])
 
 
 def example_acs_places():
@@ -74,20 +74,20 @@ def example_acs_places():
 
     # Fetch ACS place data
     print("\nFetching ACS 5-year estimates for ND places...")
-    places_df = fetcher.fetch_acs_place_data(year=2023, dataset='acs5')
+    places_df = fetcher.fetch_acs_place_data(year=2023, dataset="acs5")
     print(f"Retrieved {len(places_df)} places")
 
     # Show incorporated vs CDPs
-    incorporated = places_df[~places_df['is_cdp']]
-    cdps = places_df[places_df['is_cdp']]
+    incorporated = places_df[~places_df["is_cdp"]]
+    cdps = places_df[places_df["is_cdp"]]
 
     print(f"\nIncorporated places: {len(incorporated)}")
     print(f"Census-Designated Places: {len(cdps)}")
 
     # Show largest places
     print("\nTop 10 places by population:")
-    top10 = places_df.nlargest(10, 'B01001_001E')[['NAME', 'B01001_001E', 'place_type']]
-    for idx, row in top10.iterrows():
+    top10 = places_df.nlargest(10, "B01001_001E")[["NAME", "B01001_001E", "place_type"]]
+    for _idx, row in top10.iterrows():
         print(f"  {row['NAME']}: {row['B01001_001E']:,} ({row['place_type']})")
 
 
@@ -103,13 +103,13 @@ def example_fetch_all():
     print("\nFetching all PEP data (state and county)...")
     pep_data = fetcher.fetch_all_pep_data(vintage=2024, use_file_method=True)
 
-    print(f"\nResults:")
+    print("\nResults:")
     print(f"  State-level: {len(pep_data['state'])} records")
     print(f"  County-level: {len(pep_data['county'])} records")
 
     # Fetch all ACS data
     print("\nFetching all ACS data...")
-    acs_data = fetcher.fetch_all_acs_data(year=2023, dataset='acs5')
+    acs_data = fetcher.fetch_all_acs_data(year=2023, dataset="acs5")
     print(f"  Place-level: {len(acs_data)} places")
 
 
@@ -131,7 +131,7 @@ def example_caching():
 
     # Try to load cached data
     print("\nAttempting to load cached state data...")
-    cached_df = fetcher.get_cached_data('pep', 'state', 2024)
+    cached_df = fetcher.get_cached_data("pep", "state", 2024)
 
     if cached_df is not None:
         print(f"Successfully loaded {len(cached_df)} records from cache")
@@ -160,7 +160,7 @@ def example_with_api_key():
     print("=" * 70)
 
     # Get API key from environment variable
-    api_key = os.environ.get('CENSUS_API_KEY')
+    api_key = os.environ.get("CENSUS_API_KEY")
 
     if api_key:
         print(f"\nUsing Census API key: {api_key[:8]}...")

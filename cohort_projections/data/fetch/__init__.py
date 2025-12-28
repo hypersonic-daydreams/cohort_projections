@@ -8,4 +8,4 @@ migration data.
 
 from cohort_projections.data.fetch.census_api import CensusDataFetcher
 
-__all__ = ['CensusDataFetcher']
+__all__ = ["CensusDataFetcher"]
