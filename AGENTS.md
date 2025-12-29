@@ -161,6 +161,7 @@ data/
     mortality/   # Life tables, death rates
     migration/   # IRS flows, ACS mobility
     geographic/  # County/place reference files
+    nd_sdc_2024_projections/  # SDC reference materials (see 6.5)
   processed/     # Cleaned, harmonized inputs
   interim/       # Intermediate calculations
   projections/   # Final projection outputs
@@ -176,6 +177,42 @@ data/
 - Files in `data/raw/` are **read-only**
 - Re-fetch data rather than modifying raw files
 - All transformations output to `data/processed/` or `data/interim/`
+
+### 6.4 Data Sync
+
+- Data files sync via rclone bisync (not git)
+- Use `./scripts/bisync.sh` wrapper (never run rclone directly)
+- See [ADR-016](docs/adr/016-raw-data-management-strategy.md) for details
+
+### 6.5 SDC 2024 Reference Materials
+
+The `data/raw/nd_sdc_2024_projections/` directory contains the ND State Data Center's official 2024 population projections and their source files.
+
+**Purpose:** Reference and comparison only — NOT used in production pipeline.
+
+| Subdirectory                | Contents                                |
+|-----------------------------|-----------------------------------------|
+| `source_files/fertility/`   | Birth data, female population by age    |
+| `source_files/life_tables/` | CDC life tables for ND (2020)           |
+| `source_files/migration/`   | Migration rate calculations (2000-2020) |
+| `source_files/results/`     | Final projection workbooks              |
+| `source_files/writeup/`     | Draft methodology documents             |
+
+**Key Documentation:**
+
+- [docs/methodology_comparison_sdc_2024.md](docs/methodology_comparison_sdc_2024.md) — Detailed comparison of SDC vs our methodology
+
+**Critical Insight:** Our projections diverge ~170,000 people from SDC by 2045, primarily due to migration assumptions:
+
+- SDC uses 2000-2020 Census residual method (includes Bakken boom) → net in-migration
+- We use 2019-2022 IRS flows (post-boom) → net out-migration
+
+**Usage Guidelines:**
+
+- Use for methodology comparison and validation
+- Do NOT integrate SDC files into production data pipeline
+- Reference their survival rates, fertility calculations for verification
+- Their migration dampening approach (60%) is documented for potential scenario modeling
 
 ---
 

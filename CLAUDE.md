@@ -225,6 +225,7 @@ cohort_projections/
 │   └── data_sources.yaml
 ├── data/                   # Data directory (gitignored)
 │   ├── raw/                # Input data
+│   │   └── nd_sdc_2024_projections/  # SDC reference materials (see below)
 │   ├── processed/          # Transformed data
 │   └── projections/        # Output projections
 ├── scripts/                # Executable scripts
@@ -236,6 +237,44 @@ cohort_projections/
 │   └── adr/                # Architecture Decision Records
 └── notebooks/              # Jupyter notebooks
 ```
+
+---
+
+## SDC 2024 Reference Materials
+
+The `data/raw/nd_sdc_2024_projections/` directory contains the ND State Data Center's 2024 population projections and source files. **These are reference materials only** — not used in our production pipeline.
+
+### Purpose
+
+- **Methodology comparison**: Understand how SDC approached projections
+- **Validation reference**: Compare our outputs to their official projections
+- **Data source examples**: See their fertility, mortality, migration inputs
+
+### Key Files
+
+| File/Directory | Description |
+|---------------|-------------|
+| `README.md` | SDC methodology summary |
+| `County_Population_Projections_2023.xlsx` | Final county projections workbook |
+| `sdc_county_projections_summary.csv` | Extracted county totals for comparison |
+| `source_files/` | Original SDC working files |
+| `source_files/fertility/` | Birth data, female population counts |
+| `source_files/life_tables/` | CDC life tables for ND |
+| `source_files/migration/` | Migration rate calculations |
+| `source_files/writeup/` | Draft methodology documents |
+
+### Documentation
+
+- **[Methodology Comparison](docs/methodology_comparison_sdc_2024.md)**: Detailed analysis of where our methodology aligns with and diverges from SDC 2024
+
+### Key Finding
+
+Our projections diverge dramatically from SDC (~170,000 people by 2045) due to different migration assumptions:
+
+- **SDC**: Uses 2000-2020 data with 60% Bakken dampening → projects net **in-migration**
+- **Ours**: Uses 2019-2022 IRS data → shows net **out-migration**
+
+See the methodology comparison document for full analysis.
 
 ---
 
