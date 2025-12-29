@@ -1,0 +1,93 @@
+% ==============================================================================
+% MAIN DOCUMENT
+% Forecasting International Migration to North Dakota: A Multi-Method Analysis
+% ==============================================================================
+% Master file that compiles all sections of the journal article
+% ==============================================================================
+
+\input{preamble}
+
+\begin{document}
+
+% ------------------------------------------------------------------------------
+% Title Page
+% ------------------------------------------------------------------------------
+
+\title{Forecasting International Migration to North Dakota: \\
+A Multi-Method Empirical Analysis}
+
+\author{
+    [Author Name]$^{1}$ \\[0.5em]
+    \small $^{1}$[Institutional Affiliation] \\
+    \small [Email Address]
+}
+
+\date{\today}
+
+\maketitle
+
+% ------------------------------------------------------------------------------
+% Abstract
+% ------------------------------------------------------------------------------
+
+\begin{abstract}
+International migration to small U.S.\ states presents distinctive forecasting challenges characterized by high volatility, limited sample sizes, and heightened sensitivity to federal policy changes. While the demographic literature has extensively examined migration to gateway states, small peripheral states---where migration often determines whether populations grow or decline---have received comparatively little rigorous empirical attention. This study addresses this gap through the first comprehensive multi-method analysis of international migration to North Dakota, deploying nine analytical modules spanning descriptive statistics, time series econometrics, panel regression, gravity models, machine learning, causal inference, and duration analysis using data from 2002--2024.
+
+Key findings reveal that North Dakota's migration profile is dominated by refugee resettlement rather than economic migration chains, with Location Quotients exceeding 15 for certain African and Middle Eastern origins. The time series exhibits I(1) integration with a coefficient of variation of 82.5\%, indicating that annual flows can deviate from expectations by amounts approaching the mean itself. Structural break analysis identifies significant regime shifts in 2020 and 2021 associated with the COVID-19 pandemic ($F = 16.01$, $p < 0.001$).
+
+Difference-in-differences estimation identifies a 75\% reduction in refugee arrivals from Travel Ban-affected countries ($p = 0.004$), an effect that parallel trends validation supports and that aggregate time series analysis fails to detect. Gravity model estimation yields a diaspora elasticity of 0.10, substantially below estimates from gateway states, suggesting network effects remain nascent.
+
+Monte Carlo scenario projections through 2045 yield a median of 8,672 international migrants with a 95\% credible interval spanning 3,183 to 14,104---a factor of 4.4---honestly characterizing the structural uncertainty inherent in small-state migration forecasting. This wide interval has direct implications for demographic planning: agencies must develop contingent capacity strategies rather than relying on misleadingly precise point forecasts. The multi-method framework demonstrates that rigorous demographic analysis remains feasible even when small populations strain conventional asymptotic methods, provided analysts attend carefully to identification assumptions and uncertainty quantification.
+\end{abstract}
+
+\vspace{1em}
+
+\noindent\textbf{Keywords:} international migration, forecasting, North Dakota, causal inference, demographic projection, refugee resettlement, Great Plains
+
+\vspace{0.5em}
+
+\noindent\textbf{JEL Codes:} J11, J61, C22, C53, R23
+
+\newpage
+
+% ------------------------------------------------------------------------------
+% Table of Contents (optional, comment out for submission)
+% ------------------------------------------------------------------------------
+% \tableofcontents
+% \newpage
+
+% ------------------------------------------------------------------------------
+% Main Sections
+% ------------------------------------------------------------------------------
+
+\input{sections/01_introduction}
+
+\input{sections/02_data_methods}
+
+\input{sections/03_results}
+
+\input{sections/04_discussion}
+
+\input{sections/05_conclusion}
+
+% ------------------------------------------------------------------------------
+% References
+% ------------------------------------------------------------------------------
+
+\newpage
+\bibliographystyle{apalike}
+\bibliography{references}
+
+% ------------------------------------------------------------------------------
+% Appendix
+% ------------------------------------------------------------------------------
+
+\newpage
+\appendix
+\input{sections/06_appendix}
+
+% ==============================================================================
+% END DOCUMENT
+% ==============================================================================
+
+\end{document}

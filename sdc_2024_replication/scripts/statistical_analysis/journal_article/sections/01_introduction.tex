@@ -1,0 +1,59 @@
+% ==============================================================================
+% INTRODUCTION
+% Forecasting International Migration to North Dakota: A Multi-Method Analysis
+% ==============================================================================
+
+\section{Introduction}
+\label{sec:introduction}
+
+% ------------------------------------------------------------------------------
+% Opening Hook: ND's Unique Migration Position
+% ------------------------------------------------------------------------------
+
+North Dakota occupies a distinctive position in the landscape of American immigration. With a population of approximately 780,000---ranking 47th among U.S. states---the state receives just 0.17\% of national international migration flows, a proportion noticeably smaller than its 0.23\% share of the U.S. population \citep{SmallAreaForecasting2021}. Yet this modest arithmetic masks a demographic reality of considerable consequence. In a state where natural population growth has stagnated and domestic out-migration persists, international migration has emerged as a critical---and at times dominant---component of population change. Understanding the patterns, drivers, and future trajectories of this migration stream carries implications not only for North Dakota's demographic planning but also for the broader challenge of sustaining communities in America's rural heartland.
+
+The Great Plains has experienced sustained population decline throughout much of the twentieth and early twenty-first centuries, a demographic trajectory shaped by agricultural consolidation, limited economic diversification, and the magnetic pull of metropolitan opportunity elsewhere \citep{AlbrechtGreatPlains1993, ArcherLonsdale2003}. North Dakota's brief reversal of this trend during the Bakken oil boom (2010--2014) demonstrated how economic shocks can temporarily reshape demographic patterns, yet the underlying structural forces favoring out-migration have proven resilient \citep{EnergyBoomDemographics2015}. Against this backdrop, international migration---particularly refugee resettlement---has assumed an outsized role in maintaining population levels and meeting labor force demands in communities throughout the state.
+
+Refugee resettlement programs have channeled arrivals from conflict zones worldwide to North Dakota communities, creating ethnic enclaves that now span generations. The state's foreign-born population reflects this history: Location Quotient analysis reveals that North Dakota hosts disproportionately large shares of migrants from East African origins (Somalia, Sudan, Ethiopia) and Middle Eastern countries (Iraq, Syria) relative to national patterns. These concentrations, products of federal resettlement policy interacting with local voluntary agency capacity, generate network effects that shape subsequent migration streams \citep{BeineDocquierOzden2011, Bansak2018}. The result is a migration profile markedly different from gateway states, one characterized by humanitarian flows rather than economic migration chains connecting to traditional sending regions.
+
+% ------------------------------------------------------------------------------
+% Research Gap
+% ------------------------------------------------------------------------------
+
+Despite the demographic significance of international migration to small states and rural regions, the empirical literature on state-level migration forecasting remains surprisingly thin. The dominant paradigm in migration forecasting focuses on national-level flows, employing gravity models and time series methods calibrated to large-sample settings \citep{MasseyEtAl1993, Mayda2010}. When subnational analysis appears, it typically examines major receiving states---California, Texas, Florida, New York---where sample sizes support conventional inferential approaches \citep{PortesRumbaut2006}. Small states, characterized by volatile flows, limited historical observations, and heightened sensitivity to policy shocks, have largely escaped systematic empirical scrutiny.
+
+This lacuna reflects genuine methodological challenges. International migration to North Dakota exhibits a coefficient of variation of 82.5\%, reflecting annual flows that have ranged from 30 to over 5,000 persons within a fifteen-year span. Time series of this brevity strain the asymptotic foundations of standard econometric procedures; unit root tests lose power, ARIMA model selection becomes unreliable, and long-horizon forecasts carry prediction intervals so wide as to approach uninformativeness \citep{Cerqueira2019, HyndmanAthanasopoulos2021}. The challenge, then, is not merely to apply established methods but to develop an analytical framework suited to the small-sample, high-volatility setting that characterizes migration to peripheral regions. Such a framework must integrate multiple methodological traditions, triangulating findings across approaches while honestly characterizing the uncertainty inherent in projection.
+
+% ------------------------------------------------------------------------------
+% Research Questions
+% ------------------------------------------------------------------------------
+
+This analysis addresses four interconnected research questions regarding international migration to North Dakota:
+
+\begin{enumerate}
+    \item \textbf{Patterns and Sources}: What are the dominant patterns and geographic sources of international migration to North Dakota, and how has the composition of this migration stream evolved over time?
+
+    \item \textbf{Time Series Properties}: What statistical properties characterize the international migration time series---specifically, what is the order of integration, are structural breaks present, and what degree of persistence or mean reversion do the data exhibit?
+
+    \item \textbf{Policy Effects}: What are the causal effects of major policy interventions---the 2017 Travel Ban and the 2020 COVID-19 pandemic response---on international migration flows to North Dakota?
+
+    \item \textbf{Future Scenarios}: Given observed patterns and structural uncertainty, what is the range of plausible future migration scenarios through 2045, and how should demographic planners characterize forecast uncertainty?
+\end{enumerate}
+
+These questions progress from descriptive characterization through inferential analysis to applied forecasting, reflecting the logical structure of demographic inquiry. Each question demands distinct methodological approaches, and the answers collectively inform the population projection enterprise.
+
+% ------------------------------------------------------------------------------
+% Contributions
+% ------------------------------------------------------------------------------
+
+This study makes three principal contributions to the migration forecasting literature. First, it provides the first comprehensive multi-method empirical analysis of international migration to a small U.S. state. The analysis deploys nine interconnected methodological modules spanning descriptive statistics, time series analysis, panel regression, gravity models, machine learning, causal inference, and duration analysis. This methodological breadth serves not eclecticism but triangulation: findings that emerge consistently across disparate analytical frameworks warrant greater confidence than those dependent on particular modeling assumptions. The multi-method design explicitly addresses the small-sample challenge by trading depth within any single paradigm for robustness across paradigms.
+
+Second, the analysis offers novel applications of causal inference methods to state-level migration policy evaluation. Difference-in-differences estimation, applied to refugee arrivals before and after the 2017 Travel Ban, reveals that migration from affected countries declined by approximately 75\%---a substantial and statistically significant effect that aggregate time series analysis fails to detect. Synthetic control methods construct counterfactual migration trajectories for North Dakota, enabling assessment of how observed patterns deviate from what demographic fundamentals would predict. Bartik shift-share instruments address the endogeneity between diaspora stocks and migration flows endemic to gravity model estimation \citep{Bartik1991, GoldsmithPinkhamSorkinSwift2020}. These applications demonstrate that rigorous causal inference remains feasible even in small-state settings, provided analysts attend carefully to identification assumptions.
+
+Third, the study develops a rigorous framework for uncertainty quantification in long-range migration forecasts. Monte Carlo simulation propagates parameter uncertainty through projection models, generating probability distributions rather than point estimates for future migration. The resulting 95\% credible interval for 2045 international migration spans 3,183 to 14,104 persons---a factor of 4.4 times---honestly reflecting the structural uncertainty that characterizes this domain. This probabilistic framing enables demographic planners to assess the full range of contingencies rather than anchoring on misleadingly precise point forecasts \citep{RafteryProbabilistic2012}. The scenario analysis further distinguishes between forecast uncertainty (arising from model imprecision) and scenario uncertainty (arising from unknowable future policy regimes), providing a framework for structured demographic planning under deep uncertainty.
+
+% ------------------------------------------------------------------------------
+% Article Roadmap
+% ------------------------------------------------------------------------------
+
+The remainder of this article proceeds as follows. Section~\ref{sec:data_methods} describes the data sources---Census Bureau Population Estimates, Department of Homeland Security admission records, American Community Survey foreign-born tabulations, and refugee arrival databases---and presents the methodological framework in detail. Section~\ref{sec:results} reports findings organized by analytical module, beginning with descriptive patterns and concentration analysis, proceeding through time series diagnostics and panel regression results, and culminating in causal estimates and scenario projections. Section~\ref{sec:discussion} interprets these findings in light of migration theory and prior empirical work, addresses policy implications for refugee resettlement and demographic planning, and acknowledges the limitations inherent in small-sample analysis. Section~\ref{sec:conclusion} summarizes the contributions and identifies directions for future research.

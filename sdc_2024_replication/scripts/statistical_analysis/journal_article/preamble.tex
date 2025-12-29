@@ -1,0 +1,136 @@
+% ==============================================================================
+% PREAMBLE
+% Forecasting International Migration to North Dakota: A Multi-Method Analysis
+% ==============================================================================
+% Document class and essential packages for academic journal article
+% ==============================================================================
+
+% ------------------------------------------------------------------------------
+% Document Class
+% ------------------------------------------------------------------------------
+\documentclass[11pt,letterpaper]{article}
+
+% ------------------------------------------------------------------------------
+% Page Layout
+% ------------------------------------------------------------------------------
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% ------------------------------------------------------------------------------
+% Mathematics
+% ------------------------------------------------------------------------------
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+% ------------------------------------------------------------------------------
+% Graphics and Figures
+% ------------------------------------------------------------------------------
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{subcaption}
+
+% ------------------------------------------------------------------------------
+% Tables
+% ------------------------------------------------------------------------------
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{threeparttable}
+\usepackage{tabularx}
+
+% ------------------------------------------------------------------------------
+% Citations and Bibliography
+% ------------------------------------------------------------------------------
+\usepackage{natbib}
+\setcitestyle{authoryear,round,semicolon}
+
+% ------------------------------------------------------------------------------
+% Hyperlinks and Cross-References
+% ------------------------------------------------------------------------------
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue,
+    bookmarksnumbered=true,
+    bookmarksopen=true
+}
+
+% ------------------------------------------------------------------------------
+% Additional Formatting
+% ------------------------------------------------------------------------------
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+% ------------------------------------------------------------------------------
+% Headers and Footers
+% ------------------------------------------------------------------------------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize Forecasting International Migration to North Dakota}
+\fancyhead[R]{\footnotesize \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancypagestyle{plain}{
+    \fancyhf{}
+    \fancyfoot[C]{\thepage}
+    \renewcommand{\headrulewidth}{0pt}
+}
+
+% ------------------------------------------------------------------------------
+% Custom Commands
+% ------------------------------------------------------------------------------
+% Statistical notation
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\text{Var}}
+\newcommand{\Cov}{\text{Cov}}
+\newcommand{\se}{\text{SE}}
+\newcommand{\pvalue}{p\text{-value}}
+
+% Abbreviations
+\newcommand{\ND}{North Dakota}
+\newcommand{\US}{United States}
+\newcommand{\LPR}{LPR}
+\newcommand{\ACS}{ACS}
+\newcommand{\PEP}{PEP}
+\newcommand{\DHS}{DHS}
+
+% Model names
+\newcommand{\ARIMA}{\textsc{arima}}
+\newcommand{\VAR}{\textsc{var}}
+\newcommand{\ADF}{\textsc{adf}}
+\newcommand{\HHI}{\textsc{hhi}}
+\newcommand{\LQ}{\textsc{lq}}
+\newcommand{\DiD}{DiD}
+
+% ------------------------------------------------------------------------------
+% Table Notes Environment (for threeparttable)
+% ------------------------------------------------------------------------------
+\renewenvironment{tablenotes}[1][Notes]
+    {\par\vspace{0.5em}\footnotesize\textit{#1}:~}
+    {\par}
+
+% ------------------------------------------------------------------------------
+% Abstract Formatting
+% ------------------------------------------------------------------------------
+\renewenvironment{abstract}
+    {\begin{center}\textbf{Abstract}\end{center}\begin{quotation}\noindent}
+    {\end{quotation}}
+
+% ------------------------------------------------------------------------------
+% Section Formatting
+% ------------------------------------------------------------------------------
+\usepackage{titlesec}
+\titleformat{\section}
+    {\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}
+    {\normalfont\large\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}
+    {\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
+
+% ==============================================================================
+% END PREAMBLE
+% ==============================================================================

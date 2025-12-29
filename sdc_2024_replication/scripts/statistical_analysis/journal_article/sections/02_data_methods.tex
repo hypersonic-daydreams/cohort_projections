@@ -1,0 +1,296 @@
+% ==============================================================================
+% DATA AND METHODS
+% Forecasting International Migration to North Dakota: A Multi-Method Analysis
+% ==============================================================================
+
+\section{Data and Methods}
+\label{sec:data_methods}
+
+This section describes the data sources underlying the analysis and presents the methodological framework employed across nine analytical modules. The multi-method design reflects both the complexity of international migration dynamics and the inferential challenges posed by small-sample settings. Each methodological tradition contributes distinct insights: descriptive methods establish baseline patterns; time series techniques characterize dynamic properties; regression approaches quantify relationships; and causal inference methods identify policy effects. Together, these approaches enable triangulation across analytical frameworks, enhancing confidence in findings that emerge consistently while flagging conclusions dependent on particular modeling assumptions.
+
+% ==============================================================================
+% 2.1 DATA SOURCES
+% ==============================================================================
+
+\subsection{Data Sources}
+\label{subsec:data_sources}
+
+The analysis draws on four primary data sources, each capturing distinct dimensions of international migration to North Dakota. Table~\ref{tab:data_sources} summarizes the coverage, geographic scope, and key variables from each source.
+
+\subsubsection{Census Bureau Population Estimates Program}
+
+The U.S. Census Bureau's Population Estimates Program (PEP) provides annual estimates of population and components of change for states and counties. This analysis employs the vintage 2024 estimates covering 2010--2024, which decompose annual population change into births, deaths, domestic migration, and international migration. The international migration component---designated \texttt{INTERNATIONALMIG} in Census Bureau nomenclature---comprises the net flow of foreign-born individuals crossing U.S. borders plus the net movement of native-born citizens and military personnel abroad. For subnational units, the Census Bureau allocates national international migration estimates to states using American Community Survey data on recent movers and foreign-born population distributions.
+
+The PEP data provide the primary dependent variable for time series analysis: annual net international migration to North Dakota. Key advantages include consistent methodology across years and comprehensive geographic coverage. Limitations include the composite nature of the international migration variable, which aggregates heterogeneous streams (lawful permanent residents, refugees, temporary workers, and unauthorized migrants) into a single measure, and the allocation methodology, which may introduce smoothing artifacts at the state level.
+
+\subsubsection{Department of Homeland Security Lawful Permanent Resident Data}
+
+The Department of Homeland Security (DHS) publishes annual statistics on lawful permanent resident (LPR) admissions by state of intended residence and country of birth. This analysis employs fiscal year 2023 data, the most recent available at the time of analysis. The LPR data provide granular information on the country-of-origin composition of legal immigration flows, enabling gravity model estimation and concentration analysis.
+
+The principal advantage of DHS data lies in their administrative provenance: unlike survey-based measures, LPR counts derive from visa issuance records and represent actual admissions rather than estimates. Limitations include restriction to a single cross-section (precluding panel analysis within this data source), exclusion of non-LPR categories (refugees, asylees, temporary workers), and the distinction between state of intended residence at admission and actual destination after secondary migration.
+
+\subsubsection{American Community Survey Foreign-Born Population}
+
+The American Community Survey (ACS) provides annual estimates of foreign-born population by place of birth for states and metropolitan areas. This analysis employs five-year estimates from 2009--2023, using the detailed country-of-birth tabulations (Table B05006). The foreign-born stock data enable analysis of diaspora effects on new migration, origin-specific growth trajectories, and Location Quotient calculations comparing North Dakota's immigrant composition to national patterns.
+
+ACS data carry sampling uncertainty quantified through published margins of error. For small populations---such as foreign-born from specific countries residing in North Dakota---coefficients of variation can exceed 30\%, requiring cautious interpretation. The analysis addresses this limitation by focusing on origin groups with sufficient sample sizes and by aggregating to regional categories where country-level estimates prove unreliable.
+
+\subsubsection{Refugee Processing Center Arrival Data}
+
+The Refugee Processing Center (RPC), operated by the Department of State, maintains comprehensive records of refugee arrivals by state of initial resettlement and nationality. This analysis employs arrival data spanning fiscal years 2002--2020, providing the longest time series among the data sources and enabling duration analysis of migration ``waves'' from specific origin countries. The refugee data prove particularly valuable for North Dakota given the state's significant refugee population, which drives much of the geographic concentration observed in other data sources.
+
+Refugee arrival data offer precise counts (not estimates) of a well-defined population admitted through federal resettlement programs. Limitations include truncation at fiscal year 2020 (precluding analysis of pandemic recovery) and restriction to initial placement, which may differ from eventual settlement after secondary migration.
+
+\begin{table}[htbp]
+\centering
+\caption{Summary of Data Sources}
+\label{tab:data_sources}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Source} & \textbf{Time Period} & \textbf{Geographic Scope} & \textbf{Key Variables} \\
+\midrule
+Census PEP & 2010--2024 & 50 states + DC & Net international migration \\
+DHS LPR & FY 2023 & State $\times$ country & LPR admissions by origin \\
+ACS Foreign-Born & 2009--2023 & State $\times$ country & Foreign-born population stock \\
+Refugee Arrivals & 2002--2020 & State $\times$ nationality & Refugee resettlement counts \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==============================================================================
+% 2.2 DESCRIPTIVE AND CONCENTRATION METHODS
+% ==============================================================================
+
+\subsection{Descriptive and Concentration Methods}
+\label{subsec:descriptive_methods}
+
+Descriptive analysis establishes baseline patterns in international migration flows and characterizes their distributional properties. Summary statistics---means, standard deviations, coefficients of variation, skewness, and kurtosis---quantify central tendency and dispersion. The coefficient of variation (CV), defined as the ratio of standard deviation to mean, provides a scale-invariant measure of volatility suitable for comparing series of different magnitudes.
+
+To decompose observed migration flows into trend and cyclical components, the analysis employs the Hodrick-Prescott (HP) filter \citep{HodrickPrescott1997}. The HP filter solves the optimization problem:
+\begin{equation}
+\label{eq:hp_filter}
+\min_{\{g_t\}} \left\{ \sum_{t=1}^{T} (y_t - g_t)^2 + \lambda \sum_{t=2}^{T-1} [(g_{t+1} - g_t) - (g_t - g_{t-1})]^2 \right\}
+\end{equation}
+where $y_t$ denotes the observed series, $g_t$ the trend component, and $\lambda$ the smoothing parameter controlling the penalty on trend acceleration. Following \citet{RavnUhlig2002}, the analysis sets $\lambda = 6.25$ for annual data, a value calibrated to achieve comparable smoothing across observation frequencies.
+
+Geographic concentration analysis employs two complementary measures. The Herfindahl-Hirschman Index (HHI) quantifies concentration across origin countries:
+\begin{equation}
+\label{eq:hhi}
+\text{HHI} = \sum_{i=1}^{N} s_i^2 \times 10{,}000
+\end{equation}
+where $s_i$ denotes the share of migration from origin country $i$. HHI values below 1,500 indicate unconcentrated distributions; values between 1,500 and 2,500 indicate moderate concentration; values above 2,500 indicate high concentration. Location Quotients (LQ) measure the degree to which North Dakota's immigrant composition deviates from national patterns:
+\begin{equation}
+\label{eq:lq}
+\text{LQ}_{i,\text{ND}} = \frac{(\text{Foreign-born from } i \text{ in ND}) / (\text{Total foreign-born in ND})}{(\text{Foreign-born from } i \text{ in US}) / (\text{Total foreign-born in US})}
+\end{equation}
+Location quotients exceeding unity indicate overrepresentation of origin group $i$ in North Dakota relative to the nation.
+
+% ==============================================================================
+% 2.3 TIME SERIES METHODS
+% ==============================================================================
+
+\subsection{Time Series Methods}
+\label{subsec:time_series_methods}
+
+Time series analysis characterizes the stochastic properties of international migration flows and provides a foundation for forecasting. The analysis proceeds through four stages: unit root testing, ARIMA model specification, structural break detection, and vector autoregression for multivariate dynamics.
+
+\subsubsection{Unit Root Tests}
+
+Stationarity assessment employs two complementary tests. The Augmented Dickey-Fuller (ADF) test \citep{DickeyFuller1979} estimates the regression:
+\begin{equation}
+\label{eq:adf}
+\Delta y_t = \alpha + \beta t + \gamma y_{t-1} + \sum_{j=1}^{p} \delta_j \Delta y_{t-j} + \varepsilon_t
+\end{equation}
+and tests $H_0: \gamma = 0$ (unit root) against $H_1: \gamma < 0$ (stationarity). Lag length $p$ is selected by the Akaike Information Criterion (AIC). The Phillips-Perron (PP) test \citep{PhillipsPerron1988} provides a nonparametric alternative that corrects for serial correlation without augmenting the regression. Where tests yield conflicting conclusions, the analysis reports both and interprets results cautiously.
+
+\subsubsection{ARIMA Model Selection}
+
+For series exhibiting unit roots, the analysis fits autoregressive integrated moving average (ARIMA) models of order $(p, d, q)$, where $d$ denotes the differencing order required for stationarity \citep{BoxJenkins1970}. Model selection employs the AIC criterion:
+\begin{equation}
+\label{eq:aic}
+\text{AIC} = -2 \ln(\hat{L}) + 2k
+\end{equation}
+where $\hat{L}$ denotes the maximized likelihood and $k$ the number of parameters. Diagnostic checking employs the Ljung-Box portmanteau test for residual autocorrelation and the Shapiro-Wilk test for residual normality.
+
+\subsubsection{Structural Break Tests}
+
+Structural break analysis employs three complementary approaches. The Chow test \citep{Chow1960} evaluates whether regression parameters differ across known candidate break points by comparing residual sums of squares from restricted (single-regime) and unrestricted (regime-specific) models. The CUSUM test \citep{BrownDurbinEvans1975} detects parameter instability through cumulative sums of recursive residuals; departures from the zero line indicate structural change. For endogenous break detection, the analysis employs the \citet{BaiPerron1998} procedure, which identifies multiple break points by minimizing the sum of squared residuals across all possible segmentations:
+\begin{equation}
+\label{eq:bai_perron}
+(\hat{T}_1, \ldots, \hat{T}_m) = \arg\min_{T_1, \ldots, T_m} \sum_{j=0}^{m} \sum_{t=T_j+1}^{T_{j+1}} (y_t - \bar{y}_j)^2
+\end{equation}
+subject to minimum segment length constraints. Given the short time series available (n = 15), the analysis sets the minimum segment length to 2 years, acknowledging the resulting power limitations.
+
+\subsubsection{Vector Autoregression}
+
+To examine dynamic interdependencies between North Dakota and national migration flows, the analysis estimates a vector autoregression (VAR) of order $p$:
+\begin{equation}
+\label{eq:var}
+\mathbf{y}_t = \mathbf{c} + \sum_{i=1}^{p} \mathbf{A}_i \mathbf{y}_{t-i} + \boldsymbol{\varepsilon}_t
+\end{equation}
+where $\mathbf{y}_t = (y_t^{\text{ND}}, y_t^{\text{US}})'$ contains North Dakota and national international migration, $\mathbf{A}_i$ are coefficient matrices, and $\boldsymbol{\varepsilon}_t$ is a vector white noise process. Lag order selection employs AIC, and Granger causality tests evaluate directional predictive relationships. Forecast error variance decomposition quantifies the contribution of each variable to forecast uncertainty at various horizons.
+
+% ==============================================================================
+% 2.4 PANEL DATA METHODS
+% ==============================================================================
+
+\subsection{Panel Data Methods}
+\label{subsec:panel_methods}
+
+Panel data analysis exploits variation across states and time to estimate relationships unidentifiable from single-state time series. The analysis employs state-year observations spanning 51 states (including the District of Columbia) over 15 years (2010--2024), yielding 765 observations.
+
+The fixed effects model specifies:
+\begin{equation}
+\label{eq:fixed_effects}
+y_{it} = \alpha_i + \lambda_t + \mathbf{x}_{it}'\boldsymbol{\beta} + \varepsilon_{it}
+\end{equation}
+where $y_{it}$ denotes international migration to state $i$ in year $t$, $\alpha_i$ represents state-specific intercepts absorbing time-invariant heterogeneity, $\lambda_t$ captures common year effects, and $\mathbf{x}_{it}$ contains time-varying covariates. The random effects model treats $\alpha_i$ as random draws from a population distribution rather than fixed parameters to be estimated.
+
+Model selection between fixed and random effects employs the Hausman test \citep{Hausman1978}, which evaluates whether random effects estimates exhibit bias due to correlation between $\alpha_i$ and regressors. Under the null hypothesis of no correlation, random effects is efficient; under the alternative, fixed effects is consistent but random effects is biased. The test statistic follows a chi-squared distribution under the null:
+\begin{equation}
+\label{eq:hausman}
+H = (\hat{\boldsymbol{\beta}}_{\text{FE}} - \hat{\boldsymbol{\beta}}_{\text{RE}})' [\text{Var}(\hat{\boldsymbol{\beta}}_{\text{FE}}) - \text{Var}(\hat{\boldsymbol{\beta}}_{\text{RE}})]^{-1} (\hat{\boldsymbol{\beta}}_{\text{FE}} - \hat{\boldsymbol{\beta}}_{\text{RE}}) \sim \chi^2_k
+\end{equation}
+
+Standard errors are clustered at the state level to account for within-state serial correlation.
+
+% ==============================================================================
+% 2.5 GRAVITY AND NETWORK MODELS
+% ==============================================================================
+
+\subsection{Gravity and Network Models}
+\label{subsec:gravity_methods}
+
+Gravity models, which explain bilateral flows as functions of origin and destination characteristics and the distance between them, provide the theoretical foundation for analyzing migration determinants \citep{Tinbergen1962, AndersonVanWincoop2003}. The analysis estimates gravity specifications using the Poisson pseudo-maximum likelihood (PPML) estimator advocated by \citet{SantosSilvaTenreyro2006}, which addresses two limitations of log-linear OLS: heteroskedasticity-induced bias and the inability to accommodate zero flows.
+
+The baseline gravity specification takes the form:
+\begin{equation}
+\label{eq:gravity}
+E[M_{od}] = \exp(\beta_0 + \beta_1 \ln \text{Pop}_o + \beta_2 \ln \text{Pop}_d + \beta_3 \ln \text{Dist}_{od} + \beta_4 \ln \text{Stock}_{od} + \boldsymbol{\gamma}'\mathbf{Z}_{od})
+\end{equation}
+where $M_{od}$ denotes migration from origin country $o$ to destination state $d$, $\text{Pop}_o$ and $\text{Pop}_d$ are origin and destination populations, $\text{Dist}_{od}$ is geographic distance, $\text{Stock}_{od}$ is the existing diaspora (foreign-born from $o$ residing in $d$), and $\mathbf{Z}_{od}$ contains additional bilateral controls. The coefficient $\beta_4$ on diaspora stock captures the network effect---the extent to which established immigrant communities attract subsequent migration from the same origin.
+
+Network elasticity estimation addresses the endogeneity concern that diaspora stocks and migration flows are jointly determined: large diaspora stocks may attract new migrants (network effect), but large historical flows mechanically generate large stocks (reverse causality). The analysis employs lagged stock measures and, in robustness checks, instrumental variable approaches using historical settlement patterns as instruments \citep{Card2001}.
+
+% ==============================================================================
+% 2.6 MACHINE LEARNING METHODS
+% ==============================================================================
+
+\subsection{Machine Learning Methods}
+\label{subsec:ml_methods}
+
+Machine learning methods complement traditional regression by providing flexible functional forms and systematic variable selection. The analysis employs three techniques: Elastic Net regularization, Random Forest regression, and K-means clustering.
+
+Elastic Net \citep{ZouHastie2005} combines $L_1$ (Lasso) and $L_2$ (Ridge) penalties, solving:
+\begin{equation}
+\label{eq:elastic_net}
+\hat{\boldsymbol{\beta}} = \arg\min_{\boldsymbol{\beta}} \left\{ \sum_{i=1}^{n} (y_i - \mathbf{x}_i'\boldsymbol{\beta})^2 + \lambda \left[ \alpha \|\boldsymbol{\beta}\|_1 + (1-\alpha) \|\boldsymbol{\beta}\|_2^2 \right] \right\}
+\end{equation}
+where $\lambda$ controls overall regularization strength and $\alpha \in [0,1]$ balances sparsity-inducing $L_1$ penalty against coefficient-shrinking $L_2$ penalty. Cross-validation selects optimal $(\lambda, \alpha)$ values. Coefficients shrunk exactly to zero identify variables excluded from the predictive model.
+
+Random Forest \citep{Breiman2001} aggregates predictions from an ensemble of decision trees, each trained on bootstrap samples with random feature subsets. Feature importance is measured by permutation importance: the decrease in out-of-bag prediction accuracy when feature values are randomly shuffled.
+
+K-means clustering partitions states into groups exhibiting similar migration profiles. The algorithm minimizes within-cluster sum of squared distances to cluster centroids:
+\begin{equation}
+\label{eq:kmeans}
+\arg\min_{\mathcal{C}} \sum_{k=1}^{K} \sum_{i \in C_k} \|\mathbf{x}_i - \boldsymbol{\mu}_k\|^2
+\end{equation}
+where $C_k$ denotes cluster $k$ and $\boldsymbol{\mu}_k$ its centroid. Optimal cluster count $K$ is selected by the silhouette criterion.
+
+% ==============================================================================
+% 2.7 CAUSAL INFERENCE METHODS
+% ==============================================================================
+
+\subsection{Causal Inference Methods}
+\label{subsec:causal_methods}
+
+Causal inference methods estimate the effects of specific policy interventions---the 2017 Travel Ban and the 2020 COVID-19 pandemic---on international migration flows. The analysis employs three identification strategies: difference-in-differences, synthetic control, and Bartik shift-share instruments.
+
+\subsubsection{Difference-in-Differences}
+
+The Travel Ban analysis employs a difference-in-differences (DiD) design comparing refugee arrivals from affected countries (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) to arrivals from unaffected countries, before and after the 2017 implementation. The estimating equation specifies:
+\begin{equation}
+\label{eq:did}
+\ln(y_{ct} + 1) = \alpha_c + \lambda_t + \delta \cdot (\text{Affected}_c \times \text{Post}_t) + \varepsilon_{ct}
+\end{equation}
+where $y_{ct}$ denotes arrivals from country $c$ in year $t$, $\alpha_c$ and $\lambda_t$ are country and year fixed effects, and the coefficient $\delta$ identifies the average treatment effect on the treated (ATT). The logarithmic transformation accommodates the multiplicative nature of policy effects; the addition of unity handles zero arrivals.
+
+Identification requires the parallel trends assumption: absent the Travel Ban, affected and unaffected countries would have exhibited similar trends in arrivals. The analysis evaluates this assumption through pre-treatment trend tests and graphical inspection of pre-period trajectories. Standard errors employ HC3 robust variance estimation to address heteroskedasticity.
+
+\subsubsection{Synthetic Control}
+
+The synthetic control method \citep{AbadieGardeazabal2003, AbadieDiamondHainmueller2010} constructs a counterfactual North Dakota by weighting donor states to match pre-treatment outcomes. Let $y_{it}^{N}$ denote the (unobserved) migration North Dakota would have received absent treatment and $y_{it}^{I}$ the observed outcome. The treatment effect is $\tau_{1t} = y_{1t}^{I} - y_{1t}^{N}$, where $y_{1t}^{N}$ is estimated as a weighted average of donor states:
+\begin{equation}
+\label{eq:synth}
+\hat{y}_{1t}^{N} = \sum_{j=2}^{J+1} w_j^* y_{jt}
+\end{equation}
+with weights $w_j^* \geq 0$, $\sum_j w_j^* = 1$ chosen to minimize pre-treatment discrepancy between North Dakota and the synthetic control. The analysis reports pre-treatment root mean squared prediction error (RMSPE) as a measure of fit quality.
+
+\subsubsection{Bartik Shift-Share Instruments}
+
+To address endogeneity in gravity model estimation, the analysis employs Bartik shift-share instruments \citep{Bartik1991, GoldsmithPinkhamSorkinSwift2020}. The instrument combines national-level ``shifts'' in immigration by origin country with state-level ``shares'' reflecting historical settlement patterns:
+\begin{equation}
+\label{eq:bartik}
+B_{dt} = \sum_{o} \omega_{od,t_0} \cdot g_{o,t}^{\text{US}}
+\end{equation}
+where $\omega_{od,t_0}$ is origin $o$'s share of state $d$'s foreign-born population in base period $t_0$ and $g_{o,t}^{\text{US}}$ is national growth in immigration from origin $o$. The identifying assumption is that national origin-specific immigration trends are exogenous to individual state conditions conditional on covariates---a version of the exclusion restriction that prior work has examined extensively \citep{BorusyakHullJaravel2022}. The analysis reports first-stage F-statistics to assess instrument strength, with values exceeding 10 indicating adequate relevance.
+
+% ==============================================================================
+% 2.8 DURATION ANALYSIS
+% ==============================================================================
+
+\subsection{Duration Analysis}
+\label{subsec:duration_methods}
+
+Duration analysis examines the lifecycle of migration ``waves''---sustained periods of elevated arrivals from specific origin countries. A wave is defined operationally as a period during which arrivals from a nationality exceed 150\% of that nationality's baseline for two or more consecutive years. This definition balances sensitivity (detecting genuine surges) against specificity (avoiding false positives from random fluctuation).
+
+The Kaplan-Meier estimator \citep{KaplanMeier1958} provides nonparametric estimates of the survival function $S(t) = P(T > t)$, where $T$ denotes wave duration:
+\begin{equation}
+\label{eq:km}
+\hat{S}(t) = \prod_{t_i \leq t} \left( 1 - \frac{d_i}{n_i} \right)
+\end{equation}
+where $d_i$ is the number of waves ending at time $t_i$ and $n_i$ is the number at risk. The log-rank test evaluates whether survival curves differ across strata (e.g., intensity quartiles, origin regions).
+
+The Cox proportional hazards model \citep{Cox1972} relates the hazard rate---the instantaneous probability of wave termination conditional on survival---to covariates:
+\begin{equation}
+\label{eq:cox}
+h(t|\mathbf{x}) = h_0(t) \exp(\boldsymbol{\beta}'\mathbf{x})
+\end{equation}
+where $h_0(t)$ is the baseline hazard and $\exp(\beta_j)$ gives the hazard ratio associated with a one-unit increase in covariate $x_j$. Hazard ratios below unity indicate factors prolonging waves; ratios above unity indicate factors accelerating termination. The proportional hazards assumption---that hazard ratios remain constant over time---is evaluated through Schoenfeld residual tests. Model discrimination is assessed by the concordance index (C-statistic), which measures the probability that predicted hazards correctly rank pairs of observations by survival time.
+
+% ==============================================================================
+% 2.9 SCENARIO CONSTRUCTION
+% ==============================================================================
+
+\subsection{Scenario Construction}
+\label{subsec:scenario_methods}
+
+Scenario analysis translates analytical findings into forward-looking projections while explicitly characterizing uncertainty. The analysis develops four policy-indexed scenarios spanning the range of plausible future trajectories:
+
+\begin{enumerate}
+    \item \textbf{CBO Full}: Assumes elevated immigration consistent with Congressional Budget Office projections for national flows, with North Dakota maintaining its historical share. This scenario represents an upper bound predicated on policy liberalization.
+
+    \item \textbf{Moderate}: Applies dampened historical growth rates, reflecting continuation of recent trends with mean reversion toward long-run averages. This scenario represents the central tendency forecast.
+
+    \item \textbf{Pre-2020 Trend}: Extrapolates the 2010--2019 trajectory, effectively treating the COVID period as a temporary deviation. This scenario provides a lower-bound estimate under restrictive policy assumptions.
+
+    \item \textbf{Zero}: Assumes complete cessation of international migration, providing a floor for population projection under extreme policy scenarios.
+\end{enumerate}
+
+Monte Carlo simulation propagates uncertainty through projection models by sampling from estimated parameter distributions. The procedure draws 1,000 realizations of model parameters, generates projected trajectories for each draw, and summarizes the resulting distribution through percentiles. The 50\% credible interval spans the 25th to 75th percentiles; the 95\% credible interval spans the 2.5th to 97.5th percentiles. This approach quantifies forecast uncertainty arising from parameter estimation imprecision while holding the structural model fixed.
+
+Model averaging combines forecasts from multiple specifications using AIC-derived weights:
+\begin{equation}
+\label{eq:model_avg}
+w_m = \frac{\exp(-\Delta_m / 2)}{\sum_{j=1}^{M} \exp(-\Delta_j / 2)}
+\end{equation}
+where $\Delta_m = \text{AIC}_m - \text{AIC}_{\min}$ is the AIC difference between model $m$ and the best-fitting model. Weighted averaging reduces dependence on any single specification while preserving interpretability \citep{HyndmanAthanasopoulos2021}.
+
+% ==============================================================================
+% 2.10 IMPLEMENTATION
+% ==============================================================================
+
+\subsection{Implementation}
+\label{subsec:implementation}
+
+All analyses were conducted in Python 3.11. Time series analysis employed \texttt{statsmodels} for ARIMA, VAR, and unit root tests. Panel data models were estimated using \texttt{linearmodels}. Machine learning methods used \texttt{scikit-learn} for Elastic Net, Random Forest, and clustering. Survival analysis employed the \texttt{lifelines} package for Kaplan-Meier estimation and Cox regression. Structural break detection used the \texttt{ruptures} package. Replication code and data are available in the supplementary materials.

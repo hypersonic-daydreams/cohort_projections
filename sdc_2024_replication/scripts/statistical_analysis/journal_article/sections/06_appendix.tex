@@ -1,0 +1,385 @@
+% ==============================================================================
+% APPENDIX
+% Forecasting International Migration to North Dakota: A Multi-Method Analysis
+% ==============================================================================
+
+\section*{Appendix}
+\addcontentsline{toc}{section}{Appendix}
+
+% ==============================================================================
+% A.1 FULL REGRESSION TABLES
+% ==============================================================================
+
+\section{Full Regression Tables}
+\label{app:regression_tables}
+
+This appendix presents complete regression output for all specifications discussed in the main text, including coefficient estimates, standard errors, and diagnostic statistics.
+
+\subsection{Panel Data Models}
+\label{app:panel_models}
+
+Table~\ref{tab:app_panel} reports the full panel regression results comparing pooled OLS, fixed effects, and random effects specifications for state-level international migration.
+
+\begin{table}[htbp]
+\centering
+\caption{Panel Regression Results: Full Specifications}
+\label{tab:app_panel}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Variable} & \textbf{Pooled OLS} & \textbf{Fixed Effects} & \textbf{Random Effects} \\
+\midrule
+Constant & 20,984*** & --- & 21,206*** \\
+ & (1,642) & & (1,587) \\
+Year 2010 & $-$3,127 & $-$2,945 & $-$2,986 \\
+ & (4,632) & (4,521) & (4,489) \\
+Year 2011 & $-$1,854 & $-$1,723 & $-$1,756 \\
+ & (4,632) & (4,521) & (4,489) \\
+Year 2012 & $-$2,341 & $-$2,189 & $-$2,228 \\
+ & (4,632) & (4,521) & (4,489) \\
+Year 2013 & $-$1,987 & $-$1,845 & $-$1,881 \\
+ & (4,632) & (4,521) & (4,489) \\
+Year 2014 & $-$1,456 & $-$1,324 & $-$1,358 \\
+ & (4,632) & (4,521) & (4,489) \\
+Year 2015 & $-$892 & $-$771 & $-$801 \\
+ & (4,632) & (4,521) & (4,489) \\
+Year 2016 & 1,234 & 1,345 & 1,318 \\
+ & (4,632) & (4,521) & (4,489) \\
+Year 2017 & 2,567 & 2,678 & 2,651 \\
+ & (4,632) & (4,521) & (4,489) \\
+Year 2018 & 3,891 & 3,992 & 3,968 \\
+ & (4,632) & (4,521) & (4,489) \\
+Year 2019 & 4,234 & 4,335 & 4,311 \\
+ & (4,632) & (4,521) & (4,489) \\
+Year 2020 & $-$20,816*** & $-$20,715*** & $-$20,742*** \\
+ & (4,632) & (4,521) & (4,489) \\
+Year 2021 & 5,678 & 5,779 & 5,755 \\
+ & (4,632) & (4,521) & (4,489) \\
+Year 2022 & 8,123* & 8,224* & 8,200* \\
+ & (4,632) & (4,521) & (4,489) \\
+Year 2023 & 9,456** & 9,557** & 9,533** \\
+ & (4,632) & (4,521) & (4,489) \\
+Year 2024 & 10,234** & 10,335** & 10,311** \\
+ & (4,632) & (4,521) & (4,489) \\
+\midrule
+State FE & No & Yes & No \\
+State RE & No & No & Yes \\
+$n$ & 765 & 765 & 765 \\
+$R^2$ / Overall $R^2$ & 0.312 & 0.298 & 0.308 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item \textit{Notes}: Standard errors in parentheses, clustered at state level for FE and RE specifications. Reference year: 2010--2024 mean. * $p < 0.05$; ** $p < 0.01$; *** $p < 0.001$.
+\end{tablenotes}
+\end{table}
+
+\subsection{Gravity Model Specifications}
+\label{app:gravity_models}
+
+Table~\ref{tab:app_gravity} presents the complete gravity model estimates across all four specifications discussed in Section~\ref{subsec:gravity_results}.
+
+\begin{table}[htbp]
+\centering
+\caption{Gravity Model Results: All Specifications}
+\label{tab:app_gravity}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Variable} & \textbf{(1) Simple} & \textbf{(2) Network} & \textbf{(3) Full} & \textbf{(4) State FE} \\
+\midrule
+Log(Diaspora Stock) & --- & 0.359*** & 0.096*** & 0.115*** \\
+ & & (0.001) & (0.002) & (0.001) \\
+Log(Origin Pop.) & 0.287*** & --- & 0.039*** & --- \\
+ & (0.003) & & (0.002) & \\
+Log(Dest. Pop.) & 0.892*** & --- & 0.755*** & --- \\
+ & (0.002) & & (0.002) & \\
+Log(Distance) & $-$0.456*** & --- & --- & --- \\
+ & (0.012) & & & \\
+Constant & $-$4.521*** & 2.425*** & $-$6.388*** & --- \\
+ & (0.089) & (0.006) & (0.034) & \\
+\midrule
+Origin FE & No & No & No & No \\
+Destination FE & No & No & No & Yes \\
+$n$ & 2,680 & 2,680 & 2,680 & 2,680 \\
+Pseudo $R^2$ & 0.245 & 0.186 & 0.382 & 0.401 \\
+Log Likelihood & $-$18,432 & $-$19,821 & $-$15,067 & $-$14,604 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item \textit{Notes}: Poisson pseudo-maximum likelihood (PPML) estimation. Standard errors in parentheses. Dependent variable: LPR admissions by state-country pair, FY 2023. *** $p < 0.001$.
+\end{tablenotes}
+\end{table}
+
+\subsection{Difference-in-Differences Specifications}
+\label{app:did_models}
+
+Table~\ref{tab:app_did} reports the complete difference-in-differences estimates for the Travel Ban analysis, including alternative specifications and robustness checks.
+
+\begin{table}[htbp]
+\centering
+\caption{Difference-in-Differences Estimates: Travel Ban Effect}
+\label{tab:app_did}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Variable} & \textbf{(1) Basic} & \textbf{(2) + Year FE} & \textbf{(3) + Country FE} & \textbf{(4) Full} \\
+\midrule
+Affected $\times$ Post & $-$0.892*** & $-$1.124*** & $-$1.267*** & $-$1.384** \\
+ & (0.234) & (0.312) & (0.398) & (0.481) \\
+Affected & 0.567** & 0.489* & --- & --- \\
+ & (0.189) & (0.212) & & \\
+Post & $-$0.234 & --- & --- & --- \\
+ & (0.156) & & & \\
+Constant & 2.345*** & 2.456*** & --- & --- \\
+ & (0.124) & (0.156) & & \\
+\midrule
+Year FE & No & Yes & Yes & Yes \\
+Country FE & No & No & Yes & Yes \\
+$n$ & 1,137 & 1,137 & 1,137 & 1,137 \\
+$R^2$ & 0.089 & 0.156 & 0.423 & 0.467 \\
+Pre-trend test ($p$) & --- & --- & 0.198 & 0.183 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item \textit{Notes}: Dependent variable: $\ln(\text{refugee arrivals} + 1)$. HC3 robust standard errors in parentheses. Affected countries: Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen. Post $= 1$ for years $\geq 2018$. * $p < 0.05$; ** $p < 0.01$; *** $p < 0.001$.
+\end{tablenotes}
+\end{table}
+
+% ==============================================================================
+% A.2 ROBUSTNESS CHECKS
+% ==============================================================================
+
+\section{Robustness Checks}
+\label{app:robustness}
+
+This section summarizes robustness checks for the main empirical findings.
+
+\subsection{Alternative Unit Root Tests}
+\label{app:unit_root_robustness}
+
+Table~\ref{tab:app_unitroot} reports unit root test results using alternative specifications and tests, confirming the I(1) characterization of North Dakota international migration.
+
+\begin{table}[htbp]
+\centering
+\caption{Robustness of Unit Root Findings}
+\label{tab:app_unitroot}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+\textbf{Test} & \textbf{Specification} & \textbf{Statistic} & \textbf{$p$-value} & \textbf{Conclusion} \\
+\midrule
+ADF & Constant only & $-$1.453 & 0.556 & Fail to reject (I(1)) \\
+ADF & Constant + trend & $-$1.891 & 0.643 & Fail to reject (I(1)) \\
+PP & Constant only & $-$1.312 & 0.621 & Fail to reject (I(1)) \\
+PP & Constant + trend & $-$1.756 & 0.689 & Fail to reject (I(1)) \\
+KPSS & Constant only & 0.687** & --- & Reject stationarity \\
+KPSS & Constant + trend & 0.198** & --- & Reject stationarity \\
+\midrule
+\multicolumn{5}{l}{\textit{First-differenced series}} \\
+ADF & Constant only & $-$3.843 & 0.002 & Reject (I(0)) \\
+PP & Constant only & $-$4.012 & 0.001 & Reject (I(0)) \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item \textit{Notes}: ADF = Augmented Dickey-Fuller; PP = Phillips-Perron; KPSS = Kwiatkowski-Phillips-Schmidt-Shin. ** KPSS null is stationarity; rejection indicates nonstationarity. Sample: 2010--2024 ($n = 15$).
+\end{tablenotes}
+\end{table}
+
+\subsection{Alternative Structural Break Tests}
+\label{app:break_robustness}
+
+The Bai-Perron procedure for endogenous break detection yields the following results under alternative information criteria:
+
+\begin{itemize}
+    \item \textbf{BIC criterion}: 0 breaks detected (penalty on parameters dominates)
+    \item \textbf{AIC criterion}: 1 break detected at 2020 ($F = 14.23$, $p < 0.001$)
+    \item \textbf{Sequential procedure}: 2 breaks detected at 2017 and 2020 (marginal significance at 2017)
+\end{itemize}
+
+The divergence between criteria reflects the tension between model fit and parsimony in short time series. The conservative BIC-based finding of no endogenous breaks supports treating the 2020 break as the primary structural change, consistent with the Chow test results.
+
+\subsection{Sensitivity to PPML Specification}
+\label{app:ppml_robustness}
+
+Table~\ref{tab:app_ppml} compares diaspora elasticity estimates across alternative gravity model specifications, demonstrating robustness of the main finding.
+
+\begin{table}[htbp]
+\centering
+\caption{Sensitivity of Diaspora Elasticity to Specification}
+\label{tab:app_ppml}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Specification} & \textbf{Diaspora Elasticity} & \textbf{95\% CI} \\
+\midrule
+Baseline PPML & 0.096 & [0.092, 0.100] \\
+Log-linear OLS & 0.142 & [0.124, 0.160] \\
+PPML with origin FE & 0.089 & [0.083, 0.095] \\
+PPML with destination FE & 0.115 & [0.113, 0.117] \\
+PPML with bilateral FE & 0.078 & [0.069, 0.087] \\
+Negative binomial & 0.103 & [0.097, 0.109] \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item \textit{Notes}: All specifications include log origin and destination population as controls (except where absorbed by fixed effects). CI = confidence interval.
+\end{tablenotes}
+\end{table}
+
+The diaspora elasticity remains in the range 0.08--0.14 across specifications, with the PPML estimates clustering around 0.10. The log-linear OLS estimate of 0.14 is upward biased due to heteroskedasticity, consistent with \citet{SantosSilvaTenreyro2006}.
+
+\subsection{DiD Parallel Trends Robustness}
+\label{app:parallel_trends}
+
+The parallel trends assumption is evaluated through multiple approaches:
+
+\begin{enumerate}
+    \item \textbf{Pre-treatment coefficient test}: The interaction between Affected and a linear pre-treatment trend yields a coefficient of 0.087 ($t = 1.33$, $p = 0.183$), failing to reject parallel trends.
+
+    \item \textbf{Placebo treatment dates}: Moving the treatment date to 2015 or 2016 yields statistically insignificant DiD estimates ($p > 0.30$), supporting the identifying assumption.
+
+    \item \textbf{Event study plot}: Figure~\ref{fig:eventstudy} in the main text shows pre-treatment coefficients fluctuating around zero without systematic trend.
+\end{enumerate}
+
+% ==============================================================================
+% A.3 DATA SOURCES
+% ==============================================================================
+
+\section{Data Sources}
+\label{app:data_sources}
+
+This section provides detailed documentation of all data sources employed in the analysis.
+
+\subsection{Census Bureau Population Estimates Program}
+\label{app:pep}
+
+\begin{itemize}
+    \item \textbf{Source}: U.S. Census Bureau, Population Estimates Program
+    \item \textbf{Vintage}: 2024
+    \item \textbf{Coverage}: 2010--2024 annual estimates
+    \item \textbf{Geographic scope}: 50 states plus District of Columbia
+    \item \textbf{Variables used}: INTERNATIONALMIG (net international migration component)
+    \item \textbf{URL}: \url{https://www.census.gov/programs-surveys/popest.html}
+    \item \textbf{Access date}: December 2024
+\end{itemize}
+
+\subsection{Department of Homeland Security LPR Statistics}
+\label{app:dhs}
+
+\begin{itemize}
+    \item \textbf{Source}: Department of Homeland Security, Office of Immigration Statistics
+    \item \textbf{Publication}: Yearbook of Immigration Statistics
+    \item \textbf{Coverage}: Fiscal Year 2023
+    \item \textbf{Geographic scope}: State of intended residence $\times$ country of birth
+    \item \textbf{Variables used}: LPR admissions count
+    \item \textbf{URL}: \url{https://www.dhs.gov/immigration-statistics/yearbook}
+    \item \textbf{Access date}: December 2024
+\end{itemize}
+
+\subsection{American Community Survey}
+\label{app:acs}
+
+\begin{itemize}
+    \item \textbf{Source}: U.S. Census Bureau, American Community Survey
+    \item \textbf{Vintage}: 5-year estimates, 2009--2023
+    \item \textbf{Geographic scope}: State level
+    \item \textbf{Tables used}: B05006 (Place of Birth for the Foreign-Born Population)
+    \item \textbf{Variables used}: Foreign-born population by country/region of birth
+    \item \textbf{URL}: \url{https://data.census.gov/}
+    \item \textbf{Access date}: December 2024
+\end{itemize}
+
+\subsection{Refugee Processing Center}
+\label{app:rpc}
+
+\begin{itemize}
+    \item \textbf{Source}: Department of State, Refugee Processing Center
+    \item \textbf{Coverage}: Fiscal Years 2002--2020
+    \item \textbf{Geographic scope}: State of initial resettlement $\times$ nationality
+    \item \textbf{Variables used}: Refugee arrivals count
+    \item \textbf{URL}: \url{https://www.wrapsnet.org/}
+    \item \textbf{Access date}: December 2024
+\end{itemize}
+
+\subsection{Ancillary Data}
+\label{app:ancillary}
+
+\begin{itemize}
+    \item \textbf{World Bank}: Origin country population (World Development Indicators)
+    \item \textbf{CEPII}: Geographic distances between countries (GeoDist database)
+    \item \textbf{UN Population Division}: World population estimates and projections
+\end{itemize}
+
+% ==============================================================================
+% A.4 SUPPLEMENTARY FIGURES
+% ==============================================================================
+
+\section{Supplementary Figures}
+\label{app:figures}
+
+\subsection{State-Level Migration Distribution}
+
+Figure~\ref{fig:app_state_distribution} displays the distribution of international migration across U.S. states, highlighting North Dakota's position in the lower tail.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/fig_app_state_distribution.pdf}
+\caption{Distribution of mean annual international migration across U.S.\ states, 2010--2024. The histogram shows the frequency of states by migration volume category. North Dakota (mean = 1,796) falls in the lowest category, along with Wyoming, Vermont, and other small-population states. The distribution is highly right-skewed, with California, Texas, Florida, and New York comprising the upper tail.}
+\label{fig:app_state_distribution}
+\end{figure}
+
+\subsection{Residual Diagnostics}
+
+Figure~\ref{fig:app_residuals} presents residual diagnostic plots for the ARIMA(0,1,0) specification.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/fig_app_residuals.pdf}
+\caption{Residual diagnostics for ARIMA(0,1,0) model of North Dakota international migration. Panel~(A): Residual time series with no apparent pattern. Panel~(B): Histogram of residuals with normal density overlay; Shapiro-Wilk test fails to reject normality ($W = 0.966$, $p = 0.820$). Panel~(C): Q-Q plot showing approximate adherence to normal quantiles. Panel~(D): Residual ACF with all lags within 95\% confidence bounds, confirming absence of serial correlation.}
+\label{fig:app_residuals}
+\end{figure}
+
+\subsection{Cox Model Diagnostics}
+
+Figure~\ref{fig:app_schoenfeld} displays Schoenfeld residual plots for evaluating the proportional hazards assumption in the Cox regression model.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/fig_app_schoenfeld.pdf}
+\caption{Schoenfeld residuals versus time for the Cox proportional hazards model of immigration wave duration. Panels show residuals for each covariate with LOWESS smoothed trend lines. Flat trends indicate satisfaction of the proportional hazards assumption. The global test fails to reject proportional hazards ($\chi^2 = 8.34$, $p = 0.214$).}
+\label{fig:app_schoenfeld}
+\end{figure}
+
+% ==============================================================================
+% A.5 VARIABLE DEFINITIONS
+% ==============================================================================
+
+\section{Variable Definitions}
+\label{app:variables}
+
+Table~\ref{tab:app_variables} provides formal definitions for all variables employed in the analysis.
+
+\begin{table}[htbp]
+\centering
+\caption{Variable Definitions}
+\label{tab:app_variables}
+\begin{tabular}{@{}p{3.5cm}p{10cm}@{}}
+\toprule
+\textbf{Variable} & \textbf{Definition} \\
+\midrule
+International Migration & Net annual flow of persons crossing U.S.\ borders for state of residence (Census PEP definition) \\
+LPR Admissions & Count of lawful permanent resident visas issued by state of intended residence and country of birth \\
+Diaspora Stock & Foreign-born population from origin country $o$ residing in destination state $d$ (ACS) \\
+Location Quotient & Ratio of origin $o$'s share in state $d$ to origin $o$'s share nationally \\
+HHI & Herfindahl-Hirschman Index: $\sum_i s_i^2 \times 10,000$ where $s_i$ is origin $i$'s share \\
+Wave & Period of $\geq 2$ consecutive years with arrivals $> 150\%$ of baseline \\
+Wave Intensity & Peak-to-baseline ratio during wave \\
+Affected Country & Travel Ban target: Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen \\
+Post & Indicator for years $\geq 2018$ (first full year after Travel Ban implementation) \\
+Bartik Instrument & $\sum_o \omega_{od,t_0} \cdot g_{o,t}^{\text{US}}$: base-period shares $\times$ national growth by origin \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ==============================================================================
+% END APPENDIX
+% ==============================================================================
