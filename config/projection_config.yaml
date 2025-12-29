@@ -134,6 +134,19 @@ scenarios:
     migration: "zero"
     active: false
 
+  sdc_2024:
+    name: "SDC 2024 Methodology"
+    description: "Replicates ND State Data Center 2024 projections methodology"
+    # Uses SDC's extracted rates from data/processed/sdc_2024/
+    fertility: "sdc_2024_blended"  # SDC blended rates (ND + national)
+    mortality: "constant"  # SDC uses constant mortality (no improvement)
+    migration: "sdc_2024_dampened"  # SDC 60% Bakken-dampened rates (net in-migration)
+    # Key methodology differences from our baseline:
+    # - Migration: SDC uses 2000-2020 Census residual with 60% dampening → net IN-migration
+    # - Our baseline uses 2019-2022 IRS data → net OUT-migration
+    # - This difference accounts for ~170,000 people by 2045
+    active: false  # Set to true to include in projection runs
+
 output:
   # Basic output settings
   formats:
