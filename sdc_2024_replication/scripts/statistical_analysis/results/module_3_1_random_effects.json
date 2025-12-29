@@ -1,0 +1,38 @@
+{
+  "model_type": "Random Effects (GLS)",
+  "panel_info": {
+    "n_entities": 51,
+    "n_periods": 15,
+    "n_observations": 765,
+    "balanced": true
+  },
+  "coefficients": {
+    "const": {
+      "estimate": 19818.513725490193,
+      "se": 4293.087530226974,
+      "t": 4.616377743512347,
+      "p_value": 4.579871517140788e-06,
+      "ci_95": [
+        11390.865674992287,
+        28246.161775988097
+      ]
+    }
+  },
+  "r_squared": {
+    "within": 0.0,
+    "between": 0.0,
+    "overall": 0.0
+  },
+  "variance_components": {
+    "sigma2_entity": 905020293.9653348,
+    "sigma2_residual": 787293981.0380951,
+    "theta": 0.7658727536908614
+  },
+  "breusch_pagan_lm": {
+    "statistic": 1501.7433176269728,
+    "df": 1,
+    "p_value": 0.0,
+    "interpretation": "Reject H0 (RE needed)"
+  },
+  "cluster_robust_se": true
+}

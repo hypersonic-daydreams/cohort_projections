@@ -1,0 +1,622 @@
+{
+  "module": "8",
+  "analysis": "duration_analysis_survival",
+  "generated": "2025-12-29T06:19:45.794597+00:00",
+  "input_files": [
+    "refugee_arrivals_by_state_nationality.parquet",
+    "acs_foreign_born_by_state_origin.parquet"
+  ],
+  "parameters": {
+    "wave_definition": {
+      "threshold_percent_above_baseline": 50.0,
+      "minimum_consecutive_years": 2,
+      "baseline_calculation": "median of first half of observation period"
+    },
+    "survival_analysis": {
+      "method": "Kaplan-Meier",
+      "censoring": "right censoring for ongoing waves at end of data period",
+      "cox_covariates": [
+        "log_intensity",
+        "high_intensity",
+        "early_wave",
+        "peak_arrivals",
+        "nationality_region",
+        "state_region"
+      ]
+    },
+    "data_period": {
+      "start_year": 2002,
+      "end_year": 2020
+    }
+  },
+  "results": {
+    "wave_identification": {
+      "total_waves_identified": 940,
+      "unique_nationalities": 56,
+      "unique_states": 48,
+      "mean_wave_duration": 3.5393617021276595,
+      "max_wave_duration": 13,
+      "censored_waves": 94
+    },
+    "kaplan_meier": {
+      "overall_summary": {
+        "n_subjects": 940,
+        "n_events": 846,
+        "n_censored": 94,
+        "censoring_rate": 10.0,
+        "median_survival_years": 3.0,
+        "median_survival_95ci": null,
+        "mean_duration": 3.5393617021276595,
+        "max_duration": 13,
+        "min_duration": 2
+      },
+      "life_table": [
+        {
+          "time_years": 1,
+          "n_at_risk": 940,
+          "n_events": 0,
+          "n_censored": 0,
+          "survival_probability": 1.0,
+          "ci_95_lower": null,
+          "ci_95_upper": null
+        },
+        {
+          "time_years": 2,
+          "n_at_risk": 940,
+          "n_events": 455,
+          "n_censored": 14,
+          "survival_probability": 0.5159574468085106,
+          "ci_95_lower": 0.4835315851480659,
+          "ci_95_upper": 0.5473749398559751
+        },
+        {
+          "time_years": 3,
+          "n_at_risk": 471,
+          "n_events": 181,
+          "n_censored": 5,
+          "survival_probability": 0.3176808058905904,
+          "ci_95_lower": 0.2878899020957237,
+          "ci_95_upper": 0.3478353254438474
+        },
+        {
+          "time_years": 4,
+          "n_at_risk": 285,
+          "n_events": 91,
+          "n_censored": 3,
+          "survival_probability": 0.21624588190447203,
+          "ci_95_lower": 0.1901518823388554,
+          "ci_95_upper": 0.24348300049728872
+        },
+        {
+          "time_years": 5,
+          "n_at_risk": 191,
+          "n_events": 35,
+          "n_censored": 9,
+          "survival_probability": 0.17661967317852165,
+          "ci_95_lower": 0.1525626844506243,
+          "ci_95_upper": 0.20215177642870424
+        },
+        {
+          "time_years": 6,
+          "n_at_risk": 147,
+          "n_events": 29,
+          "n_censored": 10,
+          "survival_probability": 0.14177633629296305,
+          "ci_95_lower": 0.1197676145071941,
+          "ci_95_upper": 0.1655938459866632
+        },
+        {
+          "time_years": 7,
+          "n_at_risk": 108,
+          "n_events": 7,
+          "n_censored": 10,
+          "survival_probability": 0.13258712931101174,
+          "ci_95_lower": 0.11112939704651743,
+          "ci_95_upper": 0.1559598346885874
+        },
+        {
+          "time_years": 8,
+          "n_at_risk": 91,
+          "n_events": 10,
+          "n_censored": 13,
+          "survival_probability": 0.11801711510101053,
+          "ci_95_lower": 0.09738465345213887,
+          "ci_95_upper": 0.14077128140824685
+        },
+        {
+          "time_years": 9,
+          "n_at_risk": 68,
+          "n_events": 8,
+          "n_censored": 11,
+          "survival_probability": 0.10413274861853865,
+          "ci_95_lower": 0.08416593749327285,
+          "ci_95_upper": 0.12649880520579335
+        },
+        {
+          "time_years": 10,
+          "n_at_risk": 49,
+          "n_events": 20,
+          "n_censored": 3,
+          "survival_probability": 0.06162958591709432,
+          "ci_95_lower": 0.04445160351572917,
+          "ci_95_upper": 0.08256552052629569
+        },
+        {
+          "time_years": 11,
+          "n_at_risk": 26,
+          "n_events": 9,
+          "n_censored": 7,
+          "survival_probability": 0.040296267715023204,
+          "ci_95_lower": 0.025822963576129315,
+          "ci_95_upper": 0.05956676153578599
+        },
+        {
+          "time_years": 12,
+          "n_at_risk": 10,
+          "n_events": 1,
+          "n_censored": 8,
+          "survival_probability": 0.03626664094352088,
+          "ci_95_lower": 0.022011346644022847,
+          "ci_95_upper": 0.055974773697811925
+        },
+        {
+          "time_years": 13,
+          "n_at_risk": 1,
+          "n_events": 0,
+          "n_censored": 1,
+          "survival_probability": 0.03626664094352088,
+          "ci_95_lower": 0.022011346644022847,
+          "ci_95_upper": 0.055974773697811925
+        }
+      ],
+      "method": "Kaplan-Meier product-limit estimator",
+      "confidence_level": 0.95
+    },
+    "kaplan_meier_by_region": {
+      "group_variable": "nationality_region",
+      "groups": {
+        "Middle East": {
+          "n_subjects": 174,
+          "n_events": 146,
+          "median_survival": 3.0,
+          "mean_duration": 4.137931034482759
+        },
+        "Asia": {
+          "n_subjects": 67,
+          "n_events": 67,
+          "median_survival": 3.0,
+          "mean_duration": 4.2835820895522385
+        },
+        "Africa": {
+          "n_subjects": 353,
+          "n_events": 312,
+          "median_survival": 3.0,
+          "mean_duration": 3.991501416430595
+        },
+        "Europe": {
+          "n_subjects": 55,
+          "n_events": 52,
+          "median_survival": 2.0,
+          "mean_duration": 2.4
+        },
+        "Other": {
+          "n_subjects": 259,
+          "n_events": 237,
+          "median_survival": 2.0,
+          "mean_duration": 2.72972972972973
+        },
+        "Americas": {
+          "n_subjects": 32,
+          "n_events": 32,
+          "median_survival": 2.0,
+          "mean_duration": 2.25
+        }
+      },
+      "log_rank_test": {
+        "test_statistic": 89.67706532074526,
+        "p_value": 7.855240900207938e-18,
+        "degrees_of_freedom": 5,
+        "significant_at_05": "True"
+      },
+      "km_fitters": {
+        "Middle East": "<lifelines.KaplanMeierFitter:\"Middle East\", fitted with 174 total observations, 28 right-censored observations>",
+        "Asia": "<lifelines.KaplanMeierFitter:\"Asia\", fitted with 67 total observations, 0 right-censored observations>",
+        "Africa": "<lifelines.KaplanMeierFitter:\"Africa\", fitted with 353 total observations, 41 right-censored observations>",
+        "Europe": "<lifelines.KaplanMeierFitter:\"Europe\", fitted with 55 total observations, 3 right-censored observations>",
+        "Other": "<lifelines.KaplanMeierFitter:\"Other\", fitted with 259 total observations, 22 right-censored observations>",
+        "Americas": "<lifelines.KaplanMeierFitter:\"Americas\", fitted with 32 total observations, 0 right-censored observations>"
+      }
+    },
+    "kaplan_meier_by_intensity": {
+      "group_variable": "intensity_quartile",
+      "groups": {
+        "Q1 (Low)": {
+          "n_subjects": 247,
+          "n_events": 246,
+          "median_survival": 2.0,
+          "mean_duration": 2.42914979757085
+        },
+        "Q3": {
+          "n_subjects": 236,
+          "n_events": 223,
+          "median_survival": 3.0,
+          "mean_duration": 3.6059322033898304
+        },
+        "Q4 (High)": {
+          "n_subjects": 234,
+          "n_events": 160,
+          "median_survival": 4.0,
+          "mean_duration": 5.35042735042735
+        },
+        "Q2": {
+          "n_subjects": 223,
+          "n_events": 217,
+          "median_survival": 2.0,
+          "mean_duration": 2.798206278026906
+        }
+      },
+      "log_rank_test": {
+        "test_statistic": 278.7443670491838,
+        "p_value": 3.9584267764539434e-60,
+        "degrees_of_freedom": 3,
+        "significant_at_05": "True"
+      },
+      "km_fitters": {
+        "Q1 (Low)": "<lifelines.KaplanMeierFitter:\"Q1 (Low)\", fitted with 247 total observations, 1 right-censored observations>",
+        "Q3": "<lifelines.KaplanMeierFitter:\"Q3\", fitted with 236 total observations, 13 right-censored observations>",
+        "Q4 (High)": "<lifelines.KaplanMeierFitter:\"Q4 (High)\", fitted with 234 total observations, 74 right-censored observations>",
+        "Q2": "<lifelines.KaplanMeierFitter:\"Q2\", fitted with 223 total observations, 6 right-censored observations>"
+      }
+    },
+    "kaplan_meier_by_timing": {
+      "group_variable": "early_wave",
+      "groups": {
+        "0": {
+          "n_subjects": 433,
+          "n_events": 359,
+          "median_survival": 3.0,
+          "mean_duration": 3.5450346420323324
+        },
+        "1": {
+          "n_subjects": 507,
+          "n_events": 487,
+          "median_survival": 2.0,
+          "mean_duration": 3.534516765285996
+        }
+      },
+      "log_rank_test": {
+        "test_statistic": 10.486225938263882,
+        "p_value": 0.0012026778915378675,
+        "degrees_of_freedom": 1,
+        "significant_at_05": "True"
+      }
+    },
+    "cox_proportional_hazards": {
+      "model_type": "Cox Proportional Hazards",
+      "coefficient_table": {
+        "log_intensity": {
+          "coefficient": -0.8869125161085291,
+          "hazard_ratio": 0.4119256050894812,
+          "std_error": 0.09488463855318664,
+          "z_statistic": -9.34727190441242,
+          "p_value": 8.99375132135104e-21,
+          "hr_ci_95_lower": 0.3420210512816074,
+          "hr_ci_95_upper": 0.4961177199254462
+        },
+        "high_intensity": {
+          "coefficient": 0.024929142620664244,
+          "hazard_ratio": 1.025242471955869,
+          "std_error": 0.12767420218957684,
+          "z_statistic": 0.1952559106940668,
+          "p_value": 0.8451926108679167,
+          "hr_ci_95_lower": 0.7982705567679182,
+          "hr_ci_95_upper": 1.316749211643258
+        },
+        "early_wave": {
+          "coefficient": 0.3078572503129925,
+          "hazard_ratio": 1.3605067631600327,
+          "std_error": 0.07386103844605026,
+          "z_statistic": 4.168060140907148,
+          "p_value": 3.0720288999311804e-05,
+          "hr_ci_95_lower": 1.1771453058755719,
+          "hr_ci_95_upper": 1.5724300503644397
+        },
+        "peak_arrivals": {
+          "coefficient": -0.4219068931449047,
+          "hazard_ratio": 0.6557950955699587,
+          "std_error": 0.11797498209892578,
+          "z_statistic": -3.576240365869455,
+          "p_value": 0.0003485711736633715,
+          "hr_ci_95_lower": 0.5204124497864817,
+          "hr_ci_95_upper": 0.8263968464821743
+        },
+        "nationality_region_Americas": {
+          "coefficient": 0.5368546615931535,
+          "hazard_ratio": 1.7106179193620354,
+          "std_error": 0.19128321610600918,
+          "z_statistic": 2.8065957511694526,
+          "p_value": 0.005006802990364509,
+          "hr_ci_95_lower": 1.1757972723733479,
+          "hr_ci_95_upper": 2.4887059485483705
+        },
+        "nationality_region_Asia": {
+          "coefficient": -0.2799717451011243,
+          "hazard_ratio": 0.755805096350601,
+          "std_error": 0.14913311995535888,
+          "z_statistic": -1.877327753787558,
+          "p_value": 0.06047318661403387,
+          "hr_ci_95_lower": 0.5642446814997957,
+          "hr_ci_95_upper": 1.0124000498350256
+        },
+        "nationality_region_Europe": {
+          "coefficient": 0.4500500006307893,
+          "hazard_ratio": 1.5683906040491902,
+          "std_error": 0.1550881540146248,
+          "z_statistic": 2.901897978541608,
+          "p_value": 0.0037090931272734506,
+          "hr_ci_95_lower": 1.157292012876973,
+          "hr_ci_95_upper": 2.1255215274101094
+        },
+        "nationality_region_Middle East": {
+          "coefficient": 0.1375345493554996,
+          "hazard_ratio": 1.147441348646323,
+          "std_error": 0.10189014373254114,
+          "z_statistic": 1.3498317336417158,
+          "p_value": 0.1770699632422349,
+          "hr_ci_95_lower": 0.9397264443318588,
+          "hr_ci_95_upper": 1.401069062730702
+        },
+        "nationality_region_Other": {
+          "coefficient": 0.5087493541010575,
+          "hazard_ratio": 1.6632098071532297,
+          "std_error": 0.09363436794824198,
+          "z_statistic": 5.433361331410679,
+          "p_value": 5.530226313982551e-08,
+          "hr_ci_95_lower": 1.3843481308654215,
+          "hr_ci_95_upper": 1.9982450952430293
+        },
+        "state_region_Northeast": {
+          "coefficient": -0.09715111258818476,
+          "hazard_ratio": 0.9074188733577685,
+          "std_error": 0.14031805367868636,
+          "z_statistic": -0.6923635985619544,
+          "p_value": 0.48870901970377767,
+          "hr_ci_95_lower": 0.6892374453560215,
+          "hr_ci_95_upper": 1.1946666816695586
+        },
+        "state_region_Other": {
+          "coefficient": 0.08196413614408432,
+          "hazard_ratio": 1.0854168818968395,
+          "std_error": 0.10534146291747255,
+          "z_statistic": 0.7780804810760727,
+          "p_value": 0.43652156886562377,
+          "hr_ci_95_lower": 0.8829370806554062,
+          "hr_ci_95_upper": 1.334330422086395
+        },
+        "state_region_South": {
+          "coefficient": 0.024903261996922825,
+          "hazard_ratio": 1.025215938384563,
+          "std_error": 0.11610552544370338,
+          "z_statistic": 0.21448817273556703,
+          "p_value": 0.8301663891500295,
+          "hr_ci_95_lower": 0.8165563243516698,
+          "hr_ci_95_upper": 1.2871956152593242
+        },
+        "state_region_West": {
+          "coefficient": -0.10321984419595252,
+          "hazard_ratio": 0.9019286679013484,
+          "std_error": 0.12940341601028574,
+          "z_statistic": -0.7976593460851761,
+          "p_value": 0.42506820175115345,
+          "hr_ci_95_lower": 0.6998803556463181,
+          "hr_ci_95_upper": 1.1623062648059055
+        }
+      },
+      "fit_statistics": {
+        "log_likelihood": -4877.809233034444,
+        "aic": 9781.618466068889,
+        "bic": 9844.61490444732,
+        "concordance_index": 0.7692550588546488,
+        "concordance_se": null,
+        "n_observations": 940,
+        "n_events": 846
+      },
+      "proportional_hazards_test": {
+        "test": "Schoenfeld residuals",
+        "results_by_variable": {
+          "log_intensity": {
+            "test_statistic": null,
+            "p_value": null,
+            "assumption_violated": false
+          },
+          "high_intensity": {
+            "test_statistic": null,
+            "p_value": null,
+            "assumption_violated": false
+          },
+          "early_wave": {
+            "test_statistic": null,
+            "p_value": null,
+            "assumption_violated": false
+          },
+          "peak_arrivals": {
+            "test_statistic": null,
+            "p_value": null,
+            "assumption_violated": false
+          },
+          "nationality_region_Americas": {
+            "test_statistic": null,
+            "p_value": null,
+            "assumption_violated": false
+          },
+          "nationality_region_Asia": {
+            "test_statistic": null,
+            "p_value": null,
+            "assumption_violated": false
+          },
+          "nationality_region_Europe": {
+            "test_statistic": null,
+            "p_value": null,
+            "assumption_violated": false
+          },
+          "nationality_region_Middle East": {
+            "test_statistic": null,
+            "p_value": null,
+            "assumption_violated": false
+          },
+          "nationality_region_Other": {
+            "test_statistic": null,
+            "p_value": null,
+            "assumption_violated": false
+          },
+          "state_region_Northeast": {
+            "test_statistic": null,
+            "p_value": null,
+            "assumption_violated": false
+          },
+          "state_region_Other": {
+            "test_statistic": null,
+            "p_value": null,
+            "assumption_violated": false
+          },
+          "state_region_South": {
+            "test_statistic": null,
+            "p_value": null,
+            "assumption_violated": false
+          },
+          "state_region_West": {
+            "test_statistic": null,
+            "p_value": null,
+            "assumption_violated": false
+          }
+        },
+        "global_test_passed": true
+      },
+      "interpretation": {
+        "concordance": "Good",
+        "significant_predictors": [
+          "log_intensity",
+          "early_wave",
+          "peak_arrivals",
+          "nationality_region_Americas",
+          "nationality_region_Europe",
+          "nationality_region_Other"
+        ]
+      }
+    },
+    "lifecycle_analysis": {
+      "aggregate_statistics": {
+        "mean_time_to_peak": 2.1893617021276595,
+        "median_time_to_peak": 2.0,
+        "mean_initiation_share": 0.28145599081769296,
+        "mean_decline_share": 0.3490800186810825,
+        "mean_total_duration": 3.5393617021276595
+      },
+      "by_nationality": {
+        "Iraq": {
+          "mean_duration": 5.280701754385965,
+          "mean_time_to_peak": 2.8421052631578947,
+          "total_peak_arrivals": 26931.0
+        },
+        "Burma": {
+          "mean_duration": 5.525,
+          "mean_time_to_peak": 3.25,
+          "total_peak_arrivals": 23737.0
+        },
+        "Somalia": {
+          "mean_duration": 3.2903225806451615,
+          "mean_time_to_peak": 2.2096774193548385,
+          "total_peak_arrivals": 22004.0
+        },
+        "Democratic Republic of the Congo": {
+          "mean_duration": 6.483333333333333,
+          "mean_time_to_peak": 4.35,
+          "total_peak_arrivals": 18533.0
+        },
+        "USSR": {
+          "mean_duration": 2.375,
+          "mean_time_to_peak": 1.5,
+          "total_peak_arrivals": 14172.0
+        },
+        "Syria": {
+          "mean_duration": 4.324324324324325,
+          "mean_time_to_peak": 2.27027027027027,
+          "total_peak_arrivals": 12365.0
+        },
+        "Laos": {
+          "mean_duration": 2.6,
+          "mean_time_to_peak": 1.0,
+          "total_peak_arrivals": 8672.0
+        },
+        "Liberia": {
+          "mean_duration": 3.085714285714286,
+          "mean_time_to_peak": 1.8571428571428572,
+          "total_peak_arrivals": 6529.0
+        },
+        "Iran": {
+          "mean_duration": 2.806451612903226,
+          "mean_time_to_peak": 1.967741935483871,
+          "total_peak_arrivals": 6234.0
+        },
+        "Burundi": {
+          "mean_duration": 2.238095238095238,
+          "mean_time_to_peak": 1.2619047619047619,
+          "total_peak_arrivals": 5410.0
+        }
+      },
+      "n_waves_analyzed": 940
+    }
+  },
+  "diagnostics": {
+    "sample_sizes": {
+      "total_waves": 940,
+      "survival_analysis_n": 940,
+      "cox_model_n": 940
+    },
+    "censoring": {
+      "rate": 10.0,
+      "reason": "Wave ongoing at end of data period (FY2020)"
+    },
+    "model_fit": {
+      "concordance_index": 0.7692550588546488,
+      "aic": 9781.618466068889,
+      "bic": 9844.61490444732
+    }
+  },
+  "warnings": [],
+  "decisions": [
+    {
+      "decision_id": "D001",
+      "timestamp": "2025-12-29T06:19:43.964352+00:00",
+      "category": "wave_definition",
+      "decision": "Defined immigration wave as 50.0% above baseline for 2+ years",
+      "rationale": "50% threshold captures significant departures from normal; 2-year minimum filters noise",
+      "alternatives_considered": [
+        "100% above baseline",
+        "1 standard deviation above mean",
+        "Moving average crossing"
+      ],
+      "evidence": "Based on visual inspection of refugee arrival patterns",
+      "reversible": true
+    },
+    {
+      "decision_id": "D002",
+      "timestamp": "2025-12-29T06:19:43.686277+00:00",
+      "category": "methodology",
+      "decision": "Used Cox Proportional Hazards model for duration analysis",
+      "rationale": "Cox PH allows multiple covariates and handles censored observations",
+      "alternatives_considered": [
+        "Accelerated failure time models",
+        "Parametric survival models"
+      ],
+      "evidence": "Concordance index: 0.7693",
+      "reversible": true
+    }
+  ],
+  "next_steps": [
+    "Compare wave patterns to overall immigration trends (Module 1)",
+    "Integrate lifecycle phases with time series forecasts (Module 2)",
+    "Use hazard ratios to inform scenario projections (Module 5)",
+    "Validate wave definitions with domain experts"
+  ]
+}

@@ -1,0 +1,261 @@
+{
+  "module": "9",
+  "analysis": "scenario_modeling",
+  "generated": "2025-12-29T06:30:36.227265+00:00",
+  "input_files": [
+    "nd_migration_summary.csv",
+    "module_1_1_summary_statistics.json",
+    "module_1_1_trend_decomposition.json",
+    "module_1_2_location_quotients.json",
+    "module_1_2_hhi_analysis.json",
+    "module_2_1_1_unit_root_tests.json",
+    "module_2_1_2_structural_breaks.json",
+    "module_2_1_arima_model.json",
+    "module_2_2_var_cointegration.json",
+    "module_3_1_fixed_effects.json",
+    "module_3_1_hausman_test.json",
+    "module_3_1_random_effects.json",
+    "module_3_1_panel_analysis.json",
+    "module_3_2_network_elasticity.json",
+    "module_3_2_origin_analysis.json",
+    "module_4_quantile_regression.json",
+    "module_4_regression_extensions.json",
+    "module_4_robust_regression.json",
+    "module_4_beta_regression.json",
+    "module_5_network_effects.json",
+    "module_5_gravity_network.json",
+    "module_5_gravity_model.json",
+    "module_6_state_clusters.json",
+    "module_6_machine_learning.json",
+    "module_6_elastic_net.json",
+    "module_6_feature_importance.json",
+    "module_7_did_estimates.json",
+    "module_7_causal_inference.json",
+    "module_7_synthetic_control.json",
+    "module_8_wave_durations.json",
+    "module_8_hazard_model.json",
+    "module_8_duration_analysis.json"
+  ],
+  "parameters": {
+    "base_year": 2024,
+    "projection_horizon": "2025-2045",
+    "n_projection_years": 21,
+    "monte_carlo_draws": 1000,
+    "scenarios": [
+      "CBO Full",
+      "Moderate",
+      "Zero",
+      "Pre-2020 Trend"
+    ],
+    "confidence_intervals": [
+      "50%",
+      "80%",
+      "95%"
+    ],
+    "model_weights": {
+      "aic_based": {
+        "arima": 4.671952147490168e-44,
+        "var": 1.0
+      },
+      "r2_based": {
+        "ols": 0.2445463819854277,
+        "elastic_net": 0.29321949380192663,
+        "random_forest": 0.46223412421264576
+      }
+    },
+    "input_modules": [
+      "module_1_1_summary_statistics",
+      "module_1_1_trend_decomposition",
+      "module_1_2_location_quotients",
+      "module_1_2_hhi_analysis",
+      "module_2_1_1_unit_root_tests",
+      "module_2_1_2_structural_breaks",
+      "module_2_1_arima_model",
+      "module_2_2_var_cointegration",
+      "module_3_1_fixed_effects",
+      "module_3_1_hausman_test",
+      "module_3_1_random_effects",
+      "module_3_1_panel_analysis",
+      "module_3_2_network_elasticity",
+      "module_3_2_origin_analysis",
+      "module_4_quantile_regression",
+      "module_4_regression_extensions",
+      "module_4_robust_regression",
+      "module_4_beta_regression",
+      "module_5_network_effects",
+      "module_5_gravity_network",
+      "module_5_gravity_model",
+      "module_6_state_clusters",
+      "module_6_machine_learning",
+      "module_6_elastic_net",
+      "module_6_feature_importance",
+      "module_7_did_estimates",
+      "module_7_causal_inference",
+      "module_7_synthetic_control",
+      "module_8_wave_durations",
+      "module_8_hazard_model",
+      "module_8_duration_analysis"
+    ]
+  },
+  "results": {
+    "model_averaging": {
+      "aic_weights": {
+        "arima": 4.671952147490168e-44,
+        "var": 1.0
+      },
+      "r2_weights": {
+        "ols": 0.2445463819854277,
+        "elastic_net": 0.29321949380192663,
+        "random_forest": 0.46223412421264576
+      }
+    },
+    "scenarios": {
+      "cbo_full": {
+        "description": "Full implementation of elevated immigration policy",
+        "final_2045_value": 19317.520188703846,
+        "assumptions": {
+          "growth_rate": 0.08,
+          "arima_multiplier": 1.1
+        }
+      },
+      "moderate": {
+        "description": "Middle-ground assumption with dampened historical trend",
+        "final_2045_value": 7048.3587997393915,
+        "assumptions": {
+          "trend_dampening": 0.5,
+          "average_trend_used": 240.29484996742335
+        }
+      },
+      "zero": {
+        "description": "Hypothetical scenario with no international migration",
+        "final_2045_value": 0.0,
+        "assumptions": {
+          "immigration_level": 0
+        }
+      },
+      "pre_2020_trend": {
+        "description": "Continue historical 2010-2019 trend (ignoring COVID disruption)",
+        "final_2045_value": 2517.187878787879,
+        "assumptions": {
+          "trend_slope": 72.43030303030304,
+          "start_value": 634.0
+        }
+      }
+    },
+    "monte_carlo": {
+      "n_draws": 1000,
+      "median_2030": 5313.674259037331,
+      "median_2045": 8671.82072809533,
+      "ci_95_2045": [
+        3182.929902344675,
+        14103.739895920262
+      ]
+    },
+    "confidence_intervals": {
+      "ci_50": {
+        "2030": [
+          3511.367636543809,
+          6993.266801268044
+        ],
+        "2045": [
+          6164.262287061618,
+          10962.483278409689
+        ]
+      },
+      "ci_95": {
+        "2030": [
+          1041.69682318379,
+          9472.535883980876
+        ],
+        "2045": [
+          3182.929902344675,
+          14103.739895920262
+        ]
+      }
+    }
+  },
+  "diagnostics": {
+    "input_modules_loaded": 31,
+    "estimates_extracted": {
+      "arima": true,
+      "var": true,
+      "panel": true,
+      "quantile": true,
+      "robust": true,
+      "gravity": true,
+      "machine_learning": true,
+      "causal": true,
+      "duration": true
+    },
+    "historical_years": 15,
+    "projection_years": 21,
+    "mc_convergence": {
+      "mean_2045": 8627.395839990355,
+      "std_2045": 3378.293333221163,
+      "cv_2045": 0.39157741175637767
+    }
+  },
+  "warnings": [],
+  "decisions": [
+    {
+      "decision_id": "D001",
+      "timestamp": "2025-12-29T06:30:35.213700+00:00",
+      "category": "data_integration",
+      "decision": "Extracted estimates from 9 module categories",
+      "rationale": "Consolidate all statistical findings for scenario modeling",
+      "alternatives_considered": [
+        "Use only time series models",
+        "Use only cross-sectional results"
+      ],
+      "evidence": "Loaded 32 result files",
+      "reversible": true
+    },
+    {
+      "decision_id": "D002",
+      "timestamp": "2025-12-29T06:30:35.213748+00:00",
+      "category": "methodology",
+      "decision": "Computed AIC and R-squared based model weights",
+      "rationale": "AIC weights for time series averaging; R2 weights for cross-sectional insight",
+      "alternatives_considered": [
+        "Equal weights",
+        "Expert-assigned weights",
+        "BIC weights"
+      ],
+      "evidence": "AIC models: ['arima', 'var'], R2 models: ['ols', 'elastic_net', 'random_forest']",
+      "reversible": true
+    },
+    {
+      "decision_id": "D003",
+      "timestamp": "2025-12-29T06:30:35.215670+00:00",
+      "category": "scenario_design",
+      "decision": "Generated 4 scenarios: CBO Full, Moderate, Zero, Pre-2020 Trend",
+      "rationale": "Cover range from optimistic to restrictive immigration policy outcomes",
+      "alternatives_considered": [
+        "5-scenario approach",
+        "Probabilistic weighting of scenarios"
+      ],
+      "evidence": "Baseline 2024 = 5126, Pre-2020 trend = 72.43/yr",
+      "reversible": true
+    },
+    {
+      "decision_id": "D004",
+      "timestamp": "2025-12-29T06:30:35.245819+00:00",
+      "category": "uncertainty_quantification",
+      "decision": "Ran 1000-draw Monte Carlo simulation",
+      "rationale": "Propagate parameter uncertainty through projections",
+      "alternatives_considered": [
+        "Analytical confidence intervals",
+        "Bootstrapping"
+      ],
+      "evidence": "Trend uncertainty from quantile regression range",
+      "reversible": true
+    }
+  ],
+  "next_steps": [
+    "Integrate scenario projections with cohort-component model",
+    "Sensitivity analysis on key parameters",
+    "Compare with official CBO and Census projections",
+    "Update scenarios as new policy information becomes available",
+    "Create interactive dashboard for scenario exploration"
+  ]
+}

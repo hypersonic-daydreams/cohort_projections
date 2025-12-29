@@ -1,0 +1,116 @@
+{
+  "model_1_simple_network": {
+    "specification": "Flow ~ log(Diaspora_Stock)",
+    "n_observations": 2680,
+    "coefficients": {
+      "const": {
+        "estimate": 2.425075765043262,
+        "std_error": 0.005695916421443691,
+        "z_statistic": 425.75690821471017,
+        "p_value": 0.0
+      },
+      "log_diaspora": {
+        "estimate": 0.3593043418914478,
+        "std_error": 0.0006217781220717,
+        "z_statistic": 577.8658481811536,
+        "p_value": 0.0,
+        "ci_95_lower": 0.3580856791658123,
+        "ci_95_upper": 0.36052300461708325
+      }
+    },
+    "fit_statistics": {
+      "log_likelihood": -732814.6422376223,
+      "aic": 1465633.2844752446,
+      "bic": 1429128.2402503546,
+      "pseudo_r2_mcfadden": 0.18636866529792995,
+      "correlation_actual_fitted": 0.26958159302944995,
+      "deviance": 1450267.2262632009,
+      "pearson_chi2": 8262771.544811087
+    }
+  },
+  "model_2_full_gravity": {
+    "specification": "Flow ~ log(Diaspora) + log(Origin_Mass) + log(Dest_Mass)",
+    "n_observations": 2680,
+    "coefficients": {
+      "const": {
+        "estimate": -6.38805451777912,
+        "std_error": 0.033625353209452584,
+        "z_statistic": -189.97732092174257,
+        "p_value": 0.0,
+        "ci_95_lower": -6.453958999037086,
+        "ci_95_upper": -6.322150036521155
+      },
+      "log_diaspora": {
+        "estimate": 0.09623188025572206,
+        "std_error": 0.001651689850484478,
+        "z_statistic": 58.26268183914497,
+        "p_value": 0.0,
+        "ci_95_lower": 0.09299462763514213,
+        "ci_95_upper": 0.09946913287630199
+      },
+      "log_origin_total": {
+        "estimate": 0.03942410028837273,
+        "std_error": 0.0018942382906626239,
+        "z_statistic": 20.812640354018914,
+        "p_value": 3.325175322479041e-96,
+        "ci_95_lower": 0.035711461460537275,
+        "ci_95_upper": 0.04313673911620819
+      },
+      "log_state_total": {
+        "estimate": 0.7553658503683937,
+        "std_error": 0.0018419808741730768,
+        "z_statistic": 410.0834384111079,
+        "p_value": 0.0,
+        "ci_95_lower": 0.7517556341948028,
+        "ci_95_upper": 0.7589760665419845
+      }
+    },
+    "fit_statistics": {
+      "log_likelihood": -556916.0524988244,
+      "aic": 1113840.1049976489,
+      "bic": 1077346.847916906,
+      "pseudo_r2_mcfadden": 0.38166580606518963,
+      "correlation_actual_fitted": 0.37163548508844235,
+      "deviance": 1098470.0467856051,
+      "pearson_chi2": 2630523.389042354
+    }
+  },
+  "model_3_state_fixed_effects": {
+    "specification": "Flow ~ log(Diaspora) + State_FE",
+    "n_observations": 2680,
+    "n_state_dummies": 50,
+    "network_elasticity": {
+      "estimate": 0.11508326281663521,
+      "std_error": 0.0007577257705495276,
+      "z_statistic": 151.87983211020136,
+      "p_value": 0.0,
+      "ci_95_lower": 0.11359814759620028,
+      "ci_95_upper": 0.11656837803707014
+    },
+    "fit_statistics": {
+      "log_likelihood": -539772.96211849,
+      "aic": 1079649.92423698,
+      "bic": 1043439.5586157652,
+      "pseudo_r2_mcfadden": 0.4006994807533475,
+      "correlation_actual_fitted": NaN
+    }
+  },
+  "model_comparison": {
+    "preferred_model": "Full Gravity",
+    "aic_comparison": {
+      "simple": 1465633.2844752446,
+      "full": 1113840.1049976489,
+      "state_fe": 1079649.92423698
+    },
+    "network_elasticity_comparison": {
+      "simple": 0.3593043418914478,
+      "full": 0.09623188025572206,
+      "state_fe": 0.11508326281663521
+    }
+  },
+  "interpretation": {
+    "network_elasticity_full": 0.09623188025572206,
+    "interpretation": "A 1% increase in diaspora stock is associated with a 0.0962% increase in new LPR admissions",
+    "effect_strength": "weak"
+  }
+}

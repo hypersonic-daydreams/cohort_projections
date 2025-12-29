@@ -1,0 +1,228 @@
+{
+  "summary": {
+    "total_waves_identified": 940,
+    "unique_nationalities": 56,
+    "unique_states": 48,
+    "mean_wave_duration": 3.5393617021276595,
+    "max_wave_duration": 13,
+    "censored_waves": 94
+  },
+  "kaplan_meier": {
+    "overall_summary": {
+      "n_subjects": 940,
+      "n_events": 846,
+      "n_censored": 94,
+      "censoring_rate": 10.0,
+      "median_survival_years": 3.0,
+      "median_survival_95ci": null,
+      "mean_duration": 3.5393617021276595,
+      "max_duration": 13,
+      "min_duration": 2
+    },
+    "life_table": [
+      {
+        "time_years": 1,
+        "n_at_risk": 940,
+        "n_events": 0,
+        "n_censored": 0,
+        "survival_probability": 1.0,
+        "ci_95_lower": null,
+        "ci_95_upper": null
+      },
+      {
+        "time_years": 2,
+        "n_at_risk": 940,
+        "n_events": 455,
+        "n_censored": 14,
+        "survival_probability": 0.5159574468085106,
+        "ci_95_lower": 0.4835315851480659,
+        "ci_95_upper": 0.5473749398559751
+      },
+      {
+        "time_years": 3,
+        "n_at_risk": 471,
+        "n_events": 181,
+        "n_censored": 5,
+        "survival_probability": 0.3176808058905904,
+        "ci_95_lower": 0.2878899020957237,
+        "ci_95_upper": 0.3478353254438474
+      },
+      {
+        "time_years": 4,
+        "n_at_risk": 285,
+        "n_events": 91,
+        "n_censored": 3,
+        "survival_probability": 0.21624588190447203,
+        "ci_95_lower": 0.1901518823388554,
+        "ci_95_upper": 0.24348300049728872
+      },
+      {
+        "time_years": 5,
+        "n_at_risk": 191,
+        "n_events": 35,
+        "n_censored": 9,
+        "survival_probability": 0.17661967317852165,
+        "ci_95_lower": 0.1525626844506243,
+        "ci_95_upper": 0.20215177642870424
+      },
+      {
+        "time_years": 6,
+        "n_at_risk": 147,
+        "n_events": 29,
+        "n_censored": 10,
+        "survival_probability": 0.14177633629296305,
+        "ci_95_lower": 0.1197676145071941,
+        "ci_95_upper": 0.1655938459866632
+      },
+      {
+        "time_years": 7,
+        "n_at_risk": 108,
+        "n_events": 7,
+        "n_censored": 10,
+        "survival_probability": 0.13258712931101174,
+        "ci_95_lower": 0.11112939704651743,
+        "ci_95_upper": 0.1559598346885874
+      },
+      {
+        "time_years": 8,
+        "n_at_risk": 91,
+        "n_events": 10,
+        "n_censored": 13,
+        "survival_probability": 0.11801711510101053,
+        "ci_95_lower": 0.09738465345213887,
+        "ci_95_upper": 0.14077128140824685
+      },
+      {
+        "time_years": 9,
+        "n_at_risk": 68,
+        "n_events": 8,
+        "n_censored": 11,
+        "survival_probability": 0.10413274861853865,
+        "ci_95_lower": 0.08416593749327285,
+        "ci_95_upper": 0.12649880520579335
+      },
+      {
+        "time_years": 10,
+        "n_at_risk": 49,
+        "n_events": 20,
+        "n_censored": 3,
+        "survival_probability": 0.06162958591709432,
+        "ci_95_lower": 0.04445160351572917,
+        "ci_95_upper": 0.08256552052629569
+      },
+      {
+        "time_years": 11,
+        "n_at_risk": 26,
+        "n_events": 9,
+        "n_censored": 7,
+        "survival_probability": 0.040296267715023204,
+        "ci_95_lower": 0.025822963576129315,
+        "ci_95_upper": 0.05956676153578599
+      },
+      {
+        "time_years": 12,
+        "n_at_risk": 10,
+        "n_events": 1,
+        "n_censored": 8,
+        "survival_probability": 0.03626664094352088,
+        "ci_95_lower": 0.022011346644022847,
+        "ci_95_upper": 0.055974773697811925
+      },
+      {
+        "time_years": 13,
+        "n_at_risk": 1,
+        "n_events": 0,
+        "n_censored": 1,
+        "survival_probability": 0.03626664094352088,
+        "ci_95_lower": 0.022011346644022847,
+        "ci_95_upper": 0.055974773697811925
+      }
+    ],
+    "method": "Kaplan-Meier product-limit estimator",
+    "confidence_level": 0.95
+  },
+  "stratified_analyses": {
+    "by_nationality_region": {
+      "group_variable": "nationality_region",
+      "groups": {
+        "Middle East": {
+          "n_subjects": 174,
+          "n_events": 146,
+          "median_survival": 3.0,
+          "mean_duration": 4.137931034482759
+        },
+        "Asia": {
+          "n_subjects": 67,
+          "n_events": 67,
+          "median_survival": 3.0,
+          "mean_duration": 4.2835820895522385
+        },
+        "Africa": {
+          "n_subjects": 353,
+          "n_events": 312,
+          "median_survival": 3.0,
+          "mean_duration": 3.991501416430595
+        },
+        "Europe": {
+          "n_subjects": 55,
+          "n_events": 52,
+          "median_survival": 2.0,
+          "mean_duration": 2.4
+        },
+        "Other": {
+          "n_subjects": 259,
+          "n_events": 237,
+          "median_survival": 2.0,
+          "mean_duration": 2.72972972972973
+        },
+        "Americas": {
+          "n_subjects": 32,
+          "n_events": 32,
+          "median_survival": 2.0,
+          "mean_duration": 2.25
+        }
+      },
+      "log_rank_test": {
+        "test_statistic": 89.67706532074526,
+        "p_value": 7.855240900207938e-18,
+        "degrees_of_freedom": 5,
+        "significant_at_05": "True"
+      }
+    },
+    "by_intensity_quartile": {
+      "group_variable": "intensity_quartile",
+      "groups": {
+        "Q1 (Low)": {
+          "n_subjects": 247,
+          "n_events": 246,
+          "median_survival": 2.0,
+          "mean_duration": 2.42914979757085
+        },
+        "Q3": {
+          "n_subjects": 236,
+          "n_events": 223,
+          "median_survival": 3.0,
+          "mean_duration": 3.6059322033898304
+        },
+        "Q4 (High)": {
+          "n_subjects": 234,
+          "n_events": 160,
+          "median_survival": 4.0,
+          "mean_duration": 5.35042735042735
+        },
+        "Q2": {
+          "n_subjects": 223,
+          "n_events": 217,
+          "median_survival": 2.0,
+          "mean_duration": 2.798206278026906
+        }
+      },
+      "log_rank_test": {
+        "test_statistic": 278.7443670491838,
+        "p_value": 3.9584267764539434e-60,
+        "degrees_of_freedom": 3,
+        "significant_at_05": "True"
+      }
+    }
+  }
+}

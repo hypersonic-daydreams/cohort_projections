@@ -1,0 +1,896 @@
+{
+  "module": "1.2",
+  "analysis": "location_quotient_analysis",
+  "generated": "2025-12-29T05:58:31.253867+00:00",
+  "input_files": [
+    "acs_foreign_born_nd_share.parquet",
+    "acs_foreign_born_by_state_origin.parquet"
+  ],
+  "parameters": {
+    "reference_geography": "United States",
+    "target_geography": "North Dakota",
+    "interpretation": "LQ > 1 indicates overrepresentation relative to national average",
+    "data_source": "ACS foreign-born data 2009-2023"
+  },
+  "results": {
+    "location_quotients": {
+      "year": 2023,
+      "nd_total_foreign_born": 34813,
+      "national_total_foreign_born": 46108516,
+      "nd_share_of_national": 0.000755023215234253,
+      "n_countries_analyzed": 86,
+      "descriptive_stats": {
+        "variable": "location_quotient",
+        "n": 86,
+        "missing": 0,
+        "mean": 2.150452825620293,
+        "std_error": 0.28915213125317235,
+        "std_deviation": 2.6814865524014206,
+        "variance": 7.190370130709658,
+        "minimum": 0.05583838602666577,
+        "maximum": 15.125824209584367,
+        "range": 15.069985823557701,
+        "percentile_25": 0.5050310971401074,
+        "median": 0.9756570514265177,
+        "percentile_75": 2.675553784075365,
+        "iqr": 2.1705226869352576,
+        "skewness": 2.316767830863035,
+        "kurtosis": 6.464705405136436,
+        "ci_95_lower": 1.5755409226709691,
+        "ci_95_upper": 2.725364728569617
+      },
+      "top_20_lq_countries": [
+        {
+          "country": "Egypt",
+          "nd_foreign_born": 373.0,
+          "us_total": 32661.0,
+          "nd_share": 0.010714388303220062,
+          "us_share": 0.0007083507090100233,
+          "location_quotient": 15.125824209584367
+        },
+        {
+          "country": "India",
+          "nd_foreign_born": 329.0,
+          "us_total": 44172.0,
+          "nd_share": 0.009450492632062735,
+          "us_share": 0.0009580009037809848,
+          "location_quotient": 9.864805549518852
+        },
+        {
+          "country": "Other Western Africa",
+          "nd_foreign_born": 400.0,
+          "us_total": 57413.0,
+          "nd_share": 0.011489960646884784,
+          "us_share": 0.0012451712824589714,
+          "location_quotient": 9.22761455291062
+        },
+        {
+          "country": "Sudan",
+          "nd_foreign_born": 164.0,
+          "us_total": 26442.0,
+          "nd_share": 0.004710883865222761,
+          "us_share": 0.0005734732386529205,
+          "location_quotient": 8.214653357301472
+        },
+        {
+          "country": "Other Australian and New Zealand Subregion",
+          "nd_foreign_born": 5740.0,
+          "us_total": 1018704.0,
+          "nd_share": 0.16488093528279665,
+          "us_share": 0.022093619321862365,
+          "location_quotient": 7.462830461627513
+        },
+        {
+          "country": "Other Middle Africa",
+          "nd_foreign_born": 903.0,
+          "us_total": 164642.0,
+          "nd_share": 0.025938586160342402,
+          "us_share": 0.003570750357699649,
+          "location_quotient": 7.264183592227537
+        },
+        {
+          "country": "Pakistan",
+          "nd_foreign_born": 860.0,
+          "us_total": 171791.0,
+          "nd_share": 0.024703415390802286,
+          "us_share": 0.003725797637902725,
+          "location_quotient": 6.630369599114351
+        },
+        {
+          "country": "Croatia",
+          "nd_foreign_born": 526.0,
+          "us_total": 106263.0,
+          "nd_share": 0.015109298250653491,
+          "us_share": 0.0023046284985619577,
+          "location_quotient": 6.556066741377793
+        },
+        {
+          "country": "Other Eastern Africa",
+          "nd_foreign_born": 3582.0,
+          "us_total": 767453.0,
+          "nd_share": 0.10289259759285324,
+          "us_share": 0.01664449578034565,
+          "location_quotient": 6.181779186988175
+        },
+        {
+          "country": "Kenya",
+          "nd_foreign_born": 11920.0,
+          "us_total": 2660038.0,
+          "nd_share": 0.3424008272771666,
+          "us_share": 0.05769081789576572,
+          "location_quotient": 5.93510093574696
+        },
+        {
+          "country": "South Africa",
+          "nd_foreign_born": 387.0,
+          "us_total": 86462.0,
+          "nd_share": 0.011116536925861028,
+          "us_share": 0.001875185052583345,
+          "location_quotient": 5.928234608390437
+        },
+        {
+          "country": "Uzbekistan",
+          "nd_foreign_born": 233.0,
+          "us_total": 58705.0,
+          "nd_share": 0.006692902076810387,
+          "us_share": 0.0012731921365675702,
+          "location_quotient": 5.25678873171016
+        },
+        {
+          "country": "Other Northern Africa",
+          "nd_foreign_born": 271.0,
+          "us_total": 78642.0,
+          "nd_share": 0.007784448338264442,
+          "us_share": 0.0017055851461365617,
+          "location_quotient": 4.564092479286379
+        },
+        {
+          "country": "Australia",
+          "nd_foreign_born": 16.0,
+          "us_total": 5318.0,
+          "nd_share": 0.0004595984258753914,
+          "us_share": 0.00011533661157084301,
+          "location_quotient": 3.984844184477303
+        },
+        {
+          "country": "Yemen",
+          "nd_foreign_born": 100.0,
+          "us_total": 35525.0,
+          "nd_share": 0.002872490161721196,
+          "us_share": 0.0007704650481485893,
+          "location_quotient": 3.728254991740024
+        },
+        {
+          "country": "United Kingdom (inc. Crown Dependencies)",
+          "nd_foreign_born": 78.0,
+          "us_total": 27746.0,
+          "nd_share": 0.002240542326142533,
+          "us_share": 0.0006017543483724352,
+          "location_quotient": 3.7233504538895765
+        },
+        {
+          "country": "Caribbean",
+          "nd_foreign_born": 1175.0,
+          "us_total": 437306.0,
+          "nd_share": 0.033751759400224055,
+          "us_share": 0.009484278348927995,
+          "location_quotient": 3.5587061195899006
+        },
+        {
+          "country": "Yugoslavia",
+          "nd_foreign_born": 112.0,
+          "us_total": 42903.0,
+          "nd_share": 0.0032171889811277395,
+          "us_share": 0.0009304788729266411,
+          "location_quotient": 3.457562632248376
+        },
+        {
+          "country": "Czechoslovakia (includes Czech Republic and Slovakia)",
+          "nd_foreign_born": 176.0,
+          "us_total": 74009.0,
+          "nd_share": 0.005055582684629305,
+          "us_share": 0.0016051047923554946,
+          "location_quotient": 3.1496901066566667
+        },
+        {
+          "country": "Poland",
+          "nd_foreign_born": 128.0,
+          "us_total": 54103.0,
+          "nd_share": 0.0036767874070031312,
+          "us_share": 0.0011733841097813689,
+          "location_quotient": 3.133490027991098
+        }
+      ],
+      "bottom_10_lq_countries": [
+        {
+          "country": "Portugal",
+          "nd_foreign_born": 7.0,
+          "us_total": 166037.0,
+          "nd_share": 0.00020107431132048372,
+          "us_share": 0.003601005072468609,
+          "location_quotient": 0.05583838602666577
+        },
+        {
+          "country": "Lithuania",
+          "nd_foreign_born": 3.0,
+          "us_total": 64037.0,
+          "nd_share": 8.617470485163588e-05,
+          "us_share": 0.0013888323796844818,
+          "location_quotient": 0.06204831202971611
+        },
+        {
+          "country": "Saudi Arabia",
+          "nd_foreign_born": 7.0,
+          "us_total": 140090.0,
+          "nd_share": 0.00020107431132048372,
+          "us_share": 0.0030382673777659642,
+          "location_quotient": 0.0661805846292348
+        },
+        {
+          "country": "Other South Central Asia",
+          "nd_foreign_born": 7.0,
+          "us_total": 73725.0,
+          "nd_share": 0.00020107431132048372,
+          "us_share": 0.001598945409563821,
+          "location_quotient": 0.12575433164746702
+        },
+        {
+          "country": "Other Northern America",
+          "nd_foreign_born": 29.0,
+          "us_total": 281827.0,
+          "nd_share": 0.0008330221468991469,
+          "us_share": 0.006112254838130119,
+          "location_quotient": 0.13628720806967987
+        },
+        {
+          "country": "Italy",
+          "nd_foreign_born": 41.0,
+          "us_total": 305199.0,
+          "nd_share": 0.0011777209663056904,
+          "us_share": 0.0066191460163237525,
+          "location_quotient": 0.17792642183769078
+        },
+        {
+          "country": "Sierra Leone",
+          "nd_foreign_born": 13.0,
+          "us_total": 94661.0,
+          "nd_share": 0.0003734237210237555,
+          "us_share": 0.0020530046987415514,
+          "location_quotient": 0.18189131337724476
+        },
+        {
+          "country": "Russia",
+          "nd_foreign_born": 57.0,
+          "us_total": 402060.0,
+          "nd_share": 0.0016373193921810818,
+          "us_share": 0.008719864243733196,
+          "location_quotient": 0.1877689085994421
+        },
+        {
+          "country": "Nepal",
+          "nd_foreign_born": 7.0,
+          "us_total": 41675.0,
+          "nd_share": 0.00020107431132048372,
+          "us_share": 0.0009038460487429264,
+          "location_quotient": 0.22246522137275357
+        },
+        {
+          "country": "Greece",
+          "nd_foreign_born": 22.0,
+          "us_total": 115648.0,
+          "nd_share": 0.0006319478355786631,
+          "us_share": 0.0025081700742656736,
+          "location_quotient": 0.25195573540350163
+        }
+      ],
+      "overrepresentation_summary": {
+        "n_countries_lq_gt_1": 42,
+        "n_countries_lq_lt_1": 44,
+        "pct_overrepresented": 48.837209302325576
+      },
+      "regional_location_quotients": [
+        {
+          "region": "Americas",
+          "nd_foreign_born": 627.0,
+          "us_total": 31708.0,
+          "nd_share": 0.0180105133139919,
+          "us_share": 0.0006876820759097951,
+          "location_quotient": 26.19017412975932
+        },
+        {
+          "region": "Oceania",
+          "nd_foreign_born": 622.0,
+          "us_total": 129041.0,
+          "nd_share": 0.01786688880590584,
+          "us_share": 0.00279863702401526,
+          "location_quotient": 6.384139369482027
+        },
+        {
+          "region": "Africa",
+          "nd_foreign_born": 69.0,
+          "us_total": 28121.0,
+          "nd_share": 0.0019820182115876253,
+          "us_share": 0.0006098873362135532,
+          "location_quotient": 3.2498104057920916
+        },
+        {
+          "region": "Asia",
+          "nd_foreign_born": 10483.0,
+          "us_total": 14229879.0,
+          "nd_share": 0.301123143653233,
+          "us_share": 0.3086171543668853,
+          "location_quotient": 0.9757174524889067
+        },
+        {
+          "region": "Europe",
+          "nd_foreign_born": 3500.0,
+          "us_total": 4818379.0,
+          "nd_share": 0.10053715566024186,
+          "us_share": 0.10450084752239695,
+          "location_quotient": 0.962070241953726
+        }
+      ]
+    },
+    "concentration_trends": {
+      "time_period": "2009-2023",
+      "n_years": 15,
+      "country_level_hhi_by_year": [
+        {
+          "year": 2009,
+          "hhi": 736.7008965278667,
+          "interpretation": "unconcentrated",
+          "total_foreign_born": 13957,
+          "n_countries": 79
+        },
+        {
+          "year": 2010,
+          "hhi": 685.2869324134492,
+          "interpretation": "unconcentrated",
+          "total_foreign_born": 15443,
+          "n_countries": 78
+        },
+        {
+          "year": 2011,
+          "hhi": 613.4088113683295,
+          "interpretation": "unconcentrated",
+          "total_foreign_born": 15998,
+          "n_countries": 80
+        },
+        {
+          "year": 2012,
+          "hhi": 481.61895820529804,
+          "interpretation": "unconcentrated",
+          "total_foreign_born": 17748,
+          "n_countries": 79
+        },
+        {
+          "year": 2013,
+          "hhi": 532.8678156173817,
+          "interpretation": "unconcentrated",
+          "total_foreign_born": 19759,
+          "n_countries": 82
+        },
+        {
+          "year": 2014,
+          "hhi": 517.6321728881119,
+          "interpretation": "unconcentrated",
+          "total_foreign_born": 22277,
+          "n_countries": 82
+        },
+        {
+          "year": 2015,
+          "hhi": 560.0289312071427,
+          "interpretation": "unconcentrated",
+          "total_foreign_born": 27875,
+          "n_countries": 83
+        },
+        {
+          "year": 2016,
+          "hhi": 555.8316951784965,
+          "interpretation": "unconcentrated",
+          "total_foreign_born": 29700,
+          "n_countries": 83
+        },
+        {
+          "year": 2017,
+          "hhi": 546.0427943355913,
+          "interpretation": "unconcentrated",
+          "total_foreign_born": 33077,
+          "n_countries": 86
+        },
+        {
+          "year": 2018,
+          "hhi": 509.44919407727093,
+          "interpretation": "unconcentrated",
+          "total_foreign_born": 36408,
+          "n_countries": 84
+        },
+        {
+          "year": 2019,
+          "hhi": 543.626537536388,
+          "interpretation": "unconcentrated",
+          "total_foreign_born": 24390,
+          "n_countries": 84
+        },
+        {
+          "year": 2020,
+          "hhi": 593.1647994531494,
+          "interpretation": "unconcentrated",
+          "total_foreign_born": 25406,
+          "n_countries": 82
+        },
+        {
+          "year": 2021,
+          "hhi": 555.9986787331978,
+          "interpretation": "unconcentrated",
+          "total_foreign_born": 26656,
+          "n_countries": 85
+        },
+        {
+          "year": 2022,
+          "hhi": 876.9375463692134,
+          "interpretation": "unconcentrated",
+          "total_foreign_born": 51521,
+          "n_countries": 83
+        },
+        {
+          "year": 2023,
+          "hhi": 942.0219822386149,
+          "interpretation": "unconcentrated",
+          "total_foreign_born": 49332,
+          "n_countries": 86
+        }
+      ],
+      "region_level_hhi_by_year": [
+        {
+          "year": 2009,
+          "hhi": 2662.7433585741846,
+          "interpretation": "highly concentrated"
+        },
+        {
+          "year": 2010,
+          "hhi": 2605.57886669333,
+          "interpretation": "highly concentrated"
+        },
+        {
+          "year": 2011,
+          "hhi": 2621.393185870474,
+          "interpretation": "highly concentrated"
+        },
+        {
+          "year": 2012,
+          "hhi": 2645.9580238423664,
+          "interpretation": "highly concentrated"
+        },
+        {
+          "year": 2013,
+          "hhi": 2686.565369971473,
+          "interpretation": "highly concentrated"
+        },
+        {
+          "year": 2014,
+          "hhi": 2688.670185613634,
+          "interpretation": "highly concentrated"
+        },
+        {
+          "year": 2015,
+          "hhi": 3662.302726608022,
+          "interpretation": "highly concentrated"
+        },
+        {
+          "year": 2016,
+          "hhi": 3594.178168828315,
+          "interpretation": "highly concentrated"
+        },
+        {
+          "year": 2017,
+          "hhi": 3662.097529738756,
+          "interpretation": "highly concentrated"
+        },
+        {
+          "year": 2018,
+          "hhi": 3598.124884336493,
+          "interpretation": "highly concentrated"
+        },
+        {
+          "year": 2019,
+          "hhi": 3222.47192313644,
+          "interpretation": "highly concentrated"
+        },
+        {
+          "year": 2020,
+          "hhi": 3279.8494704624186,
+          "interpretation": "highly concentrated"
+        },
+        {
+          "year": 2021,
+          "hhi": 3243.2533317826537,
+          "interpretation": "highly concentrated"
+        },
+        {
+          "year": 2022,
+          "hhi": 5496.772930967464,
+          "interpretation": "highly concentrated"
+        },
+        {
+          "year": 2023,
+          "hhi": 5250.629909326092,
+          "interpretation": "highly concentrated"
+        }
+      ],
+      "trend_analysis": {
+        "slope": 9.815028774247695,
+        "intercept": -19170.390159140054,
+        "r_squared": 0.1034458150926477,
+        "p_value": 0.2424072350234236,
+        "std_error": 8.01404375116766,
+        "interpretation": "increasing",
+        "significant": false,
+        "slope_ci_95": [
+          -7.498260157282159,
+          27.128317705777548
+        ]
+      },
+      "descriptive_stats": {
+        "variable": "hhi_over_time",
+        "n": 15,
+        "missing": 0,
+        "mean": 616.7078497433002,
+        "std_error": 35.237450797553315,
+        "std_deviation": 136.47406010172725,
+        "variance": 18625.16908064986,
+        "minimum": 481.61895820529804,
+        "maximum": 942.0219822386149,
+        "range": 460.40302403331685,
+        "percentile_25": 538.2471765768848,
+        "median": 555.9986787331978,
+        "percentile_75": 649.3478718908893,
+        "iqr": 111.1006953140045,
+        "skewness": 1.5385900752574648,
+        "kurtosis": 1.526621293730913,
+        "ci_95_lower": 541.1310343565801,
+        "ci_95_upper": 692.2846651300204
+      },
+      "change_summary": {
+        "start_hhi": 736.7008965278667,
+        "end_hhi": 942.0219822386149,
+        "absolute_change": 205.3210857107482,
+        "percent_change": 27.870345574227446
+      }
+    },
+    "top_origins": {
+      "year": 2023,
+      "n_countries_total": 86,
+      "n_countries_above_threshold": 45,
+      "population_threshold": 100,
+      "top_15_by_population": [
+        {
+          "country": "Kenya",
+          "nd_foreign_born": 11920.0,
+          "nd_share": 0.3424008272771666,
+          "location_quotient": 5.93510093574696
+        },
+        {
+          "country": "Other Australian and New Zealand Subregion",
+          "nd_foreign_born": 5740.0,
+          "nd_share": 0.16488093528279665,
+          "location_quotient": 7.462830461627513
+        },
+        {
+          "country": "Other Eastern Africa",
+          "nd_foreign_born": 3582.0,
+          "nd_share": 0.10289259759285324,
+          "location_quotient": 6.181779186988175
+        },
+        {
+          "country": "Cambodia",
+          "nd_foreign_born": 3519.0,
+          "nd_share": 0.10108292879096889,
+          "location_quotient": 1.0815632689289312
+        },
+        {
+          "country": "Canada",
+          "nd_foreign_born": 3038.0,
+          "nd_share": 0.08726625111308994,
+          "location_quotient": 0.3720045897078889
+        },
+        {
+          "country": "Singapore",
+          "nd_foreign_born": 2520.0,
+          "nd_share": 0.07238675207537414,
+          "location_quotient": 1.670083771375099
+        },
+        {
+          "country": "Albania",
+          "nd_foreign_born": 1872.0,
+          "nd_share": 0.05377301582742079,
+          "location_quotient": 1.1073137463492744
+        },
+        {
+          "country": "Iran",
+          "nd_foreign_born": 1261.0,
+          "nd_share": 0.03622210093930428,
+          "location_quotient": 0.6017397466335366
+        },
+        {
+          "country": "Caribbean",
+          "nd_foreign_born": 1175.0,
+          "nd_share": 0.033751759400224055,
+          "location_quotient": 3.5587061195899006
+        },
+        {
+          "country": "China",
+          "nd_foreign_born": 1020.0,
+          "nd_share": 0.0292993996495562,
+          "location_quotient": 0.4791372234557759
+        },
+        {
+          "country": "Other Middle Africa",
+          "nd_foreign_born": 903.0,
+          "nd_share": 0.025938586160342402,
+          "location_quotient": 7.264183592227537
+        },
+        {
+          "country": "Pakistan",
+          "nd_foreign_born": 860.0,
+          "nd_share": 0.024703415390802286,
+          "location_quotient": 6.630369599114351
+        },
+        {
+          "country": "Iraq",
+          "nd_foreign_born": 788.0,
+          "nd_share": 0.022635222474363025,
+          "location_quotient": 0.8567520654803543
+        },
+        {
+          "country": "Korea",
+          "nd_foreign_born": 663.0,
+          "nd_share": 0.01904460977221153,
+          "location_quotient": 0.8552918112454421
+        },
+        {
+          "country": "Germany",
+          "nd_foreign_born": 657.0,
+          "nd_share": 0.018872260362508258,
+          "location_quotient": 1.6313103186817077
+        }
+      ],
+      "top_15_by_lq": [
+        {
+          "country": "Egypt",
+          "nd_foreign_born": 373.0,
+          "nd_share": 0.010714388303220062,
+          "location_quotient": 15.125824209584367
+        },
+        {
+          "country": "India",
+          "nd_foreign_born": 329.0,
+          "nd_share": 0.009450492632062735,
+          "location_quotient": 9.864805549518852
+        },
+        {
+          "country": "Other Western Africa",
+          "nd_foreign_born": 400.0,
+          "nd_share": 0.011489960646884784,
+          "location_quotient": 9.22761455291062
+        },
+        {
+          "country": "Sudan",
+          "nd_foreign_born": 164.0,
+          "nd_share": 0.004710883865222761,
+          "location_quotient": 8.214653357301472
+        },
+        {
+          "country": "Other Australian and New Zealand Subregion",
+          "nd_foreign_born": 5740.0,
+          "nd_share": 0.16488093528279665,
+          "location_quotient": 7.462830461627513
+        },
+        {
+          "country": "Other Middle Africa",
+          "nd_foreign_born": 903.0,
+          "nd_share": 0.025938586160342402,
+          "location_quotient": 7.264183592227537
+        },
+        {
+          "country": "Pakistan",
+          "nd_foreign_born": 860.0,
+          "nd_share": 0.024703415390802286,
+          "location_quotient": 6.630369599114351
+        },
+        {
+          "country": "Croatia",
+          "nd_foreign_born": 526.0,
+          "nd_share": 0.015109298250653491,
+          "location_quotient": 6.556066741377793
+        },
+        {
+          "country": "Other Eastern Africa",
+          "nd_foreign_born": 3582.0,
+          "nd_share": 0.10289259759285324,
+          "location_quotient": 6.181779186988175
+        },
+        {
+          "country": "Kenya",
+          "nd_foreign_born": 11920.0,
+          "nd_share": 0.3424008272771666,
+          "location_quotient": 5.93510093574696
+        },
+        {
+          "country": "South Africa",
+          "nd_foreign_born": 387.0,
+          "nd_share": 0.011116536925861028,
+          "location_quotient": 5.928234608390437
+        },
+        {
+          "country": "Uzbekistan",
+          "nd_foreign_born": 233.0,
+          "nd_share": 0.006692902076810387,
+          "location_quotient": 5.25678873171016
+        },
+        {
+          "country": "Other Northern Africa",
+          "nd_foreign_born": 271.0,
+          "nd_share": 0.007784448338264442,
+          "location_quotient": 4.564092479286379
+        },
+        {
+          "country": "Yemen",
+          "nd_foreign_born": 100.0,
+          "nd_share": 0.002872490161721196,
+          "location_quotient": 3.728254991740024
+        },
+        {
+          "country": "Caribbean",
+          "nd_foreign_born": 1175.0,
+          "nd_share": 0.033751759400224055,
+          "location_quotient": 3.5587061195899006
+        }
+      ],
+      "top_15_combined_rank": [
+        {
+          "country": "Other Australian and New Zealand Subregion",
+          "nd_foreign_born": 5740.0,
+          "nd_share": 0.16488093528279665,
+          "location_quotient": 7.462830461627513,
+          "combined_score": 3.5
+        },
+        {
+          "country": "Kenya",
+          "nd_foreign_born": 11920.0,
+          "nd_share": 0.3424008272771666,
+          "location_quotient": 5.93510093574696,
+          "combined_score": 5.5
+        },
+        {
+          "country": "Other Eastern Africa",
+          "nd_foreign_born": 3582.0,
+          "nd_share": 0.10289259759285324,
+          "location_quotient": 6.181779186988175,
+          "combined_score": 6.0
+        },
+        {
+          "country": "Other Middle Africa",
+          "nd_foreign_born": 903.0,
+          "nd_share": 0.025938586160342402,
+          "location_quotient": 7.264183592227537,
+          "combined_score": 8.5
+        },
+        {
+          "country": "Pakistan",
+          "nd_foreign_born": 860.0,
+          "nd_share": 0.024703415390802286,
+          "location_quotient": 6.630369599114351,
+          "combined_score": 9.5
+        },
+        {
+          "country": "Croatia",
+          "nd_foreign_born": 526.0,
+          "nd_share": 0.015109298250653491,
+          "location_quotient": 6.556066741377793,
+          "combined_score": 12.5
+        },
+        {
+          "country": "Egypt",
+          "nd_foreign_born": 373.0,
+          "nd_share": 0.010714388303220062,
+          "location_quotient": 15.125824209584367,
+          "combined_score": 12.5
+        },
+        {
+          "country": "Other Western Africa",
+          "nd_foreign_born": 400.0,
+          "nd_share": 0.011489960646884784,
+          "location_quotient": 9.22761455291062,
+          "combined_score": 12.5
+        },
+        {
+          "country": "Caribbean",
+          "nd_foreign_born": 1175.0,
+          "nd_share": 0.033751759400224055,
+          "location_quotient": 3.5587061195899006,
+          "combined_score": 13.0
+        },
+        {
+          "country": "India",
+          "nd_foreign_born": 329.0,
+          "nd_share": 0.009450492632062735,
+          "location_quotient": 9.864805549518852,
+          "combined_score": 13.5
+        },
+        {
+          "country": "South Africa",
+          "nd_foreign_born": 387.0,
+          "nd_share": 0.011116536925861028,
+          "location_quotient": 5.928234608390437,
+          "combined_score": 17.0
+        },
+        {
+          "country": "Singapore",
+          "nd_foreign_born": 2520.0,
+          "nd_share": 0.07238675207537414,
+          "location_quotient": 1.670083771375099,
+          "combined_score": 18.5
+        },
+        {
+          "country": "Sudan",
+          "nd_foreign_born": 164.0,
+          "nd_share": 0.004710883865222761,
+          "location_quotient": 8.214653357301472,
+          "combined_score": 20.5
+        },
+        {
+          "country": "Other Northern Africa",
+          "nd_foreign_born": 271.0,
+          "nd_share": 0.007784448338264442,
+          "location_quotient": 4.564092479286379,
+          "combined_score": 20.5
+        },
+        {
+          "country": "Uzbekistan",
+          "nd_foreign_born": 233.0,
+          "nd_share": 0.006692902076810387,
+          "location_quotient": 5.25678873171016,
+          "combined_score": 22.0
+        }
+      ],
+      "correlation_analysis": {
+        "pearson_r": 0.26521822204180573,
+        "spearman_rho": 0.55074159458909,
+        "spearman_p_value": 3.927632299779767e-08,
+        "interpretation": "weak"
+      }
+    }
+  },
+  "diagnostics": {
+    "data_quality": {
+      "years_available": 15,
+      "countries_analyzed": 86,
+      "countries_with_valid_lq": 86
+    },
+    "trend_significance": {
+      "slope": 9.815028774247695,
+      "intercept": -19170.390159140054,
+      "r_squared": 0.1034458150926477,
+      "p_value": 0.2424072350234236,
+      "std_error": 8.01404375116766,
+      "interpretation": "increasing",
+      "significant": false,
+      "slope_ci_95": [
+        -7.498260157282159,
+        27.128317705777548
+      ]
+    }
+  },
+  "decisions": [
+    "Filtered to 2023 country-level data: 95 countries",
+    "Countries with valid LQ data: 86 (excluded 9 with zero/missing values)",
+    "Applied minimum population threshold of 100 for top LQ analysis"
+  ],
+  "warnings": [],
+  "next_steps": [
+    "Module 1.3: Time series analysis of immigration trends",
+    "Investigate drivers of high LQ for specific countries",
+    "Cross-reference with refugee resettlement data"
+  ]
+}

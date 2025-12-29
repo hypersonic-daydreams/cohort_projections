@@ -1,0 +1,70 @@
+{
+  "model_type": "Beta Regression (Binomial GLM with Logit Link)",
+  "dependent_variable": "nd_share_bounded (ND share of US international migration)",
+  "n_observations": 14,
+  "coefficient_table": {
+    "const": {
+      "estimate": -6.33309592954536,
+      "std_error": 27.28540150477355,
+      "z_statistic": -0.2321056528502024,
+      "p_value": 0.816455954423603,
+      "ci_95_lower": -59.81150018261651,
+      "ci_95_upper": 47.145308323525796,
+      "odds_ratio": 0.0017765252494990238,
+      "or_ci_95_lower": 1.0572933881658695e-26,
+      "or_ci_95_upper": 2.985020049716282e+20
+    },
+    "time_trend": {
+      "estimate": 0.011495854533941974,
+      "std_error": 1.6434035376596923,
+      "z_statistic": 0.006995150168845795,
+      "p_value": 0.9944187231971073,
+      "ci_95_lower": -3.2095158913447692,
+      "ci_95_upper": 3.232507600412653,
+      "odds_ratio": 1.0115621858041999,
+      "or_ci_95_lower": 0.04037615498758711,
+      "or_ci_95_upper": 25.343127795689117
+    },
+    "covid_2020": {
+      "estimate": -0.18899999133145862,
+      "std_error": 28.132088004319026,
+      "z_statistic": -0.0067183065580643025,
+      "p_value": 0.9946396072467392,
+      "ci_95_lower": -55.32687928970803,
+      "ci_95_upper": 54.94887930704512,
+      "odds_ratio": 0.8277865138704352,
+      "or_ci_95_lower": 9.372201636040184e-25,
+      "or_ci_95_upper": 7.3113078351917e+23
+    },
+    "lag_nd_share": {
+      "estimate": -78.81694076634687,
+      "std_error": 13056.985075148914,
+      "z_statistic": -0.006036381317181522,
+      "p_value": 0.9951836937932667,
+      "ci_95_lower": -25670.03743473523,
+      "ci_95_upper": 25512.403553202534,
+      "odds_ratio": 5.891658214076477e-35,
+      "or_ci_95_lower": 0.0,
+      "or_ci_95_upper": Infinity
+    }
+  },
+  "fit_statistics": {
+    "deviance": 0.0017209711746477266,
+    "pearson_chi2": 0.0018263128290094614,
+    "log_likelihood": -0.14940953583223693,
+    "aic": 8.298819071664473,
+    "bic": -26.388852324977936,
+    "pseudo_r2_mcfadden": 0.0003600419467170157
+  },
+  "interpretation": {
+    "time_trend": "Each year increases log-odds of ND share by 0.0115 (OR: 1.0116)",
+    "covid_2020": "COVID year decreases log-odds by 0.1890",
+    "lag_nd_share": "Strong persistence: lagged share coefficient = -78.8169"
+  },
+  "residual_diagnostics": {
+    "mean_residual": -1.939578829887204e-14,
+    "std_residual": 0.0004893782267439284,
+    "min_residual": -0.0006368856512576986,
+    "max_residual": 0.0013225885342166058
+  }
+}

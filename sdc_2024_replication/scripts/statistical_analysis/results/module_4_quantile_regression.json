@@ -1,0 +1,375 @@
+{
+  "model_type": "Quantile Regression",
+  "quantiles_estimated": [
+    0.1,
+    0.25,
+    0.5,
+    0.75,
+    0.9
+  ],
+  "levels_model": {
+    "dependent_variable": "nd_intl_migration",
+    "results_by_quantile": {
+      "q10": {
+        "quantile": 0.1,
+        "coefficients": {
+          "const": {
+            "estimate": 468.0000004848476,
+            "std_error": NaN,
+            "bootstrap_se": 607.173114498996,
+            "t_statistic": NaN,
+            "p_value": NaN,
+            "ci_95_lower": NaN,
+            "ci_95_upper": NaN
+          },
+          "time_trend": {
+            "estimate": -1.3636358518812426,
+            "std_error": NaN,
+            "bootstrap_se": 104.06730065890436,
+            "t_statistic": NaN,
+            "p_value": NaN,
+            "ci_95_lower": NaN,
+            "ci_95_upper": NaN
+          },
+          "covid_2020": {
+            "estimate": -424.363641966035,
+            "std_error": NaN,
+            "bootstrap_se": 623.8263025241005,
+            "t_statistic": NaN,
+            "p_value": NaN,
+            "ci_95_lower": NaN,
+            "ci_95_upper": NaN
+          }
+        },
+        "pseudo_r2": 0.16049221741444264,
+        "n_observations": 15
+      },
+      "q25": {
+        "quantile": 0.25,
+        "coefficients": {
+          "const": {
+            "estimate": 674.9999969847685,
+            "std_error": NaN,
+            "bootstrap_se": 700.077423006514,
+            "t_statistic": NaN,
+            "p_value": NaN,
+            "ci_95_lower": NaN,
+            "ci_95_upper": NaN
+          },
+          "time_trend": {
+            "estimate": 71.5000004081527,
+            "std_error": NaN,
+            "bootstrap_se": 141.59990444649742,
+            "t_statistic": NaN,
+            "p_value": NaN,
+            "ci_95_lower": NaN,
+            "ci_95_upper": NaN
+          },
+          "covid_2020": {
+            "estimate": -1360.0000010663118,
+            "std_error": NaN,
+            "bootstrap_se": 1050.403775296347,
+            "t_statistic": NaN,
+            "p_value": NaN,
+            "ci_95_lower": NaN,
+            "ci_95_upper": NaN
+          }
+        },
+        "pseudo_r2": 0.14625143093203052,
+        "n_observations": 15
+      },
+      "q50": {
+        "quantile": 0.5,
+        "coefficients": {
+          "const": {
+            "estimate": 576.3333325925902,
+            "std_error": 742.5164929267979,
+            "bootstrap_se": 476.9384166735156,
+            "t_statistic": 0.7761892672859576,
+            "p_value": 0.45266479954822714,
+            "ci_95_lower": -1041.4711284330033,
+            "ci_95_upper": 2194.137793618184
+          },
+          "time_trend": {
+            "estimate": 225.8888889876544,
+            "std_error": 91.84585799226207,
+            "bootstrap_se": 121.38937168628003,
+            "t_statistic": 2.4594346868280694,
+            "p_value": 0.03006957159064912,
+            "ci_95_lower": 25.773955242669473,
+            "ci_95_upper": 426.0038227326394
+          },
+          "covid_2020": {
+            "estimate": -2805.2222224691363,
+            "std_error": 1590.8169250735273,
+            "bootstrap_se": 1454.0380309910481,
+            "t_statistic": -1.7633846976700223,
+            "p_value": 0.10325650806730124,
+            "ci_95_lower": -6271.314548465045,
+            "ci_95_upper": 660.8701035267727
+          }
+        },
+        "pseudo_r2": 0.313690906226044,
+        "n_observations": 15
+      },
+      "q75": {
+        "quantile": 0.75,
+        "coefficients": {
+          "const": {
+            "estimate": 676.9999983334862,
+            "std_error": NaN,
+            "bootstrap_se": 300.2292698049339,
+            "t_statistic": NaN,
+            "p_value": NaN,
+            "ci_95_lower": NaN,
+            "ci_95_upper": NaN
+          },
+          "time_trend": {
+            "estimate": 314.00000016661625,
+            "std_error": NaN,
+            "bootstrap_se": 70.53564408895467,
+            "t_statistic": NaN,
+            "p_value": NaN,
+            "ci_95_lower": NaN,
+            "ci_95_upper": NaN
+          },
+          "covid_2020": {
+            "estimate": -3786.9999999998954,
+            "std_error": NaN,
+            "bootstrap_se": 1695.6982591459396,
+            "t_statistic": NaN,
+            "p_value": NaN,
+            "ci_95_lower": NaN,
+            "ci_95_upper": NaN
+          }
+        },
+        "pseudo_r2": 0.5881184487617958,
+        "n_observations": 15
+      },
+      "q90": {
+        "quantile": 0.9,
+        "coefficients": {
+          "const": {
+            "estimate": 907.6923053734893,
+            "std_error": NaN,
+            "bootstrap_se": 323.6983651848796,
+            "t_statistic": NaN,
+            "p_value": NaN,
+            "ci_95_lower": NaN,
+            "ci_95_upper": NaN
+          },
+          "time_trend": {
+            "estimate": 301.30769243180805,
+            "std_error": NaN,
+            "bootstrap_se": 60.919567043931636,
+            "t_statistic": NaN,
+            "p_value": NaN,
+            "ci_95_lower": NaN,
+            "ci_95_upper": NaN
+          },
+          "covid_2020": {
+            "estimate": -3890.7692296915698,
+            "std_error": NaN,
+            "bootstrap_se": 1807.841439294003,
+            "t_statistic": NaN,
+            "p_value": NaN,
+            "ci_95_lower": NaN,
+            "ci_95_upper": NaN
+          }
+        },
+        "pseudo_r2": 0.6972614575536038,
+        "n_observations": 15
+      }
+    }
+  },
+  "share_model": {
+    "dependent_variable": "nd_share_percent",
+    "results_by_quantile": {
+      "q10": {
+        "quantile": 0.1,
+        "coefficients": {
+          "const": {
+            "estimate": 0.03781292881021869,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          },
+          "time_trend": {
+            "estimate": -0.0002834782435944816,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          },
+          "covid_2020": {
+            "estimate": 0.0668225997803909,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          },
+          "lag_nd_share": {
+            "estimate": 44.00830133802128,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          }
+        },
+        "pseudo_r2": 0.20456678522000526,
+        "n_observations": 14
+      },
+      "q25": {
+        "quantile": 0.25,
+        "coefficients": {
+          "const": {
+            "estimate": 0.056974146691965544,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          },
+          "time_trend": {
+            "estimate": 0.0008048023222470557,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          },
+          "covid_2020": {
+            "estimate": 0.04545695859008769,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          },
+          "lag_nd_share": {
+            "estimate": 36.224599979772165,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          }
+        },
+        "pseudo_r2": 0.08880661997855466,
+        "n_observations": 14
+      },
+      "q50": {
+        "quantile": 0.5,
+        "coefficients": {
+          "const": {
+            "estimate": 0.13976840256363232,
+            "std_error": 0.03710997029703015,
+            "t_statistic": 3.7663302192084416,
+            "p_value": 0.0036836654319441524
+          },
+          "time_trend": {
+            "estimate": 0.002713734598340345,
+            "std_error": 0.002261320365131168,
+            "t_statistic": 1.2000664037635969,
+            "p_value": 0.25777164410632064
+          },
+          "covid_2020": {
+            "estimate": -0.020125493646911963,
+            "std_error": 0.03703538474701997,
+            "t_statistic": -0.543412571096115,
+            "p_value": 0.5987496613707854
+          },
+          "lag_nd_share": {
+            "estimate": 3.6658677834420814,
+            "std_error": 17.480270770932567,
+            "t_statistic": 0.20971458803361023,
+            "p_value": 0.8381013089515594
+          }
+        },
+        "pseudo_r2": 0.14290356579295105,
+        "n_observations": 14
+      },
+      "q75": {
+        "quantile": 0.75,
+        "coefficients": {
+          "const": {
+            "estimate": 0.20568050589271536,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          },
+          "time_trend": {
+            "estimate": 0.00014847656697547507,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          },
+          "covid_2020": {
+            "estimate": -0.04392390436767357,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          },
+          "lag_nd_share": {
+            "estimate": -11.09821807479966,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          }
+        },
+        "pseudo_r2": 0.12289677484556627,
+        "n_observations": 14
+      },
+      "q90": {
+        "quantile": 0.9,
+        "coefficients": {
+          "const": {
+            "estimate": 0.23576457561263897,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          },
+          "time_trend": {
+            "estimate": -0.0012252895359304294,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          },
+          "covid_2020": {
+            "estimate": -0.05324795602994792,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          },
+          "lag_nd_share": {
+            "estimate": -17.396618829340696,
+            "std_error": NaN,
+            "t_statistic": NaN,
+            "p_value": NaN
+          }
+        },
+        "pseudo_r2": 0.12269896214447573,
+        "n_observations": 14
+      }
+    }
+  },
+  "quantile_process": {
+    "time_trend": {
+      "0.1": -1.3636358518812426,
+      "0.25": 71.5000004081527,
+      "0.5": 225.8888889876544,
+      "0.75": 314.00000016661625,
+      "0.9": 301.30769243180805
+    },
+    "covid_2020": {
+      "0.1": -424.363641966035,
+      "0.25": -1360.0000010663118,
+      "0.5": -2805.2222224691363,
+      "0.75": -3786.9999999998954,
+      "0.9": -3890.7692296915698
+    }
+  },
+  "ols_comparison": {
+    "ols_vs_median": {
+      "ols_const": 490.82034346103023,
+      "median_const": 576.3333325925902,
+      "ols_trend": 210.97384412153235,
+      "median_trend": 225.8888889876544,
+      "ols_covid": -2570.558784676354,
+      "median_covid": -2805.2222224691363
+    }
+  },
+  "interpretation": {
+    "trend_pattern": "Positive trend in migration; effect increases at higher quantiles",
+    "covid_pattern": "COVID effect magnitude varies across distribution"
+  }
+}

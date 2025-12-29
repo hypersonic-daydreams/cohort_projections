@@ -1,0 +1,14 @@
+{
+  "test": "Hausman Specification Test",
+  "null_hypothesis": "Difference in coefficients is not systematic (RE is consistent)",
+  "statistic": 7.180932476852153e-31,
+  "df": 1,
+  "p_value": 0.9999999999999993,
+  "recommendation": "Random Effects",
+  "interpretation": "Fail to reject H0: RE estimates are consistent and efficient. Use Random Effects.",
+  "variance_comparison": {
+    "between_variance": 957506559.3678747,
+    "within_variance": 735769505.8392671,
+    "ratio": 1.301367550257033
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "module": "3.1",
+  "analysis": "panel_data_fixed_random_effects",
+  "generated": "2025-12-29T06:15:15.989036+00:00",
+  "input_files": [
+    "combined_components_of_change.csv"
+  ],
+  "parameters": {
+    "n_entities": 51,
+    "n_periods": 15,
+    "n_observations": 765,
+    "years": [
+      2010,
+      2011,
+      2012,
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "dependent_variable": "intl_migration",
+    "model_specifications": {
+      "fixed_effects": "Two-way (entity + time)",
+      "random_effects": "One-way (entity)",
+      "standard_errors": "Clustered by state"
+    }
+  },
+  "results": {
+    "fixed_effects": {
+      "r_squared_within": 0.0,
+      "r_squared_between": 0.0,
+      "r_squared_overall": 0.0,
+      "entity_effects_sd": 30943.602882791052,
+      "entity_effects_range": [
+        -19331.580392156862,
+        125526.15294117646
+      ]
+    },
+    "random_effects": {
+      "r_squared_within": 0.0,
+      "r_squared_between": 0.0,
+      "r_squared_overall": 0.0,
+      "breusch_pagan_lm_stat": 1501.7433176269728,
+      "breusch_pagan_lm_pval": 0.0
+    },
+    "hausman_test": {
+      "statistic": 7.180932476852153e-31,
+      "p_value": 0.9999999999999993,
+      "recommendation": "Random Effects"
+    },
+    "panel_characteristics": {
+      "balanced": true,
+      "n_entities": 51,
+      "n_periods": 15,
+      "between_within_variance_ratio": 1.301367550257033
+    }
+  },
+  "diagnostics": {
+    "data_quality": {
+      "missing_values": 102,
+      "zero_intl_migration_obs": 3,
+      "negative_intl_migration_obs": 3
+    },
+    "model_convergence": {
+      "fixed_effects": "converged",
+      "random_effects": "converged"
+    },
+    "covid_impact": {
+      "year_2020_mean_intl_migration": 389.9019607843137,
+      "other_years_mean_intl_migration": 21206.271708683475,
+      "covid_effect_ratio": 0.018386162647565152
+    }
+  },
+  "warnings": [],
+  "decisions": [
+    {
+      "decision_id": "D001",
+      "timestamp": "2025-12-29T06:15:14.465634+00:00",
+      "category": "data_handling",
+      "decision": "Excluded Puerto Rico and United States total from panel",
+      "rationale": "Puerto Rico is a territory, not a state. US total is aggregate, not entity.",
+      "alternatives_considered": [
+        "Include PR as additional entity",
+        "Include all available entities"
+      ],
+      "evidence": "Original entities: 53, After exclusion: 51",
+      "reversible": true
+    },
+    {
+      "decision_id": "D002",
+      "timestamp": "2025-12-29T06:15:14.468939+00:00",
+      "category": "data_handling",
+      "decision": "Added COVID-2020 dummy variable",
+      "rationale": "2020 has anomalous low values due to partial year data and COVID restrictions",
+      "alternatives_considered": [
+        "Exclude 2020 entirely",
+        "No special handling"
+      ],
+      "evidence": "2020 intl_migration values are substantially lower than surrounding years",
+      "reversible": true
+    },
+    {
+      "decision_id": "D003",
+      "timestamp": "2025-12-29T06:15:14.519383+00:00",
+      "category": "model_selection",
+      "decision": "Hausman test recommends Random Effects",
+      "rationale": "Fail to reject H0: RE estimates are consistent and efficient. Use Random Effects.",
+      "alternatives_considered": [
+        "Fixed Effects",
+        "Random Effects"
+      ],
+      "evidence": "Hausman stat = 0.0000, p-value = 1.0000",
+      "reversible": true
+    }
+  ],
+  "next_steps": [
+    "Use fixed effects results for Module 7 (Causal Inference - DiD)",
+    "Entity effects can inform state clustering in Module 6",
+    "Time effects show policy sensitivity for structural break analysis (Module 2.1.2)",
+    "Panel data ready for extended specifications with covariates"
+  ]
+}

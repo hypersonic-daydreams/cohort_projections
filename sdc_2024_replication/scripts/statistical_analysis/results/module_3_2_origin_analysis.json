@@ -1,0 +1,578 @@
+{
+  "analysis_type": "Origin-Specific Panel Analysis",
+  "module": "3.2",
+  "analysis_date": "2025-12-29T00:00:36.639898",
+  "growth_analysis": {
+    "period": "2009-2023",
+    "n_countries_analyzed": 36,
+    "min_population_filter": 50,
+    "top_growing_origins": [
+      {
+        "country": "Kenya",
+        "pop_earliest": 195.0,
+        "pop_latest": 11920.0,
+        "pct_growth": 6012.820512820513,
+        "cagr": 34.149385878861274
+      },
+      {
+        "country": "Iran",
+        "pop_earliest": 98.0,
+        "pop_latest": 1261.0,
+        "pct_growth": 1186.734693877551,
+        "cagr": 20.018782002657787
+      },
+      {
+        "country": "Other Eastern Africa",
+        "pop_earliest": 363.0,
+        "pop_latest": 3582.0,
+        "pct_growth": 886.7768595041323,
+        "cagr": 17.764838205574442
+      },
+      {
+        "country": "Iraq",
+        "pop_earliest": 88.0,
+        "pop_latest": 788.0,
+        "pct_growth": 795.4545454545454,
+        "cagr": 16.950776690838197
+      },
+      {
+        "country": "Croatia",
+        "pop_earliest": 60.0,
+        "pop_latest": 526.0,
+        "pct_growth": 776.6666666666666,
+        "cagr": 16.773775244486266
+      },
+      {
+        "country": "Pakistan",
+        "pop_earliest": 112.0,
+        "pop_latest": 860.0,
+        "pct_growth": 667.8571428571429,
+        "cagr": 15.67361715233282
+      },
+      {
+        "country": "Caribbean",
+        "pop_earliest": 201.0,
+        "pop_latest": 1175.0,
+        "pct_growth": 484.5771144278607,
+        "cagr": 13.44214114655764
+      },
+      {
+        "country": "Other Western Africa",
+        "pop_earliest": 77.0,
+        "pop_latest": 400.0,
+        "pct_growth": 419.4805194805195,
+        "cagr": 12.489526946968766
+      },
+      {
+        "country": "Bangladesh",
+        "pop_earliest": 100.0,
+        "pop_latest": 411.0,
+        "pct_growth": 311.0,
+        "cagr": 10.623105055400206
+      },
+      {
+        "country": "Lebanon",
+        "pop_earliest": 62.0,
+        "pop_latest": 198.0,
+        "pct_growth": 219.3548387096774,
+        "cagr": 8.647449515022942
+      },
+      {
+        "country": "Japan",
+        "pop_earliest": 172.0,
+        "pop_latest": 466.0,
+        "pct_growth": 170.93023255813952,
+        "cagr": 7.378761541626466
+      },
+      {
+        "country": "Korea",
+        "pop_earliest": 334.0,
+        "pop_latest": 663.0,
+        "pct_growth": 98.50299401197606,
+        "cagr": 5.019289512896186
+      },
+      {
+        "country": "Ukraine",
+        "pop_earliest": 65.0,
+        "pop_latest": 116.0,
+        "pct_growth": 78.46153846153847,
+        "cagr": 4.22393685315785
+      },
+      {
+        "country": "South Africa",
+        "pop_earliest": 237.0,
+        "pop_latest": 387.0,
+        "pct_growth": 63.29113924050633,
+        "cagr": 3.5646676088369578
+      },
+      {
+        "country": "Cameroon",
+        "pop_earliest": 67.0,
+        "pop_latest": 92.0,
+        "pct_growth": 37.3134328358209,
+        "cagr": 2.290816357291492
+      }
+    ],
+    "declining_origins": [
+      {
+        "country": "China",
+        "pop_earliest": 1034.0,
+        "pop_latest": 1020.0,
+        "pct_growth": -1.3539651837524178,
+        "cagr": -0.0973250997305719
+      },
+      {
+        "country": "Yugoslavia",
+        "pop_earliest": 125.0,
+        "pop_latest": 112.0,
+        "pct_growth": -10.4,
+        "cagr": -0.781323574593884
+      },
+      {
+        "country": "Germany",
+        "pop_earliest": 739.0,
+        "pop_latest": 657.0,
+        "pct_growth": -11.096075778078484,
+        "cagr": -0.8365803302984531
+      },
+      {
+        "country": "Poland",
+        "pop_earliest": 146.0,
+        "pop_latest": 128.0,
+        "pct_growth": -12.32876712328767,
+        "cagr": -0.9354285174856813
+      },
+      {
+        "country": "Sudan",
+        "pop_earliest": 203.0,
+        "pop_latest": 164.0,
+        "pct_growth": -19.21182266009852,
+        "cagr": -1.512302035631985
+      },
+      {
+        "country": "Austria",
+        "pop_earliest": 69.0,
+        "pop_latest": 55.0,
+        "pct_growth": -20.28985507246377,
+        "cagr": -1.606761059062456
+      },
+      {
+        "country": "India",
+        "pop_earliest": 617.0,
+        "pop_latest": 329.0,
+        "pct_growth": -46.677471636953,
+        "cagr": -4.392134187173791
+      },
+      {
+        "country": "Vietnam",
+        "pop_earliest": 482.0,
+        "pop_latest": 252.0,
+        "pct_growth": -47.71784232365145,
+        "cagr": -4.5265990992110705
+      },
+      {
+        "country": "Bosnia and Herzegovina",
+        "pop_earliest": 585.0,
+        "pop_latest": 278.0,
+        "pct_growth": -52.478632478632484,
+        "cagr": -5.175483306603834
+      },
+      {
+        "country": "South America",
+        "pop_earliest": 504.0,
+        "pop_latest": 219.0,
+        "pct_growth": -56.547619047619044,
+        "cagr": -5.779842250203182
+      },
+      {
+        "country": "United Kingdom (inc. Crown Dependencies)",
+        "pop_earliest": 251.0,
+        "pop_latest": 78.0,
+        "pct_growth": -68.92430278884463,
+        "cagr": -8.00920996977057
+      },
+      {
+        "country": "Russia",
+        "pop_earliest": 232.0,
+        "pop_latest": 57.0,
+        "pct_growth": -75.43103448275862,
+        "cagr": -9.540078808034313
+      },
+      {
+        "country": "Central America",
+        "pop_earliest": 1093.0,
+        "pop_latest": 71.0,
+        "pct_growth": -93.50411710887465,
+        "cagr": -17.740049864432983
+      },
+      {
+        "country": "Philippines",
+        "pop_earliest": 533.0,
+        "pop_latest": 34.0,
+        "pct_growth": -93.62101313320825,
+        "cagr": -17.846679420985623
+      },
+      {
+        "country": "Liberia",
+        "pop_earliest": 330.0,
+        "pop_latest": 19.0,
+        "pct_growth": -94.24242424242424,
+        "cagr": -18.445920524642023
+      },
+      {
+        "country": "Nepal",
+        "pop_earliest": 288.0,
+        "pop_latest": 7.0,
+        "pct_growth": -97.56944444444444,
+        "cagr": -23.318031389528628
+      },
+      {
+        "country": "Romania",
+        "pop_earliest": 58.0,
+        "pop_latest": 0.0,
+        "pct_growth": -100.0,
+        "cagr": -100.0
+      }
+    ],
+    "descriptive_statistics": {
+      "pct_growth": {
+        "mean": 314.7014278309784,
+        "std": 1030.1131364990963,
+        "min": -100.0,
+        "q1": -48.90803986239671,
+        "median": 1.2732380001395953,
+        "q3": 242.26612903225805,
+        "max": 6012.820512820513
+      },
+      "cagr": {
+        "mean": -0.8355959965237854,
+        "std": 20.765382180383853,
+        "min": -100.0,
+        "q1": -4.688820151059261,
+        "median": 0.09034865216176469,
+        "q3": 9.141363400117257,
+        "max": 34.149385878861274
+      }
+    }
+  },
+  "diaspora_concentration": {
+    "year": 2023,
+    "total_foreign_born": 34813.0,
+    "n_origin_countries": 95,
+    "top_20_origins": [
+      {
+        "country": "Kenya",
+        "foreign_born_pop": 11920.0,
+        "margin_of_error": 877.0,
+        "pct_of_nd_foreign_born": 34.24008272771666
+      },
+      {
+        "country": "Other Australian and New Zealand Subregion",
+        "foreign_born_pop": 5740.0,
+        "margin_of_error": 841.0,
+        "pct_of_nd_foreign_born": 16.488093528279666
+      },
+      {
+        "country": "Other Eastern Africa",
+        "foreign_born_pop": 3582.0,
+        "margin_of_error": 688.0,
+        "pct_of_nd_foreign_born": 10.289259759285324
+      },
+      {
+        "country": "Cambodia",
+        "foreign_born_pop": 3519.0,
+        "margin_of_error": 483.0,
+        "pct_of_nd_foreign_born": 10.108292879096888
+      },
+      {
+        "country": "Canada",
+        "foreign_born_pop": 3038.0,
+        "margin_of_error": 827.0,
+        "pct_of_nd_foreign_born": 8.726625111308994
+      },
+      {
+        "country": "Singapore",
+        "foreign_born_pop": 2520.0,
+        "margin_of_error": 420.0,
+        "pct_of_nd_foreign_born": 7.238675207537414
+      },
+      {
+        "country": "Albania",
+        "foreign_born_pop": 1872.0,
+        "margin_of_error": 464.0,
+        "pct_of_nd_foreign_born": 5.37730158274208
+      },
+      {
+        "country": "Iran",
+        "foreign_born_pop": 1261.0,
+        "margin_of_error": 480.0,
+        "pct_of_nd_foreign_born": 3.622210093930428
+      },
+      {
+        "country": "Caribbean",
+        "foreign_born_pop": 1175.0,
+        "margin_of_error": 484.0,
+        "pct_of_nd_foreign_born": 3.3751759400224053
+      },
+      {
+        "country": "China",
+        "foreign_born_pop": 1020.0,
+        "margin_of_error": 291.0,
+        "pct_of_nd_foreign_born": 2.92993996495562
+      },
+      {
+        "country": "Other Middle Africa",
+        "foreign_born_pop": 903.0,
+        "margin_of_error": 333.0,
+        "pct_of_nd_foreign_born": 2.59385861603424
+      },
+      {
+        "country": "Pakistan",
+        "foreign_born_pop": 860.0,
+        "margin_of_error": 316.0,
+        "pct_of_nd_foreign_born": 2.470341539080229
+      },
+      {
+        "country": "Iraq",
+        "foreign_born_pop": 788.0,
+        "margin_of_error": 311.0,
+        "pct_of_nd_foreign_born": 2.2635222474363026
+      },
+      {
+        "country": "Korea",
+        "foreign_born_pop": 663.0,
+        "margin_of_error": 244.0,
+        "pct_of_nd_foreign_born": 1.9044609772211532
+      },
+      {
+        "country": "Germany",
+        "foreign_born_pop": 657.0,
+        "margin_of_error": 168.0,
+        "pct_of_nd_foreign_born": 1.8872260362508257
+      },
+      {
+        "country": "Ghana",
+        "foreign_born_pop": 572.0,
+        "margin_of_error": 326.0,
+        "pct_of_nd_foreign_born": 1.643064372504524
+      },
+      {
+        "country": "Croatia",
+        "foreign_born_pop": 526.0,
+        "margin_of_error": 235.0,
+        "pct_of_nd_foreign_born": 1.5109298250653491
+      },
+      {
+        "country": "Other South Eastern Asia",
+        "foreign_born_pop": 505.0,
+        "margin_of_error": 243.0,
+        "pct_of_nd_foreign_born": 1.450607531669204
+      },
+      {
+        "country": "Japan",
+        "foreign_born_pop": 466.0,
+        "margin_of_error": 261.0,
+        "pct_of_nd_foreign_born": 1.3385804153620773
+      },
+      {
+        "country": "Ireland",
+        "foreign_born_pop": 413.0,
+        "margin_of_error": 167.0,
+        "pct_of_nd_foreign_born": 1.186338436790854
+      }
+    ],
+    "concentration_metrics": {
+      "hhi": 1891.6273417031693,
+      "hhi_interpretation": "moderate",
+      "cr5": 79.85235400568753,
+      "cr10": 102.39565679487548
+    }
+  },
+  "stock_flow_correlation": {
+    "n_countries_matched": 32,
+    "correlation_analysis": {
+      "pearson": {
+        "r": -0.058857528874801654,
+        "p_value": 0.7489839969371458,
+        "ci_95_lower": -0.3993554216597015,
+        "ci_95_upper": 0.2959094698104344
+      },
+      "spearman": {
+        "rho": 0.041493087744364665,
+        "p_value": 0.8216068940099368
+      },
+      "log_pearson": {
+        "r": -0.08577990347763403,
+        "p_value": 0.6406425826677451,
+        "ci_95_lower": -0.42185577293063586,
+        "ci_95_upper": 0.2710205445382846
+      }
+    },
+    "interpretation": {
+      "strength": "No meaningful",
+      "network_effect_support": false
+    },
+    "matched_countries": [
+      {
+        "country_harmonized": "Germany",
+        "acs_stock": 657.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "Ukraine",
+        "acs_stock": 116.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "China, People's Republic",
+        "acs_stock": 1020.0,
+        "lpr_admissions": 20.0
+      },
+      {
+        "country_harmonized": "Japan",
+        "acs_stock": 466.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "Korea, South",
+        "acs_stock": 663.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "Afghanistan",
+        "acs_stock": 301.0,
+        "lpr_admissions": 50.0
+      },
+      {
+        "country_harmonized": "Bangladesh",
+        "acs_stock": 411.0,
+        "lpr_admissions": 20.0
+      },
+      {
+        "country_harmonized": "India",
+        "acs_stock": 329.0,
+        "lpr_admissions": 50.0
+      },
+      {
+        "country_harmonized": "Iran",
+        "acs_stock": 1261.0,
+        "lpr_admissions": 20.0
+      },
+      {
+        "country_harmonized": "Kazakhstan",
+        "acs_stock": 251.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "Nepal",
+        "acs_stock": 7.0,
+        "lpr_admissions": 70.0
+      },
+      {
+        "country_harmonized": "Pakistan",
+        "acs_stock": 860.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "Sri Lanka",
+        "acs_stock": 227.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "Indonesia",
+        "acs_stock": 32.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "Philippines",
+        "acs_stock": 34.0,
+        "lpr_admissions": 530.0
+      },
+      {
+        "country_harmonized": "Thailand",
+        "acs_stock": 23.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "Vietnam",
+        "acs_stock": 252.0,
+        "lpr_admissions": 40.0
+      },
+      {
+        "country_harmonized": "Kuwait",
+        "acs_stock": 57.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "Saudi Arabia",
+        "acs_stock": 7.0,
+        "lpr_admissions": 20.0
+      },
+      {
+        "country_harmonized": "Turkey",
+        "acs_stock": 39.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "Ethiopia",
+        "acs_stock": 69.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "Kenya",
+        "acs_stock": 11920.0,
+        "lpr_admissions": 20.0
+      },
+      {
+        "country_harmonized": "Cameroon",
+        "acs_stock": 92.0,
+        "lpr_admissions": 20.0
+      },
+      {
+        "country_harmonized": "Egypt",
+        "acs_stock": 373.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "Morocco",
+        "acs_stock": 85.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "Sudan",
+        "acs_stock": 164.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "South Africa",
+        "acs_stock": 387.0,
+        "lpr_admissions": 20.0
+      },
+      {
+        "country_harmonized": "Ghana",
+        "acs_stock": 572.0,
+        "lpr_admissions": 60.0
+      },
+      {
+        "country_harmonized": "Liberia",
+        "acs_stock": 19.0,
+        "lpr_admissions": 120.0
+      },
+      {
+        "country_harmonized": "Nigeria",
+        "acs_stock": 140.0,
+        "lpr_admissions": 80.0
+      },
+      {
+        "country_harmonized": "Sierra Leone",
+        "acs_stock": 13.0,
+        "lpr_admissions": 10.0
+      },
+      {
+        "country_harmonized": "Canada",
+        "acs_stock": 3038.0,
+        "lpr_admissions": 70.0
+      }
+    ]
+  }
+}

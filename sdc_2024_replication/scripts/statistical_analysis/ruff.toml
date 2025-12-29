@@ -1,0 +1,10 @@
+# Ruff configuration for statistical analysis modules
+# These are research/analysis scripts that follow statistical conventions
+# where uppercase variable names (X, Y) are standard for matrices
+
+[lint]
+# Ignore specific rules that conflict with statistical conventions
+ignore = [
+    "N806",  # Variable in function should be lowercase (X, Y are standard for matrices)
+    "B007",  # Loop control variable not used (common in enumerate patterns)
+]
