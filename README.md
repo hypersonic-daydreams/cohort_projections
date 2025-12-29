@@ -40,12 +40,16 @@ cohort_projections/
 ### 1. Environment Setup
 
 ```bash
-# Create micromamba environment
-micromamba create -n cohort_proj python=3.11
-micromamba activate cohort_proj
+# Clone and enter project
+cd ~/workspace/demography/cohort_projections
 
-# Install dependencies
-pip install -r requirements.txt
+# Using direnv (recommended - auto-activates on cd)
+direnv allow
+uv sync
+
+# Or manually
+uv sync                          # Creates .venv and installs dependencies
+source .venv/bin/activate        # Activate the environment
 ```
 
 ### 2. Fetch Data from Sibling Repositories

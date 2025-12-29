@@ -14,7 +14,7 @@ Quick reference for Claude Code. **For detailed guidance, see [AGENTS.md](./AGEN
 | Projection Horizon | 2025-2045 (20 years) |
 | Geographic Levels | State, 53 Counties, Places (cities/CDPs) |
 | Demographic Detail | Age x Sex x Race/Ethnicity cohorts |
-| Tech Stack | Python 3.11+, pandas, pytest, ruff, mypy |
+| Tech Stack | Python 3.12, uv, pandas, pytest, ruff, mypy |
 
 **Data Sources:**
 - Census Bureau (PEP, ACS)
@@ -27,10 +27,16 @@ Quick reference for Claude Code. **For detailed guidance, see [AGENTS.md](./AGEN
 ## Virtual Environment (Critical)
 
 ```bash
-micromamba activate cohort_proj
+# Using direnv (recommended - auto-activates on cd)
+direnv allow
+
+# Or manually activate
+source .venv/bin/activate
 ```
 
-**Always activate before working.** Never install packages globally.
+**Workflow:** Use `uv sync` to install/update dependencies, then run commands normally.
+
+**Never install packages globally.** Add dependencies to `pyproject.toml` and run `uv sync`.
 
 ---
 
@@ -337,10 +343,11 @@ bigquery:
 ### Starting a New Session
 
 ```bash
-cd /home/nigel/cohort_projections
-micromamba activate cohort_proj
-./scripts/bisync.sh              # Get latest data
+cd ~/workspace/demography/cohort_projections
+direnv allow                     # Auto-activates venv (first time only)
 git pull                         # Get latest code
+./scripts/bisync.sh              # Get latest data
+uv sync                          # Install any new dependencies
 ```
 
 ### After Making Changes
@@ -361,4 +368,4 @@ python scripts/fetch_data.py     # Refresh from sibling repos
 
 ---
 
-**Last Updated:** 2025-12-28 | **Version:** 1.0.0
+**Last Updated:** 2025-12-29 | **Version:** 1.1.0

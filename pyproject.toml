@@ -249,3 +249,8 @@ exclude = ["tests*", "scripts*", "docs*"]
 
 [tool.setuptools.package-data]
 cohort_projections = ["py.typed", "*.yaml", "*.yml"]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.5.1",
+]

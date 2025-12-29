@@ -20,7 +20,7 @@ Cohort-component population projections for North Dakota at state, county, and p
 | **Demographic Detail** | Age x Sex x Race/Ethnicity cohorts |
 | **Output Use** | Official reports, planning documents |
 
-**Stack:** Python 3.11+, pandas, polars, YAML configs, pytest, Ruff, MyPy
+**Stack:** Python 3.12, uv, pandas, polars, YAML configs, pytest, Ruff, MyPy
 
 **Philosophy:**
 1. Demographic methodology must be rigorous and well-documented
@@ -33,7 +33,7 @@ Cohort-component population projections for North Dakota at state, county, and p
 ## 2. Core Constraints (Non-Negotiable)
 
 ### NEVER:
-1. Run code outside virtual environment (use `source .venv/bin/activate` or micromamba)
+1. Run code outside virtual environment (use `direnv allow` or `source .venv/bin/activate`)
 2. Hard-code file paths, URLs, or credentials (use `config/projection_config.yaml`)
 3. Commit secrets or credentials (`.env`, API keys, service account files)
 4. Bypass pre-commit hooks with `--no-verify`
@@ -98,7 +98,7 @@ AI agents have bounded autonomy with clear decision tiers.
 **Action:** Implement and commit
 
 ### Tier 2: Autonomous with Documentation (Do + Document)
-- New dependencies in `requirements.txt`
+- New dependencies in `pyproject.toml`
 - Configuration schema changes in `projection_config.yaml`
 - Algorithm modifications within existing methodology
 - Data source changes (new file formats, column mappings)
@@ -310,15 +310,19 @@ User explicitly requests it for an urgent situation (document why).
 
 ### Virtual Environment
 ```bash
-# Using micromamba (preferred)
-micromamba create -n cohort_proj python=3.11
-micromamba activate cohort_proj
-pip install -r requirements.txt
+# Using uv with direnv (preferred - auto-activates on cd)
+direnv allow
+uv sync
 
-# Or using venv
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+# Or manually
+uv sync                          # Creates .venv and installs dependencies
+source .venv/bin/activate        # Activate the environment
+```
+
+### Adding Dependencies
+```bash
+uv add <package>                 # Add to pyproject.toml and install
+uv add --dev <package>           # Add as dev dependency
 ```
 
 ### Configuration
@@ -368,6 +372,7 @@ pytest -k "fertility"            # By keyword
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1.0 | 2025-12-29 | Updated for uv package management |
 | 1.0.0 | 2025-12-28 | Initial AGENTS.md |
 
 ---

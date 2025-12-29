@@ -91,12 +91,14 @@ echo "Filter: ${FILTER_FILE}"
 echo ""
 
 # Run bisync
+# --bind 0.0.0.0 forces IPv4 (required for WSL2/networks without IPv6 connectivity)
 rclone bisync \
     "${PROJECT_DIR}" \
     "${REMOTE}" \
     --filter-from "${FILTER_FILE}" \
     --verbose \
     --check-access \
+    --bind 0.0.0.0 \
     ${RESYNC} \
     ${DRY_RUN}
 
