@@ -30,10 +30,13 @@ from projection_engine import (  # noqa: E402
 )
 
 # Paths
-BASE_DIR = SCRIPTS_DIR.parent
+BASE_DIR = SCRIPTS_DIR.parent  # sdc_2024_replication/
+PROJECT_ROOT = BASE_DIR.parent  # cohort_projections/
+
 ORIGINAL_DATA_DIR = BASE_DIR / "data"
 UPDATED_DATA_DIR = BASE_DIR / "data_updated"
-POLICY_DATA_DIR = BASE_DIR / "data_immigration_policy" / "rates"
+# Immigration policy rates are now in project-level processed data
+POLICY_DATA_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "rates"
 OUTPUT_DIR = BASE_DIR / "output"
 OUTPUT_DIR.mkdir(exist_ok=True)
 

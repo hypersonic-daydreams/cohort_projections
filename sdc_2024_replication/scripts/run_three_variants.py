@@ -151,11 +151,13 @@ def main() -> None:
     """Run all three variants and compare results."""
     # Determine paths
     script_dir = Path(__file__).parent
-    base_dir = script_dir.parent
+    base_dir = script_dir.parent  # sdc_2024_replication/
+    project_root = base_dir.parent  # cohort_projections/
 
     original_data_dir = base_dir / "data"
     updated_data_dir = base_dir / "data_updated"
-    policy_data_dir = base_dir / "data_immigration_policy" / "rates"
+    # Immigration policy rates are now in project-level processed data
+    policy_data_dir = project_root / "data" / "processed" / "immigration" / "rates"
     output_dir = base_dir / "output"
 
     # Configuration

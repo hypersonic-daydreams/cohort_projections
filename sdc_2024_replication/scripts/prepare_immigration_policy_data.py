@@ -30,12 +30,16 @@ from pathlib import Path
 
 import pandas as pd
 
-# Paths
-BASE_DIR = Path(__file__).parent.parent
+# Paths - Use project-level data directories
+BASE_DIR = Path(__file__).parent.parent  # sdc_2024_replication/
+PROJECT_ROOT = BASE_DIR.parent  # cohort_projections/
+
+# SDC replication data directories
 UPDATED_DATA_DIR = BASE_DIR / "data_updated"
-POLICY_DATA_DIR = BASE_DIR / "data_immigration_policy"
-ANALYSIS_DIR = POLICY_DATA_DIR / "analysis"
-OUTPUT_DIR = POLICY_DATA_DIR / "rates"
+
+# Immigration policy data (now in project-level directories)
+ANALYSIS_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "analysis"
+OUTPUT_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "rates"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 

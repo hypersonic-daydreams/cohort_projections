@@ -20,10 +20,10 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-# Paths
-BASE_DIR = Path(__file__).parent.parent
-SOURCE_DIR = BASE_DIR / "data_immigration_policy" / "source"
-OUTPUT_DIR = BASE_DIR / "data_immigration_policy" / "analysis"
+# Paths - Use project-level data directories
+PROJECT_ROOT = Path(__file__).parent.parent.parent  # cohort_projections/
+SOURCE_DIR = PROJECT_ROOT / "data" / "raw" / "immigration"
+OUTPUT_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "analysis"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 

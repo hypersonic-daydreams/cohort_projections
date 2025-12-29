@@ -57,8 +57,10 @@ Updated data with empirically-derived immigration policy adjustment:
 - **Survival Rates:** Same as Updated variant
 - **Fertility Rates:** Same as Updated variant
 - **Migration Rates:** SDC rates × 0.6504 adjustment factor
-- **Data Directory:** `data_immigration_policy/`
-- **Documentation:** [data_immigration_policy/rates/MANIFEST.md](data_immigration_policy/rates/MANIFEST.md)
+- **Data Directory:** `../data/processed/immigration/rates/`
+- **Raw Data:** `../data/raw/immigration/`
+- **Analysis Data:** `../data/processed/immigration/analysis/`
+- **Documentation:** [../data/processed/immigration/rates/MANIFEST.md](../data/processed/immigration/rates/MANIFEST.md)
 
 **Methodology:**
 1. Downloaded Census Bureau components of population change (2010-2024)
@@ -92,19 +94,23 @@ sdc_2024_replication/
 │   ├── survival_rates_by_county.csv
 │   └── migration_rates_by_county.csv
 │
-├── data_immigration_policy/       # Variant 3: Immigration policy scenario
-│   ├── source/                    # Census Bureau source data
-│   │   ├── NST-EST2024-ALLDATA.csv
-│   │   └── NST-EST2020-ALLDATA.csv
-│   ├── analysis/                  # Statistical analysis outputs
-│   │   ├── combined_components_of_change.csv
-│   │   ├── migration_analysis_results.json
-│   │   └── nd_migration_summary.csv
-│   └── rates/                     # Adjusted projection inputs
-│       ├── MANIFEST.md
-│       ├── migration_rates_by_county.csv  # Adjusted rates
-│       ├── period_multipliers.json
-│       └── adjustment_details.json
+├── # Immigration policy data is now in project-level data/ directories:
+│   # ../data/raw/immigration/          # Census Bureau source data
+│   #   ├── NST-EST2024-ALLDATA.csv
+│   #   ├── NST-EST2020-ALLDATA.csv
+│   #   ├── dhs_yearbook/
+│   #   ├── nd_immigrant_profile/
+│   #   └── ...
+│   # ../data/processed/immigration/
+│   #   ├── analysis/                  # Statistical analysis outputs
+│   #   │   ├── combined_components_of_change.csv
+│   #   │   ├── migration_analysis_results.json
+│   #   │   └── nd_migration_summary.csv
+│   #   └── rates/                     # Adjusted projection inputs
+│   #       ├── MANIFEST.md
+│   #       ├── migration_rates_by_county.csv  # Adjusted rates
+│   #       ├── period_multipliers.json
+│   #       └── adjustment_details.json
 │
 ├── scripts/                       # Projection and analysis scripts
 │   ├── projection_engine.py       # Core SDC methodology implementation
@@ -246,7 +252,7 @@ This replication is **intentionally separate** from the main `cohort_projections
 | [ADR-017](../docs/adr/017-sdc-2024-methodology-comparison.md) | SDC vs Baseline 2026 comparison |
 | [ADR-018](../docs/adr/018-immigration-policy-scenario-methodology.md) | Immigration policy scenario methodology |
 | [data_updated/MANIFEST.md](data_updated/MANIFEST.md) | Updated variant data sources |
-| [data_immigration_policy/rates/MANIFEST.md](data_immigration_policy/rates/MANIFEST.md) | Policy variant data sources |
+| [Immigration Rates MANIFEST.md](../data/processed/immigration/rates/MANIFEST.md) | Policy variant data sources |
 | [Research Report](../docs/research/2025_immigration_policy_demographic_impact.md) | Immigration policy impact analysis |
 
 ---

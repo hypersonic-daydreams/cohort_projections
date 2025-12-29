@@ -49,10 +49,14 @@ data/raw/**/*.zip
 data/raw/**/*.pdf
 data/raw/**/*.docx
 data/raw/**/*.pptx
+data/raw/**/*.dta
+data/raw/**/*.md
 
 # Processed and projection output files
 data/processed/**/*.csv
 data/processed/**/*.parquet
+data/processed/**/*.json
+data/processed/**/*.md
 data/projections/**/*.csv
 data/projections/**/*.parquet
 data/projections/**/*.xlsx
