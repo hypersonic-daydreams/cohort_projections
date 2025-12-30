@@ -93,7 +93,7 @@ Review all statistical terminology and flag corrections needed:
 
 **Then produce the following downloadable files:**
 
-### 1. kpss_resolution.md
+### 1. G02_kpss_resolution.md
 
 A markdown document containing:
 - Correct interpretation of the KPSS results
@@ -101,7 +101,7 @@ A markdown document containing:
 - Recommended language for the revised article
 - Summary table of all unit root test conclusions
 
-### 2. backtesting_spec.md
+### 2. G02_backtesting_spec.md
 
 A markdown document containing:
 - Detailed backtesting protocol specification
@@ -109,7 +109,7 @@ A markdown document containing:
 - Expected output table format
 - Discussion of limitations given n=15
 
-### 3. terminology_corrections.csv
+### 3. G02_terminology_corrections.csv
 
 A CSV table with columns:
 ```
@@ -121,7 +121,7 @@ List every terminology correction needed, including:
 - Hedging language additions (e.g., "suggests" instead of "establishes")
 - Any arithmetic corrections found
 
-### 4. recommendations.md
+### 4. G02_recommendations.md
 
 A summary markdown document containing:
 - Prioritized list of changes (critical / important / minor)

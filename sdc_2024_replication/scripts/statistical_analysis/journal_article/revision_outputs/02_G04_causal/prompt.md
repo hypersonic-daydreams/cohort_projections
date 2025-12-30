@@ -130,7 +130,7 @@ Given your assessments above, evaluate:
 
 **Then provide your detailed analysis as four downloadable files:**
 
-### 1. scm_decision.md (THE CRITICAL OUTPUT)
+### 1. G04_scm_decision.md (THE CRITICAL OUTPUT)
 Structure:
 ```markdown
 # SCM Decision: [KEEP/DROP/REFRAME]
@@ -151,7 +151,7 @@ Structure:
 [What limitations remain even after implementing recommendation]
 ```
 
-### 2. did_specification.md
+### 2. G04_did_specification.md
 ```markdown
 # DiD Specification Recommendations
 
@@ -170,7 +170,7 @@ Structure:
 [Specific recommendations for event study presentation]
 ```
 
-### 3. bartik_specification.md
+### 3. G04_bartik_specification.md
 ```markdown
 # Bartik/Shift-Share Specification
 
@@ -187,7 +187,7 @@ Structure:
 [What needs to be added to paper]
 ```
 
-### 4. recommendations.md
+### 4. G04_recommendations.md
 ```markdown
 # Integrated Causal Inference Recommendations
 

@@ -14,6 +14,6 @@ On identification: with a **single FY2023 cross-section**, you cannot defend “
 
 Top three priority changes for revision are: (1) **stop dropping zero flows** and estimate PPML on the full origin–state grid; (2) move to a gravity-correct predictive spec with **origin FE + destination FE + (log) distance** and report **robust + (two-way) clustered** inference; (3) rewrite “network effects” language to be explicitly **predictive/descriptive** and add a clear limitations paragraph tying the gravity module to the forecasting workflow rather than to causal mechanism testing.
 
-[Download gravity_specification.md](sandbox:/mnt/data/gravity_specification.md)
-[Download se_analysis.md](sandbox:/mnt/data/se_analysis.md)
-[Download recommendations.md](sandbox:/mnt/data/recommendations.md)
+[Download G03_gravity_specification.md](sandbox:/mnt/data/G03_gravity_specification.md)
+[Download G03_se_analysis.md](sandbox:/mnt/data/G03_se_analysis.md)
+[Download G03_recommendations.md](sandbox:/mnt/data/G03_recommendations.md)

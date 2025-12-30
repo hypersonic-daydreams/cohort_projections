@@ -18,7 +18,7 @@ Your current SCM output looks “impressive” numerically (tiny pre-RMSPE, huge
 
 ## Downloadable files
 
-1. [Download scm_decision.md](sandbox:/mnt/data/scm_decision.md)
-2. [Download did_specification.md](sandbox:/mnt/data/did_specification.md)
-3. [Download bartik_specification.md](sandbox:/mnt/data/bartik_specification.md)
-4. [Download recommendations.md](sandbox:/mnt/data/recommendations.md)
+1. [Download G04_scm_decision.md](sandbox:/mnt/data/G04_scm_decision.md)
+2. [Download G04_did_specification.md](sandbox:/mnt/data/G04_did_specification.md)
+3. [Download G04_bartik_specification.md](sandbox:/mnt/data/G04_bartik_specification.md)
+4. [Download G04_recommendations.md](sandbox:/mnt/data/G04_recommendations.md)

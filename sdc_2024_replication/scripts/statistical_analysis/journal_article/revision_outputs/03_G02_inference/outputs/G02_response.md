@@ -21,7 +21,7 @@ Bottom line: with **n=15 annual points**, you *can* credibly claim transparent s
 
 ## Downloadable files
 
-1. [Download **kpss_resolution.md**](sandbox:/mnt/data/kpss_resolution.md)
-2. [Download **backtesting_spec.md**](sandbox:/mnt/data/backtesting_spec.md)
-3. [Download **terminology_corrections.csv**](sandbox:/mnt/data/terminology_corrections.csv)
-4. [Download **recommendations.md**](sandbox:/mnt/data/recommendations.md)
+1. [Download **G02_kpss_resolution.md**](sandbox:/mnt/data/G02_kpss_resolution.md)
+2. [Download **G02_backtesting_spec.md**](sandbox:/mnt/data/G02_backtesting_spec.md)
+3. [Download **G02_terminology_corrections.csv**](sandbox:/mnt/data/G02_terminology_corrections.csv)
+4. [Download **G02_recommendations.md**](sandbox:/mnt/data/G02_recommendations.md)

@@ -107,7 +107,7 @@ Provide a complete revised gravity model specification that:
 
 **Then produce THREE downloadable files:**
 
-### File 1: `gravity_specification.md`
+### File 1: `G03_gravity_specification.md`
 
 Complete revised gravity model specification including:
 - Theoretical gravity model equation (LaTeX)
@@ -116,7 +116,7 @@ Complete revised gravity model specification including:
 - Estimator choice justification
 - Recommended controls
 
-### File 2: `se_analysis.md`
+### File 2: `G03_se_analysis.md`
 
 Standard error analysis including:
 - Diagnosis of current SE issues
@@ -125,7 +125,7 @@ Standard error analysis including:
 - Measurement error considerations
 - Corrected inference approach
 
-### File 3: `recommendations.md`
+### File 3: `G03_recommendations.md`
 
 Concrete revision recommendations including:
 - Language changes (before/after examples)
