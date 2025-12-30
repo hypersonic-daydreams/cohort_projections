@@ -1,7 +1,7 @@
 {
   "module": "2.1.1",
   "analysis": "unit_root_tests",
-  "generated": "2025-12-29T05:57:13.487254+00:00",
+  "generated": "2025-12-30T04:23:52.928648+00:00",
   "input_files": [
     "nd_migration_summary.csv"
   ],
@@ -15,7 +15,10 @@
     "time_period": "2010-2024",
     "significance_level": 0.05,
     "adf_autolag": "AIC",
-    "kpss_nlags": "auto"
+    "kpss_nlags": "auto",
+    "zivot_andrews_regression": "c",
+    "zivot_andrews_trim": 0.15,
+    "zivot_andrews_maxlag": 1
   },
   "results": {
     "variables": {
@@ -25,8 +28,8 @@
         "std": 0.0523189026086137,
         "adf_level": {
           "series": "nd_share_of_us_intl_pct",
-          "statistic": -2.004226168756995,
-          "p_value": 0.2847231513964522,
+          "statistic": -2.004226168756993,
+          "p_value": 0.28472315139645327,
           "used_lag": 5,
           "n_obs_used": 9,
           "critical_values": {
@@ -34,43 +37,43 @@
             "5%": -3.28988060356653,
             "10%": -2.7723823456790124
           },
-          "ic_best": -25.12973060159895,
+          "ic_best": -25.129730601598936,
           "regression_type": "c",
           "regression": {
             "constant": {
-              "coef": 0.25687929829358525,
-              "se": 0.09230680642152263,
-              "t": 2.782885772480698
+              "coef": 0.2568792982935854,
+              "se": 0.09230680642152259,
+              "t": 2.782885772480701
             },
             "rho_minus_1": {
-              "coef": -1.4849148798121377,
-              "se": 0.48905575055730044,
-              "t": -3.0362895807277845
+              "coef": -1.484914879812138,
+              "se": 0.4890557505573003,
+              "t": -3.0362895807277863
             },
             "diff_lag_1": {
-              "coef": 0.37652131612384626,
-              "se": 0.40453865457735744,
-              "t": 0.9307424936121806
+              "coef": 0.3765213161238465,
+              "se": 0.4045386545773573,
+              "t": 0.9307424936121814
             },
             "diff_lag_2": {
-              "coef": 0.5481137100324897,
-              "se": 0.32316943587093344,
-              "t": 1.6960567714435528
+              "coef": 0.5481137100324905,
+              "se": 0.3231694358709333,
+              "t": 1.6960567714435564
             },
             "diff_lag_3": {
-              "coef": 0.3060972733342245,
-              "se": 0.3225067738425362,
-              "t": 0.9491188965961886
+              "coef": 0.3060972733342249,
+              "se": 0.3225067738425361,
+              "t": 0.94911889659619
             },
             "diff_lag_4": {
-              "coef": -0.16837621084046397,
-              "se": 0.30900322545174064,
-              "t": -0.5449011433272581
+              "coef": -0.16837621084046384,
+              "se": 0.3090032254517405,
+              "t": -0.5449011433272578
             },
             "diff_lag_5": {
-              "coef": 0.009146028720370573,
-              "se": 0.2711916007558664,
-              "t": 0.03372533918778724
+              "coef": 0.009146028720370777,
+              "se": 0.27119160075586635,
+              "t": 0.033725339187788
             }
           }
         },
@@ -98,6 +101,22 @@
             "10%": -2.6909873469387753
           },
           "note": "PP test approximated using DF test (maxlag=0) for small sample"
+        },
+        "zivot_andrews_level": {
+          "series": "nd_share_of_us_intl_pct",
+          "statistic": -5.605683187852614,
+          "p_value": 0.0027822567901155757,
+          "critical_values": {
+            "1%": -5.27644,
+            "5%": -4.81067,
+            "10%": -4.56618
+          },
+          "used_lag": 0,
+          "break_index": 8,
+          "break_year": 2018,
+          "regression_type": "level",
+          "trim": 0.15,
+          "autolag": "AIC"
         },
         "adf_differenced": {
           "series": "d(nd_share_of_us_intl_pct)",
@@ -127,8 +146,8 @@
         },
         "kpss_differenced": {
           "series": "d(nd_share_of_us_intl_pct)",
-          "statistic": 0.4999999999999999,
-          "p_value": 0.04166666666666669,
+          "statistic": 0.5,
+          "p_value": 0.04166666666666667,
           "lags_used": 13,
           "critical_values": {
             "10%": 0.347,
@@ -162,8 +181,8 @@
         "std": 1432.0705972666137,
         "adf_level": {
           "series": "nd_intl_migration",
-          "statistic": -1.4534467368641693,
-          "p_value": 0.5564021716016336,
+          "statistic": -1.4534467368641997,
+          "p_value": 0.5564021716016188,
           "used_lag": 5,
           "n_obs_used": 9,
           "critical_values": {
@@ -171,43 +190,43 @@
             "5%": -3.28988060356653,
             "10%": -2.7723823456790124
           },
-          "ic_best": 126.1573749472613,
+          "ic_best": 126.15737494726133,
           "regression_type": "c",
           "regression": {
             "constant": {
-              "coef": 1105.1753404285453,
-              "se": 677.5739226259527,
-              "t": 1.6310771467494112
+              "coef": 1105.175340428545,
+              "se": 677.5739226259528,
+              "t": 1.6310771467494105
             },
             "rho_minus_1": {
-              "coef": -0.6004923607252058,
-              "se": 0.5200630048850854,
-              "t": -1.154653099883335
+              "coef": -0.6004923607252057,
+              "se": 0.5200630048850855,
+              "t": -1.1546530998833346
             },
             "diff_lag_1": {
-              "coef": 0.08387208269750829,
+              "coef": 0.08387208269750684,
               "se": 0.5263275518294596,
-              "t": 0.15935339581972802
+              "t": 0.1593533958197253
             },
             "diff_lag_2": {
-              "coef": 0.5281381249508235,
-              "se": 0.4376302507656295,
-              "t": 1.2068135692787494
+              "coef": 0.5281381249508232,
+              "se": 0.43763025076562967,
+              "t": 1.2068135692787483
             },
             "diff_lag_3": {
-              "coef": -0.6944818386741572,
-              "se": 0.42602038717920815,
-              "t": -1.6301610429315418
+              "coef": -0.6944818386741559,
+              "se": 0.4260203871792082,
+              "t": -1.6301610429315385
             },
             "diff_lag_4": {
-              "coef": -1.1234193463122475,
+              "coef": -1.1234193463122477,
               "se": 0.500856614890349,
-              "t": -2.242995925207445
+              "t": -2.2429959252074454
             },
             "diff_lag_5": {
-              "coef": -0.13859338272028365,
+              "coef": -0.13859338272028496,
               "se": 0.5390961516072654,
-              "t": -0.2570847191304933
+              "t": -0.2570847191304957
             }
           }
         },
@@ -225,8 +244,8 @@
           "regression_type": "level"
         },
         "phillips_perron_level": {
-          "statistic": -0.6195622042640315,
-          "p_value": 0.8665002222315035,
+          "statistic": -0.619562204264031,
+          "p_value": 0.8665002222315037,
           "lags_used": 0,
           "n_obs_used": 14,
           "critical_values": {
@@ -236,10 +255,26 @@
           },
           "note": "PP test approximated using DF test (maxlag=0) for small sample"
         },
+        "zivot_andrews_level": {
+          "series": "nd_intl_migration",
+          "statistic": -3.0489490952389895,
+          "p_value": 0.8973296644329446,
+          "critical_values": {
+            "1%": -5.27644,
+            "5%": -4.81067,
+            "10%": -4.56618
+          },
+          "used_lag": 0,
+          "break_index": 11,
+          "break_year": 2021,
+          "regression_type": "level",
+          "trim": 0.15,
+          "autolag": "AIC"
+        },
         "adf_differenced": {
           "series": "d(nd_intl_migration)",
-          "statistic": -3.8428940157830493,
-          "p_value": 0.0024977127875415693,
+          "statistic": -3.8428940157830502,
+          "p_value": 0.002497712787541565,
           "used_lag": 3,
           "n_obs_used": 10,
           "critical_values": {
@@ -251,29 +286,29 @@
           "regression_type": "c",
           "regression": {
             "constant": {
-              "coef": 495.773824275667,
-              "se": 283.7065525701755,
-              "t": 1.7474880991796482
+              "coef": 495.77382427566636,
+              "se": 283.70655257017575,
+              "t": 1.7474880991796446
             },
             "rho_minus_1": {
-              "coef": -2.55764841867692,
-              "se": 0.6498298696221033,
-              "t": -3.935873892907191
+              "coef": -2.5576484186769157,
+              "se": 0.6498298696221032,
+              "t": -3.935873892907185
             },
             "diff_lag_1": {
-              "coef": 1.361200186146963,
-              "se": 0.5354396516415667,
-              "t": 2.5422102789245344
+              "coef": 1.36120018614696,
+              "se": 0.5354396516415665,
+              "t": 2.5422102789245304
             },
             "diff_lag_2": {
-              "coef": 1.5913927788908788,
-              "se": 0.49770839371223713,
-              "t": 3.197440105482696
+              "coef": 1.591392778890877,
+              "se": 0.497708393712237,
+              "t": 3.1974401054826935
             },
             "diff_lag_3": {
-              "coef": 0.8373346140651816,
-              "se": 0.3550245302285438,
-              "t": 2.3585260813559983
+              "coef": 0.837334614065181,
+              "se": 0.35502453022854374,
+              "t": 2.358526081355997
             }
           }
         },
@@ -314,8 +349,8 @@
         "std": 717853.6519858998,
         "adf_level": {
           "series": "us_intl_migration",
-          "statistic": -3.9077429174341347,
-          "p_value": 0.0019785967196018226,
+          "statistic": -3.907742917433983,
+          "p_value": 0.001978596719602916,
           "used_lag": 5,
           "n_obs_used": 9,
           "critical_values": {
@@ -323,33 +358,33 @@
             "5%": -3.28988060356653,
             "10%": -2.7723823456790124
           },
-          "ic_best": 243.5106948125886,
+          "ic_best": 243.51069481258858,
           "regression_type": "c",
           "regression": {
             "constant": {
-              "coef": 538310.3314727561,
-              "se": 364724.01184977376,
-              "t": 1.4759388304120784
+              "coef": 538310.3314727558,
+              "se": 364724.0118497737,
+              "t": 1.4759388304120777
             },
             "rho_minus_1": {
-              "coef": -0.512545563853287,
-              "se": 0.4989448749845689,
-              "t": -1.0272589008337618
+              "coef": -0.5125455638532865,
+              "se": 0.49894487498456863,
+              "t": -1.0272589008337616
             },
             "diff_lag_1": {
-              "coef": 0.6918187380743898,
-              "se": 0.4822955032881439,
+              "coef": 0.6918187380743895,
+              "se": 0.4822955032881438,
               "t": 1.4344291691665798
             },
             "diff_lag_2": {
-              "coef": -0.016582557916746607,
-              "se": 0.5413220050794084,
-              "t": -0.03063344508655999
+              "coef": -0.01658255791674665,
+              "se": 0.5413220050794082,
+              "t": -0.03063344508656008
             },
             "diff_lag_3": {
-              "coef": 0.18641551674773835,
+              "coef": 0.18641551674773815,
               "se": 0.5641616735803975,
-              "t": 0.3304292465751356
+              "t": 0.3304292465751353
             },
             "diff_lag_4": {
               "coef": -0.7002681304636321,
@@ -357,9 +392,9 @@
               "t": -1.2147453554988017
             },
             "diff_lag_5": {
-              "coef": -0.4466592760316264,
+              "coef": -0.44665927603162575,
               "se": 0.7217681150563232,
-              "t": -0.6188404097024587
+              "t": -0.6188404097024578
             }
           }
         },
@@ -388,10 +423,26 @@
           },
           "note": "PP test approximated using DF test (maxlag=0) for small sample"
         },
+        "zivot_andrews_level": {
+          "series": "us_intl_migration",
+          "statistic": -2.4951394059882483,
+          "p_value": 0.9846917373324974,
+          "critical_values": {
+            "1%": -5.27644,
+            "5%": -4.81067,
+            "10%": -4.56618
+          },
+          "used_lag": 1,
+          "break_index": 11,
+          "break_year": 2021,
+          "regression_type": "level",
+          "trim": 0.15,
+          "autolag": "AIC"
+        },
         "adf_differenced": {
           "series": "d(us_intl_migration)",
-          "statistic": -2.347215979449134,
-          "p_value": 0.15719153459210494,
+          "statistic": -2.347215979449135,
+          "p_value": 0.15719153459210483,
           "used_lag": 4,
           "n_obs_used": 9,
           "critical_values": {
@@ -399,38 +450,38 @@
             "5%": -3.28988060356653,
             "10%": -2.7723823456790124
           },
-          "ic_best": 226.80904624847565,
+          "ic_best": 226.80904624847568,
           "regression_type": "c",
           "regression": {
             "constant": {
               "coef": 151082.29775508033,
-              "se": 169216.70416653508,
-              "t": 0.8928332371158363
+              "se": 169216.704166535,
+              "t": 0.8928332371158367
             },
             "rho_minus_1": {
-              "coef": -0.9823274358023014,
+              "coef": -0.982327435802301,
               "se": 0.5341727057882909,
-              "t": -1.8389697286248616
+              "t": -1.838969728624861
             },
             "diff_lag_1": {
-              "coef": 0.7277705555511279,
+              "coef": 0.7277705555511276,
               "se": 0.4593323457548245,
-              "t": 1.5844095506820377
+              "t": 1.584409550682037
             },
             "diff_lag_2": {
-              "coef": 0.05428088333875301,
+              "coef": 0.05428088333875242,
               "se": 0.48473366317354283,
-              "t": 0.11198084115589789
+              "t": 0.11198084115589667
             },
             "diff_lag_3": {
-              "coef": 0.7112580187187948,
+              "coef": 0.7112580187187953,
               "se": 0.5455231665270643,
-              "t": 1.3038090082348648
+              "t": 1.303809008234866
             },
             "diff_lag_4": {
-              "coef": -0.1257092600397396,
+              "coef": -0.12570926003974003,
               "se": 0.8131433700862303,
-              "t": -0.15459667343338074
+              "t": -0.15459667343338127
             }
           }
         },
@@ -491,14 +542,15 @@
     "test_interpretation": {
       "adf": "H0: Unit root present (non-stationary). Reject if p < 0.05.",
       "kpss": "H0: Series is stationary. Reject if p < 0.05.",
-      "phillips_perron": "H0: Unit root present. Reject if p < 0.05."
+      "phillips_perron": "H0: Unit root present. Reject if p < 0.05.",
+      "zivot_andrews": "H0: Unit root with no break. Reject if p < 0.05 (single-break alternative)."
     },
     "sample_size_concern": "n=15 is below recommended minimum of 25 for reliable unit root tests"
   },
   "decisions": [
     {
       "decision_id": "D001",
-      "timestamp": "2025-12-29T05:57:11.450876+00:00",
+      "timestamp": "2025-12-30T04:23:49.638039+00:00",
       "category": "data_handling",
       "decision": "Include 2020 COVID year in analysis",
       "rationale": "With only 15 observations, excluding any year significantly reduces test power. 2020 anomaly is noted but retained for completeness. Sensitivity without 2020 could be performed in follow-up analysis.",
@@ -511,7 +563,7 @@
     },
     {
       "decision_id": "D002",
-      "timestamp": "2025-12-29T05:57:11.450891+00:00",
+      "timestamp": "2025-12-30T04:23:49.638055+00:00",
       "category": "methodology",
       "decision": "Proceed with unit root tests despite short series",
       "rationale": "With n=15, asymptotic distributions may not hold well. Tests have reduced power. Results should be interpreted with caution.",
@@ -525,7 +577,8 @@
   ],
   "warnings": [
     "Short time series (n=15) limits test power and may affect asymptotic validity of tests.",
-    "2020 COVID year shows anomalous values that may affect test results."
+    "2020 COVID year shows anomalous values that may affect test results.",
+    "Zivot-Andrews single-break test is low power in n=15; interpret as diagnostic only."
   ],
   "next_steps": [
     "Use integration order results for ARIMA model specification (Module 2.1)",

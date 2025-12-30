@@ -6,7 +6,7 @@ Module 7: Causal Inference Agent - Difference-in-Differences and Event Studies
 Implements causal inference methods for policy event analysis:
 1. Difference-in-Differences (DiD) for 2017 Travel Ban and 2020 COVID
 2. Event Study specification with dynamic treatment effects
-3. Synthetic Control Method for North Dakota counterfactual
+3. Synthetic comparator (descriptive benchmark) for North Dakota
 4. Shift-share (Bartik) instrument approach
 
 Usage:
@@ -28,7 +28,6 @@ import pandas as pd
 import statsmodels.api as sm
 
 # Panel data models
-from linearmodels.panel import PanelOLS
 from scipy import stats
 from statsmodels.regression.linear_model import OLS
 
@@ -37,10 +36,12 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent.parent  # cohort_projections/
 DATA_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "analysis"
 RESULTS_DIR = Path(__file__).parent / "results"
 FIGURES_DIR = Path(__file__).parent / "figures"
+ARTICLE_FIGURES_DIR = Path(__file__).parent / "journal_article" / "figures"
 
 # Ensure output directories exist
 RESULTS_DIR.mkdir(exist_ok=True)
 FIGURES_DIR.mkdir(exist_ok=True)
+ARTICLE_FIGURES_DIR.mkdir(exist_ok=True)
 
 # Standard color palette (colorblind-safe)
 COLORS = {
@@ -165,23 +166,33 @@ def save_figure(fig, filepath_base, title, source_note):
     )
     plt.tight_layout(rect=[0, 0.03, 1, 0.97])
 
+    if isinstance(filepath_base, (str, Path)):
+        filepath_bases = [filepath_base]
+    else:
+        filepath_bases = list(filepath_base)
+
     # Save both formats
-    fig.savefig(
-        f"{filepath_base}.png",
-        dpi=300,
-        bbox_inches="tight",
-        facecolor="white",
-        edgecolor="none",
-    )
-    fig.savefig(
-        f"{filepath_base}.pdf",
-        dpi=300,
-        bbox_inches="tight",
-        facecolor="white",
-        edgecolor="none",
-    )
+    for base in filepath_bases:
+        fig.savefig(
+            f"{base}.png",
+            dpi=300,
+            bbox_inches="tight",
+            facecolor="white",
+            edgecolor="none",
+        )
+        fig.savefig(
+            f"{base}.pdf",
+            dpi=300,
+            bbox_inches="tight",
+            facecolor="white",
+            edgecolor="none",
+        )
     plt.close(fig)
-    print(f"Figure saved: {filepath_base}.png/pdf")
+    if len(filepath_bases) == 1:
+        print(f"Figure saved: {filepath_bases[0]}.png/pdf")
+    else:
+        saved_bases = ", ".join(str(base) for base in filepath_bases)
+        print(f"Figure saved: {saved_bases}.png/pdf")
 
 
 # =============================================================================
@@ -387,8 +398,10 @@ def estimate_did_travel_ban(df: pd.DataFrame, result: ModuleResult) -> dict:
     # Ensure all numeric types
     X_twfe = X_twfe.astype(float)
 
-    # Estimate with robust standard errors (HC1 is less prone to issues than HC3)
-    model_twfe = OLS(y, X_twfe).fit(cov_type="HC1")
+    # Estimate with clustered standard errors (nationality-level)
+    model_twfe = OLS(y, X_twfe).fit(
+        cov_type="cluster", cov_kwds={"groups": df_analysis["nationality"]}
+    )
 
     # Extract ATT
     att = model_twfe.params["treated_x_post"]
@@ -405,7 +418,7 @@ def estimate_did_travel_ban(df: pd.DataFrame, result: ModuleResult) -> dict:
     print("=" * 60)
     print("Dependent Variable: log(refugee arrivals + 1)")
     print("Fixed Effects: Nationality, Year")
-    print("Standard Errors: HC3 (heteroskedasticity-robust)")
+    print("Standard Errors: Clustered by nationality")
     print("-" * 60)
     print("\nATT (Treated x Post coefficient):")
     print(f"  Estimate:     {att:>10.4f}")
@@ -425,7 +438,9 @@ def estimate_did_travel_ban(df: pd.DataFrame, result: ModuleResult) -> dict:
 
     y_pre = pre_data["log_arrivals"].values
     X_pre = sm.add_constant(pre_data[["treated", "time_trend", "treated_x_trend"]])
-    pre_trend_model = OLS(y_pre, X_pre).fit(cov_type="HC3")
+    pre_trend_model = OLS(y_pre, X_pre).fit(
+        cov_type="cluster", cov_kwds={"groups": pre_data["nationality"]}
+    )
 
     # F-test for pre-trend
     pre_trend_coef = pre_trend_model.params["treated_x_trend"]
@@ -444,9 +459,9 @@ def estimate_did_travel_ban(df: pd.DataFrame, result: ModuleResult) -> dict:
     result.add_decision(
         decision_id="D003",
         category="model_specification",
-        decision="Use two-way fixed effects with HC3 robust standard errors",
+        decision="Use two-way fixed effects with nationality-clustered standard errors",
         rationale="Nationality FE controls for time-invariant heterogeneity; Year FE controls for common shocks",
-        alternatives=["Cluster by nationality", "Use wild bootstrap", "Random effects"],
+        alternatives=["HC1/HC3 robust SE", "Wild bootstrap", "Random effects"],
         evidence=f"ATT = {att:.4f} (SE = {se:.4f})",
     )
 
@@ -502,7 +517,7 @@ def estimate_did_travel_ban(df: pd.DataFrame, result: ModuleResult) -> dict:
         "model_specification": {
             "dependent_variable": "log(arrivals + 1)",
             "fixed_effects": ["nationality", "year"],
-            "standard_errors": "HC3 robust",
+            "standard_errors": "clustered by nationality",
         },
         "model_fit": {
             "r_squared": float(model_twfe.rsquared),
@@ -547,36 +562,40 @@ def estimate_did_covid(df: pd.DataFrame, result: ModuleResult) -> dict:
     df_analysis["post_covid"] = (df_analysis["year"] >= 2020).astype(int)
     df_analysis["time_since_covid"] = np.maximum(0, df_analysis["year"] - 2020)
 
-    # Create panel index
-    panel_df = df_analysis.set_index(["state", "year"])
-
-    # Design matrix for ITS
-    exog = pd.DataFrame(
+    y = df_analysis["intl_migration"].values.astype(float)
+    X = pd.DataFrame(
         {
-            "const": 1,
-            "time": panel_df.reset_index()["time"].values,
-            "post_covid": panel_df.reset_index()["post_covid"].values,
-            "time_since_covid": panel_df.reset_index()["time_since_covid"].values,
-        },
-        index=panel_df.index,
+            "time": df_analysis["time"].values.astype(float),
+            "post_covid": df_analysis["post_covid"].values.astype(float),
+            "time_since_covid": df_analysis["time_since_covid"].values.astype(float),
+        }
     )
 
-    y = panel_df["intl_migration"]
+    # Add state fixed effects
+    state_dummies = pd.get_dummies(
+        df_analysis["state"], prefix="state", drop_first=True
+    )
+    X = pd.concat(
+        [X.reset_index(drop=True), state_dummies.reset_index(drop=True)], axis=1
+    )
+    X = sm.add_constant(X).astype(float)
 
-    # Two-way fixed effects
-    its_model = PanelOLS(y, exog, entity_effects=True, time_effects=False)
-    its_results = its_model.fit(cov_type="clustered", cluster_entity=True)
+    its_results = OLS(y, X).fit(
+        cov_type="cluster", cov_kwds={"groups": df_analysis["state"]}
+    )
 
     # Extract COVID effect
     level_effect = its_results.params["post_covid"]
-    level_se = its_results.std_errors["post_covid"]
-    level_t = its_results.tstats["post_covid"]
+    level_se = its_results.bse["post_covid"]
+    level_t = its_results.tvalues["post_covid"]
     level_p = its_results.pvalues["post_covid"]
-    level_ci = its_results.conf_int().loc["post_covid"]
+    level_ci = its_results.conf_int().loc["post_covid"].to_numpy()
+    level_ci_lower = float(level_ci[0])
+    level_ci_upper = float(level_ci[1])
 
     trend_change = its_results.params["time_since_covid"]
-    trend_se = its_results.std_errors["time_since_covid"]
-    trend_t = its_results.tstats["time_since_covid"]
+    trend_se = its_results.bse["time_since_covid"]
+    trend_t = its_results.tvalues["time_since_covid"]
     trend_p = its_results.pvalues["time_since_covid"]
 
     print(f"\n{'='*60}")
@@ -594,7 +613,7 @@ def estimate_did_covid(df: pd.DataFrame, result: ModuleResult) -> dict:
     print(
         f"  p-value:      {level_p:>12.4f} {'***' if level_p < 0.001 else '**' if level_p < 0.01 else '*' if level_p < 0.05 else ''}"
     )
-    print(f"  95% CI:       [{level_ci['lower']:,.0f}, {level_ci['upper']:,.0f}]")
+    print(f"  95% CI:       [{level_ci_lower:,.0f}, {level_ci_upper:,.0f}]")
 
     print("\nTrend Change (post-COVID recovery):")
     print(f"  Estimate:     {trend_change:>12,.0f} per year")
@@ -632,8 +651,8 @@ def estimate_did_covid(df: pd.DataFrame, result: ModuleResult) -> dict:
             "std_error": float(level_se),
             "t_statistic": float(level_t),
             "p_value": float(level_p),
-            "ci_95_lower": float(level_ci["lower"]),
-            "ci_95_upper": float(level_ci["upper"]),
+            "ci_95_lower": level_ci_lower,
+            "ci_95_upper": level_ci_upper,
             "significance": "***"
             if level_p < 0.001
             else "**"
@@ -659,9 +678,8 @@ def estimate_did_covid(df: pd.DataFrame, result: ModuleResult) -> dict:
             "standard_errors": "clustered by state",
         },
         "model_fit": {
-            "r_squared_within": float(its_results.rsquared_within),
-            "r_squared_between": float(its_results.rsquared_between),
-            "r_squared_overall": float(its_results.rsquared_overall),
+            "r_squared": float(its_results.rsquared),
+            "r_squared_adj": float(its_results.rsquared_adj),
         },
     }
 
@@ -750,8 +768,10 @@ def estimate_event_study(
     # Ensure all numeric types
     X = X.astype(float)
 
-    # Estimate
-    es_model = OLS(y, X).fit(cov_type="HC1")
+    # Estimate with nationality-clustered SE
+    es_model = OLS(y, X).fit(
+        cov_type="cluster", cov_kwds={"groups": df_analysis["nationality"]}
+    )
 
     # Extract event study coefficients
     es_coefs = []
@@ -881,13 +901,13 @@ def estimate_event_study(
 
 def estimate_synthetic_control(df_panel: pd.DataFrame, result: ModuleResult) -> dict:
     """
-    Estimate Synthetic Control for North Dakota counterfactual.
+    Estimate a synthetic comparator for North Dakota (descriptive only).
 
     Creates a weighted average of control states that best matches ND's pre-treatment trajectory.
-    Treatment: 2017 Travel Ban (ND has significant refugee population)
+    The post-period gap is reported as a descriptive benchmark, not a causal effect.
     """
     print("\n" + "=" * 60)
-    print("SYNTHETIC CONTROL METHOD: NORTH DAKOTA COUNTERFACTUAL")
+    print("SYNTHETIC COMPARATOR (DESCRIPTIVE): NORTH DAKOTA")
     print("=" * 60)
 
     # Filter to states and relevant years
@@ -976,7 +996,7 @@ def estimate_synthetic_control(df_panel: pd.DataFrame, result: ModuleResult) -> 
     ]
     significant_weights.sort(key=lambda x: -x[1])
 
-    print(f"\nSynthetic Control Weights (>{weight_threshold*100}%):")
+    print(f"\nSynthetic comparator weights (>{weight_threshold*100}%):")
     for state, weight in significant_weights[:10]:
         print(f"  {state}: {weight:.3f} ({weight*100:.1f}%)")
 
@@ -984,29 +1004,29 @@ def estimate_synthetic_control(df_panel: pd.DataFrame, result: ModuleResult) -> 
     Y_donors_all = outcome_matrix[donor_states].values
     synthetic_nd = Y_donors_all @ weights
 
-    # Calculate treatment effect
+    # Calculate descriptive gap
     actual_nd = outcome_matrix[treated_unit].values
-    treatment_effect = actual_nd - synthetic_nd
+    gap = actual_nd - synthetic_nd
 
     # Pre-treatment fit (RMSPE)
     pre_rmspe = np.sqrt(np.mean((Y_treated_pre - Y_donors_pre @ weights) ** 2))
 
-    # Post-treatment effect
+    # Post-treatment gap
     post_idx = outcome_matrix.index >= treatment_year
-    post_effect_mean = np.mean(treatment_effect[post_idx])
-    post_effect_std = np.std(treatment_effect[post_idx])
+    post_gap_mean = np.mean(gap[post_idx])
+    post_gap_std = np.std(gap[post_idx])
 
     print(f"\nPre-treatment RMSPE: {pre_rmspe:.4f}")
-    print("\nPost-treatment effect:")
-    print(f"  Mean: {post_effect_mean:.4f}")
-    print(f"  Std: {post_effect_std:.4f}")
+    print("\nPost-period gap (descriptive):")
+    print(f"  Mean: {post_gap_mean:.4f}")
+    print(f"  Std: {post_gap_std:.4f}")
 
-    # Placebo test: ratio of post/pre RMSPE
-    post_rmspe = np.sqrt(np.mean(treatment_effect[post_idx] ** 2))
+    # Ratio of post/pre RMSPE (descriptive only)
+    post_rmspe = np.sqrt(np.mean(gap[post_idx] ** 2))
     rmspe_ratio = post_rmspe / pre_rmspe if pre_rmspe > 0 else np.inf
 
     print(f"\nRMSPE Ratio (post/pre): {rmspe_ratio:.2f}")
-    print("  Interpretation: Ratio > 2 suggests meaningful treatment effect")
+    print("  Interpretation: Larger ratios indicate larger post-period divergence")
 
     # Build time series for output
     sc_time_series = pd.DataFrame(
@@ -1014,12 +1034,12 @@ def estimate_synthetic_control(df_panel: pd.DataFrame, result: ModuleResult) -> 
             "year": outcome_matrix.index,
             "actual": actual_nd,
             "synthetic": synthetic_nd,
-            "effect": treatment_effect,
+            "gap": gap,
         }
     )
 
     sc_results = {
-        "analysis": "Synthetic Control Method",
+        "analysis": "Synthetic Comparator (descriptive)",
         "treated_unit": treated_unit,
         "treatment_year": treatment_year,
         "feasible": True,
@@ -1030,9 +1050,9 @@ def estimate_synthetic_control(df_panel: pd.DataFrame, result: ModuleResult) -> 
             if w > weight_threshold
         },
         "pre_treatment_fit": {"rmspe": float(pre_rmspe), "n_periods": len(pre_years)},
-        "post_treatment_effect": {
-            "mean_effect": float(post_effect_mean),
-            "std_effect": float(post_effect_std),
+        "post_period_gap": {
+            "mean_gap": float(post_gap_mean),
+            "std_gap": float(post_gap_std),
             "rmspe": float(post_rmspe),
             "rmspe_ratio": float(rmspe_ratio),
         },
@@ -1046,7 +1066,7 @@ def estimate_synthetic_control(df_panel: pd.DataFrame, result: ModuleResult) -> 
     result.add_decision(
         decision_id="D004",
         category="causal_identification",
-        decision="Use international migration rate (per 1000) for synthetic control",
+        decision="Use international migration rate (per 1000) for synthetic comparator",
         rationale="Rate normalizes for population differences across states",
         alternatives=["Use raw counts", "Use log transformation", "Use growth rates"],
         evidence=f"Pre-treatment RMSPE = {pre_rmspe:.4f}",
@@ -1106,48 +1126,61 @@ def estimate_bartik_instrument(
         f"Nationalities with baseline data: {baseline_shares['nationality'].nunique()}"
     )
     print(f"States: {baseline_shares['state'].nunique()}")
+    print("Shift definition: leave-one-out national changes relative to baseline")
 
-    # Calculate national growth by nationality (shift)
-    nat_by_year = (
-        df_ref.groupby(["year", "nationality"])["arrivals"].sum().reset_index()
+    # National totals by year and nationality
+    nat_by_year_state = (
+        df_ref.groupby(["year", "nationality", "state"])["arrivals"].sum().reset_index()
     )
-    nat_by_year_pivot = nat_by_year.pivot_table(
-        index="year", columns="nationality", values="arrivals", fill_value=0
+    nat_totals_by_year = (
+        nat_by_year_state.groupby(["year", "nationality"])["arrivals"]
+        .sum()
+        .reset_index()
+        .rename(columns={"arrivals": "nat_total"})
     )
 
-    # Calculate change from baseline
-    if baseline_year in nat_by_year_pivot.index:
-        nat_baseline_values = nat_by_year_pivot.loc[baseline_year]
-        nat_changes = nat_by_year_pivot - nat_baseline_values
-    else:
-        result.warnings.append(f"Baseline year {baseline_year} not in refugee data")
-        nat_changes = nat_by_year_pivot.diff()
+    # Build state-year-nationality panel using baseline shares
+    years = sorted(nat_totals_by_year["year"].unique())
+    state_nat = baseline_shares.copy()
+    state_nat["key"] = 1
+    years_df = pd.DataFrame({"year": years, "key": 1})
+    panel = state_nat.merge(years_df, on="key", how="left").drop(columns=["key"])
+
+    # Merge national totals and state-specific arrivals for leave-one-out shifts
+    panel = panel.merge(nat_totals_by_year, on=["year", "nationality"], how="left")
+    panel = panel.merge(
+        nat_by_year_state.rename(columns={"arrivals": "state_arrivals"}),
+        on=["year", "nationality", "state"],
+        how="left",
+    )
+    panel["state_arrivals"] = panel["state_arrivals"].fillna(0)
+
+    # Baseline totals and state arrivals (for leave-one-out baseline)
+    baseline_totals = nat_totals_by_year[nat_totals_by_year["year"] == baseline_year][
+        ["nationality", "nat_total"]
+    ].rename(columns={"nat_total": "nat_total_baseline"})
+    baseline_state = nat_by_year_state[nat_by_year_state["year"] == baseline_year][
+        ["state", "nationality", "arrivals"]
+    ].rename(columns={"arrivals": "state_arrivals_baseline"})
+    panel = panel.merge(baseline_totals, on="nationality", how="left")
+    panel = panel.merge(baseline_state, on=["state", "nationality"], how="left")
+    panel["state_arrivals_baseline"] = panel["state_arrivals_baseline"].fillna(0)
+
+    # Leave-one-out national change for each state
+    panel["nat_total_excl_state"] = panel["nat_total"] - panel["state_arrivals"]
+    panel["nat_total_baseline_excl_state"] = (
+        panel["nat_total_baseline"] - panel["state_arrivals_baseline"]
+    )
+    panel["delta_shift"] = (
+        panel["nat_total_excl_state"] - panel["nat_total_baseline_excl_state"]
+    )
 
     # Construct Bartik instrument for each state-year
-    states = baseline_shares["state"].unique()
-    years = nat_by_year_pivot.index
-
-    bartik_values = []
-    for state in states:
-        state_shares = baseline_shares[baseline_shares["state"] == state].set_index(
-            "nationality"
-        )["state_share"]
-
-        for year in years:
-            if year == baseline_year:
-                bartik = 0
-            else:
-                # sum_n (share_sn,t0 × Delta_national_n,t)
-                bartik = 0
-                for nat in state_shares.index:
-                    if nat in nat_changes.columns:
-                        bartik += state_shares[nat] * nat_changes.loc[year, nat]
-
-            bartik_values.append(
-                {"state": state, "year": year, "bartik_instrument": bartik}
-            )
-
-    bartik_df = pd.DataFrame(bartik_values)
+    bartik_df = (
+        panel.groupby(["state", "year"])
+        .apply(lambda g: np.sum(g["state_share"] * g["delta_shift"]))
+        .reset_index(name="bartik_instrument")
+    )
 
     print("\nBartik instrument constructed:")
     print(f"  Observations: {len(bartik_df)}")
@@ -1198,7 +1231,9 @@ def estimate_bartik_instrument(
 
     y_first = df_analysis["intl_migration"].values.astype(float)
 
-    first_stage = OLS(y_first, X_first).fit(cov_type="HC1")
+    first_stage = OLS(y_first, X_first).fit(
+        cov_type="cluster", cov_kwds={"groups": df_analysis["state"]}
+    )
 
     bartik_coef = first_stage.params["bartik"]
     bartik_se = first_stage.bse["bartik"]
@@ -1228,7 +1263,7 @@ def estimate_bartik_instrument(
         "construction": {
             "baseline_year": baseline_year,
             "share_component": "State share of nationality at baseline",
-            "shift_component": "National change in nationality arrivals",
+            "shift_component": "Leave-one-out national change in nationality arrivals",
         },
         "sample_info": {
             "n_observations": len(df_analysis),
@@ -1259,7 +1294,7 @@ def estimate_bartik_instrument(
     result.add_decision(
         decision_id="D005",
         category="causal_identification",
-        decision=f"Use {baseline_year} as baseline year for shift-share construction",
+        decision=f"Use {baseline_year} baseline with leave-one-out shifts for shift-share construction",
         rationale="2010 is first year with reliable state-level refugee data and aligns with panel start",
         alternatives=[
             "Use 2005 as baseline",
@@ -1392,7 +1427,10 @@ def plot_event_study(es_df: pd.DataFrame, result: ModuleResult):
 
     save_figure(
         fig,
-        str(FIGURES_DIR / "module_7_event_study_plot"),
+        [
+            str(FIGURES_DIR / "module_7_event_study_plot"),
+            str(ARTICLE_FIGURES_DIR / "event_study_travel_ban"),
+        ],
         "Event Study: Dynamic Treatment Effects of Travel Ban",
         "State Department Refugee Processing Center",
     )
@@ -1452,7 +1490,7 @@ def plot_did_means(df: pd.DataFrame, result: ModuleResult):
 def plot_treatment_effect_time_series(
     sc_df: pd.DataFrame, treatment_year: int, result: ModuleResult
 ):
-    """Plot synthetic control treatment effect over time."""
+    """Plot synthetic comparator gap over time."""
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
     # Left panel: Actual vs Synthetic
@@ -1471,31 +1509,31 @@ def plot_treatment_effect_time_series(
         "s--",
         color=COLORS["secondary"],
         linewidth=2,
-        label="Synthetic North Dakota",
+        label="Synthetic comparator",
     )
 
     ax1.axvline(treatment_year - 0.5, color="gray", linestyle="--", alpha=0.7)
     ax1.set_xlabel("Year", fontsize=12)
     ax1.set_ylabel("International Migration Rate (per 1000)", fontsize=12)
-    ax1.set_title("Actual vs Synthetic Control", fontsize=12)
+    ax1.set_title("Actual vs Synthetic Comparator", fontsize=12)
     ax1.legend(fontsize=10)
     ax1.grid(True, alpha=0.3)
 
-    # Right panel: Treatment effect (gap)
+    # Right panel: Gap (actual - synthetic)
     ax2 = axes[1]
     pre_years = sc_df["year"] < treatment_year
     post_years = sc_df["year"] >= treatment_year
 
     ax2.bar(
         sc_df.loc[pre_years, "year"],
-        sc_df.loc[pre_years, "effect"],
+        sc_df.loc[pre_years, "gap"],
         color=COLORS["neutral"],
         alpha=0.7,
         label="Pre-treatment",
     )
     ax2.bar(
         sc_df.loc[post_years, "year"],
-        sc_df.loc[post_years, "effect"],
+        sc_df.loc[post_years, "gap"],
         color=COLORS["treatment"],
         alpha=0.7,
         label="Post-treatment",
@@ -1505,15 +1543,15 @@ def plot_treatment_effect_time_series(
     ax2.axvline(treatment_year - 0.5, color="gray", linestyle="--", alpha=0.7)
 
     ax2.set_xlabel("Year", fontsize=12)
-    ax2.set_ylabel("Treatment Effect (Actual - Synthetic)", fontsize=12)
-    ax2.set_title("Estimated Treatment Effect", fontsize=12)
+    ax2.set_ylabel("Gap (Actual - Synthetic)", fontsize=12)
+    ax2.set_title("Synthetic Comparator Gap", fontsize=12)
     ax2.legend(fontsize=10)
     ax2.grid(True, alpha=0.3)
 
     save_figure(
         fig,
         str(FIGURES_DIR / "module_7_treatment_effect_time_series"),
-        "Synthetic Control: North Dakota Treatment Effect",
+        "Synthetic Comparator: North Dakota Gap",
         "Census Bureau Population Estimates Program",
     )
 
@@ -1539,7 +1577,7 @@ def run_analysis() -> ModuleResult:
             "Difference-in-Differences (Travel Ban)",
             "Interrupted Time Series (COVID)",
             "Event Study (Travel Ban)",
-            "Synthetic Control Method (ND)",
+            "Synthetic Comparator (ND, descriptive)",
             "Shift-Share (Bartik) Instrument",
         ],
         "travel_ban_treatment_year": 2018,
@@ -1580,7 +1618,7 @@ def run_analysis() -> ModuleResult:
     # 4. Synthetic Control for ND
     # ==========================================================================
     print("\n" + "#" * 70)
-    print("# ANALYSIS 4: SYNTHETIC CONTROL METHOD")
+    print("# ANALYSIS 4: SYNTHETIC COMPARATOR (DESCRIPTIVE)")
     print("#" * 70)
 
     try:
@@ -1671,7 +1709,7 @@ def run_analysis() -> ModuleResult:
             "pre_treatment_rmspe": synthetic_control.get("pre_treatment_fit", {}).get(
                 "rmspe", None
             ),
-            "rmspe_ratio": synthetic_control.get("post_treatment_effect", {}).get(
+            "rmspe_ratio": synthetic_control.get("post_period_gap", {}).get(
                 "rmspe_ratio", None
             ),
         },
@@ -1692,7 +1730,7 @@ def main():
     """Main entry point."""
     print("=" * 70)
     print("Module 7: Causal Inference Agent")
-    print("Difference-in-Differences, Event Studies, and Synthetic Control")
+    print("Difference-in-Differences, Event Studies, and Synthetic Comparator")
     print(f"Started: {datetime.now(UTC).isoformat()}")
     print("=" * 70)
 
@@ -1740,19 +1778,26 @@ def main():
                 f"   p-value: {level.get('p_value', 'N/A'):.4f} {level.get('significance', '')}"
             )
 
-        # Synthetic Control
+        # Synthetic Comparator (descriptive)
         sc = result.results.get("synthetic_control", {})
         if sc and sc.get("feasible"):
-            print("\n3. SYNTHETIC CONTROL (North Dakota):")
-            print(
-                f"   Pre-treatment RMSPE: {sc.get('pre_treatment_fit', {}).get('rmspe', 'N/A'):.4f}"
-            )
-            print(
-                f"   Post-treatment effect: {sc.get('post_treatment_effect', {}).get('mean_effect', 'N/A'):.4f}"
-            )
-            print(
-                f"   RMSPE ratio: {sc.get('post_treatment_effect', {}).get('rmspe_ratio', 'N/A'):.2f}"
-            )
+            print("\n3. SYNTHETIC COMPARATOR (North Dakota, descriptive):")
+            pre_rmspe = sc.get("pre_treatment_fit", {}).get("rmspe")
+            post_gap = sc.get("post_period_gap", {})
+            mean_gap = post_gap.get("mean_gap")
+            rmspe_ratio = post_gap.get("rmspe_ratio")
+            if pre_rmspe is not None:
+                print(f"   Pre-treatment RMSPE: {pre_rmspe:.4f}")
+            else:
+                print("   Pre-treatment RMSPE: N/A")
+            if mean_gap is not None:
+                print(f"   Post-period mean gap: {mean_gap:.4f}")
+            else:
+                print("   Post-period mean gap: N/A")
+            if rmspe_ratio is not None:
+                print(f"   RMSPE ratio: {rmspe_ratio:.2f}")
+            else:
+                print("   RMSPE ratio: N/A")
 
         # Bartik
         bartik = result.results.get("bartik_instrument", {})

@@ -10,6 +10,7 @@ Tests Performed:
 - Augmented Dickey-Fuller (ADF) test - H0: Unit root present (non-stationary)
 - KPSS test - H0: Series is stationary
 - Phillips-Perron test - H0: Unit root present
+- Zivot-Andrews test - H0: Unit root with no break; HA: trend-stationary with one break
 
 Variables Tested:
 - nd_share_of_us_intl_pct (primary)
@@ -30,7 +31,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from statsmodels.graphics.tsaplots import plot_acf
-from statsmodels.tsa.stattools import adfuller, kpss
+from statsmodels.tsa.stattools import adfuller, kpss, zivot_andrews
 
 # Suppress warnings during execution
 warnings.filterwarnings("ignore")
@@ -327,6 +328,76 @@ def run_kpss_test(series, series_name, regression="c"):
     }
 
     return kpss_result
+
+
+def run_zivot_andrews_test(
+    series,
+    series_name,
+    years=None,
+    regression="c",
+    trim=0.15,
+    maxlag=1,
+    autolag="AIC",
+):
+    """
+    Run Zivot-Andrews single-break unit root test (break-robust).
+
+    Parameters:
+    -----------
+    series : array-like
+        Time series data
+    series_name : str
+        Name of the series for reporting
+    years : list[int] | None
+        Optional list of calendar years aligned to series indices
+    regression : str
+        'c' for break in intercept, 'ct' for break in trend and intercept
+    trim : float
+        Fraction to trim from each end when searching for a break
+    maxlag : int, optional
+        Maximum lag to consider
+    autolag : str
+        Autolag selection criterion
+
+    Returns:
+    --------
+    dict with Zivot-Andrews test results
+    """
+    try:
+        statistic, p_value, critical_values, used_lag, break_index = zivot_andrews(
+            series,
+            trim=trim,
+            maxlag=maxlag,
+            regression=regression,
+            autolag=autolag,
+        )
+        break_year = None
+        if years is not None:
+            try:
+                break_year = int(years[int(break_index)])
+            except (IndexError, TypeError, ValueError):
+                break_year = None
+
+        return {
+            "series": series_name,
+            "statistic": float(statistic),
+            "p_value": float(p_value),
+            "critical_values": {k: float(v) for k, v in critical_values.items()},
+            "used_lag": int(used_lag),
+            "break_index": int(break_index),
+            "break_year": break_year,
+            "regression_type": "level" if regression == "c" else "trend",
+            "trim": trim,
+            "autolag": autolag,
+        }
+    except Exception as exc:
+        return {
+            "series": series_name,
+            "error": str(exc),
+            "regression_type": "level" if regression == "c" else "trend",
+            "trim": trim,
+            "autolag": autolag,
+        }
 
 
 def determine_integration_order(adf_level, kpss_level, adf_diff, kpss_diff, alpha=0.05):
@@ -639,6 +710,9 @@ def run_analysis() -> ModuleResult:
         "significance_level": 0.05,
         "adf_autolag": "AIC",
         "kpss_nlags": "auto",
+        "zivot_andrews_regression": "c",
+        "zivot_andrews_trim": 0.15,
+        "zivot_andrews_maxlag": 1,
     }
 
     # Document decision about COVID year
@@ -671,6 +745,9 @@ def run_analysis() -> ModuleResult:
     )
     result.warnings.append(
         "2020 COVID year shows anomalous values that may affect test results."
+    )
+    result.warnings.append(
+        "Zivot-Andrews single-break test is low power in n=15; interpret as diagnostic only."
     )
 
     # Store results for each variable
@@ -708,6 +785,15 @@ def run_analysis() -> ModuleResult:
         print(
             f"    PP statistic: {pp_level['statistic']:.4f}, p-value: {pp_level['p_value']:.4f}"
         )
+
+        zivot_level = run_zivot_andrews_test(
+            series,
+            var,
+            years=df["year"].tolist(),
+            regression="c",
+            maxlag=1,
+        )
+        var_results["zivot_andrews_level"] = zivot_level
 
         # First-differenced series tests
         diff_series = np.diff(series)
@@ -775,6 +861,7 @@ def run_analysis() -> ModuleResult:
             "adf": "H0: Unit root present (non-stationary). Reject if p < 0.05.",
             "kpss": "H0: Series is stationary. Reject if p < 0.05.",
             "phillips_perron": "H0: Unit root present. Reject if p < 0.05.",
+            "zivot_andrews": "H0: Unit root with no break. Reject if p < 0.05 (single-break alternative).",
         },
         "sample_size_concern": "n=15 is below recommended minimum of 25 for reliable unit root tests",
     }

@@ -1,7 +1,7 @@
 {
   "module": "5",
   "analysis": "gravity_model_network_analysis",
-  "generated": "2025-12-29T06:18:20.831777+00:00",
+  "generated": "2025-12-30T04:40:44.698773+00:00",
   "input_files": [
     "dhs_lpr_by_state_country.parquet",
     "acs_foreign_born_by_state_origin.parquet",
@@ -13,9 +13,9 @@
       "diaspora_stock_variable": "ACS foreign-born by origin country (2023)",
       "destination_mass": "ACS total foreign-born by state (2023)",
       "origin_mass": "ACS national total foreign-born by origin country (2023)",
-      "observations_final": 2680,
-      "unique_states": 51,
-      "unique_origins": 71
+      "observations_final": 4940,
+      "unique_states": 52,
+      "unique_origins": 95
     },
     "gravity_model": {
       "estimator": "PPML (Poisson Pseudo-Maximum Likelihood)",
@@ -35,143 +35,169 @@
     "gravity_model": {
       "model_1_simple_network": {
         "specification": "Flow ~ log(Diaspora_Stock)",
-        "n_observations": 2680,
+        "n_observations": 4845,
         "coefficients": {
           "const": {
-            "estimate": 2.425075765043262,
-            "std_error": 0.005695916421443691,
-            "z_statistic": 425.75690821471017,
-            "p_value": 0.0
+            "estimate": 1.266582403662363,
+            "std_error": 0.9801949051919836,
+            "z_statistic": 1.2921740328922509,
+            "p_value": 0.1962968821805804,
+            "ci_95_lower": -0.6545643083435777,
+            "ci_95_upper": 3.1877291156683034
           },
           "log_diaspora": {
-            "estimate": 0.3593043418914478,
-            "std_error": 0.0006217781220717,
-            "z_statistic": 577.8658481811536,
-            "p_value": 0.0,
-            "ci_95_lower": 0.3580856791658123,
-            "ci_95_upper": 0.36052300461708325
+            "estimate": 0.4478909199808008,
+            "std_error": 0.10416771709284747,
+            "z_statistic": 4.299709473152643,
+            "p_value": 1.7102215952080613e-05,
+            "ci_95_lower": 0.24372594612706233,
+            "ci_95_upper": 0.6520558938345392
           }
         },
+        "standard_errors": {
+          "model_based": 0.0005973451253038001,
+          "hc1": 0.04920536449942569,
+          "cluster_state": 0.043424444188792474,
+          "cluster_origin": 0.10671175516128974,
+          "cluster_two_way": 0.10416771709284747,
+          "used": 0.10416771709284747
+        },
         "fit_statistics": {
-          "log_likelihood": -732814.6422376223,
-          "aic": 1465633.2844752446,
-          "bic": 1429128.2402503546,
-          "pseudo_r2_mcfadden": 0.18636866529792995,
-          "correlation_actual_fitted": 0.26958159302944995,
-          "deviance": 1450267.2262632009,
-          "pearson_chi2": 8262771.544811087
+          "log_likelihood": -934340.0063569909,
+          "aic": 1868684.0127139818,
+          "bic": 1812221.6971766327,
+          "pseudo_r2_mcfadden": 0.23598040804746523,
+          "correlation_actual_fitted": 0.27962916584306563,
+          "deviance": 1853317.954501938,
+          "pearson_chi2": 15267555.535303287
         }
       },
       "model_2_full_gravity": {
         "specification": "Flow ~ log(Diaspora) + log(Origin_Mass) + log(Dest_Mass)",
-        "n_observations": 2680,
+        "n_observations": 4845,
         "coefficients": {
           "const": {
-            "estimate": -6.38805451777912,
-            "std_error": 0.033625353209452584,
-            "z_statistic": -189.97732092174257,
-            "p_value": 0.0,
-            "ci_95_lower": -6.453958999037086,
-            "ci_95_upper": -6.322150036521155
+            "estimate": -7.710909386279547,
+            "std_error": 3.123026184615757,
+            "z_statistic": -2.4690505075698757,
+            "p_value": 0.013547209580402342,
+            "ci_95_lower": -13.831928230901969,
+            "ci_95_upper": -1.589890541657125
           },
           "log_diaspora": {
-            "estimate": 0.09623188025572206,
-            "std_error": 0.001651689850484478,
-            "z_statistic": 58.26268183914497,
-            "p_value": 0.0,
-            "ci_95_lower": 0.09299462763514213,
-            "ci_95_upper": 0.09946913287630199
+            "estimate": 0.13952824892750423,
+            "std_error": 0.24784174923220664,
+            "z_statistic": 0.562973144596305,
+            "p_value": 0.5734531710929001,
+            "ci_95_lower": -0.34623265343302834,
+            "ci_95_upper": 0.6252891512880369
           },
           "log_origin_total": {
-            "estimate": 0.03942410028837273,
-            "std_error": 0.0018942382906626239,
-            "z_statistic": 20.812640354018914,
-            "p_value": 3.325175322479041e-96,
-            "ci_95_lower": 0.035711461460537275,
-            "ci_95_upper": 0.04313673911620819
+            "estimate": 0.0461295874629808,
+            "std_error": 0.19184476395057645,
+            "z_statistic": 0.24045267909873644,
+            "p_value": 0.8099793437988656,
+            "ci_95_lower": -0.32987924050273715,
+            "ci_95_upper": 0.42213841542869873
           },
           "log_state_total": {
-            "estimate": 0.7553658503683937,
-            "std_error": 0.0018419808741730768,
-            "z_statistic": 410.0834384111079,
-            "p_value": 0.0,
-            "ci_95_lower": 0.7517556341948028,
-            "ci_95_upper": 0.7589760665419845
+            "estimate": 0.7917204255235035,
+            "std_error": 0.21157335259284427,
+            "z_statistic": 3.742061161393539,
+            "p_value": 0.00018251707785377214,
+            "ci_95_lower": 0.3770442743531347,
+            "ci_95_upper": 1.2063965766938725
           }
         },
+        "standard_errors": {
+          "model_based": 0.0016147368310022593,
+          "hc1": 0.17622461561729819,
+          "cluster_state": 0.11312342546229685,
+          "cluster_origin": 0.28232852938796626,
+          "cluster_two_way": 0.24784174923220664,
+          "used": 0.24784174923220664
+        },
         "fit_statistics": {
-          "log_likelihood": -556916.0524988244,
-          "aic": 1113840.1049976489,
-          "bic": 1077346.847916906,
-          "pseudo_r2_mcfadden": 0.38166580606518963,
-          "correlation_actual_fitted": 0.37163548508844235,
-          "deviance": 1098470.0467856051,
-          "pearson_chi2": 2630523.389042354
+          "log_likelihood": -734628.6741179258,
+          "aic": 1469265.3482358516,
+          "bic": 1412816.004103551,
+          "pseudo_r2_mcfadden": 0.3992864524504155,
+          "correlation_actual_fitted": 0.3506140218905289,
+          "deviance": 1453895.2900238077,
+          "pearson_chi2": 4088669.4734535553
         }
       },
       "model_3_state_fixed_effects": {
         "specification": "Flow ~ log(Diaspora) + State_FE",
-        "n_observations": 2680,
+        "n_observations": 4845,
         "n_state_dummies": 50,
         "network_elasticity": {
-          "estimate": 0.11508326281663521,
-          "std_error": 0.0007577257705495276,
-          "z_statistic": 151.87983211020136,
-          "p_value": 0.0,
-          "ci_95_lower": 0.11359814759620028,
-          "ci_95_upper": 0.11656837803707014
+          "estimate": 0.1625438505318896,
+          "std_error": 0.14758724172417054,
+          "z_statistic": 1.101340797707107,
+          "p_value": 0.2707483612623536,
+          "ci_95_lower": -0.1267218278250918,
+          "ci_95_upper": 0.45180952888887105
+        },
+        "standard_errors": {
+          "model_based": 0.0007597604485430628,
+          "hc1": 0.07086404179335974,
+          "cluster_state": 0.03306732161590907,
+          "cluster_origin": 0.16051398666995093,
+          "cluster_two_way": 0.14758724172417054,
+          "used": 0.14758724172417054
         },
         "fit_statistics": {
-          "log_likelihood": -539772.96211849,
-          "aic": 1079649.92423698,
-          "bic": 1043439.5586157652,
-          "pseudo_r2_mcfadden": 0.4006994807533475,
+          "log_likelihood": -717292.0313201576,
+          "aic": 1434688.0626403152,
+          "bic": 1378550.032229182,
+          "pseudo_r2_mcfadden": 0.4134628065250123,
           "correlation_actual_fitted": NaN
         }
       },
       "model_comparison": {
         "preferred_model": "Full Gravity",
         "aic_comparison": {
-          "simple": 1465633.2844752446,
-          "full": 1113840.1049976489,
-          "state_fe": 1079649.92423698
+          "simple": 1868684.0127139818,
+          "full": 1469265.3482358516,
+          "state_fe": 1434688.0626403152
         },
         "network_elasticity_comparison": {
-          "simple": 0.3593043418914478,
-          "full": 0.09623188025572206,
-          "state_fe": 0.11508326281663521
+          "simple": 0.4478909199808008,
+          "full": 0.13952824892750423,
+          "state_fe": 0.1625438505318896
         }
       },
       "interpretation": {
-        "network_elasticity_full": 0.09623188025572206,
-        "interpretation": "A 1% increase in diaspora stock is associated with a 0.0962% increase in new LPR admissions",
+        "diaspora_association_full": 0.13952824892750423,
+        "interpretation": "A 1% increase in diaspora stock is associated with a 0.1395% increase in new LPR admissions",
         "effect_strength": "weak"
       }
     },
     "network_effects": {
       "nd_cross_sectional_ppml": {
-        "n_observations": 33,
-        "n_origin_countries": 33,
+        "n_observations": 95,
+        "n_origin_countries": 95,
         "coefficients": {
           "const": {
-            "estimate": 4.455028625671791,
-            "std_error": 0.06684361605694707,
+            "estimate": 2.611465087151047,
+            "std_error": 0.06221301484987007,
             "p_value": 0.0
           },
           "log_diaspora": {
-            "estimate": -0.15227419029289166,
-            "std_error": 0.013729961327249943,
-            "z_statistic": -11.090649613897462,
-            "p_value": 1.3927267286089465e-28,
-            "ci_95_lower": -0.1791844200034293,
-            "ci_95_upper": -0.12536396058235402
+            "estimate": 0.014582969691358149,
+            "std_error": 0.012586397379372845,
+            "z_statistic": 1.1586293719962613,
+            "p_value": 0.24660729107693136,
+            "ci_95_lower": -0.010085915867321948,
+            "ci_95_upper": 0.03925185525003824
           }
         },
         "fit_statistics": {
-          "pseudo_r2": 0.0435076280623401,
-          "correlation_actual_fitted": 0.11607716491668517,
-          "aic": 2621.107644373756,
-          "deviance": 2456.4332457031323
+          "pseudo_r2": 0.00023818278514931013,
+          "correlation_actual_fitted": 0.006456850147884892,
+          "aic": 5657.143637131966,
+          "deviance": 5492.469238461342
         }
       },
       "nd_panel_ols": {
@@ -195,17 +221,17 @@
         ],
         "coefficients": {
           "const": {
-            "estimate": 0.48338494120539377,
+            "estimate": 0.4833849412053937,
             "std_error": 0.25500531278773847,
-            "p_value": 0.0584233191516704
+            "p_value": 0.05842331915167045
           },
           "network_elasticity": {
             "estimate": 0.8506798478794928,
-            "std_error": 0.04556601009543283,
+            "std_error": 0.04556601009543284,
             "t_statistic": 18.669175688146503,
             "p_value": 1.656176778734832e-63,
-            "ci_95_lower": 0.7612185239322886,
-            "ci_95_upper": 0.940141171826697
+            "ci_95_lower": 0.7612185239322885,
+            "ci_95_upper": 0.9401411718266971
           }
         },
         "fit_statistics": {
@@ -223,22 +249,22 @@
         "n_observations": 707,
         "coefficients": {
           "const": {
-            "estimate": 0.17482346017649086,
-            "std_error": 0.24585500009046263,
-            "t_statistic": 0.7110836066468624,
-            "p_value": 0.47726795050532145
+            "estimate": 0.17482346017648892,
+            "std_error": 0.24585500009046266,
+            "t_statistic": 0.7110836066468544,
+            "p_value": 0.47726795050532633
           },
           "log_stock_lag1": {
-            "estimate": 0.6769690728996094,
-            "std_error": 0.04805494853574729,
-            "t_statistic": 14.087395648671295,
-            "p_value": 6.9271496173822606e-40
+            "estimate": 0.6769690728996101,
+            "std_error": 0.04805494853574731,
+            "t_statistic": 14.087395648671304,
+            "p_value": 6.927149617381567e-40
           },
           "log_initial": {
-            "estimate": 0.2615664562992315,
+            "estimate": 0.26156645629923125,
             "std_error": 0.030926590073355128,
-            "t_statistic": 8.45765587731525,
-            "p_value": 1.5710042534632793e-16
+            "t_statistic": 8.457655877315243,
+            "p_value": 1.57100425346337e-16
           }
         },
         "fit_statistics": {
@@ -246,26 +272,26 @@
           "adj_r_squared": 0.39082247369907275
         },
         "interpretation": {
-          "network_elasticity_with_controls": 0.6769690728996094,
-          "initial_size_effect": 0.2615664562992315
+          "network_elasticity_with_controls": 0.6769690728996101,
+          "initial_size_effect": 0.26156645629923125
         }
       },
       "summary": {
-        "cross_sectional_elasticity": -0.15227419029289166,
+        "cross_sectional_elasticity": 0.014582969691358149,
         "panel_elasticity": 0.8506798478794928,
-        "controlled_elasticity": 0.6769690728996094
+        "controlled_elasticity": 0.6769690728996101
       }
     }
   },
   "diagnostics": {
     "gravity_model": {
-      "n_observations": 2680,
-      "deviance": 1098470.0467856051,
-      "pearson_chi2": 2630523.389042354,
-      "correlation_actual_fitted": 0.37163548508844235
+      "n_observations": 4845,
+      "deviance": 1453895.2900238077,
+      "pearson_chi2": 4088669.4734535553,
+      "correlation_actual_fitted": 0.3506140218905289
     },
     "nd_network": {
-      "cross_sectional_n": 33,
+      "cross_sectional_n": 95,
       "panel_n": 707
     }
   },
@@ -275,7 +301,7 @@
   "decisions": [
     {
       "decision_id": "D001",
-      "timestamp": "2025-12-29T06:18:19.146705+00:00",
+      "timestamp": "2025-12-30T04:40:42.533021+00:00",
       "category": "data_preparation",
       "decision": "Harmonized country names between DHS LPR and ACS datasets",
       "rationale": "Different data sources use different country naming conventions",
@@ -283,12 +309,12 @@
         "Fuzzy matching",
         "Manual mapping only"
       ],
-      "evidence": "Matched 71 countries across datasets",
+      "evidence": "Matched 95 countries across datasets",
       "reversible": true
     },
     {
       "decision_id": "D002",
-      "timestamp": "2025-12-29T06:18:19.223331+00:00",
+      "timestamp": "2025-12-30T04:40:42.965194+00:00",
       "category": "methodology",
       "decision": "Used PPML for gravity estimation instead of log-linear OLS",
       "rationale": "PPML handles zeros naturally and is consistent under heteroskedasticity (Santos Silva & Tenreyro 2006)",
@@ -297,12 +323,12 @@
         "Negative binomial regression",
         "Zero-inflated Poisson"
       ],
-      "evidence": "Full model pseudo-R2: 0.3817",
+      "evidence": "Full model pseudo-R2: 0.3993",
       "reversible": true
     },
     {
       "decision_id": "D003",
-      "timestamp": "2025-12-29T06:18:19.252298+00:00",
+      "timestamp": "2025-12-30T04:40:43.024141+00:00",
       "category": "methodology",
       "decision": "Estimated network effects using both cross-sectional PPML and panel OLS",
       "rationale": "Cross-sectional captures contemporaneous flow-stock relationship; panel captures dynamic persistence",
@@ -310,7 +336,7 @@
         "GMM panel estimation",
         "Instrumental variables"
       ],
-      "evidence": "Cross-sectional N=33, Panel N=707",
+      "evidence": "Cross-sectional N=95, Panel N=707",
       "reversible": true
     }
   ],

@@ -1,7 +1,7 @@
 {
   "module": "7",
   "analysis": "causal_inference_did_event_study",
-  "generated": "2025-12-29T06:23:29.998353+00:00",
+  "generated": "2025-12-30T05:00:45.159715+00:00",
   "input_files": [
     "combined_components_of_change.csv",
     "refugee_arrivals_by_state_nationality.parquet",
@@ -12,7 +12,7 @@
       "Difference-in-Differences (Travel Ban)",
       "Interrupted Time Series (COVID)",
       "Event Study (Travel Ban)",
-      "Synthetic Control Method (ND)",
+      "Synthetic Comparator (ND, descriptive)",
       "Shift-Share (Bartik) Instrument"
     ],
     "travel_ban_treatment_year": 2018,
@@ -63,22 +63,22 @@
         ]
       },
       "att_estimate": {
-        "coefficient": -1.3835462427080563,
-        "std_error": 0.48080477140495714,
-        "t_statistic": -2.8775634623283852,
-        "p_value": 0.004007592915562945,
-        "ci_95_lower": -2.325906278256786,
-        "ci_95_upper": -0.44118620715932666,
-        "significance": "**"
+        "coefficient": -1.383546242708035,
+        "std_error": 0.6461168644795392,
+        "t_statistic": -2.1413250740986474,
+        "p_value": 0.03224783245568213,
+        "ci_95_lower": -2.6499120268918785,
+        "ci_95_upper": -0.11718045852419112,
+        "significance": "*"
       },
       "percentage_effect": {
-        "estimate": -74.93120255123374,
+        "estimate": -74.9312025512332,
         "interpretation": "Refugee arrivals from banned countries decreased by approximately 74.9% post-ban"
       },
       "pre_trend_test": {
-        "treated_x_trend_coef": 0.08738171406923699,
-        "t_statistic": 1.3329064340101047,
-        "p_value": 0.18256251088773134,
+        "treated_x_trend_coef": 0.08738171406923691,
+        "t_statistic": 0.9653930827886065,
+        "p_value": 0.3343479647954617,
         "parallel_trends_supported": "True"
       },
       "model_specification": {
@@ -87,7 +87,7 @@
           "nationality",
           "year"
         ],
-        "standard_errors": "HC3 robust"
+        "standard_errors": "clustered by nationality"
       },
       "model_fit": {
         "r_squared": 0.8285501997924065,
@@ -128,24 +128,24 @@
         ]
       },
       "level_effect": {
-        "coefficient": -19502.524183006535,
-        "std_error": 4363.2445250189085,
-        "t_statistic": -4.469729824028604,
-        "p_value": 9.111836487329938e-06,
-        "ci_95_lower": -28068.908786780645,
-        "ci_95_upper": -10936.139579232427,
+        "coefficient": -19502.524183006433,
+        "std_error": 4555.993837969148,
+        "t_statistic": -4.28063006154103,
+        "p_value": 1.863649319765136e-05,
+        "ci_95_lower": -28432.108019212377,
+        "ci_95_upper": -10572.940346800488,
         "significance": "***"
       },
       "trend_change": {
-        "coefficient": 14112.681699346414,
-        "std_error": 3149.304647566337,
-        "t_statistic": 4.4812056243120715,
-        "p_value": 8.64806929978812e-06,
+        "coefficient": 14112.681699346393,
+        "std_error": 3288.427335650584,
+        "t_statistic": 4.2916203579588394,
+        "p_value": 1.7737401786925643e-05,
         "interpretation": "International migration changes by 14,113 per year post-COVID"
       },
       "percentage_effect": {
         "pre_covid_mean": 15669.256862745098,
-        "level_effect_pct": -124.46361913547625
+        "level_effect_pct": -124.46361913547561
       },
       "model_specification": {
         "dependent_variable": "intl_migration",
@@ -155,9 +155,8 @@
         "standard_errors": "clustered by state"
       },
       "model_fit": {
-        "r_squared_within": 0.2423462182506646,
-        "r_squared_between": 1.1102230246251565e-16,
-        "r_squared_overall": 0.10640791955733253
+        "r_squared": 0.6673339355462738,
+        "r_squared_adj": 0.6425360432592873
       }
     },
     "event_study": {
@@ -189,166 +188,166 @@
         {
           "rel_time": -16,
           "year": 2002,
-          "coefficient": -1.8732301748132543,
-          "std_error": 0.8427662163301027,
-          "t_statistic": -2.222716262844985,
-          "p_value": 0.026234938584054214,
-          "ci_lower": -3.5250216062073476,
-          "ci_upper": -0.22143874341916092,
+          "coefficient": -1.8732301748132671,
+          "std_error": 1.0758691622305525,
+          "t_statistic": -1.7411319522622815,
+          "p_value": 0.08166045169049249,
+          "ci_lower": -3.9818949848624303,
+          "ci_upper": 0.23543463523589625,
           "is_reference": false
         },
         {
           "rel_time": -15,
           "year": 2003,
-          "coefficient": -1.9241878094315705,
-          "std_error": 0.9230088998171004,
-          "t_statistic": -2.084690418275338,
-          "p_value": 0.037097410972295256,
-          "ci_lower": -3.7332520104830262,
-          "ci_upper": -0.11512360838011482,
+          "coefficient": -1.9241878094315703,
+          "std_error": 1.2498988993902405,
+          "t_statistic": -1.5394747610148947,
+          "p_value": 0.12368843487896634,
+          "ci_lower": -4.373944636552694,
+          "ci_upper": 0.5255690176895536,
           "is_reference": false
         },
         {
           "rel_time": -14,
           "year": 2004,
-          "coefficient": -1.5120681552843742,
-          "std_error": 1.053917286550069,
-          "t_statistic": -1.43471235796315,
-          "p_value": 0.15136908120399217,
-          "ci_lower": -3.5777080796066896,
-          "ci_upper": 0.5535717690379409,
+          "coefficient": -1.512068155284361,
+          "std_error": 1.1951284637936468,
+          "t_statistic": -1.2651929906218329,
+          "p_value": 0.2058021545191755,
+          "ci_lower": -3.8544769012185904,
+          "ci_upper": 0.8303405906498689,
           "is_reference": false
         },
         {
           "rel_time": -13,
           "year": 2005,
-          "coefficient": -1.6984091650794761,
-          "std_error": 0.872907892611661,
-          "t_statistic": -1.9456911541926725,
-          "p_value": 0.051691849864899386,
-          "ci_lower": -3.409277196419089,
-          "ci_upper": 0.012458866260136592,
+          "coefficient": -1.6984091650794786,
+          "std_error": 1.1239268101220758,
+          "t_statistic": -1.5111385810745142,
+          "p_value": 0.13075314677696262,
+          "ci_lower": -3.9012652341777354,
+          "ci_upper": 0.504446904018778,
           "is_reference": false
         },
         {
           "rel_time": -12,
           "year": 2006,
-          "coefficient": -1.2977987346634021,
-          "std_error": 0.8372676484824287,
-          "t_statistic": -1.550040464379221,
-          "p_value": 0.12113180412925899,
-          "ci_lower": -2.9388131711095045,
-          "ci_upper": 0.3432157017827002,
+          "coefficient": -1.2977987346633746,
+          "std_error": 1.0207779063072255,
+          "t_statistic": -1.2713820769870519,
+          "p_value": 0.20359275567633295,
+          "ci_lower": -3.2984866672397386,
+          "ci_upper": 0.7028891979129892,
           "is_reference": false
         },
         {
           "rel_time": -11,
           "year": 2007,
-          "coefficient": -1.1318388586360537,
-          "std_error": 0.6886552530795799,
-          "t_statistic": -1.6435492992678302,
-          "p_value": 0.10026933408064254,
-          "ci_lower": -2.4815783524363466,
-          "ci_upper": 0.21790063516423896,
+          "coefficient": -1.1318388586360162,
+          "std_error": 0.8497218540404459,
+          "t_statistic": -1.3320110024875762,
+          "p_value": 0.1828565730865287,
+          "ci_lower": -2.7972630894318904,
+          "ci_upper": 0.5335853721598582,
           "is_reference": false
         },
         {
           "rel_time": -10,
           "year": 2008,
-          "coefficient": -1.3628789728829442,
-          "std_error": 0.7937144239165299,
-          "t_statistic": -1.7170898396401952,
-          "p_value": 0.08596275833876338,
-          "ci_lower": -2.9185306577693,
-          "ci_upper": 0.19277271200341128,
+          "coefficient": -1.3628789728829394,
+          "std_error": 0.9563442174729239,
+          "t_statistic": -1.4250925011961244,
+          "p_value": 0.15413046401213745,
+          "ci_lower": -3.237279195953011,
+          "ci_upper": 0.5115212501871325,
           "is_reference": false
         },
         {
           "rel_time": -9,
           "year": 2009,
-          "coefficient": -0.5545649089327892,
-          "std_error": 0.7353133411777832,
-          "t_statistic": -0.7541885586415698,
-          "p_value": 0.4507360067508722,
-          "ci_lower": -1.9957525749930576,
-          "ci_upper": 0.8866227571274791,
+          "coefficient": -0.554564908932799,
+          "std_error": 0.8667314319704762,
+          "t_statistic": -0.6398347728915517,
+          "p_value": 0.5222800232608424,
+          "ci_lower": -2.25332729986376,
+          "ci_upper": 1.1441974819981624,
           "is_reference": false
         },
         {
           "rel_time": -8,
           "year": 2010,
-          "coefficient": -1.2827613153050903,
-          "std_error": 0.7543453404432542,
-          "t_statistic": -1.7004961077261223,
-          "p_value": 0.08903764791297855,
-          "ci_lower": -2.761251014479474,
-          "ci_upper": 0.1957283838692938,
+          "coefficient": -1.2827613153050832,
+          "std_error": 0.8841847333201351,
+          "t_statistic": -1.4507842840582457,
+          "p_value": 0.14683993721130628,
+          "ci_lower": -3.0157315482927003,
+          "ci_upper": 0.4502089176825339,
           "is_reference": false
         },
         {
           "rel_time": -7,
           "year": 2011,
-          "coefficient": -0.9730779794606708,
-          "std_error": 0.6699451363623253,
-          "t_statistic": -1.4524741305598532,
-          "p_value": 0.14636981716597927,
-          "ci_lower": -2.286146318348604,
-          "ci_upper": 0.3399903594272622,
+          "coefficient": -0.9730779794606581,
+          "std_error": 0.7883856924324246,
+          "t_statistic": -1.2342664114798914,
+          "p_value": 0.21710364765511092,
+          "ci_lower": -2.5182855425548825,
+          "ci_upper": 0.5721295836335665,
           "is_reference": false
         },
         {
           "rel_time": -6,
           "year": 2012,
-          "coefficient": -0.6902065530427022,
-          "std_error": 0.7002912148461774,
-          "t_statistic": -0.9855993312643649,
-          "p_value": 0.32432976632842736,
-          "ci_lower": -2.062752112831011,
-          "ci_upper": 0.6823390067456068,
+          "coefficient": -0.6902065530427108,
+          "std_error": 0.8367220696499374,
+          "t_statistic": -0.8248934479898148,
+          "p_value": 0.40943208645710893,
+          "ci_lower": -2.3301516746264026,
+          "ci_upper": 0.9497385685409812,
           "is_reference": false
         },
         {
           "rel_time": -5,
           "year": 2013,
-          "coefficient": -0.5921995680160133,
-          "std_error": 0.6813210367801091,
-          "t_statistic": -0.8691931351697583,
-          "p_value": 0.3847415016031861,
-          "ci_lower": -1.9275642620145166,
-          "ci_upper": 0.7431651259824901,
+          "coefficient": -0.5921995680160255,
+          "std_error": 0.8191817520004212,
+          "t_statistic": -0.7229159665359843,
+          "p_value": 0.469731513517166,
+          "ci_lower": -2.1977662987292734,
+          "ci_upper": 1.0133671626972225,
           "is_reference": false
         },
         {
           "rel_time": -4,
           "year": 2014,
-          "coefficient": -0.4802497004140481,
-          "std_error": 0.7137377615112095,
-          "t_statistic": -0.6728657587027579,
-          "p_value": 0.5010326979354774,
-          "ci_lower": -1.879150007382257,
-          "ci_upper": 0.9186506065541609,
+          "coefficient": -0.4802497004140472,
+          "std_error": 0.728795870187358,
+          "t_statistic": -0.6589632571471421,
+          "p_value": 0.5099193634040385,
+          "ci_lower": -1.9086633580627974,
+          "ci_upper": 0.9481639572347031,
           "is_reference": false
         },
         {
           "rel_time": -3,
           "year": 2015,
-          "coefficient": 0.03625455894674993,
-          "std_error": 0.7387571482397047,
-          "t_statistic": 0.04907507024891271,
-          "p_value": 0.9608594705223331,
-          "ci_lower": -1.411682844924589,
-          "ci_upper": 1.484191962818089,
+          "coefficient": 0.03625455894676639,
+          "std_error": 0.25632945777386784,
+          "t_statistic": 0.14143734887759143,
+          "p_value": 0.8875244506821496,
+          "ci_lower": -0.4661419464666952,
+          "ci_upper": 0.538651064360228,
           "is_reference": false
         },
         {
           "rel_time": -2,
           "year": 2016,
-          "coefficient": 0.03715239619580181,
-          "std_error": 0.8828286940310126,
-          "t_statistic": 0.042083358240388925,
-          "p_value": 0.9664322466180316,
-          "ci_lower": -1.6931600486235139,
-          "ci_upper": 1.7674648410151175,
+          "coefficient": 0.03715239619580935,
+          "std_error": 0.1946719729148567,
+          "t_statistic": 0.1908461482129152,
+          "p_value": 0.8486461320608261,
+          "ci_lower": -0.3443976595166667,
+          "ci_upper": 0.41870245190828537,
           "is_reference": false
         },
         {
@@ -363,30 +362,30 @@
         {
           "rel_time": 0,
           "year": 2018,
-          "coefficient": -2.688076743850626,
-          "std_error": 0.8232818679209098,
-          "t_statistic": -3.2650746343278647,
-          "p_value": 0.0010943523706810102,
-          "ci_lower": -4.301679554100471,
-          "ci_upper": -1.0744739336007811,
+          "coefficient": -2.6880767438506457,
+          "std_error": 0.5344179102386903,
+          "t_statistic": -5.0299151513280185,
+          "p_value": 4.906969347997962e-07,
+          "ci_lower": -3.7355166006116383,
+          "ci_upper": -1.6406368870896533,
           "is_reference": false
         },
         {
           "rel_time": 1,
           "year": 2019,
-          "coefficient": -1.8021877225689757,
-          "std_error": 0.9344468444809568,
-          "t_statistic": -1.9286144880397236,
-          "p_value": 0.05377873908264734,
-          "ci_lower": -3.633669883218752,
-          "ci_upper": 0.029294438080800678,
+          "coefficient": -1.8021877225689673,
+          "std_error": 0.37328829505650285,
+          "t_statistic": -4.8278709684593215,
+          "p_value": 1.3800045703553326e-06,
+          "ci_lower": -2.533819336730074,
+          "ci_upper": -1.0705561084078608,
           "is_reference": false
         }
       ],
       "pre_trend_test": {
-        "f_statistic": 1.3799371835161283,
-        "p_value": 0.14946148645136384,
-        "parallel_trends_supported": true
+        "f_statistic": 4.312300423661885,
+        "p_value": 1.9910778520356643e-06,
+        "parallel_trends_supported": false
       },
       "model_fit": {
         "r_squared": 0.8330307205909447,
@@ -394,124 +393,124 @@
       }
     },
     "synthetic_control": {
-      "analysis": "Synthetic Control Method",
+      "analysis": "Synthetic Comparator (descriptive)",
       "treated_unit": "North Dakota",
       "treatment_year": 2017,
       "feasible": true,
       "donor_pool_size": 50,
       "weights": {
-        "Florida": 0.02474914212248973,
-        "Oregon": 0.027252385876730338,
-        "Rhode Island": 0.20098215061807295,
-        "Vermont": 0.24520700993607167,
-        "Washington": 0.08288355352795605,
-        "Wyoming": 0.41892575791867914
+        "Florida": 0.02474914254995787,
+        "Oregon": 0.027252385882609552,
+        "Rhode Island": 0.2009821495589068,
+        "Vermont": 0.24520701001066555,
+        "Washington": 0.0828835539082412,
+        "Wyoming": 0.418925758089619
       },
       "pre_treatment_fit": {
-        "rmspe": 0.019838234677320953,
+        "rmspe": 0.01983823467666539,
         "n_periods": 7
       },
-      "post_treatment_effect": {
-        "mean_effect": 0.5701403450198343,
-        "std_effect": 0.7775961786976838,
-        "rmspe": 0.9642177296360901,
-        "rmspe_ratio": 48.60400863885246
+      "post_period_gap": {
+        "mean_gap": 0.5701403437721894,
+        "std_gap": 0.7775961776416719,
+        "rmspe": 0.9642177280467358,
+        "rmspe_ratio": 48.60400856034289
       },
       "time_series": [
         {
           "year": 2010,
           "actual": 0.6935881627620222,
-          "synthetic": 0.6469304948895518,
-          "effect": 0.04665766787247039
+          "synthetic": 0.6469304941179078,
+          "gap": 0.04665766864411436
         },
         {
           "year": 2011,
           "actual": 1.7636092577086793,
-          "synthetic": 1.771344885003168,
-          "effect": -0.007735627294488623
+          "synthetic": 1.7713448839590007,
+          "gap": -0.007735626250321426
         },
         {
           "year": 2012,
           "actual": 1.8441330225126633,
-          "synthetic": 1.8614422686916188,
-          "effect": -0.017309246178955462
+          "synthetic": 1.861442267845697,
+          "gap": -0.017309245333033685
         },
         {
           "year": 2013,
           "actual": 1.7340824643330766,
-          "synthetic": 1.7398204260464283,
-          "effect": -0.005737961713351725
+          "synthetic": 1.7398204257069672,
+          "gap": -0.005737961373890599
         },
         {
           "year": 2014,
           "actual": 1.3008706763986053,
-          "synthetic": 1.3029262545185278,
-          "effect": -0.0020555781199225187
+          "synthetic": 1.3029262550491603,
+          "gap": -0.0020555786505549456
         },
         {
           "year": 2015,
           "actual": 2.9740436272479047,
-          "synthetic": 2.9672790279458505,
-          "effect": 0.006764599302054197
+          "synthetic": 2.9672790284140227,
+          "gap": 0.0067645988338820295
         },
         {
           "year": 2016,
           "actual": 2.101534953723909,
-          "synthetic": 2.0898905743150187,
-          "effect": 0.011644379408890515
+          "synthetic": 2.089890575118027,
+          "gap": 0.011644378605882189
         },
         {
           "year": 2017,
           "actual": 3.799115962233484,
-          "synthetic": 2.34666872997944,
-          "effect": 1.4524472322540438
+          "synthetic": 2.3466687330220757,
+          "gap": 1.4524472292114083
         },
         {
           "year": 2018,
           "actual": 1.6406556307248619,
-          "synthetic": 2.044906199631907,
-          "effect": -0.40425056890704525
+          "synthetic": 2.044906199142711,
+          "gap": -0.404250568417849
         },
         {
           "year": 2019,
           "actual": 0.8301428264661056,
-          "synthetic": 0.9924311657643362,
-          "effect": -0.1622883392982306
+          "synthetic": 0.9924311675345071,
+          "gap": -0.1622883410684015
         },
         {
           "year": 2020,
           "actual": 0.038483098864363754,
-          "synthetic": 0.046907062785573085,
-          "effect": -0.00842396392120933
+          "synthetic": 0.04690706280732879,
+          "gap": -0.008423963942965039
         },
         {
           "year": 2021,
           "actual": 0.58228765781538,
-          "synthetic": 0.671812822032726,
-          "effect": -0.08952516421734591
+          "synthetic": 0.6718128226961557,
+          "gap": -0.08952516488077567
         },
         {
           "year": 2022,
           "actual": 4.2083996430478186,
-          "synthetic": 3.445933643783972,
-          "effect": 0.7624659992638465
+          "synthetic": 3.4459336431511005,
+          "gap": 0.762465999896718
         },
         {
           "year": 2023,
           "actual": 5.410324099831823,
-          "synthetic": 3.996565761733229,
-          "effect": 1.413758338098594
+          "synthetic": 3.9965657643480177,
+          "gap": 1.4137583354838053
         },
         {
           "year": 2024,
           "actual": 6.435106607345512,
-          "synthetic": 4.83816738045949,
-          "effect": 1.5969392268860219
+          "synthetic": 4.838167383449937,
+          "gap": 1.5969392238955749
         }
       ],
       "optimization": {
         "converged": true,
-        "objective_value": 0.002754888885787217
+        "objective_value": 0.0027548888856051444
       }
     },
     "bartik_instrument": {
@@ -520,7 +519,7 @@
       "construction": {
         "baseline_year": 2010,
         "share_component": "State share of nationality at baseline",
-        "shift_component": "National change in nationality arrivals"
+        "shift_component": "Leave-one-out national change in nationality arrivals"
       },
       "sample_info": {
         "n_observations": 528,
@@ -541,44 +540,44 @@
         ]
       },
       "first_stage": {
-        "bartik_coefficient": 4.362533057269598,
-        "std_error": 0.9205283960587209,
-        "t_statistic": 4.739161850897764,
-        "p_value": 2.1460404183894875e-06,
-        "f_statistic": 22.45965504900472,
+        "bartik_coefficient": 5.510303917335125,
+        "std_error": 0.871817165587482,
+        "t_statistic": 6.320481099522691,
+        "p_value": 2.6075022329732277e-10,
+        "f_statistic": 39.94848132942357,
         "strong_instrument": "True"
       },
       "instrument_statistics": {
-        "mean": -852.2401315789474,
-        "std": 1713.4727899676561,
-        "min": -14007.530204652932,
-        "max": 5128.110612812697
+        "mean": -691.1922038277709,
+        "std": 1395.5578964697918,
+        "min": -11300.991014291607,
+        "max": 5393.178180271543
       },
       "model_fit": {
-        "r_squared": 0.8518911128208396,
-        "r_squared_adj": 0.8335748751739498
+        "r_squared": 0.8580067686736881,
+        "r_squared_adj": 0.8404468381471932
       }
     }
   },
   "diagnostics": {
     "parallel_trends": {
       "travel_ban_supported": "True",
-      "event_study_pre_trend_p": 0.14946148645136384
+      "event_study_pre_trend_p": 1.9910778520356643e-06
     },
     "instrument_strength": {
-      "bartik_f_statistic": 22.45965504900472,
+      "bartik_f_statistic": 39.94848132942357,
       "strong_instrument": "True"
     },
     "synthetic_control_fit": {
-      "pre_treatment_rmspe": 0.019838234677320953,
-      "rmspe_ratio": 48.60400863885246
+      "pre_treatment_rmspe": 0.01983823467666539,
+      "rmspe_ratio": 48.60400856034289
     }
   },
   "warnings": [],
   "decisions": [
     {
       "decision_id": "D001",
-      "timestamp": "2025-12-29T06:23:27.965114+00:00",
+      "timestamp": "2025-12-30T05:00:41.844932+00:00",
       "category": "causal_identification",
       "decision": "Use 2018 as first post-treatment year for Travel Ban DiD",
       "rationale": "Executive Order 13769 signed Jan 27, 2017, repeatedly blocked. 2017 reflects partial implementation; 2018 is first full year of effect.",
@@ -591,21 +590,21 @@
     },
     {
       "decision_id": "D003",
-      "timestamp": "2025-12-29T06:23:28.043773+00:00",
+      "timestamp": "2025-12-30T05:00:42.153231+00:00",
       "category": "model_specification",
-      "decision": "Use two-way fixed effects with HC3 robust standard errors",
+      "decision": "Use two-way fixed effects with nationality-clustered standard errors",
       "rationale": "Nationality FE controls for time-invariant heterogeneity; Year FE controls for common shocks",
       "alternatives_considered": [
-        "Cluster by nationality",
-        "Use wild bootstrap",
+        "HC1/HC3 robust SE",
+        "Wild bootstrap",
         "Random effects"
       ],
-      "evidence": "ATT = -1.3835 (SE = 0.4808)",
+      "evidence": "ATT = -1.3835 (SE = 0.6461)",
       "reversible": true
     },
     {
       "decision_id": "D002",
-      "timestamp": "2025-12-29T06:23:28.047632+00:00",
+      "timestamp": "2025-12-30T05:00:42.156572+00:00",
       "category": "causal_identification",
       "decision": "Use 2020 as COVID treatment year for state-level DiD",
       "rationale": "COVID-19 travel restrictions began March 2020, affecting international migration universally",
@@ -618,9 +617,9 @@
     },
     {
       "decision_id": "D004",
-      "timestamp": "2025-12-29T06:23:28.176927+00:00",
+      "timestamp": "2025-12-30T05:00:42.720660+00:00",
       "category": "causal_identification",
-      "decision": "Use international migration rate (per 1000) for synthetic control",
+      "decision": "Use international migration rate (per 1000) for synthetic comparator",
       "rationale": "Rate normalizes for population differences across states",
       "alternatives_considered": [
         "Use raw counts",
@@ -632,16 +631,16 @@
     },
     {
       "decision_id": "D005",
-      "timestamp": "2025-12-29T06:23:28.290006+00:00",
+      "timestamp": "2025-12-30T05:00:42.962689+00:00",
       "category": "causal_identification",
-      "decision": "Use 2010 as baseline year for shift-share construction",
+      "decision": "Use 2010 baseline with leave-one-out shifts for shift-share construction",
       "rationale": "2010 is first year with reliable state-level refugee data and aligns with panel start",
       "alternatives_considered": [
         "Use 2005 as baseline",
         "Use average of early years",
         "Time-varying shares"
       ],
-      "evidence": "First-stage F = 22.46",
+      "evidence": "First-stage F = 39.95",
       "reversible": true
     }
   ],

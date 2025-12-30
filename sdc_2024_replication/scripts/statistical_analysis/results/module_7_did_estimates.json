@@ -42,22 +42,22 @@
       ]
     },
     "att_estimate": {
-      "coefficient": -1.3835462427080563,
-      "std_error": 0.48080477140495714,
-      "t_statistic": -2.8775634623283852,
-      "p_value": 0.004007592915562945,
-      "ci_95_lower": -2.325906278256786,
-      "ci_95_upper": -0.44118620715932666,
-      "significance": "**"
+      "coefficient": -1.383546242708035,
+      "std_error": 0.6461168644795392,
+      "t_statistic": -2.1413250740986474,
+      "p_value": 0.03224783245568213,
+      "ci_95_lower": -2.6499120268918785,
+      "ci_95_upper": -0.11718045852419112,
+      "significance": "*"
     },
     "percentage_effect": {
-      "estimate": -74.93120255123374,
+      "estimate": -74.9312025512332,
       "interpretation": "Refugee arrivals from banned countries decreased by approximately 74.9% post-ban"
     },
     "pre_trend_test": {
-      "treated_x_trend_coef": 0.08738171406923699,
-      "t_statistic": 1.3329064340101047,
-      "p_value": 0.18256251088773134,
+      "treated_x_trend_coef": 0.08738171406923691,
+      "t_statistic": 0.9653930827886065,
+      "p_value": 0.3343479647954617,
       "parallel_trends_supported": "True"
     },
     "model_specification": {
@@ -66,7 +66,7 @@
         "nationality",
         "year"
       ],
-      "standard_errors": "HC3 robust"
+      "standard_errors": "clustered by nationality"
     },
     "model_fit": {
       "r_squared": 0.8285501997924065,
@@ -107,24 +107,24 @@
       ]
     },
     "level_effect": {
-      "coefficient": -19502.524183006535,
-      "std_error": 4363.2445250189085,
-      "t_statistic": -4.469729824028604,
-      "p_value": 9.111836487329938e-06,
-      "ci_95_lower": -28068.908786780645,
-      "ci_95_upper": -10936.139579232427,
+      "coefficient": -19502.524183006433,
+      "std_error": 4555.993837969148,
+      "t_statistic": -4.28063006154103,
+      "p_value": 1.863649319765136e-05,
+      "ci_95_lower": -28432.108019212377,
+      "ci_95_upper": -10572.940346800488,
       "significance": "***"
     },
     "trend_change": {
-      "coefficient": 14112.681699346414,
-      "std_error": 3149.304647566337,
-      "t_statistic": 4.4812056243120715,
-      "p_value": 8.64806929978812e-06,
+      "coefficient": 14112.681699346393,
+      "std_error": 3288.427335650584,
+      "t_statistic": 4.2916203579588394,
+      "p_value": 1.7737401786925643e-05,
       "interpretation": "International migration changes by 14,113 per year post-COVID"
     },
     "percentage_effect": {
       "pre_covid_mean": 15669.256862745098,
-      "level_effect_pct": -124.46361913547625
+      "level_effect_pct": -124.46361913547561
     },
     "model_specification": {
       "dependent_variable": "intl_migration",
@@ -134,9 +134,8 @@
       "standard_errors": "clustered by state"
     },
     "model_fit": {
-      "r_squared_within": 0.2423462182506646,
-      "r_squared_between": 1.1102230246251565e-16,
-      "r_squared_overall": 0.10640791955733253
+      "r_squared": 0.6673339355462738,
+      "r_squared_adj": 0.6425360432592873
     }
   }
 }

@@ -30,6 +30,7 @@ import statsmodels.api as sm
 from scipy import stats
 from statsmodels.genmod.families import Poisson
 from statsmodels.genmod.generalized_linear_model import GLM
+from statsmodels.stats.sandwich_covariance import cov_cluster, cov_cluster_2groups
 
 # Project paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent  # cohort_projections/
@@ -248,22 +249,41 @@ def prepare_gravity_data(
     # Standardize ACS country names
     acs_2023["country_std"] = acs_2023["country"]
 
-    # Merge DHS flows with ACS diaspora stock
-    gravity_df = dhs_countries.merge(
-        acs_2023[["state_name", "country_std", "foreign_born_pop", "margin_of_error"]],
-        left_on=["state", "country_std"],
-        right_on=["state_name", "country_std"],
-        how="left",
+    # Build full origin-state grid from ACS coverage (include zero flows)
+    states = sorted(acs_2023["state_name"].unique())
+    origins = sorted(acs_2023["country_std"].unique())
+    od_grid = (
+        pd.MultiIndex.from_product([states, origins], names=["state", "country_std"])
+        .to_frame(index=False)
+        .reset_index(drop=True)
     )
 
-    # Rename columns for clarity
+    # Merge DHS flows onto full grid (missing flows -> 0)
+    dhs_flows = dhs_countries[
+        ["state", "country_std", "lpr_count", "region_country_of_birth"]
+    ].copy()
+    gravity_df = od_grid.merge(dhs_flows, on=["state", "country_std"], how="left")
+
     gravity_df = gravity_df.rename(
         columns={
             "lpr_count": "flow",
-            "foreign_born_pop": "diaspora_stock",
             "region_country_of_birth": "origin_country",
         }
     )
+    gravity_df["flow"] = gravity_df["flow"].fillna(0)
+    gravity_df["origin_country"] = gravity_df["origin_country"].fillna(
+        gravity_df["country_std"]
+    )
+
+    # Merge ACS diaspora stock onto full grid
+    acs_2023 = acs_2023.rename(columns={"state_name": "state"})
+    gravity_df = gravity_df.merge(
+        acs_2023[["state", "country_std", "foreign_born_pop", "margin_of_error"]],
+        on=["state", "country_std"],
+        how="left",
+    )
+    gravity_df = gravity_df.rename(columns={"foreign_born_pop": "diaspora_stock"})
+    gravity_df["diaspora_stock"] = gravity_df["diaspora_stock"].fillna(0)
 
     # Add state foreign-born totals (destination mass)
     gravity_df = gravity_df.merge(state_totals, on="state", how="left")
@@ -275,9 +295,8 @@ def prepare_gravity_data(
     national_by_origin.columns = ["country_std", "national_origin_total"]
     gravity_df = gravity_df.merge(national_by_origin, on="country_std", how="left")
 
-    # Filter to observations with valid flow and stock data
-    gravity_df = gravity_df.dropna(subset=["flow", "diaspora_stock"])
-    gravity_df = gravity_df[gravity_df["flow"] > 0]
+    # Filter to observations with valid stock data
+    gravity_df = gravity_df.dropna(subset=["diaspora_stock"])
 
     print(f"    - Merged gravity observations: {len(gravity_df):,}")
     print(f"    - Unique states: {gravity_df['state'].nunique()}")
@@ -348,6 +367,63 @@ def estimate_gravity_ppml(gravity_df: pd.DataFrame, result: ModuleResult) -> dic
         ]
     )
 
+    def _safe_hc1_se(model_result, label: str):
+        try:
+            robust = model_result.model.fit(cov_type="HC1")
+            return pd.Series(robust.bse, index=model_result.params.index)
+        except Exception as exc:
+            result.warnings.append(f"{label} HC1 failed: {exc}")
+            return None
+
+    def _safe_cluster_se(model_result, groups, label: str):
+        try:
+            group_codes = pd.Categorical(groups).codes
+            cov = cov_cluster(model_result, group_codes)
+            return pd.Series(np.sqrt(np.diag(cov)), index=model_result.params.index)
+        except Exception as exc:
+            result.warnings.append(f"{label} cluster SE failed: {exc}")
+            return None
+
+    def _safe_two_way_se(model_result, groups1, groups2, label: str):
+        try:
+            group1_codes = pd.Categorical(groups1).codes
+            group2_codes = pd.Categorical(groups2).codes
+            cov_tw, _, _ = cov_cluster_2groups(model_result, group1_codes, group2_codes)
+            return pd.Series(np.sqrt(np.diag(cov_tw)), index=model_result.params.index)
+        except Exception as exc:
+            result.warnings.append(f"{label} two-way cluster SE failed: {exc}")
+            return None
+
+    def _select_se(*candidates):
+        for candidate in candidates:
+            if candidate is not None:
+                return candidate
+        return None
+
+    def _coef_entry(model_result, se_series, param_name: str):
+        estimate = float(model_result.params[param_name])
+        if se_series is None or param_name not in se_series:
+            se = float(model_result.bse[param_name])
+        else:
+            candidate = float(se_series[param_name])
+            se = (
+                float(model_result.bse[param_name])
+                if np.isnan(candidate)
+                else candidate
+            )
+        z_stat = estimate / se if se != 0 else float("nan")
+        p_value = 2 * (1 - stats.norm.cdf(abs(z_stat))) if se != 0 else float("nan")
+        ci_low = estimate - stats.norm.ppf(0.975) * se
+        ci_high = estimate + stats.norm.ppf(0.975) * se
+        return {
+            "estimate": estimate,
+            "std_error": se,
+            "z_statistic": float(z_stat),
+            "p_value": float(p_value),
+            "ci_95_lower": float(ci_low),
+            "ci_95_upper": float(ci_high),
+        }
+
     # Model 1: Simple network effect model
     print("\n" + "=" * 70)
     print("MODEL 1: SIMPLE NETWORK EFFECT (PPML)")
@@ -359,6 +435,14 @@ def estimate_gravity_ppml(gravity_df: pd.DataFrame, result: ModuleResult) -> dic
 
     ppml_simple = GLM(y_simple, X_simple, family=Poisson())
     ppml_simple_result = ppml_simple.fit()
+
+    simple_hc1 = _safe_hc1_se(ppml_simple_result, "Model 1")
+    simple_state = _safe_cluster_se(ppml_simple_result, df["state"], "Model 1")
+    simple_origin = _safe_cluster_se(ppml_simple_result, df["country_std"], "Model 1")
+    simple_tw = _safe_two_way_se(
+        ppml_simple_result, df["state"], df["country_std"], "Model 1"
+    )
+    simple_se_used = _select_se(simple_tw, simple_state, simple_origin, simple_hc1)
 
     print(ppml_simple_result.summary())
 
@@ -377,6 +461,14 @@ def estimate_gravity_ppml(gravity_df: pd.DataFrame, result: ModuleResult) -> dic
 
     ppml_full = GLM(y_full, X_full, family=Poisson())
     ppml_full_result = ppml_full.fit()
+
+    full_hc1 = _safe_hc1_se(ppml_full_result, "Model 2")
+    full_state = _safe_cluster_se(ppml_full_result, df["state"], "Model 2")
+    full_origin = _safe_cluster_se(ppml_full_result, df["country_std"], "Model 2")
+    full_tw = _safe_two_way_se(
+        ppml_full_result, df["state"], df["country_std"], "Model 2"
+    )
+    full_se_used = _select_se(full_tw, full_state, full_origin, full_hc1)
 
     print(ppml_full_result.summary())
 
@@ -402,13 +494,26 @@ def estimate_gravity_ppml(gravity_df: pd.DataFrame, result: ModuleResult) -> dic
     ppml_fe = GLM(df["flow"].reset_index(drop=True), X_fe, family=Poisson())
     ppml_fe_result = ppml_fe.fit()
 
+    fe_hc1 = _safe_hc1_se(ppml_fe_result, "Model 3")
+    fe_state = _safe_cluster_se(ppml_fe_result, df["state"], "Model 3")
+    fe_origin = _safe_cluster_se(ppml_fe_result, df["country_std"], "Model 3")
+    fe_tw = _safe_two_way_se(ppml_fe_result, df["state"], df["country_std"], "Model 3")
+    fe_se_used = _select_se(fe_tw, fe_state, fe_origin, fe_hc1)
+
     # Only print summary for main coefficient
-    print(
-        f"\nNetwork Elasticity (log_diaspora): {ppml_fe_result.params['log_diaspora']:.4f}"
+    fe_se = (
+        float(fe_se_used["log_diaspora"])
+        if fe_se_used is not None
+        else float(ppml_fe_result.bse["log_diaspora"])
     )
-    print(f"  Std. Error: {ppml_fe_result.bse['log_diaspora']:.4f}")
-    print(f"  z-statistic: {ppml_fe_result.tvalues['log_diaspora']:.4f}")
-    print(f"  p-value: {ppml_fe_result.pvalues['log_diaspora']:.6f}")
+    fe_z = ppml_fe_result.params["log_diaspora"] / fe_se
+    fe_p = 2 * (1 - stats.norm.cdf(abs(fe_z)))
+    print(
+        f"\nDiaspora Association (log_diaspora): {ppml_fe_result.params['log_diaspora']:.4f}"
+    )
+    print(f"  Clustered Std. Error: {fe_se:.4f}")
+    print(f"  z-statistic: {fe_z:.4f}")
+    print(f"  p-value: {fe_p:.6f}")
     print(f"  N state fixed effects: {len(state_dummies.columns)}")
     print(f"  AIC: {ppml_fe_result.aic:.2f}")
     print(f"  BIC: {ppml_fe_result.bic:.2f}")
@@ -476,7 +581,7 @@ def estimate_gravity_ppml(gravity_df: pd.DataFrame, result: ModuleResult) -> dic
 
     print("\n--- Interpretation ---")
     network_elast = ppml_full_result.params["log_diaspora"]
-    print(f"Network Elasticity: {network_elast:.4f}")
+    print(f"Diaspora Association: {network_elast:.4f}")
     print(
         f"  A 1% increase in diaspora stock is associated with a {network_elast:.4f}% increase in new LPR admissions"
     )
@@ -489,29 +594,29 @@ def estimate_gravity_ppml(gravity_df: pd.DataFrame, result: ModuleResult) -> dic
     else:
         print("  -> Weak or negative network effects (unexpected)")
 
+    def _se_value(se_series, param_name: str):
+        if se_series is None or param_name not in se_series:
+            return None
+        value = float(se_series[param_name])
+        return None if np.isnan(value) else value
+
     gravity_results = {
         "model_1_simple_network": {
             "specification": "Flow ~ log(Diaspora_Stock)",
             "n_observations": int(len(df)),
             "coefficients": {
-                "const": {
-                    "estimate": float(ppml_simple_result.params["const"]),
-                    "std_error": float(ppml_simple_result.bse["const"]),
-                    "z_statistic": float(ppml_simple_result.tvalues["const"]),
-                    "p_value": float(ppml_simple_result.pvalues["const"]),
-                },
-                "log_diaspora": {
-                    "estimate": float(ppml_simple_result.params["log_diaspora"]),
-                    "std_error": float(ppml_simple_result.bse["log_diaspora"]),
-                    "z_statistic": float(ppml_simple_result.tvalues["log_diaspora"]),
-                    "p_value": float(ppml_simple_result.pvalues["log_diaspora"]),
-                    "ci_95_lower": float(
-                        ppml_simple_result.conf_int().loc["log_diaspora", 0]
-                    ),
-                    "ci_95_upper": float(
-                        ppml_simple_result.conf_int().loc["log_diaspora", 1]
-                    ),
-                },
+                "const": _coef_entry(ppml_simple_result, simple_se_used, "const"),
+                "log_diaspora": _coef_entry(
+                    ppml_simple_result, simple_se_used, "log_diaspora"
+                ),
+            },
+            "standard_errors": {
+                "model_based": _se_value(ppml_simple_result.bse, "log_diaspora"),
+                "hc1": _se_value(simple_hc1, "log_diaspora"),
+                "cluster_state": _se_value(simple_state, "log_diaspora"),
+                "cluster_origin": _se_value(simple_origin, "log_diaspora"),
+                "cluster_two_way": _se_value(simple_tw, "log_diaspora"),
+                "used": _se_value(simple_se_used, "log_diaspora"),
             },
             "fit_statistics": {
                 "log_likelihood": float(ppml_simple_result.llf),
@@ -527,15 +632,16 @@ def estimate_gravity_ppml(gravity_df: pd.DataFrame, result: ModuleResult) -> dic
             "specification": "Flow ~ log(Diaspora) + log(Origin_Mass) + log(Dest_Mass)",
             "n_observations": int(len(df)),
             "coefficients": {
-                var: {
-                    "estimate": float(ppml_full_result.params[var]),
-                    "std_error": float(ppml_full_result.bse[var]),
-                    "z_statistic": float(ppml_full_result.tvalues[var]),
-                    "p_value": float(ppml_full_result.pvalues[var]),
-                    "ci_95_lower": float(ppml_full_result.conf_int().loc[var, 0]),
-                    "ci_95_upper": float(ppml_full_result.conf_int().loc[var, 1]),
-                }
+                var: _coef_entry(ppml_full_result, full_se_used, var)
                 for var in ppml_full_result.params.index
+            },
+            "standard_errors": {
+                "model_based": _se_value(ppml_full_result.bse, "log_diaspora"),
+                "hc1": _se_value(full_hc1, "log_diaspora"),
+                "cluster_state": _se_value(full_state, "log_diaspora"),
+                "cluster_origin": _se_value(full_origin, "log_diaspora"),
+                "cluster_two_way": _se_value(full_tw, "log_diaspora"),
+                "used": _se_value(full_se_used, "log_diaspora"),
             },
             "fit_statistics": {
                 "log_likelihood": float(ppml_full_result.llf),
@@ -552,12 +658,15 @@ def estimate_gravity_ppml(gravity_df: pd.DataFrame, result: ModuleResult) -> dic
             "n_observations": int(len(df)),
             "n_state_dummies": int(len(state_dummies.columns)),
             "network_elasticity": {
-                "estimate": float(ppml_fe_result.params["log_diaspora"]),
-                "std_error": float(ppml_fe_result.bse["log_diaspora"]),
-                "z_statistic": float(ppml_fe_result.tvalues["log_diaspora"]),
-                "p_value": float(ppml_fe_result.pvalues["log_diaspora"]),
-                "ci_95_lower": float(ppml_fe_result.conf_int().loc["log_diaspora", 0]),
-                "ci_95_upper": float(ppml_fe_result.conf_int().loc["log_diaspora", 1]),
+                **_coef_entry(ppml_fe_result, fe_se_used, "log_diaspora"),
+            },
+            "standard_errors": {
+                "model_based": _se_value(ppml_fe_result.bse, "log_diaspora"),
+                "hc1": _se_value(fe_hc1, "log_diaspora"),
+                "cluster_state": _se_value(fe_state, "log_diaspora"),
+                "cluster_origin": _se_value(fe_origin, "log_diaspora"),
+                "cluster_two_way": _se_value(fe_tw, "log_diaspora"),
+                "used": _se_value(fe_se_used, "log_diaspora"),
             },
             "fit_statistics": {
                 "log_likelihood": float(ppml_fe_result.llf),
@@ -583,7 +692,7 @@ def estimate_gravity_ppml(gravity_df: pd.DataFrame, result: ModuleResult) -> dic
             },
         },
         "interpretation": {
-            "network_elasticity_full": float(ppml_full_result.params["log_diaspora"]),
+            "diaspora_association_full": float(ppml_full_result.params["log_diaspora"]),
             "interpretation": f"A 1% increase in diaspora stock is associated with a {ppml_full_result.params['log_diaspora']:.4f}% increase in new LPR admissions",
             "effect_strength": "strong"
             if ppml_full_result.params["log_diaspora"] > 0.5
@@ -605,7 +714,7 @@ def analyze_nd_network_effects(
     Uses both cross-sectional (gravity) and panel (time series) approaches
     to estimate how diaspora stocks affect new immigrant flows to ND.
     """
-    print("\n[4] Analyzing North Dakota Network Effects...")
+    print("\n[4] Analyzing North Dakota Diaspora Associations...")
     print("-" * 70)
 
     # Filter gravity data to North Dakota
@@ -614,11 +723,10 @@ def analyze_nd_network_effects(
 
     # Cross-sectional PPML for ND
     print("\n" + "=" * 70)
-    print("ND-SPECIFIC NETWORK EFFECT (CROSS-SECTIONAL PPML)")
+    print("ND-SPECIFIC DIASPORA ASSOCIATION (CROSS-SECTIONAL PPML)")
     print("=" * 70)
 
     nd_valid = nd_gravity.dropna(subset=["flow", "diaspora_stock"])
-    nd_valid = nd_valid[nd_valid["flow"] > 0]
 
     if len(nd_valid) >= 10:
         y_nd = nd_valid["flow"]
@@ -1164,6 +1272,11 @@ def run_analysis() -> ModuleResult:
     with open(gravity_output, "w") as f:
         json.dump(gravity_results, f, indent=2, default=str)
     print(f"\nGravity model results saved: {gravity_output}")
+
+    gravity_revised_output = RESULTS_DIR / "gravity_results_revised.json"
+    with open(gravity_revised_output, "w") as f:
+        json.dump(gravity_results, f, indent=2, default=str)
+    print(f"Revised gravity results saved: {gravity_revised_output}")
 
     # Save network effects results separately
     network_output = RESULTS_DIR / "module_5_network_effects.json"

@@ -358,5 +358,14 @@ python scripts/projections/run_all_projections.py
 
 ---
 
-**Last Updated:** 2025-12-28
+### Session Log
+
+#### 2025-12-30 - Journal Article Revision Work
+- Updated causal inference and scenario arithmetic outputs for `sdc_2024_replication` journal article.
+- Added pipeline diagram and module classification table; regenerated publication figures and captions.
+- Refreshed summary text and intervals to align with updated Monte Carlo outputs.
+- Integrated figure captions into the main build and smoothed LaTeX layout issues in data tables and appendix wording.
+- Completed a full LaTeX build after layout fixes.
+
+**Last Updated:** 2025-12-30
 **Tracker Status:** Full state projection complete - 53 counties projected 2025-2045

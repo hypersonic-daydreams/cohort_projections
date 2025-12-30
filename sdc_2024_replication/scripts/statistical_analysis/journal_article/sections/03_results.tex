@@ -48,7 +48,7 @@ Hodrick-Prescott filter decomposition reveals a U-shaped trend in North Dakota's
 \subsection{Geographic Concentration}
 \label{subsec:concentration}
 
-Analysis of geographic concentration reveals a striking divergence between country-level and regional-level patterns. The Herfindahl-Hirschman Index (HHI) for country-of-origin composition stands at 1,162 based on fiscal year 2023 LPR admissions data, classifying North Dakota's immigrant origins as ``unconcentrated'' by standard thresholds ($\text{HHI} < 1,500$). This result indicates substantial diversity at the country level, with no single origin dominating the flow.
+Analysis of geographic concentration reveals a divergence between country-level and regional-level patterns. The Herfindahl-Hirschman Index (HHI) for country-of-origin composition is 1,162 based on FY 2023 LPR admissions, classifying North Dakota's immigrant origins as ``unconcentrated'' under standard thresholds ($\text{HHI} < 1,500$). This result indicates substantial diversity at the country level, with no single origin dominating the flow.
 
 However, regional aggregation yields markedly different conclusions. The regional-level HHI reaches 3,712, placing North Dakota firmly in the ``highly concentrated'' category ($\text{HHI} > 2,500$). This concentration derives from the dominance of two source regions: Asia accounts for 52.5\% of LPR admissions and Africa accounts for 27.9\%, together comprising over 80\% of legal permanent resident flows. North America (12.3\%), Europe (3.4\%), South America (3.4\%), and Oceania (0.6\%) contribute the remainder.
 
@@ -89,7 +89,7 @@ The concentration patterns exhibit meaningful temporal evolution. Country-level 
 \subsection{Time Series Properties}
 \label{subsec:time_series_properties}
 
-Unit root testing establishes the integration properties necessary for appropriate model specification. Table~\ref{tab:unit_root} reports Augmented Dickey-Fuller (ADF) test results for the three primary series.
+Unit root diagnostics inform integration choices for subsequent time series modeling. Table~\ref{tab:unit_root} reports Augmented Dickey-Fuller (ADF) test results for the three primary series.
 
 \begin{table}[htbp]
 \centering
@@ -115,15 +115,37 @@ US International Migration & \multicolumn{4}{c}{I(0) --- Level stationary} \\
 \end{tablenotes}
 \end{table}
 
-North Dakota international migration fails to reject the unit root null in levels ($p = 0.556$) but strongly rejects after first differencing ($p = 0.002$), establishing I(1) integration. North Dakota's share of national migration similarly exhibits I(1) behavior (level $p = 0.285$; differenced $p < 0.001$). In contrast, national international migration rejects the unit root null in levels ($p = 0.002$), indicating I(0) stationarity.
+North Dakota international migration does not reject the unit root null in levels ($p = 0.556$) but rejects after first differencing ($p = 0.002$), consistent with I(1) behavior. North Dakota's share of national migration shows the same ADF pattern (level $p = 0.285$; differenced $p < 0.001$). In contrast, national international migration rejects the unit root null in levels ($p = 0.002$), consistent with I(0) behavior.
 
-The mixed integration orders---I(1) for state-level series and I(0) for the national aggregate---complicate cointegration analysis and suggest that state-level migration may follow an independent random walk process rather than moving in long-run equilibrium with national trends. KPSS tests confirm these classifications, with state-level series failing to reject stationarity in levels (consistent with I(1) under the KPSS null of stationarity).
+KPSS tests (null: level-stationarity; regression = constant) do not reject level-stationarity for the ND migration series (p $\ge 0.10$), while KPSS rejects level-stationarity for the first-differenced ND share series (p $\approx 0.042$). Together with ADF results, the small-sample diagnostics are suggestive rather than definitive: integration order is treated as a modeling choice, with break-robust checks (Appendix~\ref{app:unit_root_robustness}) used to evaluate sensitivity.\footnote{Statsmodels reports KPSS p-values as 0.10 when p $\ge 0.10$; values shown as 0.10 should be read as upper bounds.}
 
-ARIMA model selection via AIC criterion identifies ARIMA(0,1,0)---a random walk without drift---as the optimal specification for North Dakota international migration. This parsimonious model implies that the best forecast of future migration equals the most recent observation, with innovations representing unpredictable shocks. Diagnostic tests support model adequacy: the Ljung-Box portmanteau test finds no significant residual autocorrelation through lag 5 ($Q = 4.12$, $p = 0.404$), and residuals pass the Shapiro-Wilk normality test ($W = 0.966$, $p = 0.820$).
+ARIMA model selection via AIC identifies ARIMA(0,1,0) as a candidate baseline specification in this very small sample. The random-walk baseline implies that the best one-step forecast equals the most recent observation, with innovations representing unpredictable shocks. Diagnostic tests support adequacy within the limited sample: the Ljung-Box portmanteau test finds no significant residual autocorrelation through lag 5 ($Q = 4.12$, $p = 0.404$), and residuals pass the Shapiro-Wilk normality test ($W = 0.966$, $p = 0.820$).
 
-The random walk characterization implies substantial forecast uncertainty. Five-year-ahead prediction intervals widen dramatically: the 2029 forecast of 5,126 migrants carries a 95\% confidence interval of [212, 10,040], spanning nearly two orders of magnitude. This uncertainty reflects both the inherent unpredictability of migration processes and the limited sample size constraining parameter precision.
+The random-walk baseline implies substantial forecast uncertainty. Five-year-ahead prediction intervals widen dramatically: the 2029 forecast of 5,126 migrants carries a 95\% prediction interval of [212, 10,040], spanning nearly two orders of magnitude. This uncertainty reflects both the inherent unpredictability of migration processes and the limited sample size constraining parameter precision.
 
-Autocorrelation function (ACF) and partial autocorrelation function (PACF) plots for the differenced series (Figure~\ref{fig:acfpacf}) confirm the absence of significant serial correlation at standard lags, consistent with the random walk specification.
+Rolling-origin backtesting (expanding window, 2010--2016 start; 2017--2024 forecasts) benchmarks point accuracy and interval calibration. Table~\ref{tab:backtesting} shows that the driver regression using contemporaneous U.S.\ migration achieves the lowest MAE/RMSE and relatively strong coverage, while the naive random-walk and ARIMA(0,1,0) baselines coincide. Interval widths remain large across models, and MAPE is inflated by the low 2020 base; these results are therefore descriptive rather than definitive.
+
+\begin{table}[htbp]
+\centering
+\caption{Rolling-Origin Backtesting Results (h = 1)}
+\label{tab:backtesting}
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+\textbf{Model} & \textbf{MAE} & \textbf{RMSE} & \textbf{MAPE} & \textbf{Cov. 80\%} & \textbf{Cov. 95\%} \\
+\midrule
+Naive RW & 1,153 & 1,367 & 313\% & 0.63 & 0.75 \\
+Expanding mean & 1,674 & 1,980 & 635\% & 0.38 & 0.50 \\
+Driver OLS (US) & 317 & 530 & 65\% & 0.88 & 0.88 \\
+ARIMA(0,1,0) & 1,153 & 1,367 & 313\% & 0.63 & 0.75 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item \textit{Notes}: Rolling-origin evaluation with expanding window; $n = 8$ one-step forecasts. Driver model uses contemporaneous U.S.\ migration (ex post). Coverage refers to empirical coverage of symmetric prediction intervals.
+\end{tablenotes}
+\end{table}
+
+Autocorrelation function (ACF) and partial autocorrelation function (PACF) plots for the differenced series (Figure~\ref{fig:acfpacf}) confirm the absence of significant serial correlation at standard lags, consistent with the random-walk baseline.
 
 % ==============================================================================
 % 3.4 STRUCTURAL BREAK ANALYSIS
@@ -193,34 +215,36 @@ Gravity models estimated via Poisson pseudo-maximum likelihood (PPML) quantify t
 \label{tab:gravity}
 \begin{tabular}{@{}lccc@{}}
 \toprule
-\textbf{Variable} & \textbf{Simple Network} & \textbf{Full Gravity} & \textbf{State FE} \\
+\textbf{Variable} & \textbf{Simple} & \textbf{Full Gravity} & \textbf{State FE} \\
 \midrule
-Log(Diaspora Stock) & 0.359*** & 0.096*** & 0.115*** \\
- & (0.001) & (0.002) & (0.001) \\
-Log(Origin Population) & --- & 0.039*** & --- \\
- & & (0.002) & \\
-Log(Destination Population) & --- & 0.755*** & --- \\
- & & (0.002) & \\
-Constant & 2.425*** & $-6.388$*** & --- \\
- & (0.006) & (0.034) & \\
+Log(Diaspora Stock) & 0.448*** & 0.140 & 0.163 \\
+ & (0.104) & (0.248) & (0.148) \\
+Log(Origin Stock in U.S.) & --- & 0.046 & --- \\
+ & & (0.192) & \\
+Log(State Foreign-Born Total) & --- & 0.792*** & --- \\
+ & & (0.212) & \\
+Constant & 1.267 & $-7.711$* & --- \\
+ & (0.980) & (3.123) & \\
 \midrule
-$n$ & 2,680 & 2,680 & 2,680 \\
-Pseudo $R^2$ & 0.186 & 0.382 & 0.401 \\
+$n$ & 4,845 & 4,845 & 4,845 \\
+Pseudo $R^2$ & 0.236 & 0.399 & 0.413 \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: Standard errors in parentheses. PPML estimation. *** $p < 0.001$. Dependent variable: LPR admissions by state-country pair, FY 2023. State FE specification includes 50 state dummy variables (coefficients not reported).
+\item \textit{Notes}: Two-way clustered standard errors (state and origin) in parentheses. PPML estimation. * $p < 0.05$; *** $p < 0.001$. Dependent variable: LPR admissions by state-country pair, FY 2023. State FE specification includes 50 state dummy variables (coefficients not reported).
 \end{tablenotes}
 \end{table}
 
-The simple network model reveals a diaspora elasticity of 0.359 ($p < 0.001$), suggesting that a 1\% increase in existing foreign-born population from a given origin is associated with a 0.36\% increase in new LPR admissions from that origin. However, this specification omits critical confounders.
+The simple specification yields a diaspora association of 0.448 (SE = 0.104, $p < 0.001$), indicating that larger state--origin stocks are correlated with higher FY2023 admissions. However, this bivariate model omits origin and destination scale.
 
-The full gravity specification introduces origin population, destination population, and implicitly controls for distance through the bilateral structure. The diaspora elasticity attenuates dramatically to 0.096 ($p < 0.001$) once mass variables are included. Destination population emerges as the dominant predictor, with elasticity of 0.755---indicating that migration flows are approximately proportional to state population. Origin population exerts a modest positive effect (elasticity = 0.039).
+The full gravity specification adds origin and destination foreign-born totals. With two-way clustered SEs, the diaspora association attenuates to 0.140 (SE = 0.248, $p = 0.57$), while state foreign-born totals remain the dominant predictor (elasticity = 0.792, SE = 0.212, $p < 0.001$). The origin stock coefficient is small and imprecise (0.046, SE = 0.192).
 
-The state fixed effects specification, which absorbs all time-invariant state characteristics, yields a diaspora elasticity of 0.115 ($p < 0.001$). This estimate, while somewhat larger than the full gravity coefficient, remains substantially below the simple network estimate, confirming that raw correlations between diaspora stocks and flows substantially overstate the causal network effect.
+The state fixed effects specification yields a diaspora association of 0.163 (SE = 0.148, $p = 0.27$). This estimate remains below the simple model and underscores the sensitivity of cross-sectional coefficients to controls and inference.
 
-The attenuation from 0.36 to approximately 0.10 has important implications for migration forecasting. Network effects exist but are modest in magnitude; much of the apparent ``network effect'' in bivariate analysis reflects selection of large receiving states with both large diaspora stocks and continued large flows. The pseudo-$R^2$ values indicate that the full gravity model explains 38\% of deviance, roughly double the explanatory power of the simple network specification.
+The attenuation from 0.45 to approximately 0.14 has practical implications for forecasting. Much of the simple-model association reflects selection of large receiving states with both large diaspora stocks and continued large flows. The pseudo-$R^2$ values indicate that the full gravity model explains 40\% of deviance, roughly double the explanatory power of the bivariate specification.
+
+Because FY2023 is a single cross-section, these results are interpreted as predictive diaspora--flow associations rather than causal diaspora effects. We report two-way clustered SEs to account for correlation within origins and destinations, and note that ACS diaspora stocks are estimates with margins of error; coefficient uncertainty does not fully propagate that measurement error.
 
 % ==============================================================================
 % 3.7 CAUSAL INFERENCE FINDINGS
@@ -229,32 +253,28 @@ The attenuation from 0.36 to approximately 0.10 has important implications for m
 \subsection{Causal Inference Findings}
 \label{subsec:causal_did}
 
-Causal inference methods estimate the effects of discrete policy interventions on international migration flows. Table~\ref{tab:causal_effects} summarizes findings from difference-in-differences, synthetic control, and instrumental variable analyses.
+Causal inference results focus on difference-in-differences for the Travel Ban and an interrupted time series for COVID-19. A synthetic comparator is reported as a descriptive benchmark, and a shift-share index provides first-stage relevance for refugee-driven shocks.
 
 \begin{table}[htbp]
 \centering
-\caption{Causal Effect Estimates: Policy Interventions}
+\caption{Policy Effects and Predictive Relevance}
 \label{tab:causal_effects}
 \begin{tabular}{@{}llccc@{}}
 \toprule
 \textbf{Method} & \textbf{Policy} & \textbf{Estimate} & \textbf{SE} & \textbf{95\% CI} \\
 \midrule
-DiD (log scale) & Travel Ban & $-1.384$** & 0.481 & [$-2.33$, $-0.44$] \\
+DiD (log scale) & Travel Ban & $-1.384$* & 0.646 & [$-2.65$, $-0.12$] \\
 \quad \textit{Percentage effect} & & $-74.9\%$ & --- & --- \\
-ITS Level Shift & COVID-19 & $-19,503$*** & 4,363 & [$-28,069$, $-10,936$] \\
-ITS Trend Change & COVID-19 & $+14,113$*** & 3,149 & [$+7,940$, $+20,286$] \\
+ITS Level Shift & COVID-19 & $-19,503$*** & 4,556 & [$-28,432$, $-10,573$] \\
+ITS Trend Change & COVID-19 & $+14,113$*** & 3,288 & [$+7,667$, $+20,558$] \\
 \midrule
-Synthetic Control & Travel Ban (ND) & --- & --- & --- \\
-\quad Pre-RMSPE & & 0.020 & & \\
-\quad RMSPE Ratio & & 48.6 & & \\
-\midrule
-Bartik IV & National Shift & 4.36*** & 0.92 & [$+2.56$, $+6.17$] \\
-\quad First-stage $F$ & & 22.46 & & \\
+Shift-share (first stage) & National shocks & 5.51*** & 0.87 & [$+3.80$, $+7.22$] \\
+\quad First-stage $F$ & & 39.95 & & \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: DiD = Difference-in-differences with nationality and year fixed effects, HC3 robust SE. ITS = Interrupted time series with state fixed effects, clustered SE. ** $p < 0.01$; *** $p < 0.001$. Travel Ban affected countries: Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen.
+\item \textit{Notes}: DiD = Difference-in-differences with nationality and year fixed effects, SEs clustered by nationality. ITS = Interrupted time series with state fixed effects, SEs clustered by state. Shift-share row reports first-stage relevance only (not a causal effect). * $p < 0.05$; *** $p < 0.001$. Travel Ban affected countries: Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen.
 \end{tablenotes}
 \end{table}
 
@@ -262,27 +282,27 @@ Bartik IV & National Shift & 4.36*** & 0.92 & [$+2.56$, $+6.17$] \\
 
 The Travel Ban analysis employs refugee arrival data spanning 2002--2019, with 2018 designated as the first full post-treatment year. The treatment group comprises seven affected nationalities (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen), while 119 unaffected nationalities serve as controls. The sample includes 1,137 nationality-year observations.
 
-The estimated average treatment effect on the treated (ATT) is $-1.384$ on the log scale ($t = -2.88$, $p = 0.004$), corresponding to a 74.9\% reduction in refugee arrivals from affected countries. The 95\% confidence interval [$-2.33$, $-0.44$] excludes zero, indicating a statistically significant and economically substantial effect.
+The estimated average treatment effect on the treated (ATT) is $-1.384$ on the log scale ($t = -2.14$, $p = 0.032$), corresponding to a 74.9\% reduction in refugee arrivals from affected countries. The 95\% confidence interval [$-2.65$, $-0.12$] excludes zero, indicating a statistically significant and economically substantial short-run effect.
 
-Crucially, the parallel trends assumption receives empirical support. The pre-treatment trend coefficient for treated countries is 0.087 ($t = 1.33$, $p = 0.183$), indicating no significant divergence between treatment and control groups prior to policy implementation. The event study specification (Figure~\ref{fig:eventstudy}) confirms this pattern: pre-treatment coefficients fluctuate around zero without systematic trend, while post-treatment coefficients shift sharply negative.
+Parallel trends diagnostics are mixed. The linear pre-trend test yields a treated-country trend coefficient of 0.087 ($t = 0.97$, $p = 0.334$), but the event study's joint pre-treatment test rejects parallel trends over the full pre-period ($F = 4.31$, $p < 0.001$). Figure~\ref{fig:eventstudy} nevertheless shows the immediate post-treatment coefficients shifting sharply negative in 2018--2019, so we interpret the estimates as short-run policy effects and treat longer pre-period divergence with caution.
 
 \subsubsection{COVID-19 Interrupted Time Series}
 
 The COVID-19 analysis employs state-level panel data (2010--2024) with 2020 as the intervention year. The interrupted time series model identifies both level and trend effects.
 
-The level shift coefficient indicates that international migration dropped by 19,503 persons immediately following COVID onset ($t = -4.47$, $p < 0.001$). However, the trend change coefficient of $+$14,113 ($t = 4.48$, $p < 0.001$) indicates accelerated growth post-COVID, suggesting rapid recovery. Relative to pre-COVID mean migration of 15,669, the level shift represents a 124\% decline---interpretable as a transition from positive to negative net migration during the acute pandemic period.
+The level shift coefficient indicates that international migration dropped by 19,503 persons immediately following COVID onset ($t = -4.28$, $p < 0.001$). However, the trend change coefficient of $+$14,113 ($t = 4.29$, $p < 0.001$) indicates accelerated growth post-COVID, suggesting rapid recovery. Relative to pre-COVID mean migration of 15,669, the level shift represents a 124.5\% decline---interpretable as a transition from positive to negative net migration during the acute pandemic period.
 
-\subsubsection{Synthetic Control for North Dakota}
+\subsubsection{Synthetic Comparator (Descriptive Benchmark)}
 
-The synthetic control method constructs a counterfactual North Dakota using weighted combinations of donor states. The optimal weights place substantial emphasis on Wyoming (41.9\%), Vermont (24.5\%), Rhode Island (20.1\%), and Washington (8.3\%), with minor contributions from Oregon (2.7\%) and Florida (2.5\%).
+Because the Travel Ban is a national shock, we do not interpret a state-level synthetic comparator as causal. Instead, we construct a synthetic comparator that matches North Dakota's pre-2017 international migration rate using weighted donor states. The weights emphasize Wyoming (41.9\%), Vermont (24.5\%), Rhode Island (20.1\%), and Washington (8.3\%), with minor contributions from Oregon (2.7\%) and Florida (2.5\%).
 
-Pre-treatment fit is excellent: the root mean squared prediction error (RMSPE) of 0.020 indicates that synthetic North Dakota closely tracks actual North Dakota during 2010--2016 on international migration rate per 1,000 population. The post-treatment RMSPE ratio of 48.6 suggests substantial divergence after 2017, though the direction is positive---actual North Dakota experienced higher migration rates than predicted by the synthetic control, potentially reflecting recovery dynamics or refugee program expansion.
+Pre-treatment fit is strong: the root mean squared prediction error (RMSPE) of 0.020 indicates close tracking during 2010--2016. The post-2017 gap averages +0.57 migrants per 1,000 population (SD = 0.78), and the post/pre RMSPE ratio is large (48.6), indicating substantial divergence. These deviations are presented descriptively and are not interpreted as policy effects.
 
-\subsubsection{Bartik Shift-Share Instrument}
+\subsubsection{Shift-Share (Bartik) Index}
 
-The Bartik instrument addresses endogeneity in gravity model estimation by exploiting plausibly exogenous national-level variation in immigration by origin, interacted with predetermined state-level settlement shares. The first-stage $F$-statistic of 22.46 exceeds the conventional threshold of 10 for strong instruments, supporting instrument relevance.
+The shift-share index combines baseline state shares with leave-one-out national origin shocks to summarize predicted refugee inflows. The first-stage $F$-statistic of 39.95 exceeds the conventional threshold of 10, supporting instrument relevance.
 
-The estimated coefficient of 4.36 ($p < 0.001$) indicates that a one-unit increase in the Bartik instrument predicts a 4.36-unit increase in state-level refugee arrivals. The model achieves $R^2 = 0.852$, indicating strong predictive power.
+The estimated first-stage coefficient is 5.51 ($p < 0.001$), indicating that a one-unit increase in the shift-share index predicts a 5.51-unit increase in state-level international migration. Because no second-stage causal model is estimated, this result is interpreted as predictive relevance rather than a causal effect.
 
 % ==============================================================================
 % 3.8 DURATION ANALYSIS
@@ -361,25 +381,25 @@ Scenario analysis translates analytical findings into forward-looking projection
 \toprule
 \textbf{Scenario} & \textbf{Assumptions} & \textbf{2045 Projection} \\
 \midrule
-CBO Full & Elevated immigration policy, 8\% annual growth & 19,318 \\
+CBO Full & 2025--2029: 1.1$\times$ARIMA; 2030--2045: 8\% growth & 19,318 \\
 Moderate & Dampened historical trend (50\% weight) & 7,048 \\
-Pre-2020 Trend & Continue 2010--2019 slope (+72/year) & 2,517 \\
+Pre-2020 Trend & Anchor 2019; continue 2010--2019 slope (+72/year) & 2,517 \\
 Zero & No international migration & 0 \\
 \midrule
-Monte Carlo Median & Stochastic trend with CV = 0.39 & 8,672 \\
-\quad 50\% CI & & [6,164, 10,962] \\
-\quad 95\% CI & & [3,183, 14,104] \\
+Monte Carlo Median & Stochastic trend with $CV_{2045} = 0.38$ & 9,056 \\
+\quad 50\% PI & & [6,450, 11,292] \\
+\quad 95\% PI & & [3,570, 14,491] \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: CBO = Congressional Budget Office elevated immigration scenario. CI = credible interval from 1,000 Monte Carlo draws. Baseline 2024 value = 5,126.
+\item \textit{Notes}: CBO = Congressional Budget Office elevated immigration scenario. PI = prediction interval from 1,000 Monte Carlo draws. $CV_{2045}$ denotes the coefficient of variation of simulated 2045 outcomes (historical CV is 82.5\%). Baseline 2024 value = 5,126.
 \end{tablenotes}
 \end{table}
 
-The four deterministic scenarios yield dramatically different endpoints. The CBO Full scenario, which assumes continued elevated national immigration with North Dakota maintaining its historical share, projects net international migration of 19,318 persons by 2045. The Moderate scenario, applying 50\% dampening to historical trends, yields 7,048. The Pre-2020 Trend scenario, which extrapolates the 2010--2019 trajectory while treating COVID as a temporary aberration, projects only 2,517---reflecting the modest pre-pandemic growth rate of approximately 72 persons per year.
+The four deterministic scenarios yield dramatically different endpoints. The CBO Full scenario applies 10\% above-ARIMA levels for 2025--2029 and then compounds at 8\% annually, projecting net international migration of 19,318 persons by 2045. The Moderate scenario, applying 50\% dampening to historical trends, yields 7,048. The Pre-2020 Trend scenario anchors at the 2019 level and extrapolates the 2010--2019 slope, projecting only 2,517---reflecting the modest pre-pandemic growth rate of approximately 72 persons per year.
 
-Monte Carlo simulation propagates parameter uncertainty through the projection model. Based on 1,000 draws from estimated trend and volatility distributions (CV = 0.39), the median 2045 projection is 8,672 persons, with a 50\% credible interval of [6,164, 10,962] and a 95\% credible interval of [3,183, 14,104]. The latter interval spans a factor of 4.4, reflecting substantial irreducible uncertainty over a 20-year horizon given the observed volatility and structural instability.
+Monte Carlo simulation propagates parameter uncertainty through the projection model. Based on 1,000 draws from estimated trend and volatility distributions ($CV_{2045} = 0.38$), the median 2045 projection is 9,056 persons, with a 50\% prediction interval of [6,450, 11,292] and a 95\% prediction interval of [3,570, 14,491]. The latter interval spans a factor of 4.1, reflecting substantial irreducible uncertainty over a 20-year horizon given the observed volatility and structural instability. The simulation CV refers to dispersion in projected 2045 outcomes and is not directly comparable to the historical CV of annual observations.
 
 Model averaging weights alternative time series specifications by AIC. The VAR model receives effectively all AIC weight (1.000) relative to the univariate ARIMA (weight $\approx 0$), reflecting the superior fit of the multivariate specification. For cross-sectional models, Random Forest receives the highest $R^2$-based weight (0.462), followed by Elastic Net (0.293) and OLS (0.245).
 

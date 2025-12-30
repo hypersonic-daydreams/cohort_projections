@@ -13,7 +13,7 @@ projections for North Dakota immigration. Implements:
    - Zero: Zero net immigration scenario
    - Pre-2020 Trend: Continue historical trend
 3. Monte Carlo simulation (1000 draws) for uncertainty quantification
-4. Confidence intervals and fan chart data for visualization
+4. Prediction intervals and fan chart data for visualization
 
 Usage:
     micromamba run -n cohort_proj python module_9_scenario_modeling.py
@@ -589,10 +589,11 @@ def generate_scenarios(
 
     scenarios["cbo_full"] = {
         "name": "CBO Full Immigration",
-        "description": "Full implementation of elevated immigration policy",
+        "description": "2025--2029 at 10% above ARIMA, then 8% compound growth",
         "assumptions": {
             "growth_rate": cbo_growth_rate,
             "arima_multiplier": 1.1,
+            "arima_years": len(arima_forecasts),
         },
         "projections": cbo_projections,
     }
@@ -646,7 +647,7 @@ def generate_scenarios(
 
     scenarios["pre_2020_trend"] = {
         "name": "Pre-2020 Trend",
-        "description": "Continue historical 2010-2019 trend (ignoring COVID disruption)",
+        "description": "Counterfactual anchored to 2019 with 2010--2019 slope",
         "assumptions": {
             "trend_slope": pre_2020_trend,
             "start_value": start_val,
@@ -816,7 +817,7 @@ def monte_carlo_simulation(
         category="uncertainty_quantification",
         decision=f"Ran {n_draws}-draw Monte Carlo simulation",
         rationale="Propagate parameter uncertainty through projections",
-        alternatives=["Analytical confidence intervals", "Bootstrapping"],
+        alternatives=["Analytical prediction intervals", "Bootstrapping"],
         evidence="Trend uncertainty from quantile regression range",
     )
 
@@ -862,7 +863,7 @@ def compute_confidence_intervals(
     scenarios: dict, mc_results: dict, result: ModuleResult
 ) -> dict:
     """
-    Compute confidence intervals and fan chart data.
+    Compute prediction intervals and fan chart data.
 
     Combines scenario projections with Monte Carlo uncertainty.
     """
@@ -914,7 +915,7 @@ def compute_confidence_intervals(
             p["value"] for p in scenario["projections"]
         ]
 
-    print("  Computed 50%, 80%, and 95% confidence intervals")
+    print("  Computed 50%, 80%, and 95% prediction intervals")
     print(f"  Added {len(scenarios)} scenario paths for comparison")
 
     return ci_data
@@ -1255,7 +1256,7 @@ def run_analysis() -> ModuleResult:
         df_migration, estimates, result, n_draws=1000
     )
 
-    # Compute confidence intervals
+    # Compute prediction intervals
     ci_data = compute_confidence_intervals(scenarios, mc_results, result)
 
     # Create output DataFrames

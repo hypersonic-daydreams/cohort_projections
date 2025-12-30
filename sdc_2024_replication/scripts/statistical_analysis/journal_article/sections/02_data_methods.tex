@@ -9,6 +9,47 @@
 This section describes the data sources underlying the analysis and presents the methodological framework employed across nine analytical modules. The multi-method design reflects both the complexity of international migration dynamics and the inferential challenges posed by small-sample settings. Each methodological tradition contributes distinct insights: descriptive methods establish baseline patterns; time series techniques characterize dynamic properties; regression approaches quantify relationships; and causal inference methods identify policy effects. Together, these approaches enable triangulation across analytical frameworks, enhancing confidence in findings that emerge consistently while flagging conclusions dependent on particular modeling assumptions.
 
 % ==============================================================================
+% 2.0 ANALYTICAL PIPELINE OVERVIEW
+% ==============================================================================
+
+\subsection{Analytical Pipeline Overview}
+\label{subsec:pipeline_overview}
+
+Figure~\ref{fig:analysis_pipeline} summarizes the nine-module pipeline and the flow of information into the scenario engine. Modules 1--6 provide descriptive diagnostics, baseline time-series structure, and predictive covariates. Module 7 offers causal evidence of policy sensitivity, which informs the narrative interpretation of scenarios but does not replace the forecast target. Module 8 translates refugee wave persistence into a forecasting adjustment, and Module 9 integrates all inputs into scenario paths and Monte Carlo uncertainty.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/analysis_pipeline.pdf}
+\caption{Analytical pipeline linking data sources, module groups, and scenario outputs. Solid arrows denote the forecasting flow; dashed arrows indicate policy-evidence inputs.}
+\label{fig:analysis_pipeline}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\caption{Module classification and role in the forecasting pipeline}
+\label{tab:module_roles}
+\small
+\begin{tabular}{@{}llc@{}}
+\toprule
+\textbf{Modules} & \textbf{Primary focus} & \textbf{Role} \\
+\midrule
+1.1--1.2 & Descriptive statistics and concentration & Forecasting context \\
+2.1--2.2 & Time-series diagnostics and baselines & Forecasting context \\
+3.1--4 & Panel and robust regression & Forecasting inputs \\
+5 & Gravity and diaspora associations & Forecasting inputs \\
+6 & Machine learning predictors & Forecasting inputs \\
+7 & Policy evaluation (DiD, ITS) & Causal evidence \\
+8 & Wave duration modeling & Forecasting input \\
+9 & Scenario modeling and Monte Carlo & Forecasting output \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item \textit{Notes}: Forecasting-role modules feed scenario construction; causal evidence informs policy sensitivity but does not redefine the estimand.
+\end{tablenotes}
+\end{table}
+
+% ==============================================================================
 % 2.1 DATA SOURCES
 % ==============================================================================
 
@@ -29,17 +70,21 @@ The analysis draws on four primary data sources, each capturing distinct dimensi
 \centering
 \caption{Data Source Mapping Relative to the Forecast Target \(Y_t\)}
 \label{tab:data_sources}
+\begingroup
 \small
-\begin{tabularx}{\textwidth}{@{}p{2.7cm}X p{1.4cm}p{1.4cm}p{2.6cm}X@{}}
+\setstretch{1}
+\renewcommand{\arraystretch}{0.87}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.6cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{1.3cm} >{\raggedright\arraybackslash}p{1.3cm} >{\raggedright\arraybackslash}p{2.4cm} >{\raggedright\arraybackslash}X@{}}
 \toprule
-\textbf{Source} & \textbf{What it measures} & \textbf{Flow/Stock} & \textbf{Net/Gross} & \textbf{Time basis (coverage)} & \textbf{Role relative to estimand and key caveats} \\
+\textbf{Source} & \textbf{What it measures} & \textbf{\shortstack{Flow\\Stock}} & \textbf{\shortstack{Net\\Gross}} & \textbf{\shortstack{Time basis\\(coverage)}} & \textbf{Role relative to estimand and key caveats} \\
 \midrule
-Census \PEP (components of change) & State net international migration component of population change (persons) & Flow & Net & \PEP estimate year (2010--2024) & \textbf{Primary forecast target \(Y_t\).} Model-based estimates; composite of multiple international channels; subject to revision; 2020 reflects both true disruption and potential measurement artifacts. \\
+Census \PEP{} (components of change) & State net international migration component of population change (persons) & Flow & Net & \PEP{} estimate year (2010--2024) & \textbf{Primary forecast target \(Y_t\).} Model-based estimates; composite of multiple international channels; subject to revision; 2020 reflects both true disruption and potential measurement artifacts. \\
 RPC refugee arrivals & Refugee (and related humanitarian) arrivals by nationality and state of initial placement & Flow & Gross & Fiscal year (FY; 2002--2020) & Mechanism and scenario input for the refugee component; supports policy responsiveness analysis. Initial placement $\neq$ final residence (secondary migration); FY timing differs from \PEP; many zeros at state$\times$nationality. \\
-\DHS \LPR admissions & Lawful permanent resident admissions by origin (state of intended residence) & Flow & Gross & Fiscal year (FY; 2023) & Predictor and composition diagnostics (origin structure; gravity-style features). Intended residence may differ from actual; single cross-section; excludes other statuses; not net of outflows. \\
-\ACS foreign-born stock & Foreign-born population stock by place of birth (survey estimate; MOE) & Stock & --- & Survey year (5-year est.; 2009--2023) & Diaspora predictors and validation for origin concentration. Sampling error (MOE) is nontrivial for small cells; stock conflates past flows, retention, and internal migration; measurement error can attenuate relationships. \\
+\DHS\ \LPR admissions & Lawful permanent resident admissions by origin (state of intended residence) & Flow & Gross & Fiscal year (FY; 2023) & Predictor and composition diagnostics (origin structure; gravity-style features). Intended residence may differ from actual; single cross-section; excludes other statuses; not net of outflows. \\
+\ACS{} foreign-born stock & Foreign-born population stock by place of birth (survey estimate; MOE) & Stock & --- & Survey year (5-year est.; 2009--2023) & Diaspora predictors and validation for origin concentration. Sampling error (MOE) is nontrivial for small cells; stock conflates past flows, retention, and internal migration; measurement error can attenuate relationships. \\
 \bottomrule
 \end{tabularx}
+\endgroup
 \end{table}
 
 These sources are related but not interchangeable: \PEP international migration is a \emph{net} component of population accounting, DHS and RPC series are \emph{gross inflows} on a fiscal-year basis, and \ACS series are \emph{stocks} subject to sampling error. Throughout the paper we label flow/stock status and time base (FY vs.\ \PEP-year vs.\ survey year) in text, tables, and figure captions to prevent target drift.
@@ -107,12 +152,12 @@ Time series analysis characterizes the stochastic properties of international mi
 
 \subsubsection{Unit Root Tests}
 
-Stationarity assessment employs two complementary tests. The Augmented Dickey-Fuller (ADF) test \citep{DickeyFuller1979} estimates the regression:
+Stationarity assessment employs ADF and PP tests alongside KPSS (null: stationarity) to triangulate integration properties in a very short series. The Augmented Dickey-Fuller (ADF) test \citep{DickeyFuller1979} estimates the regression:
 \begin{equation}
 \label{eq:adf}
 \Delta y_t = \alpha + \beta t + \gamma y_{t-1} + \sum_{j=1}^{p} \delta_j \Delta y_{t-j} + \varepsilon_t
 \end{equation}
-and tests $H_0: \gamma = 0$ (unit root) against $H_1: \gamma < 0$ (stationarity). Lag length $p$ is selected by the Akaike Information Criterion (AIC). The Phillips-Perron (PP) test \citep{PhillipsPerron1988} provides a nonparametric alternative that corrects for serial correlation without augmenting the regression. Where tests yield conflicting conclusions, the analysis reports both and interprets results cautiously.
+and tests $H_0: \gamma = 0$ (unit root) against $H_1: \gamma < 0$ (stationarity). Lag length $p$ is selected by the Akaike Information Criterion (AIC). The Phillips-Perron (PP) test \citep{PhillipsPerron1988} provides a nonparametric alternative that corrects for serial correlation without augmenting the regression. KPSS tests are run with a constant-only specification (level-stationarity). Break-robust Zivot-Andrews tests (single endogenous break) are reported as sensitivity checks. Where tests yield conflicting conclusions, the analysis reports both and interprets results cautiously.
 
 \subsubsection{ARIMA Model Selection}
 
@@ -179,9 +224,9 @@ The baseline gravity specification takes the form:
 \label{eq:gravity}
 E[M_{od}] = \exp(\beta_0 + \beta_1 \ln \text{Pop}_o + \beta_2 \ln \text{Pop}_d + \beta_3 \ln \text{Dist}_{od} + \beta_4 \ln \text{Stock}_{od} + \boldsymbol{\gamma}'\mathbf{Z}_{od})
 \end{equation}
-where $M_{od}$ denotes migration from origin country $o$ to destination state $d$, $\text{Pop}_o$ and $\text{Pop}_d$ are origin and destination populations, $\text{Dist}_{od}$ is geographic distance, $\text{Stock}_{od}$ is the existing diaspora (foreign-born from $o$ residing in $d$), and $\mathbf{Z}_{od}$ contains additional bilateral controls. The coefficient $\beta_4$ on diaspora stock captures the network effect---the extent to which established immigrant communities attract subsequent migration from the same origin.
+where $M_{od}$ denotes migration from origin country $o$ to destination state $d$, $\text{Pop}_o$ and $\text{Pop}_d$ are origin and destination populations, $\text{Dist}_{od}$ is geographic distance, $\text{Stock}_{od}$ is the existing diaspora (foreign-born from $o$ residing in $d$), and $\mathbf{Z}_{od}$ contains additional bilateral controls. The coefficient $\beta_4$ on diaspora stock captures a cross-sectional diaspora--flow association useful for prediction.
 
-Network elasticity estimation addresses the endogeneity concern that diaspora stocks and migration flows are jointly determined: large diaspora stocks may attract new migrants (network effect), but large historical flows mechanically generate large stocks (reverse causality). The analysis employs lagged stock measures and, in robustness checks, instrumental variable approaches using historical settlement patterns as instruments \citep{Card2001}.
+Diaspora elasticity estimation acknowledges endogeneity concerns: diaspora stocks and migration flows are jointly determined, and historical flows mechanically generate stocks. The analysis therefore frames coefficients as predictive associations rather than causal effects; robustness checks consider lagged stock measures and historical settlement patterns \citep{Card2001}.
 
 % ==============================================================================
 % 2.6 MACHINE LEARNING METHODS
@@ -197,7 +242,7 @@ Elastic Net \citep{ZouHastie2005} combines $L_1$ (Lasso) and $L_2$ (Ridge) penal
 \label{eq:elastic_net}
 \hat{\boldsymbol{\beta}} = \arg\min_{\boldsymbol{\beta}} \left\{ \sum_{i=1}^{n} (y_i - \mathbf{x}_i'\boldsymbol{\beta})^2 + \lambda \left[ \alpha \|\boldsymbol{\beta}\|_1 + (1-\alpha) \|\boldsymbol{\beta}\|_2^2 \right] \right\}
 \end{equation}
-where $\lambda$ controls overall regularization strength and $\alpha \in [0,1]$ balances sparsity-inducing $L_1$ penalty against coefficient-shrinking $L_2$ penalty. Cross-validation selects optimal $(\lambda, \alpha)$ values. Coefficients shrunk exactly to zero identify variables excluded from the predictive model.
+where $\lambda$ controls overall regularization strength and $\alpha \in [0,1]$ balances sparsity-inducing $L_1$ penalty against coefficient-shrinking $L_2$ penalty. Cross-validation selects $(\lambda, \alpha)$ values. Coefficients shrunk exactly to zero identify variables excluded from the predictive model.
 
 Random Forest \citep{Breiman2001} aggregates predictions from an ensemble of decision trees, each trained on bootstrap samples with random feature subsets. Feature importance is measured by permutation importance: the decrease in out-of-bag prediction accuracy when feature values are randomly shuffled.
 
@@ -215,7 +260,7 @@ where $C_k$ denotes cluster $k$ and $\boldsymbol{\mu}_k$ its centroid. Optimal c
 \subsection{Causal Inference Methods}
 \label{subsec:causal_methods}
 
-Causal inference methods estimate the effects of specific policy interventions---the 2017 Travel Ban and the 2020 COVID-19 pandemic---on international migration flows. The analysis employs three identification strategies: difference-in-differences, synthetic control, and Bartik shift-share instruments.
+Causal inference methods estimate the effects of specific policy interventions---the 2017 Travel Ban and the 2020 COVID-19 pandemic---on international migration flows. Identification relies on nationality-level difference-in-differences and a state-level interrupted time series. Two additional components provide context: a synthetic comparator for descriptive benchmarking and a shift-share index used to assess the predictive relevance of refugee-driven shocks.
 
 \subsubsection{Difference-in-Differences}
 
@@ -226,25 +271,34 @@ The Travel Ban analysis employs a difference-in-differences (DiD) design compari
 \end{equation}
 where $y_{ct}$ denotes arrivals from country $c$ in year $t$, $\alpha_c$ and $\lambda_t$ are country and year fixed effects, and the coefficient $\delta$ identifies the average treatment effect on the treated (ATT). The logarithmic transformation accommodates the multiplicative nature of policy effects; the addition of unity handles zero arrivals.
 
-Identification requires the parallel trends assumption: absent the Travel Ban, affected and unaffected countries would have exhibited similar trends in arrivals. The analysis evaluates this assumption through pre-treatment trend tests and graphical inspection of pre-period trajectories. Standard errors employ HC3 robust variance estimation to address heteroskedasticity.
+Identification requires the parallel trends assumption: absent the Travel Ban, affected and unaffected countries would have exhibited similar trends in arrivals. The analysis evaluates this assumption through pre-treatment trend tests and graphical inspection of pre-period trajectories. Standard errors are clustered by nationality to account for serial correlation within origin groups.
 
-\subsubsection{Synthetic Control}
+\subsubsection{Interrupted Time Series (COVID-19)}
 
-The synthetic control method \citep{AbadieGardeazabal2003, AbadieDiamondHainmueller2010} constructs a counterfactual North Dakota by weighting donor states to match pre-treatment outcomes. Let $y_{it}^{N}$ denote the (unobserved) migration North Dakota would have received absent treatment and $y_{it}^{I}$ the observed outcome. The treatment effect is $\tau_{1t} = y_{1t}^{I} - y_{1t}^{N}$, where $y_{1t}^{N}$ is estimated as a weighted average of donor states:
+The COVID-19 analysis uses a state-level interrupted time series with state fixed effects to identify both an immediate level shift and a post-2020 trend change:
+\begin{equation}
+\label{eq:its}
+y_{st} = \alpha_s + \beta_1 t + \beta_2 \text{Post}_{2020,t} + \beta_3 (t - 2020)\text{Post}_{2020,t} + \varepsilon_{st}
+\end{equation}
+where $y_{st}$ is net international migration for state $s$ in year $t$. The coefficient $\beta_2$ captures the immediate COVID-19 level shift, and $\beta_3$ captures the change in trend after 2020. Standard errors are clustered by state.
+
+\subsubsection{Synthetic Comparator (Descriptive Benchmark)}
+
+Because the Travel Ban is a national shock, donor states are not untreated. We therefore use a synthetic comparator \citep{AbadieGardeazabal2003, AbadieDiamondHainmueller2010} only as a descriptive benchmark. The comparator trajectory is constructed by weighting donor states to match North Dakota's pre-2017 international migration rate:
 \begin{equation}
 \label{eq:synth}
-\hat{y}_{1t}^{N} = \sum_{j=2}^{J+1} w_j^* y_{jt}
+\hat{y}_{1t}^{S} = \sum_{j=2}^{J+1} w_j^* y_{jt}
 \end{equation}
-with weights $w_j^* \geq 0$, $\sum_j w_j^* = 1$ chosen to minimize pre-treatment discrepancy between North Dakota and the synthetic control. The analysis reports pre-treatment root mean squared prediction error (RMSPE) as a measure of fit quality.
+with weights $w_j^* \geq 0$, $\sum_j w_j^* = 1$ chosen to minimize pre-treatment discrepancy. Post-2017 gaps $y_{1t} - \hat{y}_{1t}^{S}$ are reported descriptively rather than interpreted as causal effects.
 
-\subsubsection{Bartik Shift-Share Instruments}
+\subsubsection{Shift-Share (Bartik) Index}
 
-To address endogeneity in gravity model estimation, the analysis employs Bartik shift-share instruments \citep{Bartik1991, GoldsmithPinkhamSorkinSwift2020}. The instrument combines national-level ``shifts'' in immigration by origin country with state-level ``shares'' reflecting historical settlement patterns:
+To assess the predictive relevance of refugee-driven shocks for state-level migration, the analysis constructs a shift-share (Bartik) index \citep{Bartik1991, GoldsmithPinkhamSorkinSwift2020}. The index combines national-level ``shifts'' in immigration by origin country with state-level ``shares'' reflecting historical settlement patterns:
 \begin{equation}
 \label{eq:bartik}
-B_{dt} = \sum_{o} \omega_{od,t_0} \cdot g_{o,t}^{\text{US}}
+B_{dt} = \sum_{o} \omega_{od,t_0} \cdot g_{o,t}^{\text{US},-d}
 \end{equation}
-where $\omega_{od,t_0}$ is origin $o$'s share of state $d$'s foreign-born population in base period $t_0$ and $g_{o,t}^{\text{US}}$ is national growth in immigration from origin $o$. The identifying assumption is that national origin-specific immigration trends are exogenous to individual state conditions conditional on covariates---a version of the exclusion restriction that prior work has examined extensively \citep{BorusyakHullJaravel2022}. The analysis reports first-stage F-statistics to assess instrument strength, with values exceeding 10 indicating adequate relevance.
+where $\omega_{od,t_0}$ is origin $o$'s share of state $d$'s baseline arrivals and $g_{o,t}^{\text{US},-d}$ is the leave-one-out national change in arrivals from origin $o$ (excluding state $d$). Because no second-stage causal model is estimated, the results are interpreted as first-stage relevance: the strength of the relationship between predicted refugee inflows and state-level international migration. Standard errors are clustered by state; first-stage F-statistics assess instrument strength, with values exceeding 10 indicating adequate relevance.
 
 % ==============================================================================
 % 2.8 DURATION ANALYSIS
@@ -279,16 +333,16 @@ where $h_0(t)$ is the baseline hazard and $\exp(\beta_j)$ gives the hazard ratio
 Scenario analysis translates analytical findings into forward-looking projections while explicitly characterizing uncertainty. The analysis develops four policy-indexed scenarios spanning the range of plausible future trajectories:
 
 \begin{enumerate}
-    \item \textbf{CBO Full}: Assumes elevated immigration consistent with Congressional Budget Office projections for national flows, with North Dakota maintaining its historical share. This scenario represents an upper bound predicated on policy liberalization.
+    \item \textbf{CBO Full}: Uses ARIMA point forecasts scaled by 1.1 for 2025--2029, then compounds at 8\% annually from 2030 onward. This scenario represents an upper bound predicated on policy liberalization.
 
-    \item \textbf{Moderate}: Applies dampened historical growth rates, reflecting continuation of recent trends with mean reversion toward long-run averages. This scenario represents the central tendency forecast.
+    \item \textbf{Moderate}: Uses ARIMA point forecasts for 2025--2029, then applies a dampened trend (50\% of the averaged robust trend estimate) through 2045. This scenario represents the central tendency forecast.
 
-    \item \textbf{Pre-2020 Trend}: Extrapolates the 2010--2019 trajectory, effectively treating the COVID period as a temporary deviation. This scenario provides a lower-bound estimate under restrictive policy assumptions.
+    \item \textbf{Pre-2020 Trend}: Anchors at the 2019 level and extrapolates the 2010--2019 slope, treating COVID as a temporary deviation. This scenario provides a lower-bound estimate under restrictive policy assumptions.
 
     \item \textbf{Zero}: Assumes complete cessation of international migration, providing a floor for population projection under extreme policy scenarios.
 \end{enumerate}
 
-Monte Carlo simulation propagates uncertainty through projection models by sampling from estimated parameter distributions. The procedure draws 1,000 realizations of model parameters, generates projected trajectories for each draw, and summarizes the resulting distribution through percentiles. The 50\% credible interval spans the 25th to 75th percentiles; the 95\% credible interval spans the 2.5th to 97.5th percentiles. This approach quantifies forecast uncertainty arising from parameter estimation imprecision while holding the structural model fixed.
+Monte Carlo simulation propagates uncertainty through projection models by sampling from estimated parameter distributions. The procedure draws 1,000 realizations of model parameters, generates projected trajectories for each draw, and summarizes the resulting distribution through percentiles. The 50\% prediction interval spans the 25th to 75th percentiles; the 95\% prediction interval spans the 2.5th to 97.5th percentiles. This approach quantifies forecast uncertainty arising from parameter estimation imprecision while holding the structural model fixed.
 
 Model averaging combines forecasts from multiple specifications using AIC-derived weights:
 \begin{equation}

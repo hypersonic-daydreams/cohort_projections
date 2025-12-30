@@ -70,8 +70,9 @@ COLORS = {
 
 # Paths
 BASE_DIR = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parents[4]
 RESULTS_DIR = BASE_DIR / "results"
-DATA_DIR = Path("/home/nigel/cohort_projections/data/processed/immigration/analysis")
+DATA_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "analysis"
 FIGURES_DIR = Path(__file__).parent / "figures"
 
 # Ensure figures directory exists
@@ -754,12 +755,20 @@ def create_figure_06_event_study() -> None:
     ax.legend(handles=legend_elements, loc="lower left", framealpha=0.9)
 
     # Add pre-trend test annotation
-    pre_trend_p = event_study["pre_trend_test"]["p_value"]
+    pre_trend = event_study["pre_trend_test"]
+    pre_trend_p = pre_trend.get("p_value")
+    pre_trend_p_label = (
+        "<0.001"
+        if pre_trend_p is not None and pre_trend_p < 0.001
+        else f"{pre_trend_p:.3f}"
+        if pre_trend_p is not None
+        else "NA"
+    )
     ax.text(
         0.95,
         0.95,
-        f'Pre-trend test: F = {event_study["pre_trend_test"]["f_statistic"]:.2f}\n'
-        f'p = {pre_trend_p:.3f}',
+        f"Pre-trend test: F = {pre_trend['f_statistic']:.2f}\n"
+        f"p = {pre_trend_p_label}",
         transform=ax.transAxes,
         fontsize=8,
         verticalalignment="top",
@@ -772,10 +781,25 @@ def create_figure_06_event_study() -> None:
     # Add ATT annotation
     did_data = causal_data["results"]["did_travel_ban"]
     att = did_data["att_estimate"]
+    att_p = att.get("p_value")
+    if att_p is None:
+        att_sig = ""
+        att_p_label = "NA"
+    else:
+        att_sig = (
+            "***"
+            if att_p < 0.001
+            else "**"
+            if att_p < 0.01
+            else "*"
+            if att_p < 0.05
+            else ""
+        )
+        att_p_label = f"{att_p:.3f}"
     ax.text(
         0.95,
         0.05,
-        f'ATT = {att["coefficient"]:.2f} (p = {att["p_value"]:.3f}**)\n'
+        f"ATT = {att['coefficient']:.2f} (p = {att_p_label}{att_sig})\n"
         f'Effect: {did_data["percentage_effect"]["estimate"]:.1f}% reduction',
         transform=ax.transAxes,
         fontsize=8,
@@ -1116,14 +1140,14 @@ def create_figure_captions() -> None:
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_05_gravity.pdf}
-\caption{Gravity model estimation results. Panel~(A) shows coefficient estimates with 95\% confidence intervals for the full gravity specification: network effects (log diaspora stock), origin mass (log origin country population in U.S.), and destination mass (log state immigrant population). All coefficients are statistically significant at $p < 0.001$. Panel~(B) compares network elasticity estimates across model specifications, showing that controlling for mass variables reduces the diaspora effect from 0.36 to approximately 0.10.}
+\caption{Gravity model estimation results. Panel~(A) shows coefficient estimates with 95\% confidence intervals for the full gravity specification: diaspora association (log diaspora stock), origin mass (log origin stock in U.S.), and destination mass (log state foreign-born total). Panel~(B) compares diaspora association estimates across model specifications, showing that controlling for mass variables reduces the diaspora coefficient from 0.45 to approximately 0.14.}
 \label{fig:gravity}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_06_event_study.pdf}
-\caption{Event study estimates for the Travel Ban effect on refugee arrivals. Coefficients represent the difference in log arrivals between treated countries (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) and control countries relative to the reference period ($t = -1$, 2017). Blue circles show pre-treatment estimates; red squares show post-treatment effects. The pre-trend test fails to reject parallel trends ($F = 1.38$, $p = 0.149$). The average treatment effect on the treated (ATT) is $-1.38$ ($p = 0.004$), corresponding to a 74.9\% reduction in arrivals.}
+\caption{Event study estimates for the Travel Ban effect on refugee arrivals. Coefficients represent the difference in log arrivals between treated countries (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) and control countries relative to the reference period ($t = -1$, 2017). Blue circles show pre-treatment estimates; red squares show post-treatment effects. The joint pre-trend test rejects parallel trends over the full pre-period ($F = 4.31$, $p < 0.001$). The average treatment effect on the treated (ATT) is $-1.38$ ($p = 0.032$), corresponding to a 74.9\% reduction in arrivals.}
 \label{fig:eventstudy}
 \end{figure}
 
@@ -1137,7 +1161,7 @@ def create_figure_captions() -> None:
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_08_scenarios.pdf}
-\caption{Projection scenarios for North Dakota international migration, 2025--2045. Four scenarios are shown: CBO Full (elevated policy implementation, 8\% annual growth), Moderate (dampened historical trend), Zero (counterfactual with no international migration), and Pre-2020 Trend (continuation of 2010--2019 trajectory). Shaded bands represent 50\% and 95\% confidence intervals from 1,000 Monte Carlo simulations. Historical data (2010--2024) shown with black circles. The vertical dashed line separates historical observations from projections.}
+\caption{Projection scenarios for North Dakota international migration, 2025--2045. Four scenarios are shown: CBO Full (2025--2029 at 1.1$\times$ ARIMA, then 8\% annual growth), Moderate (dampened historical trend), Zero (counterfactual with no international migration), and Pre-2020 Trend (anchored to 2019 with the 2010--2019 slope). Shaded bands represent 50\% and 95\% prediction intervals from 1,000 Monte Carlo simulations. Historical data (2010--2024) shown with black circles. The vertical dashed line separates historical observations from projections.}
 \label{fig:scenarios}
 \end{figure}
 """

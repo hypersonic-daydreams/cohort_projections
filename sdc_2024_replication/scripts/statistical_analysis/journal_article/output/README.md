@@ -16,7 +16,7 @@
 |--------|-------|
 | Word count (estimated) | ~12,500 |
 | Page count (estimated) | ~35-40 pages |
-| Figures | 8 main + 3 appendix = 11 total |
+| Figures | 9 main + 3 appendix = 12 total |
 | Tables | 7 main + 8 appendix = 15 total |
 | Equations | 18 |
 | References | 72 |
@@ -28,10 +28,10 @@ This paper presents the first comprehensive multi-method analysis of internation
 
 **Key Findings:**
 - Coefficient of Variation: 82.5% (high volatility)
-- Travel Ban effect: ~75% reduction in refugee arrivals (p = 0.004)
-- 2045 projection: 8,672 median [95% CI: 3,183-14,104]
+- Travel Ban effect: ~75% reduction in refugee arrivals (p = 0.032)
+- 2045 projection: 9,056 median [95% PI: 3,570-14,491]
 - Structural breaks: 2020, 2021 (COVID-19 pandemic)
-- Diaspora elasticity: 0.10 (modest network effects)
+- Diaspora elasticity: 0.14 (modest diaspora associations)
 
 ## File Manifest
 
@@ -101,6 +101,7 @@ The document requires these packages (available in standard TeX distributions):
 ## Figure Status
 
 **Main Figures (all generated):**
+- `analysis_pipeline.pdf` - Analytical pipeline diagram (available)
 - `fig_01_timeseries.pdf` - Time series of international migration (available)
 - `fig_02_concentration.pdf` - Location quotient bar chart (available)
 - `fig_03_acf_pacf.pdf` - ACF/PACF diagnostic plots (available)

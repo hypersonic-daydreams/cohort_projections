@@ -76,37 +76,35 @@ $R^2$ / Overall $R^2$ & 0.312 & 0.298 & 0.308 \\
 \subsection{Gravity Model Specifications}
 \label{app:gravity_models}
 
-Table~\ref{tab:app_gravity} presents the complete gravity model estimates across all four specifications discussed in Section~\ref{subsec:gravity_results}.
+Table~\ref{tab:app_gravity} presents the complete gravity model estimates across the PPML specifications discussed in Section~\ref{subsec:gravity_results}.
 
 \begin{table}[htbp]
 \centering
-\caption{Gravity Model Results: All Specifications}
+\caption{Gravity Model Results: PPML Specifications}
 \label{tab:app_gravity}
-\begin{tabular}{@{}lcccc@{}}
+\begin{tabular}{@{}lccc@{}}
 \toprule
-\textbf{Variable} & \textbf{(1) Simple} & \textbf{(2) Network} & \textbf{(3) Full} & \textbf{(4) State FE} \\
+\textbf{Variable} & \textbf{(1) Simple} & \textbf{(2) Full} & \textbf{(3) State FE} \\
 \midrule
-Log(Diaspora Stock) & --- & 0.359*** & 0.096*** & 0.115*** \\
- & & (0.001) & (0.002) & (0.001) \\
-Log(Origin Pop.) & 0.287*** & --- & 0.039*** & --- \\
- & (0.003) & & (0.002) & \\
-Log(Dest. Pop.) & 0.892*** & --- & 0.755*** & --- \\
- & (0.002) & & (0.002) & \\
-Log(Distance) & $-$0.456*** & --- & --- & --- \\
- & (0.012) & & & \\
-Constant & $-$4.521*** & 2.425*** & $-$6.388*** & --- \\
- & (0.089) & (0.006) & (0.034) & \\
+Log(Diaspora Stock) & 0.448*** & 0.140 & 0.163 \\
+ & (0.104) & (0.248) & (0.148) \\
+Log(Origin Stock in U.S.) & --- & 0.046 & --- \\
+ & & (0.192) & \\
+Log(State Foreign-Born Total) & --- & 0.792*** & --- \\
+ & & (0.212) & \\
+Constant & 1.267 & $-$7.711* & --- \\
+ & (0.980) & (3.123) & \\
 \midrule
-Origin FE & No & No & No & No \\
-Destination FE & No & No & No & Yes \\
-$n$ & 2,680 & 2,680 & 2,680 & 2,680 \\
-Pseudo $R^2$ & 0.245 & 0.186 & 0.382 & 0.401 \\
-Log Likelihood & $-$18,432 & $-$19,821 & $-$15,067 & $-$14,604 \\
+Origin FE & No & No & No \\
+Destination FE & No & No & Yes \\
+$n$ & 4,845 & 4,845 & 4,845 \\
+Pseudo $R^2$ & 0.236 & 0.399 & 0.413 \\
+Log Likelihood & $-$934,340 & $-$734,629 & $-$717,292 \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: Poisson pseudo-maximum likelihood (PPML) estimation. Standard errors in parentheses. Dependent variable: LPR admissions by state-country pair, FY 2023. *** $p < 0.001$.
+\item \textit{Notes}: Poisson pseudo-maximum likelihood (PPML) estimation. Two-way clustered SEs (state and origin) in parentheses. Dependent variable: LPR admissions by state-country pair, FY 2023. * $p < 0.05$; *** $p < 0.001$.
 \end{tablenotes}
 \end{table}
 
@@ -123,25 +121,25 @@ Table~\ref{tab:app_did} reports the complete difference-in-differences estimates
 \toprule
 \textbf{Variable} & \textbf{(1) Basic} & \textbf{(2) + Year FE} & \textbf{(3) + Country FE} & \textbf{(4) Full} \\
 \midrule
-Affected $\times$ Post & $-$0.892*** & $-$1.124*** & $-$1.267*** & $-$1.384** \\
- & (0.234) & (0.312) & (0.398) & (0.481) \\
-Affected & 0.567** & 0.489* & --- & --- \\
- & (0.189) & (0.212) & & \\
-Post & $-$0.234 & --- & --- & --- \\
- & (0.156) & & & \\
-Constant & 2.345*** & 2.456*** & --- & --- \\
- & (0.124) & (0.156) & & \\
+Affected $\times$ Post & $-$1.673** & $-$1.663** & $-$1.360* & $-$1.384* \\
+ & (0.611) & (0.616) & (0.639) & (0.646) \\
+Affected & 2.622** & 2.619** & --- & --- \\
+ & (0.947) & (0.957) & & \\
+Post & $-$0.237 & --- & $-$0.330* & --- \\
+ & (0.202) & & (0.163) & \\
+Constant & 3.525*** & 3.100*** & --- & --- \\
+ & (0.274) & (0.363) & & \\
 \midrule
-Year FE & No & Yes & Yes & Yes \\
+Year FE & No & Yes & No & Yes \\
 Country FE & No & No & Yes & Yes \\
 $n$ & 1,137 & 1,137 & 1,137 & 1,137 \\
-$R^2$ & 0.089 & 0.156 & 0.423 & 0.467 \\
-Pre-trend test ($p$) & --- & --- & 0.198 & 0.183 \\
+$R^2$ & 0.077 & 0.080 & 0.823 & 0.829 \\
+Pre-trend test ($p$) & --- & --- & --- & 0.334 \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: Dependent variable: $\ln(\text{refugee arrivals} + 1)$. HC3 robust standard errors in parentheses. Affected countries: Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen. Post $= 1$ for years $\geq 2018$. * $p < 0.05$; ** $p < 0.01$; *** $p < 0.001$.
+\item \textit{Notes}: Dependent variable: $\ln(\text{refugee arrivals} + 1)$. Standard errors clustered by nationality in parentheses. Affected countries: Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen. Post $= 1$ for years $\geq 2018$. * $p < 0.05$; ** $p < 0.01$; *** $p < 0.001$.
 \end{tablenotes}
 \end{table}
 
@@ -157,7 +155,7 @@ This section summarizes robustness checks for the main empirical findings.
 \subsection{Alternative Unit Root Tests}
 \label{app:unit_root_robustness}
 
-Table~\ref{tab:app_unitroot} reports unit root test results using alternative specifications and tests, confirming the I(1) characterization of North Dakota international migration.
+Table~\ref{tab:app_unitroot} reports unit root test results using alternative specifications and a break-robust test, providing sensitivity checks for North Dakota international migration.
 
 \begin{table}[htbp]
 \centering
@@ -167,21 +165,20 @@ Table~\ref{tab:app_unitroot} reports unit root test results using alternative sp
 \toprule
 \textbf{Test} & \textbf{Specification} & \textbf{Statistic} & \textbf{$p$-value} & \textbf{Conclusion} \\
 \midrule
-ADF & Constant only & $-$1.453 & 0.556 & Fail to reject (I(1)) \\
-ADF & Constant + trend & $-$1.891 & 0.643 & Fail to reject (I(1)) \\
-PP & Constant only & $-$1.312 & 0.621 & Fail to reject (I(1)) \\
-PP & Constant + trend & $-$1.756 & 0.689 & Fail to reject (I(1)) \\
-KPSS & Constant only & 0.687** & --- & Reject stationarity \\
-KPSS & Constant + trend & 0.198** & --- & Reject stationarity \\
+ADF & Constant only & $-$1.453 & 0.556 & Fail to reject unit root \\
+PP & Constant only & $-$0.620 & 0.867 & Fail to reject unit root \\
+KPSS & Constant only & 0.323 & $\ge 0.10$ & Fail to reject level-stationarity \\
+Zivot--Andrews & Break in intercept & $-$3.049 & 0.897 & Fail to reject unit root (break 2021) \\
 \midrule
 \multicolumn{5}{l}{\textit{First-differenced series}} \\
-ADF & Constant only & $-$3.843 & 0.002 & Reject (I(0)) \\
-PP & Constant only & $-$4.012 & 0.001 & Reject (I(0)) \\
+ADF & Constant only & $-$3.843 & 0.002 & Reject unit root \\
+PP & Constant only & $-$4.012 & 0.001 & Reject unit root \\
+KPSS & Constant only & 0.189 & $\ge 0.10$ & Fail to reject stationarity \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: ADF = Augmented Dickey-Fuller; PP = Phillips-Perron; KPSS = Kwiatkowski-Phillips-Schmidt-Shin. ** KPSS null is stationarity; rejection indicates nonstationarity. Sample: 2010--2024 ($n = 15$).
+\item \textit{Notes}: ADF = Augmented Dickey-Fuller; PP = Phillips-Perron; KPSS = Kwiatkowski-Phillips-Schmidt-Shin. KPSS null is stationarity; statsmodels reports 0.10 when $p \ge 0.10$. Zivot--Andrews allows one endogenous break (intercept). Sample: 2010--2024 ($n = 15$).
 \end{tablenotes}
 \end{table}
 
@@ -201,31 +198,30 @@ The divergence between criteria reflects the tension between model fit and parsi
 \subsection{Sensitivity to PPML Specification}
 \label{app:ppml_robustness}
 
-Table~\ref{tab:app_ppml} compares diaspora elasticity estimates across alternative gravity model specifications, demonstrating robustness of the main finding.
+Table~\ref{tab:app_ppml} reports the diaspora coefficient from the full gravity model under alternative covariance estimators, highlighting the inflation of uncertainty under clustered inference.
 
 \begin{table}[htbp]
 \centering
-\caption{Sensitivity of Diaspora Elasticity to Specification}
+\caption{Diaspora Association Sensitivity to Covariance Estimator}
 \label{tab:app_ppml}
 \begin{tabular}{@{}lcc@{}}
 \toprule
-\textbf{Specification} & \textbf{Diaspora Elasticity} & \textbf{95\% CI} \\
+\textbf{Covariance Estimator} & \textbf{Coefficient} & \textbf{SE} \\
 \midrule
-Baseline PPML & 0.096 & [0.092, 0.100] \\
-Log-linear OLS & 0.142 & [0.124, 0.160] \\
-PPML with origin FE & 0.089 & [0.083, 0.095] \\
-PPML with destination FE & 0.115 & [0.113, 0.117] \\
-PPML with bilateral FE & 0.078 & [0.069, 0.087] \\
-Negative binomial & 0.103 & [0.097, 0.109] \\
+Model-based (Poisson MLE) & 0.140 & 0.002 \\
+HC1 robust & 0.140 & 0.176 \\
+Clustered by state & 0.140 & 0.113 \\
+Clustered by origin & 0.140 & 0.282 \\
+Two-way clustered (state $\times$ origin) & 0.140 & 0.248 \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: All specifications include log origin and destination population as controls (except where absorbed by fixed effects). CI = confidence interval.
+\item \textit{Notes}: Estimates come from the full gravity specification in Table~\ref{tab:app_gravity}. Clustered SEs account for correlation within destinations and origins.
 \end{tablenotes}
 \end{table}
 
-The diaspora elasticity remains in the range 0.08--0.14 across specifications, with the PPML estimates clustering around 0.10. The log-linear OLS estimate of 0.14 is upward biased due to heteroskedasticity, consistent with \citet{SantosSilvaTenreyro2006}.
+The point estimate is stable across covariance estimators, but clustered SEs are substantially larger than model-based SEs. We therefore report two-way clustered inference in the main text.
 
 \subsection{DiD Parallel Trends Robustness}
 \label{app:parallel_trends}
@@ -233,12 +229,32 @@ The diaspora elasticity remains in the range 0.08--0.14 across specifications, w
 The parallel trends assumption is evaluated through multiple approaches:
 
 \begin{enumerate}
-    \item \textbf{Pre-treatment coefficient test}: The interaction between Affected and a linear pre-treatment trend yields a coefficient of 0.087 ($t = 1.33$, $p = 0.183$), failing to reject parallel trends.
+    \item \textbf{Pre-treatment trend test}: The interaction between Affected and a linear pre-treatment trend yields 0.087 ($t = 0.97$, $p = 0.334$). The test fails to reject parallel trends.
 
-    \item \textbf{Placebo treatment dates}: Moving the treatment date to 2015 or 2016 yields statistically insignificant DiD estimates ($p > 0.30$), supporting the identifying assumption.
+    \item \textbf{Placebo treatment dates}: Placebo tests shifting the treatment date to 2015 or 2016 were conducted in the prior HC3 specification; these checks should be re-run under clustered inference.
 
-    \item \textbf{Event study plot}: Figure~\ref{fig:eventstudy} in the main text shows pre-treatment coefficients fluctuating around zero without systematic trend.
+    \item \textbf{Event study plot}: Figure~\ref{fig:eventstudy} shows negative post-treatment coefficients in 2018--2019, but the joint pre-treatment test rejects parallel trends when the full pre-period is included ($p < 0.001$), indicating longer-run divergence.
 \end{enumerate}
+
+\subsection{Scenario Arithmetic}
+\label{app:scenario_arithmetic}
+
+This section documents the update rules used to generate scenario paths in Module 9.
+
+\paragraph{CBO Full.} For 2025--2029, projections use 10\% above the ARIMA point forecasts. From 2030 onward, values compound at 8\% annually:
+\begin{verbatim}
+cbo_t = 1.1 * arima_t   (t = 2025..2029)
+cbo_t = cbo_{t-1} * 1.08 (t >= 2030)
+\end{verbatim}
+
+\paragraph{Pre-2020 Trend.} The series is anchored at the 2019 value ($y_{2019} = 634$) with a slope estimated from 2010--2019 ($\hat{\beta} = 72.43$ per year):
+\begin{verbatim}
+pre2020_t = y_2019 + beta * (t - 2019)
+\end{verbatim}
+
+\paragraph{Moderate.} For 2025--2029, the ARIMA point forecasts are used directly; from 2030 onward, the trend is dampened to 50\% of the averaged robust trend estimate.
+
+\paragraph{Zero.} Net international migration is set to zero for all years.
 
 % ==============================================================================
 % A.3 DATA SOURCES
@@ -362,7 +378,7 @@ Table~\ref{tab:app_variables} provides formal definitions for all variables empl
 \centering
 \caption{Variable Definitions}
 \label{tab:app_variables}
-\begin{tabular}{@{}p{3.5cm}p{10cm}@{}}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{3.5cm} >{\raggedright\arraybackslash}p{10cm}@{}}
 \toprule
 \textbf{Variable} & \textbf{Definition} \\
 \midrule
@@ -375,7 +391,7 @@ Wave & Period of $\geq 2$ consecutive years with arrivals $> 150\%$ of baseline 
 Wave Intensity & Peak-to-baseline ratio during wave \\
 Affected Country & Travel Ban target: Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen \\
 Post & Indicator for years $\geq 2018$ (first full year after Travel Ban implementation) \\
-Bartik Instrument & $\sum_o \omega_{od,t_0} \cdot g_{o,t}^{\text{US}}$: base-period shares $\times$ national growth by origin \\
+Shift-share (Bartik) index & $\sum_o \omega_{od,t_0} \cdot g_{o,t}^{\text{US},-d}$: base-period shares $\times$ leave-one-out national change by origin \\
 \bottomrule
 \end{tabular}
 \end{table}
