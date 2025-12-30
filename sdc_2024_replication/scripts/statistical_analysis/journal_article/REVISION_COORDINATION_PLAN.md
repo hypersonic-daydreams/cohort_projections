@@ -280,7 +280,7 @@ For each of the 9 original modules, classify as:
 - `revision_outputs/R03_inference/STATUS.md` (REQUIRED)
 - `revision_scripts/R03_inference_reframe/break_robust_unit_roots.py`
 - `revision_outputs/R03_inference/break_robust_tests.json`
-- `revision_outputs/R03_inference/kpss_resolution.md`
+- `revision_outputs/R03_inference/G02_kpss_resolution.md`
 - `revision_outputs/R03_inference/inference_audit.md`
 - `revision_outputs/R03_inference/terminology_changes.csv`
 
@@ -470,7 +470,7 @@ This is the most complex agent, handling three distinct causal methods. The SCM 
 - `revision_outputs/R06_causal/scm_evaluation_decision.md` (THE DECISION DOCUMENT)
 - `revision_outputs/R06_causal/scm_revised.json` (if kept)
 - `revision_outputs/R06_causal/bartik_revised.json`
-- `revision_outputs/R06_causal/bartik_specification.md`
+- `revision_outputs/R06_causal/G04_bartik_specification.md`
 - `revision_figures/fig_event_study.pdf` (THE MISSING FIGURE)
 - `revision_figures/fig_did_sensitivity.pdf`
 - `revision_sections/partial/causal_inference_revised.tex`

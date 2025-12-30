@@ -46,7 +46,7 @@ This revision will get dramatically easier once you **commit to one forecasting 
    - This also resolves reviewer confusion about “four different migration objects.”
 
 9. **[SHOULD] Make fiscal-year vs PEP-year harmonization explicit and systematic.**
-   - Use one consistent crosswalk (see `source_mapping.md`) and label it in captions.
+   - Use one consistent crosswalk (see `G01_source_mapping.md`) and label it in captions.
    - Add sensitivity: re-run key correlations/models with ±1-year shifts to show conclusions aren’t an artifact of timing.
 
 10. **[SHOULD] Integrate ACS MOE into uncertainty where ACS is used as a predictor.**

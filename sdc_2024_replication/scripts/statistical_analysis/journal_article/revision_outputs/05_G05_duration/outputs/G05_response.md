@@ -16,6 +16,6 @@ Top 3 implementation priorities for Claude Code are: (1) a **wave registry + onl
 
 ## Downloads
 
-* [Download `forecasting_bridge.md`](sandbox:/mnt/data/forecasting_bridge.md)
-* [Download `specifications.md`](sandbox:/mnt/data/specifications.md)
-* [Download `recommendations.md`](sandbox:/mnt/data/recommendations.md)
+* [Download `G05_forecasting_bridge.md`](sandbox:/mnt/data/G05_forecasting_bridge.md)
+* [Download `G05_specifications.md`](sandbox:/mnt/data/G05_specifications.md)
+* [Download `G05_recommendations.md`](sandbox:/mnt/data/G05_recommendations.md)

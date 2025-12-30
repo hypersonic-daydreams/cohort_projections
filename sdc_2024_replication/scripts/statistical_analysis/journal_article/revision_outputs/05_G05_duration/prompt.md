@@ -101,20 +101,20 @@ Clearly articulate:
 
 **Then produce THREE downloadable files:**
 
-### File 1: `forecasting_bridge.md`
+### File 1: `G05_forecasting_bridge.md`
 The theoretical framework document explaining:
 - Conceptual connection between duration analysis and forecasting
 - Interpretation of hazard ratios for practitioners
 - The role of duration analysis in the overall forecasting pipeline
 
-### File 2: `specifications.md`
+### File 2: `G05_specifications.md`
 Mathematical specifications including:
 - All equations with proper notation
 - Definitions of all terms
 - Computational algorithms in pseudocode
 - Integration formulas for flow projection
 
-### File 3: `recommendations.md`
+### File 3: `G05_recommendations.md`
 Implementation recommendations including:
 - Data structure requirements
 - Integration with existing codebase

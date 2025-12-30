@@ -164,18 +164,18 @@ Provide a prioritized list of: must-fix, should-fix, could-fix issues.
 
 Please produce three downloadable files:
 
-### File 1: recommendations.md
+### File 1: G01_recommendations.md
 - Executive summary (1 paragraph)
 - Prioritized recommendations list
 - Specific text suggestions for the estimand statement
 - Language fixes for causal claims
 
-### File 2: specifications.md
+### File 2: G01_specifications.md
 - Formal estimand definition
 - Identification assumptions for each causal analysis
 - SCM decision with justification
 
-### File 3: source_mapping.md
+### File 3: G01_source_mapping.md
 - Data source mapping table
 - Calendar/fiscal year harmonization strategy
 
@@ -281,10 +281,10 @@ How do the three methods relate? What is the strongest defensible claim?
 
 Please produce four downloadable files:
 
-1. **scm_decision.md** - THE critical output with definitive recommendation
-2. **did_specification.md** - DiD specification with clustering recommendation
-3. **bartik_specification.md** - Complete Bartik specification
-4. **recommendations.md** - Triangulation assessment, priorities
+1. **G04_scm_decision.md** - THE critical output with definitive recommendation
+2. **G04_did_specification.md** - DiD specification with clustering recommendation
+3. **G04_bartik_specification.md** - Complete Bartik specification
+4. **G04_recommendations.md** - Triangulation assessment, priorities
 """
     prompt_path = session_dir / "prompt.md"
     prompt_path.write_text(prompt)
@@ -396,10 +396,10 @@ Flag all corrections needed.
 
 Please produce four downloadable files:
 
-1. **kpss_resolution.md** - Correct interpretation
-2. **backtesting_spec.md** - Rolling-origin specification
-3. **terminology_corrections.csv** - Table: original_phrase, replacement_phrase, context
-4. **recommendations.md** - Prioritized changes
+1. **G02_kpss_resolution.md** - Correct interpretation
+2. **G02_backtesting_spec.md** - Rolling-origin specification
+3. **G02_terminology_corrections.csv** - Table: original_phrase, replacement_phrase, context
+4. **G02_recommendations.md** - Prioritized changes
 """
     prompt_path = session_dir / "prompt.md"
     prompt_path.write_text(prompt)
@@ -503,9 +503,9 @@ Provide complete revised specification.
 
 Please produce three downloadable files:
 
-1. **gravity_specification.md** - Revised specification with LaTeX equations
-2. **se_analysis.md** - Standard error diagnosis and corrections
-3. **recommendations.md** - Language corrections, implementation priorities
+1. **G03_gravity_specification.md** - Revised specification with LaTeX equations
+2. **G03_se_analysis.md** - Standard error diagnosis and corrections
+3. **G03_recommendations.md** - Language corrections, implementation priorities
 """
     prompt_path = session_dir / "prompt.md"
     prompt_path.write_text(prompt)
@@ -601,9 +601,9 @@ Honest limitations assessment
 
 Please produce three downloadable files:
 
-1. **forecasting_bridge.md** - Theoretical framework
-2. **specifications.md** - Mathematical formulas
-3. **recommendations.md** - Implementation guidance
+1. **G05_forecasting_bridge.md** - Theoretical framework
+2. **G05_specifications.md** - Mathematical formulas
+3. **G05_recommendations.md** - Implementation guidance
 """
     prompt_path = session_dir / "prompt.md"
     prompt_path.write_text(prompt)

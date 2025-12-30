@@ -104,21 +104,21 @@ Provide a prioritized list of:
 
 Please produce three downloadable files:
 
-### File 1: recommendations.md
+### File 1: G01_recommendations.md
 A markdown file containing:
 - Executive summary (1 paragraph)
 - Prioritized recommendations list (numbered)
 - Specific text suggestions for the estimand statement
 - Language fixes for causal claims
 
-### File 2: specifications.md
+### File 2: G01_specifications.md
 A markdown file containing:
 - Formal estimand definition (mathematical notation acceptable)
 - Identification assumptions for each causal analysis
 - Recommended modifications to each module
 - SCM decision with justification
 
-### File 3: source_mapping.md
+### File 3: G01_source_mapping.md
 A markdown file containing:
 - Data source mapping table (Markdown table format)
 - Calendar/fiscal year harmonization strategy
