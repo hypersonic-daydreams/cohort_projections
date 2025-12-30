@@ -254,4 +254,87 @@ journal_article/
 
 ---
 
-*Last Updated: December 29, 2024*
+---
+
+## Phase 2: Re-Review and Iteration (User)
+
+After all Phase 1 tasks are complete, submit the revised PDF for another round of ChatGPT 5.2 Pro review.
+
+### Step 1: Compile Final PDF
+
+```bash
+cd journal_article
+pdflatex main.tex
+bibtex main
+pdflatex main.tex
+pdflatex main.tex
+```
+
+Verify:
+- No LaTeX errors or warnings
+- All figures render correctly
+- All references resolve (no "??" placeholders)
+
+### Step 2: Submit for Re-Review
+
+Upload the revised `output/article_draft.pdf` to ChatGPT 5.2 Pro with this prompt:
+
+---
+
+**Prompt Template:**
+
+```
+# Revised Draft Review Request
+
+I'm submitting a revised version of "Forecasting International Migration to North Dakota: A Multi-Method Empirical Analysis."
+
+## Previous Review
+You previously reviewed this paper on December 29, 2025 and identified 11 major issues:
+1. Clarify forecasting target/estimand
+2. Module narrative integration
+3. Small-sample inference reframing
+4. Forecast backtesting validation
+5. Gravity model specification
+6. Causal inference robustness (DiD/SCM/Bartik)
+7. Scenario arithmetic consistency
+8. Duration analysis connection
+9. Missing references/figures
+10. ACS measurement error
+11. Tone adjustments
+
+## Revisions Made
+Key changes addressing your critiques:
+- Added "Estimand & Measurement" subsection with source mapping table
+- Implemented rolling-origin backtesting with benchmark comparisons
+- Added break-robust unit root tests (Zivot-Andrews)
+- Re-estimated gravity model with clustered SEs, reframed as "diaspora associations"
+- Re-estimated DiD/ITS with clustered SEs, added event study figure
+- Reframed synthetic control as descriptive comparator
+- Validated and corrected scenario arithmetic with appendix formulas
+- Connected duration analysis to forecasting via wave registry
+- Created pipeline overview diagram and module classification
+- Applied terminology corrections (prediction intervals, hedged language)
+
+## Request
+Please review this revised draft and assess:
+1. Which of the original 11 issues are now adequately addressed?
+2. Which issues remain problematic and need further revision?
+3. Any new issues introduced by the revisions?
+4. Overall assessment: Is this closer to the "publishable with minor revisions" bar?
+```
+
+---
+
+### Step 3: Process Re-Review Feedback
+
+Save ChatGPT's response to:
+- `revision_outputs/06_resubmission_review/ChatGPT_5-2-Pro_revision_critique.md`
+
+If additional revisions are needed:
+1. Create new task entries in `REVISION_STATUS.md` (Phase 2 tasks)
+2. Follow the same G## → C## workflow pattern
+3. Iterate until publishable
+
+---
+
+*Last Updated: December 30, 2025*

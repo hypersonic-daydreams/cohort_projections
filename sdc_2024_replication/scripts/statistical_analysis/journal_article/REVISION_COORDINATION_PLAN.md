@@ -1,5 +1,9 @@
 # Article Revision Coordination Plan
 
+> **⚠️ DEPRECATED:** This document was superseded by `HYBRID_REVISION_PLAN.md` and `REVISION_STATUS.md`, which were actually used to execute the revisions. This file is retained for reference only. See the hybrid plan for the authoritative revision workflow.
+
+---
+
 ## Response to ChatGPT 5.2-Pro Critique (December 29, 2025)
 
 **Source Critique:** `output/ChatGPT_5-2-Pro_article_draft_critique.md`

@@ -39,11 +39,25 @@
 
 ---
 
+## Phase 2: Re-Review (User Completes)
+
+| Step | Status | Description |
+|------|--------|-------------|
+| P2.1 | ✅ Complete | Compile final PDF (`pdflatex main.tex`) → `output/article_draft_v2_revised.pdf` |
+| P2.2 | ✅ Complete | Verify no LaTeX errors, all figures render (55 pages, no errors) |
+| P2.3a | ⬜ Not Started | Submit revised PDF to ChatGPT 5.2 Pro for re-review |
+| P2.3b | ⬜ Not Started | Submit revised PDF to Gemini 3 Pro "Deep Think" for re-review |
+| P2.4a | ⬜ Not Started | Save ChatGPT response to `revision_outputs/06_resubmission_review/outputs/` |
+| P2.4b | ⬜ Not Started | Save Gemini response to `revision_outputs/06_resubmission_review/outputs/` |
+| P2.5 | ⬜ Not Started | Compare reviews, assess feedback, create Phase 3 tasks if needed |
+
+---
+
 ## Next Action
 
-**All Phase 1 tasks complete.**
+**Phase 1 complete. Begin Phase 2: Re-Review.**
 
-Next step: final compile and submission prep.
+See `HYBRID_REVISION_PLAN.md` Phase 2 for detailed instructions and prompt template.
 
 ---
 
