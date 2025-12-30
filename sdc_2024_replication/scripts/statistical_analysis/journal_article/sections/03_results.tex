@@ -15,25 +15,25 @@ This section presents findings from the nine-module analytical pipeline, organiz
 \subsection{Descriptive Patterns}
 \label{subsec:descriptive_patterns}
 
-Table~\ref{tab:summary_stats} presents summary statistics for international migration to North Dakota and the United States over the 2010--2024 observation period. North Dakota received an average of 1,796 international migrants annually (SE = 383), with substantial volatility: the coefficient of variation (CV) reached 82.5\%, indicating that the standard deviation approaches the mean in magnitude. By comparison, national international migration exhibited somewhat lower volatility (CV = 73.5\%), suggesting that state-level flows experience amplified fluctuation relative to aggregate national trends.
+Table~\ref{tab:summary_stats} presents summary statistics for \PEP net international migration (the \PEP international migration component of change) to North Dakota and the United States over the 2010--2024 observation period. North Dakota's net international migration averaged 1,796 persons annually (SE = 383), with substantial volatility: the coefficient of variation (CV) reached 82.5\%, indicating that the standard deviation approaches the mean in magnitude. By comparison, national net international migration exhibited somewhat lower volatility (CV = 73.5\%), suggesting that state-level flows experience amplified fluctuation relative to aggregate national trends.
 
 \begin{table}[htbp]
 \centering
-\caption{Summary Statistics: International Migration, 2010--2024}
+\caption{Summary Statistics: Net International Migration (\PEP), 2010--2024}
 \label{tab:summary_stats}
 \begin{tabular}{@{}lccccc@{}}
 \toprule
 \textbf{Variable} & \textbf{Mean} & \textbf{SD} & \textbf{CV} & \textbf{Min} & \textbf{Max} \\
 \midrule
-ND International Migration & 1,796 & 1,482 & 82.5\% & 30 & 5,126 \\
-US International Migration & 1,010,744 & 743,049 & 73.5\% & 19,885 & 2,786,119 \\
-ND Share of US (\%) & 0.173 & 0.054 & 31.3\% & 0.102 & 0.303 \\
+ND Net International Migration (\PEP) & 1,796 & 1,482 & 82.5\% & 30 & 5,126 \\
+US Net International Migration (\PEP) & 1,010,744 & 743,049 & 73.5\% & 19,885 & 2,786,119 \\
+ND Share of US Net Int'l Mig. (\%) & 0.173 & 0.054 & 31.3\% & 0.102 & 0.303 \\
 ND Share of US Pop. (\%) & 0.231 & 0.006 & 2.4\% & 0.218 & 0.236 \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: $n = 15$ annual observations. SD = standard deviation; CV = coefficient of variation (SD/Mean). International migration data from Census Bureau Population Estimates Program vintage 2024.
+\item \textit{Notes}: $n = 15$ annual observations. SD = standard deviation; CV = coefficient of variation (SD/Mean). Net international migration data from Census Bureau \PEP (international migration component of change) vintage 2024.
 \end{tablenotes}
 \end{table}
 
@@ -346,7 +346,7 @@ Scenario analysis translates analytical findings into forward-looking projection
 
 \begin{table}[htbp]
 \centering
-\caption{International Migration Scenario Projections for North Dakota, 2045}
+\caption{Net International Migration (\PEP) Scenario Projections for North Dakota, 2045}
 \label{tab:scenarios}
 \begin{tabular}{@{}llc@{}}
 \toprule
@@ -368,9 +368,9 @@ Monte Carlo Median & Stochastic trend with CV = 0.39 & 8,672 \\
 \end{tablenotes}
 \end{table}
 
-The four deterministic scenarios yield dramatically different endpoints. The CBO Full scenario, which assumes continued elevated national immigration with North Dakota maintaining its historical share, projects 19,318 international migrants by 2045. The Moderate scenario, applying 50\% dampening to historical trends, yields 7,048. The Pre-2020 Trend scenario, which extrapolates the 2010--2019 trajectory while treating COVID as a temporary aberration, projects only 2,517---reflecting the modest pre-pandemic growth rate of approximately 72 migrants per year.
+The four deterministic scenarios yield dramatically different endpoints. The CBO Full scenario, which assumes continued elevated national immigration with North Dakota maintaining its historical share, projects net international migration of 19,318 persons by 2045. The Moderate scenario, applying 50\% dampening to historical trends, yields 7,048. The Pre-2020 Trend scenario, which extrapolates the 2010--2019 trajectory while treating COVID as a temporary aberration, projects only 2,517---reflecting the modest pre-pandemic growth rate of approximately 72 persons per year.
 
-Monte Carlo simulation propagates parameter uncertainty through the projection model. Based on 1,000 draws from estimated trend and volatility distributions (CV = 0.39), the median 2045 projection is 8,672 migrants, with a 50\% credible interval of [6,164, 10,962] and a 95\% credible interval of [3,183, 14,104]. The latter interval spans a factor of 4.4, reflecting substantial irreducible uncertainty over a 20-year horizon given the observed volatility and structural instability.
+Monte Carlo simulation propagates parameter uncertainty through the projection model. Based on 1,000 draws from estimated trend and volatility distributions (CV = 0.39), the median 2045 projection is 8,672 persons, with a 50\% credible interval of [6,164, 10,962] and a 95\% credible interval of [3,183, 14,104]. The latter interval spans a factor of 4.4, reflecting substantial irreducible uncertainty over a 20-year horizon given the observed volatility and structural instability.
 
 Model averaging weights alternative time series specifications by AIC. The VAR model receives effectively all AIC weight (1.000) relative to the univariate ARIMA (weight $\approx 0$), reflecting the superior fit of the multivariate specification. For cross-sectional models, Random Forest receives the highest $R^2$-based weight (0.462), followed by Elastic Net (0.293) and OLS (0.245).
 

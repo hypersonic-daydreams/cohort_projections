@@ -20,7 +20,7 @@
 
 | Task | Status | Depends On | Description |
 |------|--------|------------|-------------|
-| C01 | ⬜ Not Started | G01 ✅ | Implement estimand mapping and source alignment |
+| C01 | ✅ Complete | G01 ✅ | Implement estimand mapping and source alignment |
 | C02 | ⬜ Not Started | G02 | Implement break-robust tests, terminology changes |
 | C03 | ⬜ Not Started | G02 | Implement rolling-origin backtesting framework |
 | C04 | ⬜ Not Started | G03 | Re-estimate gravity model with proper SEs |
@@ -41,9 +41,12 @@
 
 ## Next Action
 
-**First available task with met dependencies:** C01 (G01 is complete)
+**First available task with met dependencies:** C06 (G05 is complete)
 
-To execute: Read `revision_outputs/C01_estimand/codex_prompt.md`
+To execute: Follow Task C06 in `HYBRID_REVISION_PLAN.md` and read:
+- `revision_outputs/05_G05_duration/outputs/G05_forecasting_bridge.md`
+- `revision_outputs/05_G05_duration/outputs/G05_specifications.md`
+- `revision_outputs/05_G05_duration/outputs/G05_recommendations.md`
 
 ---
 
@@ -53,3 +56,4 @@ To execute: Read `revision_outputs/C01_estimand/codex_prompt.md`
 |------|-----------|-------|
 | G01 | 2024-12-29 | ChatGPT produced recommendations, specifications, source_mapping |
 | G05 | 2024-12-29 | ChatGPT produced forecasting_bridge, specifications, recommendations |
+| C01 | 2025-12-30 | Added estimand/measurement subsection, source mapping table, FY vs PEP-year note; standardized net migration labels; LaTeX compiles |

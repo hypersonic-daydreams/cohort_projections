@@ -15,7 +15,34 @@ This section describes the data sources underlying the analysis and presents the
 \subsection{Data Sources}
 \label{subsec:data_sources}
 
-The analysis draws on four primary data sources, each capturing distinct dimensions of international migration to North Dakota. Table~\ref{tab:data_sources} summarizes the coverage, geographic scope, and key variables from each source.
+The analysis draws on four primary data sources, each capturing distinct dimensions of international migration to North Dakota. We define a single forecasting estimand based on the Census Bureau Population Estimates Program (\PEP) net international migration component for North Dakota, and treat all other sources as auxiliary inputs for decomposition, prediction, and validation. Table~\ref{tab:data_sources} maps each source to its measurement properties (flow versus stock; net versus gross; time basis) and its role relative to the forecast target.
+
+\subsubsection{Estimand \& Measurement}
+
+\textbf{Forecast target (estimand).} Let \(Y_t\) denote \ND's annual \emph{net international migration} in year \(t\), measured as the \PEP ``international migration'' component of change for North Dakota (persons; net).\footnote{\PEP ``year \(t\)'' corresponds to the annual component-of-change interval used in producing July 1 population estimates (a demographic year rather than a strict January--December calendar year). We refer to it as ``year \(t\)'' for readability and explicitly label fiscal-year sources as FY.} We treat \(Y_t\) as the primary dependent variable for forecasting and scenario projections in this paper. Unless otherwise noted, the generic notation \(y_t\) used in subsequent module equations denotes the observed \PEP net international migration series. Our forecasting goal is to characterize the predictive distribution of \(Y_{t+h}\) for horizons \(h \in \{1,\ldots,H\}\) (2025--2045), conditional on information available through year \(t\).
+
+\textbf{Auxiliary data sources.} DHS lawful permanent resident (\LPR) admissions, Refugee Processing Center (RPC) refugee arrivals, and \ACS foreign-born stock estimates are not alternative outcomes; they are used to (i) characterize and partially decompose international migration, (ii) construct predictors (e.g., diaspora measures and origin-composition features), and (iii) triangulate mechanisms and scenario sensitivity.
+
+\textbf{Time base and harmonization.} \PEP estimates are reported on an estimate-year basis, while DHS and RPC series are reported in fiscal years and \ACS estimates in survey years. We preserve native time bases and label them explicitly; when fiscal-year series are used as predictors for \PEP-year outcomes, we align them using an overlap-weighted crosswalk \(X^{\text{PEP}}_{t} \approx 0.75\,X^{\text{FY}}_{t} + 0.25\,X^{\text{FY}}_{t-1}\), and we report sensitivity to one-year shifts where timing is ambiguous.
+
+\begin{table}[htbp]
+\centering
+\caption{Data Source Mapping Relative to the Forecast Target \(Y_t\)}
+\label{tab:data_sources}
+\small
+\begin{tabularx}{\textwidth}{@{}p{2.7cm}X p{1.4cm}p{1.4cm}p{2.6cm}X@{}}
+\toprule
+\textbf{Source} & \textbf{What it measures} & \textbf{Flow/Stock} & \textbf{Net/Gross} & \textbf{Time basis (coverage)} & \textbf{Role relative to estimand and key caveats} \\
+\midrule
+Census \PEP (components of change) & State net international migration component of population change (persons) & Flow & Net & \PEP estimate year (2010--2024) & \textbf{Primary forecast target \(Y_t\).} Model-based estimates; composite of multiple international channels; subject to revision; 2020 reflects both true disruption and potential measurement artifacts. \\
+RPC refugee arrivals & Refugee (and related humanitarian) arrivals by nationality and state of initial placement & Flow & Gross & Fiscal year (FY; 2002--2020) & Mechanism and scenario input for the refugee component; supports policy responsiveness analysis. Initial placement $\neq$ final residence (secondary migration); FY timing differs from \PEP; many zeros at state$\times$nationality. \\
+\DHS \LPR admissions & Lawful permanent resident admissions by origin (state of intended residence) & Flow & Gross & Fiscal year (FY; 2023) & Predictor and composition diagnostics (origin structure; gravity-style features). Intended residence may differ from actual; single cross-section; excludes other statuses; not net of outflows. \\
+\ACS foreign-born stock & Foreign-born population stock by place of birth (survey estimate; MOE) & Stock & --- & Survey year (5-year est.; 2009--2023) & Diaspora predictors and validation for origin concentration. Sampling error (MOE) is nontrivial for small cells; stock conflates past flows, retention, and internal migration; measurement error can attenuate relationships. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+These sources are related but not interchangeable: \PEP international migration is a \emph{net} component of population accounting, DHS and RPC series are \emph{gross inflows} on a fiscal-year basis, and \ACS series are \emph{stocks} subject to sampling error. Throughout the paper we label flow/stock status and time base (FY vs.\ \PEP-year vs.\ survey year) in text, tables, and figure captions to prevent target drift.
 
 \subsubsection{Census Bureau Population Estimates Program}
 
@@ -40,22 +67,6 @@ ACS data carry sampling uncertainty quantified through published margins of erro
 The Refugee Processing Center (RPC), operated by the Department of State, maintains comprehensive records of refugee arrivals by state of initial resettlement and nationality. This analysis employs arrival data spanning fiscal years 2002--2020, providing the longest time series among the data sources and enabling duration analysis of migration ``waves'' from specific origin countries. The refugee data prove particularly valuable for North Dakota given the state's significant refugee population, which drives much of the geographic concentration observed in other data sources.
 
 Refugee arrival data offer precise counts (not estimates) of a well-defined population admitted through federal resettlement programs. Limitations include truncation at fiscal year 2020 (precluding analysis of pandemic recovery) and restriction to initial placement, which may differ from eventual settlement after secondary migration.
-
-\begin{table}[htbp]
-\centering
-\caption{Summary of Data Sources}
-\label{tab:data_sources}
-\begin{tabular}{@{}llll@{}}
-\toprule
-\textbf{Source} & \textbf{Time Period} & \textbf{Geographic Scope} & \textbf{Key Variables} \\
-\midrule
-Census PEP & 2010--2024 & 50 states + DC & Net international migration \\
-DHS LPR & FY 2023 & State $\times$ country & LPR admissions by origin \\
-ACS Foreign-Born & 2009--2023 & State $\times$ country & Foreign-born population stock \\
-Refugee Arrivals & 2002--2020 & State $\times$ nationality & Refugee resettlement counts \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 % ==============================================================================
 % 2.2 DESCRIPTIVE AND CONCENTRATION METHODS

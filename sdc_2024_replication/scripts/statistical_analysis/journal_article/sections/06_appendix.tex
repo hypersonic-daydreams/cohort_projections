@@ -318,12 +318,12 @@ This section provides detailed documentation of all data sources employed in the
 
 \subsection{State-Level Migration Distribution}
 
-Figure~\ref{fig:app_state_distribution} displays the distribution of international migration across U.S. states, highlighting North Dakota's position in the lower tail.
+Figure~\ref{fig:app_state_distribution} displays the distribution of \PEP net international migration across U.S. states, highlighting North Dakota's position in the lower tail.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\textwidth]{figures/fig_app_state_distribution.pdf}
-\caption{Distribution of mean annual international migration across U.S.\ states, 2010--2024. The histogram shows the frequency of states by migration volume category. North Dakota (mean = 1,796) falls in the lowest category, along with Wyoming, Vermont, and other small-population states. The distribution is highly right-skewed, with California, Texas, Florida, and New York comprising the upper tail.}
+\caption{Distribution of mean annual net international migration (\PEP) across U.S.\ states, 2010--2024. The histogram shows the frequency of states by migration volume category. North Dakota (mean = 1,796) falls in the lowest category, along with Wyoming, Vermont, and other small-population states. The distribution is highly right-skewed, with California, Texas, Florida, and New York comprising the upper tail.}
 \label{fig:app_state_distribution}
 \end{figure}
 
@@ -334,7 +334,7 @@ Figure~\ref{fig:app_residuals} presents residual diagnostic plots for the ARIMA(
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\textwidth]{figures/fig_app_residuals.pdf}
-\caption{Residual diagnostics for ARIMA(0,1,0) model of North Dakota international migration. Panel~(A): Residual time series with no apparent pattern. Panel~(B): Histogram of residuals with normal density overlay; Shapiro-Wilk test fails to reject normality ($W = 0.966$, $p = 0.820$). Panel~(C): Q-Q plot showing approximate adherence to normal quantiles. Panel~(D): Residual ACF with all lags within 95\% confidence bounds, confirming absence of serial correlation.}
+\caption{Residual diagnostics for ARIMA(0,1,0) model of North Dakota net international migration (\PEP). Panel~(A): Residual time series with no apparent pattern. Panel~(B): Histogram of residuals with normal density overlay; Shapiro-Wilk test fails to reject normality ($W = 0.966$, $p = 0.820$). Panel~(C): Q-Q plot showing approximate adherence to normal quantiles. Panel~(D): Residual ACF with all lags within 95\% confidence bounds, confirming absence of serial correlation.}
 \label{fig:app_residuals}
 \end{figure}
 
@@ -366,9 +366,9 @@ Table~\ref{tab:app_variables} provides formal definitions for all variables empl
 \toprule
 \textbf{Variable} & \textbf{Definition} \\
 \midrule
-International Migration & Net annual flow of persons crossing U.S.\ borders for state of residence (Census PEP definition) \\
-LPR Admissions & Count of lawful permanent resident visas issued by state of intended residence and country of birth \\
-Diaspora Stock & Foreign-born population from origin country $o$ residing in destination state $d$ (ACS) \\
+Net International Migration (\PEP) & Net annual international migration component of change for state of residence (Census \PEP definition) \\
+LPR Admissions (DHS, FY) & Count of lawful permanent resident admissions by state of intended residence and country of birth (fiscal year) \\
+Diaspora Stock (\ACS) & Foreign-born population from origin country $o$ residing in destination state $d$ (\ACS estimate) \\
 Location Quotient & Ratio of origin $o$'s share in state $d$ to origin $o$'s share nationally \\
 HHI & Herfindahl-Hirschman Index: $\sum_i s_i^2 \times 10,000$ where $s_i$ is origin $i$'s share \\
 Wave & Period of $\geq 2$ consecutive years with arrivals $> 150\%$ of baseline \\
