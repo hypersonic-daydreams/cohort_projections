@@ -1,0 +1,4693 @@
+# ChatGPT 5.2 Pro Session G2: Inference & Forecasting Validation
+
+## Context
+A senior reviewer noted concerns about small-sample inference (n=15)
+and the need for proper backtesting. There's also a KPSS contradiction
+in the paper and scenario arithmetic inconsistencies.
+
+
+## IMPORTANT: Data Context and Completeness
+
+### What You Are Receiving
+This package contains the COMPLETE analysis results (all JSON files) and key documentation.
+However, some raw data files are filtered or summarized due to size constraints.
+
+### Full Data Ecosystem (Not All Included)
+
+| Dataset | Full Size | Included Here | Notes |
+|---------|-----------|---------------|-------|
+| nd_migration_summary.csv | 15 rows (2010-2024) | COMPLETE | Primary time series |
+| combined_components_of_change.csv | 795 rows (53 states × 15 years) | COMPLETE | Full panel |
+| refugee_arrivals_by_state_nationality.parquet | 15,447 rows | FILTERED | Only ND + MN + SD + MT |
+| dhs_lpr_by_state_country.parquet | 8,619 rows | VARIES | May be filtered |
+| acs_foreign_born_by_state_origin.parquet | 125,580 rows | NOT INCLUDED | Too large; use JSON summaries |
+| acs_foreign_born_nd_share.parquet | 2,414 rows | NOT INCLUDED | Use JSON summaries |
+
+### Key Temporal Notes
+- **PEP data**: Calendar year (January-December)
+- **Refugee/LPR data**: Fiscal year (October-September, so FY2020 = Oct 2019 - Sep 2020)
+- **ACS data**: Multi-year estimates (e.g., 2019-2023 5-year) or 1-year estimates
+- **Alignment**: FY data is typically aligned to the calendar year in which it ends
+
+### Analysis Results Context
+The JSON files contain COMPLETE analysis outputs from Python scripts that had access to
+ALL raw data. You can trust these results as authoritative. The raw data included here
+is for additional context and verification.
+
+### What This Means for Your Analysis
+1. Trust the JSON analysis results - they used complete data
+2. When I note a dataset is FILTERED, I'll specify what filter was applied
+3. If you need information about data not included, the JSON summaries contain key statistics
+4. Your recommendations will be implemented by Claude Code, which has full data access
+
+
+### Session-Specific Data Notes
+- nd_migration_summary.csv: COMPLETE (15 rows, 2010-2024) - this is THE time series
+- Unit root/structural break JSON results: COMPLETE - from analysis of full data
+- ARIMA and scenario JSON results: COMPLETE
+- Python scripts: COMPLETE - so you can verify methodology
+
+### Critical Note on Sample Size
+The time series has n=15 annual observations (2010-2024). All statistical tests
+and inferences in the JSON results are based on this small sample. Your task is
+to assess whether the statistical claims are appropriate for this sample size.
+
+
+================================================================================
+FILE: CRITIQUE: ChatGPT_5-2-Pro_article_draft_critique.md
+================================================================================
+
+The following is a review and critique of 'sdc_2024_replication/scripts/statistical_analysis/journal_article/output/article_draft.pdf', provided by ChatGPT 5.2 Pro on 12/29/2025 at 2:15pm.
+
+---
+
+I read your draft **“Forecasting International Migration to North Dakota: A Multi-Method Empirical Analysis”** (Dec 29, 2025).
+
+I’m going to respond in the voice of a friendly-but-picky senior demography reviewer for a top-tier outlet. Think: “revise & resubmit, with a real shot—if you tighten the target estimand, clean up identification, and make the forecasting contribution operational rather than panoramic.”
+
+## High-level assessment
+
+This is an unusually ambitious paper for a single-state migration forecasting problem. The **motivation is strong** (small-state volatility + policy sensitivity), the **data ecology is thoughtful** (PEP net international migration + DHS LPRs + ACS stocks + Refugee Processing Center arrivals), and your **core normative stance**—*stop pretending these forecasts are point-precise; quantify uncertainty and plan contingently*—is exactly right for practice and defensible academically.
+
+Where the paper currently falls short of a top-journal bar is mostly *not* about effort or sophistication; it’s about **discipline**:
+
+* **What is the estimand?** (What, precisely, are you forecasting?)
+* **How do the modules connect to that estimand?**
+* **Are the causal designs actually identified and correctly inferred?**
+* **Do the forecasting claims survive backtesting and arithmetic?**
+
+Right now, the paper sometimes reads like a very competent methods demo reel, when the journal will want: **one coherent forecasting framework** that is (a) theoretically grounded, (b) empirically validated, and (c) clearly implementable for projection work.
+
+## Major issues to address before this is publishable
+
+### 1) Clarify (and commit to) the forecasting target
+
+You move among at least four “international migration” objects:
+
+1. **PEP net international migration** (state component of change; includes multiple streams and is *net*, not gross inflow), used for the 2010–2024 time series and the panel.
+2. **Refugee arrivals (RPC)** (initial placement; not net; FY basis), used for DiD and wave duration.
+3. **LPR admissions (DHS)** (state of intended residence; one FY cross-section), used for gravity.
+4. **Foreign-born stock (ACS)** (5-year estimates with MOE), used for diaspora and LQs.
+
+That’s all fine *as inputs*, but a top-tier paper needs a clean statement like:
+
+> “The forecast target for projection practice is **PEP net international migration to North Dakota (calendar year)**; the other sources are used to (i) decompose that net flow into interpretable substreams, (ii) estimate policy responsiveness, and (iii) build predictors.”
+
+Right now, the reader can’t tell whether your headline claims (e.g., refugee dominance, network elasticities, policy effects) are meant to forecast **PEP net migration**, **refugee arrivals**, or **LPR inflows**—and those are not interchangeable.
+
+**Concrete fix:** Add a short “Estimand & Measurement” subsection early in Methods:
+
+* Define each measure formally (you already start doing this in the PEP section).
+* Explain the mapping: e.g., show correlations/ratios between PEP net migration and RPC arrivals for overlapping years, and explicitly say what portion of PEP is plausibly “refugee-driven” vs “other” in ND.
+* Align calendar vs fiscal year handling (right now FY vs calendar is used without consistently flagging when you translate).
+
+Without that, the paper risks a reviewer’s classic verdict: *“Interesting analyses, but unclear what they estimate.”*
+
+---
+
+### 2) The “nine-module” approach needs a tighter narrative logic
+
+You argue the breadth is for triangulation. That’s plausible, but top journals will ask: **Triangulation of what?** A single estimand? A set of mechanisms? A forecasting model class?
+
+At minimum, each module should answer one of your four research questions *and* feed the forecasting framework. Some modules currently feel orphaned.
+
+Examples:
+
+* The **panel section** mostly decomposes state and year effects (Table 10), but doesn’t estimate substantive determinants (no covariates are shown, despite equation (8) including (x_{it})). That reads as descriptive, not explanatory—and not obviously forecasting-relevant.
+* **Machine learning** is described (Elastic Net, Random Forest, K-means), but results are barely presented. Without out-of-sample evaluation, ML reads like name-dropping rather than contribution.
+* **Duration/wave analysis** is cool, but it’s not yet connected to how ND will forecast future refugee waves.
+
+**Concrete fix:** Decide whether the paper is:
+
+* (A) a **forecasting paper** (then the core is predictive accuracy + calibration + uncertainty + implementability), or
+* (B) a **migration dynamics + policy paper** (then forecasting is downstream and more qualitative).
+
+Given your stated goal (improving projection practice under policy shocks), option (A) seems right. If so, you can still keep multi-method, but you must show a clear pipeline:
+
+> “We forecast ND PEP net international migration by combining (i) a structural decomposition (refugee vs non-refugee), (ii) policy-sensitive submodels, and (iii) an ensemble calibrated via backtesting.”
+
+Right now, the ensemble idea is gestured at, but not demonstrated.
+
+---
+
+### 3) Small-sample inference: you need to dial back “test-centric” language and use designs suited to (n=15)
+
+You repeatedly acknowledge (n=15) annual observations (good), but you still lean on a lot of classical testing (Shapiro-Wilk, ADF, Chow, etc.) and interpret p-values with more confidence than the design warrants.
+
+Two specific technical issues to fix:
+
+**(i) KPSS interpretation contradiction.**
+In the Results narrative you say KPSS “fails to reject stationarity in levels,” but your robustness table shows KPSS rejecting stationarity in levels (marked **). Those can’t both be true. (This is the sort of internal inconsistency that makes reviewers nervous about the rest.)
+
+**(ii) Unit root vs structural break confusion.**
+With a major break around 2020–2021, standard ADF tests are notorious for mistaking broken-trend stationarity for unit roots (and vice versa). Declaring the series a random walk without drift based on AIC selection in a 15-point annual series is not a safe inferential leap.
+
+**Concrete fix:** Reframe time-series claims as *descriptive diagnostics* and add break-robust alternatives:
+
+* Consider unit-root tests allowing a break (even if low power) and/or adopt a **state-space/local-level model** that naturally accommodates level shifts without pretending you learned “true I(1) structure” from 15 points.
+* When you do report tests, write like: “consistent with” rather than “establishes.”
+
+Also: call your forecast ranges **prediction intervals**, not “confidence intervals,” unless you’re very explicit about what is conditioned on what.
+
+---
+
+### 4) Forecasting contribution is currently under-validated
+
+A top-tier forecasting paper lives or dies on: **out-of-sample performance, calibration, and comparison to benchmarks.**
+
+Right now, you present:
+
+* ARIMA(0,1,0) as “optimal” via AIC,
+* scenario projections through 2045,
+* Monte Carlo “credible intervals,”
+* some model averaging weights.
+
+But you do *not* show a proper **backtest**.
+
+**Concrete fix:** Add a forecasting evaluation section that includes:
+
+* Rolling-origin evaluation (e.g., train 2010–2016 predict 2017; train 2010–2017 predict 2018; etc.).
+* Compare at least three baselines:
+
+  * naïve last-observation (random walk),
+  * mean/median benchmark,
+  * a simple regression with a national driver (or refugee ceiling proxy, if you incorporate it).
+* Show point accuracy metrics (MAE, RMSE) **and** interval calibration (coverage of 80/95% intervals).
+* If you keep scenarios, be clear they are *policy-conditional narratives*, not “forecasts” in the statistical sense.
+
+If you do this, your claim that “rigorous analysis remains feasible in small samples” becomes much more credible.
+
+---
+
+### 5) Gravity model: specification and interpretation problems
+
+You do something important here—showing ND’s diaspora elasticity around ~0.10 (vs larger in gateway contexts)—but several issues need repair before a journal will accept the inference.
+
+**(i) Distance and multilateral resistance**
+In the “full gravity” spec you discuss distance conceptually, but the presented full specification appears to omit distance (while an earlier “simple” spec includes it). You should not imply that bilateral structure “implicitly controls for distance.” It doesn’t. If distance varies across destination states (it does), include it—or explain why you exclude it.
+
+**(ii) Cross-section limits**
+Using FY2023 only means you’re estimating a cross-sectional association, not a dynamic network effect. The paper sometimes slides into causal language (“causal network effect”) that you cannot defend without stronger identification (panel over time, plausibly exogenous stock variation, etc.).
+
+**(iii) Standard errors look implausibly tiny**
+SEs on diaspora elasticity reported at ~0.001–0.002 for PPML raise flags. That can happen with large samples, but with state-country data and many zeros, reviewers will immediately ask: robust variance? clustering? overdispersion? Any correction for the fact that diaspora stock is estimated (ACS) rather than measured?
+
+**Concrete fix:**
+
+* Make the “network effect” language more careful (association vs causal).
+* Add either:
+
+  * a true panel gravity (multiple years of admissions), or
+  * a clearly defended IV strategy with correct inference, or
+  * a forecasting-focused interpretation: “diaspora stock improves prediction modestly; causal interpretation is not claimed.”
+
+Right now, you’re halfway between “prediction tool” and “causal mechanism,” and journals punish that limbo.
+
+---
+
+### 6) Causal inference: DiD and synthetic control need stricter identification and inference
+
+This is the most policy-relevant part of the paper, so it must be the most bulletproof.
+
+#### 6a) DiD on Travel Ban: inference and outcome model
+
+You estimate a ~75% reduction for affected nationalities (log specification; strong result). The weak points:
+
+* **Standard errors:** HC3 is not the default for DiD panel settings with repeated observations by nationality. Reviewers will expect **clustering at the nationality level** at minimum (and perhaps additional structure).
+* **Outcome functional form:** (\ln(y+1)) with many zeros is common but can bias interpretation; count models (PPML with FE) are increasingly standard in migration flow contexts.
+* **Parallel trends:** you report a pre-trend test and mention an event study figure, but the figure is missing (“Figure ??”). For a top-tier outlet, the event-study plot is not optional.
+
+**Concrete fix:** Re-estimate DiD using PPML with country and year FE (and cluster properly), show the event study, and include sensitivity checks (alternative post periods; excluding 2017 as partial; placebo treated groups).
+
+#### 6b) Synthetic control: fundamental design problem
+
+A basic synthetic control requires untreated donor units. A national policy shock like the Travel Ban affects all states. So “synthetic ND” from other states is not a clean counterfactual unless you very explicitly define **treatment intensity** (e.g., ND is “high exposure” because of its pre-2017 composition, donors are “low exposure”). Even then, standard SCM needs adaptation.
+
+Right now, the SCM is presented as if it creates an untreated counterfactual, which a reviewer will reject.
+
+**Concrete fix:** Either:
+
+* drop SCM, or
+* reframe it as an *exposure-weighted* design (generalized synthetic control / interactive fixed effects / augmented SCM), where the identifying variation is differential exposure, not treated vs untreated.
+
+#### 6c) Bartik shift-share: needs careful modern inference
+
+Shift-share instruments are powerful but currently under intense methodological scrutiny. Journals will ask:
+
+* What is the base period (t_0)?
+* Are shares truly predetermined?
+* Are standard errors computed using appropriate procedures for shift-share (not just vanilla robust SE)?
+* What exactly is the unit and dependent variable in the IV model? (Your Table 7 coefficient “4.36” is hard to interpret without units.)
+
+**Concrete fix:** Spell out the shift-share construction and use a defensible inference approach; otherwise, this will not survive review.
+
+---
+
+### 7) Scenario projections: there are arithmetic and definitional inconsistencies that must be fixed
+
+Table 9 is where practice meets paper. It must be impeccable. Right now it isn’t.
+
+* “**8% annual growth**” does not appear to compound to the reported 2045 value from the stated 2024 baseline (5,126). If it’s not compounding, say so; if it is, the numbers need to match.
+* “**Continue 2010–2019 slope (+72/year)**” yields a **lower** 2045 projection (2,517) than the 2024 baseline (5,126). That’s logically inconsistent unless you are anchoring the projection to a pre-2020 level rather than the 2024 baseline—yet the note says baseline is 2024.
+* The paper emphasizes **CV = 82.5%** in descriptive stats, but the Monte Carlo scenario uses **CV = 0.39**. That discrepancy needs explanation.
+
+Also: you call the Monte Carlo intervals “credible intervals,” but the described procedure is a **frequentist simulation/parametric bootstrap** unless you’ve actually specified priors and a posterior. Journals care about that terminology.
+
+**Concrete fix:** Add an appendix that shows the exact equations used for each scenario and the Monte Carlo process (what distribution, what parameters, what’s held fixed, what’s sampled). Then ensure the table numbers can be reproduced from those equations.
+
+---
+
+## Writing and presentation issues that will block publication if not fixed
+
+### 8) Missing references and missing figures
+
+The draft contains many placeholder citations “(?)” and “(??)” and figure references “Figure ??” (e.g., ACF/PACF; event study). In a top-tier journal, this is a hard stop: reviewers can’t assess novelty or correctness without the literature anchoring and the empirical visuals.
+
+**Concrete fix:** Add a full references section, replace every placeholder, and include every cited figure/table.
+
+### 9) Tone: occasionally too self-congratulatory / declarative
+
+Phrases like “honestly characterizing” and repeated “this demonstrates that…” can read as defensive or overconfident. In top-journal style, you can keep the clarity but shift toward restrained claims:
+
+* “consistent with,” “suggests,” “within this short series,” “in this setting,” etc.
+
+This isn’t about humility theater; it’s about aligning claims with identification strength.
+
+### 10) ACS measurement error and MOE not fully integrated
+
+You correctly note ACS uncertainty, but tables report point estimates without MOE and then treat derived quantities (LQs, diaspora stock) as fixed regressors. Reviewers in demography are sensitized to this.
+
+**Concrete fix:** At minimum:
+
+* note which ACS file (1-year vs 5-year) and show MOE for key LQ entries,
+* do sensitivity analysis aggregating origins where MOE is high,
+* consider measurement-error attenuation in gravity models.
+
+### 11) Calendar year vs fiscal year harmonization
+
+You mix calendar-year PEP, FY refugee arrivals, FY LPR admissions, and multi-year ACS. That’s inevitable, but you need an explicit harmonization strategy and consistent language (e.g., “FY arrivals” vs “calendar-year net migration”).
+
+---
+
+## A strong “revise & resubmit” path
+
+If you want this to land as a serious top-tier contribution *and* remain useful for ND projection practice, here’s the cleanest revision strategy:
+
+1. **Define one forecast target** (PEP net international migration to ND) and treat everything else as model inputs.
+2. **Decompose** that target into at least two latent/observable components:
+
+   * refugee-related (policy-driven),
+   * non-refugee international migration (economic/network-driven).
+3. **Build a small-sample-friendly forecasting model** (state-space / Bayesian hierarchical / partial pooling) that can ingest national policy indicators as covariates or regimes.
+4. **Backtest it** and compare to naïve benchmarks.
+5. Keep scenarios, but treat them as **policy-conditional narratives** layered on top of the statistical model, with transparent arithmetic.
+
+This keeps your core insight intact: small-state migration forecasting is not about pretending to know; it’s about structuring uncertainty and identifying which levers (policy, networks, resettlement capacity) move the distribution.
+
+## Minor comments (still worth fixing)
+
+* Several tables have duplicated “Notes:” lines (cosmetic, but signals draftiness).
+* Table labeling between the main text and appendix appears inconsistent for the gravity model (Table 6 vs Table 11).
+* Consider reporting per-capita rates more consistently (you do in Figure 1’s SCM discussion; make it systematic).
+* Some statistical reporting is overly precise given the data (e.g., very small p-values with tiny n); rounding and emphasizing effect sizes will read better.
+
+---
+
+## Bottom line
+
+This is a **promising and unusually relevant** piece—especially for the under-studied “peripheral state” context. But to meet a top-tier standard you need to (1) tighten the estimand, (2) repair identification/inference in the causal sections, (3) validate the forecasting claims with backtesting, and (4) fix internal inconsistencies (KPSS narrative, scenario arithmetic, missing figures/references).
+
+Do that, and you’ll have something that can legitimately claim both scholarly value and operational usefulness—rare air in migration forecasting.
+
+
+================================================================================
+FILE: RESULTS: module_2_1_1_unit_root_tests.json
+================================================================================
+
+{
+  "module": "2.1.1",
+  "analysis": "unit_root_tests",
+  "generated": "2025-12-29T05:57:13.487254+00:00",
+  "input_files": [
+    "nd_migration_summary.csv"
+  ],
+  "parameters": {
+    "variables_tested": [
+      "nd_share_of_us_intl_pct",
+      "nd_intl_migration",
+      "us_intl_migration"
+    ],
+    "n_observations": 15,
+    "time_period": "2010-2024",
+    "significance_level": 0.05,
+    "adf_autolag": "AIC",
+    "kpss_nlags": "auto"
+  },
+  "results": {
+    "variables": {
+      "nd_share_of_us_intl_pct": {
+        "n_observations": 15,
+        "mean": 0.17311264892684516,
+        "std": 0.0523189026086137,
+        "adf_level": {
+          "series": "nd_share_of_us_intl_pct",
+          "statistic": -2.004226168756995,
+          "p_value": 0.2847231513964522,
+          "used_lag": 5,
+          "n_obs_used": 9,
+          "critical_values": {
+            "1%": -4.473135048010974,
+            "5%": -3.28988060356653,
+            "10%": -2.7723823456790124
+          },
+          "ic_best": -25.12973060159895,
+          "regression_type": "c",
+          "regression": {
+            "constant": {
+              "coef": 0.25687929829358525,
+              "se": 0.09230680642152263,
+              "t": 2.782885772480698
+            },
+            "rho_minus_1": {
+              "coef": -1.4849148798121377,
+              "se": 0.48905575055730044,
+              "t": -3.0362895807277845
+            },
+            "diff_lag_1": {
+              "coef": 0.37652131612384626,
+              "se": 0.40453865457735744,
+              "t": 0.9307424936121806
+            },
+            "diff_lag_2": {
+              "coef": 0.5481137100324897,
+              "se": 0.32316943587093344,
+              "t": 1.6960567714435528
+            },
+            "diff_lag_3": {
+              "coef": 0.3060972733342245,
+              "se": 0.3225067738425362,
+              "t": 0.9491188965961886
+            },
+            "diff_lag_4": {
+              "coef": -0.16837621084046397,
+              "se": 0.30900322545174064,
+              "t": -0.5449011433272581
+            },
+            "diff_lag_5": {
+              "coef": 0.009146028720370573,
+              "se": 0.2711916007558664,
+              "t": 0.03372533918778724
+            }
+          }
+        },
+        "kpss_level": {
+          "series": "nd_share_of_us_intl_pct",
+          "statistic": 0.07029320902462563,
+          "p_value": 0.1,
+          "lags_used": 1,
+          "critical_values": {
+            "10%": 0.347,
+            "5%": 0.463,
+            "2.5%": 0.574,
+            "1%": 0.739
+          },
+          "regression_type": "level"
+        },
+        "phillips_perron_level": {
+          "statistic": -4.263697110119461,
+          "p_value": 0.0005130993784872706,
+          "lags_used": 0,
+          "n_obs_used": 14,
+          "critical_values": {
+            "1%": -4.01203360058309,
+            "5%": -3.1041838775510207,
+            "10%": -2.6909873469387753
+          },
+          "note": "PP test approximated using DF test (maxlag=0) for small sample"
+        },
+        "adf_differenced": {
+          "series": "d(nd_share_of_us_intl_pct)",
+          "statistic": -6.214191059942855,
+          "p_value": 5.4157813805922624e-08,
+          "used_lag": 0,
+          "n_obs_used": 13,
+          "critical_values": {
+            "1%": -4.068853732362312,
+            "5%": -3.1271488757396453,
+            "10%": -2.7017297633136095
+          },
+          "ic_best": -16.034757315862137,
+          "regression_type": "c",
+          "regression": {
+            "constant": {
+              "coef": -0.0002988418861058704,
+              "se": 0.0189968259270381,
+              "t": -0.015731148311493977
+            },
+            "rho_minus_1": {
+              "coef": -1.4838973417833328,
+              "se": 0.23879171519985076,
+              "t": -6.214191059942854
+            }
+          }
+        },
+        "kpss_differenced": {
+          "series": "d(nd_share_of_us_intl_pct)",
+          "statistic": 0.4999999999999999,
+          "p_value": 0.04166666666666669,
+          "lags_used": 13,
+          "critical_values": {
+            "10%": 0.347,
+            "5%": 0.463,
+            "2.5%": 0.574,
+            "1%": 0.739
+          },
+          "regression_type": "level"
+        },
+        "integration_order": {
+          "integration_order": 1,
+          "conclusion": "I(1) - First-difference stationary",
+          "evidence": [
+            "ADF fails to reject unit root in level (p=0.2847)",
+            "ADF rejects unit root in first difference (p=0.0000)"
+          ],
+          "level_tests": {
+            "adf_rejects_unit_root": false,
+            "kpss_rejects_stationarity": false
+          },
+          "differenced_tests": {
+            "adf_rejects_unit_root": true,
+            "kpss_rejects_stationarity": true
+          },
+          "significance_level": 0.05
+        }
+      },
+      "nd_intl_migration": {
+        "n_observations": 15,
+        "mean": 1796.2666666666667,
+        "std": 1432.0705972666137,
+        "adf_level": {
+          "series": "nd_intl_migration",
+          "statistic": -1.4534467368641693,
+          "p_value": 0.5564021716016336,
+          "used_lag": 5,
+          "n_obs_used": 9,
+          "critical_values": {
+            "1%": -4.473135048010974,
+            "5%": -3.28988060356653,
+            "10%": -2.7723823456790124
+          },
+          "ic_best": 126.1573749472613,
+          "regression_type": "c",
+          "regression": {
+            "constant": {
+              "coef": 1105.1753404285453,
+              "se": 677.5739226259527,
+              "t": 1.6310771467494112
+            },
+            "rho_minus_1": {
+              "coef": -0.6004923607252058,
+              "se": 0.5200630048850854,
+              "t": -1.154653099883335
+            },
+            "diff_lag_1": {
+              "coef": 0.08387208269750829,
+              "se": 0.5263275518294596,
+              "t": 0.15935339581972802
+            },
+            "diff_lag_2": {
+              "coef": 0.5281381249508235,
+              "se": 0.4376302507656295,
+              "t": 1.2068135692787494
+            },
+            "diff_lag_3": {
+              "coef": -0.6944818386741572,
+              "se": 0.42602038717920815,
+              "t": -1.6301610429315418
+            },
+            "diff_lag_4": {
+              "coef": -1.1234193463122475,
+              "se": 0.500856614890349,
+              "t": -2.242995925207445
+            },
+            "diff_lag_5": {
+              "coef": -0.13859338272028365,
+              "se": 0.5390961516072654,
+              "t": -0.2570847191304933
+            }
+          }
+        },
+        "kpss_level": {
+          "series": "nd_intl_migration",
+          "statistic": 0.32327930438225816,
+          "p_value": 0.1,
+          "lags_used": 1,
+          "critical_values": {
+            "10%": 0.347,
+            "5%": 0.463,
+            "2.5%": 0.574,
+            "1%": 0.739
+          },
+          "regression_type": "level"
+        },
+        "phillips_perron_level": {
+          "statistic": -0.6195622042640315,
+          "p_value": 0.8665002222315035,
+          "lags_used": 0,
+          "n_obs_used": 14,
+          "critical_values": {
+            "1%": -4.01203360058309,
+            "5%": -3.1041838775510207,
+            "10%": -2.6909873469387753
+          },
+          "note": "PP test approximated using DF test (maxlag=0) for small sample"
+        },
+        "adf_differenced": {
+          "series": "d(nd_intl_migration)",
+          "statistic": -3.8428940157830493,
+          "p_value": 0.0024977127875415693,
+          "used_lag": 3,
+          "n_obs_used": 10,
+          "critical_values": {
+            "1%": -4.331573,
+            "5%": -3.23295,
+            "10%": -2.7487
+          },
+          "ic_best": 117.01639020412301,
+          "regression_type": "c",
+          "regression": {
+            "constant": {
+              "coef": 495.773824275667,
+              "se": 283.7065525701755,
+              "t": 1.7474880991796482
+            },
+            "rho_minus_1": {
+              "coef": -2.55764841867692,
+              "se": 0.6498298696221033,
+              "t": -3.935873892907191
+            },
+            "diff_lag_1": {
+              "coef": 1.361200186146963,
+              "se": 0.5354396516415667,
+              "t": 2.5422102789245344
+            },
+            "diff_lag_2": {
+              "coef": 1.5913927788908788,
+              "se": 0.49770839371223713,
+              "t": 3.197440105482696
+            },
+            "diff_lag_3": {
+              "coef": 0.8373346140651816,
+              "se": 0.3550245302285438,
+              "t": 2.3585260813559983
+            }
+          }
+        },
+        "kpss_differenced": {
+          "series": "d(nd_intl_migration)",
+          "statistic": 0.18860050862964794,
+          "p_value": 0.1,
+          "lags_used": 0,
+          "critical_values": {
+            "10%": 0.347,
+            "5%": 0.463,
+            "2.5%": 0.574,
+            "1%": 0.739
+          },
+          "regression_type": "level"
+        },
+        "integration_order": {
+          "integration_order": 1,
+          "conclusion": "I(1) - First-difference stationary",
+          "evidence": [
+            "ADF fails to reject unit root in level (p=0.5564)",
+            "ADF rejects unit root in first difference (p=0.0025)"
+          ],
+          "level_tests": {
+            "adf_rejects_unit_root": false,
+            "kpss_rejects_stationarity": false
+          },
+          "differenced_tests": {
+            "adf_rejects_unit_root": true,
+            "kpss_rejects_stationarity": false
+          },
+          "significance_level": 0.05
+        }
+      },
+      "us_intl_migration": {
+        "n_observations": 15,
+        "mean": 1010744.2,
+        "std": 717853.6519858998,
+        "adf_level": {
+          "series": "us_intl_migration",
+          "statistic": -3.9077429174341347,
+          "p_value": 0.0019785967196018226,
+          "used_lag": 5,
+          "n_obs_used": 9,
+          "critical_values": {
+            "1%": -4.473135048010974,
+            "5%": -3.28988060356653,
+            "10%": -2.7723823456790124
+          },
+          "ic_best": 243.5106948125886,
+          "regression_type": "c",
+          "regression": {
+            "constant": {
+              "coef": 538310.3314727561,
+              "se": 364724.01184977376,
+              "t": 1.4759388304120784
+            },
+            "rho_minus_1": {
+              "coef": -0.512545563853287,
+              "se": 0.4989448749845689,
+              "t": -1.0272589008337618
+            },
+            "diff_lag_1": {
+              "coef": 0.6918187380743898,
+              "se": 0.4822955032881439,
+              "t": 1.4344291691665798
+            },
+            "diff_lag_2": {
+              "coef": -0.016582557916746607,
+              "se": 0.5413220050794084,
+              "t": -0.03063344508655999
+            },
+            "diff_lag_3": {
+              "coef": 0.18641551674773835,
+              "se": 0.5641616735803975,
+              "t": 0.3304292465751356
+            },
+            "diff_lag_4": {
+              "coef": -0.7002681304636321,
+              "se": 0.5764731902811733,
+              "t": -1.2147453554988017
+            },
+            "diff_lag_5": {
+              "coef": -0.4466592760316264,
+              "se": 0.7217681150563232,
+              "t": -0.6188404097024587
+            }
+          }
+        },
+        "kpss_level": {
+          "series": "us_intl_migration",
+          "statistic": 0.31401344170980083,
+          "p_value": 0.1,
+          "lags_used": 1,
+          "critical_values": {
+            "10%": 0.347,
+            "5%": 0.463,
+            "2.5%": 0.574,
+            "1%": 0.739
+          },
+          "regression_type": "level"
+        },
+        "phillips_perron_level": {
+          "statistic": -0.06870807593553821,
+          "p_value": 0.9524675035237097,
+          "lags_used": 0,
+          "n_obs_used": 14,
+          "critical_values": {
+            "1%": -4.01203360058309,
+            "5%": -3.1041838775510207,
+            "10%": -2.6909873469387753
+          },
+          "note": "PP test approximated using DF test (maxlag=0) for small sample"
+        },
+        "adf_differenced": {
+          "series": "d(us_intl_migration)",
+          "statistic": -2.347215979449134,
+          "p_value": 0.15719153459210494,
+          "used_lag": 4,
+          "n_obs_used": 9,
+          "critical_values": {
+            "1%": -4.473135048010974,
+            "5%": -3.28988060356653,
+            "10%": -2.7723823456790124
+          },
+          "ic_best": 226.80904624847565,
+          "regression_type": "c",
+          "regression": {
+            "constant": {
+              "coef": 151082.29775508033,
+              "se": 169216.70416653508,
+              "t": 0.8928332371158363
+            },
+            "rho_minus_1": {
+              "coef": -0.9823274358023014,
+              "se": 0.5341727057882909,
+              "t": -1.8389697286248616
+            },
+            "diff_lag_1": {
+              "coef": 0.7277705555511279,
+              "se": 0.4593323457548245,
+              "t": 1.5844095506820377
+            },
+            "diff_lag_2": {
+              "coef": 0.05428088333875301,
+              "se": 0.48473366317354283,
+              "t": 0.11198084115589789
+            },
+            "diff_lag_3": {
+              "coef": 0.7112580187187948,
+              "se": 0.5455231665270643,
+              "t": 1.3038090082348648
+            },
+            "diff_lag_4": {
+              "coef": -0.1257092600397396,
+              "se": 0.8131433700862303,
+              "t": -0.15459667343338074
+            }
+          }
+        },
+        "kpss_differenced": {
+          "series": "d(us_intl_migration)",
+          "statistic": 0.2013357247153997,
+          "p_value": 0.1,
+          "lags_used": 1,
+          "critical_values": {
+            "10%": 0.347,
+            "5%": 0.463,
+            "2.5%": 0.574,
+            "1%": 0.739
+          },
+          "regression_type": "level"
+        },
+        "integration_order": {
+          "integration_order": 0,
+          "conclusion": "I(0) - Level stationary",
+          "evidence": [
+            "ADF rejects unit root at 5.0% (p=0.0020)",
+            "KPSS fails to reject stationarity (p=0.1000)"
+          ],
+          "level_tests": {
+            "adf_rejects_unit_root": true,
+            "kpss_rejects_stationarity": false
+          },
+          "differenced_tests": {
+            "adf_rejects_unit_root": false,
+            "kpss_rejects_stationarity": false
+          },
+          "significance_level": 0.05
+        }
+      }
+    },
+    "integration_order_summary": {
+      "nd_share_of_us_intl_pct": {
+        "order": 1,
+        "conclusion": "I(1) - First-difference stationary"
+      },
+      "nd_intl_migration": {
+        "order": 1,
+        "conclusion": "I(1) - First-difference stationary"
+      },
+      "us_intl_migration": {
+        "order": 0,
+        "conclusion": "I(0) - Level stationary"
+      }
+    }
+  },
+  "diagnostics": {
+    "figures_generated": [
+      "module_2_1_1_original_series.png",
+      "module_2_1_1_differenced_series.png",
+      "module_2_1_1_acf_original.png",
+      "module_2_1_1_acf_differenced.png"
+    ],
+    "test_interpretation": {
+      "adf": "H0: Unit root present (non-stationary). Reject if p < 0.05.",
+      "kpss": "H0: Series is stationary. Reject if p < 0.05.",
+      "phillips_perron": "H0: Unit root present. Reject if p < 0.05."
+    },
+    "sample_size_concern": "n=15 is below recommended minimum of 25 for reliable unit root tests"
+  },
+  "decisions": [
+    {
+      "decision_id": "D001",
+      "timestamp": "2025-12-29T05:57:11.450876+00:00",
+      "category": "data_handling",
+      "decision": "Include 2020 COVID year in analysis",
+      "rationale": "With only 15 observations, excluding any year significantly reduces test power. 2020 anomaly is noted but retained for completeness. Sensitivity without 2020 could be performed in follow-up analysis.",
+      "alternatives_considered": [
+        "Exclude 2020 entirely",
+        "Replace 2020 with interpolated value"
+      ],
+      "evidence": "2020 nd_intl_migration=30 vs mean=1796",
+      "reversible": true
+    },
+    {
+      "decision_id": "D002",
+      "timestamp": "2025-12-29T05:57:11.450891+00:00",
+      "category": "methodology",
+      "decision": "Proceed with unit root tests despite short series",
+      "rationale": "With n=15, asymptotic distributions may not hold well. Tests have reduced power. Results should be interpreted with caution.",
+      "alternatives_considered": [
+        "Skip unit root testing",
+        "Use only visual inspection"
+      ],
+      "evidence": "Standard recommendation is n>=25 for reliable ADF tests",
+      "reversible": false
+    }
+  ],
+  "warnings": [
+    "Short time series (n=15) limits test power and may affect asymptotic validity of tests.",
+    "2020 COVID year shows anomalous values that may affect test results."
+  ],
+  "next_steps": [
+    "Use integration order results for ARIMA model specification (Module 2.1)",
+    "Consider differencing before structural break analysis (Module 2.1.2)",
+    "Apply appropriate differencing in VAR/VECM models (Module 2.2)",
+    "Sensitivity analysis excluding 2020 COVID year if results are borderline"
+  ]
+}
+
+
+================================================================================
+FILE: RESULTS: module_2_1_2_structural_breaks.json
+================================================================================
+
+{
+  "module": "2.1.2",
+  "analysis": "structural_break_detection",
+  "generated": "2025-12-29T06:05:40.278725+00:00",
+  "input_files": [
+    "nd_migration_summary.csv"
+  ],
+  "parameters": {
+    "target_variable": "nd_intl_migration",
+    "n_observations": 15,
+    "time_period": "2010-2024",
+    "policy_events_tested": [
+      2017,
+      2020,
+      2021
+    ],
+    "bai_perron_settings": {
+      "algorithm": "PELT",
+      "model": "rbf",
+      "min_segment_size": 2,
+      "penalty": "BIC"
+    },
+    "cusum_settings": {
+      "significance_level": 0.05,
+      "bounds_method": "Brown-Durbin-Evans (1975)"
+    }
+  },
+  "results": {
+    "bai_perron": {
+      "method": "Bai-Perron (PELT with RBF kernel)",
+      "n_observations": 15,
+      "penalty_value": 5.41610040220442,
+      "n_breaks_detected": 0,
+      "break_indices": [],
+      "break_years": [],
+      "segments": [
+        {
+          "start_index": 0,
+          "end_index": 14,
+          "start_year": 2010,
+          "end_year": 2024,
+          "n_observations": 15,
+          "mean": 1796.2666666666667,
+          "std": 1432.0705972666137,
+          "min": 30.0,
+          "max": 5126.0
+        }
+      ],
+      "regime_shifts": [],
+      "model_fit": {
+        "bic": 223.42239978438198,
+        "rss": 30762392.933333337,
+        "bic_alternatives": {
+          "0_breaks": 223.42239978438198,
+          "1_breaks": 223.42239978438198,
+          "2_breaks": 223.42239978438198,
+          "3_breaks": 223.42239978438198,
+          "4_breaks": 223.42239978438198
+        }
+      },
+      "interpretation": "Detected 0 structural break(s) in the series"
+    },
+    "cusum": {
+      "method": "CUSUM Test (Brown, Durbin, Evans 1975)",
+      "null_hypothesis": "Parameters are stable over time",
+      "significance_level": 0.05,
+      "n_observations": 15,
+      "n_recursive_residuals": 13,
+      "cusum_values": [
+        -0.06292630855089082,
+        -0.16414997644309406,
+        -0.3385213101845814,
+        -0.06746124598465059,
+        -0.22674965101249533,
+        0.1009544590693614,
+        -0.47080804694519895,
+        -1.1906642702266774,
+        -2.0000478827652364,
+        -2.367944547458381,
+        -1.1978412939090828,
+        0.16416463512401291,
+        1.5970258471262742
+      ],
+      "upper_bounds": [
+        3.9439183951613788,
+        4.4697741811828955,
+        4.9956299672044135,
+        5.52148575322593,
+        6.047341539247448,
+        6.573197325268965,
+        7.099053111290482,
+        7.6249088973119985,
+        8.150764683333517,
+        8.676620469355035,
+        9.202476255376551,
+        9.728332041398069,
+        10.254187827419585
+      ],
+      "lower_bounds": [
+        -3.9439183951613788,
+        -4.4697741811828955,
+        -4.9956299672044135,
+        -5.52148575322593,
+        -6.047341539247448,
+        -6.573197325268965,
+        -7.099053111290482,
+        -7.6249088973119985,
+        -8.150764683333517,
+        -8.676620469355035,
+        -9.202476255376551,
+        -9.728332041398069,
+        -10.254187827419585
+      ],
+      "years_for_cusum": [
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "max_cusum": 2.367944547458381,
+      "max_bound": 10.254187827419585,
+      "stability_ratio": 0.23092463170281738,
+      "crossings": [],
+      "stable": true,
+      "conclusion": "CUSUM stays within bounds - parameters appear stable"
+    },
+    "chow_tests": {
+      "2017": {
+        "method": "Chow Test",
+        "null_hypothesis": "No structural break at specified date",
+        "break_year": 2017,
+        "break_index": 7,
+        "f_statistic": 1.2907294903330757,
+        "df1": 2,
+        "df2": 11,
+        "p_value": 0.31365659516862476,
+        "critical_values": {
+          "10%": 2.8595109562411354,
+          "5%": 3.9822979570944836,
+          "1%": 7.205713350457377
+        },
+        "significant_at_5pct": "False",
+        "rss_pooled": 21341134.64404762,
+        "rss_unrestricted": 17284776.35714286,
+        "pre_break": {
+          "n_obs": 7,
+          "mean": 1289.0,
+          "std": 506.6768482686263,
+          "coefficients": {
+            "constant": 742.0357142857146,
+            "trend": 182.32142857142858
+          }
+        },
+        "post_break": {
+          "n_obs": 8,
+          "mean": 2240.125,
+          "std": 1788.4359394104672,
+          "coefficients": {
+            "constant": 604.7500000000007,
+            "trend": 467.25
+          }
+        },
+        "regime_shift": {
+          "absolute_change": 951.125,
+          "percent_change": 73.7878200155159
+        },
+        "conclusion": "No significant structural break at 2017 (p=0.3137)"
+      },
+      "2020": {
+        "method": "Chow Test",
+        "null_hypothesis": "No structural break at specified date",
+        "break_year": 2020,
+        "break_index": 10,
+        "f_statistic": 16.01221848491977,
+        "df1": 2,
+        "df2": 11,
+        "p_value": 0.0005523650504233313,
+        "critical_values": {
+          "10%": 2.8595109562411354,
+          "5%": 3.9822979570944836,
+          "1%": 7.205713350457377
+        },
+        "significant_at_5pct": "True",
+        "rss_pooled": 21341134.64404762,
+        "rss_unrestricted": 5456259.2242424255,
+        "pre_break": {
+          "n_obs": 10,
+          "mean": 1377.9,
+          "std": 682.949698001251,
+          "coefficients": {
+            "constant": 1051.9636363636357,
+            "trend": 72.43030303030321
+          }
+        },
+        "post_break": {
+          "n_obs": 5,
+          "mean": 2633.0,
+          "std": 2041.9240926146103,
+          "coefficients": {
+            "constant": -168.59999999999988,
+            "trend": 1400.8
+          }
+        },
+        "regime_shift": {
+          "absolute_change": 1255.1,
+          "percent_change": 91.08788736483052
+        },
+        "conclusion": "Significant structural break at 2020 (p=0.0006). Mean increased from 1377.9 to 2633.0 (+91.1% change)"
+      },
+      "2021": {
+        "method": "Chow Test",
+        "null_hypothesis": "No structural break at specified date",
+        "break_year": 2021,
+        "break_index": 11,
+        "f_statistic": 10.283116235737738,
+        "df1": 2,
+        "df2": 11,
+        "p_value": 0.0030334346283574787,
+        "critical_values": {
+          "10%": 2.8595109562411354,
+          "5%": 3.9822979570944836,
+          "1%": 7.205713350457377
+        },
+        "significant_at_5pct": "True",
+        "rss_pooled": 21341134.64404762,
+        "rss_unrestricted": 7436822.918181816,
+        "pre_break": {
+          "n_obs": 11,
+          "mean": 1255.3636363636363,
+          "std": 757.7400936909547,
+          "coefficients": {
+            "constant": 1290.0909090909086,
+            "trend": -6.945454545454511
+          }
+        },
+        "post_break": {
+          "n_obs": 4,
+          "mean": 3283.75,
+          "std": 1759.1019548337727,
+          "coefficients": {
+            "constant": 1033.6,
+            "trend": 1500.1000000000006
+          }
+        },
+        "regime_shift": {
+          "absolute_change": 2028.3863636363637,
+          "percent_change": 161.5775943225433
+        },
+        "conclusion": "Significant structural break at 2021 (p=0.0030). Mean increased from 1255.4 to 3283.8 (+161.6% change)"
+      }
+    },
+    "summary": {
+      "data_driven_breaks": [],
+      "n_breaks_detected": 0,
+      "cusum_stable": true,
+      "significant_policy_breaks": [
+        2020,
+        2021
+      ]
+    }
+  },
+  "diagnostics": {
+    "figures_generated": [
+      "module_2_1_2_structural_breaks.png",
+      "module_2_1_2_cusum_test.png",
+      "module_2_1_2_segmented_regression.png"
+    ],
+    "test_interpretation": {
+      "bai_perron": "Data-driven detection of optimal breakpoints using BIC criterion",
+      "cusum": "H0: Parameters stable over time. If CUSUM crosses bounds, reject stability.",
+      "chow": "H0: No structural break at specified date. Reject if p < 0.05."
+    },
+    "policy_event_alignment": {
+      "2017": {
+        "event": "Travel Ban Executive Orders",
+        "chow_significant": "False",
+        "detected_by_pelt": false
+      },
+      "2020": {
+        "event": "COVID-19 Pandemic",
+        "chow_significant": "True",
+        "detected_by_pelt": false
+      },
+      "2021": {
+        "event": "Post-COVID Recovery",
+        "chow_significant": "True",
+        "detected_by_pelt": false
+      }
+    }
+  },
+  "decisions": [
+    {
+      "decision_id": "D001",
+      "timestamp": "2025-12-29T06:05:39.155569+00:00",
+      "category": "methodology",
+      "decision": "Use Bai-Perron (PELT) for data-driven break detection",
+      "rationale": "PELT algorithm is computationally efficient and optimal under BIC criterion. RBF kernel is robust to various types of changes (level shifts, trend changes).",
+      "alternatives_considered": [
+        "Binary segmentation",
+        "Window-based detection",
+        "ARIMA with intervention"
+      ],
+      "evidence": "PELT has O(n) complexity and is consistent for multiple break detection",
+      "reversible": true
+    },
+    {
+      "decision_id": "D002",
+      "timestamp": "2025-12-29T06:05:39.155577+00:00",
+      "category": "methodology",
+      "decision": "Set minimum segment size to 2 observations",
+      "rationale": "With only 15 total observations, requiring larger segments would limit ability to detect recent breaks (e.g., 2020 COVID, 2022 surge).",
+      "alternatives_considered": [
+        "min_size=3 for more stable estimates",
+        "min_size=4 for traditional Bai-Perron"
+      ],
+      "evidence": "n=15 limits flexibility; 2-observation minimum allows detection of COVID break",
+      "reversible": true
+    }
+  ],
+  "warnings": [
+    "Short time series (n=15) limits statistical power for structural break tests.",
+    "Results should be interpreted alongside known policy events, not purely data-driven."
+  ],
+  "next_steps": [
+    "Use detected break dates for intervention analysis in time series models",
+    "Incorporate regime-specific parameters in forecasting models",
+    "Consider structural breaks when specifying VAR/VECM models (Module 2.2)",
+    "Compare break detection with policy implementation dates for causal inference"
+  ]
+}
+
+
+================================================================================
+FILE: RESULTS: module_2_1_arima_model.json
+================================================================================
+
+{
+  "module": "2.1",
+  "analysis": "arima_time_series_modeling",
+  "generated": "2025-12-29T06:07:05.641998+00:00",
+  "input_files": [
+    "nd_migration_summary.csv"
+  ],
+  "dependencies": {
+    "module_2_1_1": {
+      "status": "loaded",
+      "file": "results/module_2_1_1_unit_root_tests.json",
+      "key_results_used": [
+        "integration_order"
+      ]
+    }
+  },
+  "parameters": {
+    "target_variable": "nd_intl_migration",
+    "n_observations": 15,
+    "time_period": "2010-2024",
+    "integration_order_from_unit_root": 1,
+    "forecast_horizon": 5,
+    "forecast_years": "2025-2029",
+    "confidence_levels": [
+      0.8,
+      0.95
+    ]
+  },
+  "results": {
+    "model": "ARIMA(0, 1, 0)",
+    "model_selection": {
+      "method": "auto_arima",
+      "order": [
+        0,
+        1,
+        0
+      ],
+      "seasonal_order": null,
+      "selection_criteria": {
+        "aic": 238.41865405948357,
+        "bic": 239.05771138909884
+      }
+    },
+    "parameters": {
+      "sigma2": {
+        "coef": 1257166.8874422295,
+        "se": 418920.33733789425
+      }
+    },
+    "fit_statistics": {
+      "aic": 238.41865405948357,
+      "bic": 239.05771138909884,
+      "hqic": 238.3594976220383,
+      "log_likelihood": -118.20932702974179,
+      "n_observations": 15
+    },
+    "ljung_box": {
+      "lag_5": {
+        "statistic": 5.095238204352211,
+        "df": 5,
+        "p_value": 0.40436819709915167
+      },
+      "lag_10": {
+        "skipped": "Lag 10 exceeds max_lag 7 for sample size 15"
+      },
+      "lag_15": {
+        "skipped": "Lag 15 exceeds max_lag 7 for sample size 15"
+      },
+      "lag_20": {
+        "skipped": "Lag 20 exceeds max_lag 7 for sample size 15"
+      }
+    },
+    "residual_diagnostics": {
+      "mean": 341.73333333333335,
+      "std": 1037.6925984552884,
+      "skewness": 0.41427955123948745,
+      "kurtosis": 0.3523758159409409,
+      "jarque_bera": {
+        "statistic": 0.5066743137255052,
+        "p_value": 0.7762061344761106
+      },
+      "shapiro_wilk": {
+        "statistic": 0.9675440595333222,
+        "p_value": 0.8201664235420318
+      }
+    },
+    "forecasts": [
+      {
+        "horizon": 1,
+        "point": 5126.0,
+        "se": 1121.2345372143284,
+        "ci_80": [
+          3689.080123490302,
+          6562.919876509698
+        ],
+        "ci_95": [
+          2928.4206888374815,
+          7323.579311162519
+        ]
+      },
+      {
+        "horizon": 2,
+        "point": 5126.0,
+        "se": 1585.665089129624,
+        "ci_80": [
+          3093.888422596512,
+          7158.111577403488
+        ],
+        "ci_95": [
+          2018.1535337634423,
+          8233.846466236559
+        ]
+      },
+      {
+        "horizon": 3,
+        "point": 5126.0,
+        "se": 1942.035185656194,
+        "ci_80": [
+          2637.181767479606,
+          7614.818232520394
+        ],
+        "ci_95": [
+          1319.6809794043024,
+          8932.319020595698
+        ]
+      },
+      {
+        "horizon": 4,
+        "point": 5126.0,
+        "se": 2242.4690744286568,
+        "ci_80": [
+          2252.160246980604,
+          7999.839753019396
+        ],
+        "ci_95": [
+          730.841377674963,
+          9521.158622325038
+        ]
+      },
+      {
+        "horizon": 5,
+        "point": 5126.0,
+        "se": 2507.156643931756,
+        "ci_80": [
+          1912.9494779037118,
+          8339.050522096288
+        ],
+        "ci_95": [
+          212.06327429344583,
+          10039.936725706553
+        ]
+      }
+    ]
+  },
+  "diagnostics": {
+    "figures_generated": [
+      "module_2_1_series_with_fitted.png",
+      "module_2_1_acf_pacf_original.png",
+      "module_2_1_acf_pacf_residuals.png",
+      "module_2_1_residual_diagnostics.png",
+      "module_2_1_forecast_fan_chart.png"
+    ],
+    "model_adequacy": {
+      "ljung_box_interpretation": [
+        "lag_5: p=0.404 (no autocorrelation)"
+      ],
+      "residual_normality": "acceptable"
+    },
+    "forecast_quality_note": "Wide intervals due to small sample and COVID volatility"
+  },
+  "decisions": [
+    {
+      "decision_id": "D001",
+      "timestamp": "2025-12-29T06:07:03.380696+00:00",
+      "category": "model_specification",
+      "decision": "Use d=1 from unit root tests",
+      "rationale": "Module 2.1.1 determined nd_intl_migration is I(1), requiring first differencing",
+      "alternatives_considered": [
+        "Let auto_arima determine d",
+        "Use d=0 for levels"
+      ],
+      "evidence": "ADF test on level: p=0.5564 (fail to reject unit root), ADF on diff: p=0.0025 (reject)",
+      "reversible": true
+    },
+    {
+      "decision_id": "D002",
+      "timestamp": "2025-12-29T06:07:03.429340+00:00",
+      "category": "model_selection",
+      "decision": "Selected ARIMA(0, 1, 0) via auto_arima",
+      "rationale": "Minimum AIC=238.42 among candidate models with d=1",
+      "alternatives_considered": [
+        "Manual model selection via ACF/PACF",
+        "Grid search over all orders"
+      ],
+      "evidence": "auto_arima with stepwise search, max_p=3, max_q=3",
+      "reversible": true
+    },
+    {
+      "decision_id": "D003",
+      "timestamp": "2025-12-29T06:07:03.474509+00:00",
+      "category": "methodology",
+      "decision": "Proceed with ARIMA despite short series (n=15)",
+      "rationale": "Sample size is small for reliable ARIMA, but this is all available data. Results should be interpreted with caution. Wide prediction intervals reflect uncertainty.",
+      "alternatives_considered": [
+        "Use simpler models only",
+        "Skip ARIMA entirely"
+      ],
+      "evidence": "Standard recommendation is n>=30 for ARIMA",
+      "reversible": false
+    }
+  ],
+  "warnings": [
+    "Short time series (n=15) limits model reliability. Prediction intervals are wide.",
+    "2020 COVID year (value=30) may distort model estimates and forecasts."
+  ],
+  "next_steps": [
+    "Use forecasts for scenario modeling (Module 9)",
+    "Compare ARIMA forecasts with VAR model forecasts (Module 2.2)",
+    "Incorporate structural breaks if identified (Module 2.1.2)",
+    "Consider policy scenario adjustments based on immigration regime changes"
+  ]
+}
+
+
+================================================================================
+FILE: RESULTS: module_9_scenario_modeling.json
+================================================================================
+
+{
+  "module": "9",
+  "analysis": "scenario_modeling",
+  "generated": "2025-12-29T06:30:36.227265+00:00",
+  "input_files": [
+    "nd_migration_summary.csv",
+    "module_1_1_summary_statistics.json",
+    "module_1_1_trend_decomposition.json",
+    "module_1_2_location_quotients.json",
+    "module_1_2_hhi_analysis.json",
+    "module_2_1_1_unit_root_tests.json",
+    "module_2_1_2_structural_breaks.json",
+    "module_2_1_arima_model.json",
+    "module_2_2_var_cointegration.json",
+    "module_3_1_fixed_effects.json",
+    "module_3_1_hausman_test.json",
+    "module_3_1_random_effects.json",
+    "module_3_1_panel_analysis.json",
+    "module_3_2_network_elasticity.json",
+    "module_3_2_origin_analysis.json",
+    "module_4_quantile_regression.json",
+    "module_4_regression_extensions.json",
+    "module_4_robust_regression.json",
+    "module_4_beta_regression.json",
+    "module_5_network_effects.json",
+    "module_5_gravity_network.json",
+    "module_5_gravity_model.json",
+    "module_6_state_clusters.json",
+    "module_6_machine_learning.json",
+    "module_6_elastic_net.json",
+    "module_6_feature_importance.json",
+    "module_7_did_estimates.json",
+    "module_7_causal_inference.json",
+    "module_7_synthetic_control.json",
+    "module_8_wave_durations.json",
+    "module_8_hazard_model.json",
+    "module_8_duration_analysis.json"
+  ],
+  "parameters": {
+    "base_year": 2024,
+    "projection_horizon": "2025-2045",
+    "n_projection_years": 21,
+    "monte_carlo_draws": 1000,
+    "scenarios": [
+      "CBO Full",
+      "Moderate",
+      "Zero",
+      "Pre-2020 Trend"
+    ],
+    "confidence_intervals": [
+      "50%",
+      "80%",
+      "95%"
+    ],
+    "model_weights": {
+      "aic_based": {
+        "arima": 4.671952147490168e-44,
+        "var": 1.0
+      },
+      "r2_based": {
+        "ols": 0.2445463819854277,
+        "elastic_net": 0.29321949380192663,
+        "random_forest": 0.46223412421264576
+      }
+    },
+    "input_modules": [
+      "module_1_1_summary_statistics",
+      "module_1_1_trend_decomposition",
+      "module_1_2_location_quotients",
+      "module_1_2_hhi_analysis",
+      "module_2_1_1_unit_root_tests",
+      "module_2_1_2_structural_breaks",
+      "module_2_1_arima_model",
+      "module_2_2_var_cointegration",
+      "module_3_1_fixed_effects",
+      "module_3_1_hausman_test",
+      "module_3_1_random_effects",
+      "module_3_1_panel_analysis",
+      "module_3_2_network_elasticity",
+      "module_3_2_origin_analysis",
+      "module_4_quantile_regression",
+      "module_4_regression_extensions",
+      "module_4_robust_regression",
+      "module_4_beta_regression",
+      "module_5_network_effects",
+      "module_5_gravity_network",
+      "module_5_gravity_model",
+      "module_6_state_clusters",
+      "module_6_machine_learning",
+      "module_6_elastic_net",
+      "module_6_feature_importance",
+      "module_7_did_estimates",
+      "module_7_causal_inference",
+      "module_7_synthetic_control",
+      "module_8_wave_durations",
+      "module_8_hazard_model",
+      "module_8_duration_analysis"
+    ]
+  },
+  "results": {
+    "model_averaging": {
+      "aic_weights": {
+        "arima": 4.671952147490168e-44,
+        "var": 1.0
+      },
+      "r2_weights": {
+        "ols": 0.2445463819854277,
+        "elastic_net": 0.29321949380192663,
+        "random_forest": 0.46223412421264576
+      }
+    },
+    "scenarios": {
+      "cbo_full": {
+        "description": "Full implementation of elevated immigration policy",
+        "final_2045_value": 19317.520188703846,
+        "assumptions": {
+          "growth_rate": 0.08,
+          "arima_multiplier": 1.1
+        }
+      },
+      "moderate": {
+        "description": "Middle-ground assumption with dampened historical trend",
+        "final_2045_value": 7048.3587997393915,
+        "assumptions": {
+          "trend_dampening": 0.5,
+          "average_trend_used": 240.29484996742335
+        }
+      },
+      "zero": {
+        "description": "Hypothetical scenario with no international migration",
+        "final_2045_value": 0.0,
+        "assumptions": {
+          "immigration_level": 0
+        }
+      },
+      "pre_2020_trend": {
+        "description": "Continue historical 2010-2019 trend (ignoring COVID disruption)",
+        "final_2045_value": 2517.187878787879,
+        "assumptions": {
+          "trend_slope": 72.43030303030304,
+          "start_value": 634.0
+        }
+      }
+    },
+    "monte_carlo": {
+      "n_draws": 1000,
+      "median_2030": 5313.674259037331,
+      "median_2045": 8671.82072809533,
+      "ci_95_2045": [
+        3182.929902344675,
+        14103.739895920262
+      ]
+    },
+    "confidence_intervals": {
+      "ci_50": {
+        "2030": [
+          3511.367636543809,
+          6993.266801268044
+        ],
+        "2045": [
+          6164.262287061618,
+          10962.483278409689
+        ]
+      },
+      "ci_95": {
+        "2030": [
+          1041.69682318379,
+          9472.535883980876
+        ],
+        "2045": [
+          3182.929902344675,
+          14103.739895920262
+        ]
+      }
+    }
+  },
+  "diagnostics": {
+    "input_modules_loaded": 31,
+    "estimates_extracted": {
+      "arima": true,
+      "var": true,
+      "panel": true,
+      "quantile": true,
+      "robust": true,
+      "gravity": true,
+      "machine_learning": true,
+      "causal": true,
+      "duration": true
+    },
+    "historical_years": 15,
+    "projection_years": 21,
+    "mc_convergence": {
+      "mean_2045": 8627.395839990355,
+      "std_2045": 3378.293333221163,
+      "cv_2045": 0.39157741175637767
+    }
+  },
+  "warnings": [],
+  "decisions": [
+    {
+      "decision_id": "D001",
+      "timestamp": "2025-12-29T06:30:35.213700+00:00",
+      "category": "data_integration",
+      "decision": "Extracted estimates from 9 module categories",
+      "rationale": "Consolidate all statistical findings for scenario modeling",
+      "alternatives_considered": [
+        "Use only time series models",
+        "Use only cross-sectional results"
+      ],
+      "evidence": "Loaded 32 result files",
+      "reversible": true
+    },
+    {
+      "decision_id": "D002",
+      "timestamp": "2025-12-29T06:30:35.213748+00:00",
+      "category": "methodology",
+      "decision": "Computed AIC and R-squared based model weights",
+      "rationale": "AIC weights for time series averaging; R2 weights for cross-sectional insight",
+      "alternatives_considered": [
+        "Equal weights",
+        "Expert-assigned weights",
+        "BIC weights"
+      ],
+      "evidence": "AIC models: ['arima', 'var'], R2 models: ['ols', 'elastic_net', 'random_forest']",
+      "reversible": true
+    },
+    {
+      "decision_id": "D003",
+      "timestamp": "2025-12-29T06:30:35.215670+00:00",
+      "category": "scenario_design",
+      "decision": "Generated 4 scenarios: CBO Full, Moderate, Zero, Pre-2020 Trend",
+      "rationale": "Cover range from optimistic to restrictive immigration policy outcomes",
+      "alternatives_considered": [
+        "5-scenario approach",
+        "Probabilistic weighting of scenarios"
+      ],
+      "evidence": "Baseline 2024 = 5126, Pre-2020 trend = 72.43/yr",
+      "reversible": true
+    },
+    {
+      "decision_id": "D004",
+      "timestamp": "2025-12-29T06:30:35.245819+00:00",
+      "category": "uncertainty_quantification",
+      "decision": "Ran 1000-draw Monte Carlo simulation",
+      "rationale": "Propagate parameter uncertainty through projections",
+      "alternatives_considered": [
+        "Analytical confidence intervals",
+        "Bootstrapping"
+      ],
+      "evidence": "Trend uncertainty from quantile regression range",
+      "reversible": true
+    }
+  ],
+  "next_steps": [
+    "Integrate scenario projections with cohort-component model",
+    "Sensitivity analysis on key parameters",
+    "Compare with official CBO and Census projections",
+    "Update scenarios as new policy information becomes available",
+    "Create interactive dashboard for scenario exploration"
+  ]
+}
+
+
+================================================================================
+FILE: RESULTS: module_1_1_summary_statistics.json
+================================================================================
+
+{
+  "module": "1.1",
+  "analysis": "descriptive_statistics",
+  "generated": "2025-12-29T05:58:06.209567+00:00",
+  "input_files": [
+    "nd_migration_summary.csv"
+  ],
+  "parameters": {
+    "hp_filter_lambda": 6.25,
+    "bootstrap_iterations": 1000,
+    "confidence_level": 0.95,
+    "outlier_method": "IQR",
+    "random_seed": 42
+  },
+  "results": {
+    "descriptive_statistics": {
+      "nd_intl_migration": {
+        "variable": "nd_intl_migration",
+        "n": 15,
+        "mean": 1796.2666666666667,
+        "se_mean": 382.73696633174256,
+        "ci_mean_95": [
+          1046.1022126564512,
+          2546.431120676882
+        ],
+        "median": 1254.0,
+        "ci_median_95": [
+          634.0,
+          2247.0
+        ],
+        "mode": null,
+        "sd": 1482.3338965807877,
+        "variance": 2197313.7809523814,
+        "skewness": 1.1033212213997927,
+        "se_skewness": 0.6324555320336759,
+        "kurtosis": 0.4509097356647045,
+        "se_kurtosis": 1.2649110640673518,
+        "range": 5096.0,
+        "min": 30.0,
+        "max": 5126.0,
+        "iqr": 1763.5,
+        "cv": 0.8252304204539718,
+        "percentiles": {
+          "5": 326.1,
+          "10": 459.0,
+          "25": 797.5,
+          "50": 1254.0,
+          "75": 2561.0,
+          "90": 3876.2,
+          "95": 4526.099999999999
+        },
+        "normality": {
+          "shapiro_wilk": {
+            "statistic": 0.885684757048822,
+            "p_value": 0.05772512569754201
+          },
+          "kolmogorov_smirnov": {
+            "statistic": 0.2323788529932821,
+            "p_value": 0.3387660065320719
+          }
+        },
+        "outliers": {
+          "mild": [],
+          "extreme": [],
+          "iqr_bounds": {
+            "mild_lower": -1847.75,
+            "mild_upper": 5206.25,
+            "extreme_lower": -4493.0,
+            "extreme_upper": 7851.5
+          }
+        }
+      },
+      "us_intl_migration": {
+        "variable": "us_intl_migration",
+        "n": 15,
+        "mean": 1010744.2,
+        "se_mean": 191854.45854112087,
+        "ci_mean_95": [
+          634709.461259403,
+          1386778.9387405969
+        ],
+        "median": 858736.0,
+        "ci_median_95": [
+          568639.0,
+          1065017.0
+        ],
+        "mode": null,
+        "sd": 743049.1228254024,
+        "variance": 552121998931.6,
+        "skewness": 1.2250198782504134,
+        "se_skewness": 0.6324555320336759,
+        "kurtosis": 1.4643176633194086,
+        "se_kurtosis": 1.2649110640673518,
+        "range": 2766234.0,
+        "min": 19885.0,
+        "max": 2786119.0,
+        "iqr": 418311.0,
+        "cv": 0.7351505186232109,
+        "percentiles": {
+          "5": 131890.6,
+          "10": 258337.40000000002,
+          "25": 644255.0,
+          "50": 858736.0,
+          "75": 1062566.0,
+          "90": 2053993.4,
+          "95": 2441844.9999999995
+        },
+        "normality": {
+          "shapiro_wilk": {
+            "statistic": 0.8807851555753963,
+            "p_value": 0.04874330282238474
+          },
+          "kolmogorov_smirnov": {
+            "statistic": 0.27088688006333284,
+            "p_value": 0.1835202989503647
+          }
+        },
+        "outliers": {
+          "mild": [
+            {
+              "index": 12,
+              "value": 1693535.0
+            },
+            {
+              "index": 13,
+              "value": 2294299.0
+            }
+          ],
+          "extreme": [
+            {
+              "index": 14,
+              "value": 2786119.0
+            }
+          ],
+          "iqr_bounds": {
+            "mild_lower": 16788.5,
+            "mild_upper": 1690032.5,
+            "extreme_lower": -610678.0,
+            "extreme_upper": 2317499.0
+          }
+        }
+      },
+      "nd_share_of_us_intl_pct": {
+        "variable": "nd_share_of_us_intl_pct",
+        "n": 15,
+        "mean": 0.17311264892684516,
+        "se_mean": 0.013982814886673278,
+        "ci_mean_95": [
+          0.14570633174896555,
+          0.20051896610472478
+        ],
+        "median": 0.1520190621090287,
+        "ci_median_95": [
+          0.1475766362883181,
+          0.1940910580531255
+        ],
+        "mode": null,
+        "sd": 0.05415520918918676,
+        "variance": 0.0029327866823245776,
+        "skewness": 1.1013790597154232,
+        "se_skewness": 0.6324555320336759,
+        "kurtosis": 1.2831522603720638,
+        "se_kurtosis": 1.2649110640673518,
+        "range": 0.20151985711854298,
+        "min": 0.1016248341061826,
+        "max": 0.3031446912247256,
+        "iqr": 0.041692415869354654,
+        "cv": 0.3128321906279185,
+        "percentiles": {
+          "5": 0.10853345129755723,
+          "10": 0.115087549033768,
+          "25": 0.1483880663171929,
+          "50": 0.1520190621090287,
+          "75": 0.19008048218654755,
+          "90": 0.24087604313783775,
+          "95": 0.27305166060684327
+        },
+        "normality": {
+          "shapiro_wilk": {
+            "statistic": 0.9107606638888579,
+            "p_value": 0.13909583524200614
+          },
+          "kolmogorov_smirnov": {
+            "statistic": 0.18488108509990442,
+            "p_value": 0.6195946639191146
+          }
+        },
+        "outliers": {
+          "mild": [
+            {
+              "index": 0,
+              "value": 0.2601546474848938
+            },
+            {
+              "index": 7,
+              "value": 0.3031446912247256
+            }
+          ],
+          "extreme": [],
+          "iqr_bounds": {
+            "mild_lower": 0.08584944251316091,
+            "mild_upper": 0.2526191059905795,
+            "extreme_lower": 0.023310818709128933,
+            "extreme_upper": 0.31515772979461154
+          }
+        }
+      },
+      "nd_share_of_us_pop_pct": {
+        "variable": "nd_share_of_us_pop_pct",
+        "n": 15,
+        "mean": 0.23079356449199231,
+        "se_mean": 0.001445870554229242,
+        "ci_mean_95": [
+          0.227959658205703,
+          0.23362747077828164
+        ],
+        "median": 0.2327602260280481,
+        "ci_median_95": [
+          0.2320250377333255,
+          0.2342082520427126
+        ],
+        "mode": null,
+        "sd": 0.005599832577301542,
+        "variance": 3.135812489380763e-05,
+        "skewness": -1.523704374095964,
+        "se_skewness": 0.6324555320336759,
+        "kurtosis": 1.0598017248708667,
+        "se_kurtosis": 1.2649110640673518,
+        "range": 0.017425917722764195,
+        "min": 0.2181353997764108,
+        "max": 0.235561317499175,
+        "iqr": 0.003819358736724038,
+        "cv": 0.02426338268845376,
+        "percentiles": {
+          "5": 0.2194501323948499,
+          "10": 0.22149868886717328,
+          "25": 0.23041312654631915,
+          "50": 0.2327602260280481,
+          "75": 0.2342324852830432,
+          "90": 0.2347736145669466,
+          "95": 0.23524341554966888
+        },
+        "normality": {
+          "shapiro_wilk": {
+            "statistic": 0.7462143550434664,
+            "p_value": 0.0008121987099837989
+          },
+          "kolmogorov_smirnov": {
+            "statistic": 0.32036368697469236,
+            "p_value": 0.07202609014727801
+          }
+        },
+        "outliers": {
+          "mild": [
+            {
+              "index": 1,
+              "value": 0.2200135892313238
+            },
+            {
+              "index": 2,
+              "value": 0.2237263383209475
+            }
+          ],
+          "extreme": [
+            {
+              "index": 0,
+              "value": 0.2181353997764108
+            }
+          ],
+          "iqr_bounds": {
+            "mild_lower": 0.2246840884412331,
+            "mild_upper": 0.23996152338812926,
+            "extreme_lower": 0.21895505033614704,
+            "extreme_upper": 0.2456905614932153
+          }
+        }
+      }
+    },
+    "hp_decomposition": {
+      "variable": "nd_share_of_us_intl_pct",
+      "years": [
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "trend": [
+        0.21143161122008253,
+        0.18463684204584238,
+        0.1656377586739721,
+        0.1570112021169513,
+        0.1589604585191461,
+        0.1701792834923413,
+        0.18018773274224764,
+        0.18519047847456174,
+        0.17643407507159145,
+        0.1640377509556708,
+        0.15760735944590312,
+        0.15834179966635925,
+        0.1663615913187774,
+        0.17572895683497322,
+        0.18494283332425818
+      ],
+      "cycle": [
+        0.04872303626481128,
+        -0.03261777993681367,
+        -0.01483471792570959,
+        -0.009434565828633196,
+        -0.057335624412963485,
+        0.04177885312491242,
+        -0.030988236396179952,
+        0.11795421275016385,
+        -0.0032085943951925544,
+        -0.05254346371895301,
+        -0.006739871389579322,
+        -0.03786435793701595,
+        0.02772946673434809,
+        0.010340949484996392,
+        -0.0009593064181927791
+      ],
+      "lambda": 6.25,
+      "trend_stats": {
+        "mean": 0.17311264892684522,
+        "sd": 0.014797328714008823,
+        "min": 0.1570112021169513,
+        "max": 0.21143161122008253
+      },
+      "cycle_stats": {
+        "mean": -9.806970050855549e-17,
+        "sd": 0.0453401998949745,
+        "min": -0.057335624412963485,
+        "max": 0.11795421275016385
+      }
+    },
+    "differences": {
+      "nd_share_of_us_intl_pct": {
+        "variable": "nd_share_of_us_intl_pct",
+        "first_difference": {
+          "values": [
+            -0.1081355853758651,
+            -0.0012160213607662063,
+            -0.003226404459944404,
+            -0.0459518021821355,
+            0.11033330251107111,
+            -0.06275864027118602,
+            0.1539451948786579,
+            -0.1299192105483267,
+            -0.0617311934396811,
+            0.039373200819606005,
+            -0.030390046326980502,
+            0.07361361632378219,
+            -0.008021151733155873,
+            -0.0020863794139042158
+          ],
+          "stats": {
+            "variable": "nd_share_of_us_intl_pct_diff",
+            "n": 14,
+            "mean": -0.00544079432705917,
+            "se_mean": 0.021208636442330345,
+            "ci_mean_95": [
+              -0.047009721754026644,
+              0.036128133099908304
+            ],
+            "median": -0.005623778096550139,
+            "ci_median_95": [
+              -0.05435522122666076,
+              0.039373200819606005
+            ],
+            "mode": null,
+            "sd": 0.07935545120784834,
+            "variance": 0.006297287636401199,
+            "skewness": 0.48927915313169784,
+            "se_skewness": 0.6546536707079771,
+            "kurtosis": -0.003986065107317582,
+            "se_kurtosis": 1.3093073414159542,
+            "range": 0.2838644054269846,
+            "min": -0.1299192105483267,
+            "max": 0.1539451948786579,
+            "iqr": 0.08701224089980765,
+            "cv": -14.585269436336356,
+            "percentiles": {
+              "5": -0.11575985418622665,
+              "10": -0.09452250184446137,
+              "25": -0.0577863456252947,
+              "50": -0.005623778096550139,
+              "75": 0.029225895274512952,
+              "90": 0.09931739665488447,
+              "95": 0.12559746483972647
+            },
+            "normality": {
+              "shapiro_wilk": {
+                "statistic": 0.9646733515581483,
+                "p_value": 0.7986084393797878
+              },
+              "kolmogorov_smirnov": {
+                "statistic": 0.1930566155093446,
+                "p_value": 0.606849688026291
+              }
+            },
+            "outliers": {
+              "mild": [],
+              "extreme": [],
+              "iqr_bounds": {
+                "mild_lower": -0.18830470697500618,
+                "mild_upper": 0.15974425662422442,
+                "extreme_lower": -0.3188230683247177,
+                "extreme_upper": 0.29026261797393593
+              }
+            }
+          }
+        },
+        "log_difference": {
+          "values": [
+            -0.5372703306168158,
+            -0.008031302111595418,
+            -0.0216270105761891,
+            -0.37305967345236524,
+            0.7351008509307904,
+            -0.35110447431857983,
+            0.7089259082558872,
+            -0.5596161179462951,
+            -0.4406207483345015,
+            0.30242853494813615,
+            -0.22493935915064767,
+            0.4768648905109443,
+            -0.04220497681806634,
+            -0.011276217616106532
+          ],
+          "stats": {
+            "variable": "nd_share_of_us_intl_pct_log_diff",
+            "n": 14,
+            "mean": -0.024745001878243182,
+            "se_mean": 0.11637147833498702,
+            "ci_mean_95": [
+              -0.25283309941481774,
+              0.20334309565833136
+            ],
+            "median": -0.03191599369712772,
+            "ci_median_95": [
+              -0.36208207388547253,
+              0.30242853494813615
+            ],
+            "mode": null,
+            "sd": 0.43542220152190786,
+            "variance": 0.18959249357818492,
+            "skewness": 0.5981671338050182,
+            "se_skewness": 0.6546536707079771,
+            "kurtosis": -0.7554110685154911,
+            "se_kurtosis": 1.3093073414159542,
+            "range": 1.2947169688770854,
+            "min": -0.5596161179462951,
+            "max": 0.7351008509307904,
+            "iqr": 0.5923844493521222,
+            "cv": -17.596369709906906,
+            "percentiles": {
+              "5": -0.5450913561821336,
+              "10": -0.5082754559321215,
+              "25": -0.3675708736689189,
+              "50": -0.03191599369712772,
+              "75": 0.22481357568320326,
+              "90": 0.6393076029324045,
+              "95": 0.7180871381921033
+            },
+            "normality": {
+              "shapiro_wilk": {
+                "statistic": 0.9120062405047874,
+                "p_value": 0.16851588043937482
+              },
+              "kolmogorov_smirnov": {
+                "statistic": 0.19897605750935365,
+                "p_value": 0.5694456453701219
+              }
+            },
+            "outliers": {
+              "mild": [],
+              "extreme": [],
+              "iqr_bounds": {
+                "mild_lower": -1.2561475476971022,
+                "mild_upper": 1.1133902497113866,
+                "extreme_lower": -2.1447242217252853,
+                "extreme_upper": 2.0019669237395696
+              }
+            }
+          }
+        }
+      },
+      "nd_intl_migration": {
+        "variable": "nd_intl_migration",
+        "first_difference": {
+          "values": [
+            741.0,
+            86.0,
+            -41.0,
+            -293.0,
+            1286.0,
+            -658.0,
+            1286.0,
+            -1628.0,
+            -613.0,
+            -604.0,
+            423.0,
+            2834.0,
+            982.0,
+            857.0
+          ],
+          "stats": {
+            "variable": "nd_intl_migration_diff",
+            "n": 14,
+            "mean": 332.7142857142857,
+            "se_mean": 297.74802069947543,
+            "ci_mean_95": [
+              -250.87183485668612,
+              916.3004062852576
+            ],
+            "median": 254.5,
+            "ci_median_95": [
+              -448.5,
+              919.5
+            ],
+            "mode": 1286.0,
+            "sd": 1114.0710810475127,
+            "variance": 1241154.373626374,
+            "skewness": 0.47887141317056786,
+            "se_skewness": 0.6546536707079771,
+            "kurtosis": 0.811598337833205,
+            "se_kurtosis": 1.3093073414159542,
+            "range": 4462.0,
+            "min": -1628.0,
+            "max": 2834.0,
+            "iqr": 1477.0,
+            "cv": 3.348431759266891,
+            "percentiles": {
+              "5": -997.5,
+              "10": -644.5,
+              "25": -526.25,
+              "50": 254.5,
+              "75": 950.75,
+              "90": 1286.0,
+              "95": 1827.7999999999995
+            },
+            "normality": {
+              "shapiro_wilk": {
+                "statistic": 0.9661409662049548,
+                "p_value": 0.821265139515519
+              },
+              "kolmogorov_smirnov": {
+                "statistic": 0.12465948412938999,
+                "p_value": 0.9625193017924347
+              }
+            },
+            "outliers": {
+              "mild": [],
+              "extreme": [],
+              "iqr_bounds": {
+                "mild_lower": -2741.75,
+                "mild_upper": 3166.25,
+                "extreme_lower": -4957.25,
+                "extreme_upper": 5381.75
+              }
+            }
+          }
+        },
+        "log_difference": {
+          "values": [
+            0.9490805546971455,
+            0.06871712351884529,
+            -0.03217225294077153,
+            -0.2661193122225738,
+            0.8493768632150367,
+            -0.34649110564861285,
+            0.5929477866947348,
+            -0.8353120075514147,
+            -0.6764469912428108,
+            -3.0508515727750702,
+            2.714694743820879,
+            1.9818384481811844,
+            0.26140431309374357,
+            0.18294602016605488
+          ],
+          "stats": {
+            "variable": "nd_intl_migration_log_diff",
+            "n": 14,
+            "mean": 0.17097232935759785,
+            "se_mean": 0.36027498525225304,
+            "ci_mean_95": [
+              -0.535166641736818,
+              0.8771113004520138
+            ],
+            "median": 0.12583157184245009,
+            "ci_median_95": [
+              -0.3063052089355933,
+              0.7729732380089158
+            ],
+            "mode": null,
+            "sd": 1.3480255598389654,
+            "variance": 1.8171729099791565,
+            "skewness": -0.44129509012186896,
+            "se_skewness": 0.6546536707079771,
+            "kurtosis": 2.1862083487322552,
+            "se_kurtosis": 1.3093073414159542,
+            "range": 5.765546316595949,
+            "min": -3.0508515727750702,
+            "max": 2.714694743820879,
+            "iqr": 1.1116677513770643,
+            "cv": 7.884466246111073,
+            "percentiles": {
+              "5": -1.610750855379694,
+              "10": -0.7876525026588335,
+              "25": -0.3263981572921031,
+              "50": 0.12583157184245009,
+              "75": 0.7852695940849612,
+              "90": 1.6720110801359738,
+              "95": 2.238338151655077
+            },
+            "normality": {
+              "shapiro_wilk": {
+                "statistic": 0.9382697501959911,
+                "p_value": 0.3966020383782311
+              },
+              "kolmogorov_smirnov": {
+                "statistic": 0.15625789454952457,
+                "p_value": 0.8335818766521403
+              }
+            },
+            "outliers": {
+              "mild": [
+                {
+                  "index": 10,
+                  "value": -3.0508515727750702
+                },
+                {
+                  "index": 11,
+                  "value": 2.714694743820879
+                }
+              ],
+              "extreme": [],
+              "iqr_bounds": {
+                "mild_lower": -1.9938997843576995,
+                "mild_upper": 2.4527712211505577,
+                "extreme_lower": -3.661401411423296,
+                "extreme_upper": 4.120272848216154
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "diagnostics": {
+    "data_quality": {
+      "n_observations": 15,
+      "year_range": [
+        2010,
+        2024
+      ],
+      "missing_values": {
+        "nd_intl_migration": 0,
+        "us_intl_migration": 0,
+        "nd_share_of_us_intl_pct": 0,
+        "nd_share_of_us_pop_pct": 0
+      },
+      "complete_cases": 15
+    },
+    "normality_assessment": {
+      "nd_share_of_us_intl_pct": {
+        "shapiro_wilk_p": 0.13909583524200614,
+        "interpretation": "Cannot reject normality (p > 0.05)"
+      }
+    },
+    "outlier_summary": {
+      "nd_share_of_us_intl_pct": {
+        "n_mild": 2,
+        "n_extreme": 0
+      }
+    }
+  },
+  "decisions": [
+    {
+      "decision_id": "D001",
+      "timestamp": "2025-12-29T05:58:04.359860+00:00",
+      "category": "data_handling",
+      "decision": "Retained year 2020 in descriptive statistics analysis",
+      "rationale": "Descriptive analysis should show full data including anomalies. Exclusion decisions deferred to time series modeling modules.",
+      "alternatives_considered": [
+        "Exclude 2020",
+        "Winsorize to 1st percentile",
+        "Replace with interpolation"
+      ],
+      "evidence": "2020 value (30) is -1.2 standard deviations below mean",
+      "reversible": true
+    },
+    {
+      "decision_id": "D002",
+      "timestamp": "2025-12-29T05:58:04.363391+00:00",
+      "category": "methodology",
+      "decision": "Used HP filter lambda=6.25 for annual data",
+      "rationale": "Standard recommendation for annual data (Ravn and Uhlig, 2002). Lambda=6.25 balances trend smoothness with cycle responsiveness.",
+      "alternatives_considered": [
+        "lambda=100 (quarterly)",
+        "lambda=1600 (monthly)",
+        "Baxter-King filter"
+      ],
+      "evidence": "Ravn, M.O. and Uhlig, H. (2002). On adjusting the Hodrick-Prescott filter.",
+      "reversible": true
+    }
+  ],
+  "warnings": [
+    "Year 2020 (COVID) shows anomalous international migration value (30), which is -1.2 SD below mean"
+  ],
+  "next_steps": [
+    "Module 2.1.1: Conduct unit root tests to determine stationarity",
+    "Module 1.2: Analyze geographic concentration patterns",
+    "Module 2.1.2: Test for structural breaks (2015 Bakken, 2017 Travel Ban, 2020 COVID)",
+    "Consider special handling of 2020 in time series models"
+  ]
+}
+
+
+================================================================================
+FILE: DATA: nd_migration_summary.csv
+================================================================================
+
+year,nd_intl_migration,us_intl_migration,nd_share_of_us_intl_pct,nd_share_of_us_pop_pct
+2010,468,179893,0.2601546474848938,0.21813539977641083
+2011,1209,795295,0.15201906210902874,0.22001358923132386
+2012,1295,858736,0.15080304074826256,0.2237263383209475
+2013,1254,849728,0.14757663628831816,0.22880121535931286
+2014,961,945635,0.10162483410618262,0.23202503773332556
+2015,2247,1060115,0.21195813661725377,0.23556131749917505
+2016,1589,1065017,0.14919949634606772,0.23403902950290412
+2017,2875,948392,0.30314469122472565,0.23276022602804813
+2018,1247,719871,0.17322548067639898,0.23254992908585942
+2019,634,568639,0.11149428723671785,0.23260868922306338
+2020,30,19885,0.15086748805632386,0.23510717185702343
+2021,453,376004,0.12047744172934331,0.23425671852337382
+2022,3287,1693535,0.19409105805312554,0.23383727456457265
+2023,4269,2294299,0.18606990631996964,0.23427327863183148
+2024,5126,2786119,0.1839835269060654,0.2342082520427126
+
+
+================================================================================
+FILE: SCRIPT: module_2_1_1_unit_root_tests.py
+================================================================================
+
+#!/usr/bin/env python3
+"""
+Module 2.1.1: Unit Root Testing
+===============================
+
+Performs comprehensive unit root and stationarity tests on immigration time series
+to determine integration order for subsequent time series modeling.
+
+Tests Performed:
+- Augmented Dickey-Fuller (ADF) test - H0: Unit root present (non-stationary)
+- KPSS test - H0: Series is stationary
+- Phillips-Perron test - H0: Unit root present
+
+Variables Tested:
+- nd_share_of_us_intl_pct (primary)
+- nd_intl_migration
+- us_intl_migration
+
+Usage:
+    micromamba run -n cohort_proj python module_2_1_1_unit_root_tests.py
+"""
+
+import json
+import sys
+import warnings
+from datetime import UTC, datetime
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from statsmodels.graphics.tsaplots import plot_acf
+from statsmodels.tsa.stattools import adfuller, kpss
+
+# Suppress warnings during execution
+warnings.filterwarnings("ignore")
+
+# Project paths
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent  # cohort_projections/
+DATA_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "analysis"
+RESULTS_DIR = Path(__file__).parent / "results"
+FIGURES_DIR = Path(__file__).parent / "figures"
+
+# Ensure output directories exist
+RESULTS_DIR.mkdir(exist_ok=True)
+FIGURES_DIR.mkdir(exist_ok=True)
+
+# Colorblind-safe palette
+COLORS = {
+    "primary": "#0072B2",  # Blue
+    "secondary": "#D55E00",  # Vermillion/Orange
+    "tertiary": "#009E73",  # Teal/Green
+    "quaternary": "#CC79A7",  # Pink
+    "highlight": "#F0E442",  # Yellow
+    "neutral": "#999999",  # Gray
+    "ci_fill": "#0072B2",  # Blue with alpha=0.2
+}
+
+
+class ModuleResult:
+    """Standard result container for all modules."""
+
+    def __init__(self, module_id: str, analysis_name: str):
+        self.module_id = module_id
+        self.analysis_name = analysis_name
+        self.input_files: list[str] = []
+        self.parameters: dict = {}
+        self.results: dict = {}
+        self.diagnostics: dict = {}
+        self.decisions: list[dict] = []
+        self.warnings: list[str] = []
+        self.next_steps: list[str] = []
+
+    def add_decision(
+        self,
+        decision_id: str,
+        category: str,
+        decision: str,
+        rationale: str,
+        alternatives: list[str] = None,
+        evidence: str = None,
+        reversible: bool = True,
+    ):
+        """Add a documented decision to the log."""
+        self.decisions.append(
+            {
+                "decision_id": decision_id,
+                "timestamp": datetime.now(UTC).isoformat(),
+                "category": category,
+                "decision": decision,
+                "rationale": rationale,
+                "alternatives_considered": alternatives or [],
+                "evidence": evidence,
+                "reversible": reversible,
+            }
+        )
+
+    def to_dict(self) -> dict:
+        return {
+            "module": self.module_id,
+            "analysis": self.analysis_name,
+            "generated": datetime.now(UTC).isoformat(),
+            "input_files": self.input_files,
+            "parameters": self.parameters,
+            "results": self.results,
+            "diagnostics": self.diagnostics,
+            "decisions": self.decisions,
+            "warnings": self.warnings,
+            "next_steps": self.next_steps,
+        }
+
+    def save(self, filename: str) -> Path:
+        """Save results to JSON file."""
+        output_path = RESULTS_DIR / filename
+        with open(output_path, "w") as f:
+            json.dump(self.to_dict(), f, indent=2, default=str)
+        print(f"Results saved to: {output_path}")
+        return output_path
+
+
+def setup_figure(figsize=(10, 8)):
+    """Standard figure setup for all visualizations."""
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.grid(True, alpha=0.3, linestyle="-", linewidth=0.5)
+    return fig, ax
+
+
+def save_figure(
+    fig, filepath_base, title, source_note="Census Bureau Population Estimates Program"
+):
+    """Save figure in both PNG and PDF formats."""
+    fig.suptitle(title, fontsize=14, fontweight="bold", y=1.02)
+    fig.text(
+        0.02,
+        0.02,
+        f"Source: {source_note}",
+        fontsize=8,
+        fontstyle="italic",
+        transform=fig.transFigure,
+    )
+    plt.tight_layout(rect=[0, 0.03, 1, 0.97])
+
+    # Save both formats
+    fig.savefig(
+        f"{filepath_base}.png",
+        dpi=300,
+        bbox_inches="tight",
+        facecolor="white",
+        edgecolor="none",
+    )
+    fig.savefig(
+        f"{filepath_base}.pdf",
+        dpi=300,
+        bbox_inches="tight",
+        facecolor="white",
+        edgecolor="none",
+    )
+    plt.close(fig)
+
+
+def load_data(filename: str) -> pd.DataFrame:
+    """Load data file from analysis directory."""
+    filepath = DATA_DIR / filename
+    if not filepath.exists():
+        raise FileNotFoundError(f"Data file not found: {filepath}")
+
+    if filepath.suffix == ".csv":
+        return pd.read_csv(filepath)
+    elif filepath.suffix == ".parquet":
+        return pd.read_parquet(filepath)
+    else:
+        raise ValueError(f"Unsupported file type: {filepath.suffix}")
+
+
+def phillips_perron_test(series, regression="c"):
+    """
+    Perform Phillips-Perron test using ADF with lag=0 and Newey-West correction.
+
+    The PP test is similar to ADF but uses non-parametric correction for serial
+    correlation. For small samples, we approximate using ADF with minimal lags.
+
+    Parameters:
+    -----------
+    series : array-like
+        Time series data
+    regression : str
+        'c' for constant only, 'ct' for constant and trend
+
+    Returns:
+    --------
+    dict with test statistic, p-value, critical values
+    """
+    # Use ADF with maxlag=0 as base (equivalent to Dickey-Fuller)
+    # In small samples, PP test approximates this
+    result = adfuller(series, maxlag=0, regression=regression, autolag=None)
+
+    return {
+        "statistic": float(result[0]),
+        "p_value": float(result[1]),
+        "lags_used": 0,
+        "n_obs_used": int(result[3]),
+        "critical_values": {k: float(v) for k, v in result[4].items()},
+        "note": "PP test approximated using DF test (maxlag=0) for small sample",
+    }
+
+
+def run_adf_test(series, series_name, maxlag=None, regression="c"):
+    """
+    Run Augmented Dickey-Fuller test with full diagnostics.
+
+    Parameters:
+    -----------
+    series : array-like
+        Time series data
+    series_name : str
+        Name of the series for reporting
+    maxlag : int, optional
+        Maximum lag to consider
+    regression : str
+        'c' for constant only, 'ct' for constant and trend
+
+    Returns:
+    --------
+    dict with complete ADF test results
+    """
+    # Run ADF test with automatic lag selection (AIC)
+    result = adfuller(series, maxlag=maxlag, regression=regression, autolag="AIC")
+
+    # Extract results
+    adf_result = {
+        "series": series_name,
+        "statistic": float(result[0]),
+        "p_value": float(result[1]),
+        "used_lag": int(result[2]),
+        "n_obs_used": int(result[3]),
+        "critical_values": {k: float(v) for k, v in result[4].items()},
+        "ic_best": float(result[5]) if result[5] is not None else None,
+        "regression_type": regression,
+    }
+
+    # Get regression coefficients by running OLS manually
+    # This provides the actual coefficient estimates
+    len(series)
+    y = np.diff(series)
+    y_lag = series[:-1]
+
+    # Build regressor matrix based on regression type
+    if regression == "c":
+        X = np.column_stack([np.ones(len(y)), y_lag])
+        coef_names = ["constant", "rho_minus_1"]
+    elif regression == "ct":
+        trend = np.arange(1, len(y) + 1)
+        X = np.column_stack([np.ones(len(y)), trend, y_lag])
+        coef_names = ["constant", "trend", "rho_minus_1"]
+    else:
+        X = y_lag.reshape(-1, 1)
+        coef_names = ["rho_minus_1"]
+
+    # Add lagged differences if lags > 0
+    for i in range(1, result[2] + 1):
+        if i < len(y):
+            lagged_diff = np.zeros(len(y))
+            lagged_diff[i:] = np.diff(series)[:-i]
+            X = np.column_stack([X, lagged_diff])
+            coef_names.append(f"diff_lag_{i}")
+
+    # Ensure dimensions match
+    if X.shape[0] != len(y):
+        # Trim y to match X
+        y = y[: X.shape[0]]
+
+    try:
+        # OLS estimation
+        beta = np.linalg.lstsq(X, y, rcond=None)[0]
+        residuals = y - X @ beta
+
+        # Standard errors
+        sigma2 = np.sum(residuals**2) / (len(y) - X.shape[1])
+        var_beta = sigma2 * np.linalg.inv(X.T @ X)
+        se = np.sqrt(np.diag(var_beta))
+        t_stats = beta / se
+
+        # Build regression output
+        regression_output = {}
+        for i, name in enumerate(coef_names):
+            regression_output[name] = {
+                "coef": float(beta[i]),
+                "se": float(se[i]),
+                "t": float(t_stats[i]),
+            }
+
+        adf_result["regression"] = regression_output
+
+    except Exception as e:
+        adf_result["regression"] = {"error": str(e)}
+
+    return adf_result
+
+
+def run_kpss_test(series, series_name, regression="c"):
+    """
+    Run KPSS test with full diagnostics.
+
+    Parameters:
+    -----------
+    series : array-like
+        Time series data
+    series_name : str
+        Name of the series for reporting
+    regression : str
+        'c' for level stationarity, 'ct' for trend stationarity
+
+    Returns:
+    --------
+    dict with complete KPSS test results
+    """
+    # Run KPSS test
+    result = kpss(series, regression=regression, nlags="auto")
+
+    kpss_result = {
+        "series": series_name,
+        "statistic": float(result[0]),
+        "p_value": float(result[1]),
+        "lags_used": int(result[2]),
+        "critical_values": {k: float(v) for k, v in result[3].items()},
+        "regression_type": "level" if regression == "c" else "trend",
+    }
+
+    return kpss_result
+
+
+def determine_integration_order(adf_level, kpss_level, adf_diff, kpss_diff, alpha=0.05):
+    """
+    Determine integration order based on ADF and KPSS tests.
+
+    Decision logic:
+    - If ADF rejects H0 (no unit root) AND KPSS fails to reject H0 (stationary): I(0)
+    - If ADF fails to reject H0 (unit root) AND KPSS rejects H0 (not stationary): I(1) or higher
+    - If tests disagree: consider as borderline, lean toward I(1) for conservative approach
+
+    Parameters:
+    -----------
+    adf_level : dict
+        ADF test results for level series
+    kpss_level : dict
+        KPSS test results for level series
+    adf_diff : dict
+        ADF test results for first-differenced series
+    kpss_diff : dict
+        KPSS test results for first-differenced series
+    alpha : float
+        Significance level
+
+    Returns:
+    --------
+    dict with integration order conclusion and evidence
+    """
+    # Level series conclusions
+    adf_level_rejects = adf_level["p_value"] < alpha  # Rejects unit root
+    kpss_level_rejects = kpss_level["p_value"] < alpha  # Rejects stationarity
+
+    # Differenced series conclusions
+    adf_diff_rejects = adf_diff["p_value"] < alpha
+    kpss_diff_rejects = kpss_diff["p_value"] < alpha
+
+    evidence = []
+
+    # Case 1: Level series appears stationary (I(0))
+    if adf_level_rejects and not kpss_level_rejects:
+        order = 0
+        conclusion = "I(0) - Level stationary"
+        evidence.append(
+            f"ADF rejects unit root at {alpha*100}% (p={adf_level['p_value']:.4f})"
+        )
+        evidence.append(
+            f"KPSS fails to reject stationarity (p={kpss_level['p_value']:.4f})"
+        )
+
+    # Case 2: Level has unit root, difference is stationary (I(1))
+    elif not adf_level_rejects and adf_diff_rejects:
+        order = 1
+        conclusion = "I(1) - First-difference stationary"
+        evidence.append(
+            f"ADF fails to reject unit root in level (p={adf_level['p_value']:.4f})"
+        )
+        evidence.append(
+            f"ADF rejects unit root in first difference (p={adf_diff['p_value']:.4f})"
+        )
+
+    # Case 3: Tests disagree on level (borderline)
+    elif adf_level_rejects and kpss_level_rejects:
+        order = 1  # Conservative choice
+        conclusion = (
+            "Borderline - ADF and KPSS disagree, treated as I(1) conservatively"
+        )
+        evidence.append(f"ADF rejects unit root (p={adf_level['p_value']:.4f})")
+        evidence.append(
+            f"KPSS also rejects stationarity (p={kpss_level['p_value']:.4f})"
+        )
+        evidence.append("Conservative approach: treat as I(1)")
+
+    elif not adf_level_rejects and not kpss_level_rejects:
+        order = 1  # Conservative choice
+        conclusion = (
+            "Borderline - ADF and KPSS disagree, treated as I(1) conservatively"
+        )
+        evidence.append(f"ADF fails to reject unit root (p={adf_level['p_value']:.4f})")
+        evidence.append(
+            f"KPSS fails to reject stationarity (p={kpss_level['p_value']:.4f})"
+        )
+        evidence.append("Conservative approach: treat as I(1)")
+
+    # Case 4: Both level and difference appear non-stationary (I(2) or data issues)
+    elif not adf_diff_rejects:
+        order = 2
+        conclusion = (
+            "Possibly I(2) or data issues - both level and difference non-stationary"
+        )
+        evidence.append(
+            f"ADF fails to reject unit root in level (p={adf_level['p_value']:.4f})"
+        )
+        evidence.append(
+            f"ADF fails to reject unit root in first difference (p={adf_diff['p_value']:.4f})"
+        )
+
+    else:
+        order = 1
+        conclusion = "I(1) - Default assumption"
+        evidence.append("Unable to determine clearly, defaulting to I(1)")
+
+    return {
+        "integration_order": order,
+        "conclusion": conclusion,
+        "evidence": evidence,
+        "level_tests": {
+            "adf_rejects_unit_root": adf_level_rejects,
+            "kpss_rejects_stationarity": kpss_level_rejects,
+        },
+        "differenced_tests": {
+            "adf_rejects_unit_root": adf_diff_rejects,
+            "kpss_rejects_stationarity": kpss_diff_rejects,
+        },
+        "significance_level": alpha,
+    }
+
+
+def plot_original_series(df, variables, year_col="year"):
+    """Plot original time series for all variables."""
+    n_vars = len(variables)
+    fig, axes = plt.subplots(n_vars, 1, figsize=(12, 4 * n_vars))
+
+    if n_vars == 1:
+        axes = [axes]
+
+    colors = [COLORS["primary"], COLORS["secondary"], COLORS["tertiary"]]
+
+    for i, (var, ax) in enumerate(zip(variables, axes, strict=False)):
+        ax.plot(
+            df[year_col],
+            df[var],
+            marker="o",
+            linewidth=2,
+            color=colors[i % len(colors)],
+            markersize=6,
+        )
+        ax.set_xlabel("Year", fontsize=12)
+        ax.set_ylabel(var.replace("_", " ").title(), fontsize=11)
+        ax.set_title(f"{var}", fontsize=12, fontweight="bold")
+        ax.grid(True, alpha=0.3)
+
+        # Mark 2020 COVID year
+        if 2020 in df[year_col].values:
+            covid_idx = df[df[year_col] == 2020].index[0]
+            ax.axvline(x=2020, color=COLORS["neutral"], linestyle="--", alpha=0.5)
+            ax.annotate(
+                "COVID",
+                (2020, df.loc[covid_idx, var]),
+                textcoords="offset points",
+                xytext=(5, 10),
+                fontsize=9,
+                color=COLORS["neutral"],
+            )
+
+    plt.tight_layout()
+
+    filepath = str(FIGURES_DIR / "module_2_1_1_original_series")
+    fig.suptitle(
+        "Original Immigration Time Series (2010-2024)",
+        fontsize=14,
+        fontweight="bold",
+        y=1.02,
+    )
+    fig.text(
+        0.02,
+        0.02,
+        "Source: Census Bureau Population Estimates Program",
+        fontsize=8,
+        fontstyle="italic",
+    )
+
+    fig.savefig(f"{filepath}.png", dpi=300, bbox_inches="tight", facecolor="white")
+    fig.savefig(f"{filepath}.pdf", dpi=300, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+
+    return f"{filepath}.png"
+
+
+def plot_differenced_series(df, variables, year_col="year"):
+    """Plot first-differenced time series for all variables."""
+    n_vars = len(variables)
+    fig, axes = plt.subplots(n_vars, 1, figsize=(12, 4 * n_vars))
+
+    if n_vars == 1:
+        axes = [axes]
+
+    colors = [COLORS["primary"], COLORS["secondary"], COLORS["tertiary"]]
+
+    for i, (var, ax) in enumerate(zip(variables, axes, strict=False)):
+        diff_series = df[var].diff().dropna()
+        years = df[year_col].iloc[1:]  # Skip first year (no diff)
+
+        ax.plot(
+            years,
+            diff_series,
+            marker="o",
+            linewidth=2,
+            color=colors[i % len(colors)],
+            markersize=6,
+        )
+        ax.axhline(y=0, color=COLORS["neutral"], linestyle="-", alpha=0.5)
+        ax.set_xlabel("Year", fontsize=12)
+        ax.set_ylabel(f"d({var})", fontsize=11)
+        ax.set_title(f"First Difference: {var}", fontsize=12, fontweight="bold")
+        ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+
+    filepath = str(FIGURES_DIR / "module_2_1_1_differenced_series")
+    fig.suptitle(
+        "First-Differenced Immigration Time Series",
+        fontsize=14,
+        fontweight="bold",
+        y=1.02,
+    )
+    fig.text(
+        0.02,
+        0.02,
+        "Source: Census Bureau Population Estimates Program",
+        fontsize=8,
+        fontstyle="italic",
+    )
+
+    fig.savefig(f"{filepath}.png", dpi=300, bbox_inches="tight", facecolor="white")
+    fig.savefig(f"{filepath}.pdf", dpi=300, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+
+    return f"{filepath}.png"
+
+
+def plot_acf_series(series, series_name, is_differenced=False):
+    """Plot ACF with confidence bands."""
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    # Calculate maximum lags (rule of thumb: n/4 or 10, whichever is smaller)
+    max_lags = min(len(series) // 4, 10)
+    if max_lags < 2:
+        max_lags = 2
+
+    plot_acf(
+        series,
+        ax=ax,
+        lags=max_lags,
+        alpha=0.05,
+        color=COLORS["primary"],
+        vlines_kwargs={"color": COLORS["primary"]},
+    )
+
+    ax.set_xlabel("Lag", fontsize=12)
+    ax.set_ylabel("Autocorrelation", fontsize=12)
+    ax.grid(True, alpha=0.3)
+
+    suffix = "_differenced" if is_differenced else "_original"
+    series_label = "First-Differenced" if is_differenced else "Original"
+
+    title = f"Autocorrelation Function: {series_name} ({series_label})"
+
+    filepath = str(FIGURES_DIR / f"module_2_1_1_acf{suffix}")
+    fig.suptitle(title, fontsize=14, fontweight="bold", y=1.02)
+    fig.text(
+        0.02,
+        0.02,
+        "Source: Census Bureau Population Estimates Program",
+        fontsize=8,
+        fontstyle="italic",
+    )
+
+    plt.tight_layout()
+    fig.savefig(f"{filepath}.png", dpi=300, bbox_inches="tight", facecolor="white")
+    fig.savefig(f"{filepath}.pdf", dpi=300, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+
+    return f"{filepath}.png"
+
+
+def run_analysis() -> ModuleResult:
+    """
+    Main analysis function - perform unit root tests.
+
+    Returns:
+        ModuleResult object with all findings
+    """
+    # Initialize result container
+    result = ModuleResult(
+        module_id="2.1.1",
+        analysis_name="unit_root_tests",
+    )
+
+    # Load required data
+    print("\nLoading data...")
+    df = load_data("nd_migration_summary.csv")
+    result.input_files.append("nd_migration_summary.csv")
+
+    print(
+        f"  Loaded {len(df)} observations (years {df['year'].min()}-{df['year'].max()})"
+    )
+
+    # Define variables to test
+    variables_to_test = [
+        "nd_share_of_us_intl_pct",
+        "nd_intl_migration",
+        "us_intl_migration",
+    ]
+
+    # Record parameters
+    result.parameters = {
+        "variables_tested": variables_to_test,
+        "n_observations": len(df),
+        "time_period": f"{df['year'].min()}-{df['year'].max()}",
+        "significance_level": 0.05,
+        "adf_autolag": "AIC",
+        "kpss_nlags": "auto",
+    }
+
+    # Document decision about COVID year
+    result.add_decision(
+        decision_id="D001",
+        category="data_handling",
+        decision="Include 2020 COVID year in analysis",
+        rationale="With only 15 observations, excluding any year significantly reduces test power. "
+        "2020 anomaly is noted but retained for completeness. Sensitivity without 2020 "
+        "could be performed in follow-up analysis.",
+        alternatives=["Exclude 2020 entirely", "Replace 2020 with interpolated value"],
+        evidence=f"2020 nd_intl_migration={df[df['year']==2020]['nd_intl_migration'].values[0]} vs mean={df['nd_intl_migration'].mean():.0f}",
+        reversible=True,
+    )
+
+    # Document short series limitation
+    result.add_decision(
+        decision_id="D002",
+        category="methodology",
+        decision="Proceed with unit root tests despite short series",
+        rationale="With n=15, asymptotic distributions may not hold well. Tests have reduced power. "
+        "Results should be interpreted with caution.",
+        alternatives=["Skip unit root testing", "Use only visual inspection"],
+        evidence="Standard recommendation is n>=25 for reliable ADF tests",
+        reversible=False,
+    )
+
+    result.warnings.append(
+        "Short time series (n=15) limits test power and may affect asymptotic validity of tests."
+    )
+    result.warnings.append(
+        "2020 COVID year shows anomalous values that may affect test results."
+    )
+
+    # Store results for each variable
+    result.results = {"variables": {}, "integration_order_summary": {}}
+
+    # Run tests for each variable
+    for var in variables_to_test:
+        print(f"\nTesting variable: {var}")
+        series = df[var].values
+
+        var_results = {
+            "n_observations": len(series),
+            "mean": float(np.mean(series)),
+            "std": float(np.std(series)),
+        }
+
+        # Level series tests
+        print("  Running ADF test on level series...")
+        adf_level = run_adf_test(series, var, regression="c")
+        var_results["adf_level"] = adf_level
+        print(
+            f"    ADF statistic: {adf_level['statistic']:.4f}, p-value: {adf_level['p_value']:.4f}"
+        )
+
+        print("  Running KPSS test on level series...")
+        kpss_level = run_kpss_test(series, var, regression="c")
+        var_results["kpss_level"] = kpss_level
+        print(
+            f"    KPSS statistic: {kpss_level['statistic']:.4f}, p-value: {kpss_level['p_value']:.4f}"
+        )
+
+        print("  Running Phillips-Perron test on level series...")
+        pp_level = phillips_perron_test(series, regression="c")
+        var_results["phillips_perron_level"] = pp_level
+        print(
+            f"    PP statistic: {pp_level['statistic']:.4f}, p-value: {pp_level['p_value']:.4f}"
+        )
+
+        # First-differenced series tests
+        diff_series = np.diff(series)
+
+        print("  Running ADF test on differenced series...")
+        adf_diff = run_adf_test(diff_series, f"d({var})", regression="c")
+        var_results["adf_differenced"] = adf_diff
+        print(
+            f"    ADF statistic: {adf_diff['statistic']:.4f}, p-value: {adf_diff['p_value']:.4f}"
+        )
+
+        print("  Running KPSS test on differenced series...")
+        kpss_diff = run_kpss_test(diff_series, f"d({var})", regression="c")
+        var_results["kpss_differenced"] = kpss_diff
+        print(
+            f"    KPSS statistic: {kpss_diff['statistic']:.4f}, p-value: {kpss_diff['p_value']:.4f}"
+        )
+
+        # Determine integration order
+        integration = determine_integration_order(
+            adf_level, kpss_level, adf_diff, kpss_diff
+        )
+        var_results["integration_order"] = integration
+
+        result.results["variables"][var] = var_results
+        result.results["integration_order_summary"][var] = {
+            "order": integration["integration_order"],
+            "conclusion": integration["conclusion"],
+        }
+
+        print(
+            f"  Integration order: I({integration['integration_order']}) - {integration['conclusion']}"
+        )
+
+    # Generate figures
+    print("\nGenerating figures...")
+
+    # Original series plot
+    fig1 = plot_original_series(df, variables_to_test)
+    print(f"  Saved: {fig1}")
+
+    # Differenced series plot
+    fig2 = plot_differenced_series(df, variables_to_test)
+    print(f"  Saved: {fig2}")
+
+    # ACF plots for primary variable
+    primary_var = "nd_share_of_us_intl_pct"
+    fig3 = plot_acf_series(df[primary_var].values, primary_var, is_differenced=False)
+    print(f"  Saved: {fig3}")
+
+    fig4 = plot_acf_series(
+        np.diff(df[primary_var].values), primary_var, is_differenced=True
+    )
+    print(f"  Saved: {fig4}")
+
+    # Store diagnostics
+    result.diagnostics = {
+        "figures_generated": [
+            "module_2_1_1_original_series.png",
+            "module_2_1_1_differenced_series.png",
+            "module_2_1_1_acf_original.png",
+            "module_2_1_1_acf_differenced.png",
+        ],
+        "test_interpretation": {
+            "adf": "H0: Unit root present (non-stationary). Reject if p < 0.05.",
+            "kpss": "H0: Series is stationary. Reject if p < 0.05.",
+            "phillips_perron": "H0: Unit root present. Reject if p < 0.05.",
+        },
+        "sample_size_concern": "n=15 is below recommended minimum of 25 for reliable unit root tests",
+    }
+
+    # Suggest next steps
+    result.next_steps = [
+        "Use integration order results for ARIMA model specification (Module 2.1)",
+        "Consider differencing before structural break analysis (Module 2.1.2)",
+        "Apply appropriate differencing in VAR/VECM models (Module 2.2)",
+        "Sensitivity analysis excluding 2020 COVID year if results are borderline",
+    ]
+
+    return result
+
+
+def main():
+    """Main entry point."""
+    print("=" * 60)
+    print("Module 2.1.1: Unit Root Testing")
+    print(f"Started: {datetime.now(UTC).isoformat()}")
+    print("=" * 60)
+
+    try:
+        result = run_analysis()
+        output_file = result.save("module_2_1_1_unit_root_tests.json")
+
+        print("\n" + "=" * 60)
+        print("Analysis completed successfully!")
+        print(f"Output: {output_file}")
+
+        if result.warnings:
+            print(f"\nWarnings ({len(result.warnings)}):")
+            for w in result.warnings:
+                print(f"  - {w}")
+
+        if result.decisions:
+            print(f"\nDecisions made ({len(result.decisions)}):")
+            for d in result.decisions:
+                print(f"  - {d['decision_id']}: {d['decision']}")
+
+        # Print summary
+        print("\n" + "-" * 60)
+        print("Integration Order Summary:")
+        for var, summary in result.results["integration_order_summary"].items():
+            print(f"  {var}: I({summary['order']}) - {summary['conclusion']}")
+
+        return 0
+
+    except Exception as e:
+        print(f"\nERROR: {e}")
+        import traceback
+
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+
+================================================================================
+FILE: SCRIPT: module_9_scenario_modeling.py
+================================================================================
+
+#!/usr/bin/env python3
+"""
+Module 9: Scenario Modeling Agent - Combined Forecasts and Monte Carlo Simulation
+==================================================================================
+
+Synthesizes results from all previous modules (1-8) to generate scenario-based
+projections for North Dakota immigration. Implements:
+
+1. Model averaging using fit statistics (R-squared, AIC weights)
+2. Scenario generation:
+   - CBO Full: Full immigration policy scenario
+   - Moderate: Middle-ground assumptions
+   - Zero: Zero net immigration scenario
+   - Pre-2020 Trend: Continue historical trend
+3. Monte Carlo simulation (1000 draws) for uncertainty quantification
+4. Confidence intervals and fan chart data for visualization
+
+Usage:
+    micromamba run -n cohort_proj python module_9_scenario_modeling.py
+"""
+
+import json
+import sys
+import traceback
+import warnings
+from datetime import UTC, datetime
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from scipy import stats
+
+# Suppress warnings for cleaner output
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+# Project paths
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent  # cohort_projections/
+DATA_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "analysis"
+RESULTS_DIR = Path(__file__).parent / "results"
+FIGURES_DIR = Path(__file__).parent / "figures"
+
+# Ensure output directories exist
+RESULTS_DIR.mkdir(exist_ok=True)
+FIGURES_DIR.mkdir(exist_ok=True)
+
+# Standard color palette (colorblind-safe)
+COLORS = {
+    "primary": "#0072B2",  # Blue
+    "secondary": "#D55E00",  # Vermillion/Orange
+    "tertiary": "#009E73",  # Teal/Green
+    "quaternary": "#CC79A7",  # Pink
+    "highlight": "#F0E442",  # Yellow
+    "neutral": "#999999",  # Gray
+    "ci_fill": "#0072B2",  # Blue with alpha=0.2
+}
+
+SCENARIO_COLORS = {
+    "cbo_full": "#0072B2",  # Blue
+    "moderate": "#009E73",  # Teal
+    "zero": "#D55E00",  # Orange
+    "pre_2020_trend": "#CC79A7",  # Pink
+}
+
+CATEGORICAL = [
+    "#0072B2",
+    "#D55E00",
+    "#009E73",
+    "#CC79A7",
+    "#F0E442",
+    "#56B4E9",
+    "#E69F00",
+    "#999999",
+]
+
+
+class ModuleResult:
+    """Standard result container for all modules."""
+
+    def __init__(self, module_id: str, analysis_name: str):
+        self.module_id = module_id
+        self.analysis_name = analysis_name
+        self.input_files: list[str] = []
+        self.parameters: dict = {}
+        self.results: dict = {}
+        self.diagnostics: dict = {}
+        self.warnings: list[str] = []
+        self.decisions: list[dict] = []
+        self.next_steps: list[str] = []
+
+    def add_decision(
+        self,
+        decision_id: str,
+        category: str,
+        decision: str,
+        rationale: str,
+        alternatives: list[str] = None,
+        evidence: str = None,
+        reversible: bool = True,
+    ):
+        """Log a decision with full context."""
+        self.decisions.append(
+            {
+                "decision_id": decision_id,
+                "timestamp": datetime.now(UTC).isoformat(),
+                "category": category,
+                "decision": decision,
+                "rationale": rationale,
+                "alternatives_considered": alternatives or [],
+                "evidence": evidence,
+                "reversible": reversible,
+            }
+        )
+
+    def to_dict(self) -> dict:
+        return {
+            "module": self.module_id,
+            "analysis": self.analysis_name,
+            "generated": datetime.now(UTC).isoformat(),
+            "input_files": self.input_files,
+            "parameters": self.parameters,
+            "results": self.results,
+            "diagnostics": self.diagnostics,
+            "warnings": self.warnings,
+            "decisions": self.decisions,
+            "next_steps": self.next_steps,
+        }
+
+    def save(self, filename: str) -> Path:
+        """Save results to JSON file."""
+        output_path = RESULTS_DIR / filename
+        with open(output_path, "w") as f:
+            json.dump(self.to_dict(), f, indent=2, default=str)
+        print(f"Results saved to: {output_path}")
+        return output_path
+
+
+def setup_figure(figsize=(10, 8)):
+    """Standard figure setup for all visualizations."""
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.grid(True, alpha=0.3, linestyle="-", linewidth=0.5)
+    return fig, ax
+
+
+def save_figure(fig, filepath_base, title, source_note):
+    """Save figure in both PNG and PDF formats."""
+    fig.suptitle(title, fontsize=14, fontweight="bold")
+    fig.text(
+        0.02,
+        0.02,
+        f"Source: {source_note}",
+        fontsize=8,
+        fontstyle="italic",
+        transform=fig.transFigure,
+    )
+    plt.tight_layout(rect=[0, 0.03, 1, 0.97])
+
+    # Save both formats
+    fig.savefig(
+        f"{filepath_base}.png",
+        dpi=300,
+        bbox_inches="tight",
+        facecolor="white",
+        edgecolor="none",
+    )
+    fig.savefig(
+        f"{filepath_base}.pdf",
+        dpi=300,
+        bbox_inches="tight",
+        facecolor="white",
+        edgecolor="none",
+    )
+    plt.close(fig)
+    print(f"Figure saved: {filepath_base}.png/pdf")
+
+
+def load_previous_results(result: ModuleResult) -> dict:
+    """Load all previous module results for aggregation."""
+    print("\n--- Loading Previous Module Results ---")
+
+    all_results = {}
+
+    # Module result file patterns to load
+    module_patterns = [
+        "module_1_1*.json",
+        "module_1_2*.json",
+        "module_2_1*.json",
+        "module_2_2*.json",
+        "module_3_1*.json",
+        "module_3_2*.json",
+        "module_4*.json",
+        "module_5*.json",
+        "module_6*.json",
+        "module_7*.json",
+        "module_8*.json",
+    ]
+
+    for pattern in module_patterns:
+        for f in RESULTS_DIR.glob(pattern):
+            try:
+                with open(f) as fp:
+                    all_results[f.stem] = json.load(fp)
+                result.input_files.append(f.name)
+            except Exception as e:
+                print(f"  Warning: Could not load {f.name}: {e}")
+
+    print(f"  Loaded {len(all_results)} result files")
+    return all_results
+
+
+def load_migration_data(result: ModuleResult) -> pd.DataFrame:
+    """Load ND migration summary data."""
+    migration_path = DATA_DIR / "nd_migration_summary.csv"
+    df = pd.read_csv(migration_path)
+    result.input_files.append("nd_migration_summary.csv")
+    print(f"  Loaded migration data: {len(df)} years")
+    return df
+
+
+def extract_model_estimates(all_results: dict, result: ModuleResult) -> dict:
+    """
+    Extract key estimates from all previous modules.
+
+    Returns a dictionary of model predictions, coefficients, and fit statistics.
+    """
+    print("\n--- Extracting Model Estimates ---")
+
+    estimates = {
+        "arima": {},
+        "var": {},
+        "panel": {},
+        "quantile": {},
+        "robust": {},
+        "gravity": {},
+        "machine_learning": {},
+        "causal": {},
+        "duration": {},
+    }
+
+    # Module 2.1 - ARIMA
+    arima_key = "module_2_1_arima_model"
+    if arima_key in all_results:
+        arima = all_results[arima_key]
+        if "results" in arima and "forecasts" in arima["results"]:
+            forecasts = arima["results"]["forecasts"]
+            estimates["arima"] = {
+                "model": arima["results"].get("model", "ARIMA"),
+                "aic": arima["results"].get("fit_statistics", {}).get("aic"),
+                "forecasts": [
+                    {
+                        "horizon": f["horizon"],
+                        "year": 2024 + f["horizon"],
+                        "point": f["point"],
+                        "se": f["se"],
+                        "ci_80": f["ci_80"],
+                        "ci_95": f["ci_95"],
+                    }
+                    for f in forecasts
+                ],
+            }
+            print(f"  ARIMA: {len(forecasts)} forecasts extracted")
+
+    # Module 2.2 - VAR/Cointegration
+    var_key = "module_2_2_var_cointegration"
+    if var_key in all_results:
+        var = all_results[var_key]
+        if "results" in var:
+            res = var["results"]
+            # Extract long-run relationship
+            eg = res.get("engle_granger_cointegration", {})
+            step1 = eg.get("step1_ols_regression", {})
+            estimates["var"] = {
+                "cointegration_slope": step1.get("slope", {}).get("coefficient"),
+                "cointegration_r2": step1.get("r_squared"),
+                "var_aic": res.get("var_model", {}).get("model_fit", {}).get("aic"),
+            }
+            print(
+                f"  VAR: Cointegration slope = {estimates['var']['cointegration_slope']:.6f}"
+            )
+
+    # Module 3.1 - Panel Data
+    panel_key = "module_3_1_panel_analysis"
+    if panel_key in all_results:
+        panel = all_results[panel_key]
+        if "results" in panel:
+            estimates["panel"] = {
+                "fixed_r2_within": panel["results"]
+                .get("fixed_effects", {})
+                .get("r_squared_within"),
+                "hausman_recommendation": panel["results"]
+                .get("hausman_test", {})
+                .get("recommendation"),
+            }
+            print(
+                f"  Panel: Hausman recommends {estimates['panel']['hausman_recommendation']}"
+            )
+
+    # Module 4 - Regression Extensions
+    reg_key = "module_4_regression_extensions"
+    if reg_key in all_results:
+        reg = all_results[reg_key]
+        if "results" in reg:
+            res = reg["results"]
+            comparison = res.get("comparison_table", {}).get(
+                "ols_vs_quantile_vs_robust", {}
+            )
+            estimates["quantile"] = {
+                "median_trend": comparison.get("time_trend", {}).get("q50"),
+                "q10_trend": comparison.get("time_trend", {}).get("q10"),
+                "q90_trend": comparison.get("time_trend", {}).get("q90"),
+                "covid_effect_median": comparison.get("covid_2020", {}).get("q50"),
+            }
+            estimates["robust"] = {
+                "huber_trend": comparison.get("time_trend", {}).get("huber"),
+                "tukey_trend": comparison.get("time_trend", {}).get("tukey"),
+                "ols_r2": res.get("robust_regression", {}).get("ols_r_squared"),
+            }
+            print(
+                f"  Quantile: Median trend = {estimates['quantile']['median_trend']:.2f}"
+            )
+            print(f"  Robust: Huber trend = {estimates['robust']['huber_trend']:.2f}")
+
+    # Module 5 - Gravity Model
+    gravity_key = "module_5_gravity_model"
+    if gravity_key in all_results:
+        gravity = all_results[gravity_key]
+        if "model_2_full_gravity" in gravity:
+            full = gravity["model_2_full_gravity"]
+            estimates["gravity"] = {
+                "network_elasticity": full.get("coefficients", {})
+                .get("log_diaspora", {})
+                .get("estimate"),
+                "pseudo_r2": full.get("fit_statistics", {}).get("pseudo_r2_mcfadden"),
+            }
+            print(
+                f"  Gravity: Network elasticity = {estimates['gravity']['network_elasticity']:.4f}"
+            )
+
+    # Module 6 - Machine Learning
+    ml_key = "module_6_machine_learning"
+    if ml_key in all_results:
+        ml = all_results[ml_key]
+        if "results" in ml:
+            res = ml["results"]
+            estimates["machine_learning"] = {
+                "elastic_net_cv_r2": res.get("elastic_net", {}).get("cv_r2"),
+                "rf_cv_r2": res.get("random_forest", {}).get("cv_r2"),
+                "clustering_silhouette": res.get("clustering", {}).get(
+                    "silhouette_score"
+                ),
+                "nd_cluster": res.get("clustering", {}).get("nd_cluster"),
+            }
+            print(
+                f"  ML: Elastic Net CV R2 = {estimates['machine_learning']['elastic_net_cv_r2']:.4f}"
+            )
+
+    # Module 7 - Causal Inference
+    causal_key = "module_7_causal_inference"
+    if causal_key in all_results:
+        causal = all_results[causal_key]
+        if "results" in causal:
+            estimates["causal"] = {
+                "treatment_effect": causal["results"]
+                .get("did_analysis", {})
+                .get("treatment_effect"),
+            }
+            print("  Causal: Loaded DiD results")
+
+    # Module 8 - Duration Analysis
+    duration_key = "module_8_duration_analysis"
+    if duration_key in all_results:
+        duration = all_results[duration_key]
+        if "results" in duration:
+            res = duration["results"]
+            estimates["duration"] = {
+                "median_wave_duration": res.get("kaplan_meier", {})
+                .get("overall_summary", {})
+                .get("median_survival_years"),
+                "cox_concordance": res.get("cox_proportional_hazards", {})
+                .get("fit_statistics", {})
+                .get("concordance_index"),
+            }
+            print(
+                f"  Duration: Median wave duration = {estimates['duration']['median_wave_duration']}"
+            )
+
+    result.add_decision(
+        decision_id="D001",
+        category="data_integration",
+        decision="Extracted estimates from 9 module categories",
+        rationale="Consolidate all statistical findings for scenario modeling",
+        alternatives=[
+            "Use only time series models",
+            "Use only cross-sectional results",
+        ],
+        evidence=f"Loaded {len(result.input_files)} result files",
+    )
+
+    return estimates
+
+
+def calculate_model_weights(estimates: dict, result: ModuleResult) -> dict:
+    """
+    Calculate model weights for forecast averaging.
+
+    Uses AIC weights where available, otherwise equal weights.
+    """
+    print("\n--- Calculating Model Weights ---")
+
+    weights = {}
+
+    # Collect AICs from models with forecasts
+    aics = {}
+    if estimates.get("arima", {}).get("aic"):
+        aics["arima"] = estimates["arima"]["aic"]
+    if estimates.get("var", {}).get("var_aic"):
+        aics["var"] = estimates["var"]["var_aic"]
+
+    # If we have AICs, calculate AIC weights
+    if len(aics) >= 2:
+        min_aic = min(aics.values())
+        delta_aic = {k: v - min_aic for k, v in aics.items()}
+        exp_weights = {k: np.exp(-0.5 * v) for k, v in delta_aic.items()}
+        sum_exp = sum(exp_weights.values())
+        weights["aic_based"] = {k: v / sum_exp for k, v in exp_weights.items()}
+        print(f"  AIC-based weights: {weights['aic_based']}")
+    else:
+        # Fall back to equal weights
+        weights["aic_based"] = {"arima": 0.5, "var": 0.5}
+        print("  Using equal weights (insufficient AICs for comparison)")
+
+    # Also compute R-squared weights for cross-sectional models
+    r2_vals = {}
+    if estimates.get("robust", {}).get("ols_r2"):
+        r2_vals["ols"] = estimates["robust"]["ols_r2"]
+    if estimates.get("machine_learning", {}).get("elastic_net_cv_r2"):
+        r2_vals["elastic_net"] = estimates["machine_learning"]["elastic_net_cv_r2"]
+    if estimates.get("machine_learning", {}).get("rf_cv_r2"):
+        r2_vals["random_forest"] = estimates["machine_learning"]["rf_cv_r2"]
+
+    if r2_vals:
+        total_r2 = sum(r2_vals.values())
+        weights["r2_based"] = {k: v / total_r2 for k, v in r2_vals.items()}
+        print(f"  R2-based weights: {weights['r2_based']}")
+
+    result.add_decision(
+        decision_id="D002",
+        category="methodology",
+        decision="Computed AIC and R-squared based model weights",
+        rationale="AIC weights for time series averaging; R2 weights for cross-sectional insight",
+        alternatives=["Equal weights", "Expert-assigned weights", "BIC weights"],
+        evidence=f"AIC models: {list(aics.keys())}, R2 models: {list(r2_vals.keys())}",
+    )
+
+    return weights
+
+
+def generate_scenarios(
+    df_migration: pd.DataFrame, estimates: dict, result: ModuleResult
+) -> dict:
+    """
+    Generate projection scenarios for 2025-2045.
+
+    Scenarios:
+    1. CBO Full: Based on CBO immigration projections (high growth)
+    2. Moderate: Weighted average of model estimates
+    3. Zero: Zero net immigration
+    4. Pre-2020 Trend: Continue 2010-2019 trend
+    """
+    print("\n--- Generating Scenarios ---")
+
+    # Projection parameters
+    base_year = 2024
+    horizon_end = 2045
+    projection_years = list(range(base_year + 1, horizon_end + 1))
+    len(projection_years)
+
+    # Get 2024 baseline value
+    baseline_2024 = df_migration[df_migration["year"] == 2024][
+        "nd_intl_migration"
+    ].values
+    if len(baseline_2024) > 0:
+        baseline = float(baseline_2024[0])
+    else:
+        # Use last available year
+        baseline = float(df_migration["nd_intl_migration"].iloc[-1])
+    print(f"  Baseline (2024): {baseline:.0f}")
+
+    # Pre-2020 data for trend estimation
+    pre_2020 = df_migration[df_migration["year"] < 2020]["nd_intl_migration"]
+    pre_2020_years = df_migration[df_migration["year"] < 2020]["year"]
+
+    # Estimate pre-2020 trend via OLS
+    if len(pre_2020) > 2:
+        X = pre_2020_years.values - pre_2020_years.min()
+        y = pre_2020.values
+        slope, intercept, r_value, p_value, std_err = stats.linregress(X, y)
+        pre_2020_trend = slope
+    else:
+        pre_2020_trend = 0
+
+    print(f"  Pre-2020 trend: {pre_2020_trend:.2f} per year")
+
+    # ARIMA forecasts (if available)
+    arima_forecasts = estimates.get("arima", {}).get("forecasts", [])
+
+    # Get trend estimates from various models
+    median_trend = estimates.get("quantile", {}).get("median_trend", pre_2020_trend)
+    huber_trend = estimates.get("robust", {}).get("huber_trend", pre_2020_trend)
+    tukey_trend = estimates.get("robust", {}).get("tukey_trend", pre_2020_trend)
+
+    # Weight average trend
+    avg_trend = np.mean(
+        [t for t in [median_trend, huber_trend, tukey_trend] if t is not None]
+    )
+
+    scenarios = {}
+
+    # Scenario 1: CBO Full (high immigration assumption)
+    # Assume immigration continues to grow at elevated rates post-2024
+    cbo_growth_rate = 0.08  # 8% annual growth (aggressive)
+    cbo_projections = []
+    current = baseline
+    for i, year in enumerate(projection_years):
+        if i < len(arima_forecasts):
+            # Use ARIMA for first few years
+            current = arima_forecasts[i]["point"] * 1.1  # 10% above ARIMA
+        else:
+            current = current * (1 + cbo_growth_rate)
+        cbo_projections.append({"year": year, "value": current})
+
+    scenarios["cbo_full"] = {
+        "name": "CBO Full Immigration",
+        "description": "Full implementation of elevated immigration policy",
+        "assumptions": {
+            "growth_rate": cbo_growth_rate,
+            "arima_multiplier": 1.1,
+        },
+        "projections": cbo_projections,
+    }
+    print(f"  CBO Full 2045: {cbo_projections[-1]['value']:.0f}")
+
+    # Scenario 2: Moderate (weighted average)
+    moderate_projections = []
+    current = baseline
+    for i, year in enumerate(projection_years):
+        if i < len(arima_forecasts):
+            # Use ARIMA directly
+            current = arima_forecasts[i]["point"]
+        else:
+            # Use average trend
+            current = current + avg_trend * 0.5  # Dampened trend
+        moderate_projections.append({"year": year, "value": max(0, current)})
+
+    scenarios["moderate"] = {
+        "name": "Moderate Scenario",
+        "description": "Middle-ground assumption with dampened historical trend",
+        "assumptions": {
+            "trend_dampening": 0.5,
+            "average_trend_used": avg_trend,
+        },
+        "projections": moderate_projections,
+    }
+    print(f"  Moderate 2045: {moderate_projections[-1]['value']:.0f}")
+
+    # Scenario 3: Zero Net Immigration
+    zero_projections = []
+    for year in projection_years:
+        zero_projections.append({"year": year, "value": 0.0})
+
+    scenarios["zero"] = {
+        "name": "Zero Net Immigration",
+        "description": "Hypothetical scenario with no international migration",
+        "assumptions": {
+            "immigration_level": 0,
+        },
+        "projections": zero_projections,
+    }
+    print(f"  Zero 2045: {zero_projections[-1]['value']:.0f}")
+
+    # Scenario 4: Pre-2020 Trend
+    pre2020_projections = []
+    start_val = float(pre_2020.iloc[-1]) if len(pre_2020) > 0 else baseline
+    for i, year in enumerate(projection_years):
+        # Continue linear trend
+        val = start_val + pre_2020_trend * (year - 2019)
+        pre2020_projections.append({"year": year, "value": max(0, val)})
+
+    scenarios["pre_2020_trend"] = {
+        "name": "Pre-2020 Trend",
+        "description": "Continue historical 2010-2019 trend (ignoring COVID disruption)",
+        "assumptions": {
+            "trend_slope": pre_2020_trend,
+            "start_value": start_val,
+        },
+        "projections": pre2020_projections,
+    }
+    print(f"  Pre-2020 Trend 2045: {pre2020_projections[-1]['value']:.0f}")
+
+    result.add_decision(
+        decision_id="D003",
+        category="scenario_design",
+        decision="Generated 4 scenarios: CBO Full, Moderate, Zero, Pre-2020 Trend",
+        rationale="Cover range from optimistic to restrictive immigration policy outcomes",
+        alternatives=["5-scenario approach", "Probabilistic weighting of scenarios"],
+        evidence=f"Baseline 2024 = {baseline:.0f}, Pre-2020 trend = {pre_2020_trend:.2f}/yr",
+    )
+
+    return scenarios
+
+
+def monte_carlo_simulation(
+    df_migration: pd.DataFrame,
+    estimates: dict,
+    result: ModuleResult,
+    n_draws: int = 1000,
+) -> dict:
+    """
+    Run Monte Carlo simulation to quantify forecast uncertainty.
+
+    Uses parameter uncertainty from model estimates to generate
+    distribution of future outcomes.
+    """
+    print(f"\n--- Monte Carlo Simulation ({n_draws} draws) ---")
+
+    np.random.seed(42)  # Reproducibility
+
+    # Projection parameters
+    base_year = 2024
+    horizon_end = 2045
+    projection_years = list(range(base_year + 1, horizon_end + 1))
+    n_years = len(projection_years)
+
+    # Get baseline
+    baseline_2024 = df_migration[df_migration["year"] == 2024][
+        "nd_intl_migration"
+    ].values
+    if len(baseline_2024) > 0:
+        baseline = float(baseline_2024[0])
+    else:
+        baseline = float(df_migration["nd_intl_migration"].iloc[-1])
+
+    # Get trend parameters with uncertainty
+    median_trend = estimates.get("quantile", {}).get("median_trend", 200)
+    q10_trend = estimates.get("quantile", {}).get("q10_trend", 0)
+    q90_trend = estimates.get("quantile", {}).get("q90_trend", 300)
+
+    # Estimate standard error of trend from quantile range
+    # IQR corresponds to roughly 1.35 std devs for normal
+    if q90_trend and q10_trend:
+        trend_std = (q90_trend - q10_trend) / (2 * 1.28)  # 80% range -> ~1.28 z
+    else:
+        trend_std = abs(median_trend) * 0.5  # Default to 50% CV
+
+    # ARIMA standard errors (if available)
+    arima_forecasts = estimates.get("arima", {}).get("forecasts", [])
+    arima_ses = [f.get("se", 1000) for f in arima_forecasts]
+
+    print(f"  Trend mean: {median_trend:.2f}, std: {trend_std:.2f}")
+
+    # Storage for simulation results
+    simulations = np.zeros((n_draws, n_years))
+
+    for draw in range(n_draws):
+        # Draw trend parameter
+        trend_draw = np.random.normal(median_trend, trend_std)
+
+        # Draw random walk innovation variance scale
+        innovation_scale = np.random.uniform(0.8, 1.2)
+
+        # Simulate path
+        current = baseline
+        for t in range(n_years):
+            # Trend component
+            if t < len(arima_ses):
+                # Use ARIMA forecast uncertainty for near term
+                se = arima_ses[t] * innovation_scale
+                point = (
+                    arima_forecasts[t]["point"]
+                    if t < len(arima_forecasts)
+                    else current + trend_draw
+                )
+                current = np.random.normal(point, se)
+            else:
+                # Random walk with drift for longer horizon
+                innovation_std = (
+                    trend_std * np.sqrt(t - len(arima_ses) + 1) * innovation_scale
+                )
+                current = current + trend_draw + np.random.normal(0, innovation_std)
+
+            # Enforce non-negativity
+            simulations[draw, t] = max(0, current)
+
+    # Compute percentiles
+    percentiles = [5, 10, 25, 50, 75, 90, 95]
+    percentile_values = {}
+    for p in percentiles:
+        percentile_values[f"p{p}"] = np.percentile(simulations, p, axis=0).tolist()
+
+    # Summary statistics by year
+    mc_summary = []
+    for t, year in enumerate(projection_years):
+        year_sims = simulations[:, t]
+        mc_summary.append(
+            {
+                "year": year,
+                "mean": float(np.mean(year_sims)),
+                "std": float(np.std(year_sims)),
+                "min": float(np.min(year_sims)),
+                "max": float(np.max(year_sims)),
+                "p5": float(np.percentile(year_sims, 5)),
+                "p25": float(np.percentile(year_sims, 25)),
+                "p50": float(np.percentile(year_sims, 50)),
+                "p75": float(np.percentile(year_sims, 75)),
+                "p95": float(np.percentile(year_sims, 95)),
+            }
+        )
+
+    print(
+        f"  2030 median: {mc_summary[5]['p50']:.0f} (95% CI: [{mc_summary[5]['p5']:.0f}, {mc_summary[5]['p95']:.0f}])"
+    )
+    print(
+        f"  2045 median: {mc_summary[-1]['p50']:.0f} (95% CI: [{mc_summary[-1]['p5']:.0f}, {mc_summary[-1]['p95']:.0f}])"
+    )
+
+    result.add_decision(
+        decision_id="D004",
+        category="uncertainty_quantification",
+        decision=f"Ran {n_draws}-draw Monte Carlo simulation",
+        rationale="Propagate parameter uncertainty through projections",
+        alternatives=["Analytical confidence intervals", "Bootstrapping"],
+        evidence="Trend uncertainty from quantile regression range",
+    )
+
+    mc_results = {
+        "n_draws": n_draws,
+        "projection_years": projection_years,
+        "parameters": {
+            "trend_mean": median_trend,
+            "trend_std": trend_std,
+            "baseline_2024": baseline,
+        },
+        "percentiles": percentile_values,
+        "summary_by_year": mc_summary,
+        "simulations_shape": list(simulations.shape),
+    }
+
+    return mc_results, simulations
+
+
+def compute_confidence_intervals(
+    scenarios: dict, mc_results: dict, result: ModuleResult
+) -> dict:
+    """
+    Compute confidence intervals and fan chart data.
+
+    Combines scenario projections with Monte Carlo uncertainty.
+    """
+    print("\n--- Computing Confidence Intervals ---")
+
+    ci_data = {
+        "projection_years": mc_results["projection_years"],
+        "intervals": {},
+    }
+
+    # Extract MC percentiles
+    summary = mc_results["summary_by_year"]
+    [s["year"] for s in summary]
+
+    # 50% CI (25th-75th)
+    ci_data["intervals"]["ci_50"] = {
+        "lower": [s["p25"] for s in summary],
+        "upper": [s["p75"] for s in summary],
+    }
+
+    # 80% CI (10th-90th)
+    percentiles = mc_results["percentiles"]
+    if "p10" in percentiles:
+        ci_data["intervals"]["ci_80"] = {
+            "lower": percentiles["p10"],
+            "upper": percentiles["p90"],
+        }
+    else:
+        # Approximate from summary
+        ci_data["intervals"]["ci_80"] = {
+            "lower": [s["p5"] * 1.2 for s in summary],  # Rough approximation
+            "upper": [s["p95"] * 0.85 for s in summary],
+        }
+
+    # 95% CI (5th-95th)
+    ci_data["intervals"]["ci_95"] = {
+        "lower": [s["p5"] for s in summary],
+        "upper": [s["p95"] for s in summary],
+    }
+
+    # Median (point forecast)
+    ci_data["median"] = [s["p50"] for s in summary]
+    ci_data["mean"] = [s["mean"] for s in summary]
+
+    # Add scenario paths for comparison
+    ci_data["scenarios"] = {}
+    for scenario_name, scenario in scenarios.items():
+        ci_data["scenarios"][scenario_name] = [
+            p["value"] for p in scenario["projections"]
+        ]
+
+    print("  Computed 50%, 80%, and 95% confidence intervals")
+    print(f"  Added {len(scenarios)} scenario paths for comparison")
+
+    return ci_data
+
+
+def create_combined_forecasts_df(
+    scenarios: dict, mc_results: dict, ci_data: dict
+) -> pd.DataFrame:
+    """Create DataFrame with combined forecasts for parquet output."""
+    years = mc_results["projection_years"]
+    summary = mc_results["summary_by_year"]
+
+    rows = []
+    for i, year in enumerate(years):
+        row = {
+            "year": year,
+            "mc_mean": summary[i]["mean"],
+            "mc_median": summary[i]["p50"],
+            "mc_std": summary[i]["std"],
+            "ci_50_lower": summary[i]["p25"],
+            "ci_50_upper": summary[i]["p75"],
+            "ci_95_lower": summary[i]["p5"],
+            "ci_95_upper": summary[i]["p95"],
+        }
+        # Add scenarios
+        for scenario_name, scenario in scenarios.items():
+            row[f"scenario_{scenario_name}"] = scenario["projections"][i]["value"]
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+
+def create_scenario_projections_df(scenarios: dict) -> pd.DataFrame:
+    """Create DataFrame with scenario projections for parquet output."""
+    rows = []
+    for scenario_name, scenario in scenarios.items():
+        for proj in scenario["projections"]:
+            rows.append(
+                {
+                    "scenario": scenario_name,
+                    "scenario_name": scenario["name"],
+                    "year": proj["year"],
+                    "value": proj["value"],
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def create_monte_carlo_df(
+    simulations: np.ndarray, projection_years: list
+) -> pd.DataFrame:
+    """Create DataFrame with Monte Carlo simulation results."""
+    n_draws, n_years = simulations.shape
+
+    # For efficiency, store percentiles rather than all draws
+    rows = []
+    for t, year in enumerate(projection_years):
+        year_sims = simulations[:, t]
+        row = {
+            "year": year,
+            "mean": np.mean(year_sims),
+            "std": np.std(year_sims),
+            "min": np.min(year_sims),
+            "p5": np.percentile(year_sims, 5),
+            "p10": np.percentile(year_sims, 10),
+            "p25": np.percentile(year_sims, 25),
+            "p50": np.percentile(year_sims, 50),
+            "p75": np.percentile(year_sims, 75),
+            "p90": np.percentile(year_sims, 90),
+            "p95": np.percentile(year_sims, 95),
+            "max": np.max(year_sims),
+        }
+        rows.append(row)
+
+    return pd.DataFrame(rows)
+
+
+def plot_fan_chart(
+    df_migration: pd.DataFrame,
+    ci_data: dict,
+    mc_results: dict,
+    result: ModuleResult,
+):
+    """Create fan chart visualization with confidence bands."""
+    fig, ax = plt.subplots(figsize=(14, 8))
+
+    # Historical data
+    hist_years = df_migration["year"].values
+    hist_values = df_migration["nd_intl_migration"].values
+
+    ax.plot(
+        hist_years,
+        hist_values,
+        "o-",
+        color=COLORS["primary"],
+        linewidth=2,
+        markersize=6,
+        label="Historical",
+        zorder=10,
+    )
+
+    # Projection years
+    proj_years = ci_data["projection_years"]
+
+    # 95% CI band
+    ax.fill_between(
+        proj_years,
+        ci_data["intervals"]["ci_95"]["lower"],
+        ci_data["intervals"]["ci_95"]["upper"],
+        alpha=0.15,
+        color=COLORS["primary"],
+        label="95% CI",
+    )
+
+    # 80% CI band (if available)
+    if "ci_80" in ci_data["intervals"]:
+        ax.fill_between(
+            proj_years,
+            ci_data["intervals"]["ci_80"]["lower"],
+            ci_data["intervals"]["ci_80"]["upper"],
+            alpha=0.25,
+            color=COLORS["primary"],
+            label="80% CI",
+        )
+
+    # 50% CI band
+    ax.fill_between(
+        proj_years,
+        ci_data["intervals"]["ci_50"]["lower"],
+        ci_data["intervals"]["ci_50"]["upper"],
+        alpha=0.4,
+        color=COLORS["primary"],
+        label="50% CI",
+    )
+
+    # Median projection
+    ax.plot(
+        proj_years,
+        ci_data["median"],
+        "-",
+        color=COLORS["primary"],
+        linewidth=2,
+        label="Median Projection",
+    )
+
+    # Connect historical to projection
+    ax.plot(
+        [hist_years[-1], proj_years[0]],
+        [hist_values[-1], ci_data["median"][0]],
+        "--",
+        color=COLORS["neutral"],
+        linewidth=1,
+    )
+
+    # Vertical line at base year
+    ax.axvline(2024, color=COLORS["neutral"], linestyle="--", linewidth=1, alpha=0.5)
+    ax.text(
+        2024.2, ax.get_ylim()[1] * 0.95, "2024", fontsize=9, color=COLORS["neutral"]
+    )
+
+    # COVID annotation
+    covid_idx = np.where(hist_years == 2020)[0]
+    if len(covid_idx) > 0:
+        ax.annotate(
+            "COVID-19",
+            xy=(2020, hist_values[covid_idx[0]]),
+            xytext=(2018, hist_values[covid_idx[0]] + 1500),
+            arrowprops={"arrowstyle": "->", "color": COLORS["secondary"]},
+            fontsize=9,
+            color=COLORS["secondary"],
+        )
+
+    ax.set_xlabel("Year", fontsize=12)
+    ax.set_ylabel("International Migration to ND", fontsize=12)
+    ax.set_xlim(2009, 2046)
+    ax.set_ylim(bottom=0)
+    ax.legend(loc="upper left", fontsize=10)
+    ax.grid(True, alpha=0.3)
+
+    # Add text box with key statistics
+    textstr = f"2030 Median: {ci_data['median'][5]:,.0f}\n2045 Median: {ci_data['median'][-1]:,.0f}"
+    props = {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.5}
+    ax.text(
+        0.98,
+        0.02,
+        textstr,
+        transform=ax.transAxes,
+        fontsize=10,
+        verticalalignment="bottom",
+        horizontalalignment="right",
+        bbox=props,
+    )
+
+    save_figure(
+        fig,
+        str(FIGURES_DIR / "module_9_fan_chart"),
+        "International Migration to North Dakota: Fan Chart Projection (2025-2045)",
+        "Monte Carlo simulation with 1,000 draws | Census Bureau Components of Change",
+    )
+
+
+def plot_scenario_comparison(
+    df_migration: pd.DataFrame,
+    scenarios: dict,
+    ci_data: dict,
+    result: ModuleResult,
+):
+    """Plot comparison of different scenarios."""
+    fig, ax = plt.subplots(figsize=(14, 8))
+
+    # Historical data
+    hist_years = df_migration["year"].values
+    hist_values = df_migration["nd_intl_migration"].values
+
+    ax.plot(
+        hist_years,
+        hist_values,
+        "o-",
+        color="black",
+        linewidth=2,
+        markersize=6,
+        label="Historical",
+        zorder=10,
+    )
+
+    # Plot each scenario
+    scenario_styles = {
+        "cbo_full": {"linestyle": "-", "linewidth": 2.5},
+        "moderate": {"linestyle": "-", "linewidth": 2},
+        "zero": {"linestyle": "--", "linewidth": 2},
+        "pre_2020_trend": {"linestyle": "-.", "linewidth": 2},
+    }
+
+    for scenario_name, scenario in scenarios.items():
+        proj_years = [p["year"] for p in scenario["projections"]]
+        proj_values = [p["value"] for p in scenario["projections"]]
+
+        style = scenario_styles.get(scenario_name, {"linestyle": "-", "linewidth": 1.5})
+        color = SCENARIO_COLORS.get(scenario_name, COLORS["neutral"])
+
+        ax.plot(
+            proj_years,
+            proj_values,
+            color=color,
+            label=scenario["name"],
+            **style,
+        )
+
+        # Connect to historical
+        ax.plot(
+            [hist_years[-1], proj_years[0]],
+            [hist_values[-1], proj_values[0]],
+            color=color,
+            linestyle=":",
+            linewidth=1,
+            alpha=0.5,
+        )
+
+    # Add Monte Carlo median for reference
+    proj_years = ci_data["projection_years"]
+    ax.plot(
+        proj_years,
+        ci_data["median"],
+        color=COLORS["neutral"],
+        linewidth=1.5,
+        linestyle=":",
+        label="MC Median",
+    )
+
+    # Vertical line at base year
+    ax.axvline(2024, color=COLORS["neutral"], linestyle="--", linewidth=1, alpha=0.5)
+
+    ax.set_xlabel("Year", fontsize=12)
+    ax.set_ylabel("International Migration to ND", fontsize=12)
+    ax.set_xlim(2009, 2046)
+    ax.set_ylim(bottom=0)
+    ax.legend(loc="upper left", fontsize=10)
+    ax.grid(True, alpha=0.3)
+
+    # Add 2045 endpoint values
+    ax.get_ylim()[1]
+    for scenario_name, scenario in scenarios.items():
+        final_val = scenario["projections"][-1]["value"]
+        color = SCENARIO_COLORS.get(scenario_name, COLORS["neutral"])
+        ax.text(
+            2045.5,
+            final_val,
+            f"{final_val:,.0f}",
+            fontsize=8,
+            color=color,
+            va="center",
+        )
+
+    save_figure(
+        fig,
+        str(FIGURES_DIR / "module_9_scenario_comparison"),
+        "International Migration to North Dakota: Scenario Comparison (2025-2045)",
+        "Multiple projection scenarios | Census Bureau Components of Change",
+    )
+
+
+def run_analysis() -> ModuleResult:
+    """Main analysis function for Module 9."""
+    result = ModuleResult(
+        module_id="9",
+        analysis_name="scenario_modeling",
+    )
+
+    print("Loading migration data...")
+    df_migration = load_migration_data(result)
+
+    print("\nLoading previous module results...")
+    all_results = load_previous_results(result)
+
+    # Extract estimates from previous modules
+    estimates = extract_model_estimates(all_results, result)
+
+    # Calculate model weights
+    weights = calculate_model_weights(estimates, result)
+
+    # Record parameters
+    result.parameters = {
+        "base_year": 2024,
+        "projection_horizon": "2025-2045",
+        "n_projection_years": 21,
+        "monte_carlo_draws": 1000,
+        "scenarios": ["CBO Full", "Moderate", "Zero", "Pre-2020 Trend"],
+        "confidence_intervals": ["50%", "80%", "95%"],
+        "model_weights": weights,
+        "input_modules": list(all_results.keys()),
+    }
+
+    # Generate scenarios
+    scenarios = generate_scenarios(df_migration, estimates, result)
+
+    # Run Monte Carlo simulation
+    mc_results, simulations = monte_carlo_simulation(
+        df_migration, estimates, result, n_draws=1000
+    )
+
+    # Compute confidence intervals
+    ci_data = compute_confidence_intervals(scenarios, mc_results, result)
+
+    # Create output DataFrames
+    print("\n--- Creating Output DataFrames ---")
+
+    df_combined = create_combined_forecasts_df(scenarios, mc_results, ci_data)
+    df_scenarios = create_scenario_projections_df(scenarios)
+    df_monte_carlo = create_monte_carlo_df(simulations, mc_results["projection_years"])
+
+    # Save DataFrames to parquet
+    combined_path = RESULTS_DIR / "module_9_combined_forecasts.parquet"
+    df_combined.to_parquet(combined_path, index=False)
+    print(f"  Combined forecasts saved: {combined_path}")
+
+    scenarios_path = RESULTS_DIR / "module_9_scenario_projections.parquet"
+    df_scenarios.to_parquet(scenarios_path, index=False)
+    print(f"  Scenario projections saved: {scenarios_path}")
+
+    mc_path = RESULTS_DIR / "module_9_monte_carlo.parquet"
+    df_monte_carlo.to_parquet(mc_path, index=False)
+    print(f"  Monte Carlo results saved: {mc_path}")
+
+    # Generate visualizations
+    print("\n" + "=" * 60)
+    print("GENERATING VISUALIZATIONS")
+    print("=" * 60)
+
+    plot_fan_chart(df_migration, ci_data, mc_results, result)
+    plot_scenario_comparison(df_migration, scenarios, ci_data, result)
+
+    # Compile results
+    result.results = {
+        "model_averaging": {
+            "aic_weights": weights.get("aic_based", {}),
+            "r2_weights": weights.get("r2_based", {}),
+        },
+        "scenarios": {
+            name: {
+                "description": s["description"],
+                "final_2045_value": s["projections"][-1]["value"],
+                "assumptions": s["assumptions"],
+            }
+            for name, s in scenarios.items()
+        },
+        "monte_carlo": {
+            "n_draws": mc_results["n_draws"],
+            "median_2030": mc_results["summary_by_year"][5]["p50"],
+            "median_2045": mc_results["summary_by_year"][-1]["p50"],
+            "ci_95_2045": [
+                mc_results["summary_by_year"][-1]["p5"],
+                mc_results["summary_by_year"][-1]["p95"],
+            ],
+        },
+        "confidence_intervals": {
+            "ci_50": {
+                "2030": [
+                    ci_data["intervals"]["ci_50"]["lower"][5],
+                    ci_data["intervals"]["ci_50"]["upper"][5],
+                ],
+                "2045": [
+                    ci_data["intervals"]["ci_50"]["lower"][-1],
+                    ci_data["intervals"]["ci_50"]["upper"][-1],
+                ],
+            },
+            "ci_95": {
+                "2030": [
+                    ci_data["intervals"]["ci_95"]["lower"][5],
+                    ci_data["intervals"]["ci_95"]["upper"][5],
+                ],
+                "2045": [
+                    ci_data["intervals"]["ci_95"]["lower"][-1],
+                    ci_data["intervals"]["ci_95"]["upper"][-1],
+                ],
+            },
+        },
+    }
+
+    # Diagnostics
+    result.diagnostics = {
+        "input_modules_loaded": len(all_results),
+        "estimates_extracted": {k: bool(v) for k, v in estimates.items()},
+        "historical_years": len(df_migration),
+        "projection_years": len(mc_results["projection_years"]),
+        "mc_convergence": {
+            "mean_2045": mc_results["summary_by_year"][-1]["mean"],
+            "std_2045": mc_results["summary_by_year"][-1]["std"],
+            "cv_2045": mc_results["summary_by_year"][-1]["std"]
+            / mc_results["summary_by_year"][-1]["mean"]
+            if mc_results["summary_by_year"][-1]["mean"] > 0
+            else None,
+        },
+    }
+
+    # Next steps
+    result.next_steps = [
+        "Integrate scenario projections with cohort-component model",
+        "Sensitivity analysis on key parameters",
+        "Compare with official CBO and Census projections",
+        "Update scenarios as new policy information becomes available",
+        "Create interactive dashboard for scenario exploration",
+    ]
+
+    return result
+
+
+def main():
+    """Main entry point."""
+    print("=" * 70)
+    print("Module 9: Scenario Modeling Agent")
+    print(f"Started: {datetime.now(UTC).isoformat()}")
+    print("=" * 70)
+
+    try:
+        result = run_analysis()
+        output_file = result.save("module_9_scenario_modeling.json")
+
+        print("\n" + "=" * 70)
+        print("Analysis completed successfully!")
+        print("=" * 70)
+
+        print(f"\nMain output: {output_file}")
+
+        print("\nKey Results:")
+        print(f"  Scenarios generated: {len(result.results['scenarios'])}")
+        for name, scenario in result.results["scenarios"].items():
+            print(f"    - {name}: {scenario['final_2045_value']:,.0f} (2045)")
+
+        print("\nMonte Carlo Simulation:")
+        print(f"  2030 Median: {result.results['monte_carlo']['median_2030']:,.0f}")
+        print(f"  2045 Median: {result.results['monte_carlo']['median_2045']:,.0f}")
+        ci_95 = result.results["monte_carlo"]["ci_95_2045"]
+        print(f"  2045 95% CI: [{ci_95[0]:,.0f}, {ci_95[1]:,.0f}]")
+
+        if result.warnings:
+            print("\nWarnings:")
+            for w in result.warnings:
+                print(f"  - {w}")
+
+        print(f"\nDecisions logged: {len(result.decisions)}")
+        for d in result.decisions:
+            print(f"  [{d['decision_id']}] {d['decision']}")
+
+        print("\nOutput files generated:")
+        print("  Parquet files:")
+        print("    - module_9_combined_forecasts.parquet")
+        print("    - module_9_scenario_projections.parquet")
+        print("    - module_9_monte_carlo.parquet")
+        print("  Figures:")
+        print("    - module_9_fan_chart.png/pdf")
+        print("    - module_9_scenario_comparison.png/pdf")
+        print("  JSON:")
+        print("    - module_9_scenario_modeling.json")
+
+        return 0
+
+    except Exception as e:
+        print(f"\nERROR: {e}")
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+
+================================================================================
+TASK INSTRUCTIONS
+================================================================================
+
+
+## Your Task
+
+### Part 1: KPSS Resolution
+Examine the unit root test results carefully.
+- The paper text says KPSS "fails to reject stationarity in levels"
+- But the robustness table apparently shows KPSS rejecting stationarity (marked **)
+- Which interpretation is correct?
+- Provide the correct interpretation of KPSS results
+- Explain clearly: what does KPSS rejection vs. non-rejection mean for stationarity?
+
+### Part 2: Break-Robust Testing Recommendation
+Given the major structural break around 2020:
+- Is standard ADF appropriate, or will it be biased?
+- Recommend specific break-robust unit root tests:
+  - Zivot-Andrews (endogenous break)
+  - Lee-Strazicich (two-break LM test)
+- Provide the mathematical specification for these tests
+- What is the appropriate interpretation with only n=15 observations?
+
+### Part 3: Backtesting Framework Design
+Design a rigorous rolling-origin backtesting framework:
+1. Exact specification:
+   - Training windows
+   - Forecast horizons
+   - Models to compare
+2. Appropriate benchmarks for n=15:
+   - Naive (random walk)
+   - Mean
+   - Drift/trend
+3. Metrics:
+   - Point accuracy (MAE, RMSE, MAPE) - which are appropriate for small samples?
+   - Interval calibration (how to assess with few observations)
+4. How to handle the 2020 COVID outlier:
+   - Include? Exclude? Sensitivity analysis?
+
+### Part 4: Scenario Arithmetic Verification
+Check the scenario calculations in module_9_scenario_modeling.json:
+1. 8% annual growth scenario:
+   - Baseline is 5,126 (2024)
+   - Does 5,126 × 1.08^21 equal the reported 2045 value?
+   - If not, what explains the discrepancy?
+2. 2010-2019 slope (+72/year):
+   - The 2045 projection (2,517) is LOWER than 2024 baseline (5,126)
+   - Is the anchor point 2019 level or 2024 level?
+   - Clarify the correct interpretation
+3. CV discrepancy:
+   - Historical CV = 82.5%
+   - Monte Carlo CV = 0.39
+   - Why the difference? Is this explained?
+
+### Part 5: Terminology Audit
+Provide a complete list of inference language corrections needed:
+1. "confidence interval" → "prediction interval" (for forecasts)
+2. "establishes" → "suggests" or "is consistent with"
+3. "proves" → "provides evidence for"
+4. Other overconfident language
+
+Create a CSV-format table with columns: [original_phrase, replacement_phrase, context]
+
+### Part 6: Small-Sample Guidelines
+Provide explicit guidelines for interpreting statistics with n=15:
+- When are p-values meaningful?
+- How to present effect sizes vs. significance tests?
+- What language is appropriate for claims?
+
+Please be mathematically precise. Your specifications will be implemented by another AI system.
+
+
+--------------------------------------------------------------------------------
+Total characters: 160643
+Estimated tokens: 40160

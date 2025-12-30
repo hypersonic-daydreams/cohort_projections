@@ -1,0 +1,142 @@
+{
+  "travel_ban": {
+    "analysis": "Travel Ban DiD",
+    "treatment_definition": {
+      "treated_countries": [
+        "Iran",
+        "Iraq",
+        "Libya",
+        "Somalia",
+        "Sudan",
+        "Syria",
+        "Yemen"
+      ],
+      "treatment_year": 2018,
+      "policy": "Executive Order 13769 (Travel Ban)"
+    },
+    "sample_info": {
+      "n_treatment_units": 7,
+      "n_control_units": 119,
+      "n_pre_periods": 16,
+      "n_post_periods": 2,
+      "n_observations": 1137,
+      "years_analyzed": [
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019
+      ]
+    },
+    "att_estimate": {
+      "coefficient": -1.3835462427080563,
+      "std_error": 0.48080477140495714,
+      "t_statistic": -2.8775634623283852,
+      "p_value": 0.004007592915562945,
+      "ci_95_lower": -2.325906278256786,
+      "ci_95_upper": -0.44118620715932666,
+      "significance": "**"
+    },
+    "percentage_effect": {
+      "estimate": -74.93120255123374,
+      "interpretation": "Refugee arrivals from banned countries decreased by approximately 74.9% post-ban"
+    },
+    "pre_trend_test": {
+      "treated_x_trend_coef": 0.08738171406923699,
+      "t_statistic": 1.3329064340101047,
+      "p_value": 0.18256251088773134,
+      "parallel_trends_supported": "True"
+    },
+    "model_specification": {
+      "dependent_variable": "log(arrivals + 1)",
+      "fixed_effects": [
+        "nationality",
+        "year"
+      ],
+      "standard_errors": "HC3 robust"
+    },
+    "model_fit": {
+      "r_squared": 0.8285501997924065,
+      "r_squared_adj": 0.8038600472952404,
+      "n_observations": 1137,
+      "df_model": 143,
+      "df_resid": 993
+    }
+  },
+  "covid": {
+    "analysis": "COVID-19 Interrupted Time Series",
+    "treatment_definition": {
+      "event": "COVID-19 pandemic",
+      "treatment_year": 2020,
+      "policy": "Travel restrictions and border closures"
+    },
+    "sample_info": {
+      "n_states": 51,
+      "n_pre_periods": 10,
+      "n_post_periods": 5,
+      "n_observations": 765,
+      "years_analyzed": [
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ]
+    },
+    "level_effect": {
+      "coefficient": -19502.524183006535,
+      "std_error": 4363.2445250189085,
+      "t_statistic": -4.469729824028604,
+      "p_value": 9.111836487329938e-06,
+      "ci_95_lower": -28068.908786780645,
+      "ci_95_upper": -10936.139579232427,
+      "significance": "***"
+    },
+    "trend_change": {
+      "coefficient": 14112.681699346414,
+      "std_error": 3149.304647566337,
+      "t_statistic": 4.4812056243120715,
+      "p_value": 8.64806929978812e-06,
+      "interpretation": "International migration changes by 14,113 per year post-COVID"
+    },
+    "percentage_effect": {
+      "pre_covid_mean": 15669.256862745098,
+      "level_effect_pct": -124.46361913547625
+    },
+    "model_specification": {
+      "dependent_variable": "intl_migration",
+      "fixed_effects": [
+        "state"
+      ],
+      "standard_errors": "clustered by state"
+    },
+    "model_fit": {
+      "r_squared_within": 0.2423462182506646,
+      "r_squared_between": 1.1102230246251565e-16,
+      "r_squared_overall": 0.10640791955733253
+    }
+  }
+}

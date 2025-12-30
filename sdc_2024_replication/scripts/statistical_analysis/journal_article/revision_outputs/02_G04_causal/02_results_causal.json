@@ -1,0 +1,654 @@
+{
+  "module": "7",
+  "analysis": "causal_inference_did_event_study",
+  "generated": "2025-12-29T06:23:29.998353+00:00",
+  "input_files": [
+    "combined_components_of_change.csv",
+    "refugee_arrivals_by_state_nationality.parquet",
+    "results/module_3_1_panel_data.parquet"
+  ],
+  "parameters": {
+    "analyses": [
+      "Difference-in-Differences (Travel Ban)",
+      "Interrupted Time Series (COVID)",
+      "Event Study (Travel Ban)",
+      "Synthetic Control Method (ND)",
+      "Shift-Share (Bartik) Instrument"
+    ],
+    "travel_ban_treatment_year": 2018,
+    "covid_treatment_year": 2020,
+    "synthetic_control_unit": "North Dakota"
+  },
+  "results": {
+    "did_travel_ban": {
+      "analysis": "Travel Ban DiD",
+      "treatment_definition": {
+        "treated_countries": [
+          "Iran",
+          "Iraq",
+          "Libya",
+          "Somalia",
+          "Sudan",
+          "Syria",
+          "Yemen"
+        ],
+        "treatment_year": 2018,
+        "policy": "Executive Order 13769 (Travel Ban)"
+      },
+      "sample_info": {
+        "n_treatment_units": 7,
+        "n_control_units": 119,
+        "n_pre_periods": 16,
+        "n_post_periods": 2,
+        "n_observations": 1137,
+        "years_analyzed": [
+          2002,
+          2003,
+          2004,
+          2005,
+          2006,
+          2007,
+          2008,
+          2009,
+          2010,
+          2011,
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019
+        ]
+      },
+      "att_estimate": {
+        "coefficient": -1.3835462427080563,
+        "std_error": 0.48080477140495714,
+        "t_statistic": -2.8775634623283852,
+        "p_value": 0.004007592915562945,
+        "ci_95_lower": -2.325906278256786,
+        "ci_95_upper": -0.44118620715932666,
+        "significance": "**"
+      },
+      "percentage_effect": {
+        "estimate": -74.93120255123374,
+        "interpretation": "Refugee arrivals from banned countries decreased by approximately 74.9% post-ban"
+      },
+      "pre_trend_test": {
+        "treated_x_trend_coef": 0.08738171406923699,
+        "t_statistic": 1.3329064340101047,
+        "p_value": 0.18256251088773134,
+        "parallel_trends_supported": "True"
+      },
+      "model_specification": {
+        "dependent_variable": "log(arrivals + 1)",
+        "fixed_effects": [
+          "nationality",
+          "year"
+        ],
+        "standard_errors": "HC3 robust"
+      },
+      "model_fit": {
+        "r_squared": 0.8285501997924065,
+        "r_squared_adj": 0.8038600472952404,
+        "n_observations": 1137,
+        "df_model": 143,
+        "df_resid": 993
+      }
+    },
+    "did_covid": {
+      "analysis": "COVID-19 Interrupted Time Series",
+      "treatment_definition": {
+        "event": "COVID-19 pandemic",
+        "treatment_year": 2020,
+        "policy": "Travel restrictions and border closures"
+      },
+      "sample_info": {
+        "n_states": 51,
+        "n_pre_periods": 10,
+        "n_post_periods": 5,
+        "n_observations": 765,
+        "years_analyzed": [
+          2010,
+          2011,
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023,
+          2024
+        ]
+      },
+      "level_effect": {
+        "coefficient": -19502.524183006535,
+        "std_error": 4363.2445250189085,
+        "t_statistic": -4.469729824028604,
+        "p_value": 9.111836487329938e-06,
+        "ci_95_lower": -28068.908786780645,
+        "ci_95_upper": -10936.139579232427,
+        "significance": "***"
+      },
+      "trend_change": {
+        "coefficient": 14112.681699346414,
+        "std_error": 3149.304647566337,
+        "t_statistic": 4.4812056243120715,
+        "p_value": 8.64806929978812e-06,
+        "interpretation": "International migration changes by 14,113 per year post-COVID"
+      },
+      "percentage_effect": {
+        "pre_covid_mean": 15669.256862745098,
+        "level_effect_pct": -124.46361913547625
+      },
+      "model_specification": {
+        "dependent_variable": "intl_migration",
+        "fixed_effects": [
+          "state"
+        ],
+        "standard_errors": "clustered by state"
+      },
+      "model_fit": {
+        "r_squared_within": 0.2423462182506646,
+        "r_squared_between": 1.1102230246251565e-16,
+        "r_squared_overall": 0.10640791955733253
+      }
+    },
+    "event_study": {
+      "analysis": "Event Study - Travel Ban",
+      "specification": {
+        "event_year": 2018,
+        "reference_period": -1,
+        "periods_estimated": [
+          -16,
+          -15,
+          -14,
+          -13,
+          -12,
+          -11,
+          -10,
+          -9,
+          -8,
+          -7,
+          -6,
+          -5,
+          -4,
+          -3,
+          -2,
+          0,
+          1
+        ]
+      },
+      "coefficients": [
+        {
+          "rel_time": -16,
+          "year": 2002,
+          "coefficient": -1.8732301748132543,
+          "std_error": 0.8427662163301027,
+          "t_statistic": -2.222716262844985,
+          "p_value": 0.026234938584054214,
+          "ci_lower": -3.5250216062073476,
+          "ci_upper": -0.22143874341916092,
+          "is_reference": false
+        },
+        {
+          "rel_time": -15,
+          "year": 2003,
+          "coefficient": -1.9241878094315705,
+          "std_error": 0.9230088998171004,
+          "t_statistic": -2.084690418275338,
+          "p_value": 0.037097410972295256,
+          "ci_lower": -3.7332520104830262,
+          "ci_upper": -0.11512360838011482,
+          "is_reference": false
+        },
+        {
+          "rel_time": -14,
+          "year": 2004,
+          "coefficient": -1.5120681552843742,
+          "std_error": 1.053917286550069,
+          "t_statistic": -1.43471235796315,
+          "p_value": 0.15136908120399217,
+          "ci_lower": -3.5777080796066896,
+          "ci_upper": 0.5535717690379409,
+          "is_reference": false
+        },
+        {
+          "rel_time": -13,
+          "year": 2005,
+          "coefficient": -1.6984091650794761,
+          "std_error": 0.872907892611661,
+          "t_statistic": -1.9456911541926725,
+          "p_value": 0.051691849864899386,
+          "ci_lower": -3.409277196419089,
+          "ci_upper": 0.012458866260136592,
+          "is_reference": false
+        },
+        {
+          "rel_time": -12,
+          "year": 2006,
+          "coefficient": -1.2977987346634021,
+          "std_error": 0.8372676484824287,
+          "t_statistic": -1.550040464379221,
+          "p_value": 0.12113180412925899,
+          "ci_lower": -2.9388131711095045,
+          "ci_upper": 0.3432157017827002,
+          "is_reference": false
+        },
+        {
+          "rel_time": -11,
+          "year": 2007,
+          "coefficient": -1.1318388586360537,
+          "std_error": 0.6886552530795799,
+          "t_statistic": -1.6435492992678302,
+          "p_value": 0.10026933408064254,
+          "ci_lower": -2.4815783524363466,
+          "ci_upper": 0.21790063516423896,
+          "is_reference": false
+        },
+        {
+          "rel_time": -10,
+          "year": 2008,
+          "coefficient": -1.3628789728829442,
+          "std_error": 0.7937144239165299,
+          "t_statistic": -1.7170898396401952,
+          "p_value": 0.08596275833876338,
+          "ci_lower": -2.9185306577693,
+          "ci_upper": 0.19277271200341128,
+          "is_reference": false
+        },
+        {
+          "rel_time": -9,
+          "year": 2009,
+          "coefficient": -0.5545649089327892,
+          "std_error": 0.7353133411777832,
+          "t_statistic": -0.7541885586415698,
+          "p_value": 0.4507360067508722,
+          "ci_lower": -1.9957525749930576,
+          "ci_upper": 0.8866227571274791,
+          "is_reference": false
+        },
+        {
+          "rel_time": -8,
+          "year": 2010,
+          "coefficient": -1.2827613153050903,
+          "std_error": 0.7543453404432542,
+          "t_statistic": -1.7004961077261223,
+          "p_value": 0.08903764791297855,
+          "ci_lower": -2.761251014479474,
+          "ci_upper": 0.1957283838692938,
+          "is_reference": false
+        },
+        {
+          "rel_time": -7,
+          "year": 2011,
+          "coefficient": -0.9730779794606708,
+          "std_error": 0.6699451363623253,
+          "t_statistic": -1.4524741305598532,
+          "p_value": 0.14636981716597927,
+          "ci_lower": -2.286146318348604,
+          "ci_upper": 0.3399903594272622,
+          "is_reference": false
+        },
+        {
+          "rel_time": -6,
+          "year": 2012,
+          "coefficient": -0.6902065530427022,
+          "std_error": 0.7002912148461774,
+          "t_statistic": -0.9855993312643649,
+          "p_value": 0.32432976632842736,
+          "ci_lower": -2.062752112831011,
+          "ci_upper": 0.6823390067456068,
+          "is_reference": false
+        },
+        {
+          "rel_time": -5,
+          "year": 2013,
+          "coefficient": -0.5921995680160133,
+          "std_error": 0.6813210367801091,
+          "t_statistic": -0.8691931351697583,
+          "p_value": 0.3847415016031861,
+          "ci_lower": -1.9275642620145166,
+          "ci_upper": 0.7431651259824901,
+          "is_reference": false
+        },
+        {
+          "rel_time": -4,
+          "year": 2014,
+          "coefficient": -0.4802497004140481,
+          "std_error": 0.7137377615112095,
+          "t_statistic": -0.6728657587027579,
+          "p_value": 0.5010326979354774,
+          "ci_lower": -1.879150007382257,
+          "ci_upper": 0.9186506065541609,
+          "is_reference": false
+        },
+        {
+          "rel_time": -3,
+          "year": 2015,
+          "coefficient": 0.03625455894674993,
+          "std_error": 0.7387571482397047,
+          "t_statistic": 0.04907507024891271,
+          "p_value": 0.9608594705223331,
+          "ci_lower": -1.411682844924589,
+          "ci_upper": 1.484191962818089,
+          "is_reference": false
+        },
+        {
+          "rel_time": -2,
+          "year": 2016,
+          "coefficient": 0.03715239619580181,
+          "std_error": 0.8828286940310126,
+          "t_statistic": 0.042083358240388925,
+          "p_value": 0.9664322466180316,
+          "ci_lower": -1.6931600486235139,
+          "ci_upper": 1.7674648410151175,
+          "is_reference": false
+        },
+        {
+          "rel_time": -1,
+          "year": 2017,
+          "coefficient": 0.0,
+          "std_error": 0.0,
+          "ci_lower": 0.0,
+          "ci_upper": 0.0,
+          "is_reference": true
+        },
+        {
+          "rel_time": 0,
+          "year": 2018,
+          "coefficient": -2.688076743850626,
+          "std_error": 0.8232818679209098,
+          "t_statistic": -3.2650746343278647,
+          "p_value": 0.0010943523706810102,
+          "ci_lower": -4.301679554100471,
+          "ci_upper": -1.0744739336007811,
+          "is_reference": false
+        },
+        {
+          "rel_time": 1,
+          "year": 2019,
+          "coefficient": -1.8021877225689757,
+          "std_error": 0.9344468444809568,
+          "t_statistic": -1.9286144880397236,
+          "p_value": 0.05377873908264734,
+          "ci_lower": -3.633669883218752,
+          "ci_upper": 0.029294438080800678,
+          "is_reference": false
+        }
+      ],
+      "pre_trend_test": {
+        "f_statistic": 1.3799371835161283,
+        "p_value": 0.14946148645136384,
+        "parallel_trends_supported": true
+      },
+      "model_fit": {
+        "r_squared": 0.8330307205909447,
+        "r_squared_adj": 0.8058576239419788
+      }
+    },
+    "synthetic_control": {
+      "analysis": "Synthetic Control Method",
+      "treated_unit": "North Dakota",
+      "treatment_year": 2017,
+      "feasible": true,
+      "donor_pool_size": 50,
+      "weights": {
+        "Florida": 0.02474914212248973,
+        "Oregon": 0.027252385876730338,
+        "Rhode Island": 0.20098215061807295,
+        "Vermont": 0.24520700993607167,
+        "Washington": 0.08288355352795605,
+        "Wyoming": 0.41892575791867914
+      },
+      "pre_treatment_fit": {
+        "rmspe": 0.019838234677320953,
+        "n_periods": 7
+      },
+      "post_treatment_effect": {
+        "mean_effect": 0.5701403450198343,
+        "std_effect": 0.7775961786976838,
+        "rmspe": 0.9642177296360901,
+        "rmspe_ratio": 48.60400863885246
+      },
+      "time_series": [
+        {
+          "year": 2010,
+          "actual": 0.6935881627620222,
+          "synthetic": 0.6469304948895518,
+          "effect": 0.04665766787247039
+        },
+        {
+          "year": 2011,
+          "actual": 1.7636092577086793,
+          "synthetic": 1.771344885003168,
+          "effect": -0.007735627294488623
+        },
+        {
+          "year": 2012,
+          "actual": 1.8441330225126633,
+          "synthetic": 1.8614422686916188,
+          "effect": -0.017309246178955462
+        },
+        {
+          "year": 2013,
+          "actual": 1.7340824643330766,
+          "synthetic": 1.7398204260464283,
+          "effect": -0.005737961713351725
+        },
+        {
+          "year": 2014,
+          "actual": 1.3008706763986053,
+          "synthetic": 1.3029262545185278,
+          "effect": -0.0020555781199225187
+        },
+        {
+          "year": 2015,
+          "actual": 2.9740436272479047,
+          "synthetic": 2.9672790279458505,
+          "effect": 0.006764599302054197
+        },
+        {
+          "year": 2016,
+          "actual": 2.101534953723909,
+          "synthetic": 2.0898905743150187,
+          "effect": 0.011644379408890515
+        },
+        {
+          "year": 2017,
+          "actual": 3.799115962233484,
+          "synthetic": 2.34666872997944,
+          "effect": 1.4524472322540438
+        },
+        {
+          "year": 2018,
+          "actual": 1.6406556307248619,
+          "synthetic": 2.044906199631907,
+          "effect": -0.40425056890704525
+        },
+        {
+          "year": 2019,
+          "actual": 0.8301428264661056,
+          "synthetic": 0.9924311657643362,
+          "effect": -0.1622883392982306
+        },
+        {
+          "year": 2020,
+          "actual": 0.038483098864363754,
+          "synthetic": 0.046907062785573085,
+          "effect": -0.00842396392120933
+        },
+        {
+          "year": 2021,
+          "actual": 0.58228765781538,
+          "synthetic": 0.671812822032726,
+          "effect": -0.08952516421734591
+        },
+        {
+          "year": 2022,
+          "actual": 4.2083996430478186,
+          "synthetic": 3.445933643783972,
+          "effect": 0.7624659992638465
+        },
+        {
+          "year": 2023,
+          "actual": 5.410324099831823,
+          "synthetic": 3.996565761733229,
+          "effect": 1.413758338098594
+        },
+        {
+          "year": 2024,
+          "actual": 6.435106607345512,
+          "synthetic": 4.83816738045949,
+          "effect": 1.5969392268860219
+        }
+      ],
+      "optimization": {
+        "converged": true,
+        "objective_value": 0.002754888885787217
+      }
+    },
+    "bartik_instrument": {
+      "analysis": "Shift-Share (Bartik) Instrument",
+      "feasible": true,
+      "construction": {
+        "baseline_year": 2010,
+        "share_component": "State share of nationality at baseline",
+        "shift_component": "National change in nationality arrivals"
+      },
+      "sample_info": {
+        "n_observations": 528,
+        "n_states": 48,
+        "n_years": 11,
+        "years": [
+          2010,
+          2011,
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020
+        ]
+      },
+      "first_stage": {
+        "bartik_coefficient": 4.362533057269598,
+        "std_error": 0.9205283960587209,
+        "t_statistic": 4.739161850897764,
+        "p_value": 2.1460404183894875e-06,
+        "f_statistic": 22.45965504900472,
+        "strong_instrument": "True"
+      },
+      "instrument_statistics": {
+        "mean": -852.2401315789474,
+        "std": 1713.4727899676561,
+        "min": -14007.530204652932,
+        "max": 5128.110612812697
+      },
+      "model_fit": {
+        "r_squared": 0.8518911128208396,
+        "r_squared_adj": 0.8335748751739498
+      }
+    }
+  },
+  "diagnostics": {
+    "parallel_trends": {
+      "travel_ban_supported": "True",
+      "event_study_pre_trend_p": 0.14946148645136384
+    },
+    "instrument_strength": {
+      "bartik_f_statistic": 22.45965504900472,
+      "strong_instrument": "True"
+    },
+    "synthetic_control_fit": {
+      "pre_treatment_rmspe": 0.019838234677320953,
+      "rmspe_ratio": 48.60400863885246
+    }
+  },
+  "warnings": [],
+  "decisions": [
+    {
+      "decision_id": "D001",
+      "timestamp": "2025-12-29T06:23:27.965114+00:00",
+      "category": "causal_identification",
+      "decision": "Use 2018 as first post-treatment year for Travel Ban DiD",
+      "rationale": "Executive Order 13769 signed Jan 27, 2017, repeatedly blocked. 2017 reflects partial implementation; 2018 is first full year of effect.",
+      "alternatives_considered": [
+        "Use 2017 as first post year",
+        "Use phased treatment intensity"
+      ],
+      "evidence": "Affected countries: ['Iran', 'Iraq', 'Libya', 'Somalia', 'Sudan', 'Syria', 'Yemen']",
+      "reversible": true
+    },
+    {
+      "decision_id": "D003",
+      "timestamp": "2025-12-29T06:23:28.043773+00:00",
+      "category": "model_specification",
+      "decision": "Use two-way fixed effects with HC3 robust standard errors",
+      "rationale": "Nationality FE controls for time-invariant heterogeneity; Year FE controls for common shocks",
+      "alternatives_considered": [
+        "Cluster by nationality",
+        "Use wild bootstrap",
+        "Random effects"
+      ],
+      "evidence": "ATT = -1.3835 (SE = 0.4808)",
+      "reversible": true
+    },
+    {
+      "decision_id": "D002",
+      "timestamp": "2025-12-29T06:23:28.047632+00:00",
+      "category": "causal_identification",
+      "decision": "Use 2020 as COVID treatment year for state-level DiD",
+      "rationale": "COVID-19 travel restrictions began March 2020, affecting international migration universally",
+      "alternatives_considered": [
+        "Use 2021 to capture full-year effect",
+        "Exclude 2020 due to partial year data"
+      ],
+      "evidence": "Census PEP shows 2020 as partial year with anomalous low values",
+      "reversible": true
+    },
+    {
+      "decision_id": "D004",
+      "timestamp": "2025-12-29T06:23:28.176927+00:00",
+      "category": "causal_identification",
+      "decision": "Use international migration rate (per 1000) for synthetic control",
+      "rationale": "Rate normalizes for population differences across states",
+      "alternatives_considered": [
+        "Use raw counts",
+        "Use log transformation",
+        "Use growth rates"
+      ],
+      "evidence": "Pre-treatment RMSPE = 0.0198",
+      "reversible": true
+    },
+    {
+      "decision_id": "D005",
+      "timestamp": "2025-12-29T06:23:28.290006+00:00",
+      "category": "causal_identification",
+      "decision": "Use 2010 as baseline year for shift-share construction",
+      "rationale": "2010 is first year with reliable state-level refugee data and aligns with panel start",
+      "alternatives_considered": [
+        "Use 2005 as baseline",
+        "Use average of early years",
+        "Time-varying shares"
+      ],
+      "evidence": "First-stage F = 22.46",
+      "reversible": true
+    }
+  ],
+  "next_steps": [
+    "Module 8: Conduct robustness checks (alternative specifications, placebo tests)",
+    "Consider heterogeneous treatment effects by state/region",
+    "Extend event study window with more recent data when available",
+    "Validate synthetic control with leave-one-out placebo analysis"
+  ]
+}

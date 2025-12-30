@@ -1,0 +1,536 @@
+{
+  "module": "2.1.1",
+  "analysis": "unit_root_tests",
+  "generated": "2025-12-29T05:57:13.487254+00:00",
+  "input_files": [
+    "nd_migration_summary.csv"
+  ],
+  "parameters": {
+    "variables_tested": [
+      "nd_share_of_us_intl_pct",
+      "nd_intl_migration",
+      "us_intl_migration"
+    ],
+    "n_observations": 15,
+    "time_period": "2010-2024",
+    "significance_level": 0.05,
+    "adf_autolag": "AIC",
+    "kpss_nlags": "auto"
+  },
+  "results": {
+    "variables": {
+      "nd_share_of_us_intl_pct": {
+        "n_observations": 15,
+        "mean": 0.17311264892684516,
+        "std": 0.0523189026086137,
+        "adf_level": {
+          "series": "nd_share_of_us_intl_pct",
+          "statistic": -2.004226168756995,
+          "p_value": 0.2847231513964522,
+          "used_lag": 5,
+          "n_obs_used": 9,
+          "critical_values": {
+            "1%": -4.473135048010974,
+            "5%": -3.28988060356653,
+            "10%": -2.7723823456790124
+          },
+          "ic_best": -25.12973060159895,
+          "regression_type": "c",
+          "regression": {
+            "constant": {
+              "coef": 0.25687929829358525,
+              "se": 0.09230680642152263,
+              "t": 2.782885772480698
+            },
+            "rho_minus_1": {
+              "coef": -1.4849148798121377,
+              "se": 0.48905575055730044,
+              "t": -3.0362895807277845
+            },
+            "diff_lag_1": {
+              "coef": 0.37652131612384626,
+              "se": 0.40453865457735744,
+              "t": 0.9307424936121806
+            },
+            "diff_lag_2": {
+              "coef": 0.5481137100324897,
+              "se": 0.32316943587093344,
+              "t": 1.6960567714435528
+            },
+            "diff_lag_3": {
+              "coef": 0.3060972733342245,
+              "se": 0.3225067738425362,
+              "t": 0.9491188965961886
+            },
+            "diff_lag_4": {
+              "coef": -0.16837621084046397,
+              "se": 0.30900322545174064,
+              "t": -0.5449011433272581
+            },
+            "diff_lag_5": {
+              "coef": 0.009146028720370573,
+              "se": 0.2711916007558664,
+              "t": 0.03372533918778724
+            }
+          }
+        },
+        "kpss_level": {
+          "series": "nd_share_of_us_intl_pct",
+          "statistic": 0.07029320902462563,
+          "p_value": 0.1,
+          "lags_used": 1,
+          "critical_values": {
+            "10%": 0.347,
+            "5%": 0.463,
+            "2.5%": 0.574,
+            "1%": 0.739
+          },
+          "regression_type": "level"
+        },
+        "phillips_perron_level": {
+          "statistic": -4.263697110119461,
+          "p_value": 0.0005130993784872706,
+          "lags_used": 0,
+          "n_obs_used": 14,
+          "critical_values": {
+            "1%": -4.01203360058309,
+            "5%": -3.1041838775510207,
+            "10%": -2.6909873469387753
+          },
+          "note": "PP test approximated using DF test (maxlag=0) for small sample"
+        },
+        "adf_differenced": {
+          "series": "d(nd_share_of_us_intl_pct)",
+          "statistic": -6.214191059942855,
+          "p_value": 5.4157813805922624e-08,
+          "used_lag": 0,
+          "n_obs_used": 13,
+          "critical_values": {
+            "1%": -4.068853732362312,
+            "5%": -3.1271488757396453,
+            "10%": -2.7017297633136095
+          },
+          "ic_best": -16.034757315862137,
+          "regression_type": "c",
+          "regression": {
+            "constant": {
+              "coef": -0.0002988418861058704,
+              "se": 0.0189968259270381,
+              "t": -0.015731148311493977
+            },
+            "rho_minus_1": {
+              "coef": -1.4838973417833328,
+              "se": 0.23879171519985076,
+              "t": -6.214191059942854
+            }
+          }
+        },
+        "kpss_differenced": {
+          "series": "d(nd_share_of_us_intl_pct)",
+          "statistic": 0.4999999999999999,
+          "p_value": 0.04166666666666669,
+          "lags_used": 13,
+          "critical_values": {
+            "10%": 0.347,
+            "5%": 0.463,
+            "2.5%": 0.574,
+            "1%": 0.739
+          },
+          "regression_type": "level"
+        },
+        "integration_order": {
+          "integration_order": 1,
+          "conclusion": "I(1) - First-difference stationary",
+          "evidence": [
+            "ADF fails to reject unit root in level (p=0.2847)",
+            "ADF rejects unit root in first difference (p=0.0000)"
+          ],
+          "level_tests": {
+            "adf_rejects_unit_root": false,
+            "kpss_rejects_stationarity": false
+          },
+          "differenced_tests": {
+            "adf_rejects_unit_root": true,
+            "kpss_rejects_stationarity": true
+          },
+          "significance_level": 0.05
+        }
+      },
+      "nd_intl_migration": {
+        "n_observations": 15,
+        "mean": 1796.2666666666667,
+        "std": 1432.0705972666137,
+        "adf_level": {
+          "series": "nd_intl_migration",
+          "statistic": -1.4534467368641693,
+          "p_value": 0.5564021716016336,
+          "used_lag": 5,
+          "n_obs_used": 9,
+          "critical_values": {
+            "1%": -4.473135048010974,
+            "5%": -3.28988060356653,
+            "10%": -2.7723823456790124
+          },
+          "ic_best": 126.1573749472613,
+          "regression_type": "c",
+          "regression": {
+            "constant": {
+              "coef": 1105.1753404285453,
+              "se": 677.5739226259527,
+              "t": 1.6310771467494112
+            },
+            "rho_minus_1": {
+              "coef": -0.6004923607252058,
+              "se": 0.5200630048850854,
+              "t": -1.154653099883335
+            },
+            "diff_lag_1": {
+              "coef": 0.08387208269750829,
+              "se": 0.5263275518294596,
+              "t": 0.15935339581972802
+            },
+            "diff_lag_2": {
+              "coef": 0.5281381249508235,
+              "se": 0.4376302507656295,
+              "t": 1.2068135692787494
+            },
+            "diff_lag_3": {
+              "coef": -0.6944818386741572,
+              "se": 0.42602038717920815,
+              "t": -1.6301610429315418
+            },
+            "diff_lag_4": {
+              "coef": -1.1234193463122475,
+              "se": 0.500856614890349,
+              "t": -2.242995925207445
+            },
+            "diff_lag_5": {
+              "coef": -0.13859338272028365,
+              "se": 0.5390961516072654,
+              "t": -0.2570847191304933
+            }
+          }
+        },
+        "kpss_level": {
+          "series": "nd_intl_migration",
+          "statistic": 0.32327930438225816,
+          "p_value": 0.1,
+          "lags_used": 1,
+          "critical_values": {
+            "10%": 0.347,
+            "5%": 0.463,
+            "2.5%": 0.574,
+            "1%": 0.739
+          },
+          "regression_type": "level"
+        },
+        "phillips_perron_level": {
+          "statistic": -0.6195622042640315,
+          "p_value": 0.8665002222315035,
+          "lags_used": 0,
+          "n_obs_used": 14,
+          "critical_values": {
+            "1%": -4.01203360058309,
+            "5%": -3.1041838775510207,
+            "10%": -2.6909873469387753
+          },
+          "note": "PP test approximated using DF test (maxlag=0) for small sample"
+        },
+        "adf_differenced": {
+          "series": "d(nd_intl_migration)",
+          "statistic": -3.8428940157830493,
+          "p_value": 0.0024977127875415693,
+          "used_lag": 3,
+          "n_obs_used": 10,
+          "critical_values": {
+            "1%": -4.331573,
+            "5%": -3.23295,
+            "10%": -2.7487
+          },
+          "ic_best": 117.01639020412301,
+          "regression_type": "c",
+          "regression": {
+            "constant": {
+              "coef": 495.773824275667,
+              "se": 283.7065525701755,
+              "t": 1.7474880991796482
+            },
+            "rho_minus_1": {
+              "coef": -2.55764841867692,
+              "se": 0.6498298696221033,
+              "t": -3.935873892907191
+            },
+            "diff_lag_1": {
+              "coef": 1.361200186146963,
+              "se": 0.5354396516415667,
+              "t": 2.5422102789245344
+            },
+            "diff_lag_2": {
+              "coef": 1.5913927788908788,
+              "se": 0.49770839371223713,
+              "t": 3.197440105482696
+            },
+            "diff_lag_3": {
+              "coef": 0.8373346140651816,
+              "se": 0.3550245302285438,
+              "t": 2.3585260813559983
+            }
+          }
+        },
+        "kpss_differenced": {
+          "series": "d(nd_intl_migration)",
+          "statistic": 0.18860050862964794,
+          "p_value": 0.1,
+          "lags_used": 0,
+          "critical_values": {
+            "10%": 0.347,
+            "5%": 0.463,
+            "2.5%": 0.574,
+            "1%": 0.739
+          },
+          "regression_type": "level"
+        },
+        "integration_order": {
+          "integration_order": 1,
+          "conclusion": "I(1) - First-difference stationary",
+          "evidence": [
+            "ADF fails to reject unit root in level (p=0.5564)",
+            "ADF rejects unit root in first difference (p=0.0025)"
+          ],
+          "level_tests": {
+            "adf_rejects_unit_root": false,
+            "kpss_rejects_stationarity": false
+          },
+          "differenced_tests": {
+            "adf_rejects_unit_root": true,
+            "kpss_rejects_stationarity": false
+          },
+          "significance_level": 0.05
+        }
+      },
+      "us_intl_migration": {
+        "n_observations": 15,
+        "mean": 1010744.2,
+        "std": 717853.6519858998,
+        "adf_level": {
+          "series": "us_intl_migration",
+          "statistic": -3.9077429174341347,
+          "p_value": 0.0019785967196018226,
+          "used_lag": 5,
+          "n_obs_used": 9,
+          "critical_values": {
+            "1%": -4.473135048010974,
+            "5%": -3.28988060356653,
+            "10%": -2.7723823456790124
+          },
+          "ic_best": 243.5106948125886,
+          "regression_type": "c",
+          "regression": {
+            "constant": {
+              "coef": 538310.3314727561,
+              "se": 364724.01184977376,
+              "t": 1.4759388304120784
+            },
+            "rho_minus_1": {
+              "coef": -0.512545563853287,
+              "se": 0.4989448749845689,
+              "t": -1.0272589008337618
+            },
+            "diff_lag_1": {
+              "coef": 0.6918187380743898,
+              "se": 0.4822955032881439,
+              "t": 1.4344291691665798
+            },
+            "diff_lag_2": {
+              "coef": -0.016582557916746607,
+              "se": 0.5413220050794084,
+              "t": -0.03063344508655999
+            },
+            "diff_lag_3": {
+              "coef": 0.18641551674773835,
+              "se": 0.5641616735803975,
+              "t": 0.3304292465751356
+            },
+            "diff_lag_4": {
+              "coef": -0.7002681304636321,
+              "se": 0.5764731902811733,
+              "t": -1.2147453554988017
+            },
+            "diff_lag_5": {
+              "coef": -0.4466592760316264,
+              "se": 0.7217681150563232,
+              "t": -0.6188404097024587
+            }
+          }
+        },
+        "kpss_level": {
+          "series": "us_intl_migration",
+          "statistic": 0.31401344170980083,
+          "p_value": 0.1,
+          "lags_used": 1,
+          "critical_values": {
+            "10%": 0.347,
+            "5%": 0.463,
+            "2.5%": 0.574,
+            "1%": 0.739
+          },
+          "regression_type": "level"
+        },
+        "phillips_perron_level": {
+          "statistic": -0.06870807593553821,
+          "p_value": 0.9524675035237097,
+          "lags_used": 0,
+          "n_obs_used": 14,
+          "critical_values": {
+            "1%": -4.01203360058309,
+            "5%": -3.1041838775510207,
+            "10%": -2.6909873469387753
+          },
+          "note": "PP test approximated using DF test (maxlag=0) for small sample"
+        },
+        "adf_differenced": {
+          "series": "d(us_intl_migration)",
+          "statistic": -2.347215979449134,
+          "p_value": 0.15719153459210494,
+          "used_lag": 4,
+          "n_obs_used": 9,
+          "critical_values": {
+            "1%": -4.473135048010974,
+            "5%": -3.28988060356653,
+            "10%": -2.7723823456790124
+          },
+          "ic_best": 226.80904624847565,
+          "regression_type": "c",
+          "regression": {
+            "constant": {
+              "coef": 151082.29775508033,
+              "se": 169216.70416653508,
+              "t": 0.8928332371158363
+            },
+            "rho_minus_1": {
+              "coef": -0.9823274358023014,
+              "se": 0.5341727057882909,
+              "t": -1.8389697286248616
+            },
+            "diff_lag_1": {
+              "coef": 0.7277705555511279,
+              "se": 0.4593323457548245,
+              "t": 1.5844095506820377
+            },
+            "diff_lag_2": {
+              "coef": 0.05428088333875301,
+              "se": 0.48473366317354283,
+              "t": 0.11198084115589789
+            },
+            "diff_lag_3": {
+              "coef": 0.7112580187187948,
+              "se": 0.5455231665270643,
+              "t": 1.3038090082348648
+            },
+            "diff_lag_4": {
+              "coef": -0.1257092600397396,
+              "se": 0.8131433700862303,
+              "t": -0.15459667343338074
+            }
+          }
+        },
+        "kpss_differenced": {
+          "series": "d(us_intl_migration)",
+          "statistic": 0.2013357247153997,
+          "p_value": 0.1,
+          "lags_used": 1,
+          "critical_values": {
+            "10%": 0.347,
+            "5%": 0.463,
+            "2.5%": 0.574,
+            "1%": 0.739
+          },
+          "regression_type": "level"
+        },
+        "integration_order": {
+          "integration_order": 0,
+          "conclusion": "I(0) - Level stationary",
+          "evidence": [
+            "ADF rejects unit root at 5.0% (p=0.0020)",
+            "KPSS fails to reject stationarity (p=0.1000)"
+          ],
+          "level_tests": {
+            "adf_rejects_unit_root": true,
+            "kpss_rejects_stationarity": false
+          },
+          "differenced_tests": {
+            "adf_rejects_unit_root": false,
+            "kpss_rejects_stationarity": false
+          },
+          "significance_level": 0.05
+        }
+      }
+    },
+    "integration_order_summary": {
+      "nd_share_of_us_intl_pct": {
+        "order": 1,
+        "conclusion": "I(1) - First-difference stationary"
+      },
+      "nd_intl_migration": {
+        "order": 1,
+        "conclusion": "I(1) - First-difference stationary"
+      },
+      "us_intl_migration": {
+        "order": 0,
+        "conclusion": "I(0) - Level stationary"
+      }
+    }
+  },
+  "diagnostics": {
+    "figures_generated": [
+      "module_2_1_1_original_series.png",
+      "module_2_1_1_differenced_series.png",
+      "module_2_1_1_acf_original.png",
+      "module_2_1_1_acf_differenced.png"
+    ],
+    "test_interpretation": {
+      "adf": "H0: Unit root present (non-stationary). Reject if p < 0.05.",
+      "kpss": "H0: Series is stationary. Reject if p < 0.05.",
+      "phillips_perron": "H0: Unit root present. Reject if p < 0.05."
+    },
+    "sample_size_concern": "n=15 is below recommended minimum of 25 for reliable unit root tests"
+  },
+  "decisions": [
+    {
+      "decision_id": "D001",
+      "timestamp": "2025-12-29T05:57:11.450876+00:00",
+      "category": "data_handling",
+      "decision": "Include 2020 COVID year in analysis",
+      "rationale": "With only 15 observations, excluding any year significantly reduces test power. 2020 anomaly is noted but retained for completeness. Sensitivity without 2020 could be performed in follow-up analysis.",
+      "alternatives_considered": [
+        "Exclude 2020 entirely",
+        "Replace 2020 with interpolated value"
+      ],
+      "evidence": "2020 nd_intl_migration=30 vs mean=1796",
+      "reversible": true
+    },
+    {
+      "decision_id": "D002",
+      "timestamp": "2025-12-29T05:57:11.450891+00:00",
+      "category": "methodology",
+      "decision": "Proceed with unit root tests despite short series",
+      "rationale": "With n=15, asymptotic distributions may not hold well. Tests have reduced power. Results should be interpreted with caution.",
+      "alternatives_considered": [
+        "Skip unit root testing",
+        "Use only visual inspection"
+      ],
+      "evidence": "Standard recommendation is n>=25 for reliable ADF tests",
+      "reversible": false
+    }
+  ],
+  "warnings": [
+    "Short time series (n=15) limits test power and may affect asymptotic validity of tests.",
+    "2020 COVID year shows anomalous values that may affect test results."
+  ],
+  "next_steps": [
+    "Use integration order results for ARIMA model specification (Module 2.1)",
+    "Consider differencing before structural break analysis (Module 2.1.2)",
+    "Apply appropriate differencing in VAR/VECM models (Module 2.2)",
+    "Sensitivity analysis excluding 2020 COVID year if results are borderline"
+  ]
+}

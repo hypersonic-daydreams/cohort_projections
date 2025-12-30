@@ -1,0 +1,18 @@
+original_phrase,replacement_phrase,context
+credible interval,prediction interval (simulation-based),"Monte Carlo percentile bands are frequentist simulation outputs, not Bayesian posteriors."
+confidence interval (for forecasts),prediction interval / forecast interval,Intervals around future observations should be labeled prediction/forecast intervals.
+KPSS fails to reject stationarity in levels (p=0.10),KPSS fails to reject the null of level-stationarity (p ≥ 0.10),Statsmodels reports 0.10 as an upper bound; also state KPSS null explicitly.
+KPSS rejects stationarity in levels (**),KPSS does not reject level-stationarity at 5% for nd_intl_migration (p ≥ 0.10),Robustness table/narrative must match the actual p-values for the same series/specification.
+ADF proves a unit root / series is non-stationary,ADF does not reject a unit root (low power in n=15),Failing to reject H0 is not proof; hedge language.
+The series is a random walk without drift,"ARIMA(0,1,0) was selected by AIC within a limited search; treated as a baseline model",Model-selection in n=15 cannot establish the DGP; avoid definitive claims.
+optimal ARIMA model,AIC-selected ARIMA candidate (very small-sample),Replace “optimal” with “selected” and note model uncertainty.
+"8% annual growth from the 2024 baseline (5,126) yields ~19,318 by 2045","Scenario applies 10% above ARIMA for 2025–2029, then 8% growth from 2030–2045; 2045 ≈ 19,318","Arithmetic is correct under the implemented hybrid rule, but the label “8% from baseline” is inaccurate."
+8% annual growth from baseline (implied compounding),"If truly compounding from 2024 for 21 years: 5126×1.08^21 ≈ 25,803",Clarify the intended formula; do not conflate with the implemented hybrid rule.
+"Continue 2010–2019 slope (+72/year) from 2024 baseline gives 2,517 in 2045","Pre-2020 trend scenario is anchored at 2019 value (634) and adds 72.43/year; 2045 ≈ 2,517",Explains why the path is below the 2024 observed level; fix scenario note/description.
+Monte Carlo uses CV = 0.39,Monte Carlo output implies CV_2045 ≈ 0.39 (sd/mean of simulated 2045 outcomes); historical CV ≈ 0.825,Distinguish historical descriptive CV from forecast-distribution CV; clarify whether CV is an input or a diagnostic.
+Unit root tests establish integration order I(1),Unit root/stationarity tests are suggestive only; breaks/outliers can mimic I(1) in small samples,Replace strong identification claims with cautious interpretation.
+No structural breaks detected (Bai–Perron),Data-driven break detection found no break under BIC/penalty; targeted Chow tests indicate significant break at 2020/2021,"With n=15, break tests have low power; reconcile contradictory break evidence."
+COVID outlier is -1.2 SD so not an outlier,2020 is a time-series intervention/outlier despite not tripping IQR rules; handle via dummy/robust model,IQR-based outlier detection is not the right tool for time-series shocks.
+confidence intervals from Monte Carlo,percentile-based simulation intervals / prediction intervals,Terminology should describe what is computed (percentiles of simulated paths).
+stationarity in levels,level-stationarity (constant-only) / trend-stationarity (constant+trend),Specify which stationarity concept is tested (KPSS regression='c' vs 'ct').
+establishes / demonstrates (strong claim),suggests / is consistent with / illustrates (hedged claim),General tone correction for small-sample inference.

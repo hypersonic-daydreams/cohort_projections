@@ -1,0 +1,814 @@
+fiscal_year,state,nationality,arrivals,data_source,national_total,state_share_of_nationality
+2002,Minnesota,Afghanistan,2,ORR/PRM Academic Dataset (Dreher et al. 2020),2010.0,0.0009950248756218905
+2002,Minnesota,Cuba,2,ORR/PRM Academic Dataset (Dreher et al. 2020),1832.0,0.001091703056768559
+2002,Minnesota,Ethiopia,68,ORR/PRM Academic Dataset (Dreher et al. 2020),391.0,0.17391304347826086
+2002,Minnesota,Iran,7,ORR/PRM Academic Dataset (Dreher et al. 2020),1781.0,0.0039303761931499155
+2002,Minnesota,Iraq,10,ORR/PRM Academic Dataset (Dreher et al. 2020),520.0,0.019230769230769232
+2002,Minnesota,Ivory Coast,1,ORR/PRM Academic Dataset (Dreher et al. 2020),3.0,0.3333333333333333
+2002,Minnesota,Liberia,166,ORR/PRM Academic Dataset (Dreher et al. 2020),724.0,0.2292817679558011
+2002,Minnesota,Sierra Leone,8,ORR/PRM Academic Dataset (Dreher et al. 2020),185.0,0.043243243243243246
+2002,Minnesota,Somalia,103,ORR/PRM Academic Dataset (Dreher et al. 2020),322.0,0.3198757763975155
+2002,Minnesota,Sudan,26,ORR/PRM Academic Dataset (Dreher et al. 2020),1026.0,0.025341130604288498
+2002,Minnesota,Togo,2,ORR/PRM Academic Dataset (Dreher et al. 2020),18.0,0.1111111111111111
+2002,Minnesota,Unknown,9,ORR/PRM Academic Dataset (Dreher et al. 2020),433.0,0.020785219399538105
+2002,Minnesota,USSR,334,ORR/PRM Academic Dataset (Dreher et al. 2020),11241.0,0.02971265901610177
+2002,Minnesota,Vietnam,47,ORR/PRM Academic Dataset (Dreher et al. 2020),3561.0,0.013198539736029205
+2002,Minnesota,Yugoslavia,62,ORR/PRM Academic Dataset (Dreher et al. 2020),5615.0,0.011041852181656278
+2002,Montana,USSR,12,ORR/PRM Academic Dataset (Dreher et al. 2020),11241.0,0.0010675206832132373
+2002,Montana,Yugoslavia,2,ORR/PRM Academic Dataset (Dreher et al. 2020),5615.0,0.00035618878005342833
+2002,North Dakota,Afghanistan,5,ORR/PRM Academic Dataset (Dreher et al. 2020),2010.0,0.0024875621890547263
+2002,North Dakota,Somalia,9,ORR/PRM Academic Dataset (Dreher et al. 2020),322.0,0.027950310559006212
+2002,North Dakota,Sudan,2,ORR/PRM Academic Dataset (Dreher et al. 2020),1026.0,0.001949317738791423
+2002,North Dakota,Unknown,4,ORR/PRM Academic Dataset (Dreher et al. 2020),433.0,0.009237875288683603
+2002,North Dakota,Yugoslavia,41,ORR/PRM Academic Dataset (Dreher et al. 2020),5615.0,0.00730186999109528
+2002,South Dakota,Afghanistan,24,ORR/PRM Academic Dataset (Dreher et al. 2020),2010.0,0.011940298507462687
+2002,South Dakota,Burundi,1,ORR/PRM Academic Dataset (Dreher et al. 2020),62.0,0.016129032258064516
+2002,South Dakota,Eritrea,2,ORR/PRM Academic Dataset (Dreher et al. 2020),15.0,0.13333333333333333
+2002,South Dakota,Ethiopia,21,ORR/PRM Academic Dataset (Dreher et al. 2020),391.0,0.05370843989769821
+2002,South Dakota,Iraq,2,ORR/PRM Academic Dataset (Dreher et al. 2020),520.0,0.0038461538461538464
+2002,South Dakota,Rwanda,1,ORR/PRM Academic Dataset (Dreher et al. 2020),55.0,0.01818181818181818
+2002,South Dakota,Somalia,3,ORR/PRM Academic Dataset (Dreher et al. 2020),322.0,0.009316770186335404
+2002,South Dakota,Sudan,14,ORR/PRM Academic Dataset (Dreher et al. 2020),1026.0,0.01364522417153996
+2002,South Dakota,Unknown,1,ORR/PRM Academic Dataset (Dreher et al. 2020),433.0,0.0023094688221709007
+2002,South Dakota,USSR,29,ORR/PRM Academic Dataset (Dreher et al. 2020),11241.0,0.0025798416510986566
+2002,South Dakota,Vietnam,2,ORR/PRM Academic Dataset (Dreher et al. 2020),3561.0,0.0005616399887672002
+2002,South Dakota,Yugoslavia,29,ORR/PRM Academic Dataset (Dreher et al. 2020),5615.0,0.005164737310774711
+2003,Minnesota,Afghanistan,1,ORR/PRM Academic Dataset (Dreher et al. 2020),1351.0,0.0007401924500370096
+2003,Minnesota,Burma,27,ORR/PRM Academic Dataset (Dreher et al. 2020),215.0,0.12558139534883722
+2003,Minnesota,Eritrea,3,ORR/PRM Academic Dataset (Dreher et al. 2020),40.0,0.075
+2003,Minnesota,Ethiopia,745,ORR/PRM Academic Dataset (Dreher et al. 2020),2129.0,0.34992954438703616
+2003,Minnesota,Gambia,2,ORR/PRM Academic Dataset (Dreher et al. 2020),5.0,0.4
+2003,Minnesota,Iran,11,ORR/PRM Academic Dataset (Dreher et al. 2020),2425.0,0.004536082474226804
+2003,Minnesota,Iraq,3,ORR/PRM Academic Dataset (Dreher et al. 2020),206.0,0.014563106796116505
+2003,Minnesota,Liberia,330,ORR/PRM Academic Dataset (Dreher et al. 2020),3921.0,0.08416220351951033
+2003,Minnesota,Sierra Leone,66,ORR/PRM Academic Dataset (Dreher et al. 2020),1526.0,0.04325032765399738
+2003,Minnesota,Somalia,626,ORR/PRM Academic Dataset (Dreher et al. 2020),2397.0,0.26115978306216103
+2003,Minnesota,Stateless,4,ORR/PRM Academic Dataset (Dreher et al. 2020),445.0,0.008988764044943821
+2003,Minnesota,Sudan,106,ORR/PRM Academic Dataset (Dreher et al. 2020),2579.0,0.04110120201628538
+2003,Minnesota,Togo,7,ORR/PRM Academic Dataset (Dreher et al. 2020),39.0,0.1794871794871795
+2003,Minnesota,Uganda,1,ORR/PRM Academic Dataset (Dreher et al. 2020),1.0,1.0
+2003,Minnesota,Unknown,61,ORR/PRM Academic Dataset (Dreher et al. 2020),696.0,0.08764367816091954
+2003,Minnesota,USSR,221,ORR/PRM Academic Dataset (Dreher et al. 2020),9624.0,0.02296342477140482
+2003,Minnesota,Vietnam,12,ORR/PRM Academic Dataset (Dreher et al. 2020),1359.0,0.008830022075055188
+2003,Minnesota,Yugoslavia,15,ORR/PRM Academic Dataset (Dreher et al. 2020),1669.0,0.008987417615338526
+2003,Montana,USSR,24,ORR/PRM Academic Dataset (Dreher et al. 2020),9624.0,0.0024937655860349127
+2003,North Dakota,Colombia,5,ORR/PRM Academic Dataset (Dreher et al. 2020),257.0,0.019455252918287938
+2003,North Dakota,Iran,4,ORR/PRM Academic Dataset (Dreher et al. 2020),2425.0,0.0016494845360824743
+2003,North Dakota,Liberia,33,ORR/PRM Academic Dataset (Dreher et al. 2020),3921.0,0.008416220351951033
+2003,North Dakota,Rwanda,1,ORR/PRM Academic Dataset (Dreher et al. 2020),56.0,0.017857142857142856
+2003,North Dakota,Sierra Leone,13,ORR/PRM Academic Dataset (Dreher et al. 2020),1526.0,0.00851900393184797
+2003,North Dakota,Somalia,11,ORR/PRM Academic Dataset (Dreher et al. 2020),2397.0,0.00458906967042136
+2003,North Dakota,Sudan,29,ORR/PRM Academic Dataset (Dreher et al. 2020),2579.0,0.011244668476153548
+2003,North Dakota,Unknown,2,ORR/PRM Academic Dataset (Dreher et al. 2020),696.0,0.0028735632183908046
+2003,North Dakota,Yugoslavia,19,ORR/PRM Academic Dataset (Dreher et al. 2020),1669.0,0.011384062312762133
+2003,South Dakota,Afghanistan,9,ORR/PRM Academic Dataset (Dreher et al. 2020),1351.0,0.006661732050333087
+2003,South Dakota,Democratic Republic of the Congo,2,ORR/PRM Academic Dataset (Dreher et al. 2020),235.0,0.00851063829787234
+2003,South Dakota,Ethiopia,13,ORR/PRM Academic Dataset (Dreher et al. 2020),2129.0,0.0061061531235321745
+2003,South Dakota,Lebanon,1,ORR/PRM Academic Dataset (Dreher et al. 2020),5.0,0.2
+2003,South Dakota,Liberia,25,ORR/PRM Academic Dataset (Dreher et al. 2020),3921.0,0.006375924509053813
+2003,South Dakota,Pakistan,2,ORR/PRM Academic Dataset (Dreher et al. 2020),29.0,0.06896551724137931
+2003,South Dakota,Sudan,49,ORR/PRM Academic Dataset (Dreher et al. 2020),2579.0,0.018999612252811167
+2003,South Dakota,Unknown,20,ORR/PRM Academic Dataset (Dreher et al. 2020),696.0,0.028735632183908046
+2003,South Dakota,USSR,31,ORR/PRM Academic Dataset (Dreher et al. 2020),9624.0,0.003221113881961762
+2003,South Dakota,Yugoslavia,15,ORR/PRM Academic Dataset (Dreher et al. 2020),1669.0,0.008987417615338526
+2004,Minnesota,Burma,193,ORR/PRM Academic Dataset (Dreher et al. 2020),1276.0,0.15125391849529782
+2004,Minnesota,Democratic Republic of the Congo,1,ORR/PRM Academic Dataset (Dreher et al. 2020),585.0,0.0017094017094017094
+2004,Minnesota,Eritrea,5,ORR/PRM Academic Dataset (Dreher et al. 2020),166.0,0.030120481927710843
+2004,Minnesota,Ethiopia,647,ORR/PRM Academic Dataset (Dreher et al. 2020),2267.0,0.2853992059991178
+2004,Minnesota,Iran,5,ORR/PRM Academic Dataset (Dreher et al. 2020),1712.0,0.0029205607476635513
+2004,Minnesota,Iraq,1,ORR/PRM Academic Dataset (Dreher et al. 2020),71.0,0.014084507042253521
+2004,Minnesota,Kenya,14,ORR/PRM Academic Dataset (Dreher et al. 2020),596.0,0.02348993288590604
+2004,Minnesota,Laos,3259,ORR/PRM Academic Dataset (Dreher et al. 2020),9169.0,0.3554367979059876
+2004,Minnesota,Liberia,380,ORR/PRM Academic Dataset (Dreher et al. 2020),6594.0,0.05762814680012132
+2004,Minnesota,Rwanda,6,ORR/PRM Academic Dataset (Dreher et al. 2020),183.0,0.03278688524590164
+2004,Minnesota,Sierra Leone,28,ORR/PRM Academic Dataset (Dreher et al. 2020),1105.0,0.025339366515837104
+2004,Minnesota,Somalia,2132,ORR/PRM Academic Dataset (Dreher et al. 2020),14463.0,0.14741063403166701
+2004,Minnesota,Stateless,3,ORR/PRM Academic Dataset (Dreher et al. 2020),377.0,0.007957559681697613
+2004,Minnesota,Sudan,89,ORR/PRM Academic Dataset (Dreher et al. 2020),3196.0,0.027847309136420525
+2004,Minnesota,Thailand,5,ORR/PRM Academic Dataset (Dreher et al. 2020),15.0,0.3333333333333333
+2004,Minnesota,Togo,8,ORR/PRM Academic Dataset (Dreher et al. 2020),57.0,0.14035087719298245
+2004,Minnesota,Unknown,61,ORR/PRM Academic Dataset (Dreher et al. 2020),568.0,0.1073943661971831
+2004,Minnesota,USSR,287,ORR/PRM Academic Dataset (Dreher et al. 2020),7156.0,0.040106204583566236
+2004,Minnesota,Vietnam,5,ORR/PRM Academic Dataset (Dreher et al. 2020),795.0,0.006289308176100629
+2004,Montana,USSR,7,ORR/PRM Academic Dataset (Dreher et al. 2020),7156.0,0.0009782001117942985
+2004,North Dakota,Afghanistan,2,ORR/PRM Academic Dataset (Dreher et al. 2020),793.0,0.0025220680958385876
+2004,North Dakota,Democratic Republic of the Congo,1,ORR/PRM Academic Dataset (Dreher et al. 2020),585.0,0.0017094017094017094
+2004,North Dakota,Ethiopia,5,ORR/PRM Academic Dataset (Dreher et al. 2020),2267.0,0.0022055580061755625
+2004,North Dakota,Iran,1,ORR/PRM Academic Dataset (Dreher et al. 2020),1712.0,0.0005841121495327102
+2004,North Dakota,Liberia,101,ORR/PRM Academic Dataset (Dreher et al. 2020),6594.0,0.015316954807400668
+2004,North Dakota,Rwanda,7,ORR/PRM Academic Dataset (Dreher et al. 2020),183.0,0.03825136612021858
+2004,North Dakota,Sierra Leone,6,ORR/PRM Academic Dataset (Dreher et al. 2020),1105.0,0.005429864253393665
+2004,North Dakota,Somalia,35,ORR/PRM Academic Dataset (Dreher et al. 2020),14463.0,0.002419968194703727
+2004,North Dakota,Sudan,63,ORR/PRM Academic Dataset (Dreher et al. 2020),3196.0,0.019712140175219023
+2004,North Dakota,Unknown,3,ORR/PRM Academic Dataset (Dreher et al. 2020),568.0,0.00528169014084507
+2004,North Dakota,Yugoslavia,8,ORR/PRM Academic Dataset (Dreher et al. 2020),423.0,0.018912529550827423
+2004,South Dakota,Afghanistan,3,ORR/PRM Academic Dataset (Dreher et al. 2020),793.0,0.0037831021437578815
+2004,South Dakota,Cuba,4,ORR/PRM Academic Dataset (Dreher et al. 2020),3773.0,0.0010601643254704478
+2004,South Dakota,Democratic Republic of the Congo,13,ORR/PRM Academic Dataset (Dreher et al. 2020),585.0,0.022222222222222223
+2004,South Dakota,Eritrea,2,ORR/PRM Academic Dataset (Dreher et al. 2020),166.0,0.012048192771084338
+2004,South Dakota,Ethiopia,42,ORR/PRM Academic Dataset (Dreher et al. 2020),2267.0,0.018526687251874726
+2004,South Dakota,Liberia,64,ORR/PRM Academic Dataset (Dreher et al. 2020),6594.0,0.009705793145283591
+2004,South Dakota,Somalia,140,ORR/PRM Academic Dataset (Dreher et al. 2020),14463.0,0.009679872778814907
+2004,South Dakota,Sudan,45,ORR/PRM Academic Dataset (Dreher et al. 2020),3196.0,0.014080100125156446
+2004,South Dakota,USSR,20,ORR/PRM Academic Dataset (Dreher et al. 2020),7156.0,0.002794857462269424
+2004,South Dakota,Yugoslavia,5,ORR/PRM Academic Dataset (Dreher et al. 2020),423.0,0.01182033096926714
+2005,Minnesota,Burma,164,ORR/PRM Academic Dataset (Dreher et al. 2020),1459.0,0.11240575736806031
+2005,Minnesota,Democratic Republic of the Congo,7,ORR/PRM Academic Dataset (Dreher et al. 2020),305.0,0.022950819672131147
+2005,Minnesota,Eritrea,5,ORR/PRM Academic Dataset (Dreher et al. 2020),502.0,0.0099601593625498
+2005,Minnesota,Ethiopia,266,ORR/PRM Academic Dataset (Dreher et al. 2020),1536.0,0.17317708333333334
+2005,Minnesota,Kenya,3,ORR/PRM Academic Dataset (Dreher et al. 2020),112.0,0.026785714285714284
+2005,Minnesota,Laos,1720,ORR/PRM Academic Dataset (Dreher et al. 2020),5604.0,0.30692362598144185
+2005,Minnesota,Liberia,396,ORR/PRM Academic Dataset (Dreher et al. 2020),3995.0,0.09912390488110137
+2005,Minnesota,Liechtenstein,1,ORR/PRM Academic Dataset (Dreher et al. 2020),1.0,1.0
+2005,Minnesota,Sierra Leone,35,ORR/PRM Academic Dataset (Dreher et al. 2020),606.0,0.057755775577557754
+2005,Minnesota,Somalia,2088,ORR/PRM Academic Dataset (Dreher et al. 2020),9166.0,0.22779838533711544
+2005,Minnesota,Sudan,47,ORR/PRM Academic Dataset (Dreher et al. 2020),2071.0,0.0226943505552873
+2005,Minnesota,Thailand,6,ORR/PRM Academic Dataset (Dreher et al. 2020),27.0,0.2222222222222222
+2005,Minnesota,Togo,7,ORR/PRM Academic Dataset (Dreher et al. 2020),34.0,0.20588235294117646
+2005,Minnesota,Unknown,63,ORR/PRM Academic Dataset (Dreher et al. 2020),589.0,0.10696095076400679
+2005,Minnesota,USSR,182,ORR/PRM Academic Dataset (Dreher et al. 2020),9805.0,0.018561958184599693
+2005,Minnesota,Vietnam,32,ORR/PRM Academic Dataset (Dreher et al. 2020),3332.0,0.009603841536614645
+2005,Montana,USSR,5,ORR/PRM Academic Dataset (Dreher et al. 2020),9805.0,0.0005099439061703213
+2005,North Dakota,Colombia,2,ORR/PRM Academic Dataset (Dreher et al. 2020),247.0,0.008097165991902834
+2005,North Dakota,Ethiopia,4,ORR/PRM Academic Dataset (Dreher et al. 2020),1536.0,0.0026041666666666665
+2005,North Dakota,Iran,1,ORR/PRM Academic Dataset (Dreher et al. 2020),1628.0,0.0006142506142506142
+2005,North Dakota,Liberia,50,ORR/PRM Academic Dataset (Dreher et al. 2020),3995.0,0.012515644555694618
+2005,North Dakota,Rwanda,5,ORR/PRM Academic Dataset (Dreher et al. 2020),173.0,0.028901734104046242
+2005,North Dakota,Sierra Leone,1,ORR/PRM Academic Dataset (Dreher et al. 2020),606.0,0.0016501650165016502
+2005,North Dakota,Somalia,141,ORR/PRM Academic Dataset (Dreher et al. 2020),9166.0,0.015382936940868426
+2005,North Dakota,Sudan,33,ORR/PRM Academic Dataset (Dreher et al. 2020),2071.0,0.0159343312409464
+2005,North Dakota,Unknown,2,ORR/PRM Academic Dataset (Dreher et al. 2020),589.0,0.003395585738539898
+2005,North Dakota,USSR,6,ORR/PRM Academic Dataset (Dreher et al. 2020),9805.0,0.0006119326874043855
+2005,South Dakota,Cuba,2,ORR/PRM Academic Dataset (Dreher et al. 2020),6413.0,0.0003118665211289568
+2005,South Dakota,Democratic Republic of the Congo,9,ORR/PRM Academic Dataset (Dreher et al. 2020),305.0,0.029508196721311476
+2005,South Dakota,Eritrea,5,ORR/PRM Academic Dataset (Dreher et al. 2020),502.0,0.0099601593625498
+2005,South Dakota,Ethiopia,19,ORR/PRM Academic Dataset (Dreher et al. 2020),1536.0,0.012369791666666666
+2005,South Dakota,Iraq,1,ORR/PRM Academic Dataset (Dreher et al. 2020),182.0,0.005494505494505495
+2005,South Dakota,Liberia,19,ORR/PRM Academic Dataset (Dreher et al. 2020),3995.0,0.004755944931163955
+2005,South Dakota,Rwanda,5,ORR/PRM Academic Dataset (Dreher et al. 2020),173.0,0.028901734104046242
+2005,South Dakota,Somalia,67,ORR/PRM Academic Dataset (Dreher et al. 2020),9166.0,0.007309622518001309
+2005,South Dakota,Stateless,6,ORR/PRM Academic Dataset (Dreher et al. 2020),2923.0,0.0020526855969893944
+2005,South Dakota,Sudan,51,ORR/PRM Academic Dataset (Dreher et al. 2020),2071.0,0.024625784645098986
+2005,South Dakota,USSR,31,ORR/PRM Academic Dataset (Dreher et al. 2020),9805.0,0.003161652218255992
+2005,South Dakota,Vietnam,5,ORR/PRM Academic Dataset (Dreher et al. 2020),3332.0,0.0015006002400960385
+2006,Minnesota,Burma,135,ORR/PRM Academic Dataset (Dreher et al. 2020),1721.0,0.07844276583381755
+2006,Minnesota,Eritrea,15,ORR/PRM Academic Dataset (Dreher et al. 2020),399.0,0.03759398496240601
+2006,Minnesota,Ethiopia,396,ORR/PRM Academic Dataset (Dreher et al. 2020),1123.0,0.352626892252894
+2006,Minnesota,Ghana,1,ORR/PRM Academic Dataset (Dreher et al. 2020),10.0,0.1
+2006,Minnesota,Iran,2,ORR/PRM Academic Dataset (Dreher et al. 2020),3996.0,0.0005005005005005005
+2006,Minnesota,Iraq,2,ORR/PRM Academic Dataset (Dreher et al. 2020),202.0,0.009900990099009901
+2006,Minnesota,Kenya,1,ORR/PRM Academic Dataset (Dreher et al. 2020),39.0,0.02564102564102564
+2006,Minnesota,Laos,170,ORR/PRM Academic Dataset (Dreher et al. 2020),540.0,0.3148148148148148
+2006,Minnesota,Liberia,297,ORR/PRM Academic Dataset (Dreher et al. 2020),1919.0,0.15476810838978636
+2006,Minnesota,Sierra Leone,10,ORR/PRM Academic Dataset (Dreher et al. 2020),361.0,0.027700831024930747
+2006,Minnesota,Somalia,3517,ORR/PRM Academic Dataset (Dreher et al. 2020),10452.0,0.33649062380405664
+2006,Minnesota,Stateless,70,ORR/PRM Academic Dataset (Dreher et al. 2020),1695.0,0.04129793510324484
+2006,Minnesota,Sudan,71,ORR/PRM Academic Dataset (Dreher et al. 2020),1850.0,0.038378378378378375
+2006,Minnesota,Unknown,78,ORR/PRM Academic Dataset (Dreher et al. 2020),636.0,0.12264150943396226
+2006,Minnesota,USSR,104,ORR/PRM Academic Dataset (Dreher et al. 2020),7797.0,0.013338463511607028
+2006,Minnesota,Vietnam,30,ORR/PRM Academic Dataset (Dreher et al. 2020),1911.0,0.015698587127158554
+2006,North Dakota,Burundi,4,ORR/PRM Academic Dataset (Dreher et al. 2020),516.0,0.007751937984496124
+2006,North Dakota,Liberia,26,ORR/PRM Academic Dataset (Dreher et al. 2020),1919.0,0.01354872329338197
+2006,North Dakota,Somalia,104,ORR/PRM Academic Dataset (Dreher et al. 2020),10452.0,0.009950248756218905
+2006,North Dakota,Sudan,15,ORR/PRM Academic Dataset (Dreher et al. 2020),1850.0,0.008108108108108109
+2006,North Dakota,Unknown,5,ORR/PRM Academic Dataset (Dreher et al. 2020),636.0,0.007861635220125786
+2006,South Dakota,Democratic Republic of the Congo,8,ORR/PRM Academic Dataset (Dreher et al. 2020),451.0,0.017738359201773836
+2006,South Dakota,Eritrea,14,ORR/PRM Academic Dataset (Dreher et al. 2020),399.0,0.03508771929824561
+2006,South Dakota,Ethiopia,14,ORR/PRM Academic Dataset (Dreher et al. 2020),1123.0,0.012466607301869992
+2006,South Dakota,Liberia,6,ORR/PRM Academic Dataset (Dreher et al. 2020),1919.0,0.003126628452318916
+2006,South Dakota,Rwanda,1,ORR/PRM Academic Dataset (Dreher et al. 2020),103.0,0.009708737864077669
+2006,South Dakota,Somalia,55,ORR/PRM Academic Dataset (Dreher et al. 2020),10452.0,0.005262150784538845
+2006,South Dakota,Stateless,3,ORR/PRM Academic Dataset (Dreher et al. 2020),1695.0,0.0017699115044247787
+2006,South Dakota,Sudan,31,ORR/PRM Academic Dataset (Dreher et al. 2020),1850.0,0.016756756756756756
+2006,South Dakota,Uganda,5,ORR/PRM Academic Dataset (Dreher et al. 2020),14.0,0.35714285714285715
+2006,South Dakota,Unknown,4,ORR/PRM Academic Dataset (Dreher et al. 2020),636.0,0.006289308176100629
+2006,South Dakota,USSR,12,ORR/PRM Academic Dataset (Dreher et al. 2020),7797.0,0.0015390534821085034
+2007,Minnesota,Afghanistan,6,ORR/PRM Academic Dataset (Dreher et al. 2020),378.0,0.015873015873015872
+2007,Minnesota,Burma,414,ORR/PRM Academic Dataset (Dreher et al. 2020),10078.0,0.041079579281603495
+2007,Minnesota,Democratic Republic of the Congo,10,ORR/PRM Academic Dataset (Dreher et al. 2020),802.0,0.012468827930174564
+2007,Minnesota,Eritrea,4,ORR/PRM Academic Dataset (Dreher et al. 2020),812.0,0.0049261083743842365
+2007,Minnesota,Ethiopia,312,ORR/PRM Academic Dataset (Dreher et al. 2020),832.0,0.375
+2007,Minnesota,Laos,21,ORR/PRM Academic Dataset (Dreher et al. 2020),86.0,0.2441860465116279
+2007,Minnesota,Liberia,322,ORR/PRM Academic Dataset (Dreher et al. 2020),1705.0,0.18885630498533723
+2007,Minnesota,Sierra Leone,1,ORR/PRM Academic Dataset (Dreher et al. 2020),138.0,0.007246376811594203
+2007,Minnesota,Somalia,1125,ORR/PRM Academic Dataset (Dreher et al. 2020),5681.0,0.1980285161063193
+2007,Minnesota,Stateless,220,ORR/PRM Academic Dataset (Dreher et al. 2020),4292.0,0.05125815470643057
+2007,Minnesota,Sudan,12,ORR/PRM Academic Dataset (Dreher et al. 2020),448.0,0.026785714285714284
+2007,Minnesota,Togo,1,ORR/PRM Academic Dataset (Dreher et al. 2020),22.0,0.045454545454545456
+2007,Minnesota,Unknown,41,ORR/PRM Academic Dataset (Dreher et al. 2020),653.0,0.06278713629402756
+2007,Minnesota,USSR,162,ORR/PRM Academic Dataset (Dreher et al. 2020),3616.0,0.04480088495575221
+2007,Minnesota,Vietnam,24,ORR/PRM Academic Dataset (Dreher et al. 2020),1516.0,0.0158311345646438
+2007,Montana,Burma,2,ORR/PRM Academic Dataset (Dreher et al. 2020),10078.0,0.00019845207382417147
+2007,Montana,Stateless,1,ORR/PRM Academic Dataset (Dreher et al. 2020),4292.0,0.00023299161230195712
+2007,North Dakota,Burundi,78,ORR/PRM Academic Dataset (Dreher et al. 2020),5034.0,0.015494636471990465
+2007,North Dakota,Ethiopia,2,ORR/PRM Academic Dataset (Dreher et al. 2020),832.0,0.002403846153846154
+2007,North Dakota,Iraq,20,ORR/PRM Academic Dataset (Dreher et al. 2020),2544.0,0.007861635220125786
+2007,North Dakota,Liberia,2,ORR/PRM Academic Dataset (Dreher et al. 2020),1705.0,0.0011730205278592375
+2007,North Dakota,Rwanda,6,ORR/PRM Academic Dataset (Dreher et al. 2020),196.0,0.030612244897959183
+2007,North Dakota,Sierra Leone,1,ORR/PRM Academic Dataset (Dreher et al. 2020),138.0,0.007246376811594203
+2007,North Dakota,Somalia,99,ORR/PRM Academic Dataset (Dreher et al. 2020),5681.0,0.0174265094173561
+2007,North Dakota,Sudan,4,ORR/PRM Academic Dataset (Dreher et al. 2020),448.0,0.008928571428571428
+2007,North Dakota,Uganda,3,ORR/PRM Academic Dataset (Dreher et al. 2020),44.0,0.06818181818181818
+2007,North Dakota,Unknown,7,ORR/PRM Academic Dataset (Dreher et al. 2020),653.0,0.010719754977029096
+2007,South Dakota,Burundi,45,ORR/PRM Academic Dataset (Dreher et al. 2020),5034.0,0.008939213349225268
+2007,South Dakota,Congo,1,ORR/PRM Academic Dataset (Dreher et al. 2020),188.0,0.005319148936170213
+2007,South Dakota,Democratic Republic of the Congo,15,ORR/PRM Academic Dataset (Dreher et al. 2020),802.0,0.018703241895261846
+2007,South Dakota,Eritrea,44,ORR/PRM Academic Dataset (Dreher et al. 2020),812.0,0.054187192118226604
+2007,South Dakota,Ethiopia,23,ORR/PRM Academic Dataset (Dreher et al. 2020),832.0,0.027644230769230768
+2007,South Dakota,Iraq,1,ORR/PRM Academic Dataset (Dreher et al. 2020),2544.0,0.00039308176100628933
+2007,South Dakota,Liberia,25,ORR/PRM Academic Dataset (Dreher et al. 2020),1705.0,0.01466275659824047
+2007,South Dakota,Sierra Leone,1,ORR/PRM Academic Dataset (Dreher et al. 2020),138.0,0.007246376811594203
+2007,South Dakota,Somalia,60,ORR/PRM Academic Dataset (Dreher et al. 2020),5681.0,0.010561520859003696
+2007,South Dakota,Sudan,1,ORR/PRM Academic Dataset (Dreher et al. 2020),448.0,0.002232142857142857
+2007,South Dakota,Unknown,2,ORR/PRM Academic Dataset (Dreher et al. 2020),653.0,0.0030627871362940277
+2007,South Dakota,USSR,9,ORR/PRM Academic Dataset (Dreher et al. 2020),3616.0,0.002488938053097345
+2008,Minnesota,Bhutan,91,ORR/PRM Academic Dataset (Dreher et al. 2020),7125.0,0.012771929824561403
+2008,Minnesota,Burma,388,ORR/PRM Academic Dataset (Dreher et al. 2020),13913.0,0.027887587148709838
+2008,Minnesota,Eritrea,5,ORR/PRM Academic Dataset (Dreher et al. 2020),342.0,0.014619883040935672
+2008,Minnesota,Ethiopia,56,ORR/PRM Academic Dataset (Dreher et al. 2020),212.0,0.2641509433962264
+2008,Minnesota,Guinea,1,ORR/PRM Academic Dataset (Dreher et al. 2020),2.0,0.5
+2008,Minnesota,Iraq,59,ORR/PRM Academic Dataset (Dreher et al. 2020),15407.0,0.003829428181995197
+2008,Minnesota,Laos,10,ORR/PRM Academic Dataset (Dreher et al. 2020),30.0,0.3333333333333333
+2008,Minnesota,Liberia,50,ORR/PRM Academic Dataset (Dreher et al. 2020),528.0,0.0946969696969697
+2008,Minnesota,Sierra Leone,8,ORR/PRM Academic Dataset (Dreher et al. 2020),57.0,0.14035087719298245
+2008,Minnesota,Somalia,164,ORR/PRM Academic Dataset (Dreher et al. 2020),2653.0,0.06181681115718055
+2008,Minnesota,Stateless,216,ORR/PRM Academic Dataset (Dreher et al. 2020),5421.0,0.03984504703929164
+2008,Minnesota,Sudan,1,ORR/PRM Academic Dataset (Dreher et al. 2020),325.0,0.003076923076923077
+2008,Minnesota,Unknown,27,ORR/PRM Academic Dataset (Dreher et al. 2020),831.0,0.032490974729241874
+2008,Minnesota,USSR,37,ORR/PRM Academic Dataset (Dreher et al. 2020),2162.0,0.017113783533765033
+2008,Minnesota,Vietnam,5,ORR/PRM Academic Dataset (Dreher et al. 2020),1234.0,0.004051863857374392
+2008,Montana,Iraq,4,ORR/PRM Academic Dataset (Dreher et al. 2020),15407.0,0.000259622249626793
+2008,North Dakota,Bhutan,154,ORR/PRM Academic Dataset (Dreher et al. 2020),7125.0,0.021614035087719297
+2008,North Dakota,Burma,7,ORR/PRM Academic Dataset (Dreher et al. 2020),13913.0,0.0005031265722705384
+2008,North Dakota,Burundi,58,ORR/PRM Academic Dataset (Dreher et al. 2020),2549.0,0.022754021184778345
+2008,North Dakota,Democratic Republic of the Congo,34,ORR/PRM Academic Dataset (Dreher et al. 2020),937.0,0.03628601921024546
+2008,North Dakota,Iran,2,ORR/PRM Academic Dataset (Dreher et al. 2020),4986.0,0.00040112314480545525
+2008,North Dakota,Iraq,147,ORR/PRM Academic Dataset (Dreher et al. 2020),15407.0,0.009541117673784643
+2008,North Dakota,Liberia,10,ORR/PRM Academic Dataset (Dreher et al. 2020),528.0,0.01893939393939394
+2008,North Dakota,Nigeria,1,ORR/PRM Academic Dataset (Dreher et al. 2020),70.0,0.014285714285714285
+2008,North Dakota,Somalia,32,ORR/PRM Academic Dataset (Dreher et al. 2020),2653.0,0.01206181681115718
+2008,North Dakota,Stateless,9,ORR/PRM Academic Dataset (Dreher et al. 2020),5421.0,0.0016602102933038186
+2008,North Dakota,Unknown,9,ORR/PRM Academic Dataset (Dreher et al. 2020),831.0,0.010830324909747292
+2008,South Dakota,Afghanistan,3,ORR/PRM Academic Dataset (Dreher et al. 2020),576.0,0.005208333333333333
+2008,South Dakota,Bhutan,54,ORR/PRM Academic Dataset (Dreher et al. 2020),7125.0,0.007578947368421052
+2008,South Dakota,Burundi,98,ORR/PRM Academic Dataset (Dreher et al. 2020),2549.0,0.03844644958807376
+2008,South Dakota,Congo,1,ORR/PRM Academic Dataset (Dreher et al. 2020),206.0,0.0048543689320388345
+2008,South Dakota,Democratic Republic of the Congo,26,ORR/PRM Academic Dataset (Dreher et al. 2020),937.0,0.02774813233724653
+2008,South Dakota,Eritrea,27,ORR/PRM Academic Dataset (Dreher et al. 2020),342.0,0.07894736842105263
+2008,South Dakota,Ethiopia,2,ORR/PRM Academic Dataset (Dreher et al. 2020),212.0,0.009433962264150943
+2008,South Dakota,Iraq,62,ORR/PRM Academic Dataset (Dreher et al. 2020),15407.0,0.004024144869215292
+2008,South Dakota,Liberia,10,ORR/PRM Academic Dataset (Dreher et al. 2020),528.0,0.01893939393939394
+2008,South Dakota,Rwanda,4,ORR/PRM Academic Dataset (Dreher et al. 2020),140.0,0.02857142857142857
+2008,South Dakota,Somalia,111,ORR/PRM Academic Dataset (Dreher et al. 2020),2653.0,0.04183942706370147
+2008,South Dakota,Stateless,6,ORR/PRM Academic Dataset (Dreher et al. 2020),5421.0,0.0011068068622025456
+2008,South Dakota,Sudan,8,ORR/PRM Academic Dataset (Dreher et al. 2020),325.0,0.024615384615384615
+2008,South Dakota,Syria,1,ORR/PRM Academic Dataset (Dreher et al. 2020),16.0,0.0625
+2008,South Dakota,Unknown,3,ORR/PRM Academic Dataset (Dreher et al. 2020),831.0,0.0036101083032490976
+2008,South Dakota,USSR,2,ORR/PRM Academic Dataset (Dreher et al. 2020),2162.0,0.0009250693802035153
+2009,Minnesota,Bhutan,104,ORR/PRM Academic Dataset (Dreher et al. 2020),15077.0,0.0068979239901837235
+2009,Minnesota,Burma,440,ORR/PRM Academic Dataset (Dreher et al. 2020),19920.0,0.02208835341365462
+2009,Minnesota,Congo,3,ORR/PRM Academic Dataset (Dreher et al. 2020),346.0,0.008670520231213872
+2009,Minnesota,Djibouti,3,ORR/PRM Academic Dataset (Dreher et al. 2020),3.0,1.0
+2009,Minnesota,Eritrea,31,ORR/PRM Academic Dataset (Dreher et al. 2020),1913.0,0.01620491374803973
+2009,Minnesota,Ethiopia,27,ORR/PRM Academic Dataset (Dreher et al. 2020),345.0,0.0782608695652174
+2009,Minnesota,Iran,9,ORR/PRM Academic Dataset (Dreher et al. 2020),5437.0,0.0016553246275519589
+2009,Minnesota,Iraq,104,ORR/PRM Academic Dataset (Dreher et al. 2020),19474.0,0.0053404539385847796
+2009,Minnesota,Liberia,19,ORR/PRM Academic Dataset (Dreher et al. 2020),447.0,0.042505592841163314
+2009,Minnesota,Somalia,254,ORR/PRM Academic Dataset (Dreher et al. 2020),4620.0,0.05497835497835498
+2009,Minnesota,Sudan,19,ORR/PRM Academic Dataset (Dreher et al. 2020),705.0,0.02695035460992908
+2009,Minnesota,Thailand,1,ORR/PRM Academic Dataset (Dreher et al. 2020),2.0,0.5
+2009,Minnesota,USSR,125,ORR/PRM Academic Dataset (Dreher et al. 2020),1985.0,0.06297229219143577
+2009,Minnesota,Vietnam,8,ORR/PRM Academic Dataset (Dreher et al. 2020),1754.0,0.004561003420752566
+2009,Montana,Iraq,3,ORR/PRM Academic Dataset (Dreher et al. 2020),19474.0,0.0001540515559207148
+2009,North Dakota,Afghanistan,6,ORR/PRM Academic Dataset (Dreher et al. 2020),338.0,0.01775147928994083
+2009,North Dakota,Bhutan,232,ORR/PRM Academic Dataset (Dreher et al. 2020),15077.0,0.015387676593486768
+2009,North Dakota,Burma,21,ORR/PRM Academic Dataset (Dreher et al. 2020),19920.0,0.0010542168674698795
+2009,North Dakota,Burundi,20,ORR/PRM Academic Dataset (Dreher et al. 2020),635.0,0.031496062992125984
+2009,North Dakota,Democratic Republic of the Congo,21,ORR/PRM Academic Dataset (Dreher et al. 2020),1134.0,0.018518518518518517
+2009,North Dakota,Iran,1,ORR/PRM Academic Dataset (Dreher et al. 2020),5437.0,0.0001839249586168843
+2009,North Dakota,Iraq,125,ORR/PRM Academic Dataset (Dreher et al. 2020),19474.0,0.006418814830029783
+2009,North Dakota,Lebanon,2,ORR/PRM Academic Dataset (Dreher et al. 2020),3.0,0.6666666666666666
+2009,North Dakota,Liberia,8,ORR/PRM Academic Dataset (Dreher et al. 2020),447.0,0.017897091722595078
+2009,North Dakota,Sierra Leone,4,ORR/PRM Academic Dataset (Dreher et al. 2020),60.0,0.06666666666666667
+2009,North Dakota,Somalia,54,ORR/PRM Academic Dataset (Dreher et al. 2020),4620.0,0.011688311688311689
+2009,North Dakota,Sudan,9,ORR/PRM Academic Dataset (Dreher et al. 2020),705.0,0.01276595744680851
+2009,South Dakota,Bhutan,112,ORR/PRM Academic Dataset (Dreher et al. 2020),15077.0,0.007428533527890164
+2009,South Dakota,Burma,111,ORR/PRM Academic Dataset (Dreher et al. 2020),19920.0,0.005572289156626506
+2009,South Dakota,Burundi,35,ORR/PRM Academic Dataset (Dreher et al. 2020),635.0,0.05511811023622047
+2009,South Dakota,Colombia,5,ORR/PRM Academic Dataset (Dreher et al. 2020),85.0,0.058823529411764705
+2009,South Dakota,Cuba,1,ORR/PRM Academic Dataset (Dreher et al. 2020),4789.0,0.00020881186051367718
+2009,South Dakota,Democratic Republic of the Congo,34,ORR/PRM Academic Dataset (Dreher et al. 2020),1134.0,0.029982363315696647
+2009,South Dakota,Eritrea,52,ORR/PRM Academic Dataset (Dreher et al. 2020),1913.0,0.027182435964453737
+2009,South Dakota,Ethiopia,4,ORR/PRM Academic Dataset (Dreher et al. 2020),345.0,0.011594202898550725
+2009,South Dakota,Iraq,56,ORR/PRM Academic Dataset (Dreher et al. 2020),19474.0,0.002875629043853343
+2009,South Dakota,Ivory Coast,1,ORR/PRM Academic Dataset (Dreher et al. 2020),9.0,0.1111111111111111
+2009,South Dakota,Liberia,9,ORR/PRM Academic Dataset (Dreher et al. 2020),447.0,0.020134228187919462
+2009,South Dakota,Rwanda,2,ORR/PRM Academic Dataset (Dreher et al. 2020),111.0,0.018018018018018018
+2009,South Dakota,Somalia,61,ORR/PRM Academic Dataset (Dreher et al. 2020),4620.0,0.013203463203463203
+2009,South Dakota,Sudan,27,ORR/PRM Academic Dataset (Dreher et al. 2020),705.0,0.03829787234042553
+2009,South Dakota,Zambia,1,ORR/PRM Academic Dataset (Dreher et al. 2020),1.0,1.0
+2010,Minnesota,Afghanistan,1,ORR/PRM Academic Dataset (Dreher et al. 2020),527.0,0.0018975332068311196
+2010,Minnesota,Bhutan,197,ORR/PRM Academic Dataset (Dreher et al. 2020),11729.0,0.016795975786512065
+2010,Minnesota,Burma,840,ORR/PRM Academic Dataset (Dreher et al. 2020),17173.0,0.04891399289582484
+2010,Minnesota,Cuba,5,ORR/PRM Academic Dataset (Dreher et al. 2020),4861.0,0.0010285949393128986
+2010,Minnesota,Democratic Republic of the Congo,34,ORR/PRM Academic Dataset (Dreher et al. 2020),3160.0,0.010759493670886076
+2010,Minnesota,Eritrea,35,ORR/PRM Academic Dataset (Dreher et al. 2020),2517.0,0.013905442987683751
+2010,Minnesota,Ethiopia,85,ORR/PRM Academic Dataset (Dreher et al. 2020),663.0,0.1282051282051282
+2010,Minnesota,Iraq,211,ORR/PRM Academic Dataset (Dreher et al. 2020),18250.0,0.011561643835616439
+2010,Minnesota,Laos,36,ORR/PRM Academic Dataset (Dreher et al. 2020),135.0,0.26666666666666666
+2010,Minnesota,Liberia,15,ORR/PRM Academic Dataset (Dreher et al. 2020),181.0,0.08287292817679558
+2010,Minnesota,Palestine,6,ORR/PRM Academic Dataset (Dreher et al. 2020),993.0,0.006042296072507553
+2010,Minnesota,Rwanda,4,ORR/PRM Academic Dataset (Dreher et al. 2020),202.0,0.019801980198019802
+2010,Minnesota,Sierra Leone,1,ORR/PRM Academic Dataset (Dreher et al. 2020),48.0,0.020833333333333332
+2010,Minnesota,Somalia,654,ORR/PRM Academic Dataset (Dreher et al. 2020),4401.0,0.14860259032038173
+2010,Minnesota,Sudan,19,ORR/PRM Academic Dataset (Dreher et al. 2020),505.0,0.03762376237623762
+2010,Minnesota,USSR,39,ORR/PRM Academic Dataset (Dreher et al. 2020),1332.0,0.02927927927927928
+2010,North Dakota,Bhutan,222,ORR/PRM Academic Dataset (Dreher et al. 2020),11729.0,0.01892744479495268
+2010,North Dakota,Burma,8,ORR/PRM Academic Dataset (Dreher et al. 2020),17173.0,0.000465847551388808
+2010,North Dakota,Burundi,6,ORR/PRM Academic Dataset (Dreher et al. 2020),435.0,0.013793103448275862
+2010,North Dakota,Democratic Republic of the Congo,40,ORR/PRM Academic Dataset (Dreher et al. 2020),3160.0,0.012658227848101266
+2010,North Dakota,Eritrea,10,ORR/PRM Academic Dataset (Dreher et al. 2020),2517.0,0.003972983710766786
+2010,North Dakota,Ethiopia,12,ORR/PRM Academic Dataset (Dreher et al. 2020),663.0,0.01809954751131222
+2010,North Dakota,Iran,2,ORR/PRM Academic Dataset (Dreher et al. 2020),2979.0,0.000671366230278617
+2010,North Dakota,Iraq,74,ORR/PRM Academic Dataset (Dreher et al. 2020),18250.0,0.0040547945205479455
+2010,North Dakota,Liberia,4,ORR/PRM Academic Dataset (Dreher et al. 2020),181.0,0.022099447513812154
+2010,North Dakota,Rwanda,9,ORR/PRM Academic Dataset (Dreher et al. 2020),202.0,0.04455445544554455
+2010,North Dakota,Somalia,37,ORR/PRM Academic Dataset (Dreher et al. 2020),4401.0,0.00840718018632129
+2010,North Dakota,Sudan,14,ORR/PRM Academic Dataset (Dreher et al. 2020),505.0,0.027722772277227723
+2010,North Dakota,USSR,3,ORR/PRM Academic Dataset (Dreher et al. 2020),1332.0,0.0022522522522522522
+2010,South Dakota,Afghanistan,1,ORR/PRM Academic Dataset (Dreher et al. 2020),527.0,0.0018975332068311196
+2010,South Dakota,Bhutan,123,ORR/PRM Academic Dataset (Dreher et al. 2020),11729.0,0.010486827521527837
+2010,South Dakota,Burma,160,ORR/PRM Academic Dataset (Dreher et al. 2020),17173.0,0.00931695102777616
+2010,South Dakota,Burundi,7,ORR/PRM Academic Dataset (Dreher et al. 2020),435.0,0.016091954022988506
+2010,South Dakota,Chad,10,ORR/PRM Academic Dataset (Dreher et al. 2020),43.0,0.23255813953488372
+2010,South Dakota,Democratic Republic of the Congo,53,ORR/PRM Academic Dataset (Dreher et al. 2020),3160.0,0.016772151898734176
+2010,South Dakota,Eritrea,94,ORR/PRM Academic Dataset (Dreher et al. 2020),2517.0,0.03734604688120779
+2010,South Dakota,Ethiopia,11,ORR/PRM Academic Dataset (Dreher et al. 2020),663.0,0.016591251885369532
+2010,South Dakota,Iraq,74,ORR/PRM Academic Dataset (Dreher et al. 2020),18250.0,0.0040547945205479455
+2010,South Dakota,Liberia,3,ORR/PRM Academic Dataset (Dreher et al. 2020),181.0,0.016574585635359115
+2010,South Dakota,Palestine,10,ORR/PRM Academic Dataset (Dreher et al. 2020),993.0,0.010070493454179255
+2010,South Dakota,Somalia,20,ORR/PRM Academic Dataset (Dreher et al. 2020),4401.0,0.0045444217223358325
+2010,South Dakota,Sudan,16,ORR/PRM Academic Dataset (Dreher et al. 2020),505.0,0.031683168316831684
+2011,Minnesota,Bhutan,147,ORR/PRM Academic Dataset (Dreher et al. 2020),14735.0,0.009976247030878859
+2011,Minnesota,Burma,1027,ORR/PRM Academic Dataset (Dreher et al. 2020),15713.0,0.06535989308216127
+2011,Minnesota,Burundi,3,ORR/PRM Academic Dataset (Dreher et al. 2020),129.0,0.023255813953488372
+2011,Minnesota,Democratic Republic of the Congo,7,ORR/PRM Academic Dataset (Dreher et al. 2020),1206.0,0.005804311774461028
+2011,Minnesota,Eritrea,19,ORR/PRM Academic Dataset (Dreher et al. 2020),1817.0,0.010456796917996699
+2011,Minnesota,Ethiopia,80,ORR/PRM Academic Dataset (Dreher et al. 2020),594.0,0.13468013468013468
+2011,Minnesota,Iran,3,ORR/PRM Academic Dataset (Dreher et al. 2020),2099.0,0.0014292520247737017
+2011,Minnesota,Iraq,40,ORR/PRM Academic Dataset (Dreher et al. 2020),6339.0,0.006310143555765894
+2011,Minnesota,Laos,48,ORR/PRM Academic Dataset (Dreher et al. 2020),115.0,0.41739130434782606
+2011,Minnesota,Liberia,18,ORR/PRM Academic Dataset (Dreher et al. 2020),132.0,0.13636363636363635
+2011,Minnesota,Somalia,289,ORR/PRM Academic Dataset (Dreher et al. 2020),3453.0,0.08369533738777875
+2011,Minnesota,Sudan,12,ORR/PRM Academic Dataset (Dreher et al. 2020),442.0,0.027149321266968326
+2011,Minnesota,USSR,41,ORR/PRM Academic Dataset (Dreher et al. 2020),1191.0,0.03442485306465155
+2011,North Dakota,Afghanistan,5,ORR/PRM Academic Dataset (Dreher et al. 2020),392.0,0.012755102040816327
+2011,North Dakota,Bhutan,313,ORR/PRM Academic Dataset (Dreher et al. 2020),14735.0,0.021241940956905327
+2011,North Dakota,Burundi,1,ORR/PRM Academic Dataset (Dreher et al. 2020),129.0,0.007751937984496124
+2011,North Dakota,Democratic Republic of the Congo,28,ORR/PRM Academic Dataset (Dreher et al. 2020),1206.0,0.02321724709784411
+2011,North Dakota,Eritrea,13,ORR/PRM Academic Dataset (Dreher et al. 2020),1817.0,0.007154650522839846
+2011,North Dakota,Ethiopia,2,ORR/PRM Academic Dataset (Dreher et al. 2020),594.0,0.003367003367003367
+2011,North Dakota,Iraq,12,ORR/PRM Academic Dataset (Dreher et al. 2020),6339.0,0.001893043066729768
+2011,North Dakota,Liberia,1,ORR/PRM Academic Dataset (Dreher et al. 2020),132.0,0.007575757575757576
+2011,North Dakota,Somalia,18,ORR/PRM Academic Dataset (Dreher et al. 2020),3453.0,0.005212858384013901
+2011,North Dakota,Sudan,6,ORR/PRM Academic Dataset (Dreher et al. 2020),442.0,0.013574660633484163
+2011,North Dakota,USSR,3,ORR/PRM Academic Dataset (Dreher et al. 2020),1191.0,0.0025188916876574307
+2011,South Dakota,Afghanistan,1,ORR/PRM Academic Dataset (Dreher et al. 2020),392.0,0.002551020408163265
+2011,South Dakota,Bhutan,212,ORR/PRM Academic Dataset (Dreher et al. 2020),14735.0,0.014387512724804886
+2011,South Dakota,Burma,157,ORR/PRM Academic Dataset (Dreher et al. 2020),15713.0,0.009991726595812385
+2011,South Dakota,Eritrea,35,ORR/PRM Academic Dataset (Dreher et al. 2020),1817.0,0.01926252063841497
+2011,South Dakota,Ethiopia,2,ORR/PRM Academic Dataset (Dreher et al. 2020),594.0,0.003367003367003367
+2011,South Dakota,Iran,5,ORR/PRM Academic Dataset (Dreher et al. 2020),2099.0,0.0023820867079561697
+2011,South Dakota,Iraq,13,ORR/PRM Academic Dataset (Dreher et al. 2020),6339.0,0.0020507966556239155
+2011,South Dakota,Somalia,30,ORR/PRM Academic Dataset (Dreher et al. 2020),3453.0,0.008688097306689836
+2011,South Dakota,Sudan,4,ORR/PRM Academic Dataset (Dreher et al. 2020),442.0,0.00904977375565611
+2011,South Dakota,USSR,2,ORR/PRM Academic Dataset (Dreher et al. 2020),1191.0,0.0016792611251049538
+2002,Minnesota,Total,847,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2002,Montana,Total,14,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2002,North Dakota,Total,61,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2002,South Dakota,Total,129,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2003,Minnesota,Total,2241,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2003,Montana,Total,24,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2003,North Dakota,Total,117,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2003,South Dakota,Total,167,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2004,Minnesota,Total,7129,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2004,Montana,Total,7,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2004,North Dakota,Total,232,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2004,South Dakota,Total,338,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2005,Minnesota,Total,5022,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2005,Montana,Total,5,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2005,North Dakota,Total,245,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2005,South Dakota,Total,220,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2006,Minnesota,Total,4899,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2006,North Dakota,Total,154,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2006,South Dakota,Total,153,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2007,Minnesota,Total,2675,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2007,Montana,Total,3,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2007,North Dakota,Total,222,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2007,South Dakota,Total,227,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2008,Minnesota,Total,1118,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2008,Montana,Total,4,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2008,North Dakota,Total,463,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2008,South Dakota,Total,418,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2009,Minnesota,Total,1147,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2009,Montana,Total,3,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2009,North Dakota,Total,503,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2009,South Dakota,Total,511,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2010,Minnesota,Total,2182,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2010,North Dakota,Total,441,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2010,South Dakota,Total,582,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2011,Minnesota,Total,1734,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2011,North Dakota,Total,402,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2011,South Dakota,Total,461,ORR/PRM Academic Dataset (Dreher et al. 2020),,0.0
+2012,Minnesota,Total,1738,WRAPS/RPC Excel files,,0.0
+2012,Minnesota,Belarus,21,WRAPS/RPC Excel files,83.0,0.25301204819277107
+2012,Minnesota,Bhutan,191,WRAPS/RPC Excel files,15070.0,0.01267418712674187
+2012,Minnesota,Burma,691,WRAPS/RPC Excel files,14160.0,0.048799435028248586
+2012,Minnesota,Democratic Republic of the Congo,11,WRAPS/RPC Excel files,1863.0,0.005904455179817499
+2012,Minnesota,Eritrea,19,WRAPS/RPC Excel files,1346.0,0.01411589895988113
+2012,Minnesota,Ethiopia,95,WRAPS/RPC Excel files,620.0,0.1532258064516129
+2012,Minnesota,Iran,15,WRAPS/RPC Excel files,1758.0,0.008532423208191127
+2012,Minnesota,Iraq,81,WRAPS/RPC Excel files,12163.0,0.006659541231604045
+2012,Minnesota,Laos,8,WRAPS/RPC Excel files,21.0,0.38095238095238093
+2012,Minnesota,Liberia,8,WRAPS/RPC Excel files,69.0,0.11594202898550725
+2012,Minnesota,Moldova,2,WRAPS/RPC Excel files,255.0,0.00784313725490196
+2012,Minnesota,Somalia,573,WRAPS/RPC Excel files,4911.0,0.11667684789248625
+2012,Minnesota,Sudan,17,WRAPS/RPC Excel files,1077.0,0.015784586815227482
+2012,Minnesota,Ukraine,6,WRAPS/RPC Excel files,372.0,0.016129032258064516
+2012,Montana,Total,1,WRAPS/RPC Excel files,,0.0
+2012,Montana,Iraq,1,WRAPS/RPC Excel files,12163.0,8.221655841486475e-05
+2012,North Dakota,Total,555,WRAPS/RPC Excel files,,0.0
+2012,North Dakota,Bhutan,429,WRAPS/RPC Excel files,15070.0,0.02846715328467153
+2012,North Dakota,Burma,3,WRAPS/RPC Excel files,14160.0,0.000211864406779661
+2012,North Dakota,Democratic Republic of the Congo,27,WRAPS/RPC Excel files,1863.0,0.014492753623188406
+2012,North Dakota,Eritrea,3,WRAPS/RPC Excel files,1346.0,0.002228826151560178
+2012,North Dakota,Ethiopia,1,WRAPS/RPC Excel files,620.0,0.0016129032258064516
+2012,North Dakota,Iraq,10,WRAPS/RPC Excel files,12163.0,0.0008221655841486476
+2012,North Dakota,Liberia,1,WRAPS/RPC Excel files,69.0,0.014492753623188406
+2012,North Dakota,Nepal,1,WRAPS/RPC Excel files,47.0,0.02127659574468085
+2012,North Dakota,Somalia,54,WRAPS/RPC Excel files,4911.0,0.010995723885155772
+2012,North Dakota,Sudan,26,WRAPS/RPC Excel files,1077.0,0.02414113277623027
+2012,South Dakota,Total,646,WRAPS/RPC Excel files,,0.0
+2012,South Dakota,Bhutan,361,WRAPS/RPC Excel files,15070.0,0.023954877239548773
+2012,South Dakota,Burma,181,WRAPS/RPC Excel files,14160.0,0.012782485875706216
+2012,South Dakota,Cambodia,1,WRAPS/RPC Excel files,6.0,0.16666666666666666
+2012,South Dakota,Democratic Republic of the Congo,4,WRAPS/RPC Excel files,1863.0,0.0021470746108427268
+2012,South Dakota,Eritrea,24,WRAPS/RPC Excel files,1346.0,0.017830609212481426
+2012,South Dakota,Ethiopia,2,WRAPS/RPC Excel files,620.0,0.0032258064516129032
+2012,South Dakota,Iraq,19,WRAPS/RPC Excel files,12163.0,0.0015621146098824302
+2012,South Dakota,Somalia,43,WRAPS/RPC Excel files,4911.0,0.008755854204846264
+2012,South Dakota,Sudan,11,WRAPS/RPC Excel files,1077.0,0.01021355617455896
+2013,Minnesota,Total,2214,WRAPS/RPC Excel files,,0.0
+2013,Minnesota,Belarus,4,WRAPS/RPC Excel files,10.0,0.4
+2013,Minnesota,Bhutan,134,WRAPS/RPC Excel files,9134.0,0.014670462010072258
+2013,Minnesota,Burma,894,WRAPS/RPC Excel files,16299.0,0.05484999079698141
+2013,Minnesota,Cambodia,11,WRAPS/RPC Excel files,30.0,0.36666666666666664
+2013,Minnesota,China,1,WRAPS/RPC Excel files,86.0,0.011627906976744186
+2013,Minnesota,Congo,6,WRAPS/RPC Excel files,161.0,0.037267080745341616
+2013,Minnesota,Cuba,2,WRAPS/RPC Excel files,4205.0,0.0004756242568370987
+2013,Minnesota,Democratic Republic of the Congo,10,WRAPS/RPC Excel files,2563.0,0.0039016777214202106
+2013,Minnesota,Eritrea,26,WRAPS/RPC Excel files,1824.0,0.01425438596491228
+2013,Minnesota,Ethiopia,65,WRAPS/RPC Excel files,765.0,0.08496732026143791
+2013,Minnesota,Iraq,129,WRAPS/RPC Excel files,19488.0,0.0066194581280788175
+2013,Minnesota,Kenya,1,WRAPS/RPC Excel files,5.0,0.2
+2013,Minnesota,Liberia,8,WRAPS/RPC Excel files,94.0,0.0851063829787234
+2013,Minnesota,Moldova,16,WRAPS/RPC Excel files,119.0,0.13445378151260504
+2013,Minnesota,Nepal,1,WRAPS/RPC Excel files,34.0,0.029411764705882353
+2013,Minnesota,Palestine,5,WRAPS/RPC Excel files,164.0,0.03048780487804878
+2013,Minnesota,Somalia,871,WRAPS/RPC Excel files,7608.0,0.11448475289169295
+2013,Minnesota,Sudan,13,WRAPS/RPC Excel files,2160.0,0.0060185185185185185
+2013,Minnesota,Ukraine,13,WRAPS/RPC Excel files,227.0,0.05726872246696035
+2013,Minnesota,Vietnam,4,WRAPS/RPC Excel files,86.0,0.046511627906976744
+2013,North Dakota,Total,456,WRAPS/RPC Excel files,,0.0
+2013,North Dakota,Bhutan,268,WRAPS/RPC Excel files,9134.0,0.029340924020144515
+2013,North Dakota,Chad,10,WRAPS/RPC Excel files,32.0,0.3125
+2013,North Dakota,Democratic Republic of the Congo,19,WRAPS/RPC Excel files,2563.0,0.0074131876706984
+2013,North Dakota,Eritrea,1,WRAPS/RPC Excel files,1824.0,0.0005482456140350877
+2013,North Dakota,Ethiopia,1,WRAPS/RPC Excel files,765.0,0.00130718954248366
+2013,North Dakota,Iraq,85,WRAPS/RPC Excel files,19488.0,0.004361658456486043
+2013,North Dakota,Republic Of South Sudan,1,WRAPS/RPC Excel files,17.0,0.058823529411764705
+2013,North Dakota,Somalia,66,WRAPS/RPC Excel files,7608.0,0.008675078864353312
+2013,North Dakota,Sudan,5,WRAPS/RPC Excel files,2160.0,0.0023148148148148147
+2013,South Dakota,Total,533,WRAPS/RPC Excel files,,0.0
+2013,South Dakota,Bhutan,229,WRAPS/RPC Excel files,9134.0,0.02507116268885483
+2013,South Dakota,Burma,170,WRAPS/RPC Excel files,16299.0,0.010430087735443893
+2013,South Dakota,Democratic Republic of the Congo,2,WRAPS/RPC Excel files,2563.0,0.0007803355442840422
+2013,South Dakota,Eritrea,30,WRAPS/RPC Excel files,1824.0,0.01644736842105263
+2013,South Dakota,Ethiopia,2,WRAPS/RPC Excel files,765.0,0.00261437908496732
+2013,South Dakota,Iraq,30,WRAPS/RPC Excel files,19488.0,0.001539408866995074
+2013,South Dakota,Liberia,6,WRAPS/RPC Excel files,94.0,0.06382978723404255
+2013,South Dakota,Somalia,49,WRAPS/RPC Excel files,7608.0,0.006440588853838065
+2013,South Dakota,Sudan,5,WRAPS/RPC Excel files,2160.0,0.0023148148148148147
+2013,South Dakota,Ukraine,10,WRAPS/RPC Excel files,227.0,0.04405286343612335
+2014,Minnesota,Total,2232,WRAPS/RPC Excel files,,0.0
+2014,Minnesota,Belarus,10,WRAPS/RPC Excel files,46.0,0.21739130434782608
+2014,Minnesota,Bhutan,111,WRAPS/RPC Excel files,8434.0,0.013161014939530471
+2014,Minnesota,Burma,720,WRAPS/RPC Excel files,14598.0,0.04932182490752158
+2014,Minnesota,Cambodia,4,WRAPS/RPC Excel files,44.0,0.09090909090909091
+2014,Minnesota,Congo,3,WRAPS/RPC Excel files,30.0,0.1
+2014,Minnesota,Cuba,6,WRAPS/RPC Excel files,4062.0,0.0014771048744460858
+2014,Minnesota,Democratic Republic of the Congo,21,WRAPS/RPC Excel files,4540.0,0.004625550660792952
+2014,Minnesota,Eritrea,11,WRAPS/RPC Excel files,1488.0,0.00739247311827957
+2014,Minnesota,Ethiopia,67,WRAPS/RPC Excel files,728.0,0.09203296703296704
+2014,Minnesota,Iran,3,WRAPS/RPC Excel files,2846.0,0.0010541110330288123
+2014,Minnesota,Iraq,179,WRAPS/RPC Excel files,19769.0,0.0090545804036623
+2014,Minnesota,Kenya,5,WRAPS/RPC Excel files,21.0,0.23809523809523808
+2014,Minnesota,Liberia,2,WRAPS/RPC Excel files,31.0,0.06451612903225806
+2014,Minnesota,Moldova,7,WRAPS/RPC Excel files,142.0,0.04929577464788732
+2014,Minnesota,Palestine,9,WRAPS/RPC Excel files,141.0,0.06382978723404255
+2014,Minnesota,Russia,5,WRAPS/RPC Excel files,139.0,0.03597122302158273
+2014,Minnesota,Sierra Leone,1,WRAPS/RPC Excel files,6.0,0.16666666666666666
+2014,Minnesota,Somalia,1048,WRAPS/RPC Excel files,9000.0,0.11644444444444445
+2014,Minnesota,Sri Lanka (Ceylon),5,WRAPS/RPC Excel files,57.0,0.08771929824561403
+2014,Minnesota,Sudan,7,WRAPS/RPC Excel files,1315.0,0.00532319391634981
+2014,Minnesota,Togo,1,WRAPS/RPC Excel files,26.0,0.038461538461538464
+2014,Minnesota,Ukraine,7,WRAPS/RPC Excel files,490.0,0.014285714285714285
+2014,North Dakota,Total,582,WRAPS/RPC Excel files,,0.0
+2014,North Dakota,Afghanistan,5,WRAPS/RPC Excel files,753.0,0.006640106241699867
+2014,North Dakota,Bhutan,284,WRAPS/RPC Excel files,8434.0,0.03367322741285274
+2014,North Dakota,Burma,4,WRAPS/RPC Excel files,14598.0,0.0002740101383751199
+2014,North Dakota,Cambodia,9,WRAPS/RPC Excel files,44.0,0.20454545454545456
+2014,North Dakota,Democratic Republic of the Congo,24,WRAPS/RPC Excel files,4540.0,0.0052863436123348016
+2014,North Dakota,Eritrea,6,WRAPS/RPC Excel files,1488.0,0.004032258064516129
+2014,North Dakota,Ethiopia,1,WRAPS/RPC Excel files,728.0,0.0013736263736263737
+2014,North Dakota,Iran,3,WRAPS/RPC Excel files,2846.0,0.0010541110330288123
+2014,North Dakota,Iraq,158,WRAPS/RPC Excel files,19769.0,0.007992311194294097
+2014,North Dakota,Pakistan,1,WRAPS/RPC Excel files,240.0,0.004166666666666667
+2014,North Dakota,Somalia,80,WRAPS/RPC Excel files,9000.0,0.008888888888888889
+2014,North Dakota,Sudan,7,WRAPS/RPC Excel files,1315.0,0.00532319391634981
+2014,South Dakota,Total,523,WRAPS/RPC Excel files,,0.0
+2014,South Dakota,Bhutan,163,WRAPS/RPC Excel files,8434.0,0.019326535451742944
+2014,South Dakota,Burma,115,WRAPS/RPC Excel files,14598.0,0.007877791478284697
+2014,South Dakota,Democratic Republic of the Congo,45,WRAPS/RPC Excel files,4540.0,0.009911894273127754
+2014,South Dakota,Eritrea,49,WRAPS/RPC Excel files,1488.0,0.03293010752688172
+2014,South Dakota,Ethiopia,2,WRAPS/RPC Excel files,728.0,0.0027472527472527475
+2014,South Dakota,Guinea,6,WRAPS/RPC Excel files,9.0,0.6666666666666666
+2014,South Dakota,Iraq,43,WRAPS/RPC Excel files,19769.0,0.002175122666801558
+2014,South Dakota,Nepal,1,WRAPS/RPC Excel files,47.0,0.02127659574468085
+2014,South Dakota,Somalia,81,WRAPS/RPC Excel files,9000.0,0.009
+2014,South Dakota,Sudan,7,WRAPS/RPC Excel files,1315.0,0.00532319391634981
+2014,South Dakota,Ukraine,11,WRAPS/RPC Excel files,490.0,0.022448979591836733
+2015,Minnesota,Total,2291,WRAPS/RPC Excel files,,0.0
+2015,Minnesota,Belarus,1,WRAPS/RPC Excel files,98.0,0.01020408163265306
+2015,Minnesota,Bhutan,51,WRAPS/RPC Excel files,5775.0,0.008831168831168832
+2015,Minnesota,Burma,908,WRAPS/RPC Excel files,18386.0,0.049385401936255846
+2015,Minnesota,Congo,6,WRAPS/RPC Excel files,52.0,0.11538461538461539
+2015,Minnesota,Democratic Republic of the Congo,31,WRAPS/RPC Excel files,7876.0,0.00393600812595226
+2015,Minnesota,Djibouti,2,WRAPS/RPC Excel files,2.0,1.0
+2015,Minnesota,Eritrea,17,WRAPS/RPC Excel files,1596.0,0.010651629072681704
+2015,Minnesota,Ethiopia,50,WRAPS/RPC Excel files,626.0,0.07987220447284345
+2015,Minnesota,Iran,4,WRAPS/RPC Excel files,3109.0,0.001286587327114828
+2015,Minnesota,Iraq,100,WRAPS/RPC Excel files,12676.0,0.007888923950773114
+2015,Minnesota,Liberia,4,WRAPS/RPC Excel files,12.0,0.3333333333333333
+2015,Minnesota,Moldova,12,WRAPS/RPC Excel files,333.0,0.036036036036036036
+2015,Minnesota,Russia,8,WRAPS/RPC Excel files,281.0,0.028469750889679714
+2015,Minnesota,Saudi Arabia,1,WRAPS/RPC Excel files,3.0,0.3333333333333333
+2015,Minnesota,Somalia,1029,WRAPS/RPC Excel files,8858.0,0.11616617746669677
+2015,Minnesota,Sri Lanka (Ceylon),12,WRAPS/RPC Excel files,89.0,0.1348314606741573
+2015,Minnesota,Sudan,13,WRAPS/RPC Excel files,1578.0,0.008238276299112801
+2015,Minnesota,Syria,7,WRAPS/RPC Excel files,1682.0,0.004161712247324614
+2015,Minnesota,Ukraine,32,WRAPS/RPC Excel files,1451.0,0.022053756030323914
+2015,Minnesota,Vietnam,3,WRAPS/RPC Excel files,35.0,0.08571428571428572
+2015,North Dakota,Total,497,WRAPS/RPC Excel files,,0.0
+2015,North Dakota,Afghanistan,2,WRAPS/RPC Excel files,910.0,0.002197802197802198
+2015,North Dakota,Bhutan,200,WRAPS/RPC Excel files,5775.0,0.03463203463203463
+2015,North Dakota,Burma,4,WRAPS/RPC Excel files,18386.0,0.00021755683672359405
+2015,North Dakota,Democratic Republic of the Congo,36,WRAPS/RPC Excel files,7876.0,0.0045708481462671405
+2015,North Dakota,Eritrea,3,WRAPS/RPC Excel files,1596.0,0.0018796992481203006
+2015,North Dakota,Ethiopia,10,WRAPS/RPC Excel files,626.0,0.01597444089456869
+2015,North Dakota,Iran,3,WRAPS/RPC Excel files,3109.0,0.0009649404953361209
+2015,North Dakota,Iraq,101,WRAPS/RPC Excel files,12676.0,0.007967813190280846
+2015,North Dakota,Somalia,133,WRAPS/RPC Excel files,8858.0,0.015014675999096862
+2015,North Dakota,Ukraine,5,WRAPS/RPC Excel files,1451.0,0.0034458993797381117
+2015,South Dakota,Total,484,WRAPS/RPC Excel files,,0.0
+2015,South Dakota,Bhutan,65,WRAPS/RPC Excel files,5775.0,0.011255411255411256
+2015,South Dakota,Burma,152,WRAPS/RPC Excel files,18386.0,0.008267159795496573
+2015,South Dakota,Burundi,12,WRAPS/RPC Excel files,1186.0,0.01011804384485666
+2015,South Dakota,Democratic Republic of the Congo,30,WRAPS/RPC Excel files,7876.0,0.003809040121889284
+2015,South Dakota,Eritrea,30,WRAPS/RPC Excel files,1596.0,0.018796992481203006
+2015,South Dakota,Ethiopia,7,WRAPS/RPC Excel files,626.0,0.011182108626198083
+2015,South Dakota,Iraq,9,WRAPS/RPC Excel files,12676.0,0.0007100031555695803
+2015,South Dakota,Somalia,138,WRAPS/RPC Excel files,8858.0,0.015579137502822308
+2015,South Dakota,Sudan,41,WRAPS/RPC Excel files,1578.0,0.025982256020278833
+2016,Minnesota,Total,2635,WRAPS/RPC Excel files,,0.0
+2016,Minnesota,Afghanistan,3,WRAPS/RPC Excel files,2737.0,0.0010960906101571063
+2016,Minnesota,Armenia,2,WRAPS/RPC Excel files,55.0,0.03636363636363636
+2016,Minnesota,Belarus,22,WRAPS/RPC Excel files,185.0,0.11891891891891893
+2016,Minnesota,Bhutan,126,WRAPS/RPC Excel files,5817.0,0.021660649819494584
+2016,Minnesota,Burma,653,WRAPS/RPC Excel files,12347.0,0.05288734105450717
+2016,Minnesota,Burundi,6,WRAPS/RPC Excel files,694.0,0.008645533141210375
+2016,Minnesota,Congo,4,WRAPS/RPC Excel files,16.0,0.25
+2016,Minnesota,Democratic Republic of the Congo,70,WRAPS/RPC Excel files,16370.0,0.004276114844227245
+2016,Minnesota,El Salvador,7,WRAPS/RPC Excel files,364.0,0.019230769230769232
+2016,Minnesota,Eritrea,13,WRAPS/RPC Excel files,1949.0,0.006670087224217547
+2016,Minnesota,Ethiopia,201,WRAPS/RPC Excel files,1131.0,0.17771883289124668
+2016,Minnesota,Iran,12,WRAPS/RPC Excel files,3750.0,0.0032
+2016,Minnesota,Iraq,145,WRAPS/RPC Excel files,9880.0,0.014676113360323886
+2016,Minnesota,Kazakhstan,11,WRAPS/RPC Excel files,91.0,0.12087912087912088
+2016,Minnesota,Kenya,4,WRAPS/RPC Excel files,6.0,0.6666666666666666
+2016,Minnesota,Moldova,36,WRAPS/RPC Excel files,465.0,0.07741935483870968
+2016,Minnesota,Nepal,1,WRAPS/RPC Excel files,33.0,0.030303030303030304
+2016,Minnesota,Republic Of South Sudan,1,WRAPS/RPC Excel files,189.0,0.005291005291005291
+2016,Minnesota,Russia,9,WRAPS/RPC Excel files,462.0,0.01948051948051948
+2016,Minnesota,Saudi Arabia,2,WRAPS/RPC Excel files,2.0,1.0
+2016,Minnesota,Somalia,1195,WRAPS/RPC Excel files,9020.0,0.13248337028824833
+2016,Minnesota,Sri Lanka (Ceylon),1,WRAPS/RPC Excel files,91.0,0.01098901098901099
+2016,Minnesota,Syria,28,WRAPS/RPC Excel files,12587.0,0.0022245173591801063
+2016,Minnesota,Tanzania,1,WRAPS/RPC Excel files,1.0,1.0
+2016,Minnesota,Thailand,1,WRAPS/RPC Excel files,5.0,0.2
+2016,Minnesota,Ukraine,81,WRAPS/RPC Excel files,2543.0,0.03185214313802595
+2016,Montana,Total,27,WRAPS/RPC Excel files,,0.0
+2016,Montana,Democratic Republic of the Congo,27,WRAPS/RPC Excel files,16370.0,0.0016493585827733659
+2016,North Dakota,Total,540,WRAPS/RPC Excel files,,0.0
+2016,North Dakota,Afghanistan,10,WRAPS/RPC Excel files,2737.0,0.003653635367190354
+2016,North Dakota,Bhutan,189,WRAPS/RPC Excel files,5817.0,0.032490974729241874
+2016,North Dakota,Burma,4,WRAPS/RPC Excel files,12347.0,0.00032396533570907914
+2016,North Dakota,Democratic Republic of the Congo,50,WRAPS/RPC Excel files,16370.0,0.0030543677458766036
+2016,North Dakota,Eritrea,2,WRAPS/RPC Excel files,1949.0,0.001026167265264238
+2016,North Dakota,Ethiopia,7,WRAPS/RPC Excel files,1131.0,0.00618921308576481
+2016,North Dakota,Iran,4,WRAPS/RPC Excel files,3750.0,0.0010666666666666667
+2016,North Dakota,Iraq,117,WRAPS/RPC Excel files,9880.0,0.011842105263157895
+2016,North Dakota,Ivory Coast,1,WRAPS/RPC Excel files,79.0,0.012658227848101266
+2016,North Dakota,Somalia,147,WRAPS/RPC Excel files,9020.0,0.01629711751662971
+2016,North Dakota,Syria,9,WRAPS/RPC Excel files,12587.0,0.0007150234368793199
+2016,South Dakota,Total,426,WRAPS/RPC Excel files,,0.0
+2016,South Dakota,Bhutan,121,WRAPS/RPC Excel files,5817.0,0.020801100223482895
+2016,South Dakota,Burma,48,WRAPS/RPC Excel files,12347.0,0.0038875840285089495
+2016,South Dakota,Burundi,15,WRAPS/RPC Excel files,694.0,0.021613832853025938
+2016,South Dakota,Democratic Republic of the Congo,71,WRAPS/RPC Excel files,16370.0,0.004337202199144777
+2016,South Dakota,El Salvador,1,WRAPS/RPC Excel files,364.0,0.0027472527472527475
+2016,South Dakota,Eritrea,36,WRAPS/RPC Excel files,1949.0,0.018471010774756286
+2016,South Dakota,Ethiopia,30,WRAPS/RPC Excel files,1131.0,0.026525198938992044
+2016,South Dakota,Iraq,1,WRAPS/RPC Excel files,9880.0,0.00010121457489878542
+2016,South Dakota,Pakistan,4,WRAPS/RPC Excel files,545.0,0.007339449541284404
+2016,South Dakota,Republic Of South Sudan,6,WRAPS/RPC Excel files,189.0,0.031746031746031744
+2016,South Dakota,Somalia,64,WRAPS/RPC Excel files,9020.0,0.007095343680709534
+2016,South Dakota,Sudan,17,WRAPS/RPC Excel files,1458.0,0.011659807956104253
+2016,South Dakota,Ukraine,12,WRAPS/RPC Excel files,2543.0,0.0047188360204482895
+2017,Minnesota,Total,1623,WRAPS/RPC Excel files,,0.0
+2017,Minnesota,Belarus,12,WRAPS/RPC Excel files,73.0,0.1643835616438356
+2017,Minnesota,Bhutan,49,WRAPS/RPC Excel files,3550.0,0.01380281690140845
+2017,Minnesota,Burma,285,WRAPS/RPC Excel files,5078.0,0.05612445844820796
+2017,Minnesota,China,2,WRAPS/RPC Excel files,24.0,0.08333333333333333
+2017,Minnesota,Democratic Republic of the Congo,61,WRAPS/RPC Excel files,9377.0,0.006505278873840247
+2017,Minnesota,Djibouti,1,WRAPS/RPC Excel files,4.0,0.25
+2017,Minnesota,El Salvador,7,WRAPS/RPC Excel files,1124.0,0.006227758007117438
+2017,Minnesota,Eritrea,22,WRAPS/RPC Excel files,1917.0,0.011476264997391758
+2017,Minnesota,Ethiopia,187,WRAPS/RPC Excel files,766.0,0.24412532637075718
+2017,Minnesota,Iran,2,WRAPS/RPC Excel files,2577.0,0.0007760962359332557
+2017,Minnesota,Iraq,94,WRAPS/RPC Excel files,6886.0,0.013650885855358699
+2017,Minnesota,Kenya,2,WRAPS/RPC Excel files,6.0,0.3333333333333333
+2017,Minnesota,Liberia,3,WRAPS/RPC Excel files,8.0,0.375
+2017,Minnesota,Moldova,16,WRAPS/RPC Excel files,301.0,0.053156146179401995
+2017,Minnesota,Nepal,1,WRAPS/RPC Excel files,39.0,0.02564102564102564
+2017,Minnesota,Palestine,5,WRAPS/RPC Excel files,81.0,0.06172839506172839
+2017,Minnesota,Russia,6,WRAPS/RPC Excel files,377.0,0.015915119363395226
+2017,Minnesota,Somalia,808,WRAPS/RPC Excel files,6130.0,0.13181076672104405
+2017,Minnesota,Sudan,25,WRAPS/RPC Excel files,980.0,0.025510204081632654
+2017,Minnesota,Syria,10,WRAPS/RPC Excel files,6557.0,0.0015250876925423213
+2017,Minnesota,Ukraine,22,WRAPS/RPC Excel files,4264.0,0.005159474671669793
+2017,Minnesota,Vietnam,3,WRAPS/RPC Excel files,46.0,0.06521739130434782
+2017,Montana,Total,92,WRAPS/RPC Excel files,,0.0
+2017,Montana,Democratic Republic of the Congo,10,WRAPS/RPC Excel files,9377.0,0.0010664391596459423
+2017,Montana,Eritrea,50,WRAPS/RPC Excel files,1917.0,0.02608242044861763
+2017,Montana,Ethiopia,7,WRAPS/RPC Excel files,766.0,0.009138381201044387
+2017,Montana,Iraq,12,WRAPS/RPC Excel files,6886.0,0.0017426662794074934
+2017,Montana,Syria,13,WRAPS/RPC Excel files,6557.0,0.0019826140003050175
+2017,North Dakota,Total,420,WRAPS/RPC Excel files,,0.0
+2017,North Dakota,Bhutan,179,WRAPS/RPC Excel files,3550.0,0.050422535211267605
+2017,North Dakota,Democratic Republic of the Congo,57,WRAPS/RPC Excel files,9377.0,0.006078703209981871
+2017,North Dakota,Eritrea,6,WRAPS/RPC Excel files,1917.0,0.003129890453834116
+2017,North Dakota,Ethiopia,10,WRAPS/RPC Excel files,766.0,0.013054830287206266
+2017,North Dakota,Guinea,1,WRAPS/RPC Excel files,5.0,0.2
+2017,North Dakota,Iraq,78,WRAPS/RPC Excel files,6886.0,0.011327330816148708
+2017,North Dakota,Mali,1,WRAPS/RPC Excel files,6.0,0.16666666666666666
+2017,North Dakota,Nepal,1,WRAPS/RPC Excel files,39.0,0.02564102564102564
+2017,North Dakota,Somalia,83,WRAPS/RPC Excel files,6130.0,0.013539967373572593
+2017,North Dakota,Sudan,4,WRAPS/RPC Excel files,980.0,0.004081632653061225
+2017,South Dakota,Total,314,WRAPS/RPC Excel files,,0.0
+2017,South Dakota,Bhutan,81,WRAPS/RPC Excel files,3550.0,0.022816901408450704
+2017,South Dakota,Burma,65,WRAPS/RPC Excel files,5078.0,0.012800315084679008
+2017,South Dakota,Burundi,4,WRAPS/RPC Excel files,291.0,0.013745704467353952
+2017,South Dakota,Democratic Republic of the Congo,45,WRAPS/RPC Excel files,9377.0,0.00479897621840674
+2017,South Dakota,Eritrea,56,WRAPS/RPC Excel files,1917.0,0.029212310902451747
+2017,South Dakota,Ethiopia,9,WRAPS/RPC Excel files,766.0,0.01174934725848564
+2017,South Dakota,Iraq,1,WRAPS/RPC Excel files,6886.0,0.00014522218995062446
+2017,South Dakota,Somalia,35,WRAPS/RPC Excel files,6130.0,0.005709624796084829
+2017,South Dakota,Sudan,14,WRAPS/RPC Excel files,980.0,0.014285714285714285
+2017,South Dakota,Syria,4,WRAPS/RPC Excel files,6557.0,0.0006100350770169285
+2018,Minnesota,Total,723,WRAPS/RPC Excel files,,0.0
+2018,Minnesota,Belarus,18,WRAPS/RPC Excel files,181.0,0.09944751381215469
+2018,Minnesota,Bhutan,28,WRAPS/RPC Excel files,2228.0,0.012567324955116697
+2018,Minnesota,Burma,313,WRAPS/RPC Excel files,3555.0,0.0880450070323488
+2018,Minnesota,Democratic Republic of the Congo,87,WRAPS/RPC Excel files,7878.0,0.011043412033511044
+2018,Minnesota,El Salvador,10,WRAPS/RPC Excel files,725.0,0.013793103448275862
+2018,Minnesota,Eritrea,24,WRAPS/RPC Excel files,1269.0,0.018912529550827423
+2018,Minnesota,Ethiopia,86,WRAPS/RPC Excel files,376.0,0.22872340425531915
+2018,Minnesota,Guatemala,1,WRAPS/RPC Excel files,42.0,0.023809523809523808
+2018,Minnesota,Iran,3,WRAPS/RPC Excel files,41.0,0.07317073170731707
+2018,Minnesota,Iraq,1,WRAPS/RPC Excel files,140.0,0.007142857142857143
+2018,Minnesota,Kazakhstan,9,WRAPS/RPC Excel files,47.0,0.19148936170212766
+2018,Minnesota,Kuwait,1,WRAPS/RPC Excel files,1.0,1.0
+2018,Minnesota,Moldova,4,WRAPS/RPC Excel files,207.0,0.01932367149758454
+2018,Minnesota,Russia,13,WRAPS/RPC Excel files,437.0,0.029748283752860413
+2018,Minnesota,Senegal,1,WRAPS/RPC Excel files,14.0,0.07142857142857142
+2018,Minnesota,Somalia,80,WRAPS/RPC Excel files,257.0,0.311284046692607
+2018,Minnesota,Sri Lanka (Ceylon),1,WRAPS/RPC Excel files,56.0,0.017857142857142856
+2018,Minnesota,Ukraine,41,WRAPS/RPC Excel files,2635.0,0.01555977229601518
+2018,Minnesota,Yemen,2,WRAPS/RPC Excel files,2.0,1.0
+2018,Montana,Total,115,WRAPS/RPC Excel files,,0.0
+2018,Montana,Democratic Republic of the Congo,77,WRAPS/RPC Excel files,7878.0,0.009774054328509774
+2018,Montana,Eritrea,38,WRAPS/RPC Excel files,1269.0,0.029944838455476755
+2018,North Dakota,Total,162,WRAPS/RPC Excel files,,0.0
+2018,North Dakota,Afghanistan,10,WRAPS/RPC Excel files,805.0,0.012422360248447204
+2018,North Dakota,Angola,1,WRAPS/RPC Excel files,1.0,1.0
+2018,North Dakota,Bhutan,96,WRAPS/RPC Excel files,2228.0,0.04308797127468582
+2018,North Dakota,Democratic Republic of the Congo,47,WRAPS/RPC Excel files,7878.0,0.005965981213505966
+2018,North Dakota,Eritrea,1,WRAPS/RPC Excel files,1269.0,0.0007880220646178094
+2018,North Dakota,Ukraine,7,WRAPS/RPC Excel files,2635.0,0.0026565464895635673
+2018,South Dakota,Total,206,WRAPS/RPC Excel files,,0.0
+2018,South Dakota,Bhutan,65,WRAPS/RPC Excel files,2228.0,0.02917414721723519
+2018,South Dakota,Burma,24,WRAPS/RPC Excel files,3555.0,0.006751054852320675
+2018,South Dakota,Democratic Republic of the Congo,28,WRAPS/RPC Excel files,7878.0,0.003554201574003554
+2018,South Dakota,El Salvador,4,WRAPS/RPC Excel files,725.0,0.005517241379310344
+2018,South Dakota,Eritrea,38,WRAPS/RPC Excel files,1269.0,0.029944838455476755
+2018,South Dakota,Ethiopia,12,WRAPS/RPC Excel files,376.0,0.031914893617021274
+2018,South Dakota,Russia,2,WRAPS/RPC Excel files,437.0,0.004576659038901602
+2018,South Dakota,Somalia,8,WRAPS/RPC Excel files,257.0,0.0311284046692607
+2018,South Dakota,Sudan,1,WRAPS/RPC Excel files,76.0,0.013157894736842105
+2018,South Dakota,Ukraine,24,WRAPS/RPC Excel files,2635.0,0.009108159392789373
+2019,Minnesota,Total,848,WRAPS/RPC Excel files,,0.0
+2019,Minnesota,Belarus,12,WRAPS/RPC Excel files,96.0,0.125
+2019,Minnesota,Burma,379,WRAPS/RPC Excel files,4932.0,0.07684509326845093
+2019,Minnesota,Democratic Republic of the Congo,151,WRAPS/RPC Excel files,12958.0,0.01165303287544374
+2019,Minnesota,El Salvador,6,WRAPS/RPC Excel files,311.0,0.01929260450160772
+2019,Minnesota,Eritrea,53,WRAPS/RPC Excel files,1757.0,0.03016505406943654
+2019,Minnesota,Ethiopia,66,WRAPS/RPC Excel files,247.0,0.26720647773279355
+2019,Minnesota,Iraq,3,WRAPS/RPC Excel files,465.0,0.0064516129032258064
+2019,Minnesota,Kenya,2,WRAPS/RPC Excel files,17.0,0.11764705882352941
+2019,Minnesota,Liberia,8,WRAPS/RPC Excel files,37.0,0.21621621621621623
+2019,Minnesota,Rwanda,5,WRAPS/RPC Excel files,91.0,0.054945054945054944
+2019,Minnesota,Somalia,68,WRAPS/RPC Excel files,231.0,0.2943722943722944
+2019,Minnesota,Sudan,2,WRAPS/RPC Excel files,382.0,0.005235602094240838
+2019,Minnesota,Syria,9,WRAPS/RPC Excel files,563.0,0.015985790408525755
+2019,Minnesota,Ukraine,84,WRAPS/RPC Excel files,4451.0,0.01887216355875084
+2019,Montana,Total,97,WRAPS/RPC Excel files,,0.0
+2019,Montana,Democratic Republic of the Congo,83,WRAPS/RPC Excel files,12958.0,0.006405309461336626
+2019,Montana,Eritrea,1,WRAPS/RPC Excel files,1757.0,0.0005691519635742744
+2019,Montana,Iraq,4,WRAPS/RPC Excel files,465.0,0.008602150537634409
+2019,Montana,Syria,9,WRAPS/RPC Excel files,563.0,0.015985790408525755
+2019,North Dakota,Total,127,WRAPS/RPC Excel files,,0.0
+2019,North Dakota,Afghanistan,11,WRAPS/RPC Excel files,1198.0,0.009181969949916527
+2019,North Dakota,Colombia,4,WRAPS/RPC Excel files,298.0,0.013422818791946308
+2019,North Dakota,Democratic Republic of the Congo,85,WRAPS/RPC Excel files,12958.0,0.006559654267633894
+2019,North Dakota,Eritrea,9,WRAPS/RPC Excel files,1757.0,0.005122367672168469
+2019,North Dakota,Guinea,1,WRAPS/RPC Excel files,10.0,0.1
+2019,North Dakota,Iran,3,WRAPS/RPC Excel files,199.0,0.01507537688442211
+2019,North Dakota,Iraq,1,WRAPS/RPC Excel files,465.0,0.002150537634408602
+2019,North Dakota,Rwanda,3,WRAPS/RPC Excel files,91.0,0.03296703296703297
+2019,North Dakota,Somalia,5,WRAPS/RPC Excel files,231.0,0.021645021645021644
+2019,North Dakota,Sudan,5,WRAPS/RPC Excel files,382.0,0.013089005235602094
+2019,South Dakota,Total,129,WRAPS/RPC Excel files,,0.0
+2019,South Dakota,Burma,21,WRAPS/RPC Excel files,4932.0,0.004257907542579075
+2019,South Dakota,Democratic Republic of the Congo,37,WRAPS/RPC Excel files,12958.0,0.0028553789164994597
+2019,South Dakota,Eritrea,45,WRAPS/RPC Excel files,1757.0,0.025611838360842343
+2019,South Dakota,Ethiopia,6,WRAPS/RPC Excel files,247.0,0.024291497975708502
+2019,South Dakota,Sudan,2,WRAPS/RPC Excel files,382.0,0.005235602094240838
+2019,South Dakota,Ukraine,18,WRAPS/RPC Excel files,4451.0,0.004044035048303752
+2020,Minnesota,Total,386,WRAPS/RPC Excel files,,0.0
+2020,Minnesota,Burma,187,WRAPS/RPC Excel files,2115.0,0.0884160756501182
+2020,Minnesota,Democratic Republic of the Congo,10,WRAPS/RPC Excel files,2868.0,0.003486750348675035
+2020,Minnesota,Djibouti,2,WRAPS/RPC Excel files,3.0,0.6666666666666666
+2020,Minnesota,El Salvador,2,WRAPS/RPC Excel files,365.0,0.005479452054794521
+2020,Minnesota,Eritrea,6,WRAPS/RPC Excel files,475.0,0.01263157894736842
+2020,Minnesota,Ethiopia,22,WRAPS/RPC Excel files,116.0,0.1896551724137931
+2020,Minnesota,Honduras,1,WRAPS/RPC Excel files,91.0,0.01098901098901099
+2020,Minnesota,Iraq,13,WRAPS/RPC Excel files,537.0,0.024208566108007448
+2020,Minnesota,Kenya,1,WRAPS/RPC Excel files,1.0,1.0
+2020,Minnesota,Liberia,6,WRAPS/RPC Excel files,32.0,0.1875
+2020,Minnesota,Moldova,15,WRAPS/RPC Excel files,364.0,0.04120879120879121
+2020,Minnesota,Somalia,48,WRAPS/RPC Excel files,149.0,0.3221476510067114
+2020,Minnesota,Syria,6,WRAPS/RPC Excel files,481.0,0.012474012474012475
+2020,Minnesota,Ukraine,67,WRAPS/RPC Excel files,1927.0,0.03476907109496627
+2020,Montana,Total,36,WRAPS/RPC Excel files,,0.0
+2020,Montana,Democratic Republic of the Congo,23,WRAPS/RPC Excel files,2868.0,0.00801952580195258
+2020,Montana,Eritrea,2,WRAPS/RPC Excel files,475.0,0.004210526315789474
+2020,Montana,Syria,11,WRAPS/RPC Excel files,481.0,0.02286902286902287
+2020,North Dakota,Total,47,WRAPS/RPC Excel files,,0.0
+2020,North Dakota,Democratic Republic of the Congo,15,WRAPS/RPC Excel files,2868.0,0.005230125523012552
+2020,North Dakota,Eritrea,9,WRAPS/RPC Excel files,475.0,0.018947368421052633
+2020,North Dakota,Ethiopia,1,WRAPS/RPC Excel files,116.0,0.008620689655172414
+2020,North Dakota,Iraq,1,WRAPS/RPC Excel files,537.0,0.00186219739292365
+2020,North Dakota,Republic Of South Sudan,3,WRAPS/RPC Excel files,38.0,0.07894736842105263
+2020,North Dakota,Somalia,9,WRAPS/RPC Excel files,149.0,0.06040268456375839
+2020,North Dakota,Syria,1,WRAPS/RPC Excel files,481.0,0.002079002079002079
+2020,North Dakota,Ukraine,8,WRAPS/RPC Excel files,1927.0,0.0041515308770108976
+2020,South Dakota,Total,50,WRAPS/RPC Excel files,,0.0
+2020,South Dakota,Burma,8,WRAPS/RPC Excel files,2115.0,0.0037825059101654845
+2020,South Dakota,Burundi,1,WRAPS/RPC Excel files,46.0,0.021739130434782608
+2020,South Dakota,Democratic Republic of the Congo,19,WRAPS/RPC Excel files,2868.0,0.006624825662482566
+2020,South Dakota,Eritrea,3,WRAPS/RPC Excel files,475.0,0.00631578947368421
+2020,South Dakota,Ethiopia,4,WRAPS/RPC Excel files,116.0,0.034482758620689655
+2020,South Dakota,Liberia,4,WRAPS/RPC Excel files,32.0,0.125
+2020,South Dakota,Sudan,1,WRAPS/RPC Excel files,254.0,0.003937007874015748
+2020,South Dakota,Ukraine,10,WRAPS/RPC Excel files,1927.0,0.005189413596263622

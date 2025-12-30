@@ -1,0 +1,323 @@
+{
+  "module": "5",
+  "analysis": "gravity_model_network_analysis",
+  "generated": "2025-12-29T06:18:20.831777+00:00",
+  "input_files": [
+    "dhs_lpr_by_state_country.parquet",
+    "acs_foreign_born_by_state_origin.parquet",
+    "results/module_3_2_origin_panel.parquet"
+  ],
+  "parameters": {
+    "data_preparation": {
+      "flow_variable": "DHS LPR admissions (FY2023)",
+      "diaspora_stock_variable": "ACS foreign-born by origin country (2023)",
+      "destination_mass": "ACS total foreign-born by state (2023)",
+      "origin_mass": "ACS national total foreign-born by origin country (2023)",
+      "observations_final": 2680,
+      "unique_states": 51,
+      "unique_origins": 71
+    },
+    "gravity_model": {
+      "estimator": "PPML (Poisson Pseudo-Maximum Likelihood)",
+      "family": "Poisson",
+      "link": "log",
+      "models_estimated": 3
+    },
+    "network_analysis": {
+      "cross_sectional_method": "PPML",
+      "panel_method": "OLS",
+      "controls": [
+        "initial_size"
+      ]
+    }
+  },
+  "results": {
+    "gravity_model": {
+      "model_1_simple_network": {
+        "specification": "Flow ~ log(Diaspora_Stock)",
+        "n_observations": 2680,
+        "coefficients": {
+          "const": {
+            "estimate": 2.425075765043262,
+            "std_error": 0.005695916421443691,
+            "z_statistic": 425.75690821471017,
+            "p_value": 0.0
+          },
+          "log_diaspora": {
+            "estimate": 0.3593043418914478,
+            "std_error": 0.0006217781220717,
+            "z_statistic": 577.8658481811536,
+            "p_value": 0.0,
+            "ci_95_lower": 0.3580856791658123,
+            "ci_95_upper": 0.36052300461708325
+          }
+        },
+        "fit_statistics": {
+          "log_likelihood": -732814.6422376223,
+          "aic": 1465633.2844752446,
+          "bic": 1429128.2402503546,
+          "pseudo_r2_mcfadden": 0.18636866529792995,
+          "correlation_actual_fitted": 0.26958159302944995,
+          "deviance": 1450267.2262632009,
+          "pearson_chi2": 8262771.544811087
+        }
+      },
+      "model_2_full_gravity": {
+        "specification": "Flow ~ log(Diaspora) + log(Origin_Mass) + log(Dest_Mass)",
+        "n_observations": 2680,
+        "coefficients": {
+          "const": {
+            "estimate": -6.38805451777912,
+            "std_error": 0.033625353209452584,
+            "z_statistic": -189.97732092174257,
+            "p_value": 0.0,
+            "ci_95_lower": -6.453958999037086,
+            "ci_95_upper": -6.322150036521155
+          },
+          "log_diaspora": {
+            "estimate": 0.09623188025572206,
+            "std_error": 0.001651689850484478,
+            "z_statistic": 58.26268183914497,
+            "p_value": 0.0,
+            "ci_95_lower": 0.09299462763514213,
+            "ci_95_upper": 0.09946913287630199
+          },
+          "log_origin_total": {
+            "estimate": 0.03942410028837273,
+            "std_error": 0.0018942382906626239,
+            "z_statistic": 20.812640354018914,
+            "p_value": 3.325175322479041e-96,
+            "ci_95_lower": 0.035711461460537275,
+            "ci_95_upper": 0.04313673911620819
+          },
+          "log_state_total": {
+            "estimate": 0.7553658503683937,
+            "std_error": 0.0018419808741730768,
+            "z_statistic": 410.0834384111079,
+            "p_value": 0.0,
+            "ci_95_lower": 0.7517556341948028,
+            "ci_95_upper": 0.7589760665419845
+          }
+        },
+        "fit_statistics": {
+          "log_likelihood": -556916.0524988244,
+          "aic": 1113840.1049976489,
+          "bic": 1077346.847916906,
+          "pseudo_r2_mcfadden": 0.38166580606518963,
+          "correlation_actual_fitted": 0.37163548508844235,
+          "deviance": 1098470.0467856051,
+          "pearson_chi2": 2630523.389042354
+        }
+      },
+      "model_3_state_fixed_effects": {
+        "specification": "Flow ~ log(Diaspora) + State_FE",
+        "n_observations": 2680,
+        "n_state_dummies": 50,
+        "network_elasticity": {
+          "estimate": 0.11508326281663521,
+          "std_error": 0.0007577257705495276,
+          "z_statistic": 151.87983211020136,
+          "p_value": 0.0,
+          "ci_95_lower": 0.11359814759620028,
+          "ci_95_upper": 0.11656837803707014
+        },
+        "fit_statistics": {
+          "log_likelihood": -539772.96211849,
+          "aic": 1079649.92423698,
+          "bic": 1043439.5586157652,
+          "pseudo_r2_mcfadden": 0.4006994807533475,
+          "correlation_actual_fitted": NaN
+        }
+      },
+      "model_comparison": {
+        "preferred_model": "Full Gravity",
+        "aic_comparison": {
+          "simple": 1465633.2844752446,
+          "full": 1113840.1049976489,
+          "state_fe": 1079649.92423698
+        },
+        "network_elasticity_comparison": {
+          "simple": 0.3593043418914478,
+          "full": 0.09623188025572206,
+          "state_fe": 0.11508326281663521
+        }
+      },
+      "interpretation": {
+        "network_elasticity_full": 0.09623188025572206,
+        "interpretation": "A 1% increase in diaspora stock is associated with a 0.0962% increase in new LPR admissions",
+        "effect_strength": "weak"
+      }
+    },
+    "network_effects": {
+      "nd_cross_sectional_ppml": {
+        "n_observations": 33,
+        "n_origin_countries": 33,
+        "coefficients": {
+          "const": {
+            "estimate": 4.455028625671791,
+            "std_error": 0.06684361605694707,
+            "p_value": 0.0
+          },
+          "log_diaspora": {
+            "estimate": -0.15227419029289166,
+            "std_error": 0.013729961327249943,
+            "z_statistic": -11.090649613897462,
+            "p_value": 1.3927267286089465e-28,
+            "ci_95_lower": -0.1791844200034293,
+            "ci_95_upper": -0.12536396058235402
+          }
+        },
+        "fit_statistics": {
+          "pseudo_r2": 0.0435076280623401,
+          "correlation_actual_fitted": 0.11607716491668517,
+          "aic": 2621.107644373756,
+          "deviance": 2456.4332457031323
+        }
+      },
+      "nd_panel_ols": {
+        "n_observations": 707,
+        "n_countries": 88,
+        "years": [
+          2010,
+          2011,
+          2012,
+          2013,
+          2014,
+          2015,
+          2016,
+          2017,
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023
+        ],
+        "coefficients": {
+          "const": {
+            "estimate": 0.48338494120539377,
+            "std_error": 0.25500531278773847,
+            "p_value": 0.0584233191516704
+          },
+          "network_elasticity": {
+            "estimate": 0.8506798478794928,
+            "std_error": 0.04556601009543283,
+            "t_statistic": 18.669175688146503,
+            "p_value": 1.656176778734832e-63,
+            "ci_95_lower": 0.7612185239322886,
+            "ci_95_upper": 0.940141171826697
+          }
+        },
+        "fit_statistics": {
+          "r_squared": 0.3308263023130543,
+          "adj_r_squared": 0.3298771197631438,
+          "f_statistic": 348.53812087488035,
+          "f_p_value": 1.6561767787344346e-63
+        },
+        "interpretation": {
+          "elasticity": 0.8506798478794928,
+          "description": "A 1% increase in lagged diaspora stock is associated with a 0.8507% increase in current stock"
+        }
+      },
+      "nd_panel_with_controls": {
+        "n_observations": 707,
+        "coefficients": {
+          "const": {
+            "estimate": 0.17482346017649086,
+            "std_error": 0.24585500009046263,
+            "t_statistic": 0.7110836066468624,
+            "p_value": 0.47726795050532145
+          },
+          "log_stock_lag1": {
+            "estimate": 0.6769690728996094,
+            "std_error": 0.04805494853574729,
+            "t_statistic": 14.087395648671295,
+            "p_value": 6.9271496173822606e-40
+          },
+          "log_initial": {
+            "estimate": 0.2615664562992315,
+            "std_error": 0.030926590073355128,
+            "t_statistic": 8.45765587731525,
+            "p_value": 1.5710042534632793e-16
+          }
+        },
+        "fit_statistics": {
+          "r_squared": 0.39254818907103006,
+          "adj_r_squared": 0.39082247369907275
+        },
+        "interpretation": {
+          "network_elasticity_with_controls": 0.6769690728996094,
+          "initial_size_effect": 0.2615664562992315
+        }
+      },
+      "summary": {
+        "cross_sectional_elasticity": -0.15227419029289166,
+        "panel_elasticity": 0.8506798478794928,
+        "controlled_elasticity": 0.6769690728996094
+      }
+    }
+  },
+  "diagnostics": {
+    "gravity_model": {
+      "n_observations": 2680,
+      "deviance": 1098470.0467856051,
+      "pearson_chi2": 2630523.389042354,
+      "correlation_actual_fitted": 0.37163548508844235
+    },
+    "nd_network": {
+      "cross_sectional_n": 33,
+      "panel_n": 707
+    }
+  },
+  "warnings": [
+    "Gravity model fit is moderate - consider additional controls"
+  ],
+  "decisions": [
+    {
+      "decision_id": "D001",
+      "timestamp": "2025-12-29T06:18:19.146705+00:00",
+      "category": "data_preparation",
+      "decision": "Harmonized country names between DHS LPR and ACS datasets",
+      "rationale": "Different data sources use different country naming conventions",
+      "alternatives_considered": [
+        "Fuzzy matching",
+        "Manual mapping only"
+      ],
+      "evidence": "Matched 71 countries across datasets",
+      "reversible": true
+    },
+    {
+      "decision_id": "D002",
+      "timestamp": "2025-12-29T06:18:19.223331+00:00",
+      "category": "methodology",
+      "decision": "Used PPML for gravity estimation instead of log-linear OLS",
+      "rationale": "PPML handles zeros naturally and is consistent under heteroskedasticity (Santos Silva & Tenreyro 2006)",
+      "alternatives_considered": [
+        "Log-linear OLS with log(flow+1)",
+        "Negative binomial regression",
+        "Zero-inflated Poisson"
+      ],
+      "evidence": "Full model pseudo-R2: 0.3817",
+      "reversible": true
+    },
+    {
+      "decision_id": "D003",
+      "timestamp": "2025-12-29T06:18:19.252298+00:00",
+      "category": "methodology",
+      "decision": "Estimated network effects using both cross-sectional PPML and panel OLS",
+      "rationale": "Cross-sectional captures contemporaneous flow-stock relationship; panel captures dynamic persistence",
+      "alternatives_considered": [
+        "GMM panel estimation",
+        "Instrumental variables"
+      ],
+      "evidence": "Cross-sectional N=33, Panel N=707",
+      "reversible": true
+    }
+  ],
+  "next_steps": [
+    "Compare gravity model predictions with Module 2 time series forecasts",
+    "Use network elasticity for projection scenarios",
+    "Investigate origin-specific network effects for major sending countries",
+    "Consider instrumental variable estimation to address endogeneity"
+  ]
+}
