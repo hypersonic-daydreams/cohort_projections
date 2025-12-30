@@ -1,0 +1,217 @@
+\begin{thebibliography}{}
+
+\bibitem[Abadie et~al., 2010]{AbadieDiamondHainmueller2010}
+Abadie, A., Diamond, A., and Hainmueller, J. (2010).
+\newblock Synthetic control methods for comparative case studies: Estimating
+  the effect of {California's} tobacco control program.
+\newblock {\em Journal of the American Statistical Association},
+  105(490):493--505.
+
+\bibitem[Abadie and Gardeazabal, 2003]{AbadieGardeazabal2003}
+Abadie, A. and Gardeazabal, J. (2003).
+\newblock The economic costs of conflict: A case study of the {Basque Country}.
+\newblock {\em American Economic Review}, 93(1):113--132.
+
+\bibitem[Albrecht, 1993]{AlbrechtGreatPlains1993}
+Albrecht, D.~E. (1993).
+\newblock The renewal of population loss in the non-metropolitan {Great
+  Plains}.
+\newblock {\em Rural Sociology}, 58(2):233--246.
+
+\bibitem[Anderson and {van Wincoop}, 2003]{AndersonVanWincoop2003}
+Anderson, J.~E. and {van Wincoop}, E. (2003).
+\newblock Gravity with gravitas: A solution to the border puzzle.
+\newblock {\em American Economic Review}, 93(1):170--192.
+
+\bibitem[Archer and Lonsdale, 2003]{ArcherLonsdale2003}
+Archer, J.~C. and Lonsdale, R.~E. (2003).
+\newblock Geography of population change and redistribution within the
+  post-frontier {Great Plains}.
+\newblock {\em Great Plains Research}, 13(1):43--61.
+
+\bibitem[Bai and Perron, 1998]{BaiPerron1998}
+Bai, J. and Perron, P. (1998).
+\newblock Estimating and testing linear models with multiple structural
+  changes.
+\newblock {\em Econometrica}, 66(1):47--78.
+
+\bibitem[Bansak et~al., 2018]{Bansak2018}
+Bansak, K., Ferwerda, J., Hainmueller, J., Dillon, A., Hangartner, D.,
+  Lawrence, D., and Weinstein, J. (2018).
+\newblock Improving refugee integration through data-driven algorithmic
+  assignment.
+\newblock {\em Science}, 359(6373):325--329.
+
+\bibitem[Bartik, 1991]{Bartik1991}
+Bartik, T.~J. (1991).
+\newblock {\em Who Benefits from State and Local Economic Development
+  Policies?}
+\newblock W.E. Upjohn Institute for Employment Research, Kalamazoo, MI.
+
+\bibitem[Beine et~al., 2011]{BeineDocquierOzden2011}
+Beine, M., Docquier, F., and {\"O}zden, {\c{C}}. (2011).
+\newblock Diasporas.
+\newblock {\em Journal of Development Economics}, 95(1):30--41.
+
+\bibitem[Borusyak et~al., 2022]{BorusyakHullJaravel2022}
+Borusyak, K., Hull, P., and Jaravel, X. (2022).
+\newblock Quasi-experimental shift-share research designs.
+\newblock {\em Review of Economic Studies}, 89(1):181--213.
+
+\bibitem[Box and Jenkins, 1970]{BoxJenkins1970}
+Box, G. E.~P. and Jenkins, G.~M. (1970).
+\newblock {\em Time Series Analysis: Forecasting and Control}.
+\newblock Holden-Day, San Francisco.
+
+\bibitem[Breiman, 2001]{Breiman2001}
+Breiman, L. (2001).
+\newblock Random forests.
+\newblock {\em Machine Learning}, 45(1):5--32.
+
+\bibitem[Brown et~al., 1975]{BrownDurbinEvans1975}
+Brown, R.~L., Durbin, J., and Evans, J.~M. (1975).
+\newblock Techniques for testing the constancy of regression relationships over
+  time.
+\newblock {\em Journal of the Royal Statistical Society: Series B
+  (Methodological)}, 37(2):149--192.
+
+\bibitem[Card, 2001]{Card2001}
+Card, D. (2001).
+\newblock Immigrant inflows, native outflows, and the local labor market
+  impacts of higher immigration.
+\newblock {\em Journal of Labor Economics}, 19(1):22--64.
+
+\bibitem[Cerqueira et~al., 2019]{Cerqueira2019}
+Cerqueira, V., Torgo, L., and Mozetic, I. (2019).
+\newblock Machine learning vs statistical methods for time series forecasting:
+  Size matters.
+\newblock {\em arXiv preprint}.
+
+\bibitem[Chow, 1960]{Chow1960}
+Chow, G.~C. (1960).
+\newblock Tests of equality between sets of coefficients in two linear
+  regressions.
+\newblock {\em Econometrica}, 28(3):591--605.
+
+\bibitem[Cox, 1972]{Cox1972}
+Cox, D.~R. (1972).
+\newblock Regression models and life-tables.
+\newblock {\em Journal of the Royal Statistical Society: Series B
+  (Methodological)}, 34(2):187--202.
+
+\bibitem[Dickey and Fuller, 1979]{DickeyFuller1979}
+Dickey, D.~A. and Fuller, W.~A. (1979).
+\newblock Distribution of the estimators for autoregressive time series with a
+  unit root.
+\newblock {\em Journal of the American Statistical Association},
+  74(366a):427--431.
+
+\bibitem[Goldsmith-Pinkham et~al., 2020]{GoldsmithPinkhamSorkinSwift2020}
+Goldsmith-Pinkham, P., Sorkin, I., and Swift, H. (2020).
+\newblock Bartik instruments: What, when, why, and how.
+\newblock {\em American Economic Review}, 110(8):2586--2624.
+
+\bibitem[Hausman, 1978]{Hausman1978}
+Hausman, J.~A. (1978).
+\newblock Specification tests in econometrics.
+\newblock {\em Econometrica}, 46(6):1251--1271.
+
+\bibitem[Hodrick and Prescott, 1997]{HodrickPrescott1997}
+Hodrick, R.~J. and Prescott, E.~C. (1997).
+\newblock Postwar {U.S.} business cycles: An empirical investigation.
+\newblock {\em Journal of Money, Credit and Banking}, 29(1):1--16.
+
+\bibitem[Hyndman and Athanasopoulos, 2021]{HyndmanAthanasopoulos2021}
+Hyndman, R.~J. and Athanasopoulos, G. (2021).
+\newblock {\em Forecasting: Principles and Practice}.
+\newblock OTexts, Melbourne, Australia, 3rd edition.
+
+\bibitem[Kaplan and Meier, 1958]{KaplanMeier1958}
+Kaplan, E.~L. and Meier, P. (1958).
+\newblock Nonparametric estimation from incomplete observations.
+\newblock {\em Journal of the American Statistical Association},
+  53(282):457--481.
+
+\bibitem[Massey et~al., 1993]{MasseyEtAl1993}
+Massey, D.~S., Arango, J., Hugo, G., Kouaouci, A., Pellegrino, A., and Taylor,
+  J.~E. (1993).
+\newblock Theories of international migration: A review and appraisal.
+\newblock {\em Population and Development Review}, 19(3):431--466.
+
+\bibitem[Mayda, 2010]{Mayda2010}
+Mayda, A.~M. (2010).
+\newblock International migration: A panel data analysis of the determinants of
+  bilateral flows.
+\newblock {\em Journal of Population Economics}, 23(4):1249--1274.
+
+\bibitem[Mossaad et~al., 2020]{MestosSingh2020}
+Mossaad, N., Ferwerda, J., Lawrence, D., Weinstein, J.~M., and Hainmueller, J.
+  (2020).
+\newblock In search of opportunity and community: Internal migration of
+  refugees in the {United States}.
+\newblock {\em Science Advances}, 6(32):eabb0295.
+
+\bibitem[Phillimore et~al., 2022]{Phillimore2022}
+Phillimore, J., Morrice, L., Kabe, K., Sandoz, L., Sherrell, K., and Sim, D.
+  (2022).
+\newblock Refugee resettlement policy and practice: A systematic literature
+  review.
+\newblock Research report, University of Birmingham, Institute for Research
+  into Superdiversity.
+
+\bibitem[Phillips and Perron, 1988]{PhillipsPerron1988}
+Phillips, P. C.~B. and Perron, P. (1988).
+\newblock Testing for a unit root in time series regression.
+\newblock {\em Biometrika}, 75(2):335--346.
+
+\bibitem[Portes and Rumbaut, 2006]{PortesRumbaut2006}
+Portes, A. and Rumbaut, R.~G. (2006).
+\newblock {\em Immigrant America: A Portrait}.
+\newblock University of California Press, Berkeley, 3rd edition.
+
+\bibitem[Raftery et~al., 2014]{RafteryProbabilistic2012}
+Raftery, A.~E., Alkema, L., and Gerland, P. (2014).
+\newblock Bayesian population projections for the {United Nations}.
+\newblock {\em Statistical Science}, 29(1):58--68.
+
+\bibitem[Ravn and Uhlig, 2002]{RavnUhlig2002}
+Ravn, M.~O. and Uhlig, H. (2002).
+\newblock On adjusting the {Hodrick-Prescott} filter for the frequency of
+  observations.
+\newblock {\em Review of Economics and Statistics}, 84(2):371--376.
+
+\bibitem[Santos~Silva and Tenreyro, 2006]{SantosSilvaTenreyro2006}
+Santos~Silva, J. M.~C. and Tenreyro, S. (2006).
+\newblock The log of gravity.
+\newblock {\em Review of Economics and Statistics}, 88(4):641--658.
+
+\bibitem[Tinbergen, 1962]{Tinbergen1962}
+Tinbergen, J. (1962).
+\newblock An analysis of world trade flows.
+\newblock In Tinbergen, J., editor, {\em Shaping the World Economy}. Twentieth
+  Century Fund, New York.
+
+\bibitem[Weber et~al., 2014]{EnergyBoomDemographics2015}
+Weber, B.~A., Geigle, K.~J., and Barkdull, C. (2014).
+\newblock Rural north dakota's oil boom and its impact on social services.
+\newblock {\em Social Work}, 59(1):62--72.
+
+\bibitem[Wilson et~al., 2022]{SmallAreaForecasting2021}
+Wilson, T., Grossman, I., Alexander, M., Rees, P., and Wakefield, J. (2022).
+\newblock Methods for small area population forecasts: State-of-the-art and
+  research needs.
+\newblock {\em Population Research and Policy Review}, 41:865--898.
+
+\bibitem[Winders, 2022]{RefugeeMidwest2022}
+Winders, J. (2022).
+\newblock Refugee resettlement in the {American} {Midwest} in challenging
+  times.
+\newblock {\em GeoJournal}, 88:2755--2769.
+
+\bibitem[Zou and Hastie, 2005]{ZouHastie2005}
+Zou, H. and Hastie, T. (2005).
+\newblock Regularization and variable selection via the elastic net.
+\newblock {\em Journal of the Royal Statistical Society: Series B (Statistical
+  Methodology)}, 67(2):301--320.
+
+\end{thebibliography}

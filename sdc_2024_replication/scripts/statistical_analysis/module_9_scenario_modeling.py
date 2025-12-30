@@ -20,20 +20,31 @@ Usage:
 """
 
 import json
+import logging
 import sys
 import traceback
 import warnings
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy import stats
 
+from module_08_duration.wave_registry import (
+    DurationModelBundle,
+    WaveRegistry,
+    load_duration_model_bundle,
+    simulate_wave_contributions,
+)
+
 # Suppress warnings for cleaner output
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+LOGGER = logging.getLogger(__name__)
 
 # Project paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent  # cohort_projections/
@@ -216,6 +227,52 @@ def load_migration_data(result: ModuleResult) -> pd.DataFrame:
     result.input_files.append("nd_migration_summary.csv")
     print(f"  Loaded migration data: {len(df)} years")
     return df
+
+
+def load_duration_bundle(result: ModuleResult) -> Optional[DurationModelBundle]:
+    """Load hazard-based duration model inputs, if available."""
+    hazard_path = RESULTS_DIR / "module_8_hazard_model.json"
+    duration_path = RESULTS_DIR / "module_8_duration_analysis.json"
+    if not hazard_path.exists() or not duration_path.exists():
+        result.warnings.append(
+            "Duration model outputs missing; wave adjustments skipped."
+        )
+        LOGGER.warning("Duration model outputs missing; wave adjustments skipped.")
+        return None
+    try:
+        return load_duration_model_bundle(RESULTS_DIR)
+    except Exception as exc:  # pragma: no cover - defensive guard
+        result.warnings.append(f"Duration model load failed: {exc}")
+        LOGGER.exception("Duration model load failed.", exc_info=exc)
+        return None
+
+
+def build_nd_wave_registry(
+    df_migration: pd.DataFrame,
+    *,
+    baseline_year_end: int = 2019,
+    threshold_pct: float = 50.0,
+    min_wave_years: int = 2,
+) -> tuple[WaveRegistry, float]:
+    """Construct a wave registry for ND aggregate series."""
+    baseline_window = df_migration[df_migration["year"] <= baseline_year_end][
+        "nd_intl_migration"
+    ]
+    if len(baseline_window) > 0:
+        baseline = float(np.median(baseline_window))
+    else:
+        baseline = float(df_migration["nd_intl_migration"].median())
+
+    registry = WaveRegistry.from_series(
+        state="North Dakota",
+        origin="All",
+        years=df_migration["year"].tolist(),
+        arrivals=df_migration["nd_intl_migration"].tolist(),
+        baseline=baseline,
+        threshold_pct=threshold_pct,
+        min_wave_years=min_wave_years,
+    )
+    return registry, baseline
 
 
 def extract_model_estimates(all_results: dict, result: ModuleResult) -> dict:
@@ -659,8 +716,25 @@ def monte_carlo_simulation(
 
     print(f"  Trend mean: {median_trend:.2f}, std: {trend_std:.2f}")
 
+    duration_bundle = load_duration_bundle(result)
+    wave_registry = None
+    active_waves: list = []
+    wave_baseline = None
+    if duration_bundle:
+        wave_registry, wave_baseline = build_nd_wave_registry(df_migration)
+        active_waves = wave_registry.active_waves()
+        if active_waves:
+            wave_registry.annotate_survival(duration_bundle.predictor, horizon=n_years)
+            LOGGER.info(
+                "Wave adjustment active: %s wave(s) detected (baseline=%.1f).",
+                len(active_waves),
+                wave_baseline,
+            )
+
     # Storage for simulation results
     simulations = np.zeros((n_draws, n_years))
+    wave_adjustments = np.zeros((n_draws, n_years))
+    wave_rng = np.random.default_rng(42)
 
     for draw in range(n_draws):
         # Draw trend parameter
@@ -691,6 +765,19 @@ def monte_carlo_simulation(
 
             # Enforce non-negativity
             simulations[draw, t] = max(0, current)
+
+        if active_waves:
+            draw_adjustment = np.zeros(n_years)
+            for wave in active_waves:
+                draw_adjustment += simulate_wave_contributions(
+                    wave,
+                    duration_bundle.predictor,
+                    duration_bundle.lifecycle_stats,
+                    horizon=n_years,
+                    rng=wave_rng,
+                )
+            wave_adjustments[draw, :] = draw_adjustment
+            simulations[draw, :] = np.maximum(0, simulations[draw, :] + draw_adjustment)
 
     # Compute percentiles
     percentiles = [5, 10, 25, 50, 75, 90, 95]
@@ -733,6 +820,27 @@ def monte_carlo_simulation(
         evidence="Trend uncertainty from quantile regression range",
     )
 
+    wave_summary = None
+    if active_waves:
+        wave_summary = {
+            "active_waves": len(active_waves),
+            "baseline": wave_baseline,
+            "mean_adjustment_2030": float(np.mean(wave_adjustments[:, 5]))
+            if n_years > 5
+            else None,
+            "mean_adjustment_2045": float(np.mean(wave_adjustments[:, -1]))
+            if n_years > 0
+            else None,
+        }
+        result.add_decision(
+            decision_id="D004A",
+            category="scenario_integration",
+            decision="Applied hazard-based wave persistence adjustments",
+            rationale="Map duration model outputs into scenario Monte Carlo paths",
+            alternatives=["No wave adjustments", "Deterministic wave overlays"],
+            evidence=f"Active waves detected: {wave_summary['active_waves']}",
+        )
+
     mc_results = {
         "n_draws": n_draws,
         "projection_years": projection_years,
@@ -741,6 +849,7 @@ def monte_carlo_simulation(
             "trend_std": trend_std,
             "baseline_2024": baseline,
         },
+        "wave_adjustment": wave_summary,
         "percentiles": percentile_values,
         "summary_by_year": mc_summary,
         "simulations_shape": list(simulations.shape),
@@ -1199,6 +1308,7 @@ def run_analysis() -> ModuleResult:
                 mc_results["summary_by_year"][-1]["p5"],
                 mc_results["summary_by_year"][-1]["p95"],
             ],
+            "wave_adjustment": mc_results.get("wave_adjustment"),
         },
         "confidence_intervals": {
             "ci_50": {
@@ -1230,6 +1340,7 @@ def run_analysis() -> ModuleResult:
         "estimates_extracted": {k: bool(v) for k, v in estimates.items()},
         "historical_years": len(df_migration),
         "projection_years": len(mc_results["projection_years"]),
+        "wave_adjustment_applied": bool(mc_results.get("wave_adjustment")),
         "mc_convergence": {
             "mean_2045": mc_results["summary_by_year"][-1]["mean"],
             "std_2045": mc_results["summary_by_year"][-1]["std"],

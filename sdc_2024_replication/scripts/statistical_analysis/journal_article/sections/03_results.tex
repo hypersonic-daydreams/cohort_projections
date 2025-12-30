@@ -335,6 +335,15 @@ Cox proportional hazards regression quantifies the multivariate relationship bet
 
 The Cox model achieves a concordance index of 0.769, indicating good discriminative ability---the model correctly ranks wave pairs by survival time 77\% of the time. The proportional hazards assumption is satisfied based on the global Schoenfeld residual test.
 
+To connect duration estimates to forecasting, we translate the Cox model into year-ahead survival probabilities for any active wave. For a wave observed at age $a$, the conditional survival ratio $S(a+k \mid x) / S(a \mid x)$ yields the probability the wave persists $k$ additional years, which we combine with the empirically estimated lifecycle shape (initiation $\rightarrow$ peak $\rightarrow$ decline) to simulate wave contributions within the Monte Carlo scenario engine. Figure~\ref{fig:wave_survival_curves} summarizes the survival curves that anchor these persistence draws.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/wave_survival_curves.pdf}
+\caption{Wave survival curves used to parameterize duration-informed forecasting. Kaplan--Meier curves by intensity quartile provide the baseline persistence profile that is translated into conditional survival probabilities for active waves.}
+\label{fig:wave_survival_curves}
+\end{figure}
+
 % ==============================================================================
 % 3.9 FORECAST SCENARIOS
 % ==============================================================================
