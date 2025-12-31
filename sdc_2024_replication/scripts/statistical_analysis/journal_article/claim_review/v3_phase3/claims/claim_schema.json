@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Claim Manifest Record",
+  "type": "object",
+  "required": [
+    "claim_id",
+    "claim_text",
+    "claim_type",
+    "source",
+    "status"
+  ],
+  "properties": {
+    "claim_id": {
+      "type": "string",
+      "pattern": "^C[0-9]{4}$"
+    },
+    "claim_text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_type": {
+      "type": "string",
+      "enum": [
+        "descriptive",
+        "comparative",
+        "causal",
+        "forecast",
+        "methodological",
+        "definition",
+        "normative"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "pdf_page": {"type": "integer"},
+        "printed_page": {"type": "integer"},
+        "section": {"type": "string"},
+        "subsection": {"type": "string"},
+        "paragraph_id": {"type": "string"},
+        "sentence_id": {"type": "string"},
+        "figure_id": {"type": "string"},
+        "table_id": {"type": "string"},
+        "equation_id": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "source_quote": {"type": "string"},
+    "source_file": {"type": "string"},
+    "priority": {
+      "type": "string",
+      "enum": ["high", "medium", "low"]
+    },
+    "support_primary": {
+      "type": "string",
+      "description": "Most appropriate or robust evidence/support type for this claim."
+    },
+    "support_alternative": {
+      "type": "string",
+      "description": "Alternative evidence/support type if primary is not feasible."
+    },
+    "evidence_type": {"type": "string"},
+    "status": {
+      "type": "string",
+      "enum": [
+        "unassigned",
+        "assigned",
+        "in_review",
+        "verified",
+        "disputed",
+        "needs_revision"
+      ]
+    },
+    "assignee": {"type": "string"},
+    "evidence_path": {"type": "string"},
+    "argument_ids": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Links to argument_map.jsonl nodes (A####) that reference this claim."
+    },
+    "related_claim_ids": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "notes": {"type": "string"},
+    "created_at": {"type": "string"},
+    "updated_at": {"type": "string"}
+  },
+  "additionalProperties": false
+}

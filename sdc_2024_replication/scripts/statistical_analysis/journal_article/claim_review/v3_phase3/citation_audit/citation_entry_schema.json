@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Citation Entry Audit Record",
+  "type": "object",
+  "required": [
+    "citation_key",
+    "entry_type",
+    "entry_type_canonical",
+    "status",
+    "apa_edition"
+  ],
+  "properties": {
+    "citation_key": {"type": "string"},
+    "entry_type": {"type": "string"},
+    "entry_type_canonical": {"type": "string"},
+    "fields_present": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "fields": {
+      "type": "object",
+      "additionalProperties": {"type": "string"}
+    },
+    "missing_required": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "missing_recommended": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ok", "missing_required", "missing_recommended"]
+    },
+    "apa_edition": {"type": "string"},
+    "notes": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  },
+  "additionalProperties": false
+}

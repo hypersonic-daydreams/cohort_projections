@@ -3,6 +3,14 @@
 """
 Download Census Bureau ACS Table B05006: Place of Birth for Foreign-Born Population
 Downloads data for all states by year using the Census API group() function.
+
+NOTE: Census Bureau variable codes can change between ACS years. For example:
+- In 2015-2019: B05006_059E = India
+- In 2023: B05006_059E = Bhutan, B05006_060E = India (they added Bhutan)
+
+To handle this, we save year-specific label files (b05006_variable_labels_{year}.json)
+in addition to the most recent year's labels as b05006_variable_labels.json for
+backwards compatibility.
 """
 
 import json
@@ -76,7 +84,7 @@ def main():
     """Download B05006 data for multiple years."""
 
     all_years_data = []
-    all_labels = {}
+    year_labels = {}  # Store labels for each year
 
     for year in YEARS:
         print(f"\nFetching data for {year}...")
@@ -92,9 +100,16 @@ def main():
             df.to_csv(year_file, index=False)
             print(f"  Saved {year_file}")
 
-            # Get variable labels (just once)
-            if not all_labels:
-                all_labels = fetch_variable_labels(year)
+            # Get variable labels for this specific year
+            # NOTE: Labels can change between years, so we fetch and save for each year
+            labels = fetch_variable_labels(year)
+            if labels:
+                year_labels[year] = labels
+                # Save year-specific label file
+                year_labels_file = OUTPUT_DIR / f"b05006_variable_labels_{year}.json"
+                with open(year_labels_file, "w") as f:
+                    json.dump(labels, f, indent=2)
+                print(f"  Saved year-specific labels: {year_labels_file}")
 
         time.sleep(1)  # Be nice to the API between years
 
@@ -106,12 +121,13 @@ def main():
         print(f"\nSaved combined file: {combined_file}")
         print(f"Total rows: {len(combined_df)}")
 
-        # Save variable labels
-        if all_labels:
+        # Save most recent year's labels as default (for backwards compatibility)
+        most_recent_year = max(year_labels.keys()) if year_labels else None
+        if most_recent_year and year_labels[most_recent_year]:
             labels_file = OUTPUT_DIR / "b05006_variable_labels.json"
             with open(labels_file, "w") as f:
-                json.dump(all_labels, f, indent=2)
-            print(f"Saved variable labels: {labels_file}")
+                json.dump(year_labels[most_recent_year], f, indent=2)
+            print(f"Saved default labels (from {most_recent_year}): {labels_file}")
 
     return all_years_data
 

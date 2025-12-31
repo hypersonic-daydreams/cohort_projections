@@ -135,18 +135,31 @@ Where:
 |-----|-------|--------|------|---------|
 | [016](016-raw-data-management-strategy.md) | Raw Data Management | Accepted | 2025-12-28 | Hybrid git/rclone strategy, data manifest, fetch script |
 
+### Scenario and Replication
+
+| ADR | Title | Status | Date | Summary |
+|-----|-------|--------|------|---------|
+| [017](017-sdc-2024-methodology-comparison.md) | SDC 2024 Methodology Comparison and Scenario | Accepted | 2025-12-28 | Compare SDC methods to baseline and document divergence drivers |
+| [018](018-immigration-policy-scenario-methodology.md) | Immigration Policy Scenario Methodology | Proposed | 2025-12-28 | Empirical adjustment method for policy-driven migration scenarios |
+
+### Review Process
+
+| ADR | Title | Status | Date | Summary |
+|-----|-------|--------|------|---------|
+| [019](019-argument-mapping-claim-review-process.md) | Claim and Argument Mapping Review Process | Accepted | 2025-12-31 | Structured claim inventory and Toulmin-based argument mapping with graphs |
+
 ---
 
 ## ADR Status Summary
 
 | Status | Count |
 |--------|-------|
-| Accepted | 16 |
-| Proposed | 0 |
+| Accepted | 18 |
+| Proposed | 1 |
 | Deprecated | 0 |
 | Superseded | 0 |
 
-**Naming Convention Compliance**: All 16 ADRs follow the `NNN-short-title.md` naming convention.
+**Naming Convention Compliance**: All 19 ADRs follow the `NNN-short-title.md` naming convention.
 
 ---
 

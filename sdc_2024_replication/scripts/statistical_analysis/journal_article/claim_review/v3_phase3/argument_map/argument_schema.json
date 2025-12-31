@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Argument Map Record",
+  "type": "object",
+  "required": [
+    "argument_id",
+    "role",
+    "text",
+    "status"
+  ],
+  "properties": {
+    "argument_id": {
+      "type": "string",
+      "pattern": "^A[0-9]{4}$"
+    },
+    "argument_group_id": {
+      "type": "string",
+      "pattern": "^G[0-9]{3}$",
+      "description": "Groups related nodes for one argument chain."
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "claim",
+        "grounds",
+        "warrant",
+        "backing",
+        "qualifier",
+        "rebuttal"
+      ]
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "claim_ids": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "supports_argument_ids": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "rebuts_argument_ids": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "source": {
+      "type": "object",
+      "properties": {
+        "pdf_page": {"type": "integer"},
+        "printed_page": {"type": "integer"},
+        "section": {"type": "string"},
+        "subsection": {"type": "string"},
+        "paragraph_id": {"type": "string"},
+        "sentence_id": {"type": "string"},
+        "figure_id": {"type": "string"},
+        "table_id": {"type": "string"},
+        "equation_id": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "source_quote": {"type": "string"},
+    "source_file": {"type": "string"},
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "reviewed",
+        "reconciled"
+      ]
+    },
+    "assignee": {"type": "string"},
+    "notes": {"type": "string"},
+    "created_at": {"type": "string"},
+    "updated_at": {"type": "string"}
+  },
+  "additionalProperties": false
+}

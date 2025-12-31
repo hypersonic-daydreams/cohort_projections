@@ -92,3 +92,8 @@ htmlcov/
 .env.local
 data/projections/**/*.json
 !data/projections/.gitkeep
+
+# SDC Replication raw Census data (synced via rclone, not git)
+# B05006 Place of Birth for Foreign-Born Population
+sdc_2024_replication/data_immigration_policy/scripts/b05006_*.csv
+sdc_2024_replication/data_immigration_policy/scripts/b05006_*.json

@@ -65,7 +65,7 @@
 | P3.02 | ✅ Complete | A | DiD language softening throughout |
 | P3.03 | ✅ Complete | C | Backtesting oracle benchmark clarification |
 | P3.04 | ✅ Complete | B | Figure 3 scaling/labeling fix |
-| P3.05 | ⚠️ Flagged | B | Location Quotient denominator audit (upstream data issue) |
+| P3.05 | ✅ Complete | B | Location Quotient denominator audit (fixed upstream data issue) |
 | P3.06 | ✅ Complete | B | Duplicate Kaplan-Meier figure resolution |
 | P3.07 | ✅ Complete | B | Residual normality statistics consistency |
 | P3.08 | ✅ Complete | E | Monte Carlo double-counting clarification |
@@ -105,15 +105,55 @@
 
 ## Next Action
 
-**Phase 3 complete.** Final PDF compiled: `output/article_draft_v3_phase3.pdf` (61 pages, no errors).
+**Phase 3 complete.** All 20 tasks resolved. Final PDF needs recompilation.
 
 ### Summary of Phase 3 Completion:
-- **Tier 1 (Critical):** 8/9 complete, 1 flagged (P3.05 - upstream data issue)
+- **Tier 1 (Critical):** 9/9 complete
 - **Tier 2 (Important):** 6/6 complete
 - **Tier 3 (Enhancements):** 5/5 complete
 
-### Flagged for Manual Review:
-- P3.05: LQ denominator audit revealed upstream data issue requiring review
+---
+
+## P3.05 Resolution Summary
+
+**Issue:** Table 4 Location Quotient values were incorrect due to two upstream data bugs.
+
+**Bug 1: Variable-depth hierarchy parsing**
+- Latin American countries have 5-level hierarchies vs. 4 for others
+- Fixed by detecting intermediate categories (Central America, South America, Caribbean)
+
+**Bug 2: Year-varying variable codes**
+- Census changed variable codes between ACS years (e.g., B05006_059E was India in 2019, Bhutan in 2023)
+- Fixed by saving and loading year-specific label files
+
+**Before/After Comparison (2023 national totals):**
+| Country | BEFORE (Wrong) | AFTER (Correct) |
+|---------|----------------|-----------------|
+| India | 44,172 | 2,775,531 |
+| Mexico | 24,102,255 | 10,816,311 |
+| Belize | 23,269,608 | 47,227 |
+| Canada | 10,816,311 | 823,584 |
+
+**Updated LQ Top 10:**
+| Country | LQ |
+|---------|-----|
+| Liberia | 40.83 |
+| Ivory Coast | 26.19 |
+| Somalia | 22.42 |
+| Tanzania | 15.13 |
+| DR Congo | 13.29 |
+| Bhutan | 9.86 |
+| Sudan | 9.23 |
+| Zimbabwe | 8.21 |
+| Kenya | 7.26 |
+| Nepal | 6.63 |
+
+**Files Updated:**
+- `download_b05006.py` - saves year-specific label files
+- `process_b05006.py` - loads year-specific labels, handles 5-level hierarchies
+- Table 4 in `03_results.tex` - corrected values
+- Discussion section in `04_discussion.tex` - corrected country references
+- Abstract in `main.tex` - updated LQ claims
 
 ---
 
@@ -155,3 +195,4 @@
 | P3.20 | 2025-12-31 | Figure audit: All 12 figures verified; PDF+PNG present; numbering sequential; no broken refs |
 | P3.18 | 2025-12-31 | Significance framing: Replaced "conventional levels" with cautious small-sample language in Results intro |
 | P3.19 | 2025-12-31 | Distance analysis: Created standalone analysis with 110-country distance dataset; found positive distance effect (refugee patterns) |
+| P3.05 | 2025-12-31 | LQ denominator fix: Fixed year-varying Census variable codes and 5-level hierarchies; corrected Table 4 (top LQ now Liberia at 40.83) |

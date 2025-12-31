@@ -1,0 +1,1 @@
+claim_id,claim_text,claim_type,source_pdf_page,source_printed_page,source_section,source_subsection,source_paragraph_id,source_sentence_id,source_figure_id,source_table_id,source_equation_id,source_quote,source_file,priority,support_primary,support_alternative,evidence_type,status,assignee,evidence_path,argument_ids,related_claim_ids,notes

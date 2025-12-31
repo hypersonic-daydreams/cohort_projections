@@ -4,6 +4,25 @@
 Process Census Bureau ACS Table B05006: Place of Birth for Foreign-Born Population
 Transform wide format to long format with clean column names.
 Calculate North Dakota's share of foreign-born by origin compared to national.
+
+RESOLVED (P3.05 - 2025-12-31):
+==============================
+Fixed variable-depth hierarchy parsing. Census B05006 has different depths:
+- Asia: Total!!Asia!!South Central Asia!!India (4 levels)
+- Latin America: Total!!Americas!!Latin America!!Central America!!Mexico (5 levels)
+
+The fix detects intermediate categories (Central America, South America, Caribbean)
+and correctly assigns the 5th-level element as the country.
+
+RESOLVED (P3.06 - 2025-12-31):
+==============================
+Fixed year-varying variable codes. Census Bureau changed B05006 variable codes between
+ACS years. For example:
+- In 2015-2019: B05006_059E = India
+- In 2023: B05006_059E = Bhutan, B05006_060E = India (they added Bhutan)
+
+The fix loads year-specific label files (b05006_variable_labels_{year}.json) when
+processing each row, with caching to avoid repeated file reads.
 """
 
 import json
@@ -21,9 +40,63 @@ SOURCE_DIR = PROJECT_ROOT / "data" / "raw" / "immigration" / "census_foreign_bor
 # Output: analysis goes to project-level processed directory
 ANALYSIS_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "analysis"
 
+# Cache for year-specific labels to avoid repeated file reads
+_labels_cache: dict[int, dict] = {}
+
+
+def load_labels_for_year(year: int) -> dict:
+    """Load variable labels for a specific year with caching.
+
+    Census Bureau variable codes can change between ACS years, so we need
+    year-specific label files. Falls back to the most recent labels if
+    year-specific file not found.
+
+    Args:
+        year: The ACS year to load labels for
+
+    Returns:
+        Dictionary mapping variable codes to their labels
+    """
+    if year in _labels_cache:
+        return _labels_cache[year]
+
+    # Try year-specific label file first
+    year_labels_file = SOURCE_DIR / f"b05006_variable_labels_{year}.json"
+    if year_labels_file.exists():
+        with open(year_labels_file) as f:
+            labels = json.load(f)
+        _labels_cache[year] = labels
+        return labels
+
+    # Fall back to default labels file (most recent year)
+    default_labels_file = SOURCE_DIR / "b05006_variable_labels.json"
+    if default_labels_file.exists():
+        with open(default_labels_file) as f:
+            labels = json.load(f)
+        _labels_cache[year] = labels
+        print(f"  Warning: Using default labels for year {year} (year-specific file not found)")
+        return labels
+
+    # No labels found
+    print(f"  Error: No labels found for year {year}")
+    return {}
+
 
 def parse_label(label: str) -> dict:
-    """Parse a B05006 variable label into components."""
+    """Parse a B05006 variable label into components.
+
+    Handles variable-depth hierarchies in Census B05006:
+    - Standard 4-level: Total!!Region!!SubRegion!!Country
+    - Latin America 5-level: Total!!Region!!Latin America!!IntermediateCategory!!Country
+
+    Intermediate categories in Latin America (Central America, South America, Caribbean)
+    are detected and the hierarchy is adjusted so the 5th level is correctly treated
+    as the country.
+
+    NOTE: Census Bureau changed label format around 2019, adding colons after hierarchy
+    elements (e.g., "Total:!!Europe:!!" instead of "Total!!Europe!!"). This function
+    strips trailing colons to handle both formats.
+    """
     # Remove "Estimate!!" or "Margin of Error!!" prefix
     if label.startswith("Estimate!!"):
         is_estimate = True
@@ -36,6 +109,10 @@ def parse_label(label: str) -> dict:
 
     # Parse hierarchy: Total!!Region!!Subregion!!Country...
     parts = label.split("!!")
+
+    # Strip trailing colons from each part (Census added colons in 2019+)
+    parts = [p.rstrip(":") for p in parts]
+
     if not parts or parts[0] != "Total":
         return None
 
@@ -47,6 +124,10 @@ def parse_label(label: str) -> dict:
         "detail": None,
         "level": "total",
     }
+
+    # Intermediate categories that appear between sub_region and country in Latin America
+    # These create a 5-level hierarchy instead of the standard 4-level
+    latin_america_intermediate = {"Central America", "South America", "Caribbean"}
 
     if len(parts) == 1:
         result["level"] = "total"
@@ -60,32 +141,55 @@ def parse_label(label: str) -> dict:
     elif len(parts) == 4:
         result["region"] = parts[1]
         result["sub_region"] = parts[2]
-        result["country"] = parts[3]
-        result["level"] = "country"
-    elif len(parts) >= 5:
+        # Check if this is an intermediate category (sub-sub-region)
+        if parts[3] in latin_america_intermediate:
+            # e.g., Total!!Americas!!Latin America!!Central America
+            # This is a sub-sub-region total, not a country
+            result["sub_region"] = f"{parts[2]} - {parts[3]}"
+            result["level"] = "sub_region"
+        else:
+            result["country"] = parts[3]
+            result["level"] = "country"
+    elif len(parts) == 5:
         result["region"] = parts[1]
-        result["sub_region"] = parts[2]
-        result["country"] = parts[3]
-        result["detail"] = "!!".join(parts[4:])
-        result["level"] = "detail"
+        # Check if parts[3] is an intermediate category
+        if parts[3] in latin_america_intermediate:
+            # e.g., Total!!Americas!!Latin America!!Central America!!Mexico
+            # Combine sub_region with intermediate category for full context
+            result["sub_region"] = f"{parts[2]} - {parts[3]}"
+            result["country"] = parts[4]
+            result["level"] = "country"
+        else:
+            # Standard 5-level with detail
+            result["sub_region"] = parts[2]
+            result["country"] = parts[3]
+            result["detail"] = parts[4]
+            result["level"] = "detail"
+    elif len(parts) >= 6:
+        result["region"] = parts[1]
+        # Check if parts[3] is an intermediate category
+        if parts[3] in latin_america_intermediate:
+            # e.g., Total!!Americas!!Latin America!!Central America!!Mexico!!SomeDetail
+            result["sub_region"] = f"{parts[2]} - {parts[3]}"
+            result["country"] = parts[4]
+            result["detail"] = "!!".join(parts[5:])
+            result["level"] = "detail"
+        else:
+            # Standard 6+ level
+            result["sub_region"] = parts[2]
+            result["country"] = parts[3]
+            result["detail"] = "!!".join(parts[4:])
+            result["level"] = "detail"
 
     return result
 
 
 def load_and_process_data():
-    """Load raw data and transform to long format."""
+    """Load raw data and transform to long format.
 
-    # Load variable labels
-    labels_file = SOURCE_DIR / "b05006_variable_labels.json"
-    with open(labels_file) as f:
-        labels = json.load(f)
-
-    # Parse labels to identify estimate vs MOE columns and hierarchy
-    var_info = {}
-    for var_id, label in labels.items():
-        parsed = parse_label(label)
-        if parsed:
-            var_info[var_id] = parsed
+    Uses year-specific variable labels to correctly map variable codes to
+    countries/regions, since Census Bureau codes can change between ACS years.
+    """
 
     # Load combined data
     data_file = SOURCE_DIR / "b05006_states_all_years.csv"
@@ -102,6 +206,23 @@ def load_and_process_data():
     # Create mapping of estimate col to MOE col
     est_to_moe = {e: e[:-1] + "M" for e in estimate_cols}
 
+    # Identify unique years to pre-load and parse labels
+    years_in_data = df["year"].dropna().unique()
+    print(f"Years in data: {sorted(int(y) for y in years_in_data)}")
+
+    # Pre-load and parse labels for all years (with caching)
+    var_info_by_year = {}
+    for year_str in years_in_data:
+        year = int(year_str)
+        labels = load_labels_for_year(year)
+        var_info = {}
+        for var_id, label in labels.items():
+            parsed = parse_label(label)
+            if parsed:
+                var_info[var_id] = parsed
+        var_info_by_year[year] = var_info
+        print(f"  Loaded {len(var_info)} variable labels for year {year}")
+
     # Melt to long format
     id_vars = ["NAME", "state", "year", "GEO_ID"]
     id_vars = [c for c in id_vars if c in df.columns]
@@ -110,14 +231,22 @@ def load_and_process_data():
     for _, row in df.iterrows():
         state_name = row.get("NAME", "Unknown")
         state_fips = row.get("state", "")
-        year = row.get("year", "")
+        year_str = row.get("year", "")
+
+        # Get year-specific variable info
+        try:
+            year = int(year_str) if year_str else None
+        except (ValueError, TypeError):
+            year = None
+
+        var_info = var_info_by_year.get(year, {}) if year else {}
 
         for est_col in estimate_cols:
             moe_col = est_to_moe.get(est_col)
             est_val = row.get(est_col)
             moe_val = row.get(moe_col) if moe_col else None
 
-            # Get variable info
+            # Get variable info for this year's labels
             info = var_info.get(est_col, {})
 
             # Skip if no info
@@ -137,7 +266,7 @@ def load_and_process_data():
 
             records.append(
                 {
-                    "year": int(year) if year else None,
+                    "year": year,
                     "state_fips": state_fips,
                     "state_name": state_name,
                     "variable": est_col,
