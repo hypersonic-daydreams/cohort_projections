@@ -1,0 +1,59 @@
+Forecasting International Migration to North Dakota
+36
+
+0.0
+0.5
+
+Coefficient (95% CI)
+
+Network (log diaspora)
+
+Origin mass
+
+Destination mass
+***
+
+(A) Gravity Model Coefficients
+
+Simple
+Full Gravity
+State FE
+
+0.00
+
+0.05
+
+0.10
+
+0.15
+
+0.20
+
+0.25
+
+0.30
+
+0.35
+
+0.40
+
+0.45
+
+Network elasticity
+
+0.448
+
+0.140
+
+0.163
+
+Note: A 1% increase in diaspora stock is associated
+with a 0.14% increase in new admissions (full model)
+
+(B) Diaspora Effect by Specification
+
+Figure 6: Gravity model estimation results. Panel (A) shows coefficient estimates with 95% con-
+fidence intervals for the full gravity specification: diaspora association (log diaspora stock), origin
+mass (log origin stock in U.S.), and destination mass (log state foreign-born total). Panel (B)
+compares diaspora association estimates across model specifications, showing that controlling for
+mass variables reduces the diaspora coefficient from 0.45 to approximately 0.14.

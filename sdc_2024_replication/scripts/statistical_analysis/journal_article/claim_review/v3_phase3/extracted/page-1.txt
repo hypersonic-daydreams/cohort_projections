@@ -1,0 +1,65 @@
+Forecasting International Migration to North Dakota:
+
+A Multi-Method Empirical Analysis
+
+[Author Name]1
+
+1[Institutional Affiliation]
+
+[Email Address]
+
+December 31, 2025
+
+Abstract
+
+International migration to small U.S. states presents distinctive forecasting challenges
+
+characterized by high volatility, limited sample sizes, and heightened sensitivity to fed-
+
+eral policy changes. While the demographic literature has extensively examined mi-
+
+gration to gateway states, small peripheral states—where migration often determines
+
+whether populations grow or decline—have received comparatively little rigorous em-
+
+pirical attention. This study addresses this gap through the first comprehensive multi-
+
+method analysis of international migration to North Dakota, deploying nine analytical
+
+modules spanning descriptive statistics, time series econometrics, panel regression, grav-
+
+ity models, machine learning, causal inference, and duration analysis using data from
+
+2002–2024.
+
+Key findings reveal that North Dakota’s migration profile is dominated by refugee
+
+resettlement rather than economic migration chains, with Location Quotients exceeding
+
+40 for Liberia and exceeding 20 for other West and East African origins. The time series
+
+exhibits I(1) integration with a coefficient of variation of 82.5%, indicating that annual
+
+flows can deviate from expectations by amounts approaching the mean itself. Structural
+
+break analysis identifies significant regime shifts in 2020 and 2021 associated with the
+
+COVID-19 pandemic (F = 16.01, p < 0.001).
+
+Difference-in-differences estimation identifies a policy-associated divergence of ap-
+
+proximately 75% in refugee arrivals from Travel Ban-affected countries (p = 0.032),
+
+an effect that aggregate time series analysis fails to detect; however, pre-treatment
+
+trend divergence suggests this estimate likely represents an upper bound on the causal
+
+effect. Gravity model estimation reveals that diaspora associations lose statistical sig-
+
+nificance when controlling for population mass (coefficient attenuates from 0.45 to 0.14,
+
+p = 0.57), suggesting diaspora-linked allocation patterns remain modest in this cross-
+
+sectional specification.
+
+1

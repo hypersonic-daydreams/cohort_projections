@@ -1,0 +1,79 @@
+Forecasting International Migration to North Dakota
+3
+
+1
+Introduction
+
+North Dakota occupies a distinctive position in the landscape of American immigration. With
+
+a population of approximately 780,000—ranking 47th among U.S. states—the state receives just
+
+0.17% of national international migration flows, a proportion noticeably smaller than its 0.23% share
+
+of the U.S. population (Wilson et al., 2022). Yet this modest arithmetic masks a demographic
+
+reality of considerable consequence. In a state where natural population growth has stagnated
+
+and domestic out-migration persists, international migration has emerged as a critical—and at
+
+times dominant—component of population change. Understanding the patterns, drivers, and future
+
+trajectories of this migration stream carries implications not only for North Dakota’s demographic
+
+planning but also for the broader challenge of sustaining communities in America’s rural heartland.
+
+The Great Plains has experienced sustained population decline throughout much of the twen-
+
+tieth and early twenty-first centuries, a demographic trajectory shaped by agricultural consolida-
+
+tion, limited economic diversification, and the magnetic pull of metropolitan opportunity elsewhere
+
+(Albrecht, 1993; Archer and Lonsdale, 2003). North Dakota’s brief reversal of this trend during
+
+the Bakken oil boom (2010–2014) demonstrated how economic shocks can temporarily reshape
+
+demographic patterns, yet the underlying structural forces favoring out-migration have proven re-
+
+silient (Weber et al., 2014). Against this backdrop, international migration—particularly refugee
+
+resettlement—has assumed an outsized role in maintaining population levels and meeting labor
+
+force demands in communities throughout the state.
+
+Refugee resettlement programs have channeled arrivals from conflict zones worldwide to North
+
+Dakota communities, creating ethnic enclaves that now span generations. The state’s foreign-born
+
+population reflects this history: Location Quotient analysis reveals that North Dakota hosts dis-
+
+proportionately large shares of migrants from East African origins (Somalia, Sudan, Ethiopia) and
+
+Middle Eastern countries (Iraq, Syria) relative to national patterns. These concentrations, prod-
+
+ucts of federal resettlement policy interacting with local voluntary agency capacity, create diaspora
+
+networks that are predictive of subsequent migration streams (Beine et al., 2011; Bansak et al.,
+
+2018). The result is a migration profile markedly different from gateway states, one characterized
+
+by humanitarian flows rather than economic migration chains connecting to traditional sending
+
+regions.
+
+Despite the demographic significance of international migration to small states and rural re-
+
+gions, the empirical literature on state-level migration forecasting remains surprisingly thin. The
+
+dominant paradigm in migration forecasting focuses on national-level flows, employing gravity mod-
+
+els and time series methods calibrated to large-sample settings (Massey et al., 1993; Mayda, 2010).
+
+When subnational analysis appears, it typically examines major receiving states—California, Texas,
+
+Florida, New York—where sample sizes support conventional inferential approaches (Portes and
+
+Rumbaut, 2006). Small states, characterized by volatile flows, limited historical observations, and
+
+heightened sensitivity to policy shocks, have largely escaped systematic empirical scrutiny.
+
+This lacuna reflects genuine methodological challenges. International migration to North Dakota

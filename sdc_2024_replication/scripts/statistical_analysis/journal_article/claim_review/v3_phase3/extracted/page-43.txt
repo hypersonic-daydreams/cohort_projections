@@ -1,0 +1,77 @@
+Forecasting International Migration to North Dakota
+43
+
+Protracted conflicts in Somalia, Sudan, Syria, and Iraq have generated sustained displacement that
+
+supports multi-year resettlement waves, while refugee situations in the Americas and Europe more
+
+often resolve or divert to alternative destinations within shorter timeframes.
+
+4.3
+Policy Implications
+
+4.3.1
+State-Level Planning and Service Provision
+
+The high volatility and policy sensitivity documented here carry direct implications for state and
+
+local planning. Social service agencies, school districts, and healthcare providers must accommodate
+
+populations that can fluctuate dramatically across years.
+The coefficient of variation of 82.5%
+
+implies that year-to-year migration can deviate from expectations by amounts approaching the
+
+mean itself. Traditional planning models premised on smooth population growth require substantial
+
+adaptation for this setting.
+
+The scenario framework offers a practical response. Rather than planning for a single projected
+
+trajectory, agencies can develop tiered capacity plans corresponding to different scenario outcomes.
+
+The “Moderate” scenario projection of 7,048 migrants by 2045 might anchor baseline planning,
+
+while the “CBO Full” scenario of 19,318 could inform contingency capacity investments. Impor-
+
+tantly, the “Pre-2020 Trend” scenario of 2,517 should inform downside planning for scenarios in
+
+which national immigration policy or refugee admissions shift restrictively.
+
+4.3.2
+Sensitivity to Federal Immigration Policy
+
+The 75% policy-associated divergence identified in the Travel Ban analysis—even if an upper bound
+
+on the true causal effect—underscores how dependent state-level migration is on federal policy
+
+decisions entirely outside state control. North Dakota receives disproportionate shares of migrants
+
+from countries frequently subject to policy intervention—the Travel Ban’s affected nations overlap
+
+substantially with the state’s top source countries. This exposure creates planning risks that states
+
+like California or Texas, with more diversified migration portfolios, face to a lesser degree.
+
+State policymakers might consider this vulnerability when advocating for immigration policy
+
+positions at the federal level. The analysis provides quantitative evidence that restrictive poli-
+
+cies targeting African and Middle Eastern origins disproportionately affect states participating in
+
+refugee resettlement, potentially with lasting demographic consequences given the random-walk
+
+baseline properties of migration flows.
+
+4.3.3
+Refugee Resettlement and Network Development
+
+The modest diaspora association (0.140) suggests that North Dakota’s refugee communities, while
+
+established, have not yet generated the self-reinforcing migration chains observed in traditional
+
+gateway communities. This finding may reflect the early stage of community development—many
+
+North Dakota refugee communities date only to the post-2000 period—or structural barriers to
+
+chain migration among refugee populations facing continued restrictions on family reunification.

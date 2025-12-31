@@ -1,0 +1,75 @@
+Forecasting International Migration to North Dakota
+13
+
+time-varying covariates. The random effects model treats αi as random draws from a population
+
+distribution rather than fixed parameters to be estimated.
+
+Model selection between fixed and random effects employs the Hausman test (Hausman, 1978),
+
+which evaluates whether random effects estimates exhibit bias due to correlation between αi and
+
+regressors.
+Under the null hypothesis of no correlation, random effects is efficient; under the
+
+alternative, fixed effects is consistent but random effects is biased.
+The test statistic follows a
+
+chi-squared distribution under the null:
+
+H = (ˆβFE − ˆβRE)′[Var(ˆβFE) − Var(ˆβRE)]−1(ˆβFE − ˆβRE) ∼ χ2
+k
+(9)
+
+Standard errors are clustered at the state level to account for within-state serial correlation.
+
+2.6
+Cross-Sectional Allocation Models
+
+Cross-sectional allocation models quantify how LPR admissions are distributed across state–origin
+
+pairs as a function of diaspora stocks and destination characteristics. Although inspired by the
+
+gravity framework (Tinbergen, 1962; Anderson and van Wincoop, 2003), our specification differs
+
+in two respects: (1) it uses a single FY2023 cross-section rather than bilateral panel data, and (2)
+
+it omits origin–destination distance because our destination units are U.S. states receiving flows
+
+from the same origin countries—variation in distance to a given origin is minimal and dominated
+
+by within-U.S. allocation patterns rather than international migration costs.2
+
+The analysis estimates specifications using the Poisson pseudo-maximum likelihood (PPML)
+
+estimator advocated by Santos Silva and Tenreyro (2006), which addresses two limitations of log-
+
+linear OLS: heteroskedasticity-induced bias and the inability to accommodate zero flows.
+
+The estimated specification takes the form:
+
+E[Mod] = exp(β0 + β1 ln Stockod + β2 ln OriginTotalo + β3 ln DestTotald + γ′Zod)
+(10)
+
+where Mod denotes LPR admissions from origin country o to destination state d (FY2023), Stockod
+is the existing diaspora (foreign-born from o residing in d), OriginTotalo is the national foreign-
+
+born population from origin o, DestTotald is the total foreign-born population in destination state
+
+d, and Zod contains additional bilateral controls. The coefficient β1 on diaspora stock captures a
+
+cross-sectional diaspora–flow association useful for prediction.
+
+Diaspora elasticity estimation acknowledges endogeneity concerns: diaspora stocks and migra-
+
+tion flows are jointly determined, and historical flows mechanically generate stocks. The analysis
+
+therefore frames coefficients as predictive associations rather than causal effects; robustness checks
+
+consider lagged stock measures and historical settlement patterns (Card, 2001).
+
+2Traditional gravity models estimate distance effects using cross-country bilateral flows where distance proxies
+transaction costs. In our state-level allocation context, the relevant “distance” would be origin–state distance, which
+is nearly constant across states for a given origin (e.g., distance from Nepal to North Dakota versus to Minnesota
+differs by less than 2%). We therefore focus on diaspora networks and destination scale as the primary allocation
+mechanisms.

@@ -1,0 +1,91 @@
+Forecasting International Migration to North Dakota
+26
+
+with margins of error; coefficient uncertainty does not fully propagate that measurement error.
+
+3.7
+Causal Inference Findings
+
+Causal inference results focus on difference-in-differences for the Travel Ban and an interrupted
+
+time series for COVID-19. A synthetic comparator is reported as a descriptive benchmark, and a
+
+shift-share index provides first-stage relevance for refugee-driven shocks.
+
+Table 10: Policy Effects and Predictive Relevance
+
+Method
+Policy
+Estimate
+SE
+95% CI
+
+DiD (log scale)
+Travel Ban
+−1.384*
+0.646
+[−2.65, −0.12]
+Percentage effect
+−74.9%
+—
+—
+ITS Level Shift
+COVID-19
+−19, 503***
+4,556
+[−28, 432, −10, 573]
+ITS Trend Change
+COVID-19
++14, 113***
+3,288
+[+7, 667, +20, 558]
+
+Shift-share (first stage)
+National shocks
+5.51***
+0.87
+[+3.80, +7.22]
+First-stage F
+39.95
+
+Notes: DiD = Difference-in-differences with nationality and year fixed effects, SEs clustered by nationality.
+ITS = Interrupted time series with state fixed effects, SEs clustered by state. Shift-share row reports first-
+stage relevance only (not a causal effect). * p < 0.05; *** p < 0.001. Travel Ban affected countries: Iran,
+Iraq, Libya, Somalia, Sudan, Syria, Yemen.
+
+3.7.1
+Travel Ban Difference-in-Differences
+
+The Travel Ban analysis employs refugee arrival data spanning 2002–2019, with 2018 designated as
+
+the first full post-treatment year. The treatment group comprises seven affected nationalities (Iran,
+
+Iraq, Libya, Somalia, Sudan, Syria, Yemen), while 119 unaffected nationalities serve as controls.
+
+The sample includes 1,137 nationality-year observations.
+
+The estimated average treatment effect on the treated (ATT) is −1.384 on the log scale (t =
+
+−2.14, p = 0.032), corresponding to a policy-associated divergence of 74.9% in refugee arrivals
+
+from affected countries. The 95% confidence interval [−2.65, −0.12] excludes zero, indicating a
+
+statistically significant and economically substantial short-run divergence.
+
+Parallel trends diagnostics are mixed, requiring caution in causal interpretation. The linear pre-
+
+trend test yields a treated-country trend coefficient of 0.087 (t = 0.97, p = 0.334), but the event
+
+study’s joint pre-treatment test rejects parallel trends over the full pre-period (F = 4.31, p < 0.001).
+
+Figure 7 shows divergence beginning approximately 10 years before treatment, indicating that the
+
+treatment and control groups were on different trajectories prior to the policy. The immediate
+
+post-treatment coefficients shift sharply negative in 2018–2019, but because the parallel trends
+
+assumption is violated, the estimated effect conflates the policy impact with pre-existing divergence.
+
+We therefore interpret the 75% estimate as an upper bound on the causal policy effect rather than
+
+a point estimate of the true effect.

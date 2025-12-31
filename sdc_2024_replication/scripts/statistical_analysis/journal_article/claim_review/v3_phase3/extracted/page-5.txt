@@ -1,0 +1,78 @@
+Forecasting International Migration to North Dakota
+5
+
+Second, the analysis offers novel applications of causal inference methods to state-level migration
+
+policy evaluation. Difference-in-differences estimation, applied to refugee arrivals before and after
+
+the 2017 Travel Ban, identifies a policy-associated divergence of approximately 75% in the first full
+
+post years (p = 0.032), an effect that aggregate time series analysis fails to detect. Because the joint
+
+pre-treatment test rejects parallel trends over the full pre-period, this estimate likely conflates the
+
+policy effect with pre-existing divergence and should be interpreted as an upper bound. Because
+
+the Travel Ban is a national shock, a synthetic comparator is used only as a descriptive benchmark
+
+for North Dakota’s international migration rate, not a causal counterfactual. A shift-share index
+
+based on leave-one-out national shocks provides first-stage relevance linking refugee-driven inflows
+
+to state migration. These applications demonstrate that policy-sensitive inference remains feasible
+
+in small-state settings when identification assumptions are stated and bounded.
+
+Third, the study develops a rigorous framework for uncertainty quantification in long-range
+
+migration forecasts. Monte Carlo simulation propagates parameter uncertainty through projection
+
+models, generating probability distributions rather than point estimates for future migration. The
+
+resulting 95% prediction interval for 2045 international migration spans 3,570 to 14,491 persons—a
+
+factor of 4.1 times—honestly reflecting the structural uncertainty that characterizes this domain.
+
+This probabilistic framing enables demographic planners to assess the full range of contingencies
+
+rather than anchoring on misleadingly precise point forecasts (Raftery et al., 2014). The scenario
+
+analysis further distinguishes between forecast uncertainty (arising from model imprecision) and
+
+scenario uncertainty (arising from unknowable future policy regimes), providing a framework for
+
+structured demographic planning under deep uncertainty.
+
+The remainder of this article proceeds as follows.
+Section 2 describes the data sources—
+
+Census Bureau Population Estimates, Department of Homeland Security admission records, Amer-
+
+ican Community Survey foreign-born tabulations, and refugee arrival databases—and presents the
+
+methodological framework in detail. Section 3 reports findings organized by analytical module,
+
+beginning with descriptive patterns and concentration analysis, proceeding through time series di-
+
+agnostics and panel regression results, and culminating in causal estimates and scenario projections.
+
+Section 4 interprets these findings in light of migration theory and prior empirical work, addresses
+
+policy implications for refugee resettlement and demographic planning, and acknowledges the lim-
+
+itations inherent in small-sample analysis. Section 5 summarizes the contributions and identifies
+
+directions for future research.
+
+2
+Data and Methods
+
+This section describes the data sources underlying the analysis and presents the methodological
+
+framework employed across nine analytical modules. The multi-method design reflects both the
+
+complexity of international migration dynamics and the inferential challenges posed by small-sample
+
+settings. Each methodological tradition contributes distinct insights: descriptive methods establish
+
+baseline patterns; time series techniques characterize dynamic properties; regression approaches

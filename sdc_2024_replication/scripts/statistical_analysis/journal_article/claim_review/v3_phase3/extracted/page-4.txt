@@ -1,0 +1,74 @@
+Forecasting International Migration to North Dakota
+4
+
+exhibits a coefficient of variation of 82.5%, reflecting annual flows that have ranged from 30 to over
+
+5,000 persons within a fifteen-year span. Time series of this brevity strain the asymptotic foun-
+
+dations of standard econometric procedures; unit root tests lose power, ARIMA model selection
+
+becomes unreliable, and long-horizon forecasts carry prediction intervals so wide as to approach
+
+uninformativeness (Cerqueira et al., 2019; Hyndman and Athanasopoulos, 2021). The challenge,
+
+then, is not merely to apply established methods but to develop an analytical framework suited to
+
+the small-sample, high-volatility setting that characterizes migration to peripheral regions. Such
+
+a framework must integrate multiple methodological traditions, triangulating findings across ap-
+
+proaches while honestly characterizing the uncertainty inherent in projection.
+
+This analysis addresses four interconnected research questions regarding international migration
+
+to North Dakota:
+
+1. Patterns and Sources: What are the dominant patterns and geographic sources of inter-
+
+national migration to North Dakota, and how has the composition of this migration stream
+
+evolved over time?
+
+2. Time Series Properties: What statistical properties characterize the international migra-
+
+tion time series—specifically, what is the order of integration, are structural breaks present,
+
+and what degree of persistence or mean reversion do the data exhibit?
+
+3. Policy Effects: What are the effects of major policy interventions—the 2017 Travel Ban and
+
+the 2020 COVID-19 pandemic response—on international migration flows to North Dakota,
+
+and what are the bounds on causal interpretation?
+
+4. Future Scenarios: Given observed patterns and structural uncertainty, what is the range
+
+of plausible future migration scenarios through 2045, and how should demographic planners
+
+characterize forecast uncertainty?
+
+These questions progress from descriptive characterization through inferential analysis to ap-
+
+plied forecasting, reflecting the logical structure of demographic inquiry. Each question demands
+
+distinct methodological approaches, and the answers collectively inform the population projection
+
+enterprise.
+
+This study makes three principal contributions to the migration forecasting literature. First,
+
+it provides the first comprehensive multi-method empirical analysis of international migration to a
+
+small U.S. state. The analysis deploys nine interconnected methodological modules spanning de-
+
+scriptive statistics, time series analysis, panel regression, gravity models, machine learning, causal
+
+inference, and duration analysis. This methodological breadth serves not eclecticism but triangu-
+
+lation: findings that emerge consistently across disparate analytical frameworks warrant greater
+
+confidence than those dependent on particular modeling assumptions. The multi-method design
+
+explicitly addresses the small-sample challenge by trading depth within any single paradigm for
+
+robustness across paradigms.

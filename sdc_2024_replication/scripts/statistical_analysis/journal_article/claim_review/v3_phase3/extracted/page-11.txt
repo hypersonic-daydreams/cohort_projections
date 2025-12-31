@@ -1,0 +1,74 @@
+Forecasting International Migration to North Dakota
+11
+
+unconcentrated distributions; values between 1,500 and 2,500 indicate moderate concentration;
+
+values above 2,500 indicate high concentration. Location Quotients (LQ) measure the degree to
+
+which North Dakota’s immigrant composition deviates from national patterns:
+
+LQi,ND = (Foreign-born from i in ND)/(Total foreign-born in ND)
+
+(Foreign-born from i in US)/(Total foreign-born in US)
+(3)
+
+Location quotients exceeding unity indicate overrepresentation of origin group i in North Dakota
+
+relative to the nation.
+
+2.4
+Time Series Methods
+
+Time series analysis characterizes the stochastic properties of international migration flows and
+
+provides a foundation for forecasting. The analysis proceeds through four stages: unit root testing,
+
+ARIMA model specification, structural break detection, and vector autoregression for multivariate
+
+dynamics.
+
+2.4.1
+Unit Root Tests
+
+Stationarity assessment employs ADF and PP tests alongside KPSS (null: stationarity) to triangu-
+
+late integration properties in a very short series. The Augmented Dickey-Fuller (ADF) test (Dickey
+
+and Fuller, 1979) estimates the regression:
+
+∆yt = α + βt + γyt−1 +
+
+p
+�
+
+j=1
+δj∆yt−j + εt
+(4)
+
+and tests H0 : γ = 0 (unit root) against H1 : γ < 0 (stationarity). Lag length p is selected by
+
+the Akaike Information Criterion (AIC). The Phillips-Perron (PP) test (Phillips and Perron, 1988)
+
+provides a nonparametric alternative that corrects for serial correlation without augmenting the
+
+regression. KPSS tests are run with a constant-only specification (level-stationarity). Break-robust
+
+Zivot-Andrews tests (single endogenous break) are reported as sensitivity checks. Where tests yield
+
+conflicting conclusions, the analysis reports both and interprets results cautiously.
+
+2.4.2
+ARIMA Model Selection
+
+For series exhibiting unit roots, the analysis fits autoregressive integrated moving average (ARIMA)
+
+models of order (p, d, q), where d denotes the differencing order required for stationarity (Box and
+
+Jenkins, 1970). Model selection employs the AIC criterion:
+
+AIC = −2 ln(ˆL) + 2k
+(5)
+
+where ˆL denotes the maximized likelihood and k the number of parameters. Diagnostic checking
+
+employs the Ljung-Box portmanteau test for residual autocorrelation and the Shapiro-Wilk test for

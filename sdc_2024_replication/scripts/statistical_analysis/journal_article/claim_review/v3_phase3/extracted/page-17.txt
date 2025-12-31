@@ -1,0 +1,72 @@
+Forecasting International Migration to North Dakota
+17
+
+where h0(t) is the baseline hazard and exp(βj) gives the hazard ratio associated with a one-unit
+
+increase in covariate xj. Hazard ratios below unity indicate factors prolonging waves; ratios above
+
+unity indicate factors accelerating termination. The proportional hazards assumption—that hazard
+
+ratios remain constant over time—is evaluated through Schoenfeld residual tests. Model discrim-
+
+ination is assessed by the concordance index (C-statistic), which measures the probability that
+
+predicted hazards correctly rank pairs of observations by survival time.
+
+2.10
+Module-to-Scenario Integration
+
+Table 3 summarizes how outputs from each analytical module feed into the scenario engine. This
+
+mapping clarifies the role of each module in the forecasting pipeline: some modules provide di-
+
+rect forecasting inputs (parameter estimates, uncertainty bounds), while others provide contextual
+
+evidence that informs scenario interpretation but does not alter the forecast mechanics.
+
+As Table 3 indicates, the VAR model (Module 2.2) and machine learning methods (Module 6)
+
+serve primarily as auxiliary analyses. The VAR model contributes to AIC-based model averaging
+
+weights but is not used for standalone long-horizon forecasting due to the infeasibility of obtaining
+
+future national migration values. Similarly, ML methods (Elastic Net, Random Forest, K-means
+
+clustering) provide feature importance rankings and state clustering for comparative context, but
+
+do not directly parameterize the scenario trajectories. These modules support triangulation and
+
+validation rather than primary forecast generation.
+
+2.11
+Scenario Construction
+
+Scenario analysis translates analytical findings into forward-looking projections while explicitly
+
+characterizing uncertainty. The analysis develops four policy-indexed scenarios spanning the range
+
+of plausible future trajectories:
+
+1. CBO Full: Uses ARIMA point forecasts scaled by 1.1 for 2025–2029, then compounds at 8%
+
+annually from 2030 onward. This scenario represents an upper bound predicated on policy
+
+liberalization.
+
+2. Moderate: Uses ARIMA point forecasts for 2025–2029, then applies a dampened trend
+
+(50% of the averaged robust trend estimate) through 2045.
+This scenario represents the
+
+central tendency forecast.
+
+3. Pre-2020 Trend: Anchors at the 2019 level and extrapolates the 2010–2019 slope, treating
+
+COVID as a temporary deviation.
+This scenario provides a lower-bound estimate under
+
+restrictive policy assumptions.
+
+4. Zero: Assumes complete cessation of international migration, providing a floor for population
+
+projection under extreme policy scenarios.

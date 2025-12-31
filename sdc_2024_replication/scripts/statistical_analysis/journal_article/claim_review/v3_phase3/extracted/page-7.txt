@@ -1,0 +1,92 @@
+Forecasting International Migration to North Dakota
+7
+
+Table 1: Module classification and role in the forecasting pipeline
+
+Modules
+Primary focus
+Role
+
+1.1–1.2
+Descriptive statistics and concentration
+Forecasting context
+2.1–2.2
+Time-series diagnostics and baselines
+Forecasting context
+3.1–4
+Panel and robust regression
+Forecasting inputs
+5
+Gravity and diaspora associations
+Forecasting inputs
+6
+Machine learning predictors
+Forecasting inputs
+7
+Policy evaluation (DiD, ITS)
+Causal evidence
+8
+Wave duration modeling
+Forecasting input
+9
+Scenario modeling and Monte Carlo
+Forecasting output
+
+Notes: Forecasting-role modules feed scenario construction; causal evidence informs policy sensitivity but
+does not redefine the estimand.
+
+2.2.1
+Estimand & Measurement
+
+Forecast target (estimand). Let Yt denote North Dakota’s annual net international migration
+
+in year t, measured as the PEP“international migration” component of change for North Dakota
+
+(persons; net).1 We treat Yt as the primary dependent variable for forecasting and scenario pro-
+
+jections in this paper. Unless otherwise noted, the generic notation yt used in subsequent module
+
+equations denotes the observed PEPnet international migration series. Our forecasting goal is to
+
+characterize the predictive distribution of Yt+h for horizons h ∈ {1, . . . , H} (2025–2045), conditional
+
+on information available through year t.
+
+Auxiliary data sources. DHS lawful permanent resident (LPR) admissions, Refugee Pro-
+
+cessing Center (RPC) refugee arrivals, and ACSforeign-born stock estimates are not alternative
+
+outcomes; they are used to (i) characterize and partially decompose international migration, (ii)
+
+construct predictors (e.g., diaspora measures and origin-composition features), and (iii) triangulate
+
+mechanisms and scenario sensitivity.
+
+Time base and harmonization. PEPestimates are reported on an estimate-year basis, while
+
+DHS and RPC series are reported in fiscal years and ACSestimates in survey years. We preserve
+
+native time bases and label them explicitly; when fiscal-year series are used as predictors for PEP-
+
+year outcomes, we align them using an overlap-weighted crosswalk XPEP
+t
+≈ 0.75 XFY
+t
++ 0.25 XFY
+t−1,
+
+and we report sensitivity to one-year shifts where timing is ambiguous.
+
+These sources are related but not interchangeable: PEPinternational migration is a net com-
+
+ponent of population accounting, DHS and RPC series are gross inflows on a fiscal-year basis, and
+
+ACSseries are stocks subject to sampling error. Throughout the paper we label flow/stock status
+
+and time base (FY vs. PEP-year vs. survey year) in text, tables, and figure captions to prevent
+
+target drift.
+
+1PEP“year t” corresponds to the annual component-of-change interval used in producing July 1 population es-
+timates (a demographic year rather than a strict January–December calendar year). We refer to it as “year t” for
+readability and explicitly label fiscal-year sources as FY.

@@ -1,0 +1,78 @@
+Forecasting International Migration to North Dakota
+9
+
+2.2.2
+Census Bureau Population Estimates Program
+
+The U.S. Census Bureau’s Population Estimates Program (PEP) provides annual estimates of pop-
+
+ulation and components of change for states and counties. This analysis employs the vintage 2024
+
+estimates covering 2010–2024, which decompose annual population change into births, deaths, do-
+
+mestic migration, and international migration. The international migration component—designated
+
+INTERNATIONALMIG in Census Bureau nomenclature—comprises the net flow of foreign-born indi-
+
+viduals crossing U.S. borders plus the net movement of native-born citizens and military person-
+
+nel abroad. For subnational units, the Census Bureau allocates national international migration
+
+estimates to states using American Community Survey data on recent movers and foreign-born
+
+population distributions.
+
+The PEP data provide the primary dependent variable for time series analysis: annual net
+
+international migration to North Dakota. Key advantages include consistent methodology across
+
+years and comprehensive geographic coverage. Limitations include the composite nature of the
+
+international migration variable, which aggregates heterogeneous streams (lawful permanent res-
+
+idents, refugees, temporary workers, and unauthorized migrants) into a single measure, and the
+
+allocation methodology, which may introduce smoothing artifacts at the state level.
+
+2.2.3
+Department of Homeland Security Lawful Permanent Resident Data
+
+The Department of Homeland Security (DHS) publishes annual statistics on lawful permanent res-
+
+ident (LPR) admissions by state of intended residence and country of birth. This analysis employs
+
+fiscal year 2023 data, the most recent available at the time of analysis. The LPR data provide gran-
+
+ular information on the country-of-origin composition of legal immigration flows, enabling gravity
+
+model estimation and concentration analysis.
+
+The principal advantage of DHS data lies in their administrative provenance: unlike survey-
+
+based measures, LPR counts derive from visa issuance records and represent actual admissions
+
+rather than estimates. Limitations include restriction to a single cross-section (precluding panel
+
+analysis within this data source), exclusion of non-LPR categories (refugees, asylees, temporary
+
+workers), and the distinction between state of intended residence at admission and actual destina-
+
+tion after secondary migration.
+
+2.2.4
+American Community Survey Foreign-Born Population
+
+The American Community Survey (ACS) provides annual estimates of foreign-born population
+
+by place of birth for states and metropolitan areas.
+This analysis employs five-year estimates
+
+from 2009–2023, using the detailed country-of-birth tabulations (Table B05006). The foreign-born
+
+stock data enable analysis of diaspora effects on new migration, origin-specific growth trajectories,
+
+and Location Quotient calculations comparing North Dakota’s immigrant composition to national
+
+patterns.
+
+ACS data carry sampling uncertainty quantified through published margins of error. For small

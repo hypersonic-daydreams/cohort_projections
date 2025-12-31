@@ -1,0 +1,97 @@
+Forecasting International Migration to North Dakota
+10
+
+populations—such as foreign-born from specific countries residing in North Dakota—coefficients of
+
+variation can exceed 30%, requiring cautious interpretation. The analysis addresses this limitation
+
+by focusing on origin groups with sufficient sample sizes and by aggregating to regional categories
+
+where country-level estimates prove unreliable.
+
+2.2.5
+Refugee Processing Center Arrival Data
+
+The Refugee Processing Center (RPC), operated by the Department of State, maintains compre-
+
+hensive records of refugee arrivals by state of initial resettlement and nationality. This analysis
+
+employs arrival data spanning fiscal years 2002–2020, providing the longest time series among the
+
+data sources and enabling duration analysis of migration “waves” from specific origin countries.
+
+The refugee data prove particularly valuable for North Dakota given the state’s significant refugee
+
+population, which drives much of the geographic concentration observed in other data sources.
+
+Refugee arrival data offer precise counts (not estimates) of a well-defined population admitted
+
+through federal resettlement programs. Limitations include truncation at fiscal year 2020 (pre-
+
+cluding analysis of pandemic recovery) and restriction to initial placement, which may differ from
+
+eventual settlement after secondary migration.
+
+2.3
+Descriptive and Concentration Methods
+
+Descriptive analysis establishes baseline patterns in international migration flows and characterizes
+
+their distributional properties.
+Summary statistics—means, standard deviations, coefficients of
+
+variation, skewness, and kurtosis—quantify central tendency and dispersion.
+The coefficient of
+
+variation (CV), defined as the ratio of standard deviation to mean, provides a scale-invariant
+
+measure of volatility suitable for comparing series of different magnitudes.
+
+To decompose observed migration flows into trend and cyclical components, the analysis employs
+
+the Hodrick-Prescott (HP) filter (Hodrick and Prescott, 1997). The HP filter solves the optimization
+
+problem:
+
+min
+{gt}
+
+� T
+�
+
+t=1
+(yt − gt)2 + λ
+
+T−1
+�
+
+t=2
+[(gt+1 − gt) − (gt − gt−1)]2
+�
+
+(1)
+
+where yt denotes the observed series, gt the trend component, and λ the smoothing parameter
+
+controlling the penalty on trend acceleration. Following Ravn and Uhlig (2002), the analysis sets
+
+λ = 6.25 for annual data, a value calibrated to achieve comparable smoothing across observation
+
+frequencies.
+
+Geographic concentration analysis employs two complementary measures.
+The Herfindahl-
+
+Hirschman Index (HHI) quantifies concentration across origin countries:
+
+HHI =
+
+N
+�
+
+i=1
+s2
+i × 10,000
+(2)
+
+where si denotes the share of migration from origin country i. HHI values below 1,500 indicate

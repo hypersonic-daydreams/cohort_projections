@@ -1,0 +1,46 @@
+Forecasting International Migration to North Dakota
+37
+
+15.0
+12.5
+10.0
+7.5
+5.0
+2.5
+0.0
+
+Years relative to Travel Ban implementation (t = 0 is 2018)
+
+4
+
+3
+
+2
+
+1
+
+0
+
+1
+
+Coefficient (log refugee arrivals)
+
+Pre-trend test: F = 4.31
+
+p = <0.001
+
+ATT = -1.38 (p = 0.032*)
+Effect: -74.9% reduction
+
+Event Study: Travel Ban Effect on Refugee Arrivals
+
+Pre-treatment
+Post-treatment
+Reference period
+
+Figure 7: Event study estimates for the Travel Ban effect on refugee arrivals. Coefficients represent
+the difference in log arrivals between treated countries (Iran, Iraq, Libya, Somalia, Sudan, Syria,
+Yemen) and control countries relative to the reference period (t = −1, 2017). Blue circles show
+pre-treatment estimates; red squares show post-treatment effects. The joint pre-trend test rejects
+parallel trends over the full pre-period (F = 4.31, p < 0.001). The average treatment effect on the
+treated (ATT) is −1.38 (p = 0.032), corresponding to a 74.9% reduction in arrivals.

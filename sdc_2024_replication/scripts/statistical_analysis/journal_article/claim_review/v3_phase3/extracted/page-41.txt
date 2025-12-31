@@ -1,0 +1,78 @@
+Forecasting International Migration to North Dakota
+41
+
+2021; Cerqueira et al., 2019).
+
+The structural break analysis reinforces this interpretation. The COVID-19 pandemic produced
+
+a statistically significant break (F = 16.01, p < 0.001), but the 2017 Travel Ban—despite its
+
+documented effects on refugee flows—left no detectable trace in aggregate state-level data. This
+
+divergence between aggregate and composition-specific effects illustrates how structural instability
+
+can manifest asymmetrically across analytical scales. The absence of a detectable aggregate break
+
+during 2017 does not imply policy irrelevance; rather, it suggests that the Travel Ban’s effects
+
+operated through compositional shifts that partially offset in aggregate.
+
+4.1.3
+Policy-Associated Divergence
+
+The causal inference findings provide the study’s most policy-relevant contributions, though with
+
+important caveats regarding causal interpretation. The difference-in-differences estimate identifies
+
+a policy-associated divergence of approximately 75% in refugee arrivals from Travel Ban-affected
+
+countries following policy implementation (p = 0.032). This magnitude exceeds what aggregate
+
+analysis could detect because the Travel Ban’s effects concentrated on specific nationalities while
+
+flows from other origins continued or even accelerated.
+
+However, the parallel trends assumption—essential for causal identification in difference-in-
+
+differences—is not satisfied over the full pre-treatment period. While the linear pre-trend test does
+
+not reject parallel trends (p = 0.334), the event study joint pre-treatment test rejects when the
+
+full pre-period is included (p < 0.001), with Figure 7 showing divergence beginning approximately
+
+10 years before the policy. This pre-existing divergence means the 75% estimate likely conflates
+
+the policy effect with underlying differences between treatment and control groups. We therefore
+
+interpret the estimate as an upper bound on the causal policy effect rather than a point estimate of
+
+the true effect. For future policy evaluation, this analysis demonstrates that nationality-level panel
+
+methods can identify compositional effects that aggregate time series approaches miss, but also
+
+highlights the importance of transparent reporting when identification assumptions are violated.
+
+The COVID-19 analysis reveals an immediate level shift of approximately 19,500 migrants
+
+(nationwide), followed by accelerated post-pandemic recovery. The recovery coefficient of +14,113
+
+migrants per year captures the steep rebound slope during 2021–2024, though this coefficient is
+
+a mathematical artifact of fitting a linear trend to a short recovery window and should not be
+
+extrapolated as a long-run growth rate. Nevertheless, the rapid recovery suggests that immigration
+
+systems can “bounce back” from acute shocks more rapidly than the random-walk baseline might
+
+imply. This finding offers some optimism for demographic planners concerned about the lasting
+
+effects of pandemic disruption, while cautioning against projecting the recovery slope indefinitely.
+
+4.1.4
+Forecast Uncertainty and Scenario Range
+
+The scenario projections yield a 2045 range spanning 2,517 to 19,318 migrants—nearly an order of
+
+magnitude—depending on policy assumptions. The Monte Carlo 95% prediction interval of 3,570
+
+to 14,491 honestly characterizes the parametric uncertainty even within a given scenario. This wide

@@ -1,0 +1,53 @@
+Forecasting International Migration to North Dakota
+33
+
+0
+5
+10
+15
+20
+25
+30
+35
+40
+
+Location Quotient (LQ)
+
+Liberia
+
+Ivory Coast
+
+Somalia
+
+Tanzania
+
+Other Central America
+
+Democratic Republic of Congo (Zaire)
+
+Bhutan
+
+Sudan
+
+Zimbabwe
+
+Kenya
+
+Nepal
+
+Bosnia and Herzegovina
+
+Darker bars indicate
+
+larger populations
+
+Top Origin Countries by Concentration in North Dakota (2023)
+
+LQ = 1 (national average)
+
+Figure 3: Geographic concentration of foreign-born population in North Dakota by country of origin
+(2023). Bars show location quotients (LQ), where LQ > 1 indicates overrepresentation relative to
+the national average. The dashed vertical line marks LQ = 1. Countries are sorted by LQ value; bar
+intensity reflects population size (darker indicates larger foreign-born population in North Dakota).
+Liberia, Ivory Coast, Somalia, and other African origin countries show the highest concentration
+relative to their national presence, reflecting refugee resettlement patterns.

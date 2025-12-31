@@ -1,0 +1,67 @@
+Forecasting International Migration to North Dakota
+48
+
+References
+
+Abadie, A., Diamond, A., and Hainmueller, J. (2010). Synthetic control methods for compara-
+
+tive case studies: Estimating the effect of California’s tobacco control program. Journal of the
+
+American Statistical Association, 105(490):493–505.
+
+Abadie, A. and Gardeazabal, J. (2003). The economic costs of conflict: A case study of the Basque
+
+Country. American Economic Review, 93(1):113–132.
+
+Albrecht, D. E. (1993). The renewal of population loss in the non-metropolitan Great Plains. Rural
+
+Sociology, 58(2):233–246.
+
+Anderson, J. E. and van Wincoop, E. (2003). Gravity with gravitas: A solution to the border
+
+puzzle. American Economic Review, 93(1):170–192.
+
+Archer, J. C. and Lonsdale, R. E. (2003).
+Geography of population change and redistribution
+
+within the post-frontier Great Plains. Great Plains Research, 13(1):43–61.
+
+Bai, J. and Perron, P. (1998). Estimating and testing linear models with multiple structural changes.
+
+Econometrica, 66(1):47–78.
+
+Bansak, K., Ferwerda, J., Hainmueller, J., Dillon, A., Hangartner, D., Lawrence, D., and Weinstein,
+
+J. (2018). Improving refugee integration through data-driven algorithmic assignment. Science,
+
+359(6373):325–329.
+
+Bartik, T. J. (1991). Who Benefits from State and Local Economic Development Policies? W.E.
+
+Upjohn Institute for Employment Research, Kalamazoo, MI.
+
+Beine, M., Docquier, F., and ¨Ozden, C¸. (2011). Diasporas. Journal of Development Economics,
+
+95(1):30–41.
+
+Box, G. E. P. and Jenkins, G. M. (1970). Time Series Analysis: Forecasting and Control. Holden-
+
+Day, San Francisco.
+
+Breiman, L. (2001). Random forests. Machine Learning, 45(1):5–32.
+
+Brown, R. L., Durbin, J., and Evans, J. M. (1975). Techniques for testing the constancy of regression
+
+relationships over time.
+Journal of the Royal Statistical Society: Series B (Methodological),
+
+37(2):149–192.
+
+Cameron, A. C., Gelbach, J. B., and Miller, D. L. (2008).
+Bootstrap-based improvements for
+
+inference with clustered errors. Review of Economics and Statistics, 90(3):414–427.
+
+Card, D. (2001). Immigrant inflows, native outflows, and the local labor market impacts of higher
+
+immigration. Journal of Labor Economics, 19(1):22–64.

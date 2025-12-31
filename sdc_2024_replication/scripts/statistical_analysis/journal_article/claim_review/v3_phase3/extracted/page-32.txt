@@ -1,0 +1,69 @@
+Forecasting International Migration to North Dakota
+32
+
+0
+
+1000
+
+2000
+
+3000
+
+4000
+
+5000
+
+International migration (persons)
+
+COVID-19
+Pandemic
+
+(A) Annual International Migration to North Dakota
+
+Annual migration
+Quadratic trend
+
+2010
+2012
+2014
+2016
+2018
+2020
+2022
+2024
+
+Year
+
+0.100
+
+0.125
+
+0.150
+
+0.175
+
+0.200
+
+0.225
+
+0.250
+
+0.275
+
+0.300
+
+ND share of US int'l migration (%)
+
+2020
+2021
+
+(B) North Dakota Share of U.S. International Migration
+
+Observed share
+HP trend ( = 6.25)
+
+Figure 2: International migration to North Dakota, 2010–2024. Panel (A) shows annual migration
+flows with a quadratic trend line. Panel (B) displays North Dakota’s share of total U.S. international
+migration, with the solid line showing observed values and the dashed line indicating the HP
+filter trend component (λ = 6.25). Vertical dotted lines mark identified structural breaks at 2020
+(COVID-19 pandemic) and 2021 (recovery period), both significant at p < 0.01 using Chow tests.

@@ -1,0 +1,76 @@
+Forecasting International Migration to North Dakota
+45
+
+Finally, findings from a single small state may not generalize to other contexts. North Dakota’s
+
+unique position—combining refugee resettlement activity, oil economy dynamics, and Great Plains
+
+demographic challenges—produces a migration profile that may not replicate in states with different
+
+economic structures or resettlement histories. The methodological framework, rather than specific
+
+parameter estimates, represents the more transferable contribution.
+
+5
+Conclusion
+
+5.1
+Summary of Contributions
+
+This study offers three principal contributions to the migration forecasting literature.
+First, it
+
+provides the first comprehensive multi-method empirical analysis of international migration to a
+
+small U.S. state. The nine-module analytical framework—spanning descriptive statistics, time se-
+
+ries analysis, panel regression, gravity models, machine learning, causal inference, and duration
+
+analysis—demonstrates that rigorous demographic analysis remains feasible even when small pop-
+
+ulations and short time series strain conventional asymptotic methods. The multi-method design
+
+explicitly trades depth within any single paradigm for robustness across paradigms, generating
+
+convergent findings that warrant greater confidence than single-method analyses could support.
+
+Second, the analysis demonstrates novel applications of causal inference methods to state-level
+
+migration policy evaluation. The difference-in-differences estimate identifies a policy-associated di-
+
+vergence of approximately 75% in refugee arrivals from Travel Ban-affected countries (p = 0.032),
+
+though pre-treatment trend violations suggest this represents an upper bound on the causal effect.
+
+A synthetic comparator provides descriptive benchmarking for North Dakota without causal inter-
+
+pretation, and a shift-share index establishes first-stage relevance linking refugee-driven shocks to
+
+state migration. Together, these elements extend the migration policy evaluation toolkit beyond
+
+the national-level and gateway-state analyses that dominate existing literature while keeping causal
+
+claims appropriately bounded.
+
+Third, the study develops a rigorous framework for uncertainty quantification in long-range
+
+migration forecasts. The scenario analysis distinguishes forecast uncertainty (parametric impreci-
+
+sion within a policy regime) from scenario uncertainty (unknowable future policy choices), while
+
+Monte Carlo simulation propagates parameter uncertainty through projection models to generate
+
+probability distributions rather than misleadingly precise point estimates. The resulting 95% pre-
+
+diction interval spanning a factor of 4.1 for 2045 migration honestly characterizes the structural
+
+uncertainty inherent in this forecasting domain.
+
+5.2
+Key Takeaways
+
+Three empirical conclusions emerge with particular force from the analysis. First, North Dakota’s
+
+international migration is refugee-dominated and policy-sensitive. The Location Quotient analy-
+
+sis reveals extreme overrepresentation of African and Middle Eastern origins—products of federal

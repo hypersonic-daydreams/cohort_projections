@@ -1,0 +1,78 @@
+Forecasting International Migration to North Dakota
+31
+
+Monte Carlo simulation propagates parameter uncertainty through the projection model. Based
+
+on 1,000 draws from estimated trend and volatility distributions (CV2045 = 0.38), the median 2045
+
+projection is 9,056 persons, with a 50% prediction interval of [6,450, 11,292] and a 95% prediction
+
+interval of [3,570, 14,491]. The latter interval spans a factor of 4.1, reflecting substantial irreducible
+
+uncertainty over a 20-year horizon given the observed volatility and structural instability. The
+
+simulation CV refers to dispersion in projected 2045 outcomes and is not directly comparable to
+
+the historical CV of annual observations.
+
+Model averaging weights alternative time series specifications by AIC. The VAR model receives
+
+effectively all AIC weight (1.000) relative to the univariate ARIMA (weight ≈ 0), reflecting the
+
+superior fit of the multivariate specification. For cross-sectional models, Random Forest receives
+
+the highest R2-based weight (0.462), followed by Elastic Net (0.293) and OLS (0.245).
+
+Role of Machine Learning Methods.
+The ML methods described in Section 2.7 serve an aux-
+
+iliary role in this analysis rather than contributing directly to the scenario trajectories. Elastic Net
+
+regularization (R2
+CV = 0.60) identifies three non-zero predictors of state-level international migra-
+
+tion share: log population (coefficient = 0.015), natural change (0.011), and birth rate (−0.003).
+
+Random Forest (R2
+CV = 0.94) confirms that log population dominates feature importance (93%
+
+of relative importance), with death rate and domestic migration rate contributing marginally. K-
+
+means clustering (K = 2; silhouette = 0.64) places North Dakota in the larger cluster containing
+
+52 states, with only one state forming a distinct cluster.
+
+These ML results provide three contributions to the broader analysis: (1) they validate that
+
+population scale is the primary determinant of state-level migration allocation, consistent with the
+
+cross-sectional models in Section 3.6; (2) they identify peer states for North Dakota (the 51 states in
+
+its cluster) useful for comparative benchmarking; and (3) they confirm that no parsimonious feature
+
+set substantially improves upon simple population-based allocation models. Because ML methods
+
+are trained on cross-sectional variation and do not generate time-series forecasts, they do not
+
+directly parameterize the scenario engine. Full ML diagnostics are available in the supplementary
+
+materials.
+
+The fan chart visualization (Figure 9) depicts the scenario trajectories with Monte Carlo un-
+
+certainty bands, illustrating both the range of policy-contingent outcomes and the widening uncer-
+
+tainty envelope over the projection horizon.
+
+4
+Discussion
+
+This study set out to characterize international migration to North Dakota—a small state operat-
+
+ing at the demographic margins of American immigration—and to develop a rigorous framework
+
+for forecasting these flows under uncertainty. The multi-method analysis yielded convergent find-
+
+ings across nine analytical modules, while also revealing the inherent limits of prediction in this
+
+domain. This section interprets the key findings in relation to the research questions posed in the

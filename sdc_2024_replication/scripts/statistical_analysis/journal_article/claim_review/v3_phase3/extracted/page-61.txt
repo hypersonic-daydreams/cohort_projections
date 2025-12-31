@@ -1,0 +1,229 @@
+Forecasting International Migration to North Dakota
+61
+
+2012
+2014
+2016
+2018
+2020
+2022
+2024
+
+Year
+
+1000
+
+750
+
+500
+
+250
+
+0
+
+250
+
+500
+
+750
+
+Residual
+
+(A) Residual Time Series
+
+±2 SD
+
+1000
+500
+0
+500
+1000
+
+Residual
+
+0.0000
+
+0.0002
+
+0.0004
+
+0.0006
+
+0.0008
+
+0.0010
+
+0.0012
+
+0.0014
+
+0.0016
+
+Density
+
+Shapiro-Wilk
+
+W = 0.968
+p = 0.820
+
+(B) Residual Distribution
+
+Normal
+
+1.5
+1.0
+0.5
+0.0
+0.5
+1.0
+1.5
+
+Theoretical quantiles
+
+1000
+
+750
+
+500
+
+250
+
+0
+
+250
+
+500
+
+750
+
+Ordered Values
+
+(C) Normal Q-Q Plot
+
+0
+2
+4
+6
+8
+
+Lag
+
+1.00
+
+0.75
+
+0.50
+
+0.25
+
+0.00
+
+0.25
+
+0.50
+
+0.75
+
+1.00
+
+ACF
+
+(D) Residual Autocorrelation
+
+Figure 11: Residual diagnostics for ARIMA(0,1,0) model of North Dakota net international mi-
+gration (PEP). Panel (A): Residual time series with no apparent pattern. Panel (B): Histogram
+of residuals with normal density overlay; Shapiro-Wilk test fails to reject normality (W = 0.968,
+p = 0.820). Panel (C): Q-Q plot showing approximate adherence to normal quantiles. Panel (D):
+Residual ACF with all lags within 95% confidence bounds, confirming absence of serial correlation.
+
+0
+2
+4
+6
+8
+10
+12
+
+Time (years)
+
+1.5
+
+1.0
+
+0.5
+
+0.0
+
+0.5
+
+1.0
+
+Schoenfeld Residual
+
+(A) Intensity
+
+LOWESS
+
+0
+2
+4
+6
+8
+10
+12
+
+Time (years)
+
+1.0
+
+0.5
+
+0.0
+
+0.5
+
+1.0
+
+Schoenfeld Residual
+
+(B) Origin Diversity
+
+0
+2
+4
+6
+8
+10
+12
+
+Time (years)
+
+1.00
+
+0.75
+
+0.50
+
+0.25
+
+0.00
+
+0.25
+
+0.50
+
+0.75
+
+1.00
+
+Schoenfeld Residual
+
+(C) Timing
+
+Global test:
+2 = 8.34, df = 3, p = 0.214 (proportional hazards not rejected)
+
+Figure 12: Schoenfeld residuals versus time for the Cox proportional hazards model of immigration
+wave duration. Panels show residuals for each covariate with LOWESS smoothed trend lines. Flat
+trends indicate satisfaction of the proportional hazards assumption. The global test fails to reject
+proportional hazards (χ2 = 8.34, p = 0.214).

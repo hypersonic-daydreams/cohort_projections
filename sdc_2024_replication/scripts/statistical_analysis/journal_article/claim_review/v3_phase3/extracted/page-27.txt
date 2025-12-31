@@ -1,0 +1,87 @@
+Forecasting International Migration to North Dakota
+27
+
+Small-sample inference robustness. With only seven treated clusters (nationalities), con-
+
+ventional cluster-robust inference may be unreliable. Table 11 reports alternative p-values from
+
+wild cluster bootstrap and randomization inference. For the full pre-period specification, the wild
+
+cluster bootstrap yields p = 0.077 and randomization inference yields p = 0.058—both above the
+
+conventional α = 0.05 threshold, though significant at α = 0.10.
+This attenuation relative to
+
+the conventional p = 0.032 reflects the small number of treated clusters and suggests caution in
+
+claiming strong statistical significance.
+
+Table 11: Small-Sample Inference Robustness for Travel Ban DiD
+
+Specification
+ATT
+Conventional p
+WCB p
+RI p
+
+Full pre-period (2002–2017)
+−1.384
+0.032*
+0.077
+0.058
+Restricted (2013–2017)
+−1.983
+<0.001***
+0.003**
+0.004**
+
+Notes: WCB = Wild cluster bootstrap with Rademacher weights (999 iterations). RI = Randomization
+inference with treatment permutation (999 permutations). * p < 0.05; ** p < 0.01; *** p < 0.001.
+
+Restricted pre-period robustness. Because the event study reveals greater pre-trend diver-
+
+gence in early years (2002–2012) than in years immediately preceding treatment, we re-estimate the
+
+DiD restricting to years where parallel trends appear more plausible. Restricting the pre-period
+
+to 2013–2017 substantially improves the pre-trend diagnostic: the joint F-test yields F = 0.76,
+
+p = 0.553, failing to reject parallel trends. The ATT estimate increases in magnitude to −1.983
+
+(SE = 0.506), and inference strengthens: the conventional p-value falls to p < 0.001, with bootstrap
+
+(p = 0.003) and randomization (p = 0.004) inference confirming significance at the 1% level.
+
+This pattern—larger ATT magnitude and stronger significance with the restricted pre-period—
+
+suggests that the full-sample estimate is attenuated by pre-existing negative divergence between
+
+treatment and control groups.
+When analysis focuses on years where parallel trends are more
+
+defensible, the estimated policy effect is larger (−86% vs. −75%) and more precisely estimated. The
+
+restricted-period results strengthen confidence that the Travel Ban produced a genuine reduction
+
+in refugee arrivals from affected countries, though the magnitude remains subject to specification
+
+uncertainty.
+
+3.7.2
+COVID-19 Interrupted Time Series
+
+The COVID-19 analysis employs state-level panel data (2010–2024) with 2020 as the intervention
+
+year. The interrupted time series model identifies both level and trend effects.
+
+Scope of inference: The ITS specification includes state fixed effects and estimates the average
+
+COVID disruption across all U.S. states, not a North Dakota-specific effect. Because COVID-19
+
+and associated travel restrictions affected all states simultaneously, the model cannot separately
+
+identify whether North Dakota experienced a differential disruption relative to other states. The
+
+coefficients reported below describe the mean state-level response; ND-specific deviations from
+
+this average are absorbed by the state fixed effect and are not separately estimated. Extending

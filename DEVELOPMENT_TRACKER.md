@@ -2,6 +2,9 @@
 
 **Single source of truth for North Dakota Population Projections development state**
 
+> **Note:** This is the canonical project status tracker. Historical session notes have been
+> archived to [docs/archive/](./docs/archive/) for reference.
+
 This project implements cohort component population projections for North Dakota state, counties, and places (2025-2045).
 
 ---
@@ -367,5 +370,10 @@ python scripts/projections/run_all_projections.py
 - Integrated figure captions into the main build and smoothed LaTeX layout issues in data tables and appendix wording.
 - Completed a full LaTeX build after layout fixes.
 
-**Last Updated:** 2025-12-30
+#### 2025-12-31 - Claim Review Workspace (v5_p305_complete)
+- Extracted page-anchored text for the claim review PDF into `sdc_2024_replication/scripts/statistical_analysis/journal_article/claim_review/v3_phase3/extracted/`.
+- Generated a draft `claims_manifest.jsonl` (1332 claims) via ad-hoc parsing; recorded cleanup issues and next steps in `sdc_2024_replication/scripts/statistical_analysis/journal_article/claim_review/v3_phase3/STATUS.md`.
+- Pending: refine claim splitting, remove residual plot-label artifacts, and reclassify claim types where needed.
+
+**Last Updated:** 2025-12-31
 **Tracker Status:** Full state projection complete - 53 counties projected 2025-2045

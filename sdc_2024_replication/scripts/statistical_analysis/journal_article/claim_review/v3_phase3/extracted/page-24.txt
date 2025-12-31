@@ -1,0 +1,74 @@
+Forecasting International Migration to North Dakota
+24
+
+Notably, the 2017 Travel Ban shows no statistically significant break at the aggregate North
+
+Dakota level (F = 1.29, p = 0.314). This null result contrasts with the significant Travel Ban
+
+effects identified in the nationality-level difference-in-differences analysis (Section 3.7), suggesting
+
+that aggregate flows may mask compositional shifts in origin countries.
+
+The CUSUM test for parameter stability corroborates these findings. The cumulative sum of
+
+recursive residuals remains within the 5% significance bounds throughout the observation period
+
+(maximum CUSUM = 2.37, bound = 10.25), indicating no evidence of continuous parameter drift.
+
+The stability ratio of 0.23 suggests that cumulative deviations from the fitted model remain modest
+
+relative to permissible fluctuation.
+
+The Bai-Perron procedure for endogenous break detection identifies zero breaks under the BIC
+
+criterion, reflecting the penalty imposed on additional parameters in the short series. This result
+
+highlights the tension between data-driven and theory-driven break identification in small samples.
+
+3.5
+Panel Data Results
+
+Panel analysis exploits cross-state and temporal variation to examine determinants of international
+
+migration allocation. The estimation sample comprises 765 state-year observations (51 states × 15
+
+years), forming a balanced panel.
+
+The Hausman specification test compares fixed effects and random effects estimators. Under the
+
+null hypothesis that random effects estimates are consistent and efficient, the test statistic follows
+
+a chi-squared distribution.
+The computed test statistic is effectively zero (H = 7.18 × 10−31,
+
+p = 1.000), indicating no systematic difference between estimators and thus supporting random
+
+effects as the preferred specification. The Breusch-Pagan LM test strongly rejects pooled OLS in
+
+favor of the random effects model (χ2 = 1, 502, p < 0.001), confirming the presence of state-level
+
+heterogeneity requiring panel methods.
+
+State fixed effects from the two-way specification reveal substantial cross-sectional variation
+
+in international migration levels. Florida exhibits the largest positive effect (+125,526 relative to
+
+the grand mean), followed by California (+106,259) and Texas (+89,232). North Dakota’s fixed
+
+effect of −18,022 places it near the bottom of the distribution, exceeded in negativity only by
+
+Wyoming (−19,332). This ranking accords with population-weighted expectations and confirms
+
+North Dakota’s status as a minor destination in absolute terms.
+
+Year fixed effects capture common temporal shocks affecting all states. The 2020 effect is dra-
+
+matically negative, reflecting the near-cessation of international migration during pandemic travel
+
+restrictions. Mean international migration in 2020 was 390 compared to 21,206 in other years—a
+
+98.2% reduction. The between-within variance ratio of 1.30 indicates that cross-state variation
+
+slightly exceeds within-state temporal variation, though both dimensions contribute meaningfully
+
+to total variability.

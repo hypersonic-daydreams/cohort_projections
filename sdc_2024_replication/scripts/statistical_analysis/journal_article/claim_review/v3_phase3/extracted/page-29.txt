@@ -1,0 +1,84 @@
+Forecasting International Migration to North Dakota
+29
+
+of baseline for at least two consecutive years. This procedure identifies 940 waves across 56 nation-
+
+alities and 48 states in the 2002–2020 refugee data.
+
+Kaplan-Meier estimation yields a median wave duration of 3.0 years (mean = 3.54 years).
+
+Survival probabilities decline steadily over the wave lifecycle: 51.6% of waves survive past year 2;
+
+31.8% survive past year 3; 21.6% survive past year 4; and only 6.2% survive past year 10. The
+
+censoring rate of 10% reflects waves still active at the end of the observation period (FY 2020).
+
+Stratified analysis reveals significant heterogeneity by wave intensity. Table 12 reports median
+
+survival by intensity quartile.
+
+Table 12: Wave Duration by Intensity Quartile
+
+Intensity Quartile
+n
+Median Survival
+Mean Duration
+
+Q1 (Low)
+247
+2.0 years
+2.43 years
+Q2
+223
+2.0 years
+2.80 years
+Q3
+236
+3.0 years
+3.61 years
+Q4 (High)
+234
+4.0 years
+5.35 years
+
+Log-rank test: χ2 = 278.7, p < 10−60
+
+Notes: Intensity = peak arrivals relative to baseline. Duration measured in years. Log-rank test evaluates
+equality of survival curves across quartiles.
+
+The log-rank test decisively rejects equality of survival curves across intensity quartiles (χ2 =
+
+278.7, p < 10−60), confirming that higher-intensity waves persist substantially longer. The median
+
+survival differential between Q1 and Q4—two years versus four years—indicates that wave duration
+
+doubles at the upper extreme of initial intensity.
+
+Regional origin also influences wave persistence. African (mean duration = 3.99 years), Middle
+
+Eastern (4.14 years), and Asian (4.28 years) waves outlast those from Europe (2.40 years) and the
+
+Americas (2.25 years). The log-rank test confirms significant regional heterogeneity (χ2 = 89.7,
+
+p < 10−17).
+
+Cox proportional hazards regression quantifies the multivariate relationship between wave char-
+
+acteristics and termination risk. Key findings include:
+
+ Log intensity: HR = 0.412 (p < 0.001). Higher-intensity waves exhibit 59% lower hazard
+
+of termination, confirming the protective effect of initial magnitude.
+
+ Early wave: HR = 1.361 (p < 0.001). Waves beginning in the early observation period
+
+terminate faster, potentially reflecting data truncation or secular trends.
+
+ Peak arrivals: HR = 0.656 (p < 0.001).
+Higher peak arrivals during the wave reduce
+
+termination hazard.
+
+ Americas origin: HR = 1.711 (p = 0.005). Waves from the Americas terminate 71% faster
+
+than the reference category (Africa).

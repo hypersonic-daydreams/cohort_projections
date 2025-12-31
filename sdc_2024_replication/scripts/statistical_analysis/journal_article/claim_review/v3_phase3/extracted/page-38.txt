@@ -1,0 +1,45 @@
+Forecasting International Migration to North Dakota
+38
+
+2
+4
+6
+8
+10
+12
+
+Duration (years)
+
+0.0
+
+0.2
+
+0.4
+
+0.6
+
+0.8
+
+1.0
+
+Survival probability
+
+Log-rank test: 278.7
+p < 0.001***
+
+Median
+
+Kaplan-Meier Curves: Immigration Wave Duration by Intensity
+
+Overall
+Q1 (Low) (n=247, med=2.0yr)
+Q3 (n=236, med=3.0yr)
+Q4 (High) (n=234, med=4.0yr)
+Q2 (n=223, med=2.0yr)
+
+Figure 8: Kaplan–Meier survival curves for immigration wave duration by initial intensity quartile.
+Waves are defined as periods where arrivals exceed 50% above baseline for at least two consecutive
+years. Q1 (lowest intensity) waves have median duration of 2 years, while Q4 (highest intensity)
+waves persist for a median of 4 years. The log-rank test strongly rejects equality across groups
+(χ2 = 278.7, p < 0.001), indicating that higher-intensity immigration flows are significantly more
+persistent.

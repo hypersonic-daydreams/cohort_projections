@@ -1,0 +1,74 @@
+Forecasting International Migration to North Dakota
+56
+
+Table 19: Diaspora Association Sensitivity to Covariance Estimator
+
+Covariance Estimator
+Coefficient
+SE
+
+Model-based (Poisson MLE)
+0.140
+0.002
+HC1 robust
+0.140
+0.176
+Clustered by state
+0.140
+0.113
+Clustered by origin
+0.140
+0.282
+Two-way clustered (state × origin)
+0.140
+0.248
+
+Notes: Estimates come from the full gravity specification in Table 15. Clustered SEs account for correlation
+within destinations and origins.
+
+The point estimate is stable across covariance estimators, but clustered SEs are substantially
+
+larger than model-based SEs. We therefore report two-way clustered inference in the main text.
+
+B.5
+DiD Parallel Trends Robustness
+
+The parallel trends assumption is evaluated through multiple approaches:
+
+1. Pre-treatment trend test: The interaction between Affected and a linear pre-treatment
+
+trend yields 0.087 (t = 0.97, p = 0.334). The test fails to reject parallel trends.
+
+2. Placebo treatment dates: Placebo tests shifting the treatment date to 2015 or 2016 were
+
+conducted in the prior HC3 specification; these checks should be re-run under clustered
+
+inference.
+
+3. Event study plot: Figure 7 shows negative post-treatment coefficients in 2018–2019, but the
+
+joint pre-treatment test rejects parallel trends when the full pre-period is included (p < 0.001),
+
+indicating longer-run divergence.
+
+B.6
+Scenario Arithmetic
+
+This section documents the update rules used to generate scenario paths in Module 9.
+
+CBO Full.
+For 2025–2029, projections use 10% above the ARIMA point forecasts. From 2030
+
+onward, values compound at 8% annually:
+
+cbo_t = 1.1 * arima_t
+(t = 2025..2029)
+
+cbo_t = cbo_{t-1} * 1.08 (t >= 2030)
+
+Pre-2020 Trend.
+The series is anchored at the 2019 value (y2019 = 634) with a slope estimated
+
+from 2010–2019 (ˆβ = 72.43 per year):
+
+pre2020_t = y_2019 + beta * (t - 2019)

@@ -1,0 +1,92 @@
+Forecasting International Migration to North Dakota
+14
+
+2.7
+Machine Learning Methods
+
+Machine learning methods complement traditional regression by providing flexible functional forms
+
+and systematic variable selection. The analysis employs three techniques: Elastic Net regulariza-
+
+tion, Random Forest regression, and K-means clustering.
+
+Elastic Net (Zou and Hastie, 2005) combines L1 (Lasso) and L2 (Ridge) penalties, solving:
+
+ˆβ = arg min
+β
+
+� n
+�
+
+i=1
+(yi − x′
+iβ)2 + λ
+�
+α∥β∥1 + (1 − α)∥β∥2
+2
+�
+�
+
+(11)
+
+where λ controls overall regularization strength and α ∈ [0, 1] balances sparsity-inducing L1 penalty
+
+against coefficient-shrinking L2 penalty. Cross-validation selects (λ, α) values. Coefficients shrunk
+
+exactly to zero identify variables excluded from the predictive model.
+
+Random Forest (Breiman, 2001) aggregates predictions from an ensemble of decision trees,
+
+each trained on bootstrap samples with random feature subsets. Feature importance is measured
+
+by permutation importance: the decrease in out-of-bag prediction accuracy when feature values
+
+are randomly shuffled.
+
+K-means clustering partitions states into groups exhibiting similar migration profiles.
+The
+
+algorithm minimizes within-cluster sum of squared distances to cluster centroids:
+
+arg min
+C
+
+K
+�
+
+k=1
+
+�
+
+i∈Ck
+∥xi − µk∥2
+(12)
+
+where Ck denotes cluster k and µk its centroid. Optimal cluster count K is selected by the silhouette
+
+criterion.
+
+2.8
+Causal Inference Methods
+
+Causal inference methods estimate the effects of specific policy interventions—the 2017 Travel
+
+Ban and the 2020 COVID-19 pandemic—on international migration flows. Identification relies on
+
+nationality-level difference-in-differences and a state-level interrupted time series. Two additional
+
+components provide context: a synthetic comparator for descriptive benchmarking and a shift-share
+
+index used to assess the predictive relevance of refugee-driven shocks.
+
+2.8.1
+Difference-in-Differences
+
+The Travel Ban analysis employs a difference-in-differences (DiD) design comparing refugee arrivals
+
+from affected countries (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) to arrivals from unaffected
+
+countries, before and after the 2017 implementation. The estimating equation specifies:
+
+ln(yct + 1) = αc + λt + δ · (Affectedc × Postt) + εct
+(13)

@@ -1,0 +1,97 @@
+Forecasting International Migration to North Dakota
+20
+
+the standard deviation approaches the mean in magnitude. By comparison, national net inter-
+
+national migration exhibited somewhat lower volatility (CV = 73.5%), suggesting that state-level
+
+flows experience amplified fluctuation relative to aggregate national trends.
+
+Table 4: Summary Statistics: Net International Migration (PEP), 2010–2024
+
+Variable
+Mean
+SD
+CV
+Min
+Max
+
+ND Net International Migration (PEP)
+1,796
+1,482
+82.5%
+30
+5,126
+US Net International Migration (PEP)
+1,010,744
+743,049
+73.5%
+19,885
+2,786,119
+ND Share of US Net Int’l Mig. (%)
+0.173
+0.054
+31.3%
+0.102
+0.303
+ND Share of US Pop. (%)
+0.231
+0.006
+2.4%
+0.218
+0.236
+
+Notes: n = 15 annual observations. SD = standard deviation; CV = coefficient of variation (SD/Mean).
+Net international migration data from Census Bureau PEP(international migration component of change)
+vintage 2024.
+
+The distribution of annual international migration to North Dakota exhibits positive skewness
+
+(1.10), reflecting a right tail associated with recent high-migration years. The Shapiro-Wilk test
+
+marginally fails to reject normality (W = 0.886, p = 0.058), though this finding warrants cautious
+
+interpretation given the small sample size. No observations qualify as extreme outliers under the
+
+interquartile range criterion, though the 2020 value of 30 migrants represents a dramatic departure
+
+from typical levels.
+
+Hodrick-Prescott filter decomposition reveals a U-shaped trend in North Dakota’s share of na-
+
+tional international migration. The trend component declined from 0.211 in 2010 to a minimum
+
+of 0.157 in 2014, subsequently rising to 0.185 by 2024. This pattern suggests that North Dakota’s
+
+relative attractiveness to international migrants has recovered following the mid-decade trough, po-
+
+tentially reflecting post-oil-boom economic restructuring and the resumption of refugee resettlement
+
+programs.
+
+3.2
+Geographic Concentration
+
+Analysis of geographic concentration reveals a divergence between country-level and regional-level
+
+patterns. The Herfindahl-Hirschman Index (HHI) for country-of-origin composition is 1,162 based
+
+on FY 2023 LPR admissions, classifying North Dakota’s immigrant origins as “unconcentrated”
+
+under standard thresholds (HHI < 1, 500). This result indicates substantial diversity at the country
+
+level, with no single origin dominating the flow.
+
+However, regional aggregation yields markedly different conclusions. The regional-level HHI
+
+reaches 3,712, placing North Dakota firmly in the “highly concentrated” category (HHI > 2, 500).
+
+This concentration derives from the dominance of two source regions: Asia accounts for 52.5% of
+
+LPR admissions and Africa accounts for 27.9%, together comprising over 80% of legal permanent
+
+resident flows. North America (12.3%), Europe (3.4%), South America (3.4%), and Oceania (0.6%)
+
+contribute the remainder.
+
+Location Quotient (LQ) analysis identifies countries substantially overrepresented in North

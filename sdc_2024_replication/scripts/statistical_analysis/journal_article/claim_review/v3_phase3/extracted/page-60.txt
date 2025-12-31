@@ -1,0 +1,126 @@
+Forecasting International Migration to North Dakota
+60
+
+0
+20000
+40000
+60000
+80000 100000 120000 140000
+
+Mean Annual International Migration (2010-2024)
+
+0
+
+5
+
+10
+
+15
+
+20
+
+25
+
+Number of States
+
+(A) Distribution of State Migration Levels
+
+North Dakota (1,796)
+Median (7,942)
+
+0
+500
+1000
+1500
+2000
+2500
+3000
+3500
+4000
+
+Mean Annual International Migration
+
+Wyoming
+
+Montana
+
+Vermont
+
+West Virginia
+
+South Dakota
+
+North Dakota
+
+Maine
+
+Alaska
+
+Delaware
+
+Idaho
+
+New Hampshire
+
+Mississippi
+
+Arkansas
+
+New Mexico
+
+Rhode Island
+
+Rank: 6/51
+
+(B) Lowest 15 States by Migration Volume
+
+Figure 10: Distribution of mean annual net international migration (PEP) across U.S. states,
+2010–2024. The histogram shows the frequency of states by migration volume category. North
+Dakota (mean = 1,796) falls in the lowest category, along with Wyoming, Vermont, and other
+small-population states. The distribution is highly right-skewed, with California, Texas, Florida,
+and New York comprising the upper tail.
+
+Table 20: Variable Definitions
+
+Variable
+Definition
+
+Net International
+Migration (PEP)
+Net annual international migration component of change
+for state of residence (Census PEPdefinition)
+LPR Admissions
+(DHS, FY)
+Count of lawful permanent resident admissions by state of
+intended residence and country of birth (fiscal year)
+Diaspora Stock
+(ACS)
+Foreign-born population from origin country o residing in
+destination state d (ACSestimate)
+Location Quotient
+Ratio of origin o’s share in state d to origin o’s share
+nationally
+HHI
+Herfindahl-Hirschman Index: �
+i s2
+i × 10, 000 where si is
+origin i’s share
+Wave
+Period of ≥ 2 consecutive years with arrivals > 150% of
+baseline
+Wave Intensity
+Peak-to-baseline ratio during wave
+Affected Country
+Travel Ban target: Iran, Iraq, Libya, Somalia, Sudan,
+Syria, Yemen
+Post
+Indicator for years ≥ 2018 (first full year after Travel Ban
+implementation)
+Shift-share (Bartik)
+index
+
+�
+o ωod,t0 · gUS,−d
+o,t
+: base-period shares × leave-one-out
+national change by origin

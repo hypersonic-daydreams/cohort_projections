@@ -1,0 +1,26 @@
+Forecasting International Migration to North Dakota
+2
+
+Monte Carlo scenario projections through 2045 yield a median net international
+
+migration forecast of 9,056 persons with a 95% prediction interval spanning 3,570 to
+
+14,491—a factor of 4.1—honestly characterizing the structural uncertainty inherent in
+
+small-state migration forecasting. This wide interval has direct implications for demo-
+
+graphic planning: agencies must develop contingent capacity strategies rather than rely-
+
+ing on misleadingly precise point forecasts. The multi-method framework demonstrates
+
+that rigorous demographic analysis remains feasible even when small populations strain
+
+conventional asymptotic methods, provided analysts attend carefully to identification
+
+assumptions and uncertainty quantification.
+
+Keywords: international migration, forecasting, North Dakota, causal inference, demographic
+
+projection, refugee resettlement, Great Plains
+
+JEL Codes: J11, J61, C22, C53, R23
