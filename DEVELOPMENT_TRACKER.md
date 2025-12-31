@@ -199,6 +199,16 @@ Tasks for current phase. States: `[ ]` pending | `[x]` complete
 
 **Full State Projection Run:**
 
+### 2025-12-31 - Citation Audit Hardening
+
+**Focus:** Improve citation audit robustness and agent workflows
+
+**Accomplishments:**
+- Added include-following TeX discovery, multiline citation handling, and nocite-aware key matching
+- Expanded BibTeX parsing with @string macro expansion and duplicate key detection
+- Added optional JSONL fixes input for agent-provided corrections
+- Added citation audit unit tests and updated documentation
+
 - Successfully ran baseline projections for all 53 North Dakota counties
 - 20-year horizon: 2025-2045
 - Base population: 796,568 (2025)
@@ -373,6 +383,9 @@ python scripts/projections/run_all_projections.py
 #### 2025-12-31 - Claim Review Workspace (v5_p305_complete)
 - Extracted page-anchored text for the claim review PDF into `sdc_2024_replication/scripts/statistical_analysis/journal_article/claim_review/v3_phase3/extracted/`.
 - Generated a draft `claims_manifest.jsonl` (1332 claims) via ad-hoc parsing; recorded cleanup issues and next steps in `sdc_2024_replication/scripts/statistical_analysis/journal_article/claim_review/v3_phase3/STATUS.md`.
+- Added a reusable Introduction-claim parser (`sdc_2024_replication/scripts/statistical_analysis/journal_article/claim_review/v3_phase3/claims/build_intro_claims.py`) and refreshed Introduction claims with corrected page anchors in `claims_manifest.jsonl`.
+- Logged parsing rules and pitfalls for the Introduction pass in `sdc_2024_replication/scripts/statistical_analysis/journal_article/claim_review/v3_phase3/STATUS.md`.
+- Added a QA layer (`sdc_2024_replication/scripts/statistical_analysis/journal_article/claim_review/v3_phase3/claims/qa_claims.py`) and documented usage in the claim review README and status notes.
 - Pending: refine claim splitting, remove residual plot-label artifacts, and reclassify claim types where needed.
 
 **Last Updated:** 2025-12-31
