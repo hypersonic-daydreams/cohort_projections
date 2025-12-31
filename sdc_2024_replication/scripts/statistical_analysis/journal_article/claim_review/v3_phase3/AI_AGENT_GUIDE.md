@@ -40,12 +40,53 @@ Create a complete, linked inventory of claims and arguments for the v5_p305_comp
 - Methods statements are claims.
 - Figure/table captions are claims.
 
-## Argument Rules
-- Use Toulmin roles: claim, grounds, warrant, backing, qualifier, rebuttal.
-- Link nodes via `supports_argument_ids` and `rebuts_argument_ids`.
-- Use `argument_group_id` to group a chain.
+## Argument Mapping Rules
+
+### Required Toulmin Structure
+Each argument group MUST have at minimum:
+1. **Claim** - Central assertion (supports_argument_ids: [])
+2. **Grounds** - Evidence supporting the claim (supports_argument_ids: [claim_id])
+3. **Warrant** - Logical bridge explaining WHY grounds support claim (supports_argument_ids: [claim_id])
+
+Optional (recommended where applicable):
+4. **Backing** - Additional support for the warrant
+5. **Qualifier** - Scope limitations ("typically", "in most cases")
+6. **Rebuttal** - Counter-arguments or exceptions
+
+### Key Distinction
+- **GROUNDS = EVIDENCE** (data, statistics, observations from the paper)
+- **WARRANTS = REASONING** (why the evidence supports the conclusion)
+- Data alone is NOT an argument - every claim needs BOTH grounds AND warrant
+
+### Example
+```
+Claim: "North Dakota's migration is highly volatile"
+  ↑
+Grounds: "CV of 82.5%, range from 30 to 3,000 migrants" [C0273, C0274]
+  ↑
+Warrant: "A CV this high means annual flows can deviate from the mean
+          by nearly the mean itself, making prediction difficult" [C0276]
+```
+
+### Argument Mapping Tools
+```bash
+# Audit existing groups for completeness
+python argument_map/map_section_arguments.py --audit
+
+# Get prompt for mapping a section
+python argument_map/map_section_arguments.py --section Results
+
+# Get prompt for completing a specific group
+python argument_map/map_section_arguments.py --group G020
+```
+
+### Linking Rules
+- Use `supports_argument_ids` to link grounds→claim, warrant→claim, backing→warrant
+- Use `rebuts_argument_ids` for counter-arguments
+- Use `argument_group_id` (G###) to group related nodes
 
 ## Reporting Expectations
 - Update `claims_manifest.jsonl` and `argument_map.jsonl` only.
 - Do not overwrite the PDF or raw outputs.
-- If a warrant is missing, add a claim and link it.
+- If a warrant is missing, identify the claim that serves as warrant and link it.
+- Every argument group must pass the audit check (claim + grounds + warrant).

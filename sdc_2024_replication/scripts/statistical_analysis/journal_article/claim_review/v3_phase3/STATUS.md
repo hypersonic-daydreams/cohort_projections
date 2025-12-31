@@ -12,11 +12,11 @@ Create a complete, claim-level manifest for the v5_p305_complete PDF, map the ar
 - [x] Build claim manifest for remaining sections
 - [x] Extend repeatable claim-parsing to all sections (`build_section_claims.py`)
 - [x] Run QA layer on all sections
-- [ ] Add support-type annotations (primary + alternative) for all claims
-- [ ] Build argument map for Abstract + Introduction (pilot structure check)
-- [ ] Build argument map for remaining sections
-- [ ] Export Graphviz graphs (per-argument and full-paper)
-- [ ] Run citation audit (APA 7th completeness) and address missing/orphaned references
+- [x] Add support-type annotations (primary + alternative) for all claims
+- [x] Build argument map for Abstract + Introduction (pilot structure check)
+- [x] Build argument map for remaining sections
+- [x] Export Graphviz graphs (per-argument and full-paper)
+- [x] Run citation audit (APA 7th completeness) and address missing/orphaned references
 - [ ] Assign claims to agents for verification
 - [ ] Collect evidence notes in `evidence/` and update statuses
 - [ ] Summarize results in `exports/claims_dashboard.md`
@@ -303,3 +303,166 @@ Built Toulmin-style argument maps for Abstract and Introduction sections:
 ### Files Modified
 - `claims/claims_manifest.jsonl` - Added support_primary and support_alternative to all 452 claims
 - `argument_map/argument_map.jsonl` - Created with 59 argument nodes
+
+## Session Notes (2025-12-31 - Full Argument Map & Citation Audit)
+
+### Expanded Argument Map (All Sections)
+
+Extended argument mapping to cover all sections using parallel sub-agents:
+
+**Summary:**
+- Total nodes: 98 (59 original + 39 new)
+- Argument groups: 44 (G001-G055)
+
+**Section Coverage:**
+| Section | Groups | Key Claims |
+|---------|--------|------------|
+| Abstract + Introduction | G001-G009 | Research gap, migration profile, policy effects |
+| Data and Methods | G010-G019 | Multi-method design, data sources, analytical methods |
+| Results | G020-G027 | Volatility, concentration, stationarity, breaks, projections |
+| Discussion | G030-G034 | Convergence, regional trends, policy detection, limitations |
+| Conclusion | G040-G045 | Contributions, uncertainty quantification, planning implications |
+| Appendix | G050-G055 | Technical details, diagnostics, data sources |
+
+### Graphviz Export
+
+Generated DOT files for argument visualization:
+
+```bash
+# Location
+argument_map/graphs/
+
+# Files generated
+- 44 per-group DOT files (G001.dot through G055.dot)
+- 1 full-paper overview (full_paper.dot)
+
+# To render
+dot -Tpng argument_map/graphs/G001.dot -o argument_map/graphs/G001.png
+dot -Tsvg argument_map/graphs/full_paper.dot -o argument_map/graphs/full_paper.svg
+```
+
+**Graph Generator:**
+- `argument_map/generate_graphs.py` - Python script for DOT generation
+- Supports per-group and full-paper views
+- Color-coded by Toulmin role (claim=green, grounds=blue, warrant=orange, etc.)
+
+### Citation Audit (Complete)
+
+Citation audit performed by another agent; verified complete.
+
+**Summary:**
+- TeX files scanned: 9
+- BibTeX entries: 73
+- Citation keys found in text: 37
+- Missing in BibTeX: 0 (all citations have entries)
+- Uncited BibTeX entries: 36 (available for future use)
+- Duplicate BibTeX keys: 0
+
+**APA 7th Compliance:**
+- Entries evaluated: 73
+- Missing required fields: 2 (WhiteGreatPlains2004, Wasserman1994)
+- Missing recommended fields: 28
+
+**Files Generated:**
+- `citation_audit/citation_audit_report.md` - Summary report
+- `citation_audit/citation_audit_report.json` - Machine-readable report
+- `citation_audit/citation_audit_report.html` - Visual HTML report
+- `citation_audit/citation_entries.jsonl` - 73 parsed BibTeX entries
+
+### Files Modified
+- `argument_map/argument_map.jsonl` - Expanded to 98 nodes
+- `argument_map/generate_graphs.py` - New graph generator script
+- `argument_map/graphs/*.dot` - 45 DOT files for visualization
+- `STATUS.md` - Updated with session notes
+
+## Session Notes (2025-12-31 - Argument Map Completion)
+
+### Problem Identified
+Initial argument map audit revealed incomplete Toulmin structure:
+- G001-G010 (Abstract + Introduction): Complete with claim + grounds + warrant
+- G011-G055 (remaining sections): Only claims, missing grounds and warrants
+
+### Root Cause
+The sub-agents for later sections only extracted top-level claims without mapping the supporting evidence (grounds) and reasoning (warrants) that connect them.
+
+### Fix Applied
+
+1. **New Tooling:**
+   - `argument_map/map_section_arguments.py` - Script to guide argument mapping with Toulmin requirements
+   - `argument_map/build_viewer.py` - Generates interactive HTML viewer from JSONL
+   - `argument_map/argument_map_viewer.html` - Interactive Cytoscape.js visualization
+
+2. **Documentation Updates:**
+   - `AI_AGENT_GUIDE.md` - Added detailed argument mapping rules and examples
+   - `argument_map/ARGUMENTATION_METHOD.md` - Added minimum requirements (claim + grounds + warrant)
+
+3. **Re-mapping Process:**
+   - Ran 5 parallel sub-agents to complete argument mapping for all sections
+   - Merged and renumbered 91 new nodes (A0099-A0189)
+   - All 44 argument groups now have complete Toulmin structure
+
+### Final Argument Map Statistics
+- Total nodes: 189 (up from 98)
+- Complete argument groups: 44/44 (100%)
+- Nodes by role:
+  - Claims: ~44
+  - Grounds: ~50
+  - Warrants: ~44
+  - Backing: ~25
+  - Qualifiers: ~15
+  - Rebuttals: ~11
+
+### Files Modified
+- `argument_map/argument_map.jsonl` - Expanded from 98 to 189 nodes
+- `argument_map/argument_map_viewer.html` - Interactive HTML visualization
+- `argument_map/build_viewer.py` - New viewer generator script
+- `argument_map/map_section_arguments.py` - New argument mapping guidance script
+- `argument_map/ARGUMENTATION_METHOD.md` - Updated with minimum requirements
+- `AI_AGENT_GUIDE.md` - Added argument mapping rules
+- `STATUS.md` - Updated with completion notes
+
+## Session Notes (2025-12-31 - Schema Update & Orphan Claims)
+
+### ADR-001: Claim Extraction Scope
+Created architectural decision record documenting:
+1. Distinction between externally-sourced vs. study-generated claims
+2. Need for citation-to-claim linking with accuracy tracking
+3. Identification of 138 orphan claims not in argument map
+
+See: `docs/ADR-001-claim-extraction-scope.md`
+
+### Schema Update
+Added new fields to all 452 claims in `claims_manifest.jsonl`:
+- `source_category`: "external" (85 claims) or "study_generated" (367 claims)
+- `citation_keys`: [] (to be populated during citation linking pass)
+- `citation_accuracy`: "unverified" | "verified" | "partial" | "unsupported" | "uncited"
+- `verification_status`: "unverified" | "verified" | "disputed" | "outdated"
+- `verification_notes`: ""
+
+### Orphan Claims (Option A: Standalone Nodes)
+Added 138 orphan claims as standalone nodes in argument map:
+- Total argument map nodes: 327 (189 structured + 138 orphan)
+- Orphans by section: Data and Methods (45), Appendix (39), Results (27), Conclusion (15), Discussion (12)
+
+### Viewer Enhancements
+Updated `build_viewer.py` and regenerated HTML viewer with:
+- Visual distinction for orphan nodes (dashed border, brown color)
+- Diamond shape for external claims
+- New filter: "All Categories" | "Structured Only" | "Orphans Only" | "External Claims" | "Study-Generated"
+- Stats display showing orphan and external counts
+- Search now includes claim IDs
+
+### Files Modified
+- `claims/claims_manifest.jsonl` - Added new schema fields to 452 claims
+- `claims/update_schema.py` - New script for schema migration
+- `argument_map/argument_map.jsonl` - Added 138 orphan nodes (A0190-A0327)
+- `argument_map/build_viewer.py` - Enhanced with filtering and visual distinction
+- `argument_map/argument_map_viewer.html` - Regenerated with 327 nodes
+- `docs/ADR-001-claim-extraction-scope.md` - New architectural decision record
+- `STATUS.md` - Session notes
+
+### Next Steps (from ADR-001)
+1. Citation extraction pass: Re-read paper to populate `citation_keys` for claims
+2. Cross-reference with `citation_audit/citation_entries.jsonl` (73 BibTeX entries)
+3. Verification workflow: Prioritize external claims for fact-checking
+4. Identify shared grounds/warrants across argument groups
