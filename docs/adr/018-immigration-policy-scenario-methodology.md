@@ -1,10 +1,16 @@
 # ADR-018: Immigration Policy Scenario Methodology
 
-**Status:** Proposed
-**Date:** 2025-12-28
-**Context:** SDC 2024 Replication with Updated Data (isolated from production)
+## Status
+Proposed
 
----
+## Date
+2025-12-28
+
+## Last Reviewed
+2025-12-31
+
+## Scope
+SDC 2024 Replication with Updated Data (isolated from production)
 
 ## Context
 

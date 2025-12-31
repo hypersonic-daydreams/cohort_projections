@@ -1,11 +1,13 @@
 # ADR-017: SDC 2024 Methodology Comparison and Scenario
 
-| Attribute | Value |
-|-----------|-------|
-| **Status** | Accepted |
-| **Date** | 2025-12-28 |
-| **Decision Makers** | Project Team |
-| **Categories** | Methodology, Scenarios |
+## Status
+Accepted
+
+## Date
+2025-12-28
+
+## Last Reviewed
+2025-12-31
 
 ## Context
 

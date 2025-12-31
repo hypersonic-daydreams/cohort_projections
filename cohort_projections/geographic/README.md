@@ -1,5 +1,7 @@
 # Geographic Module
 
+**Last Updated:** 2025-12-31 | **Status:** Current | **Related ADRs:** [ADR-010](../../docs/adr/010-geographic-scope-granularity.md), [ADR-013](../../docs/adr/013-multi-geography-projection-design.md)
+
 Multi-geography cohort projection orchestrator for the North Dakota Population Projection System.
 
 ## Overview

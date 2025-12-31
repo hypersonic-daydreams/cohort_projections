@@ -6,6 +6,9 @@ Accepted
 ## Date
 2025-12-31
 
+## Last Reviewed
+2025-12-31
+
 ## Context
 
 We need a systematic way to verify the journal article's factual claims and the logical structure that connects them. A claim-only list can miss missing warrants, weak support chains, or unsupported leaps in reasoning. The review output must be machine-readable for AI agents and usable for human authors.

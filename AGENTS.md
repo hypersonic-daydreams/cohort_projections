@@ -2,7 +2,7 @@
 
 Canonical instruction set for all AI agents working on this codebase.
 
-**Last Updated:** 2025-12-28 | **Version:** 1.0.0 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
+**Last Updated:** 2025-12-31 | **Version:** 1.2.0 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
 
 ---
 
@@ -149,6 +149,54 @@ Create an ADR when:
 
 ADR location: `docs/adr/{NNN}-{title}.md`
 
+### 5.4 Test Workflow for AI Agents
+
+#### When Modifying Production Code
+
+1. **Before changing code**: Run `pytest tests/ -v` to establish baseline
+2. **After changing code**: Run tests again - failures indicate breaking changes
+3. **If tests fail**: Either fix the code OR update the tests (if behavior change is intentional)
+4. **Pre-commit enforces this**: Tests run automatically when committing changes to `cohort_projections/`
+
+#### When to Update Tests
+
+| Change Type | Test Action |
+| ----------- | ----------- |
+| Bug fix | Add test that reproduces the bug, then fix |
+| New function | Add tests for the new function |
+| Changed signature | Update all tests that call the function |
+| Changed behavior | Update tests to expect new behavior |
+| Removed function | Remove tests for that function |
+
+#### Test Commands
+
+```bash
+pytest tests/ -v                           # All tests
+pytest tests/test_core/ -v                 # Just core module tests
+pytest tests/ -k "test_fertility" -v       # Tests matching pattern
+pytest tests/ -x                           # Stop on first failure
+pytest tests/ --tb=long                    # Detailed tracebacks
+```
+
+#### Finding Related Tests
+
+```bash
+# Find tests for a specific function
+grep -r "function_name" tests/
+
+# Find tests for a module
+ls tests/test_core/test_fertility.py      # Tests for core/fertility.py
+```
+
+#### Test File Mapping
+
+| Production Module | Test File |
+| ----------------- | --------- |
+| `cohort_projections/core/cohort_component.py` | `tests/test_core/test_cohort_component.py` |
+| `cohort_projections/core/fertility.py` | `tests/test_core/test_fertility.py` |
+| `cohort_projections/data/process/base_population.py` | `tests/test_data/test_base_population.py` |
+| `cohort_projections/output/writers.py` | `tests/test_output/test_writers.py` |
+
 ---
 
 ## 6. Data Conventions
@@ -182,7 +230,7 @@ data/
 
 - Data files sync via rclone bisync (not git)
 - Use `./scripts/bisync.sh` wrapper (never run rclone directly)
-- See [ADR-016](docs/adr/016-raw-data-management-strategy.md) for details
+- See [ADR-016](./docs/adr/016-raw-data-management-strategy.md) for details
 
 ### 6.5 SDC 2024 Reference Materials
 
@@ -200,7 +248,7 @@ The `data/raw/nd_sdc_2024_projections/` directory contains the ND State Data Cen
 
 **Key Documentation:**
 
-- [docs/methodology_comparison_sdc_2024.md](docs/methodology_comparison_sdc_2024.md) — Detailed comparison of SDC vs our methodology
+- [docs/methodology_comparison_sdc_2024.md](./docs/methodology_comparison_sdc_2024.md) — Detailed comparison of SDC vs our methodology
 
 **Critical Insight:** Our projections diverge ~170,000 people from SDC by 2045, primarily due to migration assumptions:
 
@@ -338,6 +386,20 @@ pytest tests/test_core.py        # Specific module
 pytest -k "fertility"            # By keyword
 ```
 
+### 10.5 BigQuery Integration (Optional)
+
+The project can optionally use Google BigQuery for Census/demographic data access.
+
+```yaml
+# In projection_config.yaml
+bigquery:
+  enabled: true
+  project_id: "antigravity-sandbox"
+  dataset_id: "demographic_data"
+```
+
+**Setup:** See [docs/BIGQUERY_SETUP.md](./docs/BIGQUERY_SETUP.md)
+
 ---
 
 ## 11. Essential Documentation
@@ -372,6 +434,7 @@ pytest -k "fertility"            # By keyword
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.2.0 | 2025-12-31 | Consolidated test workflow and BigQuery content from CLAUDE.md |
 | 1.1.0 | 2025-12-29 | Updated for uv package management |
 | 1.0.0 | 2025-12-28 | Initial AGENTS.md |
 
@@ -381,3 +444,13 @@ pytest -k "fertility"            # By keyword
 - Commands: See `CLAUDE.md`
 - Methodology: See `docs/adr/`
 - Configuration: See `config/projection_config.yaml`
+
+---
+
+| Attribute | Value |
+|-----------|-------|
+| **Last Updated** | 2025-12-31 |
+| **Version** | 1.2.0 |
+| **Status** | Current |
+| **Maintained By** | Project Team |
+| **Applies To** | All AI Agents |

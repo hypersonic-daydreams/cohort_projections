@@ -1,3 +1,10 @@
+---
+**ARCHIVED:** 2025-12-31
+**Reason:** Implementation complete; fertility processor is now production code
+**Original Location:** /FERTILITY_IMPLEMENTATION_SUMMARY.md
+**Superseded By:** DEVELOPMENT_TRACKER.md (for ongoing status)
+---
+
 # Fertility Rates Data Processor - Implementation Summary
 
 ## Overview

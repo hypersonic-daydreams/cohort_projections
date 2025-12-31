@@ -1,3 +1,10 @@
+---
+**ARCHIVED:** 2025-12-31
+**Reason:** Implementation complete; pipeline scripts are now production code
+**Original Location:** /PIPELINE_IMPLEMENTATION_SUMMARY.md
+**Superseded By:** DEVELOPMENT_TRACKER.md (for ongoing status)
+---
+
 # Pipeline Orchestration Implementation Summary
 
 **Date**: 2025-12-18

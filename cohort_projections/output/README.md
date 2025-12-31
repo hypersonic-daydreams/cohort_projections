@@ -1,5 +1,7 @@
 # Output Module
 
+**Last Updated:** 2025-12-31 | **Status:** Current | **Related ADRs:** [ADR-012](../../docs/adr/012-output-export-format-strategy.md), [ADR-015](../../docs/adr/015-output-format-visualization-design.md)
+
 Enhanced output capabilities for population projection results, providing formatted exports, comprehensive reports, and publication-ready visualizations.
 
 ## Overview

@@ -1,5 +1,7 @@
 # Data Fetching Modules
 
+**Last Updated:** 2025-12-31 | **Status:** Current | **Related ADR:** [ADR-006](../../../docs/adr/006-data-pipeline-architecture.md)
+
 This package contains modules for fetching demographic, geographic, and vital statistics data needed for cohort-component population projections.
 
 ## Available Modules

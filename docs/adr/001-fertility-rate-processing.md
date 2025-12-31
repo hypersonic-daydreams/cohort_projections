@@ -6,6 +6,9 @@ Accepted
 ## Date
 2025-12-18
 
+## Last Reviewed
+2025-12-31
+
 ## Context
 
 The cohort component projection engine requires age-specific fertility rates (ASFR) by race/ethnicity for women of reproductive age (15-49). These rates must be derived from raw SEER (Surveillance, Epidemiology, and End Results Program) or NVSS (National Vital Statistics System) data files, which come in various formats and use inconsistent coding schemes.

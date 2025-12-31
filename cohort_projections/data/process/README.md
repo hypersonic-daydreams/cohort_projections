@@ -1,5 +1,7 @@
 # Data Processing Module
 
+**Last Updated:** 2025-12-31 | **Status:** Current | **Related ADRs:** [ADR-001](../../../docs/adr/001-fertility-rate-processing.md), [ADR-002](../../../docs/adr/002-survival-rate-processing.md), [ADR-003](../../../docs/adr/003-migration-rate-processing.md)
+
 ## Overview
 
 The `data.process` module processes raw demographic data from various sources (Census, SEER, NVSS, IRS) into standardized formats required by the cohort component projection engine.

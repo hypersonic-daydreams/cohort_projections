@@ -1,3 +1,10 @@
+---
+**ARCHIVED:** 2025-12-31
+**Reason:** Session-specific data findings; implementation complete
+**Original Location:** /BIGQUERY_DATA_SUMMARY.md
+**Superseded By:** DEVELOPMENT_TRACKER.md (for ongoing status)
+---
+
 # BigQuery Data Availability Summary
 
 ## ✅ BigQuery Connection: SUCCESS

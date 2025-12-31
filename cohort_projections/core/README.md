@@ -1,5 +1,7 @@
 # Cohort Component Projection Engine
 
+**Last Updated:** 2025-12-31 | **Status:** Current | **Related ADR:** [ADR-004](../../docs/adr/004-core-projection-engine-architecture.md)
+
 This directory contains the mathematical core of the population projection system, implementing the standard demographic **cohort-component method**.
 
 ## Overview

@@ -1,3 +1,10 @@
+---
+**ARCHIVED:** 2025-12-31
+**Reason:** Session-specific development notes; implementation complete
+**Original Location:** /SESSION_SUMMARY.md
+**Superseded By:** DEVELOPMENT_TRACKER.md (for ongoing status)
+---
+
 # Session Summary: North Dakota Cohort Projections Implementation
 
 ## Session Date
