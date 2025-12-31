@@ -175,9 +175,11 @@ def create_figure_01_timeseries() -> None:
     )
 
     # Panel B: ND Share with HP trend
+    # Note: original/trend values are already in percentage form (0.173 = 0.173%)
+    # Do NOT multiply by 100 again
     ax2.plot(
         years,
-        original * 100,
+        original,
         "o-",
         color=COLORS["blue"],
         linewidth=1.5,
@@ -186,7 +188,7 @@ def create_figure_01_timeseries() -> None:
     )
     ax2.plot(
         years,
-        trend * 100,
+        trend,
         "--",
         color=COLORS["orange"],
         linewidth=1.5,

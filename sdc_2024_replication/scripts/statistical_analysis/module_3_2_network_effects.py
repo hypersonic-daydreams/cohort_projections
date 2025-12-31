@@ -30,13 +30,13 @@ warnings.filterwarnings("ignore")
 # Configuration
 # ============================================================================
 
-DATA_DIR = Path("/home/nigel/cohort_projections/data/processed/immigration/analysis")
-OUTPUT_DIR = Path(
-    "/home/nigel/cohort_projections/sdc_2024_replication/scripts/statistical_analysis/results"
-)
-FIGURES_DIR = Path(
-    "/home/nigel/cohort_projections/sdc_2024_replication/scripts/statistical_analysis/figures"
-)
+# Project root relative to this script
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_PROJECT_ROOT = _SCRIPT_DIR.parents[3]  # sdc_2024_replication -> cohort_projections
+
+DATA_DIR = _PROJECT_ROOT / "data/processed/immigration/analysis"
+OUTPUT_DIR = _SCRIPT_DIR / "results"
+FIGURES_DIR = _SCRIPT_DIR / "figures"
 
 # Ensure output directories exist
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

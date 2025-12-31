@@ -28,8 +28,8 @@ import numpy as np
 import pandas as pd
 from scipy import interpolate
 
-# File paths
-BASE_DIR = Path("/home/nigel/cohort_projections")
+# File paths (relative to script location)
+BASE_DIR = Path(__file__).resolve().parents[1]  # scripts -> cohort_projections
 DATA_DIR = BASE_DIR / "data/raw/nd_sdc_2024_projections/source_files"
 OUTPUT_DIR = BASE_DIR / "data/processed/sdc_2024"
 

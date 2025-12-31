@@ -178,6 +178,40 @@ def _driver_ols_forecast(
         return float(train[target_col].mean()), None
 
 
+def _lagged_driver_ols_forecast(
+    train: pd.DataFrame,
+    target_col: str,
+    driver_col: str,
+) -> tuple[float, float | None]:
+    """OLS forecast using LAGGED (t-1) national driver - a feasible benchmark.
+
+    Unlike the oracle driver, this uses only information available at forecast time:
+    the most recent observed US migration value to predict next period's ND migration.
+    """
+    # Need at least 3 obs to fit lagged regression (2 for alignment + 1 for estimation)
+    if len(train) < 3:
+        return float(train[target_col].mean()), None
+
+    y = train[target_col].to_numpy()
+    x_lagged = train[driver_col].to_numpy()
+
+    # Align: y[t] ~ x[t-1], so drop first y and last x
+    y_aligned = y[1:]
+    x_aligned = x_lagged[:-1]
+
+    X = np.column_stack([np.ones(len(x_aligned)), x_aligned])
+    try:
+        beta = np.linalg.lstsq(X, y_aligned, rcond=None)[0]
+        # For forecast: use the LAST observed driver value (which is available)
+        driver_last = float(train[driver_col].iloc[-1])
+        y_hat = float(beta[0] + beta[1] * driver_last)
+        residuals = y_aligned - X @ beta
+        sigma = float(residuals.std(ddof=1)) if len(residuals) > 2 else None
+        return y_hat, sigma
+    except np.linalg.LinAlgError:
+        return float(train[target_col].mean()), None
+
+
 def _arima_forecast(train: pd.Series) -> tuple[float, dict[float, tuple[float, float]]]:
     """ARIMA(0,1,0) forecast with prediction intervals."""
     model = ARIMA(train, order=(0, 1, 0), trend="n")
@@ -226,6 +260,7 @@ def rolling_origin_backtest(
                 y_hat_mean, sigma_mean, interval_levels
             )
 
+            # Oracle driver (uses contemporaneous US migration - infeasible)
             driver_intervals: dict[float, tuple[float | None, float | None]] = {
                 level: (None, None) for level in interval_levels
             }
@@ -241,6 +276,19 @@ def rolling_origin_backtest(
                     y_hat_driver, sigma_driver, interval_levels
                 )
 
+            # Lagged driver (uses t-1 US migration - FEASIBLE benchmark)
+            lagged_driver_intervals: dict[float, tuple[float | None, float | None]] = {
+                level: (None, None) for level in interval_levels
+            }
+            y_hat_lagged_driver = None
+            if driver_col is not None:
+                y_hat_lagged_driver, sigma_lagged = _lagged_driver_ols_forecast(
+                    train, target_col, driver_col
+                )
+                lagged_driver_intervals = _intervals_from_sigma(
+                    y_hat_lagged_driver, sigma_lagged, interval_levels
+                )
+
             try:
                 y_hat_arima, arima_intervals = _arima_forecast(train[target_col])
             except Exception:
@@ -250,7 +298,8 @@ def rolling_origin_backtest(
             model_specs = [
                 ("naive_rw", y_hat_naive, naive_intervals),
                 ("expanding_mean", y_hat_mean, mean_intervals),
-                ("driver_ols", y_hat_driver, driver_intervals),
+                ("driver_ols_lagged", y_hat_lagged_driver, lagged_driver_intervals),
+                ("driver_ols_oracle", y_hat_driver, driver_intervals),
                 ("arima_010", y_hat_arima, arima_intervals),
             ]
 
@@ -299,7 +348,12 @@ def rolling_origin_backtest(
 
 
 def summarize_forecasts(forecast_log: list[dict]) -> list[dict]:
-    """Summarize forecast accuracy and interval calibration by model."""
+    """Summarize forecast accuracy and interval calibration by model.
+
+    Includes MASE (Mean Absolute Scaled Error), which is robust to the
+    near-zero 2020 value that inflates MAPE. MASE uses naive RW errors
+    as the scaling factor: MASE = MAE / MAE_naive.
+    """
     df = pd.DataFrame(forecast_log)
     if df.empty:
         return []
@@ -307,15 +361,27 @@ def summarize_forecasts(forecast_log: list[dict]) -> list[dict]:
     summaries = []
     group_cols = ["model", "horizon"]
 
+    # Compute naive RW MAE for each horizon to use as MASE denominator
+    naive_mae_by_horizon: dict[int, float] = {}
+    naive_df = df[df["model"] == "naive_rw"]
+    for horizon, group in naive_df.groupby("horizon"):
+        naive_mae_by_horizon[int(horizon)] = float(group["abs_error"].mean())
+
     for (model, horizon), group in df.groupby(group_cols):
+        mae = float(group["abs_error"].mean())
+        naive_mae = naive_mae_by_horizon.get(int(horizon), mae)
+        # MASE = MAE / MAE_naive; naive RW has MASE = 1.0 by definition
+        mase = float(mae / naive_mae) if naive_mae > 0 else None
+
         summaries.append(
             {
                 "model": model,
                 "horizon": int(horizon),
                 "n_forecasts": int(len(group)),
-                "mae": float(group["abs_error"].mean()),
+                "mae": mae,
                 "rmse": float(np.sqrt((group["error"] ** 2).mean())),
                 "mape": float(group["mape"].mean(skipna=True)),
+                "mase": mase,
                 "coverage_80": float(group["covered_80"].mean(skipna=True)),
                 "coverage_95": float(group["covered_95"].mean(skipna=True)),
                 "avg_width_80": float(group["interval_width_80"].mean(skipna=True)),

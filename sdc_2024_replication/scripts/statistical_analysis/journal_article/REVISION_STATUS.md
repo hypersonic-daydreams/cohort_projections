@@ -61,36 +61,36 @@
 
 | Task | Status | Agent Group | Description |
 |------|--------|-------------|-------------|
-| P3.01 | ⬜ Not Started | A | Abstract corrections (gravity coef, DiD language) |
-| P3.02 | ⬜ Not Started | A | DiD language softening throughout |
-| P3.03 | ⬜ Not Started | C | Backtesting oracle benchmark clarification |
-| P3.04 | ⬜ Not Started | B | Figure 3 scaling/labeling fix |
-| P3.05 | ⬜ Not Started | B | Location Quotient denominator audit |
-| P3.06 | ⬜ Not Started | B | Duplicate Kaplan-Meier figure resolution |
-| P3.07 | ⬜ Not Started | B | Residual normality statistics consistency |
-| P3.08 | ⬜ Not Started | E | Monte Carlo double-counting clarification |
-| P3.09 | ⬜ Not Started | A | ITS trend change coefficient caveat |
+| P3.01 | ✅ Complete | A | Abstract corrections (gravity coef, DiD language) |
+| P3.02 | ✅ Complete | A | DiD language softening throughout |
+| P3.03 | ✅ Complete | C | Backtesting oracle benchmark clarification |
+| P3.04 | ✅ Complete | B | Figure 3 scaling/labeling fix |
+| P3.05 | ⚠️ Flagged | B | Location Quotient denominator audit (upstream data issue) |
+| P3.06 | ✅ Complete | B | Duplicate Kaplan-Meier figure resolution |
+| P3.07 | ✅ Complete | B | Residual normality statistics consistency |
+| P3.08 | ✅ Complete | E | Monte Carlo double-counting clarification |
+| P3.09 | ✅ Complete | A | ITS trend change coefficient caveat |
 
 ### Tier 2: Important Improvements (Should Complete)
 
 | Task | Status | Agent Group | Description |
 |------|--------|-------------|-------------|
-| P3.10 | ⬜ Not Started | D | Wild cluster bootstrap for DiD |
-| P3.11 | ⬜ Not Started | C | Feasible forecast benchmark addition |
-| P3.12 | ⬜ Not Started | F | Module Outputs → Scenario Inputs mapping table |
-| P3.13 | ⬜ Not Started | E | Gravity model specification transparency |
-| P3.14 | ⬜ Not Started | D | Restricted pre-period DiD robustness |
-| P3.15 | ⬜ Not Started | E | ITS ND-specific interaction term |
+| P3.10 | ✅ Complete | D | Wild cluster bootstrap for DiD |
+| P3.11 | ✅ Complete | C | Feasible forecast benchmark addition |
+| P3.12 | ✅ Complete | F | Module Outputs → Scenario Inputs mapping table |
+| P3.13 | ✅ Complete | E | Gravity model specification transparency |
+| P3.14 | ✅ Complete | D | Restricted pre-period DiD robustness |
+| P3.15 | ✅ Complete | E | ITS ND-specific interaction term |
 
 ### Tier 3: Enhancements (Nice to Complete)
 
 | Task | Status | Agent Group | Description |
 |------|--------|-------------|-------------|
-| P3.16 | ⬜ Not Started | F | VAR results display |
-| P3.17 | ⬜ Not Started | F | ML module output transparency |
-| P3.18 | ⬜ Not Started | A | Significance framing language update |
-| P3.19 | ⬜ Not Started | E | Distance variable data collection (if P3.13 Option A) |
-| P3.20 | ⬜ Not Started | G | Figure quality and consistency audit |
+| P3.16 | ✅ Complete | F | VAR results display |
+| P3.17 | ✅ Complete | F | ML module output transparency |
+| P3.18 | ✅ Complete | A | Significance framing language update |
+| P3.19 | ✅ Complete | E | Distance variable data collection (standalone analysis) |
+| P3.20 | ✅ Complete | G | Figure quality and consistency audit |
 
 **Agent Groups:**
 - **A:** Text/Language Edits
@@ -105,15 +105,15 @@
 
 ## Next Action
 
-**Phase 2 complete. Begin Phase 3: Post-Review Revisions.**
+**Phase 3 complete.** Final PDF compiled: `output/article_draft_v3_phase3.pdf` (61 pages, no errors).
 
-Recommended execution order:
-1. **Wave 1 (Parallel):** Agent Groups A, B, C
-2. **Wave 2 (Parallel):** Agent Groups D, E
-3. **Wave 3:** Agent Group F
-4. **Final:** Agent Group G
+### Summary of Phase 3 Completion:
+- **Tier 1 (Critical):** 8/9 complete, 1 flagged (P3.05 - upstream data issue)
+- **Tier 2 (Important):** 6/6 complete
+- **Tier 3 (Enhancements):** 5/5 complete
 
-See `revision_outputs/06_resubmission_review/PHASE_3_REVISION_PLAN.md` for detailed task specifications.
+### Flagged for Manual Review:
+- P3.05: LQ denominator audit revealed upstream data issue requiring review
 
 ---
 
@@ -136,3 +136,22 @@ See `revision_outputs/06_resubmission_review/PHASE_3_REVISION_PLAN.md` for detai
 | C08 | 2025-12-30 | Added pipeline overview section with module classification table, generated analysis pipeline diagram, and documented module dependencies |
 | C09 | 2025-12-30 | Regenerated publication figures/captions, added pipeline diagram assets, validated citation coverage; ensured PDF+PNG figure set |
 | C10 | 2025-12-30 | Completed terminology sweep, updated abstract and scenario descriptions, and aligned Monte Carlo intervals across sections |
+| P3.01 | 2025-12-31 | Abstract corrections: gravity coefficient insignificance noted, DiD language softened to "policy-associated divergence" |
+| P3.02 | 2025-12-31 | DiD language softening throughout article; added "upper bound" interpretation |
+| P3.03 | 2025-12-31 | Backtesting: Added "Oracle (ex-post)" label, feasible competitor, MASE metric, justification for ARIMA in scenarios |
+| P3.04 | 2025-12-31 | Figure 3 scaling: Verified correct (0.1-0.3% is basis points), added clarifying footnote |
+| P3.06 | 2025-12-31 | Duplicate KM figure: Consolidated into single canonical Figure 8; removed duplicate |
+| P3.07 | 2025-12-31 | Residual statistics: Unified Shapiro-Wilk values across text, caption, and figure annotation |
+| P3.08 | 2025-12-31 | Monte Carlo clarification: Added appendix note explaining wave simulation modulates existing variance |
+| P3.09 | 2025-12-31 | ITS caveat: Added cautionary note about +14,113 coefficient as short-term rebound slope |
+| P3.10 | 2025-12-31 | Wild cluster bootstrap: Implemented with Rademacher weights (999 iter); full p=0.077, restricted p=0.003 |
+| P3.11 | 2025-12-31 | Feasible benchmark: Added lagged Driver OLS, MASE metric to Table 6 |
+| P3.12 | 2025-12-31 | Module mapping table: Added Section 2.9 Table 11 with module→scenario input mapping |
+| P3.13 | 2025-12-31 | Gravity transparency: Renamed to "cross-sectional allocation model (PPML)", clarified distance exclusion |
+| P3.14 | 2025-12-31 | Restricted pre-period: Estimated DiD with 2013-2017 pre-period; pre-trend test now passes (p=0.553) |
+| P3.15 | 2025-12-31 | ITS ND-specific: Added ND × Post2020 interaction term; ND tracks national average |
+| P3.16 | 2025-12-31 | VAR results: Added coefficient table and diagnostics to Appendix |
+| P3.17 | 2025-12-31 | ML transparency: Added paragraph in Section 3.9 explaining ML role in feature selection |
+| P3.20 | 2025-12-31 | Figure audit: All 12 figures verified; PDF+PNG present; numbering sequential; no broken refs |
+| P3.18 | 2025-12-31 | Significance framing: Replaced "conventional levels" with cautious small-sample language in Results intro |
+| P3.19 | 2025-12-31 | Distance analysis: Created standalone analysis with 110-country distance dataset; found positive distance effect (refugee patterns) |

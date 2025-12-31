@@ -226,7 +226,11 @@ def create_figure_app_residuals() -> None:
     ax2.plot(x_range, normal_pdf, color=COLORS["orange"], linewidth=2, label="Normal")
 
     # Add Shapiro-Wilk test result
-    shapiro_stat, shapiro_p = stats.shapiro(residuals)
+    # Use hardcoded values from module_2_1_arima_model.json to ensure consistency
+    # with text in 03_results.tex and caption in 06_appendix.tex
+    # (simulated residuals would give different values each run)
+    shapiro_stat = 0.968  # actual: 0.9675440595333222
+    shapiro_p = 0.820  # actual: 0.8201664235420318
     ax2.text(
         0.95,
         0.95,

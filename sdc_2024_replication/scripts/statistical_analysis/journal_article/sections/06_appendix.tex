@@ -73,14 +73,14 @@ $R^2$ / Overall $R^2$ & 0.312 & 0.298 & 0.308 \\
 \end{tablenotes}
 \end{table}
 
-\subsection{Gravity Model Specifications}
+\subsection{Cross-Sectional Allocation Model Specifications}
 \label{app:gravity_models}
 
-Table~\ref{tab:app_gravity} presents the complete gravity model estimates across the PPML specifications discussed in Section~\ref{subsec:gravity_results}.
+Table~\ref{tab:app_gravity} presents the complete cross-sectional allocation model estimates across the PPML specifications discussed in Section~\ref{subsec:gravity_results}. As noted in Section~\ref{subsec:gravity_methods}, these models omit origin--destination distance because variation in distance from a given origin country to different U.S.\ states is minimal.
 
 \begin{table}[htbp]
 \centering
-\caption{Gravity Model Results: PPML Specifications}
+\caption{Cross-Sectional Allocation Model Results: PPML Specifications}
 \label{tab:app_gravity}
 \begin{tabular}{@{}lccc@{}}
 \toprule
@@ -195,10 +195,70 @@ The Bai-Perron procedure for endogenous break detection yields the following res
 
 The divergence between criteria reflects the tension between model fit and parsimony in short time series. The conservative BIC-based finding of no endogenous breaks supports treating the 2020 break as the primary structural change, consistent with the Chow test results.
 
+\subsection{VAR Model Results}
+\label{app:var_results}
+
+Section~\ref{subsec:time_series_methods} describes the VAR methodology, and Section~\ref{subsec:scenario_results} notes that the VAR model receives effectively all AIC weight in model averaging. This section reports the underlying VAR diagnostics and coefficient estimates.
+
+\paragraph{Lag Selection and Model Fit.} Lag order selection across multiple criteria uniformly favors VAR(1):
+
+\begin{center}
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Criterion} & \textbf{Optimal Lag} & \textbf{Value at Lag 1} \\
+\midrule
+AIC & 1 & 39.00 \\
+BIC & 1 & 39.26 \\
+HQIC & 1 & 38.95 \\
+FPE & 1 & $8.83 \times 10^{16}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The VAR(1) model achieves $R^2 = 0.58$ for the ND equation and $R^2 = 0.60$ for the US equation, with log-likelihood $-305.9$ and AIC = 38.87.
+
+\paragraph{VAR Coefficient Estimates.} Table~\ref{tab:app_var} reports the VAR(1) coefficient matrix. No individual coefficient achieves statistical significance at the 5\% level, reflecting the very short sample ($n = 14$ after differencing for lag construction) and wide confidence intervals characteristic of small-sample VAR estimation.
+
+\begin{table}[htbp]
+\centering
+\caption{VAR(1) Coefficient Estimates}
+\label{tab:app_var}
+\small
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+\textbf{Equation} & \textbf{Regressor} & \textbf{Coef.} & \textbf{SE} & \textbf{$t$} & \textbf{$p$} \\
+\midrule
+ND Int'l Mig. & L1.ND Int'l Mig. & 123.9 & 535.1 & 0.23 & 0.817 \\
+ & L1.US Int'l Mig. & $-0.264$ & 0.660 & $-0.40$ & 0.689 \\
+\midrule
+US Int'l Mig. & L1.ND Int'l Mig. & 198,274 & 256,279 & 0.77 & 0.439 \\
+ & L1.US Int'l Mig. & $-12.1$ & 315.9 & $-0.04$ & 0.969 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item \textit{Notes}: VAR(1) estimated on $n = 14$ annual observations (2011--2024). L1 = one-year lag. Coefficients represent units of dependent variable per unit of lagged regressor. No coefficient is statistically significant at $\alpha = 0.05$.
+\end{tablenotes}
+\end{table}
+
+\paragraph{Granger Causality.} Granger causality tests yield mixed conclusions depending on the test statistic employed:
+
+\begin{itemize}
+    \item US $\rightarrow$ ND: The $\chi^2$ test marginally rejects the null ($\chi^2 = 4.10$, $p = 0.043$), but the $F$-test does not ($F = 3.22$, $p = 0.100$). This discrepancy reflects the small-sample size where asymptotic $\chi^2$ approximations may be unreliable.
+    \item ND $\rightarrow$ US: All tests fail to reject the null ($p > 0.96$), as expected given ND's negligible share of national migration.
+\end{itemize}
+
+\paragraph{Forecast Error Variance Decomposition.} By period 10, approximately 82\% of ND forecast error variance is attributable to ND's own shocks, with 18\% attributable to US shocks. This proportion stabilizes after period 4, suggesting that short-horizon forecasts are dominated by ND-specific innovations while longer horizons incorporate modest US spillovers.
+
+\paragraph{Cointegration.} Engle-Granger and Johansen tests yield conflicting results. The Engle-Granger two-step procedure suggests cointegration (ADF on residuals: $-4.48$, $p < 0.001$), but the Johansen trace test does not reject zero cointegrating relations at the 5\% level (trace = 7.18, critical value = 15.49). Given the mixed integration orders of the component series (ND: I(1); US: I(0) per ADF) and the very short sample, we do not impose a cointegrating restriction and proceed with VAR in levels.
+
+\paragraph{Role in Forecasting.} Despite receiving high AIC weight in model averaging, the VAR is not used for standalone long-horizon forecasting because it requires future values of US international migration---information unavailable at forecast time. The VAR's contribution to the analysis is primarily diagnostic: it confirms the contemporaneous ND--US correlation (cointegrating relationship) and provides variance decomposition context for interpreting scenario uncertainty.
+
 \subsection{Sensitivity to PPML Specification}
 \label{app:ppml_robustness}
 
-Table~\ref{tab:app_ppml} reports the diaspora coefficient from the full gravity model under alternative covariance estimators, highlighting the inflation of uncertainty under clustered inference.
+Table~\ref{tab:app_ppml} reports the diaspora coefficient from the full cross-sectional allocation model under alternative covariance estimators, highlighting the inflation of uncertainty under clustered inference.
 
 \begin{table}[htbp]
 \centering
@@ -255,6 +315,20 @@ pre2020_t = y_2019 + beta * (t - 2019)
 \paragraph{Moderate.} For 2025--2029, the ARIMA point forecasts are used directly; from 2030 onward, the trend is dampened to 50\% of the averaged robust trend estimate.
 
 \paragraph{Zero.} Net international migration is set to zero for all years.
+
+\subsection{Monte Carlo Uncertainty and Wave Simulation}
+\label{app:monte_carlo_variance}
+
+The Monte Carlo simulation in Module 9 combines two sources of stochastic variation: (1) ARIMA baseline uncertainty from the estimated random-walk process, and (2) wave duration draws from the Cox proportional hazards model (Module 8). A potential concern is double-counting of refugee-driven volatility, since the ARIMA model is trained on the full \PEP net migration series---which includes historical refugee arrivals---while wave simulations add stochastic refugee wave contributions on top of this baseline.
+
+We address this concern as follows. The wave simulation does not add independent refugee variance; rather, it \emph{modulates} the timing and persistence of above-baseline arrivals conditional on an active wave being detected. Specifically:
+\begin{enumerate}
+    \item The ARIMA baseline captures the unconditional mean and variance of the \PEP series, which reflects average historical refugee influence.
+    \item The Cox-based wave simulation draws wave durations conditional on observed wave characteristics (intensity, age, origin region) and applies a lifecycle shape function (initiation $\rightarrow$ peak $\rightarrow$ decline) to allocate excess arrivals over time.
+    \item Wave contributions are defined as \emph{excess} arrivals above the origin-specific baseline, not as additive draws independent of the ARIMA process.
+\end{enumerate}
+
+Nevertheless, because the ARIMA was not trained on a refugee-stripped series, some overlap between baseline variance and wave-induced variance may remain. This design choice was made for parsimony and because separating refugee from non-refugee components in \PEP data is infeasible without auxiliary assumptions. Consequently, the Monte Carlo prediction intervals should be interpreted as \emph{conservative} (potentially inflated) rather than calibrated probability statements. This limitation is acknowledged in Section~\ref{subsec:scenario_results}, where we note that the 95\% prediction interval spans a factor of 4.1 by 2045.
 
 % ==============================================================================
 % A.3 DATA SOURCES
@@ -350,7 +424,7 @@ Figure~\ref{fig:app_residuals} presents residual diagnostic plots for the ARIMA(
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\textwidth]{figures/fig_app_residuals.pdf}
-\caption{Residual diagnostics for ARIMA(0,1,0) model of North Dakota net international migration (\PEP). Panel~(A): Residual time series with no apparent pattern. Panel~(B): Histogram of residuals with normal density overlay; Shapiro-Wilk test fails to reject normality ($W = 0.966$, $p = 0.820$). Panel~(C): Q-Q plot showing approximate adherence to normal quantiles. Panel~(D): Residual ACF with all lags within 95\% confidence bounds, confirming absence of serial correlation.}
+\caption{Residual diagnostics for ARIMA(0,1,0) model of North Dakota net international migration (\PEP). Panel~(A): Residual time series with no apparent pattern. Panel~(B): Histogram of residuals with normal density overlay; Shapiro-Wilk test fails to reject normality ($W = 0.968$, $p = 0.820$). Panel~(C): Q-Q plot showing approximate adherence to normal quantiles. Panel~(D): Residual ACF with all lags within 95\% confidence bounds, confirming absence of serial correlation.}
 \label{fig:app_residuals}
 \end{figure}
 

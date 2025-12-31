@@ -19,9 +19,12 @@ from pathlib import Path
 
 import pandas as pd
 
-# Define paths
-SDC_DATA_DIR = Path("/home/nigel/cohort_projections/data/raw/nd_sdc_2024_projections")
-OUTPUT_DIR = Path("/home/nigel/cohort_projections/sdc_2024_replication/data")
+# Define paths relative to script location
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_PROJECT_ROOT = _SCRIPT_DIR.parents[1]  # sdc_2024_replication -> cohort_projections
+
+SDC_DATA_DIR = _PROJECT_ROOT / "data/raw/nd_sdc_2024_projections"
+OUTPUT_DIR = _SCRIPT_DIR.parent / "data"  # sdc_2024_replication/data
 
 # Source files
 PROJECTIONS_BASE_FILE = SDC_DATA_DIR / "source_files/results/Projections_Base_2023.xlsx"

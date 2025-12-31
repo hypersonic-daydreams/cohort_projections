@@ -1,0 +1,199 @@
+{
+  "generated": "2025-12-31T16:58:07.020430+00:00",
+  "analyses": {
+    "wild_cluster_bootstrap_full": {
+      "method": "Wild Cluster Bootstrap (Rademacher weights)",
+      "n_clusters": 126,
+      "n_treated_clusters": 7,
+      "n_bootstrap": 999,
+      "original_att": -1.383546242708035,
+      "original_se_clustered": 0.6461168644795392,
+      "original_t_stat": -2.1413250740986474,
+      "conventional_p_value": 0.03224783245568213,
+      "bootstrap_p_value": 0.07707707707707707,
+      "bootstrap_se": 0.7963870173551895,
+      "conventional_ci_lower": -2.6499120268918785,
+      "conventional_ci_upper": -0.11718045852419112,
+      "bootstrap_ci_lower": -1.5154416220803906,
+      "bootstrap_ci_upper": 1.508142407876837
+    },
+    "randomization_inference_full": {
+      "method": "Randomization Inference (Fisher exact test)",
+      "n_permutations": 999,
+      "n_valid": 997,
+      "n_treated_clusters": 7,
+      "n_total_clusters": 126,
+      "original_att": -1.383546242708035,
+      "permutation_att_mean": 0.0056541560337036514,
+      "permutation_att_sd": 0.7427381510528067,
+      "rank": 44,
+      "p_value_twosided": 0.058174523570712136,
+      "p_value_onesided": 0.04312938816449348
+    },
+    "restricted_preperiod": {
+      "full": {
+        "pre_period": "2002-2017 (full)",
+        "att": -1.383546242708035,
+        "se": 0.6461168644795392,
+        "t_stat": -2.1413250740986474,
+        "p_value": 0.03224783245568213,
+        "ci_lower": -2.6499120268918785,
+        "ci_upper": -0.11718045852419112
+      },
+      "from_2010": {
+        "pre_period": "2010-2017 (8 years)",
+        "att": -1.7457493601286316,
+        "se": 0.5901411248632481,
+        "t_stat": -2.9581896373230547,
+        "p_value": 0.0030945168537957588,
+        "ci_lower": -2.902404710656553,
+        "ci_upper": -0.5890940096007102
+      },
+      "from_2012": {
+        "pre_period": "2012-2017 (6 years)",
+        "att": -1.908802190769384,
+        "se": 0.5244803217532759,
+        "t_stat": -3.6394162213531356,
+        "p_value": 0.00027325682003698785,
+        "ci_lower": -2.936764732005784,
+        "ci_upper": -0.8808396495329838
+      },
+      "from_2013": {
+        "pre_period": "2013-2017 (5 years)",
+        "att": -1.982533213196433,
+        "se": 0.506201072379144,
+        "t_stat": -3.9164935069744735,
+        "p_value": 8.984623448892027e-05,
+        "ci_lower": -2.974669083995108,
+        "ci_upper": -0.9903973423977577
+      },
+      "from_2014": {
+        "pre_period": "2014-2017 (4 years)",
+        "att": -2.067014670315359,
+        "se": 0.46888329849588706,
+        "t_stat": -4.408377685761163,
+        "p_value": 1.0414781071139624e-05,
+        "ci_lower": -2.9860090483196413,
+        "ci_upper": -1.148020292311077
+      },
+      "from_2015": {
+        "pre_period": "2015-2017 (3 years)",
+        "att": -2.169366413660533,
+        "se": 0.4429009888780731,
+        "t_stat": -4.898084375823648,
+        "p_value": 9.677548045462611e-07,
+        "ci_lower": -3.0374364005787315,
+        "ci_upper": -1.3012964267423346
+      }
+    },
+    "pretrend_tests": {
+      "full": {
+        "f_statistic": 4.312300423661885,
+        "p_value": 1.9910778520356643e-06,
+        "n_pre_coefs": 15,
+        "pre_times": [
+          -16,
+          -15,
+          -14,
+          -13,
+          -12,
+          -11,
+          -10,
+          -9,
+          -8,
+          -7,
+          -6,
+          -5,
+          -4,
+          -3,
+          -2
+        ]
+      },
+      "from_2010": {
+        "f_statistic": 1.6701618726403087,
+        "p_value": 0.12347610540718397,
+        "n_pre_coefs": 7,
+        "pre_times": [
+          -8,
+          -7,
+          -6,
+          -5,
+          -4,
+          -3,
+          -2
+        ]
+      },
+      "from_2012": {
+        "f_statistic": 0.9756402982862739,
+        "p_value": 0.4360144459639055,
+        "n_pre_coefs": 5,
+        "pre_times": [
+          -6,
+          -5,
+          -4,
+          -3,
+          -2
+        ]
+      },
+      "from_2013": {
+        "f_statistic": 0.7610394729008307,
+        "p_value": 0.5528758762533929,
+        "n_pre_coefs": 4,
+        "pre_times": [
+          -5,
+          -4,
+          -3,
+          -2
+        ]
+      },
+      "from_2014": {
+        "f_statistic": 1.1766889874853208,
+        "p_value": 0.32226359738636434,
+        "n_pre_coefs": 3,
+        "pre_times": [
+          -4,
+          -3,
+          -2
+        ]
+      },
+      "from_2015": {
+        "f_statistic": 0.00630905021626744,
+        "p_value": 0.9937111978028691,
+        "n_pre_coefs": 2,
+        "pre_times": [
+          -3,
+          -2
+        ]
+      }
+    },
+    "wild_cluster_bootstrap_restricted_2013": {
+      "method": "Wild Cluster Bootstrap (Rademacher weights)",
+      "n_clusters": 109,
+      "n_treated_clusters": 7,
+      "n_bootstrap": 999,
+      "original_att": -1.982533213196433,
+      "original_se_clustered": 0.506201072379144,
+      "original_t_stat": -3.9164935069744735,
+      "conventional_p_value": 8.984623448892027e-05,
+      "bootstrap_p_value": 0.003003003003003003,
+      "bootstrap_se": 0.8299713493967543,
+      "conventional_ci_lower": -2.974669083995108,
+      "conventional_ci_upper": -0.9903973423977577,
+      "bootstrap_ci_lower": -1.6543430704496664,
+      "bootstrap_ci_upper": 1.5615103553960772
+    },
+    "randomization_inference_restricted_2013": {
+      "method": "Randomization Inference (Fisher exact test)",
+      "n_permutations": 999,
+      "n_valid": 999,
+      "n_treated_clusters": 7,
+      "n_total_clusters": 109,
+      "original_att": -1.982533213196433,
+      "permutation_att_mean": -0.0013631132367783773,
+      "permutation_att_sd": 0.6247531600444232,
+      "rank": 5,
+      "p_value_twosided": 0.004004004004004004,
+      "p_value_onesided": 0.004004004004004004
+    }
+  }
+}

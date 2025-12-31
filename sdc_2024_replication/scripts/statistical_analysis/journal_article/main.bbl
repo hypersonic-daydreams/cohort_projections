@@ -70,6 +70,11 @@ Brown, R.~L., Durbin, J., and Evans, J.~M. (1975).
 \newblock {\em Journal of the Royal Statistical Society: Series B
   (Methodological)}, 37(2):149--192.
 
+\bibitem[Cameron et~al., 2008]{CameronGelbachMiller2008}
+Cameron, A.~C., Gelbach, J.~B., and Miller, D.~L. (2008).
+\newblock Bootstrap-based improvements for inference with clustered errors.
+\newblock {\em Review of Economics and Statistics}, 90(3):414--427.
+
 \bibitem[Card, 2001]{Card2001}
 Card, D. (2001).
 \newblock Immigrant inflows, native outflows, and the local labor market

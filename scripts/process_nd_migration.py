@@ -14,7 +14,7 @@ import pandas as pd
 
 # Configuration
 ND_STATE_FIPS = 38
-BASE_DIR = Path("/home/nigel/cohort_projections")
+BASE_DIR = Path(__file__).resolve().parents[1]  # scripts -> cohort_projections
 MIGRATION_DIR = BASE_DIR / "data" / "raw" / "migration"
 
 # File mappings: filename suffix to migration year

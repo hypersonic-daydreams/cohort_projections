@@ -187,8 +187,10 @@ def compute_nd_share_analysis(df_state_country: pd.DataFrame) -> pd.DataFrame:
 
 
 def main():
-    # Project root directory
-    project_root = Path("/home/nigel/cohort_projections")
+    # Project root directory (relative to this script)
+    project_root = (
+        Path(__file__).resolve().parents[3]
+    )  # data_immigration_policy/scripts -> cohort_projections
 
     # Raw data source (input)
     source_path = project_root / "data" / "raw" / "immigration" / "dhs_yearbook"
