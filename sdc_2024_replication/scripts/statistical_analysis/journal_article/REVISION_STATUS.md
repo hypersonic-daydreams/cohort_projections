@@ -45,19 +45,75 @@
 |------|--------|-------------|
 | P2.1 | ✅ Complete | Compile final PDF (`pdflatex main.tex`) → `output/article_draft_v2_revised.pdf` |
 | P2.2 | ✅ Complete | Verify no LaTeX errors, all figures render (55 pages, no errors) |
-| P2.3a | ⬜ Not Started | Submit revised PDF to ChatGPT 5.2 Pro for re-review |
-| P2.3b | ⬜ Not Started | Submit revised PDF to Gemini 3 Pro "Deep Think" for re-review |
-| P2.4a | ⬜ Not Started | Save ChatGPT response to `revision_outputs/06_resubmission_review/outputs/` |
-| P2.4b | ⬜ Not Started | Save Gemini response to `revision_outputs/06_resubmission_review/outputs/` |
-| P2.5 | ⬜ Not Started | Compare reviews, assess feedback, create Phase 3 tasks if needed |
+| P2.3a | ✅ Complete | Submit revised PDF to ChatGPT 5.2 Pro for re-review |
+| P2.3b | ✅ Complete | Submit revised PDF to Gemini 3 Pro "Deep Think" for re-review |
+| P2.4a | ✅ Complete | Save ChatGPT response to `revision_outputs/06_resubmission_review/outputs/` |
+| P2.4b | ✅ Complete | Save Gemini response to `revision_outputs/06_resubmission_review/outputs/` |
+| P2.5 | ✅ Complete | Compare reviews, assess feedback, create Phase 3 tasks |
+
+---
+
+## Phase 3: Post-Review Revisions (Codex Agents)
+
+**Instructions:** See `revision_outputs/06_resubmission_review/PHASE_3_REVISION_PLAN.md` for detailed task specifications.
+
+### Tier 1: Critical Fixes (Must Complete)
+
+| Task | Status | Agent Group | Description |
+|------|--------|-------------|-------------|
+| P3.01 | ⬜ Not Started | A | Abstract corrections (gravity coef, DiD language) |
+| P3.02 | ⬜ Not Started | A | DiD language softening throughout |
+| P3.03 | ⬜ Not Started | C | Backtesting oracle benchmark clarification |
+| P3.04 | ⬜ Not Started | B | Figure 3 scaling/labeling fix |
+| P3.05 | ⬜ Not Started | B | Location Quotient denominator audit |
+| P3.06 | ⬜ Not Started | B | Duplicate Kaplan-Meier figure resolution |
+| P3.07 | ⬜ Not Started | B | Residual normality statistics consistency |
+| P3.08 | ⬜ Not Started | E | Monte Carlo double-counting clarification |
+| P3.09 | ⬜ Not Started | A | ITS trend change coefficient caveat |
+
+### Tier 2: Important Improvements (Should Complete)
+
+| Task | Status | Agent Group | Description |
+|------|--------|-------------|-------------|
+| P3.10 | ⬜ Not Started | D | Wild cluster bootstrap for DiD |
+| P3.11 | ⬜ Not Started | C | Feasible forecast benchmark addition |
+| P3.12 | ⬜ Not Started | F | Module Outputs → Scenario Inputs mapping table |
+| P3.13 | ⬜ Not Started | E | Gravity model specification transparency |
+| P3.14 | ⬜ Not Started | D | Restricted pre-period DiD robustness |
+| P3.15 | ⬜ Not Started | E | ITS ND-specific interaction term |
+
+### Tier 3: Enhancements (Nice to Complete)
+
+| Task | Status | Agent Group | Description |
+|------|--------|-------------|-------------|
+| P3.16 | ⬜ Not Started | F | VAR results display |
+| P3.17 | ⬜ Not Started | F | ML module output transparency |
+| P3.18 | ⬜ Not Started | A | Significance framing language update |
+| P3.19 | ⬜ Not Started | E | Distance variable data collection (if P3.13 Option A) |
+| P3.20 | ⬜ Not Started | G | Figure quality and consistency audit |
+
+**Agent Groups:**
+- **A:** Text/Language Edits
+- **B:** Numeric Consistency
+- **C:** Backtesting/Forecasting
+- **D:** Causal Inference Robustness
+- **E:** Model Specification
+- **F:** Module Integration
+- **G:** Quality Assurance
 
 ---
 
 ## Next Action
 
-**Phase 1 complete. Begin Phase 2: Re-Review.**
+**Phase 2 complete. Begin Phase 3: Post-Review Revisions.**
 
-See `HYBRID_REVISION_PLAN.md` Phase 2 for detailed instructions and prompt template.
+Recommended execution order:
+1. **Wave 1 (Parallel):** Agent Groups A, B, C
+2. **Wave 2 (Parallel):** Agent Groups D, E
+3. **Wave 3:** Agent Group F
+4. **Final:** Agent Group G
+
+See `revision_outputs/06_resubmission_review/PHASE_3_REVISION_PLAN.md` for detailed task specifications.
 
 ---
 
