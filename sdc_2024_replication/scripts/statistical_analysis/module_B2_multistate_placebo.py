@@ -52,7 +52,7 @@ from module_B2_multistate_placebo import (  # noqa: E402
     rank_states_by_shift,
     get_nd_percentile,
     # Legacy oil state classification
-    test_oil_state_hypothesis,
+    run_oil_state_hypothesis_test,
     compare_oil_vs_non_oil,
     get_nd_rank_among_oil_states,
     OIL_STATES,
@@ -65,8 +65,8 @@ from module_B2_multistate_placebo import (  # noqa: E402
     MATURE_OIL_STATES,
     ALL_BOOM_STATES,
     get_boom_category,
-    test_boom_state_hypothesis,
-    test_bakken_specific_hypothesis,
+    run_boom_state_hypothesis_test,
+    run_bakken_specific_hypothesis_test,
     get_nd_rank_among_boom_states,
     compare_boom_categories,
 )
@@ -446,7 +446,7 @@ def run_analysis() -> ModuleResult:
     print("=" * 60)
 
     # Test oil state hypothesis
-    oil_test = test_oil_state_hypothesis(shift_df, "shift_magnitude")
+    oil_test = run_oil_state_hypothesis_test(shift_df, "shift_magnitude")
 
     print("\nOil vs Non-Oil States Comparison:")
     print(f"  Oil states mean shift: {oil_test['oil_mean']:,.0f}")
@@ -515,7 +515,7 @@ def run_analysis() -> ModuleResult:
     print(f"  Mature Oil States: {MATURE_OIL_STATES}")
 
     # Test boom state hypothesis (using relative_shift to normalize for state size)
-    boom_test = test_boom_state_hypothesis(shift_df, "relative_shift")
+    boom_test = run_boom_state_hypothesis_test(shift_df, "relative_shift")
 
     print("\nBoom States vs Non-Oil States (relative shift %):")
     print(f"  Boom states mean: {boom_test['boom_mean']:.1f}%")
@@ -532,7 +532,7 @@ def run_analysis() -> ModuleResult:
     result.results["boom_state_hypothesis"] = boom_test
 
     # Bakken-specific test
-    bakken_test = test_bakken_specific_hypothesis(shift_df, "relative_shift")
+    bakken_test = run_bakken_specific_hypothesis_test(shift_df, "relative_shift")
 
     print("\nBakken vs Permian Comparison:")
     bvp = bakken_test["bakken_vs_permian"]

@@ -20,7 +20,7 @@ Usage:
     from module_B2_multistate_placebo import (
         load_state_panel,
         calculate_all_state_shifts,
-        test_oil_state_hypothesis,
+        run_oil_state_hypothesis_test,
         rank_states_by_shift,
     )
 """
@@ -37,7 +37,7 @@ from .oil_state_hypothesis import (
     OIL_STATES,
     SECONDARY_OIL_STATES,
     ALL_OIL_STATES,
-    test_oil_state_hypothesis,
+    run_oil_state_hypothesis_test,
     compare_oil_vs_non_oil,
     get_nd_rank_among_oil_states,
     # Boom-timing classification (new)
@@ -47,11 +47,14 @@ from .oil_state_hypothesis import (
     MATURE_OIL_STATES,
     ALL_BOOM_STATES,
     get_boom_category,
-    test_boom_state_hypothesis,
-    test_bakken_specific_hypothesis,
+    run_boom_state_hypothesis_test,
+    run_bakken_specific_hypothesis_test,
     get_nd_rank_among_boom_states,
     compare_boom_categories,
 )
+
+# Note: Functions were renamed from test_* to run_*_test to avoid
+# pytest collection issues. Use the run_* names for new code.
 
 __all__ = [
     # Data loading
@@ -66,18 +69,18 @@ __all__ = [
     "OIL_STATES",
     "SECONDARY_OIL_STATES",
     "ALL_OIL_STATES",
-    "test_oil_state_hypothesis",
+    "run_oil_state_hypothesis_test",
     "compare_oil_vs_non_oil",
     "get_nd_rank_among_oil_states",
-    # Boom-timing hypothesis (new)
+    # Boom-timing hypothesis
     "BAKKEN_BOOM_STATES",
     "PERMIAN_BOOM_STATES",
     "OTHER_SHALE_STATES",
     "MATURE_OIL_STATES",
     "ALL_BOOM_STATES",
     "get_boom_category",
-    "test_boom_state_hypothesis",
-    "test_bakken_specific_hypothesis",
+    "run_boom_state_hypothesis_test",
+    "run_bakken_specific_hypothesis_test",
     "get_nd_rank_among_boom_states",
     "compare_boom_categories",
 ]

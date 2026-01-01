@@ -6,6 +6,20 @@ ADR-019 Investigation
 This script performs comprehensive analysis to determine whether the three Census Bureau
 PEP vintages (2009, 2020, 2024) measure the same underlying construct for North Dakota
 international migration.
+
+.. deprecated:: 2026-01-01
+    This is a **legacy Phase A research script** from the ADR-019/020 investigation.
+    It was used for one-time exploratory analysis and is retained for reproducibility
+    and audit purposes only. This script is NOT production code and should NOT be
+    modified or extended.
+
+    The analysis outputs from this script have been incorporated into the final
+    ADR-020 decision. For current methodology, see:
+    - sdc_2024_replication/scripts/statistical_analysis/module_B1_regime_aware_models.py
+    - sdc_2024_replication/scripts/statistical_analysis/module_B2_multistate_placebo.py
+
+Status: DEPRECATED / ARCHIVED
+Linting: Exempted from strict linting (see pyproject.toml per-file-ignores)
 """
 
 import json

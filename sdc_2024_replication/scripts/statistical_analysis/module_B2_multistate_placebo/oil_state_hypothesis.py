@@ -93,7 +93,7 @@ SECONDARY_OIL_STATES = [
 ALL_OIL_STATES = OIL_STATES + SECONDARY_OIL_STATES
 
 
-def test_oil_state_hypothesis(
+def run_oil_state_hypothesis_test(
     shift_df: pd.DataFrame,
     metric: str = "relative_shift",
     oil_states: Optional[list[str]] = None,
@@ -322,7 +322,7 @@ def get_boom_category(state: str) -> str:
         return "Non-Oil"
 
 
-def test_boom_state_hypothesis(
+def run_boom_state_hypothesis_test(
     shift_df: pd.DataFrame,
     metric: str = "relative_shift",
 ) -> dict:
@@ -411,7 +411,7 @@ def test_boom_state_hypothesis(
     }
 
 
-def test_bakken_specific_hypothesis(
+def run_bakken_specific_hypothesis_test(
     shift_df: pd.DataFrame,
     metric: str = "relative_shift",
 ) -> dict:

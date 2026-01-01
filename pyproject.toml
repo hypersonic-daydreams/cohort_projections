@@ -114,6 +114,9 @@ ignore = [
     "S101",    # Allow assert statements in tests
     "PLR2004", # Allow magic values in tests
     "D",       # Ignore docstring requirements in tests
+    "E402",    # Allow imports after sys.path modification (needed for module path setup)
+    "N806",    # Allow uppercase variable names (X, Y, T for matrices)
+    "SIM108",  # Allow if-else blocks for readability in fixtures
 ]
 "scripts/**/*.py" = [
     "T201",    # Allow print statements in scripts
@@ -121,15 +124,24 @@ ignore = [
     "D",       # Ignore docstring requirements in scripts
     "N999",    # Allow invalid module names (numbered scripts for ordering)
 ]
-"docs/adr/**/*.py" = [
-    "N",       # Ignore naming conventions in analysis scripts (RSS, F_stat, X)
+# Legacy Phase A research scripts from ADR-019/020 investigation (deprecated 2026-01-01)
+# These are one-time exploratory analysis scripts, not production code.
+# File-specific exemptions to avoid bypassing linting for future docs/adr Python files.
+"docs/adr/020-reports/agent2_analysis.py" = [
+    "N803",    # Argument name should be lowercase (X, RSS_full, etc.)
+    "N806",    # Variable in function should be lowercase (RSS1, RSS2, F_stat, etc.)
     "T201",    # Allow print statements
     "D",       # Ignore docstring requirements
-    "F841",    # Unused variables (legacy analysis scripts)
+    "F841",    # Unused variable (stds)
     "C408",    # Unnecessary dict call
     "DTZ005",  # datetime.now() without tz
+]
+"docs/adr/020-reports/agent3_analysis.py" = [
+    "T201",    # Allow print statements
+    "D",       # Ignore docstring requirements
+    "F841",    # Unused variable (trans_row)
     "SIM108",  # Use ternary operator
-    "E712",    # Comparison to True
+    "E712",    # Comparison to True (== True)
     "UP038",   # Use X | Y in isinstance
 ]
 

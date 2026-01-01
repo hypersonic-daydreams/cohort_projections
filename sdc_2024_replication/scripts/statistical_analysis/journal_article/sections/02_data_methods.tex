@@ -114,6 +114,108 @@ The Refugee Processing Center (RPC), operated by the Department of State, mainta
 Refugee arrival data offer precise counts (not estimates) of a well-defined population admitted through federal resettlement programs. Limitations include truncation at fiscal year 2020 (precluding analysis of pandemic recovery) and restriction to initial placement, which may differ from eventual settlement after secondary migration.
 
 % ==============================================================================
+% 2.1.5 DATA COMPARABILITY ACROSS CENSUS VINTAGES
+% ==============================================================================
+
+\subsection{Data Comparability Across Census Vintages}
+\label{subsec:data_comparability}
+
+The extended time series analysis spanning 2000--2024 requires careful attention to data comparability, as the series is constructed from three distinct Census Bureau \PEP{} vintages with different underlying estimation methodologies. This subsection documents the vintage structure, explains the methodological transitions, and presents empirical evidence on whether observed patterns reflect genuine migration dynamics or measurement artifacts.
+
+\subsubsection{PEP Vintage System and Methodology Transitions}
+
+The Census Bureau releases annual ``vintages'' of population estimates, where each vintage supersedes previous estimates and incorporates methodological refinements anchored to decennial census benchmarks. The extended series employed in this analysis bridges three vintages:
+
+\begin{table}[htbp]
+\centering
+\caption{Census Bureau PEP Vintages and Methodology Characteristics}
+\label{tab:vintage_methodology}
+\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Vintage} & \textbf{Coverage} & \textbf{Net Int'l Migration Method} & \textbf{State Allocation} \\
+\midrule
+Vintage 2009 & 2000--2009 & Residual from decennial census & Census + INS admin data \\
+Vintage 2020 & 2010--2019 & ROYA via ACS foreign-born flows & 3-year pooled ACS \\
+Vintage 2024 & 2020--2024 & ROYA + DHS humanitarian adjustment & ACS + DHS records \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item \textit{Notes}: ROYA = Residual of Year of Arrival method. ACS = American Community Survey. DHS = Department of Homeland Security.
+\end{tablenotes}
+\end{table}
+
+The Census Bureau explicitly cautions against combining data across vintages: ``Data from separate vintages should not be combined. Due to periodic methodological updates\ldots year-to-year comparisons in the estimates should only be done within the same vintage.'' Despite this guidance, the statistical analysis requires longer time series to achieve adequate power for unit root tests, structural break detection, and trend estimation. We therefore adopt a \emph{hybrid approach} that preserves inferential validity while incorporating robustness information from the extended series.
+
+\subsubsection{Analysis Strategy: Primary and Extended Windows}
+
+The analysis employs a two-track strategy:
+
+\begin{enumerate}
+    \item \textbf{Primary inference window (2010--2024, $n=15$)}: All causal claims, point estimates, and statistical tests reported in the main text derive from data within the Vintage 2020 and Vintage 2024 estimates. This window maintains methodological consistency (both vintages use ROYA-based estimation) while spanning the periods of substantive interest.
+
+    \item \textbf{Extended robustness window (2000--2024, $n=25$)}: Sensitivity analyses incorporate the Vintage 2009 data (2000--2009) to assess whether conclusions remain stable under the longer series. These results are reported as robustness checks rather than primary findings, and we explicitly model potential vintage effects through regime-aware specifications.
+\end{enumerate}
+
+Throughout the analysis, we refer to the concatenated 2000--2024 data as a ``spliced \PEP-vintage series'' to signal that it bridges distinct measurement regimes rather than representing a methodologically homogeneous time series.
+
+\subsubsection{Regime-Aware Modeling and Sensitivity Analysis}
+
+To assess whether vintage transitions introduce spurious patterns, we employ piecewise trend models that allow slope and intercept shifts at vintage boundaries (2010 and 2020). The estimated piecewise slopes reveal substantial regime differences: the 2000--2009 period exhibits a modest positive trend of 39 persons per year ($\text{SE} = 17.8$), the 2010--2019 period shows an insignificant trend of 72 persons per year ($\text{SE} = 72.3$, $p = 0.32$), and the 2020--2024 period displays a steep positive trend of 1,401 persons per year ($\text{SE} = 84.7$). A formal test of slope equality across regimes strongly rejects the null hypothesis ($F_{2,19} = 124.5$, $p < 0.001$), confirming that the extended series exhibits distinct temporal dynamics across vintage boundaries.
+
+Sensitivity analysis across six specifications reveals that key findings are moderately robust to sample definition and vintage treatment. Table~\ref{tab:sensitivity_summary} presents results across alternative specifications:
+
+\begin{table}[htbp]
+\centering
+\caption{Sensitivity of Trend Estimates Across Specifications}
+\label{tab:sensitivity_summary}
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Specification} & \textbf{$n$} & \textbf{Slope} & \textbf{SE (HAC)} & \textbf{$p$-value} \\
+\midrule
+Primary window (2010--2024) & 15 & 183.4 & 93.7 & 0.050 \\
+Extended + vintage dummies & 25 & 132.7 & 55.1 & 0.016 \\
+Excluding COVID year (2020) & 24 & 98.3 & 37.4 & 0.009 \\
+Post-2010 excluding COVID & 14 & 211.0 & 78.7 & 0.007 \\
+Vintage 2009 only & 10 & 39.2 & 17.8 & 0.028 \\
+Vintage 2020 only & 10 & 72.4 & 72.3 & 0.316 \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item \textit{Notes}: All specifications use HAC (Newey-West) standard errors with 2 lags. Slope coefficients represent annual change in net international migration (persons). The primary window specification serves as the baseline for causal inference.
+\end{tablenotes}
+\end{table}
+
+The trend sign is consistent across all specifications, though magnitude varies substantially (39--211 persons per year). Notably, trend significance depends on specification: the Vintage 2020--only window (2010--2019) shows an insignificant trend ($p = 0.32$), while specifications that include COVID-era data or vintage controls achieve significance. This pattern suggests that the 2021--2024 recovery period substantially influences trend estimates.
+
+The COVID-19 pandemic introduces an additional complication: the 2020 observation (30 persons) represents a 95\% decline from 2019 and confounds vintage methodology changes with genuine pandemic disruption. Models including a COVID intervention dummy estimate the pandemic effect at $-2{,}399$ persons ($\text{SE} = 511$, $p < 0.001$), with AIC preferring the COVID-adjusted specification over the baseline trend model.
+
+\subsubsection{Multi-State Placebo Analysis}
+
+A natural question arises: does North Dakota's observed post-2020 surge represent a genuine migration phenomenon (potentially driven by oil industry recovery or regional economic factors) or a methodological artifact common to all states under the Vintage 2024 estimation procedures? To address this concern, we conducted a multi-state placebo analysis comparing North Dakota's vintage transition patterns against all 51 states (including DC).
+
+The analysis computes each state's ``shift magnitude''---the change in average international migration between the 2010--2019 period (Vintage 2020) and the 2021--2024 period (Vintage 2024, excluding the COVID year 2020). If North Dakota's pattern were driven by state-specific real factors (such as the Bakken oil recovery), we would expect North Dakota to rank among the top states in shift magnitude; if the pattern reflects common methodology artifacts, North Dakota should appear unremarkable relative to other states.
+
+Results indicate that North Dakota ranks 43rd among 51 states in shift magnitude (84th percentile from the bottom), with an increase of 1,906 persons compared to a national mean of 38,660. This ranking places North Dakota in the lower quartile of post-2020 shifts, suggesting that its recovery pattern is not exceptional relative to national trends. Among the ten major oil-producing states, North Dakota ranks 8th (ahead of only Alaska and Wyoming), and statistical tests reveal no significant difference between oil-producing and non-oil states in vintage transition patterns ($t = -0.37$, $p = 0.71$; Mann-Whitney $p = 0.43$).
+
+These findings provide \emph{weak support} for the hypothesis that North Dakota's post-2020 migration surge reflects genuine oil-driven dynamics rather than methodology artifacts. The more parsimonious interpretation is that North Dakota's pattern is consistent with nationwide post-COVID migration recovery captured under improved Vintage 2024 estimation procedures (including enhanced DHS administrative records integration). Substantive conclusions should therefore be interpreted cautiously, with explicit acknowledgment that methodology changes may account for some portion of observed level shifts.
+
+\subsubsection{Implications for Interpretation}
+
+The vintage comparability analysis yields three key implications for interpreting subsequent results:
+
+\begin{enumerate}
+    \item \textbf{Level comparisons across vintage boundaries should be avoided.} The 2009--2010 and 2019--2020 transitions involve both real events (financial crisis, COVID pandemic) and methodology changes, making it impossible to attribute level shifts to either source definitively.
+
+    \item \textbf{Within-vintage trends are more reliable.} Trend estimates within the 2010--2019 period (insignificant) and within the 2020--2024 period (strongly positive) reflect patterns under consistent methodology, though the latter is heavily influenced by COVID recovery dynamics.
+
+    \item \textbf{Cross-vintage robustness checks inform but do not override primary conclusions.} When extended-series results qualitatively agree with primary-window results, confidence increases; when they diverge, the primary-window result takes precedence for causal interpretation.
+\end{enumerate}
+
+% ==============================================================================
 % 2.2 DESCRIPTIVE AND CONCENTRATION METHODS
 % ==============================================================================
 
