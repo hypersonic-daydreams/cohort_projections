@@ -1,0 +1,8 @@
+digraph G031 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0083 [label="A0083\nclaim\nNorth Dakota's migration profile is becoming more distinc...", shape=box, style=filled, fillcolor="#4CAF50"];
+
+}

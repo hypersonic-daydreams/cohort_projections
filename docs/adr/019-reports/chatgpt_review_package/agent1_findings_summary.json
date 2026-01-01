@@ -1,0 +1,135 @@
+{
+  "agent_id": 1,
+  "report_date": "2026-01-01",
+  "primary_question": "Did the Census Bureau fundamentally change how they estimate state-level international migration between vintages, and does this create comparability issues for time series analysis?",
+  "recommendation": "proceed_with_caution",
+  "confidence": "medium",
+  "option_support": {
+    "A_extend_with_corrections": false,
+    "B_extend_with_caveats": true,
+    "C_hybrid_approach": true,
+    "D_maintain_current": true
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "title": "Major Methodology Shift at 2010 Transition - Introduction of ROYA Method",
+      "conclusion": "The Census Bureau fundamentally changed its approach to estimating foreign-born immigration between the 1990s-2000s and the 2010s. The 1990s-2000s methodology relied primarily on residual techniques using decennial census foreign-born counts, while the 2010s introduced the Residence One Year Ago (ROYA) method using American Community Survey data.",
+      "confidence": "high",
+      "uncertainty": "The transition is well-documented, but the exact magnitude of impact on state-level estimates is not quantified",
+      "evidence_type": "qualitative",
+      "key_metrics": [
+        {
+          "name": "methodology_eras",
+          "value": 3,
+          "unit": "distinct periods",
+          "interpretation": "2000s residual method, 2010s ROYA method, 2020s ROYA+DHS method"
+        }
+      ]
+    },
+    {
+      "id": "F2",
+      "title": "Vintage 2024 Introduced DHS Administrative Data Adjustment",
+      "conclusion": "Vintage 2024 incorporated a major methodological change: using Department of Homeland Security administrative data to adjust ACS-based estimates upward by approximately 75% of estimated humanitarian migrants, changing estimates retroactively back to 2021.",
+      "confidence": "high",
+      "uncertainty": "Low - this change is explicitly documented and quantified by Census Bureau",
+      "evidence_type": "quantitative",
+      "key_metrics": [
+        {
+          "name": "nim_revision_2021_2022",
+          "value": 700000,
+          "unit": "persons (national)",
+          "interpretation": "Increase over previous Vintage 2023 estimates for the 2021-2022 period"
+        },
+        {
+          "name": "humanitarian_adjustment_factor",
+          "value": 75,
+          "unit": "percent",
+          "interpretation": "Adjustment captured 75% of humanitarian migrants in Census Bureau benchmark database"
+        }
+      ]
+    },
+    {
+      "id": "F3",
+      "title": "State-Level Allocation May Not Accurately Reflect Humanitarian Migrant Distribution",
+      "conclusion": "The Census Bureau acknowledges that its method for distributing national NIM estimates to states may not accurately capture where humanitarian migrants are actually settling. Research is ongoing to improve state/county allocation.",
+      "confidence": "medium",
+      "uncertainty": "High - Census Bureau acknowledges uncertainty but does not quantify potential error at state level",
+      "evidence_type": "qualitative",
+      "key_metrics": []
+    },
+    {
+      "id": "F4",
+      "title": "Census Bureau Explicitly Warns Against Combining Vintages",
+      "conclusion": "The Census Bureau explicitly states that data from different vintages should not be combined and that time series comparisons should only be made within a single vintage.",
+      "confidence": "high",
+      "uncertainty": "Low - this guidance is explicit and unambiguous in Census Bureau documentation",
+      "evidence_type": "qualitative",
+      "key_metrics": []
+    },
+    {
+      "id": "F5",
+      "title": "NIM Represents Largest Source of Uncertainty in Population Estimates",
+      "conclusion": "The Census Bureau acknowledges that net international migration is the most uncertain component of population change estimates, representing approximately 40% of the variance in Demographic Analysis estimates.",
+      "confidence": "high",
+      "uncertainty": "Low - well-documented in Census Bureau publications",
+      "evidence_type": "quantitative",
+      "key_metrics": [
+        {
+          "name": "nim_share_of_da_variance",
+          "value": 40,
+          "unit": "percent",
+          "interpretation": "NIM accounts for approximately 40% of variance in Demographic Analysis estimates"
+        },
+        {
+          "name": "nim_share_of_population",
+          "value": 12,
+          "unit": "percent",
+          "interpretation": "NIM comprises only ~12% of total DA resident population under 65, but disproportionate uncertainty"
+        }
+      ]
+    },
+    {
+      "id": "F6",
+      "title": "Small States Face Additional Accuracy Challenges",
+      "conclusion": "Research indicates that population projections and estimates are less accurate for smaller population bases due to rate instability when demographic rates are calculated for small cells.",
+      "confidence": "medium",
+      "uncertainty": "Medium - general principle is established, but specific impact on North Dakota NIM estimates is not quantified",
+      "evidence_type": "qualitative",
+      "key_metrics": [
+        {
+          "name": "north_dakota_population",
+          "value": 800000,
+          "unit": "persons (approximate)",
+          "interpretation": "Among smallest state populations in nation"
+        }
+      ]
+    }
+  ],
+  "review_requests": [
+    {
+      "id": "RR1",
+      "question": "What statistical approaches are appropriate for detecting and potentially adjusting for methodology-induced level shifts in a time series with only two known transition points and no overlap period?",
+      "context": "The Census Bureau provides no overlapping estimates using both old and new methodologies. We have 10 years pre-2010 and 15 years post-2010, with a known methodology change at the boundary.",
+      "priority": "high"
+    },
+    {
+      "id": "RR2",
+      "question": "Given that the Census Bureau explicitly warns against combining vintages, under what conditions might it be methodologically defensible to create an extended time series for research purposes?",
+      "context": "Our goal is to extend a migration time series for demographic projection modeling. The Census Bureau's guidance is oriented toward general users.",
+      "priority": "high"
+    },
+    {
+      "id": "RR3",
+      "question": "Are there established standards or guidelines in demography for minimum population thresholds below which migration estimates become unreliable for time series modeling?",
+      "context": "North Dakota has approximately 800,000 residents and receives perhaps 1,000-3,000 net international migrants annually.",
+      "priority": "medium"
+    }
+  ],
+  "key_uncertainties": [
+    "Magnitude of methodology-induced level shift at 2009-2010 transition",
+    "Accuracy of state-level allocation of national NIM adjustment for North Dakota specifically",
+    "Small-state estimation error interaction with methodology changes",
+    "Whether 2000s residual method systematically over/under-estimated NIM relative to ROYA method"
+  ]
+}

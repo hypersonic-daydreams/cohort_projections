@@ -1,0 +1,19 @@
+digraph G007 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0037 [label="A0037\nclaim\nA multi-method analytical framework is appropriate for ad...", shape=box, style=filled, fillcolor="#4CAF50"];
+  A0038 [label="A0038\ngrounds\nThe analysis triangulates across nine complementary analy...", shape=ellipse, style=filled, fillcolor="#2196F3"];
+  A0039 [label="A0039\nwarrant\nWhere individual methods reach inferential limits, the co...", shape=diamond, style=filled, fillcolor="#FF9800"];
+  A0040 [label="A0040\nclaim\nThe research addresses three interrelated questions about...", shape=box, style=filled, fillcolor="#4CAF50"];
+  A0041 [label="A0041\ngrounds\nThe first question asks what empirical regularities chara...", shape=ellipse, style=filled, fillcolor="#2196F3"];
+  A0042 [label="A0042\ngrounds\nThe second question asks which analytical approaches prov...", shape=ellipse, style=filled, fillcolor="#2196F3"];
+  A0043 [label="A0043\ngrounds\nThe third question asks what range of future migration sc...", shape=ellipse, style=filled, fillcolor="#2196F3"];
+
+  A0038 -> A0037 [label="supports"];
+  A0039 -> A0037 [label="supports"];
+  A0041 -> A0040 [label="supports"];
+  A0042 -> A0040 [label="supports"];
+  A0043 -> A0040 [label="supports"];
+}

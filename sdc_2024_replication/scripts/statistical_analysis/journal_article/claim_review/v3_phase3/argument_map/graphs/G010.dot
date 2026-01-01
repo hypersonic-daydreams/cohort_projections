@@ -1,0 +1,12 @@
+digraph G010 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0060 [label="A0060\nclaim\nA multi-method analytical design is necessary to address ...", shape=box, style=filled, fillcolor="#4CAF50"];
+  A0061 [label="A0061\ngrounds\nFour methodological traditions are employed: descriptive ...", shape=ellipse, style=filled, fillcolor="#2196F3"];
+  A0062 [label="A0062\nwarrant\nThe multi-method approach enables triangulation across an...", shape=diamond, style=filled, fillcolor="#FF9800"];
+
+  A0061 -> A0060 [label="supports"];
+  A0062 -> A0060 [label="supports"];
+}

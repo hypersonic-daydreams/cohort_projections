@@ -1,0 +1,8 @@
+digraph G026 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0080 [label="A0080\nclaim\nRefugee migration waves exhibit substantial persistence, ...", shape=box, style=filled, fillcolor="#4CAF50"];
+
+}

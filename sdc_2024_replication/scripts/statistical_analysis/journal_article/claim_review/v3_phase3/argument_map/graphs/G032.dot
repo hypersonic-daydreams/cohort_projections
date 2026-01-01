@@ -1,0 +1,8 @@
+digraph G032 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0084 [label="A0084\nclaim\nThe 2017 Travel Ban produced large compositional effects ...", shape=box, style=filled, fillcolor="#4CAF50"];
+
+}

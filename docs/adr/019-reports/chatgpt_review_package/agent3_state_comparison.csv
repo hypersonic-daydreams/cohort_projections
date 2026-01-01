@@ -1,0 +1,5 @@
+state,metric,vintage_2009_value,vintage_2020_value,transition_change_pct,similar_to_nd
+ND,mean_intl_mig,456.8,1377.9,201.64185639229424,True
+SD,mean_intl_mig,654.5,1711.5,161.49732620320856,True
+MT,mean_intl_mig,304.2,885.8,191.19000657462192,True
+WY,mean_intl_mig,327.8,427.6,30.445393532641855,False

@@ -1,0 +1,8 @@
+digraph G024 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0078 [label="A0078\nclaim\nPanel regression identifies state population mass as the ...", shape=box, style=filled, fillcolor="#4CAF50"];
+
+}

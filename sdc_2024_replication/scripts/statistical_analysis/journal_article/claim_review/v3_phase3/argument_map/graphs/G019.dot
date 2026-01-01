@@ -1,0 +1,8 @@
+digraph G019 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0071 [label="A0071\nclaim\nDifference-in-differences analysis with finite-sample inf...", shape=box, style=filled, fillcolor="#4CAF50"];
+
+}

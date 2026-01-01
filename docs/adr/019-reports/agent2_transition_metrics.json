@@ -1,0 +1,195 @@
+{
+  "generated_date": "2026-01-01T10:34:58.278545",
+  "agent": 2,
+  "level_shift_analysis": {
+    "vintage_2009": {
+      "years": "2000-2009",
+      "n": 10,
+      "mean": 456.8,
+      "std": 421.02383147117297,
+      "median": 528.0,
+      "min": -545.0,
+      "max": 1025.0
+    },
+    "vintage_2020": {
+      "years": "2010-2019",
+      "n": 10,
+      "mean": 1377.9,
+      "std": 719.8921910026992,
+      "median": 1250.5,
+      "min": 468.0,
+      "max": 2875.0
+    },
+    "vintage_2024": {
+      "years": "2020-2024",
+      "n": 5,
+      "mean": 2633.0,
+      "std": 2282.9405379904224,
+      "median": 3287.0,
+      "min": 30.0,
+      "max": 5126.0
+    },
+    "transition_1_diff": 921.1000000000001,
+    "transition_2_diff": 1255.1
+  },
+  "variance_analysis": {
+    "vintage_2009": {
+      "variance": 177261.06666666665,
+      "std": 421.02383147117297,
+      "n": 10
+    },
+    "vintage_2020": {
+      "variance": 518244.7666666667,
+      "std": 719.8921910026992,
+      "n": 10
+    },
+    "vintage_2024": {
+      "variance": 5211817.5,
+      "std": 2282.9405379904224,
+      "n": 5
+    },
+    "variance_ratio_max_min": 29.401930147473635
+  },
+  "structural_break_analysis": {
+    "transition_1": {
+      "break_point": "2009\u21922010",
+      "F_statistic": 0.8374897470709013,
+      "p_value": 0.44674542466746914,
+      "significant": false
+    },
+    "transition_2": {
+      "break_point": "2019\u21922020",
+      "F_statistic": 25.749862095944746,
+      "p_value": 2.2375403381236225e-06,
+      "significant": true,
+      "caveat": "COVID-19 confound"
+    },
+    "placebo_tests": [
+      {
+        "year": 2005,
+        "index": 5,
+        "F_statistic": 0.4230984124538358,
+        "p_value": 0.6604748002575183
+      },
+      {
+        "year": 2007,
+        "index": 7,
+        "F_statistic": 0.7505807256289941,
+        "p_value": 0.4843404806294951
+      },
+      {
+        "year": 2012,
+        "index": 12,
+        "F_statistic": 0.8779164957028879,
+        "p_value": 0.43035697710728427
+      },
+      {
+        "year": 2015,
+        "index": 15,
+        "F_statistic": 1.1995129427836482,
+        "p_value": 0.321163311392348
+      },
+      {
+        "year": 2017,
+        "index": 17,
+        "F_statistic": 2.9534095338790456,
+        "p_value": 0.07408799327590765
+      }
+    ]
+  },
+  "autocorrelation_analysis": {
+    "full_series": {
+      "n": 25,
+      "max_lag": 5,
+      "acf_values": [
+        1.0,
+        0.5649519435768022,
+        0.22411683882194103,
+        -0.12953507112789192,
+        -0.11979402186913037,
+        0.06409775718981067
+      ],
+      "critical_value_95": 0.392
+    },
+    "vintage_2009": {
+      "n": 10,
+      "max_lag": 3,
+      "acf_values": [
+        1.0,
+        -0.23163790557254668,
+        -0.0594092229063774,
+        -0.0182829644361336
+      ],
+      "critical_value_95": 0.6198064213930023
+    },
+    "vintage_2020": {
+      "n": 10,
+      "max_lag": 3,
+      "acf_values": [
+        1.0,
+        0.05750013362411824,
+        0.020375031283480352,
+        -0.17366228428870448
+      ],
+      "critical_value_95": 0.6198064213930023
+    },
+    "vintage_2024": {
+      "n": 5,
+      "max_lag": 1,
+      "acf_values": [
+        1.0,
+        0.4507694292825871
+      ],
+      "critical_value_95": 0.8765386471799175
+    },
+    "first_order_autocorr_by_vintage": {
+      "vintage_2009": -0.23432841369359778,
+      "vintage_2020": 0.04956154572191578
+    }
+  },
+  "trend_analysis": {
+    "vintage_2009": {
+      "n": 10,
+      "slope": 39.18787878787882,
+      "slope_se": 47.17239800084027,
+      "slope_pvalue": 0.4302153985129322,
+      "intercept": 280.4545454545454,
+      "r_squared": 0.07941482676976386,
+      "significant_trend": false
+    },
+    "vintage_2020": {
+      "n": 10,
+      "slope": 72.43030303030315,
+      "slope_se": 80.0700036922467,
+      "slope_pvalue": 0.3921104307562405,
+      "intercept": 1051.9636363636362,
+      "r_squared": 0.09279340651273471,
+      "significant_trend": false
+    },
+    "vintage_2024": {
+      "n": 5,
+      "slope": 1400.8000000000002,
+      "slope_se": 202.0613438207978,
+      "slope_pvalue": 0.006154334303703525,
+      "intercept": -168.60000000000056,
+      "r_squared": 0.9412458513752641,
+      "significant_trend": true
+    },
+    "slope_comparison": {
+      "slope_vintage_2009": 39.18787878787882,
+      "slope_vintage_2020": 72.43030303030315,
+      "slope_vintage_2024": 1400.8000000000002,
+      "slope_change_at_t1": 33.24242424242433,
+      "slope_change_at_t2": 1328.369696969697,
+      "note": "Small samples limit formal slope difference tests"
+    },
+    "full_series": {
+      "n": 25,
+      "slope": 119.27230769230765,
+      "slope_se": 28.70045962544159,
+      "slope_pvalue": 0.00038187539810194046,
+      "intercept": -170.78769230769214,
+      "r_squared": 0.42886041763359384
+    }
+  }
+}

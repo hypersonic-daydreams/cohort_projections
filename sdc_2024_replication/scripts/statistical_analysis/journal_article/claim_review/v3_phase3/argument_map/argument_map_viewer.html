@@ -1,0 +1,4724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Argument Map Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e; color: #eee; height: 100vh;
+            display: flex; flex-direction: column;
+        }
+        header {
+            background: #16213e; padding: 1rem 2rem;
+            border-bottom: 1px solid #0f3460;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 1rem;
+        }
+        h1 { font-size: 1.5rem; color: #e94560; }
+        .controls { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        select, button {
+            padding: 0.5rem 1rem; border: 1px solid #0f3460; border-radius: 4px;
+            background: #16213e; color: #eee; font-size: 0.9rem; cursor: pointer;
+        }
+        select:hover, button:hover { background: #0f3460; }
+        button.active { background: #e94560; border-color: #e94560; }
+        .main-container { display: flex; flex: 1; overflow: hidden; }
+        #cy { flex: 1; background: #1a1a2e; }
+        .sidebar {
+            width: 400px; background: #16213e; border-left: 1px solid #0f3460;
+            overflow-y: auto; padding: 1rem;
+        }
+        .sidebar h2 { color: #e94560; margin-bottom: 1rem; font-size: 1.2rem; }
+        .node-info {
+            background: #1a1a2e; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;
+        }
+        .node-info h3 { color: #00d9ff; margin-bottom: 0.5rem; font-size: 1rem; }
+        .node-info p { line-height: 1.6; color: #ccc; font-size: 0.9rem; }
+        .badge {
+            display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px;
+            font-size: 0.75rem; font-weight: bold; margin-right: 0.5rem; margin-bottom: 0.5rem;
+        }
+        .badge-claim { background: #4CAF50; color: white; }
+        .badge-grounds { background: #2196F3; color: white; }
+        .badge-warrant { background: #FF9800; color: white; }
+        .badge-backing { background: #9C27B0; color: white; }
+        .badge-qualifier { background: #607D8B; color: white; }
+        .badge-rebuttal { background: #F44336; color: white; }
+        .badge-orphan { background: #795548; color: white; }
+        .badge-external { background: #E91E63; color: white; }
+        .badge-study_generated { background: #00BCD4; color: white; }
+        .claim-ids { margin-top: 0.5rem; font-size: 0.8rem; color: #888; }
+        .legend {
+            display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 1rem;
+            background: #16213e; border-top: 1px solid #0f3460;
+        }
+        .legend-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; }
+        .legend-color { width: 16px; height: 16px; border-radius: 50%; }
+        .legend-color.dashed { border: 2px dashed #795548; background: transparent; }
+        .stats {
+            font-size: 0.85rem; color: #888; margin-top: 1rem;
+            padding-top: 1rem; border-top: 1px solid #0f3460;
+        }
+        .stats span { color: #00d9ff; }
+        .search-box {
+            width: 200px; padding: 0.5rem; border: 1px solid #0f3460;
+            border-radius: 4px; background: #1a1a2e; color: #eee;
+        }
+        .help-text { font-size: 0.8rem; color: #888; margin-top: 1rem; line-height: 1.5; }
+        .filter-group { display: flex; gap: 0.5rem; align-items: center; }
+        .filter-group label { font-size: 0.8rem; color: #888; }
+        @media (max-width: 900px) {
+            .main-container { flex-direction: column; }
+            .sidebar { width: 100%; max-height: 300px; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Argument Map: North Dakota Migration Study</h1>
+        <div class="controls">
+            <select id="groupFilter"><option value="all">All Groups</option></select>
+            <select id="sectionFilter">
+                <option value="all">All Sections</option>
+                <option value="Abstract + Introduction">Abstract + Introduction</option>
+                <option value="Data and Methods">Data and Methods</option>
+                <option value="Results">Results</option>
+                <option value="Discussion">Discussion</option>
+                <option value="Conclusion">Conclusion</option>
+                <option value="Appendix">Appendix</option>
+            </select>
+            <select id="categoryFilter">
+                <option value="all">All Categories</option>
+                <option value="structured">Structured Only</option>
+                <option value="orphan">Orphans Only</option>
+                <option value="external">External Claims</option>
+                <option value="study_generated">Study-Generated</option>
+            </select>
+            <input type="text" class="search-box" id="searchBox" placeholder="Search nodes...">
+            <button id="resetBtn">Reset View</button>
+            <button id="fitBtn">Fit to Screen</button>
+        </div>
+    </header>
+    <div class="main-container">
+        <div id="cy"></div>
+        <div class="sidebar">
+            <h2>Node Details</h2>
+            <div id="nodeDetails">
+                <p class="help-text">Click on a node to see its details. Drag to pan, scroll to zoom. Double-click a node to focus on its connections.</p>
+                <p class="help-text" style="margin-top: 0.5rem;"><strong>Orphan claims</strong> (dashed border) are claims not yet linked to argument structure. <strong>External claims</strong> require citation verification.</p>
+            </div>
+            <div class="stats" id="stats">Loading statistics...</div>
+        </div>
+    </div>
+    <div class="legend">
+        <div class="legend-item"><div class="legend-color" style="background: #4CAF50;"></div> Claim</div>
+        <div class="legend-item"><div class="legend-color" style="background: #2196F3;"></div> Grounds</div>
+        <div class="legend-item"><div class="legend-color" style="background: #FF9800;"></div> Warrant</div>
+        <div class="legend-item"><div class="legend-color" style="background: #9C27B0;"></div> Backing</div>
+        <div class="legend-item"><div class="legend-color" style="background: #607D8B;"></div> Qualifier</div>
+        <div class="legend-item"><div class="legend-color" style="background: #F44336;"></div> Rebuttal</div>
+        <div class="legend-item"><div class="legend-color dashed"></div> Orphan (unlinked)</div>
+        <div class="legend-item"><div class="legend-color" style="background: #E91E63;"></div> External</div>
+        <div class="legend-item"><div class="legend-color" style="background: #00BCD4;"></div> Study-Generated</div>
+    </div>
+    <script>
+    const argumentData = [
+  {
+    "argument_id": "A0001",
+    "argument_group_id": "G001",
+    "role": "claim",
+    "text": "This study is the first comprehensive multi-method analysis of international migration to a small U.S. state, filling a critical gap in migration research.",
+    "claim_ids": [
+      "C0065"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0002",
+    "argument_group_id": "G001",
+    "role": "grounds",
+    "text": "The demographic literature has extensively examined migration to gateway states, while small peripheral states have received comparatively little rigorous empirical attention.",
+    "claim_ids": [
+      "C0062",
+      "C0063"
+    ],
+    "supports_argument_ids": [
+      "A0001"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0003",
+    "argument_group_id": "G001",
+    "role": "warrant",
+    "text": "In small peripheral states, migration often determines whether populations grow or decline, making rigorous analysis of these states essential for demographic understanding.",
+    "claim_ids": [
+      "C0064"
+    ],
+    "supports_argument_ids": [
+      "A0001"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0004",
+    "argument_group_id": "G001",
+    "role": "backing",
+    "text": "International migration to small U.S. states is characterized by high volatility, limited sample sizes, and heightened sensitivity to federal policy changes, presenting unique analytical challenges.",
+    "claim_ids": [
+      "C0061"
+    ],
+    "supports_argument_ids": [
+      "A0003"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0005",
+    "argument_group_id": "G001",
+    "role": "backing",
+    "text": "The study deploys nine analytical modules spanning descriptive statistics, time series econometrics, panel regression, gravity models, machine learning, causal inference, and duration analysis using data from 2002-2024.",
+    "claim_ids": [
+      "C0066",
+      "C0067"
+    ],
+    "supports_argument_ids": [
+      "A0001"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0006",
+    "argument_group_id": "G002",
+    "role": "claim",
+    "text": "North Dakota's migration profile is dominated by refugee resettlement rather than economic migration chains, making it distinctively different from typical migration destinations.",
+    "claim_ids": [
+      "C0068"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0007",
+    "argument_group_id": "G002",
+    "role": "grounds",
+    "text": "Location Quotients for Liberia exceed 40, and Location Quotients for other West and East African origins exceed 20, indicating dramatic overrepresentation of refugee-origin populations.",
+    "claim_ids": [
+      "C0069",
+      "C0070"
+    ],
+    "supports_argument_ids": [
+      "A0006"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0008",
+    "argument_group_id": "G002",
+    "role": "grounds",
+    "text": "North Dakota's international migration time series exhibits I(1) integration with a coefficient of variation of 82.5%, indicating non-stationary and highly volatile flows.",
+    "claim_ids": [
+      "C0071",
+      "C0072"
+    ],
+    "supports_argument_ids": [
+      "A0006"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0009",
+    "argument_group_id": "G002",
+    "role": "warrant",
+    "text": "Annual migration flows can deviate from expectations by amounts approaching the mean itself, demonstrating the extreme unpredictability that characterizes small-state migration.",
+    "claim_ids": [
+      "C0073"
+    ],
+    "supports_argument_ids": [
+      "A0006"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0010",
+    "argument_group_id": "G002",
+    "role": "backing",
+    "text": "Structural break analysis identifies significant regime shifts in 2020 and 2021 associated with the COVID-19 pandemic (F = 16.01, p < 0.001), confirming sensitivity to external shocks.",
+    "claim_ids": [
+      "C0074",
+      "C0075"
+    ],
+    "supports_argument_ids": [
+      "A0008"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0011",
+    "argument_group_id": "G003",
+    "role": "claim",
+    "text": "The Travel Ban policy caused a substantial divergence in refugee arrivals from affected countries, but this effect is only detectable through disaggregated causal inference methods.",
+    "claim_ids": [
+      "C0076",
+      "C0077"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0012",
+    "argument_group_id": "G003",
+    "role": "grounds",
+    "text": "Difference-in-differences estimation identifies a policy-associated divergence of approximately 75% in refugee arrivals from Travel Ban-affected countries (p = 0.032).",
+    "claim_ids": [
+      "C0076"
+    ],
+    "supports_argument_ids": [
+      "A0011"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0013",
+    "argument_group_id": "G003",
+    "role": "warrant",
+    "text": "Aggregate time series analysis fails to detect the 75% divergence, demonstrating why disaggregated causal methods are necessary for policy evaluation in small-state contexts.",
+    "claim_ids": [
+      "C0077"
+    ],
+    "supports_argument_ids": [
+      "A0011"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0014",
+    "argument_group_id": "G003",
+    "role": "qualifier",
+    "text": "Pre-treatment trend divergence suggests the 75% estimate likely represents an upper bound on the causal effect of the Travel Ban.",
+    "claim_ids": [
+      "C0078"
+    ],
+    "supports_argument_ids": [
+      "A0011"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0015",
+    "argument_group_id": "G003",
+    "role": "rebuttal",
+    "text": "In gravity model estimation, diaspora associations lose statistical significance when controlling for population mass, with the coefficient attenuating from 0.45 to 0.14 (p = 0.57), suggesting diaspora-linked allocation patterns remain modest.",
+    "claim_ids": [
+      "C0079",
+      "C0080",
+      "C0081"
+    ],
+    "supports_argument_ids": [
+      "A0006"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0016",
+    "argument_group_id": "G004",
+    "role": "claim",
+    "text": "Structural uncertainty in small-state migration forecasting requires agencies to develop contingent capacity strategies rather than relying on misleadingly precise point forecasts.",
+    "claim_ids": [
+      "C0087",
+      "C0088"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0017",
+    "argument_group_id": "G004",
+    "role": "grounds",
+    "text": "Monte Carlo scenario projections extending through 2045 yield a migration forecast of 9,056 persons with a 95% prediction interval spanning 3,570 to 14,491 persons.",
+    "claim_ids": [
+      "C0082",
+      "C0083",
+      "C0084"
+    ],
+    "supports_argument_ids": [
+      "A0016"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0018",
+    "argument_group_id": "G004",
+    "role": "warrant",
+    "text": "The prediction interval width represents a factor of 4.1, characterizing the structural uncertainty inherent in small-state migration forecasting and its direct implications for demographic planning.",
+    "claim_ids": [
+      "C0085",
+      "C0086",
+      "C0087"
+    ],
+    "supports_argument_ids": [
+      "A0016"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0019",
+    "argument_group_id": "G004",
+    "role": "backing",
+    "text": "The multi-method framework demonstrates that rigorous demographic analysis remains feasible even when small populations strain conventional asymptotic methods.",
+    "claim_ids": [
+      "C0089"
+    ],
+    "supports_argument_ids": [
+      "A0016",
+      "A0001"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0020",
+    "argument_group_id": "G004",
+    "role": "qualifier",
+    "text": "Rigorous demographic analysis for small populations requires careful attention to identification assumptions and uncertainty quantification.",
+    "claim_ids": [
+      "C0090"
+    ],
+    "supports_argument_ids": [
+      "A0016",
+      "A0019"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0021",
+    "argument_group_id": "G005",
+    "role": "claim",
+    "text": "International migration has become a critical driver of population change in North Dakota, despite the state's small share of national flows",
+    "claim_ids": [
+      "C0003",
+      "C0004",
+      "C0007"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0022",
+    "argument_group_id": "G005",
+    "role": "grounds",
+    "text": "North Dakota has approximately 780,000 people (47th among U.S. states) and receives just 0.17% of national international migration flows\u2014smaller than its 0.23% population share",
+    "claim_ids": [
+      "C0001",
+      "C0002",
+      "C0003",
+      "C0004"
+    ],
+    "supports_argument_ids": [
+      "A0021"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0023",
+    "argument_group_id": "G005",
+    "role": "grounds",
+    "text": "Natural population growth has stagnated and domestic out-migration persists, making international migration the remaining source of population growth",
+    "claim_ids": [
+      "C0005",
+      "C0006",
+      "C0007"
+    ],
+    "supports_argument_ids": [
+      "A0021"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0024",
+    "argument_group_id": "G005",
+    "role": "warrant",
+    "text": "When natural increase declines and domestic migration is negative, international migration becomes the critical margin determining whether population grows or shrinks",
+    "claim_ids": [
+      "C0005",
+      "C0006",
+      "C0007"
+    ],
+    "supports_argument_ids": [
+      "A0021"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0025",
+    "argument_group_id": "G005",
+    "role": "backing",
+    "text": "The Great Plains has experienced sustained population decline throughout the twentieth and early twenty-first centuries, shaped by agricultural consolidation, limited economic diversification, and metropolitan pull elsewhere",
+    "claim_ids": [
+      "C0008",
+      "C0009"
+    ],
+    "supports_argument_ids": [
+      "A0024"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0026",
+    "argument_group_id": "G005",
+    "role": "backing",
+    "text": "The Bakken oil boom (2010-2014) briefly reversed decline but underlying structural forces favoring out-migration proved resilient, demonstrating that economic shocks provide only temporary relief",
+    "claim_ids": [
+      "C0010",
+      "C0011",
+      "C0012"
+    ],
+    "supports_argument_ids": [
+      "A0024"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0027",
+    "argument_group_id": "G005",
+    "role": "qualifier",
+    "text": "International migration\u2014particularly refugee resettlement\u2014has assumed an outsized role, though the state's migration profile differs markedly from gateway states, being characterized by humanitarian rather than economic flows",
+    "claim_ids": [
+      "C0013",
+      "C0019"
+    ],
+    "supports_argument_ids": [
+      "A0021"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0028",
+    "argument_group_id": "G005",
+    "role": "grounds",
+    "text": "Refugee resettlement programs have channeled arrivals from conflict zones worldwide, creating ethnic enclaves spanning generations, with disproportionately large shares from East Africa (Somalia, Sudan, Ethiopia) and Middle Eastern countries (Iraq, Syria)",
+    "claim_ids": [
+      "C0014",
+      "C0015",
+      "C0016",
+      "C0017"
+    ],
+    "supports_argument_ids": [
+      "A0021"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0029",
+    "argument_group_id": "G005",
+    "role": "warrant",
+    "text": "Diaspora networks created by refugee resettlement are predictive of subsequent migration streams, meaning initial policy-driven settlement creates self-reinforcing migration patterns",
+    "claim_ids": [
+      "C0017",
+      "C0018"
+    ],
+    "supports_argument_ids": [
+      "A0028"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0030",
+    "argument_group_id": "G006",
+    "role": "claim",
+    "text": "State-level migration forecasting for small states faces genuine methodological challenges that have left this area systematically understudied",
+    "claim_ids": [
+      "C0020",
+      "C0023",
+      "C0024"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0031",
+    "argument_group_id": "G006",
+    "role": "grounds",
+    "text": "The empirical literature on state-level migration forecasting remains surprisingly thin, with the dominant paradigm focusing on national-level flows using gravity models and time series methods calibrated to large-sample settings",
+    "claim_ids": [
+      "C0020",
+      "C0021"
+    ],
+    "supports_argument_ids": [
+      "A0030"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0032",
+    "argument_group_id": "G006",
+    "role": "grounds",
+    "text": "When subnational analysis appears, it typically examines major receiving states (California, Texas, Florida, New York) where sample sizes support conventional inferential approaches",
+    "claim_ids": [
+      "C0022"
+    ],
+    "supports_argument_ids": [
+      "A0030"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0033",
+    "argument_group_id": "G006",
+    "role": "warrant",
+    "text": "Small states are characterized by volatile flows, limited historical observations, and heightened sensitivity to policy shocks\u2014conditions that strain standard methods",
+    "claim_ids": [
+      "C0023",
+      "C0024"
+    ],
+    "supports_argument_ids": [
+      "A0030"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0034",
+    "argument_group_id": "G006",
+    "role": "backing",
+    "text": "International migration to North Dakota exhibits a coefficient of variation of 82.5%, with annual flows ranging from 30 to over 3,000 net migrants over fifteen years",
+    "claim_ids": [
+      "C0025",
+      "C0026"
+    ],
+    "supports_argument_ids": [
+      "A0033"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0035",
+    "argument_group_id": "G006",
+    "role": "backing",
+    "text": "Time series of this brevity strain the asymptotic foundations of standard econometric procedures: unit root tests lose power, confidence intervals widen dramatically, and structural break detection becomes unreliable",
+    "claim_ids": [
+      "C0027",
+      "C0028"
+    ],
+    "supports_argument_ids": [
+      "A0033"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0036",
+    "argument_group_id": "G006",
+    "role": "rebuttal",
+    "text": "Conventional forecasting approaches may produce misleadingly precise point estimates that obscure genuine uncertainty surrounding future migration levels",
+    "claim_ids": [
+      "C0029"
+    ],
+    "supports_argument_ids": [
+      "A0030"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0037",
+    "argument_group_id": "G007",
+    "role": "claim",
+    "text": "A multi-method analytical framework is appropriate for addressing small-sample limitations while extracting whatever reliable signal the data can support",
+    "claim_ids": [
+      "C0030",
+      "C0031",
+      "C0032"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0038",
+    "argument_group_id": "G007",
+    "role": "grounds",
+    "text": "The analysis triangulates across nine complementary analytical modules: descriptive statistics, time series methods, panel regression, gravity-inspired models, machine learning approaches, causal inference methods, and duration analysis",
+    "claim_ids": [
+      "C0031"
+    ],
+    "supports_argument_ids": [
+      "A0037"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0039",
+    "argument_group_id": "G007",
+    "role": "warrant",
+    "text": "Where individual methods reach inferential limits, the convergence or divergence of findings across approaches provides additional diagnostic information about result robustness",
+    "claim_ids": [
+      "C0032",
+      "C0046"
+    ],
+    "supports_argument_ids": [
+      "A0037"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0040",
+    "argument_group_id": "G007",
+    "role": "claim",
+    "text": "The research addresses three interrelated questions about empirical regularities, analytical approach effectiveness, and forecast uncertainty characterization",
+    "claim_ids": [
+      "C0033",
+      "C0034",
+      "C0035",
+      "C0036"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0041",
+    "argument_group_id": "G007",
+    "role": "grounds",
+    "text": "The first question asks what empirical regularities characterize North Dakota's international migration\u2014its level, trend, volatility, composition, and sensitivity to policy interventions",
+    "claim_ids": [
+      "C0034"
+    ],
+    "supports_argument_ids": [
+      "A0040"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0042",
+    "argument_group_id": "G007",
+    "role": "grounds",
+    "text": "The second question asks which analytical approaches provide useful leverage in this small-sample context and where conventional methods fail",
+    "claim_ids": [
+      "C0035"
+    ],
+    "supports_argument_ids": [
+      "A0040"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0043",
+    "argument_group_id": "G007",
+    "role": "grounds",
+    "text": "The third question asks what range of future migration scenarios is consistent with historical patterns and how forecast uncertainty should be characterized and communicated",
+    "claim_ids": [
+      "C0036"
+    ],
+    "supports_argument_ids": [
+      "A0040"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0044",
+    "argument_group_id": "G008",
+    "role": "claim",
+    "text": "This study provides the first comprehensive multi-method empirical analysis of international migration to a small U.S. state, demonstrating that rigorous demographic analysis remains feasible despite small-sample constraints",
+    "claim_ids": [
+      "C0037",
+      "C0038"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0045",
+    "argument_group_id": "G008",
+    "role": "grounds",
+    "text": "The study applies causal inference methods\u2014difference-in-differences estimation, synthetic control comparators, and instrumental variables analysis\u2014to state-level migration policy evaluation",
+    "claim_ids": [
+      "C0039"
+    ],
+    "supports_argument_ids": [
+      "A0044"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0046",
+    "argument_group_id": "G008",
+    "role": "warrant",
+    "text": "These causal inference techniques are typically reserved for national-level or cross-country analysis, making their application to state-level data a methodological contribution",
+    "claim_ids": [
+      "C0040"
+    ],
+    "supports_argument_ids": [
+      "A0045"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0047",
+    "argument_group_id": "G008",
+    "role": "grounds",
+    "text": "The research develops a framework for characterizing forecast uncertainty that distinguishes parametric uncertainty (imprecision in estimated relationships) from scenario uncertainty (unknowable future policy configurations)",
+    "claim_ids": [
+      "C0041",
+      "C0042",
+      "C0043"
+    ],
+    "supports_argument_ids": [
+      "A0044"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0048",
+    "argument_group_id": "G008",
+    "role": "qualifier",
+    "text": "The small-sample challenges are not merely technical inconveniences but reflect fundamental limits on what demographic analysis can reliably determine from limited data",
+    "claim_ids": [
+      "C0044"
+    ],
+    "supports_argument_ids": [
+      "A0044"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0049",
+    "argument_group_id": "G008",
+    "role": "qualifier",
+    "text": "This study does not claim to have resolved the small-sample challenges; rather, it attempts to work within them honestly, reporting findings with appropriate uncertainty bounds",
+    "claim_ids": [
+      "C0045"
+    ],
+    "supports_argument_ids": [
+      "A0044"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0050",
+    "argument_group_id": "G008",
+    "role": "warrant",
+    "text": "The goal is inference quality over quantity: fewer confident conclusions rather than many dubious ones",
+    "claim_ids": [
+      "C0047"
+    ],
+    "supports_argument_ids": [
+      "A0049"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0051",
+    "argument_group_id": "G009",
+    "role": "claim",
+    "text": "The analysis focuses exclusively on international migration with explicit acknowledgment that domestic migration and forecast limitations constrain interpretation",
+    "claim_ids": [
+      "C0048",
+      "C0049",
+      "C0055"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0052",
+    "argument_group_id": "G009",
+    "role": "grounds",
+    "text": "This analysis focuses exclusively on international migration\u2014the flow of persons from foreign countries to North Dakota\u2014and does not address domestic migration between U.S. states",
+    "claim_ids": [
+      "C0048",
+      "C0049"
+    ],
+    "supports_argument_ids": [
+      "A0051"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0053",
+    "argument_group_id": "G009",
+    "role": "qualifier",
+    "text": "Domestic migration represents a larger component of North Dakota's total migration than international migration and operates through different mechanisms responding to different policy levers",
+    "claim_ids": [
+      "C0050",
+      "C0051"
+    ],
+    "supports_argument_ids": [
+      "A0051"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0054",
+    "argument_group_id": "G009",
+    "role": "rebuttal",
+    "text": "International and domestic migration may partially substitute or complement each other, and policies affecting one stream may have spillover effects on the other",
+    "claim_ids": [
+      "C0052",
+      "C0053"
+    ],
+    "supports_argument_ids": [
+      "A0051"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0055",
+    "argument_group_id": "G009",
+    "role": "warrant",
+    "text": "Future work integrating both international and domestic migration components would provide a more complete picture of North Dakota's demographic dynamics",
+    "claim_ids": [
+      "C0054"
+    ],
+    "supports_argument_ids": [
+      "A0054"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0056",
+    "argument_group_id": "G009",
+    "role": "claim",
+    "text": "Forecasts are conditional statements about uncertainty, not predictions of specific future outcomes",
+    "claim_ids": [
+      "C0055",
+      "C0056",
+      "C0060"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0057",
+    "argument_group_id": "G009",
+    "role": "grounds",
+    "text": "The scenario projections represent conditional statements: if policy configurations remain within specified bounds and historical patterns continue, then migration flows are likely to fall within certain ranges",
+    "claim_ids": [
+      "C0056"
+    ],
+    "supports_argument_ids": [
+      "A0056"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0058",
+    "argument_group_id": "G009",
+    "role": "rebuttal",
+    "text": "Changes in federal refugee policy, shifts in global conflict patterns, or economic transformations in North Dakota could produce outcomes outside the projected intervals",
+    "claim_ids": [
+      "C0057",
+      "C0058",
+      "C0059"
+    ],
+    "supports_argument_ids": [
+      "A0056"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0059",
+    "argument_group_id": "G009",
+    "role": "warrant",
+    "text": "The goal of scenario projections is not to predict the future but to characterize the uncertainty surrounding it",
+    "claim_ids": [
+      "C0060"
+    ],
+    "supports_argument_ids": [
+      "A0056"
+    ],
+    "section": "Abstract + Introduction",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0060",
+    "argument_group_id": "G010",
+    "role": "claim",
+    "text": "A multi-method analytical design is necessary to address both the complexity of international migration dynamics and the inferential challenges posed by small-sample settings.",
+    "claim_ids": [
+      "C0144"
+    ],
+    "supports_argument_ids": [],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0061",
+    "argument_group_id": "G010",
+    "role": "grounds",
+    "text": "Four methodological traditions are employed: descriptive methods establish baseline patterns; time series techniques characterize dynamic properties; regression approaches quantify relationships; and causal inference methods identify policy effects.",
+    "claim_ids": [
+      "C0145"
+    ],
+    "supports_argument_ids": [
+      "A0060"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0062",
+    "argument_group_id": "G010",
+    "role": "warrant",
+    "text": "The multi-method approach enables triangulation across analytical frameworks, enhancing confidence in findings that emerge consistently.",
+    "claim_ids": [
+      "C0146"
+    ],
+    "supports_argument_ids": [
+      "A0060"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0063",
+    "argument_group_id": "G011",
+    "role": "claim",
+    "text": "The analysis is organized into a nine-module analytical pipeline that systematically builds from descriptive diagnostics through causal inference to scenario-based forecasts.",
+    "claim_ids": [
+      "C0147",
+      "C0148",
+      "C0149",
+      "C0150",
+      "C0151"
+    ],
+    "supports_argument_ids": [],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0064",
+    "argument_group_id": "G012",
+    "role": "claim",
+    "text": "The forecast target is North Dakota's annual net international migration measured through Census PEP, supplemented by auxiliary data sources.",
+    "claim_ids": [
+      "C0152",
+      "C0153",
+      "C0154"
+    ],
+    "supports_argument_ids": [],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0065",
+    "argument_group_id": "G013",
+    "role": "claim",
+    "text": "Census PEP provides the primary forecast target but comes with measurement limitations including model-based allocation and susceptibility to revision.",
+    "claim_ids": [
+      "C0160",
+      "C0161",
+      "C0162"
+    ],
+    "supports_argument_ids": [],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0066",
+    "argument_group_id": "G014",
+    "role": "claim",
+    "text": "Three auxiliary data sources\u2014DHS LPR admissions, ACS foreign-born stock, and RPC refugee arrivals\u2014provide complementary perspectives on international migration composition.",
+    "claim_ids": [
+      "C0172",
+      "C0176",
+      "C0180"
+    ],
+    "supports_argument_ids": [],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0067",
+    "argument_group_id": "G015",
+    "role": "claim",
+    "text": "Descriptive statistical methods including summary statistics, trend decomposition, and geographic concentration measures establish baseline patterns.",
+    "claim_ids": [
+      "C0185",
+      "C0188",
+      "C0190"
+    ],
+    "supports_argument_ids": [],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0068",
+    "argument_group_id": "G016",
+    "role": "claim",
+    "text": "Time series analysis employs a four-stage procedure combining unit root testing, ARIMA specification, structural break detection, and VAR modeling.",
+    "claim_ids": [
+      "C0196"
+    ],
+    "supports_argument_ids": [],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0069",
+    "argument_group_id": "G017",
+    "role": "claim",
+    "text": "Gravity-inspired allocation models using PPML estimation reveal how diaspora stocks predict migration flows.",
+    "claim_ids": [
+      "C0217",
+      "C0218",
+      "C0219"
+    ],
+    "supports_argument_ids": [],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0070",
+    "argument_group_id": "G018",
+    "role": "claim",
+    "text": "Machine learning methods provide flexible functional forms and systematic variable selection that complement traditional regression approaches.",
+    "claim_ids": [
+      "C0222",
+      "C0223"
+    ],
+    "supports_argument_ids": [],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0071",
+    "argument_group_id": "G019",
+    "role": "claim",
+    "text": "Difference-in-differences analysis with finite-sample inference methods provides credible causal estimates of the Travel Ban effect.",
+    "claim_ids": [
+      "C0229",
+      "C0231",
+      "C0235"
+    ],
+    "supports_argument_ids": [],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0072",
+    "argument_group_id": "G020",
+    "role": "claim",
+    "text": "North Dakota's international migration exhibits extreme volatility with a coefficient of variation of 82.5%, exceeding even national-level flows.",
+    "claim_ids": [
+      "C0273",
+      "C0274",
+      "C0276"
+    ],
+    "supports_argument_ids": [],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0073",
+    "argument_group_id": "G020",
+    "role": "grounds",
+    "text": "Net international migration averaged 1,796 persons annually with a CV of 82.5%, substantially higher than the national CV of 73.5%.",
+    "claim_ids": [
+      "C0273",
+      "C0274",
+      "C0275"
+    ],
+    "supports_argument_ids": [
+      "A0072"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0074",
+    "argument_group_id": "G021",
+    "role": "claim",
+    "text": "North Dakota's migration composition reflects refugee-origin concentration at the regional level despite country-level diversification.",
+    "claim_ids": [
+      "C0282",
+      "C0283",
+      "C0284"
+    ],
+    "supports_argument_ids": [],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0075",
+    "argument_group_id": "G021",
+    "role": "grounds",
+    "text": "Location Quotients demonstrate extreme overrepresentation: Liberia (LQ = 40.83), Somalia (LQ = 22.42), confirming refugee resettlement as the dominant migration channel.",
+    "claim_ids": [
+      "C0287",
+      "C0288",
+      "C0289"
+    ],
+    "supports_argument_ids": [
+      "A0074"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0076",
+    "argument_group_id": "G022",
+    "role": "claim",
+    "text": "North Dakota's international migration exhibits non-stationary I(1) dynamics while national migration is stationary I(0).",
+    "claim_ids": [
+      "C0291",
+      "C0292"
+    ],
+    "supports_argument_ids": [],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0077",
+    "argument_group_id": "G023",
+    "role": "claim",
+    "text": "The COVID-19 pandemic represents a highly significant structural break (F = 16.01, p < 0.001) while the 2017 Travel Ban does not produce detectable aggregate effects.",
+    "claim_ids": [
+      "C0299",
+      "C0301"
+    ],
+    "supports_argument_ids": [],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0078",
+    "argument_group_id": "G024",
+    "role": "claim",
+    "text": "Panel regression identifies state population mass as the dominant determinant of migration allocation.",
+    "claim_ids": [
+      "C0307",
+      "C0308",
+      "C0312"
+    ],
+    "supports_argument_ids": [],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0079",
+    "argument_group_id": "G025",
+    "role": "claim",
+    "text": "Disaggregated causal inference reveals the Travel Ban caused a 75% reduction in refugee arrivals from affected countries, invisible in aggregate analysis.",
+    "claim_ids": [
+      "C0314",
+      "C0315"
+    ],
+    "supports_argument_ids": [],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0080",
+    "argument_group_id": "G026",
+    "role": "claim",
+    "text": "Refugee migration waves exhibit substantial persistence, with duration strongly predicted by wave intensity.",
+    "claim_ids": [
+      "C0328",
+      "C0330",
+      "C0332"
+    ],
+    "supports_argument_ids": [],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0081",
+    "argument_group_id": "G027",
+    "role": "claim",
+    "text": "Scenario-based projections through 2045 demonstrate forecast uncertainty spanning a factor of 7.7 across policy scenarios.",
+    "claim_ids": [
+      "C0334",
+      "C0335",
+      "C0336",
+      "C0337"
+    ],
+    "supports_argument_ids": [],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0082",
+    "argument_group_id": "G030",
+    "role": "claim",
+    "text": "The multi-method analysis yielded convergent findings revealing both empirical patterns and the inherent limits of prediction.",
+    "claim_ids": [
+      "C0342",
+      "C0343"
+    ],
+    "supports_argument_ids": [],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0083",
+    "argument_group_id": "G031",
+    "role": "claim",
+    "text": "North Dakota's migration profile is becoming more distinctive over time, characterized by increasing regional concentration.",
+    "claim_ids": [
+      "C0344",
+      "C0347"
+    ],
+    "supports_argument_ids": [],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0084",
+    "argument_group_id": "G032",
+    "role": "claim",
+    "text": "The 2017 Travel Ban produced large compositional effects only detectable through disaggregated panel methods, not aggregate time series.",
+    "claim_ids": [
+      "C0350",
+      "C0352",
+      "C0354"
+    ],
+    "supports_argument_ids": [],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0085",
+    "argument_group_id": "G033",
+    "role": "claim",
+    "text": "North Dakota's diaspora networks have not yet generated self-reinforcing migration chains comparable to larger immigration states.",
+    "claim_ids": [
+      "C0369"
+    ],
+    "supports_argument_ids": [],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0086",
+    "argument_group_id": "G034",
+    "role": "claim",
+    "text": "North Dakota's heavy reliance on refugee resettlement creates substantial planning challenges due to policy exposure.",
+    "claim_ids": [
+      "C0365",
+      "C0366"
+    ],
+    "supports_argument_ids": [],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0087",
+    "argument_group_id": "G040",
+    "role": "claim",
+    "text": "This study offers three principal contributions: multi-method analysis, novel causal inference applications, and rigorous uncertainty quantification.",
+    "claim_ids": [
+      "C0091",
+      "C0092",
+      "C0097",
+      "C0103"
+    ],
+    "supports_argument_ids": [],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0088",
+    "argument_group_id": "G041",
+    "role": "claim",
+    "text": "Novel applications of causal inference methods to state-level migration policy evaluation extend the analytical toolkit.",
+    "claim_ids": [
+      "C0097",
+      "C0102"
+    ],
+    "supports_argument_ids": [],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0089",
+    "argument_group_id": "G042",
+    "role": "claim",
+    "text": "A rigorous framework for uncertainty quantification distinguishes forecast uncertainty from scenario uncertainty.",
+    "claim_ids": [
+      "C0103",
+      "C0104",
+      "C0108"
+    ],
+    "supports_argument_ids": [],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0090",
+    "argument_group_id": "G043",
+    "role": "claim",
+    "text": "North Dakota's international migration is refugee-dominated and policy-sensitive, driven by federal resettlement decisions.",
+    "claim_ids": [
+      "C0109",
+      "C0110",
+      "C0111",
+      "C0112"
+    ],
+    "supports_argument_ids": [],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0091",
+    "argument_group_id": "G044",
+    "role": "claim",
+    "text": "Small-state refugee migration exhibits extreme volatility requiring scenario-based planning rather than point forecasting.",
+    "claim_ids": [
+      "C0115",
+      "C0116",
+      "C0117",
+      "C0120"
+    ],
+    "supports_argument_ids": [],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0092",
+    "argument_group_id": "G045",
+    "role": "claim",
+    "text": "The study's contribution lies in characterizing uncertainty accurately rather than resolving it.",
+    "claim_ids": [
+      "C0140",
+      "C0141",
+      "C0142",
+      "C0143"
+    ],
+    "supports_argument_ids": [],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0093",
+    "argument_group_id": "G050",
+    "role": "claim",
+    "text": "Structural break detection methods yield divergent results reflecting the tension between model fit and parsimony.",
+    "claim_ids": [
+      "C0378",
+      "C0379",
+      "C0380",
+      "C0382"
+    ],
+    "supports_argument_ids": [],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0094",
+    "argument_group_id": "G051",
+    "role": "claim",
+    "text": "Panel regression analysis across specifications confirms the COVID-19 shock effect on international migration.",
+    "claim_ids": [
+      "C0383",
+      "C0384",
+      "C0385",
+      "C0386"
+    ],
+    "supports_argument_ids": [],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0095",
+    "argument_group_id": "G052",
+    "role": "claim",
+    "text": "Time series integration analysis confirms North Dakota international migration follows an I(1) non-stationary process.",
+    "claim_ids": [
+      "C0393",
+      "C0394",
+      "C0395"
+    ],
+    "supports_argument_ids": [],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0096",
+    "argument_group_id": "G053",
+    "role": "claim",
+    "text": "VAR analysis reveals weak Granger causality from national to state migration with limited individual coefficient significance.",
+    "claim_ids": [
+      "C0396",
+      "C0397",
+      "C0398",
+      "C0399"
+    ],
+    "supports_argument_ids": [],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0097",
+    "argument_group_id": "G054",
+    "role": "claim",
+    "text": "The Monte Carlo simulation methodology combines ARIMA baseline uncertainty with wave duration draws while avoiding double-counting.",
+    "claim_ids": [
+      "C0422",
+      "C0423",
+      "C0424",
+      "C0428",
+      "C0430"
+    ],
+    "supports_argument_ids": [],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0098",
+    "argument_group_id": "G055",
+    "role": "claim",
+    "text": "The analysis integrates multiple authoritative data sources covering different dimensions of international migration.",
+    "claim_ids": [
+      "C0432",
+      "C0433",
+      "C0435",
+      "C0437",
+      "C0438"
+    ],
+    "supports_argument_ids": [],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0099",
+    "argument_group_id": "G011",
+    "role": "grounds",
+    "text": "Modules 1-6 provide descriptive diagnostics, baseline time-series structure, and predictive covariates; Module 7 offers causal evidence of policy sensitivity; Module 8 translates refugee wave persistence into a forecasting adjustment; Module 9 integrates all inputs into scenario paths and Monte Carlo uncertainty.",
+    "claim_ids": [
+      "C0148",
+      "C0149",
+      "C0150",
+      "C0151"
+    ],
+    "supports_argument_ids": [
+      "A0063"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0100",
+    "argument_group_id": "G011",
+    "role": "warrant",
+    "text": "The pipeline structure ensures that each analytical module builds upon prior findings, with descriptive patterns informing time series specification, causal estimates contextualizing scenario interpretation, and duration analysis adjusting forecasts for wave persistence.",
+    "claim_ids": [
+      "C0252"
+    ],
+    "supports_argument_ids": [
+      "A0063"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0101",
+    "argument_group_id": "G012",
+    "role": "grounds",
+    "text": "The estimand is North Dakota's annual net international migration measured as the PEP international migration component of population change, expressed in persons on a net basis.",
+    "claim_ids": [
+      "C0152",
+      "C0153"
+    ],
+    "supports_argument_ids": [
+      "A0064"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0102",
+    "argument_group_id": "G012",
+    "role": "grounds",
+    "text": "DHS LPR admissions, RPC refugee arrivals, and ACS foreign-born stock estimates serve as auxiliary data sources to characterize and partially decompose international migration and construct predictors such as diaspora measures.",
+    "claim_ids": [
+      "C0155",
+      "C0156"
+    ],
+    "supports_argument_ids": [
+      "A0064"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0103",
+    "argument_group_id": "G012",
+    "role": "warrant",
+    "text": "A clear definition of the forecast target as net international migration enables consistent measurement across the projection horizon while auxiliary data sources provide compositional detail and predictor variables.",
+    "claim_ids": [
+      "C0154",
+      "C0159"
+    ],
+    "supports_argument_ids": [
+      "A0064"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0104",
+    "argument_group_id": "G013",
+    "role": "grounds",
+    "text": "PEP estimates are model-based composites that aggregate heterogeneous migration streams and allocate national estimates to states using ACS data on recent movers and foreign-born distributions.",
+    "claim_ids": [
+      "C0161",
+      "C0169",
+      "C0170"
+    ],
+    "supports_argument_ids": [
+      "A0065"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0105",
+    "argument_group_id": "G013",
+    "role": "grounds",
+    "text": "The 2020 PEP estimate reflects both true pandemic disruption and potential measurement artifacts, and the allocation methodology may introduce smoothing artifacts at the state level.",
+    "claim_ids": [
+      "C0162",
+      "C0171"
+    ],
+    "supports_argument_ids": [
+      "A0065"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0106",
+    "argument_group_id": "G013",
+    "role": "warrant",
+    "text": "Understanding Census PEP limitations is essential because model-based allocation and susceptibility to revision affect interpretation of both historical patterns and forecast accuracy.",
+    "claim_ids": [
+      "C0160",
+      "C0166"
+    ],
+    "supports_argument_ids": [
+      "A0065"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0107",
+    "argument_group_id": "G014",
+    "role": "grounds",
+    "text": "DHS publishes LPR admissions by state and country of birth, enabling gravity model estimation and concentration analysis; LPR counts derive from visa issuance records and represent actual admissions.",
+    "claim_ids": [
+      "C0172",
+      "C0173",
+      "C0174"
+    ],
+    "supports_argument_ids": [
+      "A0066"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0108",
+    "argument_group_id": "G014",
+    "role": "grounds",
+    "text": "ACS provides foreign-born population estimates by place of birth with five-year estimates from 2009-2023, though coefficients of variation can exceed 30% for small populations.",
+    "claim_ids": [
+      "C0176",
+      "C0177",
+      "C0178"
+    ],
+    "supports_argument_ids": [
+      "A0066"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0109",
+    "argument_group_id": "G014",
+    "role": "grounds",
+    "text": "The Refugee Processing Center maintains comprehensive records of refugee arrivals by state and nationality spanning fiscal years 2002-2020, providing the longest time series and precise counts of a well-defined population.",
+    "claim_ids": [
+      "C0180",
+      "C0181",
+      "C0183"
+    ],
+    "supports_argument_ids": [
+      "A0066"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0110",
+    "argument_group_id": "G014",
+    "role": "warrant",
+    "text": "Multiple auxiliary data sources are necessary because each captures different dimensions of international migration: LPR admissions for permanent residents, ACS for stock measures and diaspora, and RPC for refugee-specific flows.",
+    "claim_ids": [
+      "C0175",
+      "C0179",
+      "C0182"
+    ],
+    "supports_argument_ids": [
+      "A0066"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0111",
+    "argument_group_id": "G015",
+    "role": "grounds",
+    "text": "Summary statistics include means, standard deviations, coefficients of variation, skewness, and kurtosis, with the coefficient of variation providing a scale-invariant volatility measure.",
+    "claim_ids": [
+      "C0185",
+      "C0186",
+      "C0187"
+    ],
+    "supports_argument_ids": [
+      "A0067"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0112",
+    "argument_group_id": "G015",
+    "role": "grounds",
+    "text": "Hodrick-Prescott filter decomposition with lambda = 6.25 separates trend and cyclical components, following Ravn and Uhlig (2002) for annual data.",
+    "claim_ids": [
+      "C0188",
+      "C0189"
+    ],
+    "supports_argument_ids": [
+      "A0067"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0113",
+    "argument_group_id": "G015",
+    "role": "grounds",
+    "text": "Geographic concentration analysis employs the Herfindahl-Hirschman Index and Location Quotients to measure origin-country concentration and deviation from national patterns.",
+    "claim_ids": [
+      "C0190",
+      "C0194",
+      "C0195"
+    ],
+    "supports_argument_ids": [
+      "A0067"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0114",
+    "argument_group_id": "G015",
+    "role": "warrant",
+    "text": "Descriptive methods establish baseline patterns that inform subsequent analytical modules by quantifying volatility, trend structure, and compositional distinctiveness.",
+    "claim_ids": [
+      "C0191",
+      "C0192",
+      "C0193"
+    ],
+    "supports_argument_ids": [
+      "A0067"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0115",
+    "argument_group_id": "G016",
+    "role": "grounds",
+    "text": "Stationarity assessment employs ADF and PP tests alongside KPSS to triangulate integration properties, with the KPSS test having a null hypothesis of stationarity.",
+    "claim_ids": [
+      "C0197",
+      "C0198",
+      "C0200"
+    ],
+    "supports_argument_ids": [
+      "A0068"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0116",
+    "argument_group_id": "G016",
+    "role": "grounds",
+    "text": "For series exhibiting unit roots, ARIMA models of order (p, d, q) are fitted with lag length selected by AIC, and Ljung-Box portmanteau tests assess residual autocorrelation.",
+    "claim_ids": [
+      "C0199",
+      "C0202",
+      "C0203"
+    ],
+    "supports_argument_ids": [
+      "A0068"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0117",
+    "argument_group_id": "G016",
+    "role": "grounds",
+    "text": "Structural break analysis employs Chow tests for known break points, CUSUM for parameter instability detection, and Bai-Perron procedure for endogenous break detection with minimum segment length of 2 years.",
+    "claim_ids": [
+      "C0204",
+      "C0205",
+      "C0206",
+      "C0207",
+      "C0208"
+    ],
+    "supports_argument_ids": [
+      "A0068"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0118",
+    "argument_group_id": "G016",
+    "role": "grounds",
+    "text": "VAR modeling examines dynamic interdependencies between state and national flows, with Granger causality tests evaluating directional predictive relationships and forecast error variance decomposition quantifying contributions to uncertainty.",
+    "claim_ids": [
+      "C0209",
+      "C0210",
+      "C0211"
+    ],
+    "supports_argument_ids": [
+      "A0068"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0119",
+    "argument_group_id": "G016",
+    "role": "warrant",
+    "text": "The four-stage time series procedure characterizes dynamic properties essential for forecasting: integration order determines appropriate differencing, ARIMA captures autocorrelation structure, structural breaks reveal regime changes, and VAR identifies cross-series dependencies.",
+    "claim_ids": [
+      "C0201",
+      "C0253"
+    ],
+    "supports_argument_ids": [
+      "A0068"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0120",
+    "argument_group_id": "G017",
+    "role": "grounds",
+    "text": "Cross-sectional allocation models quantify how LPR admissions are distributed across state-origin pairs as a function of diaspora stocks and destination characteristics.",
+    "claim_ids": [
+      "C0217"
+    ],
+    "supports_argument_ids": [
+      "A0069"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0121",
+    "argument_group_id": "G017",
+    "role": "grounds",
+    "text": "PPML estimation addresses heteroskedasticity-induced bias and accommodates zero flows that affect log-linear OLS, with diaspora elasticity coefficients framed as predictive associations.",
+    "claim_ids": [
+      "C0218",
+      "C0219",
+      "C0221"
+    ],
+    "supports_argument_ids": [
+      "A0069"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0122",
+    "argument_group_id": "G017",
+    "role": "warrant",
+    "text": "Gravity-inspired models reveal whether diaspora stocks predict subsequent migration flows, providing evidence on whether North Dakota's immigrant communities generate self-reinforcing migration chains.",
+    "claim_ids": [
+      "C0220"
+    ],
+    "supports_argument_ids": [
+      "A0069"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0123",
+    "argument_group_id": "G018",
+    "role": "grounds",
+    "text": "Three ML techniques are employed: Elastic Net combining L1 and L2 penalties for regularized variable selection, Random Forest with permutation-based feature importance, and K-means clustering with silhouette-based optimal K selection.",
+    "claim_ids": [
+      "C0223",
+      "C0224",
+      "C0225",
+      "C0226",
+      "C0227",
+      "C0228"
+    ],
+    "supports_argument_ids": [
+      "A0070"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0124",
+    "argument_group_id": "G018",
+    "role": "warrant",
+    "text": "ML methods complement traditional regression by providing flexible functional forms without parametric assumptions, systematic variable selection that identifies dominant predictors, and unsupervised clustering that reveals state migration typologies.",
+    "claim_ids": [
+      "C0222",
+      "C0254"
+    ],
+    "supports_argument_ids": [
+      "A0070"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0125",
+    "argument_group_id": "G019",
+    "role": "grounds",
+    "text": "The Travel Ban DiD design compares refugee arrivals from affected countries (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) to unaffected countries, identifying the average treatment effect on the treated.",
+    "claim_ids": [
+      "C0231",
+      "C0232",
+      "C0233"
+    ],
+    "supports_argument_ids": [
+      "A0071"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0126",
+    "argument_group_id": "G019",
+    "role": "grounds",
+    "text": "With only seven treated nationalities, conventional cluster-robust inference may be unreliable; clustered standard errors are supplemented with wild cluster bootstrap and randomization inference providing finite-sample valid inference.",
+    "claim_ids": [
+      "C0235",
+      "C0236",
+      "C0237"
+    ],
+    "supports_argument_ids": [
+      "A0071"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0127",
+    "argument_group_id": "G019",
+    "role": "grounds",
+    "text": "Parallel trends are evaluated through pre-treatment trend tests and graphical inspection, with violations indicating that estimates represent bounds rather than point estimates.",
+    "claim_ids": [
+      "C0234"
+    ],
+    "supports_argument_ids": [
+      "A0071"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0128",
+    "argument_group_id": "G019",
+    "role": "warrant",
+    "text": "Finite-sample inference methods are essential because small cluster counts invalidate asymptotic approximations, and explicit parallel trends assessment ensures appropriate interpretation of causal estimates.",
+    "claim_ids": [
+      "C0229",
+      "C0230"
+    ],
+    "supports_argument_ids": [
+      "A0071"
+    ],
+    "section": "Data and Methods",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0129",
+    "argument_group_id": "G020",
+    "role": "warrant",
+    "text": "A coefficient of variation exceeding 80% indicates that typical annual deviations approach the mean itself, making conventional forecasting methods unreliable and demonstrating amplified volatility characteristic of small-state migration.",
+    "claim_ids": [
+      "C0276"
+    ],
+    "supports_argument_ids": [
+      "A0072"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0130",
+    "argument_group_id": "G021",
+    "role": "warrant",
+    "text": "Location Quotients exceeding 20 indicate populations more than 20 times as concentrated in North Dakota relative to national shares, confirming that refugee resettlement policy rather than economic migration determines the state's migration composition.",
+    "claim_ids": [
+      "C0287",
+      "C0289"
+    ],
+    "supports_argument_ids": [
+      "A0074"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0131",
+    "argument_group_id": "G022",
+    "role": "grounds",
+    "text": "ADF testing fails to reject the unit root null in levels (p = 0.556) but rejects after first differencing (p = 0.002) for North Dakota, while national migration rejects in levels (p = 0.002), demonstrating divergent integration properties.",
+    "claim_ids": [
+      "C0291",
+      "C0292"
+    ],
+    "supports_argument_ids": [
+      "A0076"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0132",
+    "argument_group_id": "G022",
+    "role": "warrant",
+    "text": "I(1) non-stationary dynamics imply that shocks to state-level migration have permanent effects on the level of the series, unlike mean-reverting I(0) national flows, requiring different forecasting approaches for small states.",
+    "claim_ids": [
+      "C0293",
+      "C0298"
+    ],
+    "supports_argument_ids": [
+      "A0076"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0133",
+    "argument_group_id": "G023",
+    "role": "grounds",
+    "text": "Structural break testing identifies the 2020 COVID-19 pandemic as highly significant (F = 16.01, p < 0.001) with a 91.1% regime shift from mean migration of 1,378 pre-2020 to 2,633 post-2020, while the 2017 Travel Ban shows no aggregate effect (F = 1.29, p = 0.314).",
+    "claim_ids": [
+      "C0299",
+      "C0300",
+      "C0301"
+    ],
+    "supports_argument_ids": [
+      "A0077"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0134",
+    "argument_group_id": "G023",
+    "role": "grounds",
+    "text": "The 2021 post-COVID recovery represents an additional significant structural break (F = 10.28, p = 0.003) with a 161.6% regime shift, confirming pandemic-related disruption and recovery as the dominant structural features.",
+    "claim_ids": [
+      "C0302"
+    ],
+    "supports_argument_ids": [
+      "A0077"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0135",
+    "argument_group_id": "G023",
+    "role": "warrant",
+    "text": "The Travel Ban's invisibility in aggregate analysis despite its documented compositional effects demonstrates that structural break detection in small-state time series may miss policy effects that operate through compositional rather than aggregate channels.",
+    "claim_ids": [
+      "C0301",
+      "C0314"
+    ],
+    "supports_argument_ids": [
+      "A0077"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0136",
+    "argument_group_id": "G024",
+    "role": "grounds",
+    "text": "State foreign-born population totals exhibit the largest elasticity (0.792, SE = 0.212, p < 0.001), while diaspora associations attenuate from 0.448 to 0.140 (p = 0.57) when controlling for population mass.",
+    "claim_ids": [
+      "C0310",
+      "C0311",
+      "C0312"
+    ],
+    "supports_argument_ids": [
+      "A0078"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0137",
+    "argument_group_id": "G024",
+    "role": "grounds",
+    "text": "North Dakota's fixed effect of -18,022 places it near the bottom of the distribution compared to Florida's +125,526, reflecting systematic allocation away from small peripheral states.",
+    "claim_ids": [
+      "C0307",
+      "C0308"
+    ],
+    "supports_argument_ids": [
+      "A0078"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0138",
+    "argument_group_id": "G024",
+    "role": "warrant",
+    "text": "Population mass dominance implies that migration allocation follows a gravity-like process where established immigrant populations attract subsequent flows, limiting the ability of small states to develop independent migration channels.",
+    "claim_ids": [
+      "C0312",
+      "C0313"
+    ],
+    "supports_argument_ids": [
+      "A0078"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0139",
+    "argument_group_id": "G025",
+    "role": "grounds",
+    "text": "Difference-in-differences estimation yields ATT = -1.384 on log scale (t = -2.14, p = 0.032), corresponding to a 74.9% policy-associated divergence in refugee arrivals from Travel Ban-affected countries.",
+    "claim_ids": [
+      "C0314",
+      "C0315"
+    ],
+    "supports_argument_ids": [
+      "A0079"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0140",
+    "argument_group_id": "G025",
+    "role": "grounds",
+    "text": "The event study rejects parallel trends over the full pre-period (F = 4.31, p < 0.001), but restricting to 2013-2017 improves diagnostics (F = 0.76, p = 0.553) and increases the ATT to -1.983 (-86%), confirmed by bootstrap (p = 0.003) and randomization inference (p = 0.004).",
+    "claim_ids": [
+      "C0316",
+      "C0320",
+      "C0321",
+      "C0322"
+    ],
+    "supports_argument_ids": [
+      "A0079"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0141",
+    "argument_group_id": "G025",
+    "role": "warrant",
+    "text": "The Travel Ban effect is invisible in aggregate structural break analysis (F = 1.29, p = 0.314) because compositional shifts across origin countries offset in the aggregate, demonstrating that causal inference requires disaggregated panel methods to detect policy effects operating through selective channels.",
+    "claim_ids": [
+      "C0301",
+      "C0317"
+    ],
+    "supports_argument_ids": [
+      "A0079"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0142",
+    "argument_group_id": "G026",
+    "role": "grounds",
+    "text": "Kaplan-Meier estimation across 940 identified refugee waves yields median duration of 3.0 years (mean = 3.54), with 51.6% surviving past year 2 and only 6.2% past year 10.",
+    "claim_ids": [
+      "C0327",
+      "C0328",
+      "C0329"
+    ],
+    "supports_argument_ids": [
+      "A0080"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0143",
+    "argument_group_id": "G026",
+    "role": "grounds",
+    "text": "The log-rank test strongly rejects equality across intensity quartiles (chi-sq = 278.7, p < 10^-60), and Cox regression shows log intensity hazard ratio of 0.412 (p < 0.001), indicating 59% lower termination hazard for high-intensity waves.",
+    "claim_ids": [
+      "C0330",
+      "C0332"
+    ],
+    "supports_argument_ids": [
+      "A0080"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0144",
+    "argument_group_id": "G026",
+    "role": "warrant",
+    "text": "Strong intensity-duration correlation implies that once refugee streams reach critical mass they develop self-sustaining dynamics through network effects, making initial wave intensity predictive of long-term persistence and relevant for planning horizons.",
+    "claim_ids": [
+      "C0332",
+      "C0333"
+    ],
+    "supports_argument_ids": [
+      "A0080"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0145",
+    "argument_group_id": "G027",
+    "role": "grounds",
+    "text": "Scenario projections through 2045 yield CBO Full (19,318 persons), Moderate (7,048), and Pre-2020 Trend (2,517), spanning a factor of 7.7 across policy assumptions.",
+    "claim_ids": [
+      "C0334",
+      "C0335",
+      "C0336"
+    ],
+    "supports_argument_ids": [
+      "A0081"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0146",
+    "argument_group_id": "G027",
+    "role": "grounds",
+    "text": "Monte Carlo simulation yields median 2045 projection of 9,056 persons with 95% prediction interval [3,570, 14,491], spanning a factor of 4.1 reflecting parametric uncertainty alone.",
+    "claim_ids": [
+      "C0337",
+      "C0338"
+    ],
+    "supports_argument_ids": [
+      "A0081"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0147",
+    "argument_group_id": "G027",
+    "role": "warrant",
+    "text": "The 7.7-fold range across scenarios versus 4.1-fold parametric uncertainty demonstrates that scenario uncertainty (unknowable policy configurations) dominates parametric uncertainty, making point forecasts misleading without explicit policy conditioning.",
+    "claim_ids": [
+      "C0337",
+      "C0338"
+    ],
+    "supports_argument_ids": [
+      "A0081"
+    ],
+    "section": "Results",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0148",
+    "argument_group_id": "G030",
+    "role": "grounds",
+    "text": "Nine analytical modules spanning descriptive statistics, time series econometrics, panel regression, gravity models, machine learning, causal inference, and duration analysis produced consistent characterizations of North Dakota's migration as volatile (CV = 82.5%), refugee-dominated, and policy-sensitive.",
+    "claim_ids": [
+      "C0342",
+      "C0273",
+      "C0274",
+      "C0287",
+      "C0289",
+      "C0299",
+      "C0315"
+    ],
+    "supports_argument_ids": [
+      "A0082"
+    ],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0149",
+    "argument_group_id": "G030",
+    "role": "warrant",
+    "text": "When multiple independent analytical methods converge on the same empirical patterns despite different assumptions and functional forms, this convergence provides stronger confidence in findings than any single method could achieve, while divergence reveals genuine uncertainty.",
+    "claim_ids": [
+      "C0343"
+    ],
+    "supports_argument_ids": [
+      "A0082"
+    ],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0150",
+    "argument_group_id": "G031",
+    "role": "grounds",
+    "text": "Regional-level HHI increased substantially from approximately 2,600 in the early 2010s to over 5,200 by 2022-2023, while Asia and Africa together comprise over 80% of LPR flows, with country-level diversity masking regional concentration.",
+    "claim_ids": [
+      "C0344",
+      "C0345",
+      "C0346",
+      "C0284"
+    ],
+    "supports_argument_ids": [
+      "A0083"
+    ],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0151",
+    "argument_group_id": "G031",
+    "role": "warrant",
+    "text": "Rising concentration indices over time indicate that North Dakota's migration composition is becoming less like the diversified national pattern, as refugee-origin regions increasingly dominate the state's immigration profile.",
+    "claim_ids": [
+      "C0347"
+    ],
+    "supports_argument_ids": [
+      "A0083"
+    ],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0152",
+    "argument_group_id": "G032",
+    "role": "grounds",
+    "text": "The 2017 Travel Ban does not represent a significant structural break at the aggregate level (F = 1.29, p = 0.314), yet difference-in-differences estimation identifies a 75% policy-associated divergence in refugee arrivals from affected countries (ATT = -1.384, p = 0.032).",
+    "claim_ids": [
+      "C0301",
+      "C0314",
+      "C0315",
+      "C0350"
+    ],
+    "supports_argument_ids": [
+      "A0084"
+    ],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0153",
+    "argument_group_id": "G032",
+    "role": "warrant",
+    "text": "Effects concentrated on specific nationalities targeted by the policy average out in aggregate statistics because unaffected origin groups continue normal flows, demonstrating how structural instability manifests asymmetrically across analytical scales.",
+    "claim_ids": [
+      "C0351",
+      "C0352",
+      "C0354"
+    ],
+    "supports_argument_ids": [
+      "A0084"
+    ],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0154",
+    "argument_group_id": "G032",
+    "role": "qualifier",
+    "text": "The parallel trends assumption essential for causal identification is not satisfied over the full pre-treatment period (F = 4.31, p < 0.001), suggesting the 75% estimate may represent an upper bound on the causal effect.",
+    "claim_ids": [
+      "C0353",
+      "C0316",
+      "C0317"
+    ],
+    "supports_argument_ids": [
+      "A0084"
+    ],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0155",
+    "argument_group_id": "G033",
+    "role": "grounds",
+    "text": "The diaspora association of 0.140 falls below diaspora elasticities of 0.4 to 0.7 reported by Beine et al. (2011) in cross-national studies, with destination foreign-born totals dominating migration allocation at an elasticity of 0.792.",
+    "claim_ids": [
+      "C0358",
+      "C0359",
+      "C0361",
+      "C0311",
+      "C0312"
+    ],
+    "supports_argument_ids": [
+      "A0085"
+    ],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0156",
+    "argument_group_id": "G033",
+    "role": "warrant",
+    "text": "North Dakota's small absolute foreign-born population may generate insufficient network density to support chain migration mechanisms; diaspora effects require threshold populations to provide the information, housing, and employment networks that facilitate subsequent migration.",
+    "claim_ids": [
+      "C0360",
+      "C0369"
+    ],
+    "supports_argument_ids": [
+      "A0085"
+    ],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0157",
+    "argument_group_id": "G034",
+    "role": "grounds",
+    "text": "North Dakota receives disproportionate shares of migrants from countries frequently subject to policy intervention (LQ > 20 for Liberia, Somalia, Ivory Coast), and the 75% policy-associated divergence underscores how dependent state-level migration is on federal policy decisions.",
+    "claim_ids": [
+      "C0366",
+      "C0367",
+      "C0287",
+      "C0288",
+      "C0289"
+    ],
+    "supports_argument_ids": [
+      "A0086"
+    ],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0158",
+    "argument_group_id": "G034",
+    "role": "warrant",
+    "text": "When a state's migration portfolio is concentrated in refugee-origin populations subject to federal policy discretion, planning models premised on smooth population growth require substantial adaptation, as policy shocks can produce order-of-magnitude flow changes that states cannot control or anticipate.",
+    "claim_ids": [
+      "C0365",
+      "C0368",
+      "C0363"
+    ],
+    "supports_argument_ids": [
+      "A0086"
+    ],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0159",
+    "argument_group_id": "G034",
+    "role": "backing",
+    "text": "Higher-intensity immigration waves persist substantially longer (median 4 years for Q4 versus 2 years for Q1), suggesting that initial resettlement investments may yield extended returns if communities can weather policy disruptions.",
+    "claim_ids": [
+      "C0362",
+      "C0372",
+      "C0370"
+    ],
+    "supports_argument_ids": [
+      "A0158"
+    ],
+    "section": "Discussion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0160",
+    "argument_group_id": "G040",
+    "role": "grounds",
+    "text": "The nine-module analytical framework spans descriptive statistics, time series analysis, panel regression, gravity models, machine learning, causal inference, and duration analysis, demonstrating the study's comprehensive multi-method approach.",
+    "claim_ids": [
+      "C0093",
+      "C0094"
+    ],
+    "supports_argument_ids": [
+      "A0087"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0161",
+    "argument_group_id": "G040",
+    "role": "grounds",
+    "text": "The multi-method design explicitly trades depth within any single paradigm for robustness across paradigms, generating convergent findings that warrant greater confidence than single-method analyses could support.",
+    "claim_ids": [
+      "C0095",
+      "C0096"
+    ],
+    "supports_argument_ids": [
+      "A0087"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0162",
+    "argument_group_id": "G040",
+    "role": "warrant",
+    "text": "Rigorous demographic analysis remains feasible even when small populations and short time series strain conventional asymptotic methods, provided multiple analytical approaches are triangulated.",
+    "claim_ids": [
+      "C0094",
+      "C0096"
+    ],
+    "supports_argument_ids": [
+      "A0087"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0163",
+    "argument_group_id": "G041",
+    "role": "grounds",
+    "text": "The difference-in-differences estimate identifies a policy-associated divergence of approximately 75% in refugee arrivals from Travel Ban-affected countries (p = 0.032), though pre-treatment trend violations suggest this represents an upper bound.",
+    "claim_ids": [
+      "C0098",
+      "C0099"
+    ],
+    "supports_argument_ids": [
+      "A0088"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0164",
+    "argument_group_id": "G041",
+    "role": "grounds",
+    "text": "A synthetic comparator provides descriptive benchmarking for North Dakota without causal interpretation, while a shift-share index establishes first-stage relevance linking refugee-driven shocks to state migration.",
+    "claim_ids": [
+      "C0100",
+      "C0101"
+    ],
+    "supports_argument_ids": [
+      "A0088"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0165",
+    "argument_group_id": "G041",
+    "role": "warrant",
+    "text": "These causal inference methods extend the migration policy evaluation toolkit beyond the national-level and gateway-state analyses that dominate existing literature, enabling policy effect detection where aggregate methods fail.",
+    "claim_ids": [
+      "C0102"
+    ],
+    "supports_argument_ids": [
+      "A0088"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0166",
+    "argument_group_id": "G042",
+    "role": "grounds",
+    "text": "Monte Carlo simulation propagates parameter uncertainty through projection models to generate forecast distributions, using probability distributions rather than point estimates.",
+    "claim_ids": [
+      "C0105",
+      "C0106"
+    ],
+    "supports_argument_ids": [
+      "A0089"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0167",
+    "argument_group_id": "G042",
+    "role": "grounds",
+    "text": "The 95% prediction interval for 2045 migration spans a factor of 4.1, reflecting the structural uncertainty inherent in small-state migration forecasting.",
+    "claim_ids": [
+      "C0107",
+      "C0108"
+    ],
+    "supports_argument_ids": [
+      "A0089"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0168",
+    "argument_group_id": "G042",
+    "role": "warrant",
+    "text": "Distinguishing forecast uncertainty (parametric imprecision within a policy regime) from scenario uncertainty (unknowable future policy choices) enables more honest communication about what forecasts can and cannot reveal.",
+    "claim_ids": [
+      "C0104"
+    ],
+    "supports_argument_ids": [
+      "A0089"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0169",
+    "argument_group_id": "G043",
+    "role": "grounds",
+    "text": "The Location Quotient analysis reveals extreme overrepresentation of African and Middle Eastern origins in North Dakota, a product of federal resettlement decisions rather than economic migration chains.",
+    "claim_ids": [
+      "C0111",
+      "C0112"
+    ],
+    "supports_argument_ids": [
+      "A0090"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0170",
+    "argument_group_id": "G043",
+    "role": "grounds",
+    "text": "Policy interventions affecting refugee source regions produce immediate and substantial effects on state-level migration flows, confirming policy sensitivity.",
+    "claim_ids": [
+      "C0113"
+    ],
+    "supports_argument_ids": [
+      "A0090"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0171",
+    "argument_group_id": "G043",
+    "role": "warrant",
+    "text": "Demographic planners must recognize policy dependence as a fundamental feature of the forecasting problem for refugee migration, since flows respond to federal decisions rather than local economic conditions.",
+    "claim_ids": [
+      "C0114"
+    ],
+    "supports_argument_ids": [
+      "A0090"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0172",
+    "argument_group_id": "G044",
+    "role": "grounds",
+    "text": "Migration levels can shift by amounts approaching the mean itself due to high volatility, with a dramatic structural break in 2020 demonstrating sensitivity to external shocks.",
+    "claim_ids": [
+      "C0117",
+      "C0118"
+    ],
+    "supports_argument_ids": [
+      "A0091"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0173",
+    "argument_group_id": "G044",
+    "role": "grounds",
+    "text": "The scenario range for North Dakota refugee migration extends from 2,517 to 19,318 migrants by 2045, spanning a factor of 7.7 across policy scenarios.",
+    "claim_ids": [
+      "C0119"
+    ],
+    "supports_argument_ids": [
+      "A0091"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0174",
+    "argument_group_id": "G044",
+    "role": "warrant",
+    "text": "When random-walk baseline characteristics combine with policy-driven regime shifts, point forecasts convey false precision; only scenario-based planning can accommodate such structural uncertainty.",
+    "claim_ids": [
+      "C0116",
+      "C0120"
+    ],
+    "supports_argument_ids": [
+      "A0091"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0175",
+    "argument_group_id": "G045",
+    "role": "grounds",
+    "text": "International migration to North Dakota is small in absolute terms, volatile over time, concentrated in humanitarian categories, and sensitive to federal policy decisions.",
+    "claim_ids": [
+      "C0136",
+      "C0137",
+      "C0138",
+      "C0139"
+    ],
+    "supports_argument_ids": [
+      "A0092"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0176",
+    "argument_group_id": "G045",
+    "role": "grounds",
+    "text": "The study combines methodological rigor with honest acknowledgment of forecasting limits, seeking to provide a framework rather than misleadingly precise predictions.",
+    "claim_ids": [
+      "C0140"
+    ],
+    "supports_argument_ids": [
+      "A0092"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0177",
+    "argument_group_id": "G045",
+    "role": "warrant",
+    "text": "Accurate characterization of uncertainty enables demographic planners to develop robust strategies that perform reasonably across plausible futures, which is preferable to optimizing for misleadingly precise point forecasts.",
+    "claim_ids": [
+      "C0142",
+      "C0143"
+    ],
+    "supports_argument_ids": [
+      "A0092"
+    ],
+    "section": "Conclusion",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0178",
+    "argument_group_id": "G050",
+    "role": "grounds",
+    "text": "BIC detects 0 breaks due to penalty dominance; AIC detects 1 break at 2020 (F = 14.23, p < 0.001); sequential procedure detects 2 breaks at 2017 and 2020.",
+    "claim_ids": [
+      "C0378",
+      "C0379",
+      "C0380"
+    ],
+    "supports_argument_ids": [
+      "A0093"
+    ],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0179",
+    "argument_group_id": "G050",
+    "role": "warrant",
+    "text": "Different information criteria apply different penalties for model complexity, so their divergent conclusions in short time series reflect the fundamental tension between capturing true breaks and avoiding overfitting.",
+    "claim_ids": [
+      "C0382"
+    ],
+    "supports_argument_ids": [
+      "A0093"
+    ],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0180",
+    "argument_group_id": "G051",
+    "role": "grounds",
+    "text": "The Year 2020 coefficient is -20,816 (p < 0.001) in pooled OLS; pooled OLS achieves R-squared = 0.312; fixed effects achieves R-squared = 0.298; random effects achieves R-squared = 0.308.",
+    "claim_ids": [
+      "C0383",
+      "C0384",
+      "C0385",
+      "C0386"
+    ],
+    "supports_argument_ids": [
+      "A0094"
+    ],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0181",
+    "argument_group_id": "G051",
+    "role": "warrant",
+    "text": "Consistent negative and highly significant Year 2020 coefficients across pooled OLS, fixed effects, and random effects specifications demonstrate the COVID-19 shock effect is robust to alternative panel model assumptions.",
+    "claim_ids": [
+      "C0387"
+    ],
+    "supports_argument_ids": [
+      "A0094"
+    ],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0182",
+    "argument_group_id": "G052",
+    "role": "grounds",
+    "text": "ADF test on levels fails to reject unit root (statistic = -1.453, p = 0.556); ADF on first differences rejects unit root (statistic = -3.843, p = 0.002); Zivot-Andrews with structural break also fails to reject unit root.",
+    "claim_ids": [
+      "C0393",
+      "C0394",
+      "C0395"
+    ],
+    "supports_argument_ids": [
+      "A0095"
+    ],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0183",
+    "argument_group_id": "G052",
+    "role": "warrant",
+    "text": "When a series fails to reject the unit root null in levels but rejects after first differencing, the standard conclusion is I(1) integration, indicating the series follows a random walk with drift.",
+    "claim_ids": [],
+    "supports_argument_ids": [
+      "A0095"
+    ],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0184",
+    "argument_group_id": "G053",
+    "role": "grounds",
+    "text": "Multiple information criteria uniformly select VAR(1); VAR(1) achieves R-squared = 0.58 for ND and 0.60 for US; no individual coefficient reaches 5% significance (n = 14); US-to-ND Granger test marginally rejects (chi-squared = 4.10, p = 0.043) but F-test does not (F = 3.22, p = 0.100).",
+    "claim_ids": [
+      "C0396",
+      "C0397",
+      "C0398",
+      "C0399"
+    ],
+    "supports_argument_ids": [
+      "A0096"
+    ],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0185",
+    "argument_group_id": "G053",
+    "role": "warrant",
+    "text": "With only 14 post-differencing observations, individual VAR coefficients lack power to achieve significance even when the model explains substantial variance, illustrating small-sample limitations on causal inference.",
+    "claim_ids": [
+      "C0400",
+      "C0401"
+    ],
+    "supports_argument_ids": [
+      "A0096"
+    ],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0186",
+    "argument_group_id": "G054",
+    "role": "grounds",
+    "text": "ARIMA baseline captures unconditional mean and variance; Cox-based wave simulation draws durations conditional on intensity, age, and origin; wave contributions are excess arrivals above baseline rather than independent additive draws.",
+    "claim_ids": [
+      "C0422",
+      "C0424",
+      "C0425",
+      "C0426",
+      "C0427"
+    ],
+    "supports_argument_ids": [
+      "A0097"
+    ],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0187",
+    "argument_group_id": "G054",
+    "role": "warrant",
+    "text": "Defining wave contributions as excess arrivals above baseline rather than as independent stochastic draws minimizes double-counting, though some overlap may remain since ARIMA was trained on the full series including refugee arrivals.",
+    "claim_ids": [
+      "C0423",
+      "C0428",
+      "C0429",
+      "C0430"
+    ],
+    "supports_argument_ids": [
+      "A0097"
+    ],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0188",
+    "argument_group_id": "G055",
+    "role": "grounds",
+    "text": "Census PEP provides 2010-2024 annual estimates for all 51 jurisdictions (vintage 2024); DHS LPR covers FY2023 by state and origin; ACS provides 5-year estimates 2009-2023; RPC covers FY2002-2020 by state and nationality.",
+    "claim_ids": [
+      "C0432",
+      "C0433",
+      "C0434",
+      "C0435",
+      "C0436",
+      "C0437",
+      "C0438",
+      "C0439"
+    ],
+    "supports_argument_ids": [
+      "A0098"
+    ],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0189",
+    "argument_group_id": "G055",
+    "role": "warrant",
+    "text": "Each data source captures a distinct dimension of international migration\u2014PEP for net flows, LPR for legal permanent residents, ACS for foreign-born stock, RPC for refugee arrivals\u2014enabling triangulation across complementary measures.",
+    "claim_ids": [
+      "C0440"
+    ],
+    "supports_argument_ids": [
+      "A0098"
+    ],
+    "section": "Appendix",
+    "source_category": "unknown"
+  },
+  {
+    "argument_id": "A0190",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The diaspora elasticity for North Dakota is 0.14.",
+    "claim_ids": [
+      "C0121"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0191",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "North Dakota's diaspora elasticity of 0.14 is below estimates from gateway state and cross-national studies.",
+    "claim_ids": [
+      "C0122"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0192",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Refugee resettlement in North Dakota has not yet generated the self-reinforcing migration chains observed in more established immigrant communities.",
+    "claim_ids": [
+      "C0123"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0193",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "North Dakota's refugee migration depends heavily on external policy rather than internal momentum.",
+    "claim_ids": [
+      "C0124"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0194",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Investments in community development may strengthen diaspora associations in North Dakota over time.",
+    "claim_ids": [
+      "C0125"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0195",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Extension of the analytical framework to other Great Plains states would assess whether North Dakota's patterns generalize across the region.",
+    "claim_ids": [
+      "C0126"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0196",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "South Dakota, Nebraska, and Minnesota share demographic challenges and refugee resettlement participation with North Dakota.",
+    "claim_ids": [
+      "C0127"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "external"
+  },
+  {
+    "argument_id": "A0197",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Incorporation of county-level dynamics would illuminate the geographic distribution of migration within North Dakota.",
+    "claim_ids": [
+      "C0128"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0198",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Urban centers including Fargo and Grand Forks receive the majority of refugee arrivals in North Dakota.",
+    "claim_ids": [
+      "C0129"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0199",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Secondary migration from urban centers to smaller communities may follow different patterns than initial refugee arrivals.",
+    "claim_ids": [
+      "C0130"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0200",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "County-level analysis could inform local planning and identify communities where service capacity constraints bind.",
+    "claim_ids": [
+      "C0131"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0201",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Integration with labor market outcomes would address whether international migration alleviates workforce shortages in rural regions.",
+    "claim_ids": [
+      "C0132"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0202",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Linking migration data to employment outcomes could quantify the economic contributions of immigrant populations.",
+    "claim_ids": [
+      "C0133"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0203",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Real-time forecasting with updated data would enable the scenario framework to evolve as new information becomes available.",
+    "claim_ids": [
+      "C0134"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0204",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The post-COVID recovery trajectory remains incompletely characterized given data limitations.",
+    "claim_ids": [
+      "C0135"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0205",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "PEP estimates are reported on an estimate-year basis, while DHS and RPC series are reported in fiscal years and ACS estimates in survey years.",
+    "claim_ids": [
+      "C0157"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "external"
+  },
+  {
+    "argument_id": "A0206",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "When fiscal-year series are used as predictors for PEP-year outcomes, they are aligned using an overlap-weighted crosswalk.",
+    "claim_ids": [
+      "C0158"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0207",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "RPC refugee arrivals measure refugee arrivals by nationality and state of initial placement.",
+    "claim_ids": [
+      "C0163"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "external"
+  },
+  {
+    "argument_id": "A0208",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Initial refugee placement does not equal final residence due to secondary migration.",
+    "claim_ids": [
+      "C0164"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "external"
+  },
+  {
+    "argument_id": "A0209",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "RPC data contain many zeros at the state by nationality level.",
+    "claim_ids": [
+      "C0165"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0210",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The analysis employs vintage 2024 estimates covering 2010-2024, decomposing annual population change into births, deaths, domestic migration, and international migration.",
+    "claim_ids": [
+      "C0167"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "external"
+  },
+  {
+    "argument_id": "A0211",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The international migration component comprises the net flow of foreign-born individuals plus the net movement of native-born citizens and military personnel abroad.",
+    "claim_ids": [
+      "C0168"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "external"
+  },
+  {
+    "argument_id": "A0212",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Refugee data are truncated at fiscal year 2020, precluding analysis of pandemic recovery.",
+    "claim_ids": [
+      "C0184"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "external"
+  },
+  {
+    "argument_id": "A0213",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Panel data analysis employs state-year observations spanning 51 states over 15 years (2010-2024), yielding 765 observations.",
+    "claim_ids": [
+      "C0212"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0214",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "In the fixed effects model, state-specific intercepts absorb time-invariant heterogeneity.",
+    "claim_ids": [
+      "C0213"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0215",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The random effects model treats state-specific intercepts as random draws from a population distribution.",
+    "claim_ids": [
+      "C0214"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0216",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Model selection between fixed and random effects employs the Hausman test.",
+    "claim_ids": [
+      "C0215"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0217",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Standard errors are clustered at the state level to account for within-state serial correlation.",
+    "claim_ids": [
+      "C0216"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0218",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The COVID-19 analysis uses a state-level interrupted time series with state fixed effects.",
+    "claim_ids": [
+      "C0238"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0219",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Because the Travel Ban is a national shock, donor states are not untreated.",
+    "claim_ids": [
+      "C0239"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0220",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "A synthetic comparator is used only as a descriptive benchmark, not for causal inference.",
+    "claim_ids": [
+      "C0240"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0221",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "A shift-share (Bartik) index is constructed to assess the predictive relevance of refugee-driven shocks for state-level migration.",
+    "claim_ids": [
+      "C0241"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0222",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The shift-share index combines national-level shifts in immigration by origin country with state-level shares reflecting historical settlement patterns.",
+    "claim_ids": [
+      "C0242"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0223",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "First-stage F-statistics assess instrument strength, with values exceeding 10 indicating adequate relevance.",
+    "claim_ids": [
+      "C0243"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "external"
+  },
+  {
+    "argument_id": "A0224",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Duration analysis examines the lifecycle of migration waves-sustained periods of elevated arrivals from specific origin countries.",
+    "claim_ids": [
+      "C0244"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0225",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "A wave is defined as a period during which arrivals from a nationality exceed 150% of baseline for two or more consecutive years.",
+    "claim_ids": [
+      "C0245"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0226",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The Kaplan-Meier estimator provides nonparametric estimates of the survival function.",
+    "claim_ids": [
+      "C0246"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0227",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The log-rank test evaluates whether survival curves differ across strata.",
+    "claim_ids": [
+      "C0247"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "external"
+  },
+  {
+    "argument_id": "A0228",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The Cox proportional hazards model relates the hazard rate to covariates.",
+    "claim_ids": [
+      "C0248"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0229",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Hazard ratios below unity indicate factors prolonging waves; above unity indicate factors accelerating termination.",
+    "claim_ids": [
+      "C0249"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0230",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The proportional hazards assumption is evaluated through Schoenfeld residual tests.",
+    "claim_ids": [
+      "C0250"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0231",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Model discrimination is assessed by the concordance index (C-statistic).",
+    "claim_ids": [
+      "C0251"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "external"
+  },
+  {
+    "argument_id": "A0232",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Scenario analysis translates analytical findings into forward-looking projections while explicitly characterizing uncertainty.",
+    "claim_ids": [
+      "C0255"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0233",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The analysis develops four policy-indexed scenarios spanning the range of plausible future trajectories.",
+    "claim_ids": [
+      "C0256"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0234",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The CBO Full scenario uses ARIMA point forecasts scaled by 1.1 for 2025-2029, compounding at 8% annually from 2030 onward.",
+    "claim_ids": [
+      "C0257"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0235",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The Moderate scenario uses ARIMA point forecasts for 2025-2029 with a dampened trend through 2045.",
+    "claim_ids": [
+      "C0258"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0236",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The Pre-2020 Trend scenario anchors at the 2019 level and extrapolates the 2010-2019 slope.",
+    "claim_ids": [
+      "C0259"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0237",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The Zero scenario assumes complete cessation of international migration.",
+    "claim_ids": [
+      "C0260"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0238",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Monte Carlo simulation propagates uncertainty through projection models by sampling from estimated parameter distributions.",
+    "claim_ids": [
+      "C0261"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0239",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The Monte Carlo procedure draws 1,000 realizations of model parameters.",
+    "claim_ids": [
+      "C0262"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0240",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The 50% prediction interval spans the 25th to 75th percentiles.",
+    "claim_ids": [
+      "C0263"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0241",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The 95% prediction interval spans the 2.5th to 97.5th percentiles.",
+    "claim_ids": [
+      "C0264"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0242",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Model averaging combines forecasts from multiple specifications using AIC-derived weights.",
+    "claim_ids": [
+      "C0265"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0243",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "All analyses were conducted in Python 3.11.",
+    "claim_ids": [
+      "C0266"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0244",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Time series analysis employed statsmodels for ARIMA, VAR, and unit root tests.",
+    "claim_ids": [
+      "C0267"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0245",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Panel data models were estimated using linearmodels.",
+    "claim_ids": [
+      "C0268"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0246",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Machine learning methods used scikit-learn for Elastic Net, Random Forest, and clustering.",
+    "claim_ids": [
+      "C0269"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0247",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Survival analysis employed the lifelines package for Kaplan-Meier estimation and Cox regression.",
+    "claim_ids": [
+      "C0270"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0248",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Structural break detection used the ruptures package.",
+    "claim_ids": [
+      "C0271"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0249",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Replication code and data are available in the supplementary materials.",
+    "claim_ids": [
+      "C0272"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "external"
+  },
+  {
+    "argument_id": "A0250",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The distribution of annual international migration to North Dakota exhibits positive skewness (1.10).",
+    "claim_ids": [
+      "C0277"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0251",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The Shapiro-Wilk test marginally fails to reject normality (W = 0.886, p = 0.058).",
+    "claim_ids": [
+      "C0278"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0252",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "No observations qualify as extreme outliers under the interquartile range criterion.",
+    "claim_ids": [
+      "C0279"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0253",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The 2020 value of 30 migrants represents a dramatic departure from typical levels.",
+    "claim_ids": [
+      "C0280"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0254",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Hodrick-Prescott filter decomposition reveals a U-shaped trend in North Dakota's share of national international migration.",
+    "claim_ids": [
+      "C0281"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0255",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Asia accounts for 52.5% of LPR admissions to North Dakota.",
+    "claim_ids": [
+      "C0285"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0256",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Africa accounts for 27.9% of LPR admissions to North Dakota.",
+    "claim_ids": [
+      "C0286"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0257",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Tanzania has an LQ of 15.13.",
+    "claim_ids": [
+      "C0290"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0258",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The Ljung-Box portmanteau test finds no significant residual autocorrelation through lag 5 (Q = 4.12, p = 0.404).",
+    "claim_ids": [
+      "C0294"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0259",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Residuals pass the Shapiro-Wilk normality test (W = 0.968, p = 0.820).",
+    "claim_ids": [
+      "C0295"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0260",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The 2029 forecast of 5,126 migrants carries a 95% prediction interval of [212, 10,040].",
+    "claim_ids": [
+      "C0296"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0261",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The driver regression using contemporaneous U.S. migration achieves MASE = 0.27.",
+    "claim_ids": [
+      "C0297"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0262",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The Bai-Perron procedure identifies zero breaks under the BIC criterion.",
+    "claim_ids": [
+      "C0303"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0263",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The panel estimation sample comprises 765 state-year observations (51 states x 15 years).",
+    "claim_ids": [
+      "C0304"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0264",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The Hausman test supports random effects as the preferred specification (H = 7.18e-31, p = 1.000).",
+    "claim_ids": [
+      "C0305"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0265",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The Breusch-Pagan LM test strongly rejects pooled OLS (chi-sq = 1,502, p < 0.001).",
+    "claim_ids": [
+      "C0306"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0266",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Mean international migration in 2020 was 390 compared to 21,206 in other years, a 98.2% reduction.",
+    "claim_ids": [
+      "C0309"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0267",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Wild cluster bootstrap yields p = 0.077 for the full pre-period specification.",
+    "claim_ids": [
+      "C0318"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0268",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Randomization inference yields p = 0.058 for the full pre-period specification.",
+    "claim_ids": [
+      "C0319"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0269",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The ITS level shift coefficient indicates migration dropped by 19,503 persons after COVID onset (t = -4.28, p < 0.001).",
+    "claim_ids": [
+      "C0323"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0270",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The trend change coefficient of +14,113 reflects the steep post-pandemic rebound slope during 2021-2024.",
+    "claim_ids": [
+      "C0324"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0271",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The synthetic control weights emphasize Wyoming (41.9%), Vermont (24.5%), Rhode Island (20.1%), and Washington (8.3%).",
+    "claim_ids": [
+      "C0325"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0272",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The first-stage F-statistic of 39.95 exceeds the conventional threshold of 10, supporting instrument relevance.",
+    "claim_ids": [
+      "C0326"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0273",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "African waves have a mean duration of 3.99 years; Middle Eastern 4.14; Asian 4.28; European 2.40; Americas 2.25.",
+    "claim_ids": [
+      "C0331"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0274",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Elastic Net regularization achieves R2_CV = 0.60 and identifies three non-zero predictors.",
+    "claim_ids": [
+      "C0339"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0275",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Random Forest achieves R2_CV = 0.94 and confirms log population dominates feature importance (93%).",
+    "claim_ids": [
+      "C0340"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0276",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "K-means clustering (K = 2; silhouette = 0.64) places North Dakota in the larger cluster with 52 states.",
+    "claim_ids": [
+      "C0341"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0277",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Under the random-walk baseline, the best forecast of future migration equals the most recent observation.",
+    "claim_ids": [
+      "C0348"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0278",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The random-walk characterization implies limited mean reversion within the sample.",
+    "claim_ids": [
+      "C0349"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0279",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The rapid post-COVID recovery suggests immigration systems can bounce back from acute shocks more rapidly than the random-walk baseline might imply.",
+    "claim_ids": [
+      "C0355"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0280",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The wide forecast range reflects multiple uncertainty sources: migration volatility (CV = 82.5%), structural instability, and policy unpredictability.",
+    "claim_ids": [
+      "C0356"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0281",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The scenario framework distinguishes between forecast uncertainty and scenario uncertainty.",
+    "claim_ids": [
+      "C0357"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0282",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "African and Asian waves outlast European and American waves, with mean duration of 4+ years versus approximately 2 years.",
+    "claim_ids": [
+      "C0364"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0283",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "For Great Plains states facing persistent labor shortages, international migration represents a critical workforce pipeline.",
+    "claim_ids": [
+      "C0371"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "external"
+  },
+  {
+    "argument_id": "A0284",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The time series analysis operates with only 15 annual observations (2010-2024), constraining power of statistical tests.",
+    "claim_ids": [
+      "C0373"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0285",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The refugee arrival data end in fiscal year 2020, precluding examination of post-COVID recovery patterns.",
+    "claim_ids": [
+      "C0374"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0286",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The synthetic comparator is descriptive rather than causal because the Travel Ban is a national shock.",
+    "claim_ids": [
+      "C0375"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0287",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Findings from a single small state may not generalize to other contexts.",
+    "claim_ids": [
+      "C0376"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0288",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The methodological framework, rather than specific parameter estimates, represents the more transferable contribution.",
+    "claim_ids": [
+      "C0377"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0289",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Cross-sectional allocation models omit origin-destination distance because variation in distance from a given origin country to different U.S. states is minimal.",
+    "claim_ids": [
+      "C0381"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0290",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The Log(Diaspora Stock) coefficient is 0.448 (p < 0.001) in the simple PPML specification.",
+    "claim_ids": [
+      "C0388"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0291",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The Log(State Foreign-Born Total) coefficient is 0.792 (p < 0.001) in the full PPML specification.",
+    "claim_ids": [
+      "C0389"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0292",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The full PPML specification with destination fixed effects achieves pseudo R-squared of 0.413.",
+    "claim_ids": [
+      "C0390"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0293",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The Affected x Post coefficient for the Travel Ban is -1.384 (p < 0.05) in the full difference-in-differences specification.",
+    "claim_ids": [
+      "C0391"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0294",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The pre-trend test p-value is 0.334 in the full difference-in-differences specification, supporting the parallel trends assumption.",
+    "claim_ids": [
+      "C0392"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0295",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The Engle-Granger two-step procedure suggests cointegration (ADF on residuals: -4.48, p < 0.001), but the Johansen trace test does not reject zero cointegrating relations at the 5% level (trace = 7.18, critical value = 15.49).",
+    "claim_ids": [
+      "C0402"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0296",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The VAR is not used for standalone long-horizon forecasting because it requires future values of US international migration, which is unavailable at forecast time.",
+    "claim_ids": [
+      "C0403"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0297",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The VECM model confirms the contemporaneous ND-US correlation (cointegrating relationship) and provides variance decomposition context for interpreting scenario uncertainty.",
+    "claim_ids": [
+      "C0404"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0298",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Alternative covariance estimators highlight the inflation of uncertainty under clustered inference.",
+    "claim_ids": [
+      "C0405"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0299",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The diaspora coefficient point estimate is 0.140 under the model-based Poisson MLE estimator with SE of 0.002.",
+    "claim_ids": [
+      "C0406"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0300",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The diaspora coefficient point estimate is 0.140 under the HC1 robust estimator with SE of 0.176.",
+    "claim_ids": [
+      "C0407"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0301",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The diaspora coefficient point estimate is 0.140 under the clustered by state estimator with SE of 0.113.",
+    "claim_ids": [
+      "C0408"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0302",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The diaspora coefficient point estimate is 0.140 under the clustered by origin estimator with SE of 0.282.",
+    "claim_ids": [
+      "C0409"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0303",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The diaspora coefficient point estimate is 0.140 under the two-way clustered (state x origin) estimator with SE of 0.248.",
+    "claim_ids": [
+      "C0410"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0304",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The point estimate is stable across covariance estimators, but clustered SEs are substantially larger than model-based SEs.",
+    "claim_ids": [
+      "C0411"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0305",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Two-way clustered inference is reported in the main text.",
+    "claim_ids": [
+      "C0412"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0306",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The interaction between Affected and a linear pre-treatment trend yields 0.087 (t = 0.97, p = 0.334).",
+    "claim_ids": [
+      "C0413"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0307",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The pre-treatment trend test fails to reject parallel trends.",
+    "claim_ids": [
+      "C0414"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0308",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Placebo tests shifting the treatment date to 2015 or 2016 were conducted in the prior HC3 specification.",
+    "claim_ids": [
+      "C0415"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0309",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Figure 7 shows negative post-treatment coefficients in 2018-2019.",
+    "claim_ids": [
+      "C0416"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0310",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The joint pre-treatment test rejects parallel trends when the full pre-period is included (p < 0.001), indicating longer-run divergence.",
+    "claim_ids": [
+      "C0417"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0311",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "For CBO Full scenario, 2025-2029 projections use 10% above the ARIMA point forecasts, and from 2030 onward values compound at 8% annually.",
+    "claim_ids": [
+      "C0418"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0312",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "For Pre-2020 Trend scenario, the series is anchored at the 2019 value (y2019 = 634) with a slope estimated from 2010-2019 (beta = 72.43 per year).",
+    "claim_ids": [
+      "C0419"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0313",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "For Moderate scenario, 2025-2029 uses ARIMA point forecasts directly, and from 2030 onward the trend is dampened to 50% of the averaged robust trend estimate.",
+    "claim_ids": [
+      "C0420"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0314",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "For Zero scenario, net international migration is set to zero for all years.",
+    "claim_ids": [
+      "C0421"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0315",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The 95% prediction interval spans a factor of 4.1 by 2045.",
+    "claim_ids": [
+      "C0431"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0316",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Figure 11 presents residual diagnostic plots for the ARIMA(0,1,0) specification.",
+    "claim_ids": [
+      "C0441"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0317",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Figure 12 displays Schoenfeld residual plots for evaluating the proportional hazards assumption in the Cox regression model.",
+    "claim_ids": [
+      "C0442"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0318",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "North Dakota has mean annual international migration of 1,796.",
+    "claim_ids": [
+      "C0443"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0319",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The median mean annual international migration across states is 7,942.",
+    "claim_ids": [
+      "C0444"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0320",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "North Dakota ranks 6/51 among states by migration volume.",
+    "claim_ids": [
+      "C0445"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "external"
+  },
+  {
+    "argument_id": "A0321",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "The distribution of state migration levels is highly right-skewed, with California, Texas, Florida, and New York comprising the upper tail.",
+    "claim_ids": [
+      "C0446"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0322",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Travel Ban affected countries are Iran, Iraq, Libya, Somalia, Sudan, Syria, and Yemen.",
+    "claim_ids": [
+      "C0447"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "external"
+  },
+  {
+    "argument_id": "A0323",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "ARIMA(0,1,0) residual time series shows no apparent pattern.",
+    "claim_ids": [
+      "C0448"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0324",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Shapiro-Wilk test for ARIMA residuals yields W = 0.968, p = 0.820, failing to reject normality.",
+    "claim_ids": [
+      "C0449"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0325",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Residual ACF has all lags within 95% confidence bounds, confirming absence of serial correlation.",
+    "claim_ids": [
+      "C0450"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0326",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Global test for proportional hazards fails to reject proportional hazards (chi-squared = 8.34, df = 3, p = 0.214).",
+    "claim_ids": [
+      "C0451"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  },
+  {
+    "argument_id": "A0327",
+    "argument_group_id": "ORPHAN",
+    "role": "orphan",
+    "text": "Flat trends in Schoenfeld residuals indicate satisfaction of the proportional hazards assumption.",
+    "claim_ids": [
+      "C0452"
+    ],
+    "supports_argument_ids": [],
+    "section": "Abstract + Introduction",
+    "source_category": "study_generated"
+  }
+];
+    const roleColors = {
+        'claim': '#4CAF50', 'grounds': '#2196F3', 'warrant': '#FF9800',
+        'backing': '#9C27B0', 'qualifier': '#607D8B', 'rebuttal': '#F44336',
+        'orphan': '#795548'
+    };
+    const categoryColors = { 'external': '#E91E63', 'study_generated': '#00BCD4' };
+    function buildElements(data) {
+        const nodes = [], edges = [];
+        data.forEach(arg => {
+            const isOrphan = arg.role === 'orphan' || arg.argument_group_id === 'ORPHAN';
+            nodes.push({
+                data: {
+                    id: arg.argument_id, label: arg.argument_id, role: arg.role,
+                    text: arg.text, group: arg.argument_group_id,
+                    section: arg.section || 'Unknown',
+                    claim_ids: arg.claim_ids || [],
+                    source_category: arg.source_category || 'unknown',
+                    isOrphan: isOrphan,
+                    color: roleColors[arg.role] || '#888'
+                }
+            });
+            if (arg.supports_argument_ids) {
+                arg.supports_argument_ids.forEach(targetId => {
+                    edges.push({ data: { id: `${arg.argument_id}->${targetId}`, source: arg.argument_id, target: targetId } });
+                });
+            }
+        });
+        return { nodes, edges };
+    }
+    const elements = buildElements(argumentData);
+    const cy = cytoscape({
+        container: document.getElementById('cy'),
+        elements: [...elements.nodes, ...elements.edges],
+        style: [
+            { selector: 'node', style: { 'background-color': 'data(color)', 'label': 'data(label)', 'color': '#fff', 'text-valign': 'center', 'text-halign': 'center', 'font-size': '10px', 'width': 40, 'height': 40, 'border-width': 2, 'border-color': '#fff' } },
+            { selector: 'node[?isOrphan]', style: { 'border-style': 'dashed', 'border-width': 3, 'border-color': '#795548', 'width': 35, 'height': 35 } },
+            { selector: 'node[source_category="external"]', style: { 'shape': 'diamond' } },
+            { selector: 'node:selected', style: { 'border-width': 4, 'border-color': '#00d9ff', 'width': 50, 'height': 50 } },
+            { selector: 'node.highlighted', style: { 'border-width': 3, 'border-color': '#e94560' } },
+            { selector: 'node.faded', style: { 'opacity': 0.2 } },
+            { selector: 'edge', style: { 'width': 2, 'line-color': '#555', 'target-arrow-color': '#555', 'target-arrow-shape': 'triangle', 'curve-style': 'bezier', 'arrow-scale': 1.2 } },
+            { selector: 'edge.highlighted', style: { 'line-color': '#00d9ff', 'target-arrow-color': '#00d9ff', 'width': 3 } },
+            { selector: 'edge.faded', style: { 'opacity': 0.1 } }
+        ],
+        layout: { name: 'cose', idealEdgeLength: 100, nodeOverlap: 20, refresh: 20, fit: true, padding: 30, randomize: false, componentSpacing: 100, nodeRepulsion: 400000, edgeElasticity: 100, nestingFactor: 5, gravity: 80, numIter: 1000, initialTemp: 200, coolingFactor: 0.95, minTemp: 1.0 }
+    });
+    const groups = [...new Set(argumentData.map(a => a.argument_group_id))].sort();
+    const groupFilter = document.getElementById('groupFilter');
+    groups.forEach(g => { const opt = document.createElement('option'); opt.value = g; opt.textContent = g; groupFilter.appendChild(opt); });
+    function updateStats() {
+        const visibleNodes = cy.nodes(':visible'), visibleEdges = cy.edges(':visible');
+        const roleCounts = {}, orphanCount = visibleNodes.filter(n => n.data('isOrphan')).length;
+        const externalCount = visibleNodes.filter(n => n.data('source_category') === 'external').length;
+        visibleNodes.forEach(n => { const role = n.data('role'); roleCounts[role] = (roleCounts[role] || 0) + 1; });
+        let statsHtml = `<strong>Visible:</strong> <span>${visibleNodes.length}</span> nodes, <span>${visibleEdges.length}</span> edges`;
+        statsHtml += `<br><strong>Orphans:</strong> <span>${orphanCount}</span> | <strong>External:</strong> <span>${externalCount}</span>`;
+        statsHtml += `<br>${Object.entries(roleCounts).map(([role, count]) => `<span class="badge badge-${role}">${role}: ${count}</span>`).join(' ')}`;
+        document.getElementById('stats').innerHTML = statsHtml;
+    }
+    function showNodeDetails(node) {
+        const data = node.data();
+        const categoryBadge = data.source_category ? `<span class="badge badge-${data.source_category}">${data.source_category}</span>` : '';
+        const orphanBadge = data.isOrphan ? '<span class="badge badge-orphan">ORPHAN</span>' : '';
+        document.getElementById('nodeDetails').innerHTML = `<div class="node-info"><h3>${data.id} <span class="badge badge-${data.role}">${data.role}</span> ${categoryBadge} ${orphanBadge}</h3><p><strong>Group:</strong> ${data.group}</p><p><strong>Section:</strong> ${data.section}</p><p style="margin-top: 0.5rem;">${data.text}</p><p class="claim-ids"><strong>Claims:</strong> ${data.claim_ids.join(', ') || 'None'}</p></div>`;
+    }
+    function applyFilters() {
+        const groupVal = document.getElementById('groupFilter').value;
+        const sectionVal = document.getElementById('sectionFilter').value;
+        const categoryVal = document.getElementById('categoryFilter').value;
+        cy.nodes().forEach(n => {
+            let show = true;
+            if (groupVal !== 'all' && n.data('group') !== groupVal) show = false;
+            if (sectionVal !== 'all' && n.data('section') !== sectionVal) show = false;
+            if (categoryVal === 'structured' && n.data('isOrphan')) show = false;
+            if (categoryVal === 'orphan' && !n.data('isOrphan')) show = false;
+            if (categoryVal === 'external' && n.data('source_category') !== 'external') show = false;
+            if (categoryVal === 'study_generated' && n.data('source_category') !== 'study_generated') show = false;
+            if (show) n.show(); else n.hide();
+        });
+        cy.edges().forEach(e => {
+            const s = cy.getElementById(e.data('source')), t = cy.getElementById(e.data('target'));
+            if (s.visible() && t.visible()) e.show(); else e.hide();
+        });
+        cy.fit(cy.nodes(':visible'), 30);
+        updateStats();
+    }
+    document.getElementById('groupFilter').addEventListener('change', applyFilters);
+    document.getElementById('sectionFilter').addEventListener('change', applyFilters);
+    document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+    document.getElementById('searchBox').addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        cy.nodes().removeClass('highlighted faded'); cy.edges().removeClass('highlighted faded');
+        if (query.length < 2) return;
+        const matches = cy.nodes().filter(n => n.data('id').toLowerCase().includes(query) || n.data('text').toLowerCase().includes(query) || n.data('group').toLowerCase().includes(query) || (n.data('claim_ids') || []).join(' ').toLowerCase().includes(query));
+        if (matches.length > 0) { cy.nodes().addClass('faded'); cy.edges().addClass('faded'); matches.removeClass('faded').addClass('highlighted'); matches.connectedEdges().removeClass('faded').addClass('highlighted'); matches.neighborhood('node').removeClass('faded'); }
+    });
+    cy.on('tap', 'node', (evt) => { showNodeDetails(evt.target); });
+    cy.on('dbltap', 'node', (evt) => {
+        const node = evt.target;
+        cy.nodes().removeClass('highlighted faded'); cy.edges().removeClass('highlighted faded');
+        cy.nodes().addClass('faded'); cy.edges().addClass('faded');
+        node.removeClass('faded').addClass('highlighted');
+        node.neighborhood().removeClass('faded'); node.connectedEdges().removeClass('faded').addClass('highlighted');
+        cy.fit(node.neighborhood().add(node), 50);
+    });
+    document.getElementById('resetBtn').addEventListener('click', () => {
+        cy.nodes().removeClass('highlighted faded').show(); cy.edges().removeClass('highlighted faded').show();
+        document.getElementById('searchBox').value = ''; document.getElementById('groupFilter').value = 'all';
+        document.getElementById('sectionFilter').value = 'all'; document.getElementById('categoryFilter').value = 'all';
+        cy.fit(cy.nodes(), 30); updateStats();
+    });
+    document.getElementById('fitBtn').addEventListener('click', () => { cy.fit(cy.nodes(':visible'), 30); });
+    updateStats();
+    </script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+digraph G014 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0066 [label="A0066\nclaim\nThree auxiliary data sources—DHS LPR admissions, ACS fore...", shape=box, style=filled, fillcolor="#4CAF50"];
+
+}

@@ -1,0 +1,16 @@
+digraph G002 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0006 [label="A0006\nclaim\nNorth Dakota's migration profile is dominated by refugee ...", shape=box, style=filled, fillcolor="#4CAF50"];
+  A0007 [label="A0007\ngrounds\nLocation Quotients for Liberia exceed 40, and Location Qu...", shape=ellipse, style=filled, fillcolor="#2196F3"];
+  A0008 [label="A0008\ngrounds\nNorth Dakota's international migration time series exhibi...", shape=ellipse, style=filled, fillcolor="#2196F3"];
+  A0009 [label="A0009\nwarrant\nAnnual migration flows can deviate from expectations by a...", shape=diamond, style=filled, fillcolor="#FF9800"];
+  A0010 [label="A0010\nbacking\nStructural break analysis identifies significant regime s...", shape=parallelogram, style=filled, fillcolor="#9C27B0"];
+
+  A0007 -> A0006 [label="supports"];
+  A0008 -> A0006 [label="supports"];
+  A0009 -> A0006 [label="supports"];
+  A0010 -> A0008 [label="supports"];
+}

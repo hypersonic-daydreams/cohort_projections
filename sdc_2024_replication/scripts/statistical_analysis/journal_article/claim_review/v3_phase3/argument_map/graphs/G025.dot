@@ -1,0 +1,8 @@
+digraph G025 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0079 [label="A0079\nclaim\nDisaggregated causal inference reveals the Travel Ban cau...", shape=box, style=filled, fillcolor="#4CAF50"];
+
+}

@@ -1,0 +1,8 @@
+digraph G015 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0067 [label="A0067\nclaim\nDescriptive statistical methods including summary statist...", shape=box, style=filled, fillcolor="#4CAF50"];
+
+}

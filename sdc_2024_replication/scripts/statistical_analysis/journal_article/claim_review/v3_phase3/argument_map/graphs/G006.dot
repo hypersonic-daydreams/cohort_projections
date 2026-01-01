@@ -1,0 +1,20 @@
+digraph G006 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0030 [label="A0030\nclaim\nState-level migration forecasting for small states faces ...", shape=box, style=filled, fillcolor="#4CAF50"];
+  A0031 [label="A0031\ngrounds\nThe empirical literature on state-level migration forecas...", shape=ellipse, style=filled, fillcolor="#2196F3"];
+  A0032 [label="A0032\ngrounds\nWhen subnational analysis appears, it typically examines ...", shape=ellipse, style=filled, fillcolor="#2196F3"];
+  A0033 [label="A0033\nwarrant\nSmall states are characterized by volatile flows, limited...", shape=diamond, style=filled, fillcolor="#FF9800"];
+  A0034 [label="A0034\nbacking\nInternational migration to North Dakota exhibits a coeffi...", shape=parallelogram, style=filled, fillcolor="#9C27B0"];
+  A0035 [label="A0035\nbacking\nTime series of this brevity strain the asymptotic foundat...", shape=parallelogram, style=filled, fillcolor="#9C27B0"];
+  A0036 [label="A0036\nrebuttal\nConventional forecasting approaches may produce misleadin...", shape=hexagon, style=filled, fillcolor="#F44336"];
+
+  A0031 -> A0030 [label="supports"];
+  A0032 -> A0030 [label="supports"];
+  A0033 -> A0030 [label="supports"];
+  A0034 -> A0033 [label="supports"];
+  A0035 -> A0033 [label="supports"];
+  A0036 -> A0030 [label="supports"];
+}

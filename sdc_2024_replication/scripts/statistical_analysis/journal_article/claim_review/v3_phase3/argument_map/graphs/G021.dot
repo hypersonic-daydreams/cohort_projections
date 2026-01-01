@@ -1,0 +1,10 @@
+digraph G021 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0074 [label="A0074\nclaim\nNorth Dakota's migration composition reflects refugee-ori...", shape=box, style=filled, fillcolor="#4CAF50"];
+  A0075 [label="A0075\ngrounds\nLocation Quotients demonstrate extreme overrepresentation...", shape=ellipse, style=filled, fillcolor="#2196F3"];
+
+  A0075 -> A0074 [label="supports"];
+}

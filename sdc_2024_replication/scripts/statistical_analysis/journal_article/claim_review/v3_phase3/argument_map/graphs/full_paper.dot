@@ -1,0 +1,423 @@
+digraph FullPaper {
+  rankdir=LR;
+  node [fontname="Helvetica", fontsize=8];
+  edge [fontname="Helvetica", fontsize=6];
+  compound=true;
+
+  subgraph cluster_G001 {
+    label="G001";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0001 [label="A0001", shape=circle, style=filled, fillcolor="#4CAF50"];
+    A0002 [label="A0002", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0003 [label="A0003", shape=circle, style=filled, fillcolor="#FF9800"];
+    A0004 [label="A0004", shape=circle, style=filled, fillcolor="#9C27B0"];
+    A0005 [label="A0005", shape=circle, style=filled, fillcolor="#9C27B0"];
+  }
+
+  subgraph cluster_G002 {
+    label="G002";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0006 [label="A0006", shape=circle, style=filled, fillcolor="#4CAF50"];
+    A0007 [label="A0007", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0008 [label="A0008", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0009 [label="A0009", shape=circle, style=filled, fillcolor="#FF9800"];
+    A0010 [label="A0010", shape=circle, style=filled, fillcolor="#9C27B0"];
+  }
+
+  subgraph cluster_G003 {
+    label="G003";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0011 [label="A0011", shape=circle, style=filled, fillcolor="#4CAF50"];
+    A0012 [label="A0012", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0013 [label="A0013", shape=circle, style=filled, fillcolor="#FF9800"];
+    A0014 [label="A0014", shape=circle, style=filled, fillcolor="#607D8B"];
+    A0015 [label="A0015", shape=circle, style=filled, fillcolor="#F44336"];
+  }
+
+  subgraph cluster_G004 {
+    label="G004";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0016 [label="A0016", shape=circle, style=filled, fillcolor="#4CAF50"];
+    A0017 [label="A0017", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0018 [label="A0018", shape=circle, style=filled, fillcolor="#FF9800"];
+    A0019 [label="A0019", shape=circle, style=filled, fillcolor="#9C27B0"];
+    A0020 [label="A0020", shape=circle, style=filled, fillcolor="#607D8B"];
+  }
+
+  subgraph cluster_G005 {
+    label="G005";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0021 [label="A0021", shape=circle, style=filled, fillcolor="#4CAF50"];
+    A0022 [label="A0022", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0023 [label="A0023", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0024 [label="A0024", shape=circle, style=filled, fillcolor="#FF9800"];
+    A0025 [label="A0025", shape=circle, style=filled, fillcolor="#9C27B0"];
+    A0026 [label="A0026", shape=circle, style=filled, fillcolor="#9C27B0"];
+    A0027 [label="A0027", shape=circle, style=filled, fillcolor="#607D8B"];
+    A0028 [label="A0028", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0029 [label="A0029", shape=circle, style=filled, fillcolor="#FF9800"];
+  }
+
+  subgraph cluster_G006 {
+    label="G006";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0030 [label="A0030", shape=circle, style=filled, fillcolor="#4CAF50"];
+    A0031 [label="A0031", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0032 [label="A0032", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0033 [label="A0033", shape=circle, style=filled, fillcolor="#FF9800"];
+    A0034 [label="A0034", shape=circle, style=filled, fillcolor="#9C27B0"];
+    A0035 [label="A0035", shape=circle, style=filled, fillcolor="#9C27B0"];
+    A0036 [label="A0036", shape=circle, style=filled, fillcolor="#F44336"];
+  }
+
+  subgraph cluster_G007 {
+    label="G007";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0037 [label="A0037", shape=circle, style=filled, fillcolor="#4CAF50"];
+    A0038 [label="A0038", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0039 [label="A0039", shape=circle, style=filled, fillcolor="#FF9800"];
+    A0040 [label="A0040", shape=circle, style=filled, fillcolor="#4CAF50"];
+    A0041 [label="A0041", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0042 [label="A0042", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0043 [label="A0043", shape=circle, style=filled, fillcolor="#2196F3"];
+  }
+
+  subgraph cluster_G008 {
+    label="G008";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0044 [label="A0044", shape=circle, style=filled, fillcolor="#4CAF50"];
+    A0045 [label="A0045", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0046 [label="A0046", shape=circle, style=filled, fillcolor="#FF9800"];
+    A0047 [label="A0047", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0048 [label="A0048", shape=circle, style=filled, fillcolor="#607D8B"];
+    A0049 [label="A0049", shape=circle, style=filled, fillcolor="#607D8B"];
+    A0050 [label="A0050", shape=circle, style=filled, fillcolor="#FF9800"];
+  }
+
+  subgraph cluster_G009 {
+    label="G009";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0051 [label="A0051", shape=circle, style=filled, fillcolor="#4CAF50"];
+    A0052 [label="A0052", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0053 [label="A0053", shape=circle, style=filled, fillcolor="#607D8B"];
+    A0054 [label="A0054", shape=circle, style=filled, fillcolor="#F44336"];
+    A0055 [label="A0055", shape=circle, style=filled, fillcolor="#FF9800"];
+    A0056 [label="A0056", shape=circle, style=filled, fillcolor="#4CAF50"];
+    A0057 [label="A0057", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0058 [label="A0058", shape=circle, style=filled, fillcolor="#F44336"];
+    A0059 [label="A0059", shape=circle, style=filled, fillcolor="#FF9800"];
+  }
+
+  subgraph cluster_G010 {
+    label="G010";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0060 [label="A0060", shape=circle, style=filled, fillcolor="#4CAF50"];
+    A0061 [label="A0061", shape=circle, style=filled, fillcolor="#2196F3"];
+    A0062 [label="A0062", shape=circle, style=filled, fillcolor="#FF9800"];
+  }
+
+  subgraph cluster_G011 {
+    label="G011";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0063 [label="A0063", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G012 {
+    label="G012";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0064 [label="A0064", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G013 {
+    label="G013";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0065 [label="A0065", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G014 {
+    label="G014";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0066 [label="A0066", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G015 {
+    label="G015";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0067 [label="A0067", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G016 {
+    label="G016";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0068 [label="A0068", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G017 {
+    label="G017";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0069 [label="A0069", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G018 {
+    label="G018";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0070 [label="A0070", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G019 {
+    label="G019";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0071 [label="A0071", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G020 {
+    label="G020";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0072 [label="A0072", shape=circle, style=filled, fillcolor="#4CAF50"];
+    A0073 [label="A0073", shape=circle, style=filled, fillcolor="#2196F3"];
+  }
+
+  subgraph cluster_G021 {
+    label="G021";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0074 [label="A0074", shape=circle, style=filled, fillcolor="#4CAF50"];
+    A0075 [label="A0075", shape=circle, style=filled, fillcolor="#2196F3"];
+  }
+
+  subgraph cluster_G022 {
+    label="G022";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0076 [label="A0076", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G023 {
+    label="G023";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0077 [label="A0077", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G024 {
+    label="G024";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0078 [label="A0078", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G025 {
+    label="G025";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0079 [label="A0079", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G026 {
+    label="G026";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0080 [label="A0080", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G027 {
+    label="G027";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0081 [label="A0081", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G030 {
+    label="G030";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0082 [label="A0082", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G031 {
+    label="G031";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0083 [label="A0083", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G032 {
+    label="G032";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0084 [label="A0084", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G033 {
+    label="G033";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0085 [label="A0085", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G034 {
+    label="G034";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0086 [label="A0086", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G040 {
+    label="G040";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0087 [label="A0087", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G041 {
+    label="G041";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0088 [label="A0088", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G042 {
+    label="G042";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0089 [label="A0089", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G043 {
+    label="G043";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0090 [label="A0090", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G044 {
+    label="G044";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0091 [label="A0091", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G045 {
+    label="G045";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0092 [label="A0092", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G050 {
+    label="G050";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0093 [label="A0093", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G051 {
+    label="G051";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0094 [label="A0094", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G052 {
+    label="G052";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0095 [label="A0095", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G053 {
+    label="G053";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0096 [label="A0096", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G054 {
+    label="G054";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0097 [label="A0097", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  subgraph cluster_G055 {
+    label="G055";
+    style=rounded;
+    bgcolor="#f0f0f0";
+    A0098 [label="A0098", shape=circle, style=filled, fillcolor="#4CAF50"];
+  }
+
+  A0002 -> A0001;
+  A0003 -> A0001;
+  A0004 -> A0003;
+  A0005 -> A0001;
+  A0007 -> A0006;
+  A0008 -> A0006;
+  A0009 -> A0006;
+  A0010 -> A0008;
+  A0012 -> A0011;
+  A0013 -> A0011;
+  A0014 -> A0011;
+  A0015 -> A0006;
+  A0017 -> A0016;
+  A0018 -> A0016;
+  A0019 -> A0016;
+  A0019 -> A0001;
+  A0020 -> A0016;
+  A0020 -> A0019;
+  A0022 -> A0021;
+  A0023 -> A0021;
+  A0024 -> A0021;
+  A0025 -> A0024;
+  A0026 -> A0024;
+  A0027 -> A0021;
+  A0028 -> A0021;
+  A0029 -> A0028;
+  A0031 -> A0030;
+  A0032 -> A0030;
+  A0033 -> A0030;
+  A0034 -> A0033;
+  A0035 -> A0033;
+  A0036 -> A0030;
+  A0038 -> A0037;
+  A0039 -> A0037;
+  A0041 -> A0040;
+  A0042 -> A0040;
+  A0043 -> A0040;
+  A0045 -> A0044;
+  A0046 -> A0045;
+  A0047 -> A0044;
+  A0048 -> A0044;
+  A0049 -> A0044;
+  A0050 -> A0049;
+  A0052 -> A0051;
+  A0053 -> A0051;
+  A0054 -> A0051;
+  A0055 -> A0054;
+  A0057 -> A0056;
+  A0058 -> A0056;
+  A0059 -> A0056;
+  A0061 -> A0060;
+  A0062 -> A0060;
+  A0073 -> A0072;
+  A0075 -> A0074;
+}

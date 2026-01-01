@@ -1,0 +1,24 @@
+digraph G005 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0021 [label="A0021\nclaim\nInternational migration has become a critical driver of p...", shape=box, style=filled, fillcolor="#4CAF50"];
+  A0022 [label="A0022\ngrounds\nNorth Dakota has approximately 780,000 people (47th among...", shape=ellipse, style=filled, fillcolor="#2196F3"];
+  A0023 [label="A0023\ngrounds\nNatural population growth has stagnated and domestic out-...", shape=ellipse, style=filled, fillcolor="#2196F3"];
+  A0024 [label="A0024\nwarrant\nWhen natural increase declines and domestic migration is ...", shape=diamond, style=filled, fillcolor="#FF9800"];
+  A0025 [label="A0025\nbacking\nThe Great Plains has experienced sustained population dec...", shape=parallelogram, style=filled, fillcolor="#9C27B0"];
+  A0026 [label="A0026\nbacking\nThe Bakken oil boom (2010-2014) briefly reversed decline ...", shape=parallelogram, style=filled, fillcolor="#9C27B0"];
+  A0027 [label="A0027\nqualifier\nInternational migration—particularly refugee resettlement...", shape=octagon, style=filled, fillcolor="#607D8B"];
+  A0028 [label="A0028\ngrounds\nRefugee resettlement programs have channeled arrivals fro...", shape=ellipse, style=filled, fillcolor="#2196F3"];
+  A0029 [label="A0029\nwarrant\nDiaspora networks created by refugee resettlement are pre...", shape=diamond, style=filled, fillcolor="#FF9800"];
+
+  A0022 -> A0021 [label="supports"];
+  A0023 -> A0021 [label="supports"];
+  A0024 -> A0021 [label="supports"];
+  A0025 -> A0024 [label="supports"];
+  A0026 -> A0024 [label="supports"];
+  A0027 -> A0021 [label="supports"];
+  A0028 -> A0021 [label="supports"];
+  A0029 -> A0028 [label="supports"];
+}

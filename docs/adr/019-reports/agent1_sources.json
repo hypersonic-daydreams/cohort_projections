@@ -1,0 +1,237 @@
+{
+  "sources": [
+    {
+      "id": "census_blog_2024_nim",
+      "type": "website",
+      "title": "Census Bureau Improves Methodology to Better Estimate Increase in Net International Migration",
+      "authors": ["U.S. Census Bureau"],
+      "year": 2024,
+      "publication": "Random Samplings Blog",
+      "url": "https://www.census.gov/newsroom/blogs/random-samplings/2024/12/international-migration-population-estimates.html",
+      "accessed_date": "2026-01-01",
+      "relevance": "Primary source for Vintage 2024 methodology changes and DHS data integration",
+      "key_excerpts": [
+        "To develop the Vintage 2024 population estimates and to better reflect current trends and potentially underrepresented populations, the Census Bureau used newly available administrative data to adjust the usually survey-based estimates of foreign-born immigration.",
+        "Data from the Department of Homeland Security (DHS) is used to make an estimate of the immigration of humanitarian migrants. In recent years the size of this group has increased significantly, and the traditional data sources have not been able to keep up.",
+        "The adjustment for humanitarian migrants was applied to the national total and then distributed down to states and counties using the Census Bureau's usual method.",
+        "Since this adjustment was made to account for the under-sampling of humanitarian migrants in the ACS, this approach likely does not accurately reflect the distribution of these humanitarian migrants across states.",
+        "Due to periodic methodological updates, such as this year's immigration adjustment, year-to-year comparisons in the estimates should only be done within the same vintage."
+      ]
+    },
+    {
+      "id": "census_wp51_2001",
+      "type": "report",
+      "title": "U.S. Census Bureau Measurement of Net International Migration to the United States: 1990 to 2000",
+      "authors": ["U.S. Census Bureau Population Division"],
+      "year": 2001,
+      "publication": "Census Bureau Working Paper No. 51",
+      "url": "https://www.census.gov/library/working-papers/2001/demo/POP-twps0051.html",
+      "accessed_date": "2026-01-01",
+      "relevance": "Primary source for 1990s-2000s NIM methodology including residual methods",
+      "key_excerpts": [
+        "Net international migration plays an integral role in determining both the size and demographic composition of the population at the national level. It is the most complex determinant of population change, and its complete measurement involves the measurement of several sub-components, each one using separate methodology.",
+        "In view of the fact that these sub-components are estimated separately, each is subject to differing levels of uncertainty or bias."
+      ]
+    },
+    {
+      "id": "census_wp97_2013",
+      "type": "report",
+      "title": "Estimating Net International Migration for 2010 Demographic Analysis: An Overview of Methods and Results",
+      "authors": ["U.S. Census Bureau Population Division"],
+      "year": 2013,
+      "publication": "Census Bureau Working Paper No. 97",
+      "url": "https://www.census.gov/library/working-papers/2013/demo/POP-twps0097.html",
+      "accessed_date": "2026-01-01",
+      "relevance": "Documents 2010 DA methodology and uncertainty in NIM estimates",
+      "key_excerpts": [
+        "Although the NIM component comprises approximately twelve percent of the total DA resident population under age 65, it represents a large portion of the uncertainty in the DA estimates.",
+        "As with all components of the DA estimate, there were many assumptions and data limitations included in the calculation of NIM estimates that must be considered."
+      ]
+    },
+    {
+      "id": "census_wp90_2011",
+      "type": "report",
+      "title": "Plans for Producing Estimates of Net International Migration for the 2010 Demographic Analysis Estimates",
+      "authors": ["U.S. Census Bureau Population Division"],
+      "year": 2011,
+      "publication": "Census Bureau Working Paper No. 90",
+      "url": "https://www.census.gov/library/working-papers/2011/demo/POP-twps0090.html",
+      "accessed_date": "2026-01-01",
+      "relevance": "Documents the transition to improved NIM methods for 2010",
+      "key_excerpts": [
+        "Over the past decade, the Census Bureau undertook a major initiative to improve its ability to measure net international migration. The implementation of the American Community Survey (ACS) provides critical demographic information between decennial censuses that was not available in previous decades."
+      ]
+    },
+    {
+      "id": "census_wp1_1992",
+      "type": "report",
+      "title": "The Census Bureau Approach for Allocating International Migration to States, Counties, and Places: 1981-1991",
+      "authors": ["U.S. Census Bureau Population Division"],
+      "year": 1992,
+      "publication": "Census Bureau Working Paper No. 1",
+      "url": "https://www.census.gov/library/working-papers/1992/demo/POP-twps0001.html",
+      "accessed_date": "2026-01-01",
+      "relevance": "Historical documentation of state-level allocation methodology",
+      "key_excerpts": []
+    },
+    {
+      "id": "census_intercensal_2000_2010",
+      "type": "report",
+      "title": "2000-2010 Intercensal Estimates Methodology",
+      "authors": ["U.S. Census Bureau"],
+      "year": 2012,
+      "publication": "Census Bureau Technical Documentation",
+      "url": "https://www2.census.gov/programs-surveys/popest/technical-documentation/methodology/intercensal/2000-2010-intercensal-estimates-methodology.pdf",
+      "accessed_date": "2026-01-01",
+      "relevance": "Documents intercensal methodology and Das Gupta method for 2000s decade",
+      "key_excerpts": [
+        "There is no universal norm for producing intercensal estimates. The Census Bureau historically has used a method to produce intercensal estimates that was outlined by Prithwis Das Gupta in the early 1980s."
+      ]
+    },
+    {
+      "id": "census_methodology_page",
+      "type": "website",
+      "title": "Population Estimates Program Methodology",
+      "authors": ["U.S. Census Bureau"],
+      "year": 2024,
+      "publication": "Census Bureau Technical Documentation",
+      "url": "https://www.census.gov/programs-surveys/popest/technical-documentation/methodology.html",
+      "accessed_date": "2026-01-01",
+      "relevance": "Central methodology documentation page for current PEP methods",
+      "key_excerpts": [
+        "The term 'vintage' denotes estimates created with a consistent population starting point and methodology.",
+        "The release of a new vintage supersedes any previous estimates series because the new series incorporates the most up-to-date data and methodological improvements.",
+        "Data from separate vintages should not be combined."
+      ]
+    },
+    {
+      "id": "census_story_covid_2021",
+      "type": "website",
+      "title": "New Population Estimates Show COVID-19 Pandemic Significantly Disrupted Migration Across Borders",
+      "authors": ["U.S. Census Bureau"],
+      "year": 2021,
+      "publication": "Census Bureau Stories",
+      "url": "https://www.census.gov/library/stories/2021/12/net-international-migration-at-lowest-levels-in-decades.html",
+      "accessed_date": "2026-01-01",
+      "relevance": "Documents COVID-19 pandemic impact on NIM estimation and adjustments",
+      "key_excerpts": [
+        "The ACS sample was greatly reduced - one-third of the interviewed survey sample was lost - after the start of the COVID-19 pandemic, which disproportionately affected certain groups and resulted in nonresponse bias in the estimates for the foreign born.",
+        "The data collection issues experienced by the 2020 ACS severely affected data quality, so the Census Bureau only released experimental estimates from the 1-year data."
+      ]
+    },
+    {
+      "id": "census_press_2024_nim",
+      "type": "website",
+      "title": "Net International Migration Drives Highest U.S. Population Growth in Decades",
+      "authors": ["U.S. Census Bureau"],
+      "year": 2024,
+      "publication": "Census Bureau Press Releases",
+      "url": "https://www.census.gov/newsroom/press-releases/2024/population-estimates-international-migration.html",
+      "accessed_date": "2026-01-01",
+      "relevance": "Official press release on Vintage 2024 findings",
+      "key_excerpts": [
+        "Net international migration, which refers to any change of residence across U.S. borders (the 50 states and the District of Columbia), was the critical demographic component driving growth. With a net increase of 2.8 million people, it accounted for 84% of the nation's 3.3 million increase in population between 2023 and 2024."
+      ]
+    },
+    {
+      "id": "census_wp61_2001",
+      "type": "report",
+      "title": "Evaluating Components of International Migration: The Residual Foreign Born",
+      "authors": ["U.S. Census Bureau Population Division"],
+      "year": 2001,
+      "publication": "Census Bureau Working Paper No. 61",
+      "url": "https://www.census.gov/library/working-papers/2001/demo/POP-twps0061.html",
+      "accessed_date": "2026-01-01",
+      "relevance": "Documents residual methodology for estimating foreign-born population",
+      "key_excerpts": [
+        "In a residual technique, one or more identifiable components are subtracted from a comprehensive universe (such as the decennial census' total foreign-born population) yielding a residual estimate.",
+        "Because the estimate was derived from a residual methodology, any limitations in the methods or in the measurement of other migration components are reflected in the residual number."
+      ]
+    },
+    {
+      "id": "census_wp67_2002",
+      "type": "report",
+      "title": "Evaluation of Census Bureau's 1995-2025 State Population Projections",
+      "authors": ["U.S. Census Bureau Population Division"],
+      "year": 2002,
+      "publication": "Census Bureau Working Paper No. 67",
+      "url": "https://www.census.gov/library/working-papers/2002/demo/POP-twps0067.html",
+      "accessed_date": "2026-01-01",
+      "relevance": "Evaluation of state-level projection accuracy, relevant to small-state reliability",
+      "key_excerpts": [
+        "Previous studies indicate that the population size affects the accuracy of population projections. This is mainly due to the relationship between 'true demographic rates' (fertility, mortality, migration rates) and the population size.",
+        "Since the detailed demographic rates for small states will be likely to have many small numbers in each cell or many empty cells, these rates for smaller population bases will be unstable."
+      ]
+    },
+    {
+      "id": "cornell_pad_v2024",
+      "type": "report",
+      "title": "Vintage 2024 New York State Estimates",
+      "authors": ["Cornell Program on Applied Demographics"],
+      "year": 2024,
+      "publication": "Cornell PAD Technical Memorandum",
+      "url": "https://pad.human.cornell.edu/papers/downloads/StateEstimatesV2024Memo.pdf",
+      "accessed_date": "2026-01-01",
+      "relevance": "Independent analysis of Vintage 2024 methodology impact on state estimates",
+      "key_excerpts": [
+        "The U.S. Census Bureau implemented methodology changes to international migration in the Vintage 2024 release. These methodology changes contributed to upward revisions of international migration for the nation."
+      ]
+    },
+    {
+      "id": "ctdata_v2024",
+      "type": "website",
+      "title": "Census Bureau Releases Vintage 2024 State Population Estimates",
+      "authors": ["CTData Collaborative"],
+      "year": 2024,
+      "publication": "CTData Blog",
+      "url": "https://www.ctdata.org/blog/vintage-2024-state-population-estimates",
+      "accessed_date": "2026-01-01",
+      "relevance": "State-level analysis of Vintage 2024 changes",
+      "key_excerpts": [
+        "The Vintage 2024 estimates series incorporates a methodological change to how the Census Bureau estimated net international migration, resulting in substantially higher nationwide estimates of net international migration over the last several years."
+      ]
+    },
+    {
+      "id": "census_da_2020",
+      "type": "website",
+      "title": "Independent Census Bureau Population Estimates Will Help Assess Accuracy of the 2020 Census",
+      "authors": ["U.S. Census Bureau"],
+      "year": 2020,
+      "publication": "Census Bureau Stories",
+      "url": "https://www.census.gov/library/stories/2020/12/demographic-analysis-produces-range-of-population-estimates.html",
+      "accessed_date": "2026-01-01",
+      "relevance": "Documents uncertainty in DA estimates and NIM's role",
+      "key_excerpts": [
+        "The largest share of uncertainty in the range of Demographic Analysis estimates, nearly 40%, comes from estimates of the foreign-born population. International migration of the native population accounts for around 10% of the variance of the range of estimates."
+      ]
+    },
+    {
+      "id": "springer_intercensal_2015",
+      "type": "article",
+      "title": "Evaluating Linearly Interpolated Intercensal Estimates of Demographic and Socioeconomic Characteristics of U.S. Counties and Census Tracts 2001-2009",
+      "authors": ["Various"],
+      "year": 2015,
+      "publication": "Population Research and Policy Review",
+      "url": "https://link.springer.com/article/10.1007/s11113-015-9359-8",
+      "accessed_date": "2026-01-01",
+      "relevance": "Peer-reviewed evaluation of intercensal estimation accuracy",
+      "key_excerpts": [
+        "The American Community Survey (ACS) multiyear estimation program has greatly advanced opportunities for studying change in the demographic and socioeconomic characteristics of U.S. communities."
+      ]
+    },
+    {
+      "id": "census_roya_explainer",
+      "type": "website",
+      "title": "Residence 1 Year Ago/Migration - Why We Ask",
+      "authors": ["U.S. Census Bureau"],
+      "year": 2024,
+      "publication": "American Community Survey",
+      "url": "https://www.census.gov/acs/www/about/why-we-ask-each-question/migration/",
+      "accessed_date": "2026-01-01",
+      "relevance": "Explains ROYA methodology for migration estimation",
+      "key_excerpts": [
+        "The Census Bureau asks questions about whether a person moved in the last year and where he or she lived 1 year ago to create statistics about where people are moving (to/from places within the United States and from foreign countries)."
+      ]
+    }
+  ]
+}

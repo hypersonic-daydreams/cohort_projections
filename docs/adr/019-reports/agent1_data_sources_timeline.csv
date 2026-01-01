@@ -1,0 +1,21 @@
+data_source,start_year,end_year,vintage_used,notes
+Decennial Census foreign-born counts,1990,2010,Vintage 2009 and earlier,Used as universe for residual calculations in 2000s methodology
+INS/DHS Legal Permanent Resident data,1980,9999,All vintages,Continuous administrative data source for legal immigration
+Social Security Administration records,1980,9999,All vintages,Used for emigration estimation via survival analysis
+Medicare enrollment data,1980,9999,All vintages,Used for population 65+ estimation
+American Community Survey (pilot),2000,2004,Limited,ACS pilots in selected counties only
+American Community Survey (full implementation),2005,9999,Vintage 2009+,Full national implementation enables ROYA method for NIM
+ACS Residence One Year Ago (ROYA) question,2005,9999,Vintage 2020+,Primary data source for foreign-born immigration post-2005
+ACS 1-year estimates (pooled 3-year for states),2005,9999,Vintage 2020+,Used for state-level demographic distributions
+ACS 5-year estimates,2010,9999,Vintage 2020+,Used for county-level demographic distributions
+IRS tax filing data,1980,9999,All vintages,Used for domestic migration estimation (under 65)
+Centers for Medicare and Medicaid Services records,1980,9999,All vintages,Used for domestic migration estimation (65+)
+Puerto Rico Community Survey ROYA,2005,2020,Vintage 2020-2022,PRCS question for migration between PR and states
+Bureau of Transportation Statistics Airline Passenger Traffic,2021,9999,Vintage 2024,New data source for net migration to/from Puerto Rico
+Department of Homeland Security administrative data,2021,9999,Vintage 2024,New data source for humanitarian migrant adjustment
+Department of State visa issuance data,2020,9999,Vintage 2021+,Supplemental administrative source during COVID adjustments
+Institute of International Education student data,2020,9999,Vintage 2021+,Supplemental administrative source during COVID adjustments
+U.S. Citizenship and Immigration Services data,2020,9999,Vintage 2021+,Supplemental administrative source during COVID adjustments
+State Department Refugee Processing Center,2020,9999,Vintage 2021+,Supplemental administrative source for refugee counts
+Vital Statistics (births/deaths),1900,9999,All vintages,Continuous data source for natural increase component
+Blended 2020 Census Base,2020,2020,Vintage 2021+,Integration of 2020 Census with Vintage 2020 estimates and 2020 DA

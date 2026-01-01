@@ -1,0 +1,8 @@
+digraph G045 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0092 [label="A0092\nclaim\nThe study's contribution lies in characterizing uncertain...", shape=box, style=filled, fillcolor="#4CAF50"];
+
+}

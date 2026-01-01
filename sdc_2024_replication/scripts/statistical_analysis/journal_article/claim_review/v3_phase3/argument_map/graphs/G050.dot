@@ -1,0 +1,8 @@
+digraph G050 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0093 [label="A0093\nclaim\nStructural break detection methods yield divergent result...", shape=box, style=filled, fillcolor="#4CAF50"];
+
+}

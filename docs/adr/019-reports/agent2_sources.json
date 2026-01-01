@@ -1,0 +1,76 @@
+{
+  "statistical_methods": [
+    {
+      "method": "Two-sample t-test",
+      "reference": "Student (1908). The probable error of a mean. Biometrika, 6(1), 1-25.",
+      "usage": "Testing mean differences at vintage transitions"
+    },
+    {
+      "method": "Welch's t-test",
+      "reference": "Welch, B.L. (1947). The generalization of \"Student's\" problem. Biometrika, 34(1-2), 28-35.",
+      "usage": "Robust mean comparison when variances may differ"
+    },
+    {
+      "method": "Mann-Whitney U test",
+      "reference": "Mann, H.B., Whitney, D.R. (1947). On a test of whether one of two random variables is stochastically larger than the other. Annals of Mathematical Statistics, 18(1), 50-60.",
+      "usage": "Non-parametric alternative for comparing distributions"
+    },
+    {
+      "method": "Levene's test",
+      "reference": "Levene, H. (1960). Robust tests for equality of variances. In Contributions to Probability and Statistics.",
+      "usage": "Testing homogeneity of variances across vintages"
+    },
+    {
+      "method": "Bartlett's test",
+      "reference": "Bartlett, M.S. (1937). Properties of sufficiency and statistical tests. Proceedings of the Royal Society A, 160(901), 268-282.",
+      "usage": "Alternative variance homogeneity test (assumes normality)"
+    },
+    {
+      "method": "Chow test",
+      "reference": "Chow, G.C. (1960). Tests of equality between sets of coefficients in two linear regressions. Econometrica, 28(3), 591-605.",
+      "usage": "Testing for structural breaks in regression models"
+    },
+    {
+      "method": "Ljung-Box test",
+      "reference": "Ljung, G.M., Box, G.E.P. (1978). On a measure of lack of fit in time series models. Biometrika, 65(2), 297-303.",
+      "usage": "Testing for autocorrelation in time series"
+    },
+    {
+      "method": "Cohen's d",
+      "reference": "Cohen, J. (1988). Statistical Power Analysis for the Behavioral Sciences (2nd ed.). Lawrence Erlbaum Associates.",
+      "usage": "Effect size measure for mean differences"
+    }
+  ],
+  "software": [
+    {
+      "name": "Python",
+      "version": "3.x",
+      "usage": "Analysis implementation"
+    },
+    {
+      "name": "pandas",
+      "usage": "Data manipulation"
+    },
+    {
+      "name": "numpy",
+      "usage": "Numerical computations"
+    },
+    {
+      "name": "scipy.stats",
+      "usage": "Statistical tests"
+    },
+    {
+      "name": "statsmodels",
+      "usage": "Regression and time series analysis"
+    },
+    {
+      "name": "matplotlib",
+      "usage": "Visualization"
+    }
+  ],
+  "data_source": {
+    "file": "state_migration_components_2000_2024.csv",
+    "path": "/home/nhaarstad/workspace/demography/cohort_projections/data/processed/immigration/state_migration_components_2000_2024.csv",
+    "description": "Census Bureau population estimates migration components by state and vintage"
+  }
+}

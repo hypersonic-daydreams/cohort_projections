@@ -1,0 +1,16 @@
+digraph G003 {
+  rankdir=TB;
+  node [fontname="Helvetica", fontsize=10];
+  edge [fontname="Helvetica", fontsize=8];
+
+  A0011 [label="A0011\nclaim\nThe Travel Ban policy caused a substantial divergence in ...", shape=box, style=filled, fillcolor="#4CAF50"];
+  A0012 [label="A0012\ngrounds\nDifference-in-differences estimation identifies a policy-...", shape=ellipse, style=filled, fillcolor="#2196F3"];
+  A0013 [label="A0013\nwarrant\nAggregate time series analysis fails to detect the 75% di...", shape=diamond, style=filled, fillcolor="#FF9800"];
+  A0014 [label="A0014\nqualifier\nPre-treatment trend divergence suggests the 75% estimate ...", shape=octagon, style=filled, fillcolor="#607D8B"];
+  A0015 [label="A0015\nrebuttal\nIn gravity model estimation, diaspora associations lose s...", shape=hexagon, style=filled, fillcolor="#F44336"];
+
+  A0012 -> A0011 [label="supports"];
+  A0013 -> A0011 [label="supports"];
+  A0014 -> A0011 [label="supports"];
+  A0015 -> A0006 [label="supports"];
+}
