@@ -68,20 +68,20 @@ git add . && git commit -m "..."
 
 ---
 
-## Documentation Quick Links
+## Documentation
 
 | Document | Purpose |
 |----------|---------|
 | [AGENTS.md](./AGENTS.md) | Complete AI agent guidance |
+| [docs/sops/](./docs/sops/) | Standard Operating Procedures |
+| [docs/guides/](./docs/guides/) | Detailed how-to guides |
 | [docs/adr/](./docs/adr/) | Architecture decisions |
-| [config/projection_config.yaml](./config/projection_config.yaml) | Main configuration |
 | [DEVELOPMENT_TRACKER.md](./DEVELOPMENT_TRACKER.md) | Current project status |
 
 ---
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2025-12-31 |
-| **Version** | 2.0.0 |
-| **Status** | Current |
-| **Note** | This is a quick-reference wrapper. See AGENTS.md for complete guidance. |
+| **Last Updated** | 2026-01-01 |
+| **Version** | 2.1.0 |
+| **Note** | Quick-reference wrapper for Claude Code. See AGENTS.md for complete guidance. |
