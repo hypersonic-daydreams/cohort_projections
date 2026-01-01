@@ -1,0 +1,6 @@
+boom_category,n_states,states,mean_shift_magnitude,std_shift_magnitude,mean_relative_shift,std_relative_shift,mean_cohens_d
+Bakken Boom,2,"Montana, North Dakota",832.4,1518.0875485293989,55.551431778991756,117.04614221732493,0.5082618147840141
+Permian Boom,2,"New Mexico, Texas",63860.0,83922.96832512539,151.5096530029084,0.4795407170624215,1.8333492188582858
+Other Shale,3,"Colorado, Louisiana, Oklahoma",8358.533333333333,3615.089938830475,125.49240667777913,56.18034502885322,1.6323730588514351
+Mature Oil,4,"Alaska, California, Kansas, Wyoming",36007.5375,67711.58147308054,92.65460798391486,39.36927964737649,1.1654123109912105
+Non-Oil,40,"Alabama, Arizona, Arkansas, Connecticut, Delaware, Florida, Georgia, Hawaii, Idaho, Illinois, Indiana, Iowa, Kentucky, Maine, Maryland, Massachusetts, Michigan, Minnesota, Mississippi, Missouri, Nebraska, Nevada, New Hampshire, New Jersey, New York, North Carolina, Ohio, Oregon, Pennsylvania, Rhode Island, South Carolina, South Dakota, Tennessee, United States, Utah, Vermont, Virginia, Washington, West Virginia, Wisconsin",41829.78625,155652.34905344472,126.99595999810754,80.2028484028058,1.5118566404195408

@@ -1,10 +1,10 @@
-# ADR-019: Extended Time Series Methodology Analysis
+# ADR-020: Extended Time Series Methodology Analysis
 
 ## Status
-**PROPOSED** - Awaiting rigorous methodology impact analysis
+**ACCEPTED** - Option C (Hybrid Approach) approved following Phase A investigation and external review
 
 ## Date
-2025-12-31
+2025-12-31 (proposed) → 2026-01-01 (accepted)
 
 ## Context
 
@@ -172,31 +172,98 @@ If Phase 1-2 identify significant methodology effects, sub-agents should investi
    - ACS foreign-born population changes
    - State-level administrative records
 
-## Decision Framework
+## Decision
 
-After Phase 1-3 analysis, decide between:
+### Selected: Option C - Hybrid Approach
+
+Following Phase A investigation (Agents 1-3) and external review by ChatGPT 5.2 Pro, **Option C (Hybrid Approach)** was selected.
+
+**Implementation**:
+1. **Primary inference on n=15 (2010-2024)**: All causal claims and statistical tests use the methodologically consistent Vintage 2020 and 2024 data
+2. **Extended n=25 (2000-2024) for robustness**: Sensitivity analyses report whether conclusions hold with the extended series
+3. **Regime-aware modeling**: Vintage dummy variables, piecewise trends, and heteroskedasticity-robust standard errors
+4. **Transparent documentation**: Methodology section clearly states data limitations and vintage boundaries
+
+**Rationale**:
+- Phase A analysis detected modest but non-trivial vintage effects at the 2009-2010 transition
+- The Hybrid approach preserves causal inference validity while gaining robustness information
+- External review confirmed this balances methodological rigor with practical utility
+
+**See**: [Phase A Reports](020-reports/PHASE_A/PHASE_METADATA.md) and [ChatGPT Review](020-reports/chatgpt_review_package/chatgpt_response.md)
+
+---
+
+## Decision Framework (Historical)
+
+The following options were considered:
 
 ### Option A: Use Extended Series with Corrections
 - Apply identified correction methods
 - Document all adjustments transparently
 - Report sensitivity analyses
+- **Not selected**: Insufficient overlap data for reliable correction
 
 ### Option B: Use Extended Series with Caveats
 - Use 2000-2024 data as-is
 - Document known methodology changes
 - Interpret results cautiously around transition points
+- **Not selected**: Risk of conflating vintage artifacts with causal effects
 
-### Option C: Use Hybrid Approach
+### Option C: Use Hybrid Approach ✓ SELECTED
 - Primary analysis on 2010-2024 (consistent methodology)
 - Robustness checks on 2000-2024
 - Report both sets of results
+- **Selected**: Best balance of rigor and utility
 
 ### Option D: Maintain Current Approach
 - Continue with n=15 (2010-2024)
 - Accept statistical power limitations
 - Focus on methods robust to small samples
+- **Not selected**: Loses robustness information from extended series
 
-## Sub-Agent Investigation Plan
+---
+
+## Consequences
+
+### Positive
+
+1. **Methodological rigor preserved**: Primary causal claims rest on n=15 consistent-methodology data
+2. **Robustness information gained**: Extended series provides sensitivity checks without risking validity
+3. **Transparent limitations**: Article methodology section explicitly documents vintage boundaries
+4. **Replicability**: Both series available for future researchers to verify findings
+5. **Regime-aware modeling**: Infrastructure built for handling measurement regime changes
+
+### Negative
+
+1. **Complexity**: Dual analysis track increases analytical burden
+2. **Interpretation nuance**: Readers must understand why primary and robustness results may differ
+3. **Space requirements**: Methodology section needs additional text to explain approach
+
+### Neutral
+
+1. **No correction applied**: We explicitly chose not to attempt vintage-to-vintage adjustment due to lack of overlap data
+2. **COVID treatment unchanged**: 2020 remains a known outlier in both series
+
+---
+
+## Phase B Implementation
+
+Following this decision, Phase B implementation includes:
+
+| Agent | Deliverable | Status |
+|-------|-------------|--------|
+| B1 | Regime-aware statistical module | Planned |
+| B2 | Multi-state placebo analysis (50 states) | Planned |
+| B3 | Journal article Data Comparability section | Planned |
+| B4 | Bayesian/Panel VAR extensions | Planned |
+| B5 | ADR documentation (this document) | Complete |
+| B6 | Test infrastructure | Planned |
+
+See: [Phase B Planning](020-reports/PHASE_B/PHASE_METADATA.md)
+
+---
+
+## Sub-Agent Investigation Plan (Historical)
 
 ### Agent 1: Census Methodology Documentation
 **Objective**: Gather authoritative documentation on PEP vintage methodology differences

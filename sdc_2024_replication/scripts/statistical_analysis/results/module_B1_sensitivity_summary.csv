@@ -1,0 +1,7 @@
+Specification,Description,N,Mean,Trend Slope,SE,p-value,Sig.,R²
+n15_baseline,"Primary window (2010-2024, n=15)",15,1796,183.4,93.7,0.050,,0.306
+n25_with_vintage,"Extended with vintage dummies (2000-2024, n=25)",25,1260,132.7,55.1,0.016,*,0.443
+n24_excl_2020,Excluding COVID year (n=24),24,1312,98.3,37.4,0.009,*,0.591
+n14_excl_2020_post2010,2010-2024 excluding COVID (n=14),14,1922,211.0,78.7,0.007,*,0.439
+n10_vintage_2009,"Vintage 2009 only (2000-2009, n=10)",10,457,39.2,17.8,0.028,*,0.079
+n10_vintage_2020,"Vintage 2020 only (2010-2019, n=10)",10,1378,72.4,72.3,0.316,,0.093

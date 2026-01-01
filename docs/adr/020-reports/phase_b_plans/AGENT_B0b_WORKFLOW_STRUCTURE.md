@@ -61,7 +61,7 @@ The project demonstrates a sophisticated **multi-phase, agent-driven workflow mo
 | DEVELOPMENT_TRACKER.md | Project root | Overall status, session logs |
 | STATUS.md files | Within workspaces | Phase-specific progress |
 | ADRs | `docs/adr/` | Decision records |
-| Planning documents | `docs/adr/019-reports/` | Phase planning |
+| Planning documents | `docs/adr/020-reports/` | Phase planning |
 
 ### 1.4 Pain Points
 
@@ -82,7 +82,7 @@ The project demonstrates a sophisticated **multi-phase, agent-driven workflow mo
 | **Phase** | Meta-level grouping (research stage) | Phase A, Phase B |
 | **Sprint** | Bounded unit of work (1-4 weeks) | SPRINT_METHODOLOGY_A_001 |
 | **Wave** | Subdivision within sprint (thematic/sequential) | WAVE_1_DATA_FETCH |
-| **Workspace** | Dedicated directory for sprint artifacts | `docs/adr/019-reports/PHASE_A/` |
+| **Workspace** | Dedicated directory for sprint artifacts | `docs/adr/020-reports/PHASE_A/` |
 
 ### 2.2 Naming Conventions
 
@@ -141,7 +141,7 @@ Every sprint must produce:
 ### 3.1 Proposed Directory Structure
 
 ```
-docs/adr/019-reports/
+docs/adr/020-reports/
 ├── SHARED/                               # Templates and specifications
 │   ├── REPORT_TEMPLATE.md
 │   ├── ARTIFACT_SPECIFICATIONS.md
@@ -227,11 +227,11 @@ Add new section:
 
 ## Active Phase
 **Phase B**: Correction Methods Implementation
-- See: `docs/adr/019-reports/PHASE_B/PHASE_METADATA.md`
+- See: `docs/adr/020-reports/PHASE_B/PHASE_METADATA.md`
 
 ## Completed Phases
 - **Phase A**: Validity Assessment (2025-12-31)
-  - See: `docs/adr/019-reports/ARCHIVE/PHASE_A_20260101/PHASE_SUMMARY.md`
+  - See: `docs/adr/020-reports/ARCHIVE/PHASE_A_20260101/PHASE_SUMMARY.md`
 ```
 
 ### 4.3 Sub-Agent Tracking Template
@@ -261,7 +261,7 @@ Track in sprint status:
 
 **Required**: Yes (end of Planning phase)
 **Materials Due**: After all B1-B6 plans complete
-**Review Package**: `docs/adr/019-reports/PHASE_B/external_review/`
+**Review Package**: `docs/adr/020-reports/PHASE_B/external_review/`
 
 ### Checklist
 - [ ] All agent plans complete
@@ -353,18 +353,18 @@ Create `SPRINT_RETROSPECTIVE.md`:
 
 | File | Purpose | Priority |
 |------|---------|----------|
-| `docs/adr/019-reports/SHARED/SPRINT_PLANNING_TEMPLATE.md` | Template for sprints | High |
-| `docs/adr/019-reports/PHASE_A/PHASE_METADATA.md` | Phase A overview | High |
-| `docs/adr/019-reports/PHASE_A/PHASE_SUMMARY.md` | Phase A retrospective | High |
-| `docs/adr/019-reports/PHASE_B/PHASE_METADATA.md` | Phase B overview | High |
-| `docs/adr/019-reports/PHASE_B/PLANNING/AGENT_ASSIGNMENTS.md` | Track planning agents | High |
+| `docs/adr/020-reports/SHARED/SPRINT_PLANNING_TEMPLATE.md` | Template for sprints | High |
+| `docs/adr/020-reports/PHASE_A/PHASE_METADATA.md` | Phase A overview | High |
+| `docs/adr/020-reports/PHASE_A/PHASE_SUMMARY.md` | Phase A retrospective | High |
+| `docs/adr/020-reports/PHASE_B/PHASE_METADATA.md` | Phase B overview | High |
+| `docs/adr/020-reports/PHASE_B/PLANNING/AGENT_ASSIGNMENTS.md` | Track planning agents | High |
 
 ### 6.2 Files to Modify
 
 | File | Change |
 |------|--------|
 | `DEVELOPMENT_TRACKER.md` | Add sprint status section |
-| `docs/adr/019-reports/PHASE_B_SUBAGENT_PLANNING.md` | Align with sprint structure |
+| `docs/adr/020-reports/PHASE_B_SUBAGENT_PLANNING.md` | Align with sprint structure |
 
 ### 6.3 Reorganization Tasks
 

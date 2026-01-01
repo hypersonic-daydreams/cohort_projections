@@ -1,4 +1,4 @@
-# ADR-019a: Vintage Methodology Investigation Plan
+# ADR-020a: Vintage Methodology Investigation Plan
 
 ## Purpose
 
@@ -200,7 +200,7 @@ After all three agents complete, a synthesis step will:
 After external review, decide:
 
 ```
-├── If no significant artifacts detected → Proceed with extension (Option B from ADR-019)
+├── If no significant artifacts detected → Proceed with extension (Option B from ADR-020)
 ├── If artifacts detected but correctable → Proceed to Phase B
 ├── If uncertain → May request additional analysis
 └── If severe artifacts detected → Maintain current approach (Option D)
@@ -311,7 +311,7 @@ Phase B (if needed, Parallel):
 ├── Agent 4: Correction Methods Literature → Methods compendium
 └── Agent 5: Implementation Assessment → Specific recommendations
 
-Final Decision: Select Option A, B, C, or D from ADR-019
+Final Decision: Select Option A, B, C, or D from ADR-020
 ```
 
 ## Success Criteria
@@ -370,7 +370,7 @@ Before synthesis, verify each agent's output:
 
 ## Related Documents
 
-- [ADR-019: Extended Time Series Methodology Analysis](./019-extended-time-series-methodology-analysis.md) - Parent decision record
+- [ADR-020: Extended Time Series Methodology Analysis](./019-extended-time-series-methodology-analysis.md) - Parent decision record
 - [state_migration_components_2000_2024.csv](../../data/processed/immigration/state_migration_components_2000_2024.csv) - Combined vintage data
 - [combine_census_vintages.py](../../sdc_2024_replication/data_immigration_policy/scripts/combine_census_vintages.py) - Script that created combined file
 

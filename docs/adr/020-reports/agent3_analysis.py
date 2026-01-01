@@ -20,7 +20,7 @@ warnings.filterwarnings("ignore")
 
 # Configuration
 DATA_DIR = Path("/home/nhaarstad/workspace/demography/cohort_projections/data")
-OUTPUT_DIR = Path("/home/nhaarstad/workspace/demography/cohort_projections/docs/adr/019-reports")
+OUTPUT_DIR = Path("/home/nhaarstad/workspace/demography/cohort_projections/docs/adr/020-reports")
 
 # State FIPS codes
 STATE_FIPS = {

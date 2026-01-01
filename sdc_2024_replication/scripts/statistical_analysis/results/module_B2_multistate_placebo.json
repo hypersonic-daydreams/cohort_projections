@@ -1,0 +1,331 @@
+{
+  "module": "B2",
+  "analysis": "multistate_placebo",
+  "generated": "2026-01-01T19:21:24.074327+00:00",
+  "input_files": [
+    "07_data_panel.csv"
+  ],
+  "parameters": {
+    "n_states": 51,
+    "year_range": "2010-2024",
+    "exclude_2020_from_post": true,
+    "primary_oil_states": [
+      "Texas",
+      "North Dakota",
+      "New Mexico",
+      "Oklahoma",
+      "Colorado",
+      "Alaska"
+    ],
+    "secondary_oil_states": [
+      "Wyoming",
+      "Louisiana",
+      "Kansas",
+      "California"
+    ]
+  },
+  "results": {
+    "state_shifts": {
+      "n_states": 51,
+      "shift_magnitude_stats": {
+        "mean": 38660.43137254902,
+        "std": 139500.61605043325,
+        "min": -241.04999999999995,
+        "max": 988357.15
+      }
+    },
+    "nd_national_position": {
+      "state": "North Dakota",
+      "metric": "shift_magnitude",
+      "value": 1905.85,
+      "rank": 43,
+      "n_states": 51,
+      "percentile": 84.31372549019608,
+      "percentile_from_top": 15.686274509803923,
+      "interpretation": "ND in bottom quartile - favors methodology artifact explanation"
+    },
+    "oil_state_hypothesis": {
+      "metric": "shift_magnitude",
+      "oil_states_used": [
+        "Texas",
+        "North Dakota",
+        "New Mexico",
+        "Oklahoma",
+        "Colorado",
+        "Alaska",
+        "Wyoming",
+        "Louisiana",
+        "Kansas",
+        "California"
+      ],
+      "n_oil_states": 10,
+      "n_non_oil_states": 41,
+      "oil_mean": 29873.159999999996,
+      "non_oil_mean": 40803.66829268293,
+      "difference": -10930.508292682935,
+      "t_test": {
+        "statistic": -0.3727196093802154,
+        "p_value": 0.7111897831740794
+      },
+      "mann_whitney": {
+        "statistic": 171.0,
+        "p_value": 0.42674691699521305
+      },
+      "significant_at_05": false,
+      "interpretation": "No significant difference between oil and non-oil states"
+    },
+    "nd_among_oil_states": {
+      "state": "North Dakota",
+      "metric": "shift_magnitude",
+      "value": 1905.85,
+      "rank_among_oil": 8,
+      "n_oil_states": 10,
+      "percentile_among_oil": 30.000000000000004,
+      "interpretation": "ND in lower half among oil states - unexpected"
+    },
+    "oil_state_rankings": [
+      {
+        "state": "California",
+        "shift_magnitude": 137521.9,
+        "rank": 1
+      },
+      {
+        "state": "Texas",
+        "shift_magnitude": 123202.5,
+        "rank": 2
+      },
+      {
+        "state": "Colorado",
+        "shift_magnitude": 11219.8,
+        "rank": 3
+      },
+      {
+        "state": "Louisiana",
+        "shift_magnitude": 9560.15,
+        "rank": 4
+      },
+      {
+        "state": "Kansas",
+        "shift_magnitude": 5242.3,
+        "rank": 5
+      },
+      {
+        "state": "New Mexico",
+        "shift_magnitude": 4517.5,
+        "rank": 6
+      },
+      {
+        "state": "Oklahoma",
+        "shift_magnitude": 4295.65,
+        "rank": 7
+      },
+      {
+        "state": "North Dakota",
+        "shift_magnitude": 1905.85,
+        "rank": 8
+      },
+      {
+        "state": "Alaska",
+        "shift_magnitude": 941.05,
+        "rank": 9
+      },
+      {
+        "state": "Wyoming",
+        "shift_magnitude": 324.9,
+        "rank": 10
+      }
+    ],
+    "boom_state_hypothesis": {
+      "metric": "relative_shift",
+      "classification": "boom_timing",
+      "boom_states_used": [
+        "North Dakota",
+        "Montana",
+        "Texas",
+        "New Mexico",
+        "Colorado",
+        "Oklahoma",
+        "Louisiana"
+      ],
+      "n_boom_states": 7,
+      "n_non_oil_states": 40,
+      "boom_mean": 112.94276994244827,
+      "non_oil_mean": 126.99595999810754,
+      "difference": -14.053190055659272,
+      "t_test": {
+        "statistic": -0.474752428073686,
+        "p_value": 0.6463573338201715
+      },
+      "mann_whitney": {
+        "statistic": 148.0,
+        "p_value": 0.8264992061963733
+      },
+      "significant_at_05": false,
+      "interpretation": "No significant difference between boom and non-oil states"
+    },
+    "bakken_specific_hypothesis": {
+      "metric": "relative_shift",
+      "group_statistics": {
+        "Bakken Boom": {
+          "n": 2,
+          "mean": 55.551431778991756,
+          "std": 117.04614221732493,
+          "states": [
+            "North Dakota",
+            "Montana"
+          ]
+        },
+        "Permian Boom": {
+          "n": 2,
+          "mean": 151.5096530029084,
+          "std": 0.47954071706243157,
+          "states": [
+            "Texas",
+            "New Mexico"
+          ]
+        },
+        "Other Shale": {
+          "n": 3,
+          "mean": 125.49240667777913,
+          "std": 56.18034502885321,
+          "states": [
+            "Colorado",
+            "Oklahoma",
+            "Louisiana"
+          ]
+        },
+        "Mature Oil": {
+          "n": 4,
+          "mean": 92.65460798391486,
+          "std": 39.36927964737649,
+          "states": [
+            "California",
+            "Alaska",
+            "Wyoming",
+            "Kansas"
+          ]
+        },
+        "Non-Oil": {
+          "n": 40,
+          "mean": 126.99595999810754,
+          "std": 80.2028484028058,
+          "states": []
+        }
+      },
+      "bakken_vs_permian": {
+        "bakken_mean": 55.551431778991756,
+        "permian_mean": 151.5096530029084,
+        "difference": -95.95822122391665,
+        "mann_whitney_p": 0.3333333333333333
+      },
+      "nd_value": 138.31555265258726,
+      "interpretation": "Permian states have higher shifts than Bakken"
+    },
+    "nd_among_boom_states": {
+      "state": "North Dakota",
+      "metric": "relative_shift",
+      "value": 138.31555265258726,
+      "rank_among_boom": 4,
+      "n_boom_states": 7,
+      "percentile_among_boom": 57.14285714285714,
+      "interpretation": "ND in lower half among boom states - pattern not exceptional"
+    },
+    "boom_state_rankings": [
+      {
+        "state": "Louisiana",
+        "boom_category": "Other Shale",
+        "relative_shift": 184.93016867842772,
+        "rank": 1
+      },
+      {
+        "state": "New Mexico",
+        "boom_category": "Permian Boom",
+        "relative_shift": 151.84873949579833,
+        "rank": 2
+      },
+      {
+        "state": "Texas",
+        "boom_category": "Permian Boom",
+        "relative_shift": 151.17056651001852,
+        "rank": 3
+      },
+      {
+        "state": "North Dakota",
+        "boom_category": "Bakken Boom",
+        "relative_shift": 138.31555265258726,
+        "rank": 4
+      },
+      {
+        "state": "Colorado",
+        "boom_category": "Other Shale",
+        "relative_shift": 118.28120223072622,
+        "rank": 5
+      },
+      {
+        "state": "Oklahoma",
+        "boom_category": "Other Shale",
+        "relative_shift": 73.26584912418345,
+        "rank": 6
+      },
+      {
+        "state": "Montana",
+        "boom_category": "Bakken Boom",
+        "relative_shift": -27.212689094603743,
+        "rank": 7
+      }
+    ],
+    "key_findings": {
+      "nd_in_top_10_nationally": false,
+      "oil_states_significantly_different": false,
+      "nd_top_3_among_oil": false,
+      "boom_states_significantly_different": false,
+      "nd_top_3_among_boom": false,
+      "nd_rank_among_boom": 4,
+      "nd_relative_shift": 138.31555265258726,
+      "overall_assessment": "WEAK SUPPORT - methodology artifact cannot be ruled out"
+    }
+  },
+  "diagnostics": {
+    "data_years": "2010-2024",
+    "n_states_analyzed": 51,
+    "n_oil_states_legacy": 10,
+    "n_boom_states": 7,
+    "exclude_2020": true,
+    "comparison_periods": {
+      "pre": "2010-2019 (Vintage 2020)",
+      "post": "2021-2024 (Vintage 2024, excluding 2020)"
+    },
+    "classification_methodology": "Boom-timing per OIL_STATE_RESEARCH.md",
+    "boom_categories": {
+      "bakken_boom": [
+        "North Dakota",
+        "Montana"
+      ],
+      "permian_boom": [
+        "Texas",
+        "New Mexico"
+      ],
+      "other_shale": [
+        "Colorado",
+        "Oklahoma",
+        "Louisiana"
+      ],
+      "mature_oil": [
+        "California",
+        "Alaska",
+        "Wyoming",
+        "Kansas"
+      ]
+    }
+  },
+  "warnings": [
+    "Boom states not significantly different from non-oil states - consider examining relative shift metric or focusing on 2009-2020 vintage transition"
+  ],
+  "next_steps": [
+    "B3: Incorporate boom-timing findings into journal article methodology section",
+    "B3: Document Bakken-specific timing (2008-2015) vs Permian (2015+)",
+    "Consider extending analysis to 2009-to-2020 vintage transition (captures full Bakken boom)",
+    "B4: Use boom-category fixed effects in panel models",
+    "B6: Create unit tests for B2 module functions"
+  ]
+}

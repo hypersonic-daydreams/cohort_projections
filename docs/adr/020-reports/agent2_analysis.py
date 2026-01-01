@@ -25,7 +25,7 @@ from statsmodels.tsa.stattools import acf
 warnings.filterwarnings("ignore")
 
 # Configuration
-OUTPUT_DIR = Path("/home/nhaarstad/workspace/demography/cohort_projections/docs/adr/019-reports")
+OUTPUT_DIR = Path("/home/nhaarstad/workspace/demography/cohort_projections/docs/adr/020-reports")
 DATA_PATH = Path(
     "/home/nhaarstad/workspace/demography/cohort_projections/data/processed/immigration/state_migration_components_2000_2024.csv"
 )

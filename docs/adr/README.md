@@ -148,18 +148,24 @@ Where:
 |-----|-------|--------|------|---------|
 | [019](019-argument-mapping-claim-review-process.md) | Claim and Argument Mapping Review Process | Accepted | 2025-12-31 | Structured claim inventory and Toulmin-based argument mapping with graphs |
 
+### Methodology Analysis
+
+| ADR | Title | Status | Date | Summary |
+|-----|-------|--------|------|---------|
+| [020](020-extended-time-series-methodology-analysis.md) | Extended Time Series Methodology Analysis | Accepted | 2026-01-01 | Option C (Hybrid) for 2000-2024 vintage series; primary inference on 2010-2024 |
+
 ---
 
 ## ADR Status Summary
 
 | Status | Count |
 |--------|-------|
-| Accepted | 18 |
+| Accepted | 19 |
 | Proposed | 1 |
 | Deprecated | 0 |
 | Superseded | 0 |
 
-**Naming Convention Compliance**: All 19 ADRs follow the `NNN-short-title.md` naming convention.
+**Naming Convention Compliance**: All 20 ADRs follow the `NNN-short-title.md` naming convention.
 
 ---
 

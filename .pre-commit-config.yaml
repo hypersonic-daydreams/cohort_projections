@@ -25,12 +25,12 @@ repos:
       - id: ruff-format
 
   # MyPy - static type checking
-  # Checks core package only (excludes scripts/examples/tests/sdc_2024_replication which use exploratory code)
+  # Checks core package only (excludes scripts/examples/tests/docs/sdc_2024_replication which use exploratory code)
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
     hooks:
       - id: mypy
-        exclude: ^(scripts/|examples/|tests/|sdc_2024_replication/)
+        exclude: ^(scripts/|examples/|tests/|docs/|sdc_2024_replication/)
         args: ['--ignore-missing-imports']
         additional_dependencies:
           - types-PyYAML

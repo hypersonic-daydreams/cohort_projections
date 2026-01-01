@@ -1,0 +1,284 @@
+{
+  "module": "B1",
+  "analysis": "regime_aware_models",
+  "generated": "2026-01-01T19:00:25.333092+00:00",
+  "input_files": [
+    "agent2_nd_migration_data.csv"
+  ],
+  "parameters": {
+    "data_source": "Phase A extended series (2000-2024)",
+    "n_observations": 25,
+    "y_variable": "intl_migration",
+    "cov_type": "HAC",
+    "maxlags": 2,
+    "vintage_boundaries": [
+      2010,
+      2020
+    ]
+  },
+  "results": {
+    "vintage_dummies": {
+      "n_2000s": 10,
+      "n_2010s": 10,
+      "n_2020s": 5
+    },
+    "piecewise_trends": {
+      "slopes": {
+        "2000s": 39.187878787879484,
+        "2010s": 72.43030303030274,
+        "2020s": 1400.8000000000002
+      },
+      "slope_se": {
+        "2000s": 17.83150251254246,
+        "2010s": 72.25347188972775,
+        "2020s": 84.68386387027995
+      },
+      "intercepts": {
+        "2000s_base": 280.45454545454703,
+        "2010s_shift": 771.5090909090901,
+        "2020s_shift": -449.05454545454484
+      },
+      "slope_equality_test": {
+        "f_statistic": 124.52013527707001,
+        "p_value": 1.2029809679969402e-11,
+        "df_num": 2,
+        "df_denom": 19.0,
+        "reject_equality_at_05": true
+      },
+      "r_squared": 0.8394139640205711,
+      "n_obs": 25
+    },
+    "simple_trend": {
+      "slope": 119.27230769230765,
+      "slope_se": 46.059214352000446,
+      "slope_pvalue": 0.009610347054318714,
+      "intercept": -170.78769230769214,
+      "r_squared": 0.42886041763359384,
+      "n_obs": 25
+    },
+    "covid_intervention": {
+      "covid_effect": -2398.695945945946,
+      "covid_effect_se": 510.9298713841211,
+      "covid_effect_pvalue": 2.669127043456422e-06,
+      "aic_with_covid": 415.98016958678653,
+      "aic_without_covid": 419.9610318960525,
+      "bic_with_covid": 419.6367970613911,
+      "bic_without_covid": 422.3987835457889,
+      "preferred_model": "with_covid",
+      "covid_effect_significant": true
+    },
+    "covid_counterfactual": {
+      "counterfactual_2020": 648.0,
+      "actual_2020": 30.0,
+      "covid_impact": -618.0,
+      "covid_impact_pct": -95.37037037037037,
+      "trend_slope": -356.79999999999984,
+      "trend_r_squared": 0.4198716950824187,
+      "baseline_years": "2015-2019"
+    },
+    "regime_variances": {
+      "variances_by_regime": {
+        "2009": 163183.90976430976,
+        "2020": 470155.06936026935,
+        "2024": 306215.8999999999
+      },
+      "variance_ratio_max_min": 2.8811361980438206,
+      "levene_test": {
+        "statistic": 0.9059000010260752,
+        "p_value": 0.4187308905340466
+      },
+      "bartlett_test": {
+        "statistic": 2.2516656315830565,
+        "p_value": 0.324382204212104
+      },
+      "heteroskedastic_at_05": false
+    },
+    "robust_se_comparison": {
+      "coefficients": {
+        "const": -170.78769230769214,
+        "t": 119.27230769230765
+      },
+      "se_comparison": {
+        "OLS": {
+          "const": 401.8064347561822,
+          "t": 28.70045962544159
+        },
+        "HC0": {
+          "const": 297.9938232130178,
+          "t": 36.01294296075739
+        },
+        "HC1": {
+          "const": 310.68003719944966,
+          "t": 37.54608849966591
+        },
+        "HC2": {
+          "const": 318.6069653067504,
+          "t": 38.48969643870663
+        },
+        "HC3": {
+          "const": 340.8087435442692,
+          "t": 41.156799264251276
+        },
+        "HAC": {
+          "const": 353.4814090685198,
+          "t": 46.059214352000446
+        }
+      },
+      "n_obs": 25
+    },
+    "sensitivity_analysis": {
+      "specifications": {
+        "n15_baseline": {
+          "name": "n15_baseline",
+          "description": "Primary window (2010-2024, n=15)",
+          "n_obs": 15,
+          "summary_stats": {
+            "mean": 1796.2666666666667,
+            "std": 1482.3338965807877,
+            "min": 30.0,
+            "max": 5126.0
+          },
+          "trend": {
+            "slope": 183.4321428571429,
+            "se": 93.65126784050227,
+            "p_value": 0.050151178080892714,
+            "significant_at_05": false
+          },
+          "r_squared": 0.30625895422709726,
+          "year_range": "2010-2024",
+          "vintage_controls": false
+        },
+        "n25_with_vintage": {
+          "name": "n25_with_vintage",
+          "description": "Extended with vintage dummies (2000-2024, n=25)",
+          "n_obs": 25,
+          "summary_stats": {
+            "mean": 1260.48,
+            "std": 1340.4409759478408,
+            "min": -545.0,
+            "max": 5126.0
+          },
+          "trend": {
+            "slope": 132.6657142857143,
+            "se": 55.05807319403744,
+            "p_value": 0.015971782772615323,
+            "significant_at_05": true
+          },
+          "r_squared": 0.4428282337867435,
+          "year_range": "2000-2024",
+          "vintage_controls": true
+        },
+        "n24_excl_2020": {
+          "name": "n24_excl_2020",
+          "description": "Excluding COVID year (n=24)",
+          "n_obs": 24,
+          "summary_stats": {
+            "mean": 1311.75,
+            "std": 1343.997937692517,
+            "min": -545.0,
+            "max": 5126.0
+          },
+          "trend": {
+            "slope": 98.28823529411764,
+            "se": 37.44222932780462,
+            "p_value": 0.008663276997769644,
+            "significant_at_05": true
+          },
+          "r_squared": 0.5909310992755878,
+          "year_range": "2000-2024",
+          "vintage_controls": true
+        },
+        "n14_excl_2020_post2010": {
+          "name": "n14_excl_2020_post2010",
+          "description": "2010-2024 excluding COVID (n=14)",
+          "n_obs": 14,
+          "summary_stats": {
+            "mean": 1922.4285714285713,
+            "std": 1452.3153776105091,
+            "min": 453.0,
+            "max": 5126.0
+          },
+          "trend": {
+            "slope": 210.97384412153235,
+            "se": 78.65066707508119,
+            "p_value": 0.007309240430899589,
+            "significant_at_05": true
+          },
+          "r_squared": 0.4388638982848383,
+          "year_range": "2010-2024",
+          "vintage_controls": false
+        },
+        "n10_vintage_2009": {
+          "name": "n10_vintage_2009",
+          "description": "Vintage 2009 only (2000-2009, n=10)",
+          "n_obs": 10,
+          "summary_stats": {
+            "mean": 456.8,
+            "std": 421.02383147117297,
+            "min": -545.0,
+            "max": 1025.0
+          },
+          "trend": {
+            "slope": 39.18787878787882,
+            "se": 17.8315025125424,
+            "p_value": 0.027972148340953084,
+            "significant_at_05": true
+          },
+          "r_squared": 0.07941482676976386,
+          "year_range": "2000-2009",
+          "vintage_controls": false
+        },
+        "n10_vintage_2020": {
+          "name": "n10_vintage_2020",
+          "description": "Vintage 2020 only (2010-2019, n=10)",
+          "n_obs": 10,
+          "summary_stats": {
+            "mean": 1377.9,
+            "std": 719.8921910026992,
+            "min": 468.0,
+            "max": 2875.0
+          },
+          "trend": {
+            "slope": 72.43030303030315,
+            "se": 72.2534718897278,
+            "p_value": 0.31612757231378297,
+            "significant_at_05": false
+          },
+          "r_squared": 0.09279340651273471,
+          "year_range": "2010-2019",
+          "vintage_controls": false
+        }
+      },
+      "comparison_summary": {
+        "slope_range": {
+          "min": 39.18787878787882,
+          "max": 210.97384412153235,
+          "range": 171.78596533365354
+        },
+        "sign_consistent": true,
+        "significance_consistent": false,
+        "all_significant_at_05": false,
+        "none_significant_at_05": false,
+        "specification_count": 6
+      },
+      "robustness_assessment": "MODERATELY ROBUST: Sign is consistent but magnitude varies somewhat. Interpret with caution."
+    }
+  },
+  "diagnostics": {
+    "data_years": "2000-2024",
+    "negative_value_year": 2003,
+    "negative_value": -545,
+    "covid_year_value": 30,
+    "max_value_year": 2024,
+    "max_value": 5126
+  },
+  "warnings": [
+    "2003 has negative international migration (-545). Log transformations will not work; analysis uses levels."
+  ],
+  "next_steps": [
+    "B2: Apply regime-aware specifications to 50-state panel",
+    "B3: Incorporate sensitivity results into journal article",
+    "B4: Consider Bayesian VAR with Minnesota prior for small-n inference",
+    "B6: Create unit tests for regime-aware module functions"
+  ]
+}

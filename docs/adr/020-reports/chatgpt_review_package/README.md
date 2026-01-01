@@ -62,6 +62,6 @@ ChatGPT 5.2 Pro should provide:
 ## After Review
 
 Save ChatGPT 5.2 Pro's response to:
-`/docs/adr/019-reports/CHATGPT_RESPONSE.md`
+`/docs/adr/020-reports/CHATGPT_RESPONSE.md`
 
 Then use the response to make the final decision on ADR-019.

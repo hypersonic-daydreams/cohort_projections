@@ -55,6 +55,28 @@ The baseline projection for all 53 counties is complete. The next step is to run
 
 ---
 
+## Current Sprint Status
+
+| Sprint | Phase | Status | Progress | Notes |
+|--------|-------|--------|----------|-------|
+| SPRINT_ANALYSIS_B_INFRASTRUCTURE | B | Active | 80% | Versioning, workflow templates, ADR-020 |
+| SPRINT_ANALYSIS_B_001 | B | Pending | 0% | Awaits infrastructure completion |
+
+## Active Phase
+
+**Phase B**: Correction Methods Implementation
+- See: `docs/adr/020-reports/PHASE_B/PHASE_METADATA.md`
+- Decision: Option C (Hybrid approach) for extended time series
+- Planning complete (Agents B0a-B6), implementation in progress
+
+## Completed Phases
+
+- **Phase A**: Validity Risk Assessment (2025-12-31)
+  - See: `docs/adr/020-reports/PHASE_A/PHASE_METADATA.md`
+  - External Review: ChatGPT 5.2 Pro confirmed Option C recommendation
+
+---
+
 ## Active Tasks
 
 Tasks for current phase. States: `[ ]` pending | `[x]` complete
@@ -388,5 +410,5 @@ python scripts/projections/run_all_projections.py
 - Added a QA layer (`sdc_2024_replication/scripts/statistical_analysis/journal_article/claim_review/v3_phase3/claims/qa_claims.py`) and documented usage in the claim review README and status notes.
 - Pending: refine claim splitting, remove residual plot-label artifacts, and reclassify claim types where needed.
 
-**Last Updated:** 2025-12-31
-**Tracker Status:** Full state projection complete - 53 counties projected 2025-2045
+**Last Updated:** 2026-01-01
+**Tracker Status:** Phase B infrastructure implementation in progress

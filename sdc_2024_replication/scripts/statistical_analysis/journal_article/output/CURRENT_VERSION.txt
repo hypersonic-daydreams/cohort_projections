@@ -1,0 +1,11 @@
+# Current Article Versions
+# Updated: 2026-01-01
+
+# Current production version
+# (none - not yet submitted)
+
+# Current working version
+article_draft_v5_p305_complete.pdf
+
+# Version tracking implemented per ADR-020
+# See VERSIONS.md for full version index
