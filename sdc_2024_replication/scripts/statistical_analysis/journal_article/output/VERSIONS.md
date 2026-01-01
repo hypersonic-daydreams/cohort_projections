@@ -45,7 +45,7 @@ article-{MAJOR}.{MINOR}.{PATCH}-{STATUS}_{TIMESTAMP}.pdf
 
 | Version | Date | Status | Branch | Notes |
 |---------|------|--------|--------|-------|
-| 0.6.0 | 2026-01-01 | draft | master | Phase B methodology updates in progress |
+| 0.6.0 | 2026-01-01 | draft | master | Phase B complete: B3 Data Comparability section, B4 Bayesian VAR module, B6 test suite |
 
 ---
 
