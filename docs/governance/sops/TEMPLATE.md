@@ -119,7 +119,7 @@ Brief description of what this SOP accomplishes and why it exists.
 
 ## 8. Related Documentation
 
-- [ADR-XXX](../adr/XXX-title.md) - Related decision
+- [ADR-XXX](../adrs/XXX-title.md) - Related decision
 - [SOP-YYY](./SOP-YYY-title.md) - Related procedure
 
 ---

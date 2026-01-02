@@ -61,7 +61,7 @@ python scripts/fetch_data.py
 python scripts/fetch_data.py --list
 ```
 
-See [ADR-016](./docs/adr/016-raw-data-management-strategy.md) for data management details.
+See [ADR-016](./docs/governance/adrs/016-raw-data-management-strategy.md) for data management details.
 
 ### 3. Run Projections
 
@@ -93,7 +93,7 @@ This project uses **rclone bisync** to sync data files between development compu
 - Running projections that create output files
 - Before switching to another computer
 
-See [ADR-016](./docs/adr/016-raw-data-management-strategy.md) for the full data management strategy.
+See [ADR-016](./docs/governance/adrs/016-raw-data-management-strategy.md) for the full data management strategy.
 
 ## Data Sources
 

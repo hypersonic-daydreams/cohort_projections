@@ -129,7 +129,7 @@ ignore = [
 # Legacy Phase A research scripts from ADR-019/020 investigation (deprecated 2026-01-01)
 # These are one-time exploratory analysis scripts, not production code.
 # File-specific exemptions to avoid bypassing linting for future docs/adr Python files.
-"docs/adr/020-reports/agent2_analysis.py" = [
+"docs/governance/adrs/020-reports/agent2_analysis.py" = [
     "N803",    # Argument name should be lowercase (X, RSS_full, etc.)
     "N806",    # Variable in function should be lowercase (RSS1, RSS2, F_stat, etc.)
     "T201",    # Allow print statements
@@ -138,7 +138,7 @@ ignore = [
     "C408",    # Unnecessary dict call
     "DTZ005",  # datetime.now() without tz
 ]
-"docs/adr/020-reports/agent3_analysis.py" = [
+"docs/governance/adrs/020-reports/agent3_analysis.py" = [
     "T201",    # Allow print statements
     "D",       # Ignore docstring requirements
     "F841",    # Unused variable (trans_row)
@@ -148,14 +148,14 @@ ignore = [
 ]
 # Legacy Phase A research scripts from ADR-021 investigation (deprecated 2026-01-01)
 # These are one-time exploratory analysis scripts for validating external AI recommendations.
-"docs/adr/021-reports/agent1_estimand_composition.py" = [
+"docs/governance/adrs/021-reports/agent1_estimand_composition.py" = [
     "N803",    # Argument name should be lowercase
     "N806",    # Variable in function should be lowercase
     "T201",    # Allow print statements
     "D",       # Ignore docstring requirements
     "F841",    # Unused variable
 ]
-"docs/adr/021-reports/agent2_lssnd_impact.py" = [
+"docs/governance/adrs/021-reports/agent2_lssnd_impact.py" = [
     "N803",    # Argument name should be lowercase
     "N806",    # Variable in function should be lowercase
     "T201",    # Allow print statements
@@ -163,11 +163,11 @@ ignore = [
     "F841",    # Unused variable
     "C408",    # Unnecessary dict call
 ]
-"docs/adr/021-reports/agent3_module_gap_analysis.py" = [
+"docs/governance/adrs/021-reports/agent3_module_gap_analysis.py" = [
     "T201",    # Allow print statements
     "D",       # Ignore docstring requirements
 ]
-"docs/adr/021-reports/agent4_data_availability.py" = [
+"docs/governance/adrs/021-reports/agent4_data_availability.py" = [
     "T201",    # Allow print statements
     "D",       # Ignore docstring requirements
 ]
@@ -207,6 +207,7 @@ exclude = [
     "examples/",
     "tests/",
     "docs/",
+    "docs/governance/",
     "venv/",
     ".venv/",
 ]

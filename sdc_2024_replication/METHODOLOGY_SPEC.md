@@ -436,7 +436,7 @@ For each projection period (2020-2025, 2025-2030, etc.):
 ### 9.2 Project Documentation
 
 - `/docs/methodology_analysis_cohort_vs_agegroup.md`
-- `/docs/adr/017-sdc-2024-methodology-comparison.md`
+- `/docs/governance/adrs/017-sdc-2024-methodology-comparison.md`
 - `/data/processed/sdc_2024/METHODOLOGY_NOTES.md`
 
 ### 9.3 External References

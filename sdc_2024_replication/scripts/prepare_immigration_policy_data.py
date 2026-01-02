@@ -283,7 +283,7 @@ Based on CBO September 2025 demographic outlook revision:
 
 ## References
 
-- [ADR-018: Immigration Policy Scenario Methodology](../../docs/adr/018-immigration-policy-scenario-methodology.md)
+- [ADR-018: Immigration Policy Scenario Methodology](../../docs/governance/adrs/018-immigration-policy-scenario-methodology.md)
 - [CBO Demographic Outlook Update 2025-2055](https://www.cbo.gov/publication/61735)
 - [Immigration Policy Research Report](../../docs/research/2025_immigration_policy_demographic_impact.md)
 """

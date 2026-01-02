@@ -48,7 +48,7 @@ This SOP defines the workflow for incorporating external AI analysis (e.g., from
 
 ### Required Knowledge
 - Familiarity with project structure (see [AGENTS.md](../../AGENTS.md))
-- Understanding of ADR format (see [docs/adr/README.md](../adr/README.md))
+- Understanding of ADR format (see [docs/adr/README.md](../adrs/README.md))
 - Python module development patterns used in this project
 
 ### Required Tools
@@ -464,9 +464,9 @@ This SOP defines the workflow for incorporating external AI analysis (e.g., from
 
 ## 8. Related Documentation
 
-- [ADR-020](../adr/020-extended-time-series-methodology-analysis.md) - Example of this SOP in action
+- [ADR-020](../adrs/020-extended-time-series-methodology-analysis.md) - Example of this SOP in action
 - [AGENTS.md](../../AGENTS.md) - AI agent governance rules
-- [docs/adr/README.md](../adr/README.md) - ADR creation guide
+- [docs/adr/README.md](../adrs/README.md) - ADR creation guide
 
 ---
 

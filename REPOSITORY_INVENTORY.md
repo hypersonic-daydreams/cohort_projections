@@ -93,7 +93,7 @@
 | `[cohort_projections/output/README.md](cohort_projections/output/README.md)` | Output Module |
 | `[cohort_projections/output/__init__.py](cohort_projections/output/__init__.py)` | Enhanced output module for projection results. |
 | `[cohort_projections/output/reports.py](cohort_projections/output/reports.py)` | Report generation for projection results. |
-| `[cohort_projections/output/templates/.gitkeep](cohort_projections/output/templates/.gitkeep)` | This directory is reserved for future HTML/Jinja2 templates |
+| `[cohort_projections/output/docs/governance/templates/.gitkeep](cohort_projections/output/docs/governance/templates/.gitkeep)` | This directory is reserved for future HTML/Jinja2 templates |
 | `[cohort_projections/output/visualizations.py](cohort_projections/output/visualizations.py)` | Visualization tools for projection data. |
 | `[cohort_projections/output/writers.py](cohort_projections/output/writers.py)` | Enhanced output writers for projection data. |
 | `[cohort_projections/utils/__init__.py](cohort_projections/utils/__init__.py)` | Utility modules for cohort projections. |
@@ -1733,122 +1733,122 @@
 | `[docs/BIGQUERY_SETUP.md](docs/BIGQUERY_SETUP.md)` | BigQuery Setup Guide |
 | `[docs/REPOSITORY_EVALUATION.md](docs/REPOSITORY_EVALUATION.md)` | Repository Evaluation Summary |
 | `[docs/REPOSITORY_HYGIENE_IMPLEMENTATION_PLAN.md](docs/REPOSITORY_HYGIENE_IMPLEMENTATION_PLAN.md)` | Repository Hygiene Implementation Plan |
-| `[docs/adr/001-fertility-rate-processing.md](docs/adr/001-fertility-rate-processing.md)` | ADR-001: Fertility Rate Processing Methodology |
-| `[docs/adr/002-survival-rate-processing.md](docs/adr/002-survival-rate-processing.md)` | ADR-002: Survival Rate Processing Methodology |
-| `[docs/adr/003-migration-rate-processing.md](docs/adr/003-migration-rate-processing.md)` | ADR-003: Migration Rate Processing Methodology |
-| `[docs/adr/004-core-projection-engine-architecture.md](docs/adr/004-core-projection-engine-architecture.md)` | ADR-004: Core Projection Engine Architecture |
-| `[docs/adr/005-configuration-management-strategy.md](docs/adr/005-configuration-management-strategy.md)` | ADR-005: Configuration Management Strategy |
-| `[docs/adr/006-data-pipeline-architecture.md](docs/adr/006-data-pipeline-architecture.md)` | ADR-006: Data Pipeline Architecture |
-| `[docs/adr/007-race-ethnicity-categorization.md](docs/adr/007-race-ethnicity-categorization.md)` | ADR-007: Race and Ethnicity Categorization |
-| `[docs/adr/008-bigquery-integration-design.md](docs/adr/008-bigquery-integration-design.md)` | ADR-008: BigQuery Integration Design |
-| `[docs/adr/009-logging-error-handling-strategy.md](docs/adr/009-logging-error-handling-strategy.md)` | ADR-009: Logging and Error Handling Strategy |
-| `[docs/adr/010-geographic-scope-granularity.md](docs/adr/010-geographic-scope-granularity.md)` | ADR-010: Geographic Scope and Granularity |
-| `[docs/adr/012-output-export-format-strategy.md](docs/adr/012-output-export-format-strategy.md)` | ADR-012: Output and Export Format Strategy |
-| `[docs/adr/013-multi-geography-projection-design.md](docs/adr/013-multi-geography-projection-design.md)` | ADR-013: Multi-Geography Projection Design |
-| `[docs/adr/014-pipeline-orchestration-design.md](docs/adr/014-pipeline-orchestration-design.md)` | ADR 014: Pipeline Orchestration Design |
-| `[docs/adr/015-output-format-visualization-design.md](docs/adr/015-output-format-visualization-design.md)` | ADR 015: Output Format and Visualization Design |
-| `[docs/adr/016-raw-data-management-strategy.md](docs/adr/016-raw-data-management-strategy.md)` | ADR-016: Raw Data Management and Cross-Computer Synchronization Strategy |
-| `[docs/adr/017-sdc-2024-methodology-comparison.md](docs/adr/017-sdc-2024-methodology-comparison.md)` | ADR-017: SDC 2024 Methodology Comparison and Scenario |
-| `[docs/adr/018-immigration-policy-scenario-methodology.md](docs/adr/018-immigration-policy-scenario-methodology.md)` | ADR-018: Immigration Policy Scenario Methodology |
-| `[docs/adr/019-argument-mapping-claim-review-process.md](docs/adr/019-argument-mapping-claim-review-process.md)` | ADR-019: Claim and Argument Mapping Review Process |
-| `[docs/adr/020-extended-time-series-methodology-analysis.md](docs/adr/020-extended-time-series-methodology-analysis.md)` | ADR-020: Extended Time Series Methodology Analysis |
-| `[docs/adr/020-reports/AGENT_1_REPORT.md](docs/adr/020-reports/AGENT_1_REPORT.md)` | Agent Report: 1 - Census Bureau Methodology Documentation Review |
-| `[docs/adr/020-reports/AGENT_2_REPORT.md](docs/adr/020-reports/AGENT_2_REPORT.md)` | Agent Report: 2 - Statistical Transition Analysis |
-| `[docs/adr/020-reports/AGENT_3_REPORT.md](docs/adr/020-reports/AGENT_3_REPORT.md)` | Agent Report: 3 - Cross-Vintage Comparability Assessment |
-| `[docs/adr/020-reports/ARTIFACT_SPECIFICATIONS.md](docs/adr/020-reports/ARTIFACT_SPECIFICATIONS.md)` | Artifact Specifications for ADR-019 Investigation |
-| `[docs/adr/020-reports/CHATGPT_BRIEFING.md](docs/adr/020-reports/CHATGPT_BRIEFING.md)` | External Review Briefing: Census Vintage Methodology Investigation |
-| `[docs/adr/020-reports/CHATGPT_BRIEFING_TEMPLATE.md](docs/adr/020-reports/CHATGPT_BRIEFING_TEMPLATE.md)` | External Review Briefing: Census Vintage Methodology Investigation |
-| `[docs/adr/020-reports/PHASE_A/PHASE_METADATA.md](docs/adr/020-reports/PHASE_A/PHASE_METADATA.md)` | Phase A: Validity Risk Assessment |
-| `[docs/adr/020-reports/PHASE_B/PHASE_METADATA.md](docs/adr/020-reports/PHASE_B/PHASE_METADATA.md)` | Phase B: Correction Methods Implementation |
-| `[docs/adr/020-reports/PHASE_B_SUBAGENT_PLANNING.md](docs/adr/020-reports/PHASE_B_SUBAGENT_PLANNING.md)` | Phase B Sub-Agent Planning Document |
-| `[docs/adr/020-reports/REPORT_TEMPLATE.md](docs/adr/020-reports/REPORT_TEMPLATE.md)` | Agent Report: [Agent Number] - [Title] |
-| `[docs/adr/020-reports/SHARED/ARTIFACT_SPECIFICATIONS.md](docs/adr/020-reports/SHARED/ARTIFACT_SPECIFICATIONS.md)` | Artifact Specifications for ADR-019 Investigation |
-| `[docs/adr/020-reports/SHARED/CHATGPT_BRIEFING_TEMPLATE.md](docs/adr/020-reports/SHARED/CHATGPT_BRIEFING_TEMPLATE.md)` | External Review Briefing: Census Vintage Methodology Investigation |
-| `[docs/adr/020-reports/SHARED/REPORT_TEMPLATE.md](docs/adr/020-reports/SHARED/REPORT_TEMPLATE.md)` | Agent Report: [Agent Number] - [Title] |
-| `[docs/adr/020-reports/SHARED/SPRINT_PLANNING_TEMPLATE.md](docs/adr/020-reports/SHARED/SPRINT_PLANNING_TEMPLATE.md)` | Sprint Planning Template |
-| `[docs/adr/020-reports/agent1_census_quotes.json](docs/adr/020-reports/agent1_census_quotes.json)` |  |
-| `[docs/adr/020-reports/agent1_data_sources_timeline.csv](docs/adr/020-reports/agent1_data_sources_timeline.csv)` |  |
-| `[docs/adr/020-reports/agent1_findings_summary.json](docs/adr/020-reports/agent1_findings_summary.json)` |  |
-| `[docs/adr/020-reports/agent1_methodology_matrix.csv](docs/adr/020-reports/agent1_methodology_matrix.csv)` |  |
-| `[docs/adr/020-reports/agent1_sources.json](docs/adr/020-reports/agent1_sources.json)` |  |
-| `[docs/adr/020-reports/agent2_analysis.py](docs/adr/020-reports/agent2_analysis.py)` | Agent 2: Statistical Transition Analysis for ADR-019 |
-| `[docs/adr/020-reports/agent2_calculations.md](docs/adr/020-reports/agent2_calculations.md)` | Agent 2: Step-by-Step Calculations |
-| `[docs/adr/020-reports/agent2_fig1_timeseries_with_vintages.png](docs/adr/020-reports/agent2_fig1_timeseries_with_vintages.png)` |  |
-| `[docs/adr/020-reports/agent2_fig2_variance_by_vintage.png](docs/adr/020-reports/agent2_fig2_variance_by_vintage.png)` |  |
-| `[docs/adr/020-reports/agent2_fig3_structural_breaks.png](docs/adr/020-reports/agent2_fig3_structural_breaks.png)` |  |
-| `[docs/adr/020-reports/agent2_fig4_acf_by_vintage.png](docs/adr/020-reports/agent2_fig4_acf_by_vintage.png)` |  |
-| `[docs/adr/020-reports/agent2_findings_summary.json](docs/adr/020-reports/agent2_findings_summary.json)` |  |
-| `[docs/adr/020-reports/agent2_nd_migration_data.csv](docs/adr/020-reports/agent2_nd_migration_data.csv)` |  |
-| `[docs/adr/020-reports/agent2_sources.json](docs/adr/020-reports/agent2_sources.json)` |  |
-| `[docs/adr/020-reports/agent2_transition_metrics.json](docs/adr/020-reports/agent2_transition_metrics.json)` |  |
-| `[docs/adr/020-reports/agent3_analysis.py](docs/adr/020-reports/agent3_analysis.py)` | Agent 3: Cross-Vintage Comparability Assessment |
-| `[docs/adr/020-reports/agent3_coherence_checks.json](docs/adr/020-reports/agent3_coherence_checks.json)` |  |
-| `[docs/adr/020-reports/agent3_detailed_state_patterns.csv](docs/adr/020-reports/agent3_detailed_state_patterns.csv)` |  |
-| `[docs/adr/020-reports/agent3_external_correlations.csv](docs/adr/020-reports/agent3_external_correlations.csv)` |  |
-| `[docs/adr/020-reports/agent3_findings_summary.json](docs/adr/020-reports/agent3_findings_summary.json)` |  |
-| `[docs/adr/020-reports/agent3_nd_share_analysis.csv](docs/adr/020-reports/agent3_nd_share_analysis.csv)` |  |
-| `[docs/adr/020-reports/agent3_sources.json](docs/adr/020-reports/agent3_sources.json)` |  |
-| `[docs/adr/020-reports/agent3_state_comparison.csv](docs/adr/020-reports/agent3_state_comparison.csv)` |  |
-| `[docs/adr/020-reports/agent3_validation_data.csv](docs/adr/020-reports/agent3_validation_data.csv)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/AGENT_1_REPORT.md](docs/adr/020-reports/chatgpt_review_package/AGENT_1_REPORT.md)` | Agent Report: 1 - Census Bureau Methodology Documentation Review |
-| `[docs/adr/020-reports/chatgpt_review_package/AGENT_2_REPORT.md](docs/adr/020-reports/chatgpt_review_package/AGENT_2_REPORT.md)` | Agent Report: 2 - Statistical Transition Analysis |
-| `[docs/adr/020-reports/chatgpt_review_package/AGENT_3_REPORT.md](docs/adr/020-reports/chatgpt_review_package/AGENT_3_REPORT.md)` | Agent Report: 3 - Cross-Vintage Comparability Assessment |
-| `[docs/adr/020-reports/chatgpt_review_package/CHATGPT_BRIEFING.md](docs/adr/020-reports/chatgpt_review_package/CHATGPT_BRIEFING.md)` | External Review Briefing: Census Vintage Methodology Investigation |
-| `[docs/adr/020-reports/chatgpt_review_package/PROMPT_FOR_CHATGPT.md](docs/adr/020-reports/chatgpt_review_package/PROMPT_FOR_CHATGPT.md)` | Prompt for ChatGPT 5.2 Pro Review |
-| `[docs/adr/020-reports/chatgpt_review_package/README.md](docs/adr/020-reports/chatgpt_review_package/README.md)` | ChatGPT 5.2 Pro Review Package |
-| `[docs/adr/020-reports/chatgpt_review_package/agent1_census_quotes.json](docs/adr/020-reports/chatgpt_review_package/agent1_census_quotes.json)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/agent1_findings_summary.json](docs/adr/020-reports/chatgpt_review_package/agent1_findings_summary.json)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/agent1_methodology_matrix.csv](docs/adr/020-reports/chatgpt_review_package/agent1_methodology_matrix.csv)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/agent2_fig1_timeseries_with_vintages.png](docs/adr/020-reports/chatgpt_review_package/agent2_fig1_timeseries_with_vintages.png)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/agent2_fig2_variance_by_vintage.png](docs/adr/020-reports/chatgpt_review_package/agent2_fig2_variance_by_vintage.png)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/agent2_fig3_structural_breaks.png](docs/adr/020-reports/chatgpt_review_package/agent2_fig3_structural_breaks.png)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/agent2_fig4_acf_by_vintage.png](docs/adr/020-reports/chatgpt_review_package/agent2_fig4_acf_by_vintage.png)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/agent2_findings_summary.json](docs/adr/020-reports/chatgpt_review_package/agent2_findings_summary.json)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/agent2_nd_migration_data.csv](docs/adr/020-reports/chatgpt_review_package/agent2_nd_migration_data.csv)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/agent2_transition_metrics.json](docs/adr/020-reports/chatgpt_review_package/agent2_transition_metrics.json)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/agent3_coherence_checks.json](docs/adr/020-reports/chatgpt_review_package/agent3_coherence_checks.json)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/agent3_external_correlations.csv](docs/adr/020-reports/chatgpt_review_package/agent3_external_correlations.csv)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/agent3_findings_summary.json](docs/adr/020-reports/chatgpt_review_package/agent3_findings_summary.json)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/agent3_state_comparison.csv](docs/adr/020-reports/chatgpt_review_package/agent3_state_comparison.csv)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/agent3_validation_data.csv](docs/adr/020-reports/chatgpt_review_package/agent3_validation_data.csv)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/chatgpt_response.md](docs/adr/020-reports/chatgpt_review_package/chatgpt_response.md)` | Executive Assessment |
-| `[docs/adr/020-reports/chatgpt_review_package/synthesis_findings_matrix.csv](docs/adr/020-reports/chatgpt_review_package/synthesis_findings_matrix.csv)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/synthesis_recommendations.json](docs/adr/020-reports/chatgpt_review_package/synthesis_recommendations.json)` |  |
-| `[docs/adr/020-reports/phase_b_plans/AGENT_B0a_VERSIONING_ANALYSIS.md](docs/adr/020-reports/phase_b_plans/AGENT_B0a_VERSIONING_ANALYSIS.md)` | Agent B0a: Journal Article Versioning Strategy |
-| `[docs/adr/020-reports/phase_b_plans/AGENT_B0b_WORKFLOW_STRUCTURE.md](docs/adr/020-reports/phase_b_plans/AGENT_B0b_WORKFLOW_STRUCTURE.md)` | Agent B0b: Sprint/Wave Workflow Structure |
-| `[docs/adr/020-reports/phase_b_plans/AGENT_B1_PLAN.md](docs/adr/020-reports/phase_b_plans/AGENT_B1_PLAN.md)` | Agent B1: Statistical Modeling Infrastructure |
-| `[docs/adr/020-reports/phase_b_plans/AGENT_B2_PLAN.md](docs/adr/020-reports/phase_b_plans/AGENT_B2_PLAN.md)` | Agent B2: Multi-State Placebo Analysis |
-| `[docs/adr/020-reports/phase_b_plans/AGENT_B3_PLAN.md](docs/adr/020-reports/phase_b_plans/AGENT_B3_PLAN.md)` | Agent B3: Journal Article Methodology Section |
-| `[docs/adr/020-reports/phase_b_plans/AGENT_B4_PLAN.md](docs/adr/020-reports/phase_b_plans/AGENT_B4_PLAN.md)` | Agent B4: Panel/Bayesian VAR Extensions |
-| `[docs/adr/020-reports/phase_b_plans/AGENT_B5_PLAN.md](docs/adr/020-reports/phase_b_plans/AGENT_B5_PLAN.md)` | Agent B5: ADR-019 Decision Documentation |
-| `[docs/adr/020-reports/phase_b_plans/AGENT_B6_PLAN.md](docs/adr/020-reports/phase_b_plans/AGENT_B6_PLAN.md)` | Agent B6: Test Suite and Validation Infrastructure |
-| `[docs/adr/020-reports/phase_b_plans/FILE_CHANGE_MANIFEST.md](docs/adr/020-reports/phase_b_plans/FILE_CHANGE_MANIFEST.md)` | Phase B File Change Manifest |
-| `[docs/adr/020-reports/phase_b_plans/OIL_STATE_RESEARCH.md](docs/adr/020-reports/phase_b_plans/OIL_STATE_RESEARCH.md)` | Oil State Definition Research Report |
-| `[docs/adr/020-reports/phase_b_plans/PLANNING_SYNTHESIS.md](docs/adr/020-reports/phase_b_plans/PLANNING_SYNTHESIS.md)` | Phase B Planning Synthesis |
-| `[docs/adr/020-reports/synthesis_findings_matrix.csv](docs/adr/020-reports/synthesis_findings_matrix.csv)` |  |
-| `[docs/adr/020-reports/synthesis_recommendations.json](docs/adr/020-reports/synthesis_recommendations.json)` |  |
-| `[docs/adr/020a-vintage-methodology-investigation-plan.md](docs/adr/020a-vintage-methodology-investigation-plan.md)` | ADR-020a: Vintage Methodology Investigation Plan |
-| `[docs/adr/021-immigration-status-durability-methodology.md](docs/adr/021-immigration-status-durability-methodology.md)` | ADR-021: Immigration Status Durability and Policy-Regime Methodology |
-| `[docs/adr/021-reports/README.md](docs/adr/021-reports/README.md)` | ADR-021 Reports: Immigration Status Durability and Policy-Regime Methodology |
-| `[docs/adr/021-reports/agent1_estimand_composition.py](docs/adr/021-reports/agent1_estimand_composition.py)` | Agent 1: Estimand Composition Analysis |
-| `[docs/adr/021-reports/agent2_lssnd_impact.py](docs/adr/021-reports/agent2_lssnd_impact.py)` | Agent 2: LSSND Closure Impact Analysis |
-| `[docs/adr/021-reports/agent3_module_gap_analysis.py](docs/adr/021-reports/agent3_module_gap_analysis.py)` | Agent 3: Existing Module Gap Analysis |
-| `[docs/adr/021-reports/agent4_data_availability.py](docs/adr/021-reports/agent4_data_availability.py)` | Agent 4: Data Availability Assessment |
-| `[docs/adr/021-reports/data/README.md](docs/adr/021-reports/data/README.md)` | ADR-021 Data Acquisition |
-| `[docs/adr/021-reports/data/acs_migration_data_acquisition.md](docs/adr/021-reports/data/acs_migration_data_acquisition.md)` | ACS Migration Data Acquisition Report |
-| `[docs/adr/021-reports/data/parole_data_acquisition.md](docs/adr/021-reports/data/parole_data_acquisition.md)` | Parole Data Acquisition Report for ADR-021 |
-| `[docs/adr/021-reports/data/refugee_data_acquisition.md](docs/adr/021-reports/data/refugee_data_acquisition.md)` | Refugee Data Acquisition Report |
-| `[docs/adr/021-reports/external_analysis_intake.md](docs/adr/021-reports/external_analysis_intake.md)` | External AI Analysis Intake Document |
-| `[docs/adr/021-reports/figures/agent1_composition_by_year.png](docs/adr/021-reports/figures/agent1_composition_by_year.png)` |  |
-| `[docs/adr/021-reports/figures/agent1_surge_analysis.png](docs/adr/021-reports/figures/agent1_surge_analysis.png)` |  |
-| `[docs/adr/021-reports/figures/agent2_nd_trajectory.png](docs/adr/021-reports/figures/agent2_nd_trajectory.png)` |  |
-| `[docs/adr/021-reports/figures/agent2_state_comparison.png](docs/adr/021-reports/figures/agent2_state_comparison.png)` |  |
-| `[docs/adr/021-reports/results/agent1_results.json](docs/adr/021-reports/results/agent1_results.json)` |  |
-| `[docs/adr/021-reports/results/agent2_results.json](docs/adr/021-reports/results/agent2_results.json)` |  |
-| `[docs/adr/021-reports/results/agent3_results.json](docs/adr/021-reports/results/agent3_results.json)` |  |
-| `[docs/adr/021-reports/results/agent4_results.json](docs/adr/021-reports/results/agent4_results.json)` |  |
-| `[docs/adr/README.md](docs/adr/README.md)` | Architecture Decision Records (ADRs) |
-| `[docs/adr/TEMPLATE.md](docs/adr/TEMPLATE.md)` | ADR-NNN: Title |
+| `[docs/governance/adrs/001-fertility-rate-processing.md](docs/governance/adrs/001-fertility-rate-processing.md)` | ADR-001: Fertility Rate Processing Methodology |
+| `[docs/governance/adrs/002-survival-rate-processing.md](docs/governance/adrs/002-survival-rate-processing.md)` | ADR-002: Survival Rate Processing Methodology |
+| `[docs/governance/adrs/003-migration-rate-processing.md](docs/governance/adrs/003-migration-rate-processing.md)` | ADR-003: Migration Rate Processing Methodology |
+| `[docs/governance/adrs/004-core-projection-engine-architecture.md](docs/governance/adrs/004-core-projection-engine-architecture.md)` | ADR-004: Core Projection Engine Architecture |
+| `[docs/governance/adrs/005-configuration-management-strategy.md](docs/governance/adrs/005-configuration-management-strategy.md)` | ADR-005: Configuration Management Strategy |
+| `[docs/governance/adrs/006-data-pipeline-architecture.md](docs/governance/adrs/006-data-pipeline-architecture.md)` | ADR-006: Data Pipeline Architecture |
+| `[docs/governance/adrs/007-race-ethnicity-categorization.md](docs/governance/adrs/007-race-ethnicity-categorization.md)` | ADR-007: Race and Ethnicity Categorization |
+| `[docs/governance/adrs/008-bigquery-integration-design.md](docs/governance/adrs/008-bigquery-integration-design.md)` | ADR-008: BigQuery Integration Design |
+| `[docs/governance/adrs/009-logging-error-handling-strategy.md](docs/governance/adrs/009-logging-error-handling-strategy.md)` | ADR-009: Logging and Error Handling Strategy |
+| `[docs/governance/adrs/010-geographic-scope-granularity.md](docs/governance/adrs/010-geographic-scope-granularity.md)` | ADR-010: Geographic Scope and Granularity |
+| `[docs/governance/adrs/012-output-export-format-strategy.md](docs/governance/adrs/012-output-export-format-strategy.md)` | ADR-012: Output and Export Format Strategy |
+| `[docs/governance/adrs/013-multi-geography-projection-design.md](docs/governance/adrs/013-multi-geography-projection-design.md)` | ADR-013: Multi-Geography Projection Design |
+| `[docs/governance/adrs/014-pipeline-orchestration-design.md](docs/governance/adrs/014-pipeline-orchestration-design.md)` | ADR 014: Pipeline Orchestration Design |
+| `[docs/governance/adrs/015-output-format-visualization-design.md](docs/governance/adrs/015-output-format-visualization-design.md)` | ADR 015: Output Format and Visualization Design |
+| `[docs/governance/adrs/016-raw-data-management-strategy.md](docs/governance/adrs/016-raw-data-management-strategy.md)` | ADR-016: Raw Data Management and Cross-Computer Synchronization Strategy |
+| `[docs/governance/adrs/017-sdc-2024-methodology-comparison.md](docs/governance/adrs/017-sdc-2024-methodology-comparison.md)` | ADR-017: SDC 2024 Methodology Comparison and Scenario |
+| `[docs/governance/adrs/018-immigration-policy-scenario-methodology.md](docs/governance/adrs/018-immigration-policy-scenario-methodology.md)` | ADR-018: Immigration Policy Scenario Methodology |
+| `[docs/governance/adrs/019-argument-mapping-claim-review-process.md](docs/governance/adrs/019-argument-mapping-claim-review-process.md)` | ADR-019: Claim and Argument Mapping Review Process |
+| `[docs/governance/adrs/020-extended-time-series-methodology-analysis.md](docs/governance/adrs/020-extended-time-series-methodology-analysis.md)` | ADR-020: Extended Time Series Methodology Analysis |
+| `[docs/governance/adrs/020-reports/AGENT_1_REPORT.md](docs/governance/adrs/020-reports/AGENT_1_REPORT.md)` | Agent Report: 1 - Census Bureau Methodology Documentation Review |
+| `[docs/governance/adrs/020-reports/AGENT_2_REPORT.md](docs/governance/adrs/020-reports/AGENT_2_REPORT.md)` | Agent Report: 2 - Statistical Transition Analysis |
+| `[docs/governance/adrs/020-reports/AGENT_3_REPORT.md](docs/governance/adrs/020-reports/AGENT_3_REPORT.md)` | Agent Report: 3 - Cross-Vintage Comparability Assessment |
+| `[docs/governance/adrs/020-reports/ARTIFACT_SPECIFICATIONS.md](docs/governance/adrs/020-reports/ARTIFACT_SPECIFICATIONS.md)` | Artifact Specifications for ADR-019 Investigation |
+| `[docs/governance/adrs/020-reports/CHATGPT_BRIEFING.md](docs/governance/adrs/020-reports/CHATGPT_BRIEFING.md)` | External Review Briefing: Census Vintage Methodology Investigation |
+| `[docs/governance/adrs/020-reports/CHATGPT_BRIEFING_TEMPLATE.md](docs/governance/adrs/020-reports/CHATGPT_BRIEFING_TEMPLATE.md)` | External Review Briefing: Census Vintage Methodology Investigation |
+| `[docs/governance/adrs/020-reports/PHASE_A/PHASE_METADATA.md](docs/governance/adrs/020-reports/PHASE_A/PHASE_METADATA.md)` | Phase A: Validity Risk Assessment |
+| `[docs/governance/adrs/020-reports/PHASE_B/PHASE_METADATA.md](docs/governance/adrs/020-reports/PHASE_B/PHASE_METADATA.md)` | Phase B: Correction Methods Implementation |
+| `[docs/governance/adrs/020-reports/PHASE_B_SUBAGENT_PLANNING.md](docs/governance/adrs/020-reports/PHASE_B_SUBAGENT_PLANNING.md)` | Phase B Sub-Agent Planning Document |
+| `[docs/governance/adrs/020-reports/REPORT_TEMPLATE.md](docs/governance/adrs/020-reports/REPORT_TEMPLATE.md)` | Agent Report: [Agent Number] - [Title] |
+| `[docs/governance/adrs/020-reports/SHARED/ARTIFACT_SPECIFICATIONS.md](docs/governance/adrs/020-reports/SHARED/ARTIFACT_SPECIFICATIONS.md)` | Artifact Specifications for ADR-019 Investigation |
+| `[docs/governance/adrs/020-reports/SHARED/CHATGPT_BRIEFING_TEMPLATE.md](docs/governance/adrs/020-reports/SHARED/CHATGPT_BRIEFING_TEMPLATE.md)` | External Review Briefing: Census Vintage Methodology Investigation |
+| `[docs/governance/adrs/020-reports/SHARED/REPORT_TEMPLATE.md](docs/governance/adrs/020-reports/SHARED/REPORT_TEMPLATE.md)` | Agent Report: [Agent Number] - [Title] |
+| `[docs/governance/adrs/020-reports/SHARED/SPRINT_PLANNING_TEMPLATE.md](docs/governance/adrs/020-reports/SHARED/SPRINT_PLANNING_TEMPLATE.md)` | Sprint Planning Template |
+| `[docs/governance/adrs/020-reports/agent1_census_quotes.json](docs/governance/adrs/020-reports/agent1_census_quotes.json)` |  |
+| `[docs/governance/adrs/020-reports/agent1_data_sources_timeline.csv](docs/governance/adrs/020-reports/agent1_data_sources_timeline.csv)` |  |
+| `[docs/governance/adrs/020-reports/agent1_findings_summary.json](docs/governance/adrs/020-reports/agent1_findings_summary.json)` |  |
+| `[docs/governance/adrs/020-reports/agent1_methodology_matrix.csv](docs/governance/adrs/020-reports/agent1_methodology_matrix.csv)` |  |
+| `[docs/governance/adrs/020-reports/agent1_sources.json](docs/governance/adrs/020-reports/agent1_sources.json)` |  |
+| `[docs/governance/adrs/020-reports/agent2_analysis.py](docs/governance/adrs/020-reports/agent2_analysis.py)` | Agent 2: Statistical Transition Analysis for ADR-019 |
+| `[docs/governance/adrs/020-reports/agent2_calculations.md](docs/governance/adrs/020-reports/agent2_calculations.md)` | Agent 2: Step-by-Step Calculations |
+| `[docs/governance/adrs/020-reports/agent2_fig1_timeseries_with_vintages.png](docs/governance/adrs/020-reports/agent2_fig1_timeseries_with_vintages.png)` |  |
+| `[docs/governance/adrs/020-reports/agent2_fig2_variance_by_vintage.png](docs/governance/adrs/020-reports/agent2_fig2_variance_by_vintage.png)` |  |
+| `[docs/governance/adrs/020-reports/agent2_fig3_structural_breaks.png](docs/governance/adrs/020-reports/agent2_fig3_structural_breaks.png)` |  |
+| `[docs/governance/adrs/020-reports/agent2_fig4_acf_by_vintage.png](docs/governance/adrs/020-reports/agent2_fig4_acf_by_vintage.png)` |  |
+| `[docs/governance/adrs/020-reports/agent2_findings_summary.json](docs/governance/adrs/020-reports/agent2_findings_summary.json)` |  |
+| `[docs/governance/adrs/020-reports/agent2_nd_migration_data.csv](docs/governance/adrs/020-reports/agent2_nd_migration_data.csv)` |  |
+| `[docs/governance/adrs/020-reports/agent2_sources.json](docs/governance/adrs/020-reports/agent2_sources.json)` |  |
+| `[docs/governance/adrs/020-reports/agent2_transition_metrics.json](docs/governance/adrs/020-reports/agent2_transition_metrics.json)` |  |
+| `[docs/governance/adrs/020-reports/agent3_analysis.py](docs/governance/adrs/020-reports/agent3_analysis.py)` | Agent 3: Cross-Vintage Comparability Assessment |
+| `[docs/governance/adrs/020-reports/agent3_coherence_checks.json](docs/governance/adrs/020-reports/agent3_coherence_checks.json)` |  |
+| `[docs/governance/adrs/020-reports/agent3_detailed_state_patterns.csv](docs/governance/adrs/020-reports/agent3_detailed_state_patterns.csv)` |  |
+| `[docs/governance/adrs/020-reports/agent3_external_correlations.csv](docs/governance/adrs/020-reports/agent3_external_correlations.csv)` |  |
+| `[docs/governance/adrs/020-reports/agent3_findings_summary.json](docs/governance/adrs/020-reports/agent3_findings_summary.json)` |  |
+| `[docs/governance/adrs/020-reports/agent3_nd_share_analysis.csv](docs/governance/adrs/020-reports/agent3_nd_share_analysis.csv)` |  |
+| `[docs/governance/adrs/020-reports/agent3_sources.json](docs/governance/adrs/020-reports/agent3_sources.json)` |  |
+| `[docs/governance/adrs/020-reports/agent3_state_comparison.csv](docs/governance/adrs/020-reports/agent3_state_comparison.csv)` |  |
+| `[docs/governance/adrs/020-reports/agent3_validation_data.csv](docs/governance/adrs/020-reports/agent3_validation_data.csv)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/AGENT_1_REPORT.md](docs/governance/adrs/020-reports/chatgpt_review_package/AGENT_1_REPORT.md)` | Agent Report: 1 - Census Bureau Methodology Documentation Review |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/AGENT_2_REPORT.md](docs/governance/adrs/020-reports/chatgpt_review_package/AGENT_2_REPORT.md)` | Agent Report: 2 - Statistical Transition Analysis |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/AGENT_3_REPORT.md](docs/governance/adrs/020-reports/chatgpt_review_package/AGENT_3_REPORT.md)` | Agent Report: 3 - Cross-Vintage Comparability Assessment |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/CHATGPT_BRIEFING.md](docs/governance/adrs/020-reports/chatgpt_review_package/CHATGPT_BRIEFING.md)` | External Review Briefing: Census Vintage Methodology Investigation |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/PROMPT_FOR_CHATGPT.md](docs/governance/adrs/020-reports/chatgpt_review_package/PROMPT_FOR_CHATGPT.md)` | Prompt for ChatGPT 5.2 Pro Review |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/README.md](docs/governance/adrs/020-reports/chatgpt_review_package/README.md)` | ChatGPT 5.2 Pro Review Package |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent1_census_quotes.json](docs/governance/adrs/020-reports/chatgpt_review_package/agent1_census_quotes.json)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent1_findings_summary.json](docs/governance/adrs/020-reports/chatgpt_review_package/agent1_findings_summary.json)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent1_methodology_matrix.csv](docs/governance/adrs/020-reports/chatgpt_review_package/agent1_methodology_matrix.csv)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent2_fig1_timeseries_with_vintages.png](docs/governance/adrs/020-reports/chatgpt_review_package/agent2_fig1_timeseries_with_vintages.png)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent2_fig2_variance_by_vintage.png](docs/governance/adrs/020-reports/chatgpt_review_package/agent2_fig2_variance_by_vintage.png)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent2_fig3_structural_breaks.png](docs/governance/adrs/020-reports/chatgpt_review_package/agent2_fig3_structural_breaks.png)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent2_fig4_acf_by_vintage.png](docs/governance/adrs/020-reports/chatgpt_review_package/agent2_fig4_acf_by_vintage.png)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent2_findings_summary.json](docs/governance/adrs/020-reports/chatgpt_review_package/agent2_findings_summary.json)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent2_nd_migration_data.csv](docs/governance/adrs/020-reports/chatgpt_review_package/agent2_nd_migration_data.csv)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent2_transition_metrics.json](docs/governance/adrs/020-reports/chatgpt_review_package/agent2_transition_metrics.json)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent3_coherence_checks.json](docs/governance/adrs/020-reports/chatgpt_review_package/agent3_coherence_checks.json)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent3_external_correlations.csv](docs/governance/adrs/020-reports/chatgpt_review_package/agent3_external_correlations.csv)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent3_findings_summary.json](docs/governance/adrs/020-reports/chatgpt_review_package/agent3_findings_summary.json)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent3_state_comparison.csv](docs/governance/adrs/020-reports/chatgpt_review_package/agent3_state_comparison.csv)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent3_validation_data.csv](docs/governance/adrs/020-reports/chatgpt_review_package/agent3_validation_data.csv)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/chatgpt_response.md](docs/governance/adrs/020-reports/chatgpt_review_package/chatgpt_response.md)` | Executive Assessment |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/synthesis_findings_matrix.csv](docs/governance/adrs/020-reports/chatgpt_review_package/synthesis_findings_matrix.csv)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/synthesis_recommendations.json](docs/governance/adrs/020-reports/chatgpt_review_package/synthesis_recommendations.json)` |  |
+| `[docs/governance/adrs/020-reports/phase_b_plans/AGENT_B0a_VERSIONING_ANALYSIS.md](docs/governance/adrs/020-reports/phase_b_plans/AGENT_B0a_VERSIONING_ANALYSIS.md)` | Agent B0a: Journal Article Versioning Strategy |
+| `[docs/governance/adrs/020-reports/phase_b_plans/AGENT_B0b_WORKFLOW_STRUCTURE.md](docs/governance/adrs/020-reports/phase_b_plans/AGENT_B0b_WORKFLOW_STRUCTURE.md)` | Agent B0b: Sprint/Wave Workflow Structure |
+| `[docs/governance/adrs/020-reports/phase_b_plans/AGENT_B1_PLAN.md](docs/governance/adrs/020-reports/phase_b_plans/AGENT_B1_PLAN.md)` | Agent B1: Statistical Modeling Infrastructure |
+| `[docs/governance/adrs/020-reports/phase_b_plans/AGENT_B2_PLAN.md](docs/governance/adrs/020-reports/phase_b_plans/AGENT_B2_PLAN.md)` | Agent B2: Multi-State Placebo Analysis |
+| `[docs/governance/adrs/020-reports/phase_b_plans/AGENT_B3_PLAN.md](docs/governance/adrs/020-reports/phase_b_plans/AGENT_B3_PLAN.md)` | Agent B3: Journal Article Methodology Section |
+| `[docs/governance/adrs/020-reports/phase_b_plans/AGENT_B4_PLAN.md](docs/governance/adrs/020-reports/phase_b_plans/AGENT_B4_PLAN.md)` | Agent B4: Panel/Bayesian VAR Extensions |
+| `[docs/governance/adrs/020-reports/phase_b_plans/AGENT_B5_PLAN.md](docs/governance/adrs/020-reports/phase_b_plans/AGENT_B5_PLAN.md)` | Agent B5: ADR-019 Decision Documentation |
+| `[docs/governance/adrs/020-reports/phase_b_plans/AGENT_B6_PLAN.md](docs/governance/adrs/020-reports/phase_b_plans/AGENT_B6_PLAN.md)` | Agent B6: Test Suite and Validation Infrastructure |
+| `[docs/governance/adrs/020-reports/phase_b_plans/FILE_CHANGE_MANIFEST.md](docs/governance/adrs/020-reports/phase_b_plans/FILE_CHANGE_MANIFEST.md)` | Phase B File Change Manifest |
+| `[docs/governance/adrs/020-reports/phase_b_plans/OIL_STATE_RESEARCH.md](docs/governance/adrs/020-reports/phase_b_plans/OIL_STATE_RESEARCH.md)` | Oil State Definition Research Report |
+| `[docs/governance/adrs/020-reports/phase_b_plans/PLANNING_SYNTHESIS.md](docs/governance/adrs/020-reports/phase_b_plans/PLANNING_SYNTHESIS.md)` | Phase B Planning Synthesis |
+| `[docs/governance/adrs/020-reports/synthesis_findings_matrix.csv](docs/governance/adrs/020-reports/synthesis_findings_matrix.csv)` |  |
+| `[docs/governance/adrs/020-reports/synthesis_recommendations.json](docs/governance/adrs/020-reports/synthesis_recommendations.json)` |  |
+| `[docs/governance/adrs/020a-vintage-methodology-investigation-plan.md](docs/governance/adrs/020a-vintage-methodology-investigation-plan.md)` | ADR-020a: Vintage Methodology Investigation Plan |
+| `[docs/governance/adrs/021-immigration-status-durability-methodology.md](docs/governance/adrs/021-immigration-status-durability-methodology.md)` | ADR-021: Immigration Status Durability and Policy-Regime Methodology |
+| `[docs/governance/adrs/021-reports/README.md](docs/governance/adrs/021-reports/README.md)` | ADR-021 Reports: Immigration Status Durability and Policy-Regime Methodology |
+| `[docs/governance/adrs/021-reports/agent1_estimand_composition.py](docs/governance/adrs/021-reports/agent1_estimand_composition.py)` | Agent 1: Estimand Composition Analysis |
+| `[docs/governance/adrs/021-reports/agent2_lssnd_impact.py](docs/governance/adrs/021-reports/agent2_lssnd_impact.py)` | Agent 2: LSSND Closure Impact Analysis |
+| `[docs/governance/adrs/021-reports/agent3_module_gap_analysis.py](docs/governance/adrs/021-reports/agent3_module_gap_analysis.py)` | Agent 3: Existing Module Gap Analysis |
+| `[docs/governance/adrs/021-reports/agent4_data_availability.py](docs/governance/adrs/021-reports/agent4_data_availability.py)` | Agent 4: Data Availability Assessment |
+| `[docs/governance/adrs/021-reports/data/README.md](docs/governance/adrs/021-reports/data/README.md)` | ADR-021 Data Acquisition |
+| `[docs/governance/adrs/021-reports/data/acs_migration_data_acquisition.md](docs/governance/adrs/021-reports/data/acs_migration_data_acquisition.md)` | ACS Migration Data Acquisition Report |
+| `[docs/governance/adrs/021-reports/data/parole_data_acquisition.md](docs/governance/adrs/021-reports/data/parole_data_acquisition.md)` | Parole Data Acquisition Report for ADR-021 |
+| `[docs/governance/adrs/021-reports/data/refugee_data_acquisition.md](docs/governance/adrs/021-reports/data/refugee_data_acquisition.md)` | Refugee Data Acquisition Report |
+| `[docs/governance/adrs/021-reports/external_analysis_intake.md](docs/governance/adrs/021-reports/external_analysis_intake.md)` | External AI Analysis Intake Document |
+| `[docs/governance/adrs/021-reports/figures/agent1_composition_by_year.png](docs/governance/adrs/021-reports/figures/agent1_composition_by_year.png)` |  |
+| `[docs/governance/adrs/021-reports/figures/agent1_surge_analysis.png](docs/governance/adrs/021-reports/figures/agent1_surge_analysis.png)` |  |
+| `[docs/governance/adrs/021-reports/figures/agent2_nd_trajectory.png](docs/governance/adrs/021-reports/figures/agent2_nd_trajectory.png)` |  |
+| `[docs/governance/adrs/021-reports/figures/agent2_state_comparison.png](docs/governance/adrs/021-reports/figures/agent2_state_comparison.png)` |  |
+| `[docs/governance/adrs/021-reports/results/agent1_results.json](docs/governance/adrs/021-reports/results/agent1_results.json)` |  |
+| `[docs/governance/adrs/021-reports/results/agent2_results.json](docs/governance/adrs/021-reports/results/agent2_results.json)` |  |
+| `[docs/governance/adrs/021-reports/results/agent3_results.json](docs/governance/adrs/021-reports/results/agent3_results.json)` |  |
+| `[docs/governance/adrs/021-reports/results/agent4_results.json](docs/governance/adrs/021-reports/results/agent4_results.json)` |  |
+| `[docs/governance/adrs/README.md](docs/governance/adrs/README.md)` | Architecture Decision Records (ADRs) |
+| `[docs/governance/adrs/TEMPLATE.md](docs/governance/adrs/TEMPLATE.md)` | ADR-NNN: Title |
 | `[docs/archive/BIGQUERY_DATA_SUMMARY.md](docs/archive/BIGQUERY_DATA_SUMMARY.md)` |  |
 | `[docs/archive/FERTILITY_IMPLEMENTATION_SUMMARY.md](docs/archive/FERTILITY_IMPLEMENTATION_SUMMARY.md)` |  |
 | `[docs/archive/GEOGRAPHIC_MODULE_SUMMARY.md](docs/archive/GEOGRAPHIC_MODULE_SUMMARY.md)` |  |
@@ -1867,12 +1867,12 @@
 | `[docs/methodology_comparison_sdc_2024.md](docs/methodology_comparison_sdc_2024.md)` | Methodology Comparison: ND State Data Center 2024 vs. Our Project |
 | `[docs/research/2025_immigration_policy_demographic_impact.md](docs/research/2025_immigration_policy_demographic_impact.md)` | **The Demographic Shock of 2025: A Comprehensive Analysis of Enforcement Policy Impacts on U.S. Population Projections and Economic Modeling** |
 | `[docs/research/2025_immigration_policy_demographic_impact.pdf](docs/research/2025_immigration_policy_demographic_impact.pdf)` |  |
-| `[docs/sops/README.md](docs/sops/README.md)` | Standard Operating Procedures (SOPs) |
-| `[docs/sops/SOP-001-external-ai-analysis-integration.md](docs/sops/SOP-001-external-ai-analysis-integration.md)` | SOP-001: External AI Analysis Integration |
-| `[docs/sops/TEMPLATE.md](docs/sops/TEMPLATE.md)` | SOP-NNN: Title |
-| `[docs/sops/templates/adr-report-structure.md](docs/sops/templates/adr-report-structure.md)` | ADR Report Directory Structure Template |
-| `[docs/sops/templates/module-package.md](docs/sops/templates/module-package.md)` | Module Package Structure Template |
-| `[docs/sops/templates/planning-synthesis.md](docs/sops/templates/planning-synthesis.md)` | Planning Synthesis Template |
+| `[docs/governance/sops/README.md](docs/governance/sops/README.md)` | Standard Operating Procedures (SOPs) |
+| `[docs/governance/sops/SOP-001-external-ai-analysis-integration.md](docs/governance/sops/SOP-001-external-ai-analysis-integration.md)` | SOP-001: External AI Analysis Integration |
+| `[docs/governance/sops/TEMPLATE.md](docs/governance/sops/TEMPLATE.md)` | SOP-NNN: Title |
+| `[docs/governance/sops/docs/governance/templates/adr-report-structure.md](docs/governance/sops/docs/governance/templates/adr-report-structure.md)` | ADR Report Directory Structure Template |
+| `[docs/governance/sops/docs/governance/templates/module-package.md](docs/governance/sops/docs/governance/templates/module-package.md)` | Module Package Structure Template |
+| `[docs/governance/sops/docs/governance/templates/planning-synthesis.md](docs/governance/sops/docs/governance/templates/planning-synthesis.md)` | Planning Synthesis Template |
 
 ### Test (80)
 
@@ -1913,9 +1913,9 @@
 | `[.mypy_cache/3.11/unittest/suite.data.json](.mypy_cache/3.11/unittest/suite.data.json)` |  |
 | `[.mypy_cache/3.11/unittest/suite.meta.json](.mypy_cache/3.11/unittest/suite.meta.json)` |  |
 | `[RCLONE_TEST](RCLONE_TEST)` |  |
-| `[docs/adr/011-testing-strategy.md](docs/adr/011-testing-strategy.md)` | ADR-011: Testing Strategy |
-| `[docs/adr/020-reports/agent2_test_results.csv](docs/adr/020-reports/agent2_test_results.csv)` |  |
-| `[docs/adr/020-reports/chatgpt_review_package/agent2_test_results.csv](docs/adr/020-reports/chatgpt_review_package/agent2_test_results.csv)` |  |
+| `[docs/governance/adrs/011-testing-strategy.md](docs/governance/adrs/011-testing-strategy.md)` | ADR-011: Testing Strategy |
+| `[docs/governance/adrs/020-reports/agent2_test_results.csv](docs/governance/adrs/020-reports/agent2_test_results.csv)` |  |
+| `[docs/governance/adrs/020-reports/chatgpt_review_package/agent2_test_results.csv](docs/governance/adrs/020-reports/chatgpt_review_package/agent2_test_results.csv)` |  |
 | `[docs/guides/testing-workflow.md](docs/guides/testing-workflow.md)` | Testing Workflow Guide |
 | `[scripts/check_test_coverage.py](scripts/check_test_coverage.py)` | Check for orphaned tests and untested production code. |
 | `[scripts/run_integration_test.py](scripts/run_integration_test.py)` | Integration Test Script for Cohort Projections. |

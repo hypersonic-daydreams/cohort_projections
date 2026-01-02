@@ -259,7 +259,7 @@ This creates sample SEER-format data and demonstrates all processing steps.
 ## Additional Resources
 
 - **Full Documentation**: See `README.md` section on Fertility Rates
-- **ADR-001**: Design decisions in `docs/adr/001-fertility-rate-processing.md`
+- **ADR-001**: Design decisions in `docs/governance/adrs/001-fertility-rate-processing.md`
 - **Example Script**: `examples/process_fertility_example.py`
 - **Core Engine**: `cohort_projections/core/fertility.py`
 

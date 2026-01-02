@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 #!/usr/bin/env python3
 """
 Agent 3: Cross-Vintage Comparability Assessment

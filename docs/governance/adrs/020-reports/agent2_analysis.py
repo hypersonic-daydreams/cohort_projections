@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 #!/usr/bin/env python3
 """
 Agent 2: Statistical Transition Analysis for ADR-019

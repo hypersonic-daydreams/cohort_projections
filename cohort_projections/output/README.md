@@ -1,6 +1,6 @@
 # Output Module
 
-**Last Updated:** 2025-12-31 | **Status:** Current | **Related ADRs:** [ADR-012](../../docs/adr/012-output-export-format-strategy.md), [ADR-015](../../docs/adr/015-output-format-visualization-design.md)
+**Last Updated:** 2025-12-31 | **Status:** Current | **Related ADRs:** [ADR-012](../../docs/governance/adrs/012-output-export-format-strategy.md), [ADR-015](../../docs/governance/adrs/015-output-format-visualization-design.md)
 
 Enhanced output capabilities for population projection results, providing formatted exports, comprehensive reports, and publication-ready visualizations.
 
@@ -666,4 +666,4 @@ matplotlib.use('Agg')  # Non-interactive backend
 - [Reports API Documentation](reports.py)
 - [Visualizations API Documentation](visualizations.py)
 - [Example: Generate Outputs](../../examples/generate_outputs_example.py)
-- [ADR 015: Output Format and Visualization Design](../../docs/adr/015-output-format-visualization-design.md)
+- [ADR 015: Output Format and Visualization Design](../../docs/governance/adrs/015-output-format-visualization-design.md)

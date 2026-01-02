@@ -21,7 +21,7 @@ Classification scheme (Hybrid Approach per research):
 Sources:
 - EIA State Production Rankings (https://www.eia.gov/state/rankings/)
 - Wilson (2022) "Moving to Economic Opportunity" J Human Resources
-- See docs/adr/020-reports/phase_b_plans/OIL_STATE_RESEARCH.md
+- See docs/governance/adrs/020-reports/phase_b_plans/OIL_STATE_RESEARCH.md
 """
 
 from typing import Optional

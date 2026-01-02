@@ -95,7 +95,7 @@ data/
 ### Data Sync
 - Data syncs via rclone bisync (not git)
 - Use `./scripts/bisync.sh` (never run rclone directly)
-- See [ADR-016](./docs/adr/016-raw-data-management-strategy.md)
+- See [ADR-016](./docs/governance/adrs/016-raw-data-management-strategy.md)
 
 ---
 
@@ -167,13 +167,13 @@ uv sync               # Install dependencies
 ### SOPs (Complex Workflows)
 | SOP | Purpose |
 |-----|---------|
-| [docs/sops/](./docs/sops/) | Standard Operating Procedures index |
-| [SOP-001](./docs/sops/SOP-001-external-ai-analysis-integration.md) | External AI analysis integration workflow |
+| [docs/governance/sops/](./docs/governance/sops/) | Standard Operating Procedures index |
+| [SOP-001](./docs/governance/sops/SOP-001-external-ai-analysis-integration.md) | External AI analysis integration workflow |
 
 ### ADRs (Why Decisions)
 | ADR | Topic |
 |-----|-------|
-| [docs/adr/](./docs/adr/) | All Architecture Decision Records |
+| [docs/governance/adrs/](./docs/governance/adrs/) | All Architecture Decision Records |
 | ADR-001 through ADR-003 | Fertility, survival, migration processing |
 | ADR-007 | Race/ethnicity categorization |
 | ADR-016 | Raw data management strategy |

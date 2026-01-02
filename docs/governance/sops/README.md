@@ -49,7 +49,7 @@ docs/sops/
 ## Related Documentation
 
 - [AGENTS.md](../../AGENTS.md) - AI agent governance and autonomy rules
-- [docs/adr/](../adr/) - Architecture Decision Records
+- [docs/adr/](../adrs/) - Architecture Decision Records
 - [DEVELOPMENT_TRACKER.md](../../DEVELOPMENT_TRACKER.md) - Current project status
 
 ---

@@ -69,7 +69,7 @@ Updated data with empirically-derived immigration policy adjustment:
 4. International migration = 31% of ND total migration
 5. Applied CBO-derived reduction to international component only
 
-See [ADR-018](../docs/adr/018-immigration-policy-scenario-methodology.md) for full methodology.
+See [ADR-018](../docs/governance/adrs/018-immigration-policy-scenario-methodology.md) for full methodology.
 
 ---
 
@@ -179,7 +179,7 @@ This framework is designed to be extensible. To add a new variant:
 
 4. **Update scripts:** Add the new variant to `run_three_variants.py` (or create a new runner)
 
-5. **Document in ADR:** Create an ADR in `docs/adr/` for significant methodology changes
+5. **Document in ADR:** Create an ADR in `docs/governance/adrs/` for significant methodology changes
 
 ### Planned Future Variants
 
@@ -249,8 +249,8 @@ This replication is **intentionally separate** from the main `cohort_projections
 | Document | Description |
 |----------|-------------|
 | [METHODOLOGY_SPEC.md](METHODOLOGY_SPEC.md) | Complete SDC methodology specification |
-| [ADR-017](../docs/adr/017-sdc-2024-methodology-comparison.md) | SDC vs Baseline 2026 comparison |
-| [ADR-018](../docs/adr/018-immigration-policy-scenario-methodology.md) | Immigration policy scenario methodology |
+| [ADR-017](../docs/governance/adrs/017-sdc-2024-methodology-comparison.md) | SDC vs Baseline 2026 comparison |
+| [ADR-018](../docs/governance/adrs/018-immigration-policy-scenario-methodology.md) | Immigration policy scenario methodology |
 | [data_updated/MANIFEST.md](data_updated/MANIFEST.md) | Updated variant data sources |
 | [Immigration Rates MANIFEST.md](../data/processed/immigration/rates/MANIFEST.md) | Policy variant data sources |
 | [Research Report](../docs/research/2025_immigration_policy_demographic_impact.md) | Immigration policy impact analysis |

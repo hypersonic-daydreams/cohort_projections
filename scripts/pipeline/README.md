@@ -378,7 +378,7 @@ When modifying pipeline scripts:
 
 ## References
 
-- [ADR 014: Pipeline Orchestration Design](../../docs/adr/014-pipeline-orchestration-design.md)
+- [ADR 014: Pipeline Orchestration Design](../../docs/governance/adrs/014-pipeline-orchestration-design.md)
 - [Project Configuration Guide](../../config/README.md)
 - [Data Processing Documentation](../../cohort_projections/data/process/README.md)
 - [Geographic Processing Documentation](../../cohort_projections/geographic/README.md)

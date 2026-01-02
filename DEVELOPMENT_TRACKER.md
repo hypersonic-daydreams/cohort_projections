@@ -65,14 +65,14 @@ The baseline projection for all 53 counties is complete. The next step is to run
 ## Active Phase
 
 **Phase B**: Correction Methods Implementation
-- See: `docs/adr/020-reports/PHASE_B/PHASE_METADATA.md`
+- See: `docs/governance/adrs/020-reports/PHASE_B/PHASE_METADATA.md`
 - Decision: Option C (Hybrid approach) for extended time series
 - Planning complete (Agents B0a-B6), implementation in progress
 
 ## Completed Phases
 
 - **Phase A**: Validity Risk Assessment (2025-12-31)
-  - See: `docs/adr/020-reports/PHASE_A/PHASE_METADATA.md`
+  - See: `docs/governance/adrs/020-reports/PHASE_A/PHASE_METADATA.md`
   - External Review: ChatGPT 5.2 Pro confirmed Option C recommendation
 
 ---
@@ -387,7 +387,7 @@ python scripts/projections/run_all_projections.py
 | Document | Purpose |
 |----------|---------|
 | `README.md` | Project overview |
-| `docs/adr/016-raw-data-management-strategy.md` | Data management approach |
+| `docs/governance/adrs/016-raw-data-management-strategy.md` | Data management approach |
 | `docs/DATA_ACQUISITION.md` | External data sources |
 | `docs/REPOSITORY_EVALUATION.md` | Status assessment |
 

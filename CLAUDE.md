@@ -73,9 +73,9 @@ git add . && git commit -m "..."
 | Document | Purpose |
 |----------|---------|
 | [AGENTS.md](./AGENTS.md) | Complete AI agent guidance |
-| [docs/sops/](./docs/sops/) | Standard Operating Procedures |
+| [docs/governance/sops/](./docs/governance/sops/) | Standard Operating Procedures |
 | [docs/guides/](./docs/guides/) | Detailed how-to guides |
-| [docs/adr/](./docs/adr/) | Architecture decisions |
+| [docs/governance/adrs/](./docs/governance/adrs/) | Architecture decisions |
 | [DEVELOPMENT_TRACKER.md](./DEVELOPMENT_TRACKER.md) | Current project status |
 
 ---

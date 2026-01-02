@@ -1,6 +1,6 @@
 # Data Processing Module
 
-**Last Updated:** 2025-12-31 | **Status:** Current | **Related ADRs:** [ADR-001](../../../docs/adr/001-fertility-rate-processing.md), [ADR-002](../../../docs/adr/002-survival-rate-processing.md), [ADR-003](../../../docs/adr/003-migration-rate-processing.md)
+**Last Updated:** 2025-12-31 | **Status:** Current | **Related ADRs:** [ADR-001](../../../docs/governance/adrs/001-fertility-rate-processing.md), [ADR-002](../../../docs/governance/adrs/002-survival-rate-processing.md), [ADR-003](../../../docs/governance/adrs/003-migration-rate-processing.md)
 
 ## Overview
 
@@ -773,7 +773,7 @@ See `SEER_RACE_ETHNICITY_MAP` in `fertility_rates.py` for complete mapping.
 
 ## Architectural Decisions
 
-See **ADR-001: Fertility Rate Processing Methodology** (`docs/adr/001-fertility-rate-processing.md`) for detailed documentation of design decisions:
+See **ADR-001: Fertility Rate Processing Methodology** (`docs/governance/adrs/001-fertility-rate-processing.md`) for detailed documentation of design decisions:
 
 1. **Multi-year averaging with population weighting**
 2. **Zero fill for missing combinations** (not imputation)
@@ -1415,7 +1415,7 @@ Where:
 
 ## Architectural Decisions
 
-See **ADR-002: Survival Rate Processing Methodology** (`docs/adr/002-survival-rate-processing.md`) for detailed documentation of design decisions:
+See **ADR-002: Survival Rate Processing Methodology** (`docs/governance/adrs/002-survival-rate-processing.md`) for detailed documentation of design decisions:
 
 1. **Multi-method life table conversion** with automatic selection
 2. **Special handling for age 90+ open-ended group**
@@ -2143,7 +2143,7 @@ Components:
 
 ## Architectural Decisions
 
-See **ADR-003: Migration Rate Processing Methodology** (`docs/adr/003-migration-rate-processing.md`) for detailed documentation of design decisions:
+See **ADR-003: Migration Rate Processing Methodology** (`docs/governance/adrs/003-migration-rate-processing.md`) for detailed documentation of design decisions:
 
 1. **Simplified age pattern over Rogers-Castro** (default)
 2. **50/50 sex distribution** (configurable)
