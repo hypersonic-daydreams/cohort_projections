@@ -65,33 +65,71 @@ This SOP defines the workflow for incorporating external AI analysis (e.g., from
 **Objective**: Evaluate external AI analysis and determine scope of integration
 
 **Inputs**:
-- External AI analysis document (markdown, PDF, or text)
+- External AI analysis (from clipboard, email, or other source)
 - Context on what question/problem the analysis addresses
 
 **Steps**:
 
-1. **Review External Analysis**
-   - Read the complete external AI output
+1. **Create Intake Document**
+   - Create ADR reports directory: `docs/adr/0XX-reports/`
+   - Create intake document: `docs/adr/0XX-reports/external_analysis_intake.md`
+   - Use template structure:
+     ```markdown
+     # External AI Analysis Intake Document
+
+     ## Metadata
+     | Field | Value |
+     |-------|-------|
+     | ADR | 0XX (Proposed) |
+     | Date Received | YYYY-MM-DD |
+     | Source AI System | [Primary AI that provided feedback] |
+     | Secondary Source | [If analysis references another AI's work] |
+     | Input Document | [Document(s) the AI analyzed] |
+     | Research Report | [Title of any research reports referenced] |
+     | Intake Status | Pending Review |
+
+     ## Context
+     [Description of analysis chain and purpose]
+
+     ## External Analysis Content
+     <!-- PASTE CONTENT BELOW THIS LINE -->
+
+     <!-- END OF EXTERNAL ANALYSIS CONTENT -->
+
+     ## Phase 0 Triage (To Be Completed After Review)
+     ### Key Claims Identified
+     ### Key Recommendations
+     ### Methodology Changes Suggested
+     ### Scope Assessment
+     ### Data Requirements
+     ```
+   - User pastes external AI feedback into the designated section
+   - Save the document before proceeding
+
+2. **Review External Analysis**
+   - Read the complete external AI output from the intake document
    - Identify key claims, recommendations, and critiques
    - Note any data requirements or methodology changes suggested
 
-2. **Assess Scope and Impact**
+3. **Assess Scope and Impact**
    - Determine if changes are:
      - **Minor**: Documentation-only updates
      - **Moderate**: Code changes within existing modules
      - **Major**: New modules, methodology changes, or architectural decisions
    - For **Major** scope, proceed with full SOP. For minor/moderate, adapt as needed.
+   - Complete the "Phase 0 Triage" section in the intake document
 
-3. **Create ADR Stub**
-   - Assign next ADR number
+4. **Create ADR Stub**
+   - Assign next ADR number (directory already created in Step 1)
    - Create initial ADR with Status: Proposed
    - Document the context and initial decision framing
 
 **Outputs**:
+- Intake document (`docs/adr/0XX-reports/external_analysis_intake.md`)
 - Initial ADR document (`docs/adr/0XX-title.md`)
 - Scope assessment (Major/Moderate/Minor)
 
-**Checkpoint**: ADR exists with Status: Proposed
+**Checkpoint**: Intake document complete, ADR exists with Status: Proposed
 
 ---
 
@@ -358,6 +396,7 @@ This SOP defines the workflow for incorporating external AI analysis (e.g., from
 
 | Artifact | Location | Purpose |
 |----------|----------|---------|
+| Intake Document | `docs/adr/0XX-reports/external_analysis_intake.md` | Capture and triage external AI feedback |
 | ADR | `docs/adr/0XX-*.md` | Document decision and rationale |
 | ADR Reports | `docs/adr/0XX-reports/` | Exploratory analysis and planning |
 | Production Modules | `sdc_2024_replication/scripts/statistical_analysis/module_BN_*/` | Reusable code |

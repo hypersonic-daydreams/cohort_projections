@@ -26,12 +26,12 @@ repos:
 
   # MyPy - static type checking
   # Checks core package only (excludes scripts/examples/tests and specific legacy files)
-  # Note: docs/adr/020-reports/agent{2,3}_analysis.py are deprecated Phase A research scripts
+  # Note: docs/adr/0XX-reports/agent*_*.py are deprecated Phase A research scripts
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.8.0
     hooks:
       - id: mypy
-        exclude: ^(scripts/|examples/|tests/|sdc_2024_replication/|docs/adr/020-reports/agent[23]_analysis\.py)
+        exclude: ^(scripts/|examples/|tests/|sdc_2024_replication/|docs/adr/\d{3}-reports/agent.+\.py)
         args: ['--ignore-missing-imports']
         additional_dependencies:
           - types-PyYAML
@@ -50,4 +50,12 @@ repos:
         always_run: false
         # Only trigger when production code changes
         files: ^cohort_projections/.*\.py$
+        stages: [pre-commit]
+
+      - id: data-manifest-check
+        name: data manifest enforcement
+        entry: .venv/bin/python scripts/hooks/check_data_manifest.py
+        language: system
+        pass_filenames: false
+        always_run: true
         stages: [pre-commit]

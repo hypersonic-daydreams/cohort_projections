@@ -9,7 +9,10 @@ Data sources:
 - FY 2002-2011: ORR/PRM Academic Dataset (Dreher et al. 2020) - Stata file with city-level data
   Downloaded from refugeeresettlementdata.com
 - FY 2012-2020: Excel files (.xls/.xlsx) with state-nationality breakdowns from RPC/WRAPS
-- FY 2021-2024: PDF files (not directly parseable - need manual extraction or alternative source)
+- FY 2021-2024: PDF files from RPC archives, extracted via pdfplumber where possible,
+  supplemented with manually curated data from news sources (Grand Forks Herald, InForum,
+  Save Resettlement) for PDFs with extraction issues (scanned images, encoding problems).
+  Note: FY2021-2024 data is currently North Dakota only.
 
 Note: The academic dataset (FY 2002-2011) may have slightly different totals than official WRAPS
 data due to different data collection methodologies and inclusion of Amerasians/SIVs.
@@ -302,6 +305,97 @@ def process_all_wraps_files(source_dir: Path) -> pd.DataFrame:
     return combined
 
 
+def process_fy2021_2024_pdfs(source_dir: Path) -> pd.DataFrame:
+    """
+    Process FY 2021-2024 data from RPC PDF archives.
+
+    Uses pdfplumber to extract tables where possible, and falls back to
+    manually curated data for PDFs with extraction issues (scanned images,
+    encoding problems).
+
+    Args:
+        source_dir: Directory containing RPC PDF archives
+
+    Returns:
+        DataFrame with North Dakota data for FY 2021-2024
+    """
+    try:
+        import pdfplumber  # Optional dependency for PDF extraction
+    except ImportError:
+        print("  Warning: pdfplumber not installed, using manual data only")
+        pdfplumber = None
+
+    # PDFs are in the same directory as the Excel files
+    pdf_dir = source_dir
+    records = []
+
+    # FY2021 and FY2023 - extractable via pdfplumber
+    extractable_years = {
+        2021: "FY_2021_Arrivals_by_State_and_Nationality.pdf",
+        2023: "FY_2023_Arrivals_by_State_and_Nationality.pdf",
+    }
+
+    for fy, filename in extractable_years.items():
+        pdf_path = pdf_dir / filename
+        if pdf_path.exists() and pdfplumber is not None:
+            print(f"Processing {filename}...")
+            try:
+                with pdfplumber.open(pdf_path) as pdf:
+                    for page in pdf.pages:
+                        tables = page.extract_tables()
+                        for table in tables:
+                            for row in table:
+                                if (
+                                    row
+                                    and any("North Dakota" in str(cell) for cell in row if cell)
+                                    and row[0]
+                                ):
+                                    # Extract numbers from remaining columns
+                                    nums = [int(x) for x in row if x and str(x).strip().isdigit()]
+
+                                    # Map nationalities to arrival counts
+                                    # Structure varies by year, but last number is always total
+                                    if nums:
+                                        total = nums[-1]
+                                        records.append(
+                                            {
+                                                "state": "North Dakota",
+                                                "nationality": "Total",
+                                                "fiscal_year": fy,
+                                                "arrivals": total,
+                                            }
+                                        )
+                                        # Note: Nationality breakdown parsing available but not
+                                        # implemented - would require careful table structure parsing
+                print(f"  Extracted FY{fy} North Dakota data")
+            except Exception as e:
+                print(f"  Error extracting FY{fy}: {e}")
+
+    # FY2022 and FY2024 - require manual data (scanned images / encoding issues)
+    # Data sourced from Grand Forks Herald, InForum, Save Resettlement
+    manual_data = [
+        # FY2022: 261 total (71 refugees + 78 Afghan SIV + ~112 parolees)
+        {"state": "North Dakota", "nationality": "Total", "fiscal_year": 2022, "arrivals": 261},
+        # FY2024: 397 total (confirmed from Save Resettlement)
+        {"state": "North Dakota", "nationality": "Total", "fiscal_year": 2024, "arrivals": 397},
+    ]
+
+    # Only add manual data if not already extracted
+    extracted_years = {r["fiscal_year"] for r in records}
+    for manual_rec in manual_data:
+        if manual_rec["fiscal_year"] not in extracted_years:
+            records.append(manual_rec)
+            print(f"  Added manual FY{manual_rec['fiscal_year']} data: {manual_rec['arrivals']}")
+
+    if records:
+        df = pd.DataFrame(records)
+        df["data_source"] = "RPC Archives (PDF extraction + manual curation)"
+        print(f"  Total FY2021-2024 records: {len(df)}")
+        return df
+
+    return pd.DataFrame()
+
+
 def calculate_nd_share(df: pd.DataFrame) -> pd.DataFrame:
     """
     Calculate North Dakota's share of total refugee arrivals by nationality.
@@ -353,7 +447,7 @@ def main():
     project_root = Path(__file__).parent.parent.parent.parent  # cohort_projections/
 
     # Input: raw refugee data
-    source_dir = project_root / "data" / "raw" / "immigration" / "refugee_data"
+    source_dir = project_root / "data" / "raw" / "immigration" / "refugee_arrivals"
 
     # Output: analysis goes to project-level processed directory
     output_dir = project_root / "data" / "processed" / "immigration" / "analysis"
@@ -382,6 +476,14 @@ def main():
     if not wraps_df.empty:
         wraps_df["data_source"] = "WRAPS/RPC Excel files"
         all_data.append(wraps_df)
+
+    # Process FY 2021-2024 from RPC PDF archives (North Dakota only)
+    print("\n" + "-" * 60)
+    print("Part 3: RPC PDF Archives (FY 2021-2024, North Dakota)")
+    print("-" * 60)
+    pdf_df = process_fy2021_2024_pdfs(source_dir)
+    if not pdf_df.empty:
+        all_data.append(pdf_df)
 
     if not all_data:
         raise ValueError("No data files were successfully processed")

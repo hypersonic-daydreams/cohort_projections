@@ -90,6 +90,13 @@ echo "Remote: ${REMOTE}"
 echo "Filter: ${FILTER_FILE}"
 echo ""
 
+# Backup manifest database before sync (if database exists)
+if psql -lqt | cut -d \| -f 1 | grep -qw "cohort_projections_meta"; then
+    echo -e "${YELLOW}Backing up manifest database...${NC}"
+    "${PROJECT_DIR}/scripts/db/backup_manifest_db.sh" || echo -e "${YELLOW}Warning: DB backup skipped${NC}"
+    echo ""
+fi
+
 # Run bisync
 # --bind 0.0.0.0 forces IPv4 (required for WSL2/networks without IPv6 connectivity)
 rclone bisync \

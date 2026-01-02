@@ -64,6 +64,9 @@ data/projections/**/*.csv
 data/projections/**/*.parquet
 data/projections/**/*.xlsx
 
+# Metadata (database backups synced via rclone, not git)
+data/metadata/**/*.sql
+
 # Export files (synced via rclone, not git)
 data/exports/
 data/output/
