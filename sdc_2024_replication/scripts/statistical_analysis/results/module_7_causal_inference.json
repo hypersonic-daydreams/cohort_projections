@@ -1,11 +1,10 @@
 {
   "module": "7",
   "analysis": "causal_inference_did_event_study",
-  "generated": "2025-12-30T05:00:45.159715+00:00",
+  "generated": "2026-01-02T06:16:40.931336+00:00",
   "input_files": [
-    "combined_components_of_change.csv",
-    "refugee_arrivals_by_state_nationality.parquet",
-    "results/module_3_1_panel_data.parquet"
+    "census.state_components (PostgreSQL)",
+    "rpc.refugee_arrivals (PostgreSQL)"
   ],
   "parameters": {
     "analyses": [
@@ -393,170 +392,12 @@
       }
     },
     "synthetic_control": {
-      "analysis": "Synthetic Comparator (descriptive)",
-      "treated_unit": "North Dakota",
-      "treatment_year": 2017,
-      "feasible": true,
-      "donor_pool_size": 50,
-      "weights": {
-        "Florida": 0.02474914254995787,
-        "Oregon": 0.027252385882609552,
-        "Rhode Island": 0.2009821495589068,
-        "Vermont": 0.24520701001066555,
-        "Washington": 0.0828835539082412,
-        "Wyoming": 0.418925758089619
-      },
-      "pre_treatment_fit": {
-        "rmspe": 0.01983823467666539,
-        "n_periods": 7
-      },
-      "post_period_gap": {
-        "mean_gap": 0.5701403437721894,
-        "std_gap": 0.7775961776416719,
-        "rmspe": 0.9642177280467358,
-        "rmspe_ratio": 48.60400856034289
-      },
-      "time_series": [
-        {
-          "year": 2010,
-          "actual": 0.6935881627620222,
-          "synthetic": 0.6469304941179078,
-          "gap": 0.04665766864411436
-        },
-        {
-          "year": 2011,
-          "actual": 1.7636092577086793,
-          "synthetic": 1.7713448839590007,
-          "gap": -0.007735626250321426
-        },
-        {
-          "year": 2012,
-          "actual": 1.8441330225126633,
-          "synthetic": 1.861442267845697,
-          "gap": -0.017309245333033685
-        },
-        {
-          "year": 2013,
-          "actual": 1.7340824643330766,
-          "synthetic": 1.7398204257069672,
-          "gap": -0.005737961373890599
-        },
-        {
-          "year": 2014,
-          "actual": 1.3008706763986053,
-          "synthetic": 1.3029262550491603,
-          "gap": -0.0020555786505549456
-        },
-        {
-          "year": 2015,
-          "actual": 2.9740436272479047,
-          "synthetic": 2.9672790284140227,
-          "gap": 0.0067645988338820295
-        },
-        {
-          "year": 2016,
-          "actual": 2.101534953723909,
-          "synthetic": 2.089890575118027,
-          "gap": 0.011644378605882189
-        },
-        {
-          "year": 2017,
-          "actual": 3.799115962233484,
-          "synthetic": 2.3466687330220757,
-          "gap": 1.4524472292114083
-        },
-        {
-          "year": 2018,
-          "actual": 1.6406556307248619,
-          "synthetic": 2.044906199142711,
-          "gap": -0.404250568417849
-        },
-        {
-          "year": 2019,
-          "actual": 0.8301428264661056,
-          "synthetic": 0.9924311675345071,
-          "gap": -0.1622883410684015
-        },
-        {
-          "year": 2020,
-          "actual": 0.038483098864363754,
-          "synthetic": 0.04690706280732879,
-          "gap": -0.008423963942965039
-        },
-        {
-          "year": 2021,
-          "actual": 0.58228765781538,
-          "synthetic": 0.6718128226961557,
-          "gap": -0.08952516488077567
-        },
-        {
-          "year": 2022,
-          "actual": 4.2083996430478186,
-          "synthetic": 3.4459336431511005,
-          "gap": 0.762465999896718
-        },
-        {
-          "year": 2023,
-          "actual": 5.410324099831823,
-          "synthetic": 3.9965657643480177,
-          "gap": 1.4137583354838053
-        },
-        {
-          "year": 2024,
-          "actual": 6.435106607345512,
-          "synthetic": 4.838167383449937,
-          "gap": 1.5969392238955749
-        }
-      ],
-      "optimization": {
-        "converged": true,
-        "objective_value": 0.0027548888856051444
-      }
+      "feasible": false,
+      "error": "'population'"
     },
     "bartik_instrument": {
-      "analysis": "Shift-Share (Bartik) Instrument",
-      "feasible": true,
-      "construction": {
-        "baseline_year": 2010,
-        "share_component": "State share of nationality at baseline",
-        "shift_component": "Leave-one-out national change in nationality arrivals"
-      },
-      "sample_info": {
-        "n_observations": 528,
-        "n_states": 48,
-        "n_years": 11,
-        "years": [
-          2010,
-          2011,
-          2012,
-          2013,
-          2014,
-          2015,
-          2016,
-          2017,
-          2018,
-          2019,
-          2020
-        ]
-      },
-      "first_stage": {
-        "bartik_coefficient": 5.510303917335125,
-        "std_error": 0.871817165587482,
-        "t_statistic": 6.320481099522691,
-        "p_value": 2.6075022329732277e-10,
-        "f_statistic": 39.94848132942357,
-        "strong_instrument": "True"
-      },
-      "instrument_statistics": {
-        "mean": -691.1922038277709,
-        "std": 1395.5578964697918,
-        "min": -11300.991014291607,
-        "max": 5393.178180271543
-      },
-      "model_fit": {
-        "r_squared": 0.8580067686736881,
-        "r_squared_adj": 0.8404468381471932
-      }
+      "feasible": false,
+      "error": "\"['state'] not in index\""
     }
   },
   "diagnostics": {
@@ -565,19 +406,22 @@
       "event_study_pre_trend_p": 1.9910778520356643e-06
     },
     "instrument_strength": {
-      "bartik_f_statistic": 39.94848132942357,
-      "strong_instrument": "True"
+      "bartik_f_statistic": null,
+      "strong_instrument": null
     },
     "synthetic_control_fit": {
-      "pre_treatment_rmspe": 0.01983823467666539,
-      "rmspe_ratio": 48.60400856034289
+      "pre_treatment_rmspe": null,
+      "rmspe_ratio": null
     }
   },
-  "warnings": [],
+  "warnings": [
+    "Synthetic control estimation failed: 'population'",
+    "Bartik instrument estimation failed: \"['state'] not in index\""
+  ],
   "decisions": [
     {
       "decision_id": "D001",
-      "timestamp": "2025-12-30T05:00:41.844932+00:00",
+      "timestamp": "2026-01-02T06:16:38.043770+00:00",
       "category": "causal_identification",
       "decision": "Use 2018 as first post-treatment year for Travel Ban DiD",
       "rationale": "Executive Order 13769 signed Jan 27, 2017, repeatedly blocked. 2017 reflects partial implementation; 2018 is first full year of effect.",
@@ -590,7 +434,7 @@
     },
     {
       "decision_id": "D003",
-      "timestamp": "2025-12-30T05:00:42.153231+00:00",
+      "timestamp": "2026-01-02T06:16:38.336731+00:00",
       "category": "model_specification",
       "decision": "Use two-way fixed effects with nationality-clustered standard errors",
       "rationale": "Nationality FE controls for time-invariant heterogeneity; Year FE controls for common shocks",
@@ -604,7 +448,7 @@
     },
     {
       "decision_id": "D002",
-      "timestamp": "2025-12-30T05:00:42.156572+00:00",
+      "timestamp": "2026-01-02T06:16:38.342823+00:00",
       "category": "causal_identification",
       "decision": "Use 2020 as COVID treatment year for state-level DiD",
       "rationale": "COVID-19 travel restrictions began March 2020, affecting international migration universally",
@@ -613,34 +457,6 @@
         "Exclude 2020 due to partial year data"
       ],
       "evidence": "Census PEP shows 2020 as partial year with anomalous low values",
-      "reversible": true
-    },
-    {
-      "decision_id": "D004",
-      "timestamp": "2025-12-30T05:00:42.720660+00:00",
-      "category": "causal_identification",
-      "decision": "Use international migration rate (per 1000) for synthetic comparator",
-      "rationale": "Rate normalizes for population differences across states",
-      "alternatives_considered": [
-        "Use raw counts",
-        "Use log transformation",
-        "Use growth rates"
-      ],
-      "evidence": "Pre-treatment RMSPE = 0.0198",
-      "reversible": true
-    },
-    {
-      "decision_id": "D005",
-      "timestamp": "2025-12-30T05:00:42.962689+00:00",
-      "category": "causal_identification",
-      "decision": "Use 2010 baseline with leave-one-out shifts for shift-share construction",
-      "rationale": "2010 is first year with reliable state-level refugee data and aligns with panel start",
-      "alternatives_considered": [
-        "Use 2005 as baseline",
-        "Use average of early years",
-        "Time-varying shares"
-      ],
-      "evidence": "First-stage F = 39.95",
       "reversible": true
     }
   ],

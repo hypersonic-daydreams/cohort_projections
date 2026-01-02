@@ -56,7 +56,16 @@ Data deletion, security changes, breaking output formats, **methodology changes 
 
 ---
 
-## 4. Quality Standards
+## 4. System Procedures
+
+### Workflow Scripts
+**ALWAYS check `scripts/` before inventing new commands.**
+- **Backups**: Use `scripts/bisync.sh`. NEVER run raw `rclone` commands for syncing.
+- **Maintenance**: Use provided scripts in `scripts/maintenance/`.
+
+---
+
+## 5. Quality Standards
 
 | Requirement | Standard |
 |-------------|----------|

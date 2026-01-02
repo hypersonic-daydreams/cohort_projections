@@ -31,6 +31,10 @@ import statsmodels.api as sm
 from scipy import stats
 from statsmodels.regression.linear_model import OLS
 
+# Add scripts directory to path to find db_config
+sys.path.append(str(Path(__file__).parent.parent))
+from database import db_config
+
 # Project paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent  # cohort_projections/
 DATA_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "analysis"
@@ -201,33 +205,48 @@ def save_figure(fig, filepath_base, title, source_note):
 
 
 def load_data(result: ModuleResult) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Load all required data for causal inference analysis."""
-    # Load components of change (state-level panel)
-    components_path = DATA_DIR / "combined_components_of_change.csv"
-    df_components = pd.read_csv(components_path)
-    result.input_files.append("combined_components_of_change.csv")
-    print(f"Loaded components of change: {df_components.shape}")
+    """Load all required data for causal inference analysis from PostgreSQL."""
+    conn = db_config.get_db_connection()
+    try:
+        # 1. Load Census Components of Change (Historical & Recent)
+        # Using the new census.state_components table which contains 2010+ data
+        query_components = """
+        SELECT
+            year,
+            state_name as state,
+            intl_migration,
+            domestic_migration,
+            population as pop_estimate
+        FROM census.state_components
+        WHERE state_name IS NOT NULL
+        """
 
-    # Load refugee arrivals data
-    refugee_path = DATA_DIR / "refugee_arrivals_by_state_nationality.parquet"
-    df_refugee = pd.read_parquet(refugee_path)
-    result.input_files.append("refugee_arrivals_by_state_nationality.parquet")
-    print(f"Loaded refugee arrivals: {df_refugee.shape}")
+        df_components = pd.read_sql(query_components, conn)
+        result.input_files.append("census.state_components (PostgreSQL)")
+        print(f"Loaded components of change (DB): {df_components.shape}")
 
-    # Load panel data from Module 3.1 if available
-    panel_path = RESULTS_DIR / "module_3_1_panel_data.parquet"
-    if panel_path.exists():
-        df_panel = pd.read_parquet(panel_path)
-        result.input_files.append("results/module_3_1_panel_data.parquet")
-        print(f"Loaded Module 3.1 panel data: {df_panel.shape}")
-    else:
-        # Create panel from components
+        # 2. Load Refugee Arrivals (RPC)
+        query_refugee = """
+        SELECT
+            fiscal_year,
+            nationality,
+            arrivals
+        FROM rpc.refugee_arrivals
+        """
+        df_refugee = pd.read_sql(query_refugee, conn)
+        df_refugee = pd.read_sql(query_refugee, conn)
+        result.input_files.append("rpc.refugee_arrivals (PostgreSQL)")
+        print(f"Loaded refugee arrivals (DB): {df_refugee.shape}")
+
+        # 3. Create Panel Data
         df_panel = df_components[
-            ~df_components["state"].isin(["Puerto Rico", "United States"])
+            ~df_components["state"].isin(
+                ["Puerto Rico", "United States", "US Region", "US Division"]
+            )
         ].copy()
-        result.warnings.append(
-            "Module 3.1 panel data not found; using components directly"
-        )
+
+    finally:
+        conn.close()
 
     return df_components, df_refugee, df_panel
 

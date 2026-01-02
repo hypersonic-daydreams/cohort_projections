@@ -43,6 +43,13 @@ repos:
   # Only runs on commits that touch production code
   - repo: local
     hooks:
+      - id: rclone-reminder
+        name: Rclone Reminder
+        entry: ./scripts/hooks/rclone_reminder.sh
+        language: script
+        always_run: true
+        pass_filenames: false
+        verbose: true
       - id: pytest-check
         name: pytest (fast tests only)
         entry: .venv/bin/python -m pytest tests/ -x -q --ignore=tests/test_integration/ -m "not slow"
