@@ -23,8 +23,8 @@
       "standardized": true
     },
     "birth_rate": {
-      "coefficient": -0.002563681414208582,
-      "abs_coefficient": 0.002563681414208582,
+      "coefficient": -0.0025636814142085806,
+      "abs_coefficient": 0.0025636814142085806,
       "standardized": true
     },
     "death_rate": {

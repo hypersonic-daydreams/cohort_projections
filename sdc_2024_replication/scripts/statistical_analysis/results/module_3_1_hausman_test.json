@@ -1,7 +1,7 @@
 {
   "test": "Hausman Specification Test",
   "null_hypothesis": "Difference in coefficients is not systematic (RE is consistent)",
-  "statistic": 7.180932476852153e-31,
+  "statistic": 7.180932476852143e-31,
   "df": 1,
   "p_value": 0.9999999999999993,
   "recommendation": "Random Effects",

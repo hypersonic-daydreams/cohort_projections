@@ -24,6 +24,9 @@ import pandas as pd
 from linearmodels.panel import PanelOLS, RandomEffects, compare
 from scipy import stats
 
+from data_loader import load_panel_data
+
+
 # Project paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent  # cohort_projections/
 DATA_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "analysis"
@@ -77,8 +80,8 @@ class ModuleResult:
         category: str,
         decision: str,
         rationale: str,
-        alternatives: list[str] = None,
-        evidence: str = None,
+        alternatives: list[str] | None = None,
+        evidence: str | None = None,
         reversible: bool = True,
     ):
         """Log a decision with full context."""
@@ -159,25 +162,22 @@ def save_figure(fig, filepath_base, title, source_note):
 
 def load_and_prepare_panel(result: ModuleResult) -> pd.DataFrame:
     """Load data and construct balanced panel."""
-    # Load data
-    filepath = DATA_DIR / "combined_components_of_change.csv"
-    df = pd.read_csv(filepath)
-    result.input_files.append("combined_components_of_change.csv")
+    # Load data from database
+    df = load_panel_data()
+    result.input_files.append("census.state_components (PostgreSQL)")
 
-    # Decision: Exclude territories and US total
-    entities_to_exclude = ["Puerto Rico", "United States"]
-    df_panel = df[~df["state"].isin(entities_to_exclude)].copy()
+    # Data is already filtered in SQL, but we keep the variable for clarity
+    df_panel = df.copy()
 
     result.add_decision(
         decision_id="D001",
         category="data_handling",
-        decision="Excluded Puerto Rico and United States total from panel",
-        rationale="Puerto Rico is a territory, not a state. US total is aggregate, not entity.",
+        decision="Loaded panel data from PostgreSQL",
+        rationale="Used centralized data loader to ensure consistency and use of official database.",
         alternatives=[
-            "Include PR as additional entity",
-            "Include all available entities",
+            "Load from combined_components_of_change.csv",
         ],
-        evidence=f"Original entities: 53, After exclusion: {df_panel['state'].nunique()}",
+        evidence=f"Loaded {len(df_panel)} rows for {df_panel['state'].nunique()} entities",
     )
 
     # Verify balanced panel

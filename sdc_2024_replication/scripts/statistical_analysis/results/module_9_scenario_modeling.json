@@ -1,9 +1,9 @@
 {
   "module": "9",
   "analysis": "scenario_modeling",
-  "generated": "2025-12-30T05:19:30.418452+00:00",
+  "generated": "2026-01-02T17:26:10.784550+00:00",
   "input_files": [
-    "nd_migration_summary.csv",
+    "census.state_components (PostgreSQL)",
     "module_1_1_summary_statistics.json",
     "module_1_1_trend_decomposition.json",
     "module_1_2_location_quotients.json",
@@ -32,6 +32,7 @@
     "module_7_did_estimates.json",
     "module_7_synthetic_control.json",
     "module_7_causal_inference.json",
+    "module_7_robustness.json",
     "module_8_hazard_model.json",
     "module_8_wave_durations.json",
     "module_8_duration_analysis.json"
@@ -58,7 +59,7 @@
         "var": 1.0
       },
       "r2_based": {
-        "ols": 0.2445463819854277,
+        "ols": 0.24454638198542775,
         "elastic_net": 0.29321949380192663,
         "random_forest": 0.46223412421264576
       }
@@ -92,6 +93,7 @@
       "module_7_did_estimates",
       "module_7_synthetic_control",
       "module_7_causal_inference",
+      "module_7_robustness",
       "module_8_hazard_model",
       "module_8_wave_durations",
       "module_8_duration_analysis"
@@ -104,7 +106,7 @@
         "var": 1.0
       },
       "r2_weights": {
-        "ols": 0.2445463819854277,
+        "ols": 0.24454638198542775,
         "elastic_net": 0.29321949380192663,
         "random_forest": 0.46223412421264576
       }
@@ -124,7 +126,7 @@
         "final_2045_value": 7048.3587997393915,
         "assumptions": {
           "trend_dampening": 0.5,
-          "average_trend_used": 240.29484996742335
+          "average_trend_used": 240.2948499674235
         }
       },
       "zero": {
@@ -145,11 +147,11 @@
     },
     "monte_carlo": {
       "n_draws": 1000,
-      "median_2030": 7548.551053417135,
-      "median_2045": 9056.135888578756,
+      "median_2030": 7548.551053417137,
+      "median_2045": 9056.135888578765,
       "ci_95_2045": [
-        3570.4799023446753,
-        14491.289895920261
+        3570.4799023446785,
+        14491.289895920263
       ],
       "wave_adjustment": {
         "active_waves": 1,
@@ -161,28 +163,28 @@
     "confidence_intervals": {
       "ci_50": {
         "2030": [
-          5675.003481618427,
-          9261.598560503135
+          5675.003481618428,
+          9261.598560503136
         ],
         "2045": [
-          6449.898762001178,
-          11292.421689998593
+          6449.898762001182,
+          11292.4216899986
         ]
       },
       "ci_95": {
         "2030": [
-          3211.9007309356143,
+          3211.900730935615,
           11571.710908304465
         ],
         "2045": [
-          3570.4799023446753,
-          14491.289895920261
+          3570.4799023446785,
+          14491.289895920263
         ]
       }
     }
   },
   "diagnostics": {
-    "input_modules_loaded": 31,
+    "input_modules_loaded": 32,
     "estimates_extracted": {
       "arima": true,
       "var": true,
@@ -198,16 +200,16 @@
     "projection_years": 21,
     "wave_adjustment_applied": true,
     "mc_convergence": {
-      "mean_2045": 8986.654689990355,
-      "std_2045": 3379.4239632870645,
-      "cv_2045": 0.37604916176997244
+      "mean_2045": 8986.65468999036,
+      "std_2045": 3379.423963287065,
+      "cv_2045": 0.3760491617699723
     }
   },
   "warnings": [],
   "decisions": [
     {
       "decision_id": "D001",
-      "timestamp": "2025-12-30T05:19:29.133011+00:00",
+      "timestamp": "2026-01-02T17:26:09.245717+00:00",
       "category": "data_integration",
       "decision": "Extracted estimates from 9 module categories",
       "rationale": "Consolidate all statistical findings for scenario modeling",
@@ -215,12 +217,12 @@
         "Use only time series models",
         "Use only cross-sectional results"
       ],
-      "evidence": "Loaded 32 result files",
+      "evidence": "Loaded 33 result files",
       "reversible": true
     },
     {
       "decision_id": "D002",
-      "timestamp": "2025-12-30T05:19:29.133085+00:00",
+      "timestamp": "2026-01-02T17:26:09.245861+00:00",
       "category": "methodology",
       "decision": "Computed AIC and R-squared based model weights",
       "rationale": "AIC weights for time series averaging; R2 weights for cross-sectional insight",
@@ -234,7 +236,7 @@
     },
     {
       "decision_id": "D003",
-      "timestamp": "2025-12-30T05:19:29.134810+00:00",
+      "timestamp": "2026-01-02T17:26:09.248274+00:00",
       "category": "scenario_design",
       "decision": "Generated 4 scenarios: CBO Full, Moderate, Zero, Pre-2020 Trend",
       "rationale": "Cover range from optimistic to restrictive immigration policy outcomes",
@@ -247,12 +249,12 @@
     },
     {
       "decision_id": "D004",
-      "timestamp": "2025-12-30T05:19:29.261566+00:00",
+      "timestamp": "2026-01-02T17:26:09.414072+00:00",
       "category": "uncertainty_quantification",
       "decision": "Ran 1000-draw Monte Carlo simulation",
       "rationale": "Propagate parameter uncertainty through projections",
       "alternatives_considered": [
-        "Analytical confidence intervals",
+        "Analytical prediction intervals",
         "Bootstrapping"
       ],
       "evidence": "Trend uncertainty from quantile regression range",
@@ -260,7 +262,7 @@
     },
     {
       "decision_id": "D004A",
-      "timestamp": "2025-12-30T05:19:29.261603+00:00",
+      "timestamp": "2026-01-02T17:26:09.414121+00:00",
       "category": "scenario_integration",
       "decision": "Applied hazard-based wave persistence adjustments",
       "rationale": "Map duration model outputs into scenario Monte Carlo paths",

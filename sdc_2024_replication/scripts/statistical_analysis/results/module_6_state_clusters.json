@@ -3,7 +3,7 @@
     "primary": "K-Means Clustering",
     "secondary": "Hierarchical Agglomerative Clustering (Ward linkage)"
   },
-  "n_states": 53,
+  "n_states": 51,
   "n_features": 8,
   "features_used": [
     "avg_intl_share",
@@ -28,93 +28,97 @@
       10
     ],
     "inertias": [
-      341.18584905774264,
-      267.15336192624784,
-      196.33510218173797,
-      159.24997770366713,
-      135.72641604531233,
-      116.36563688589433,
-      103.32638833379164,
-      92.99422163498059,
-      83.82097507341184
+      300.3274121766078,
+      232.37361436703014,
+      193.46170184163776,
+      164.9468091629866,
+      156.96081612105124,
+      125.31352849512402,
+      120.70899999992292,
+      106.08360850979129,
+      98.71591404261287
     ],
     "silhouette_scores": [
-      0.6437630014080847,
-      0.23729796003029688,
-      0.2594492286974759,
-      0.22849479641304912,
-      0.2387961857192853,
-      0.2612630481786068,
-      0.25855497047249215,
-      0.24113641339629244,
-      0.24452954172616684
+      0.4779778097709744,
+      0.2436976296476733,
+      0.23115725930982456,
+      0.2295250924888525,
+      0.21707479495706727,
+      0.2508413773542623,
+      0.23076413893059783,
+      0.2551666546158025,
+      0.2431665275772722
     ],
     "calinski_harabasz_scores": [
-      12.378947455526893,
-      14.677584154551298,
-      18.93969352929506,
-      19.949768994428172,
-      19.964954267041175,
-      20.26826974290415,
-      19.951081723622163,
-      19.576826914617644,
-      19.390132175590903
+      17.56735013000971,
+      18.139035564225903,
+      17.373464476355675,
+      16.945533586307565,
+      14.394373772675095,
+      16.542779931775307,
+      14.620182185505401,
+      14.94162083652441,
+      14.272884465415462
     ],
     "davies_bouldin_scores": [
-      0.2470529027156777,
-      1.0915371300937038,
-      0.8186283310473297,
-      0.8719473769988983,
-      0.8815346583403612,
-      0.8439717983624562,
-      0.8100016974554727,
-      0.9305352006933885,
-      0.8583202809712718
+      0.9489837437202685,
+      1.295846499006748,
+      1.2598633370527303,
+      1.2135773372778254,
+      1.0328577622275346,
+      1.0709664972048905,
+      1.0295379821679047,
+      0.9727297702877036,
+      0.8877687341944398
     ],
     "optimal_k_by_method": {
       "silhouette": 2,
-      "calinski_harabasz": 7,
-      "davies_bouldin": 2,
-      "elbow": 9
+      "calinski_harabasz": 3,
+      "davies_bouldin": 10,
+      "elbow": 6
     },
     "selected_k": 2,
     "selection_criterion": "Maximum silhouette score"
   },
   "quality_metrics": {
     "kmeans": {
-      "silhouette_score": 0.6437630014080847,
-      "calinski_harabasz": 12.378947455526893,
-      "davies_bouldin": 0.2470529027156777,
-      "inertia": 341.1858490577427
+      "silhouette_score": 0.4779778097709744,
+      "calinski_harabasz": 17.56735013000971,
+      "davies_bouldin": 0.9489837437202685,
+      "inertia": 300.32741217660794
     },
     "hierarchical": {
-      "silhouette_score": 0.6293975215770933,
-      "calinski_harabasz": 12.478618863509785,
-      "davies_bouldin": 1.2246013504719684
+      "silhouette_score": 0.4779778097709744,
+      "calinski_harabasz": 17.56735013000971,
+      "davies_bouldin": 0.9489837437202685
     }
   },
   "cluster_sizes": {
     "kmeans": {
-      "0": 52,
-      "1": 1
+      "0": 4,
+      "1": 47
     },
     "hierarchical": {
-      "0": 2,
-      "1": 51
+      "0": 4,
+      "1": 47
     }
   },
   "states_by_cluster": {
     "cluster_0": [
+      "California",
+      "Florida",
+      "New York",
+      "Texas"
+    ],
+    "cluster_1": [
       "Alabama",
       "Alaska",
       "Arizona",
       "Arkansas",
-      "California",
       "Colorado",
       "Connecticut",
       "Delaware",
       "District of Columbia",
-      "Florida",
       "Georgia",
       "Hawaii",
       "Idaho",
@@ -137,7 +141,6 @@
       "New Hampshire",
       "New Jersey",
       "New Mexico",
-      "New York",
       "North Carolina",
       "North Dakota",
       "Ohio",
@@ -148,8 +151,6 @@
       "South Carolina",
       "South Dakota",
       "Tennessee",
-      "Texas",
-      "United States",
       "Utah",
       "Vermont",
       "Virginia",
@@ -157,150 +158,145 @@
       "West Virginia",
       "Wisconsin",
       "Wyoming"
-    ],
-    "cluster_1": [
-      "Puerto Rico"
     ]
   },
   "cluster_centroids": [
     {
-      "avg_intl_share": 0.01974352423636331,
-      "avg_intl_mig_rate": 2.5514691592541485,
-      "avg_dom_mig_rate": 0.48077069670441464,
-      "avg_birth_rate": 10.618116105657512,
-      "avg_death_rate": 8.230729465531773,
-      "avg_growth_rate": 5.419643053083777,
-      "log_avg_population": 15.248516416539324,
-      "intl_share_volatility": 0.0021295470001643974,
+      "avg_intl_share": 0.1110892912092567,
+      "avg_intl_mig_rate": 4.478797338265192,
+      "avg_dom_mig_rate": -0.18717879017600758,
+      "avg_birth_rate": 10.716253886627877,
+      "avg_death_rate": 7.242184365260108,
+      "avg_growth_rate": 7.762122994259384,
+      "log_avg_population": 17.069326379544258,
+      "intl_share_volatility": 0.017385530951839256,
       "cluster": 0
     },
     {
-      "avg_intl_share": -0.026663260290892134,
-      "avg_intl_mig_rate": -11.207639687219324,
-      "avg_dom_mig_rate": 0.0,
-      "avg_birth_rate": 7.350797341202113,
-      "avg_death_rate": 8.251432623133088,
-      "avg_growth_rate": -12.108274969150301,
-      "log_avg_population": 15.037840258746497,
-      "intl_share_volatility": 0.02494921535111482,
+      "avg_intl_share": 0.011822187982190917,
+      "avg_intl_mig_rate": 2.376128082836643,
+      "avg_dom_mig_rate": 0.54784662530497,
+      "avg_birth_rate": 10.609765657087772,
+      "avg_death_rate": 8.321523956373847,
+      "avg_growth_rate": 5.212538137893049,
+      "log_avg_population": 15.001014044463604,
+      "intl_share_volatility": 0.002548124944072118,
       "cluster": 1
     }
   ],
   "cluster_profiles": {
     "cluster_0": {
       "avg_intl_share": {
-        "mean": 0.01974352423636331,
-        "std": 0.0714082202366677,
-        "min": 0.00028652969556203017,
-        "max": 0.513331630145446
+        "mean": 0.1110892912092567,
+        "std": 0.024145421008233612,
+        "min": 0.08334613674502056,
+        "max": 0.14124750692578392
       },
       "avg_intl_mig_rate": {
-        "mean": 2.5514691592541476,
-        "std": 1.411471057191095,
-        "min": 0.6518499022439382,
-        "max": 6.9587657833171725
+        "mean": 4.478797338265192,
+        "std": 1.5729887879394389,
+        "min": 3.2360075099243093,
+        "max": 6.772156674965573
       },
       "avg_dom_mig_rate": {
-        "mean": 0.48077069670441486,
-        "std": 4.095460032532119,
+        "mean": -0.18717879017600736,
+        "std": 6.976998260603214,
         "min": -7.95699713250889,
-        "max": 8.923626781647222
+        "max": 6.822583094058529
       },
       "avg_birth_rate": {
-        "mean": 10.618116105657512,
-        "std": 1.16579727987434,
-        "min": 8.054413121459307,
-        "max": 14.208137168193113
+        "mean": 10.716253886627877,
+        "std": 1.2028153584123054,
+        "min": 9.414127928663284,
+        "max": 12.307838646235844
       },
       "avg_death_rate": {
-        "mean": 8.230729465531775,
-        "std": 1.219803873668451,
-        "min": 5.2901450235887895,
-        "max": 11.802341633257877
+        "mean": 7.242184365260108,
+        "std": 1.1438455643322538,
+        "min": 6.31613733311322,
+        "max": 8.818066730875532
       },
       "avg_growth_rate": {
-        "mean": 5.419643053083776,
-        "std": 4.5993667141268455,
-        "min": -3.008128326187209,
-        "max": 14.323035032543453
+        "mean": 7.762122994259385,
+        "std": 7.604262379363292,
+        "min": -0.8402879066373188,
+        "max": 14.231218057131775
       },
       "log_avg_population": {
-        "mean": 15.248516416539323,
-        "std": 1.2008567187743966,
-        "min": 13.270467010643216,
-        "max": 19.59788805207841
+        "mean": 17.069326379544258,
+        "std": 0.31271589270405403,
+        "min": 16.794133199652663,
+        "max": 17.474693630406385
       },
       "intl_share_volatility": {
-        "mean": 0.002129547000164398,
-        "std": 0.0028195319037575724,
-        "min": 0.00019931077583195973,
-        "max": 0.012586189179605202
+        "mean": 0.017385530951839256,
+        "std": 0.006034636328766944,
+        "min": 0.011148432949565497,
+        "max": 0.024797743820072035
       }
     },
     "cluster_1": {
       "avg_intl_share": {
-        "mean": -0.02666326029089213,
-        "std": NaN,
-        "min": -0.02666326029089213,
-        "max": -0.02666326029089213
+        "mean": 0.011822187982190917,
+        "std": 0.011533714307491236,
+        "min": 0.0005551630215333742,
+        "max": 0.04427902877587991
       },
       "avg_intl_mig_rate": {
-        "mean": -11.207639687219324,
-        "std": NaN,
-        "min": -11.207639687219324,
-        "max": -11.207639687219324
+        "mean": 2.3761280828366433,
+        "std": 1.298793804269204,
+        "min": 0.6518499022439382,
+        "max": 6.9587657833171725
       },
       "avg_dom_mig_rate": {
-        "mean": 0.0,
-        "std": NaN,
-        "min": 0.0,
-        "max": 0.0
+        "mean": 0.5478466253049701,
+        "std": 3.92081872161119,
+        "min": -7.077482389927817,
+        "max": 8.923626781647222
       },
       "avg_birth_rate": {
-        "mean": 7.350797341202113,
-        "std": NaN,
-        "min": 7.350797341202113,
-        "max": 7.350797341202113
+        "mean": 10.609765657087772,
+        "std": 1.1880853469413624,
+        "min": 8.054413121459307,
+        "max": 14.208137168193113
       },
       "avg_death_rate": {
-        "mean": 8.251432623133088,
-        "std": NaN,
-        "min": 8.251432623133088,
-        "max": 8.251432623133088
+        "mean": 8.321523956373849,
+        "std": 1.2119373786635017,
+        "min": 5.2901450235887895,
+        "max": 11.802341633257877
       },
       "avg_growth_rate": {
-        "mean": -12.1082749691503,
-        "std": NaN,
-        "min": -12.1082749691503,
-        "max": -12.1082749691503
+        "mean": 5.21253813789305,
+        "std": 4.377042791342933,
+        "min": -3.008128326187209,
+        "max": 14.323035032543453
       },
       "log_avg_population": {
-        "mean": 15.037840258746497,
-        "std": NaN,
-        "min": 15.037840258746497,
-        "max": 15.037840258746497
+        "mean": 15.001014044463606,
+        "std": 0.9112103498322737,
+        "min": 13.270467010643216,
+        "max": 16.36949580815699
       },
       "intl_share_volatility": {
-        "mean": 0.02494921535111482,
-        "std": NaN,
-        "min": 0.02494921535111482,
-        "max": 0.02494921535111482
+        "mean": 0.002548124944072118,
+        "std": 0.0018221970835764396,
+        "min": 0.0003801614561462812,
+        "max": 0.007917733777868318
       }
     }
   },
   "north_dakota": {
-    "cluster": 0,
+    "cluster": 1,
     "peer_states": [
       "Alabama",
       "Alaska",
       "Arizona",
       "Arkansas",
-      "California",
       "Colorado",
       "Connecticut",
       "Delaware",
       "District of Columbia",
-      "Florida",
       "Georgia",
       "Hawaii",
       "Idaho",
@@ -323,7 +319,6 @@
       "New Hampshire",
       "New Jersey",
       "New Mexico",
-      "New York",
       "North Carolina",
       "Ohio",
       "Oklahoma",
@@ -333,8 +328,6 @@
       "South Carolina",
       "South Dakota",
       "Tennessee",
-      "Texas",
-      "United States",
       "Utah",
       "Vermont",
       "Virginia",
@@ -343,14 +336,14 @@
       "Wisconsin",
       "Wyoming"
     ],
-    "n_peers": 51
+    "n_peers": 46
   },
   "pca_projection": {
     "explained_variance_ratio": [
-      0.3027012704707504,
-      0.2574477185843255
+      0.39178017919461555,
+      0.25498251847988124
     ],
-    "total_variance_explained": 0.5601489890550759
+    "total_variance_explained": 0.6467626976744968
   },
   "spss_style_output": {
     "cluster_method": "K-Means with Ward Hierarchical Comparison",
@@ -358,40 +351,44 @@
     "linkage_method": "Ward (minimum variance)",
     "final_cluster_centers": [
       {
-        "avg_intl_share": 0.01974352423636331,
-        "avg_intl_mig_rate": 2.5514691592541485,
-        "avg_dom_mig_rate": 0.48077069670441464,
-        "avg_birth_rate": 10.618116105657512,
-        "avg_death_rate": 8.230729465531773,
-        "avg_growth_rate": 5.419643053083777,
-        "log_avg_population": 15.248516416539324,
-        "intl_share_volatility": 0.0021295470001643974,
+        "avg_intl_share": 0.1110892912092567,
+        "avg_intl_mig_rate": 4.478797338265192,
+        "avg_dom_mig_rate": -0.18717879017600758,
+        "avg_birth_rate": 10.716253886627877,
+        "avg_death_rate": 7.242184365260108,
+        "avg_growth_rate": 7.762122994259384,
+        "log_avg_population": 17.069326379544258,
+        "intl_share_volatility": 0.017385530951839256,
         "cluster": 0
       },
       {
-        "avg_intl_share": -0.026663260290892134,
-        "avg_intl_mig_rate": -11.207639687219324,
-        "avg_dom_mig_rate": 0.0,
-        "avg_birth_rate": 7.350797341202113,
-        "avg_death_rate": 8.251432623133088,
-        "avg_growth_rate": -12.108274969150301,
-        "log_avg_population": 15.037840258746497,
-        "intl_share_volatility": 0.02494921535111482,
+        "avg_intl_share": 0.011822187982190917,
+        "avg_intl_mig_rate": 2.376128082836643,
+        "avg_dom_mig_rate": 0.54784662530497,
+        "avg_birth_rate": 10.609765657087772,
+        "avg_death_rate": 8.321523956373847,
+        "avg_growth_rate": 5.212538137893049,
+        "log_avg_population": 15.001014044463604,
+        "intl_share_volatility": 0.002548124944072118,
         "cluster": 1
       }
     ],
     "cluster_membership": {
       "cluster_0": [
+        "California",
+        "Florida",
+        "New York",
+        "Texas"
+      ],
+      "cluster_1": [
         "Alabama",
         "Alaska",
         "Arizona",
         "Arkansas",
-        "California",
         "Colorado",
         "Connecticut",
         "Delaware",
         "District of Columbia",
-        "Florida",
         "Georgia",
         "Hawaii",
         "Idaho",
@@ -414,7 +411,6 @@
         "New Hampshire",
         "New Jersey",
         "New Mexico",
-        "New York",
         "North Carolina",
         "North Dakota",
         "Ohio",
@@ -425,8 +421,6 @@
         "South Carolina",
         "South Dakota",
         "Tennessee",
-        "Texas",
-        "United States",
         "Utah",
         "Vermont",
         "Virginia",
@@ -434,9 +428,6 @@
         "West Virginia",
         "Wisconsin",
         "Wyoming"
-      ],
-      "cluster_1": [
-        "Puerto Rico"
       ]
     }
   }

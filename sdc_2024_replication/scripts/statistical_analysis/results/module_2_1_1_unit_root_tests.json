@@ -1,9 +1,9 @@
 {
   "module": "2.1.1",
   "analysis": "unit_root_tests",
-  "generated": "2025-12-30T04:23:52.928648+00:00",
+  "generated": "2026-01-02T17:21:12.001912+00:00",
   "input_files": [
-    "nd_migration_summary.csv"
+    "census.state_components (PostgreSQL)"
   ],
   "parameters": {
     "variables_tested": [
@@ -24,12 +24,12 @@
     "variables": {
       "nd_share_of_us_intl_pct": {
         "n_observations": 15,
-        "mean": 0.17311264892684516,
-        "std": 0.0523189026086137,
+        "mean": 0.1731126489268452,
+        "std": 0.052318902608613715,
         "adf_level": {
           "series": "nd_share_of_us_intl_pct",
-          "statistic": -2.004226168756993,
-          "p_value": 0.28472315139645327,
+          "statistic": -2.004226168756995,
+          "p_value": 0.2847231513964522,
           "used_lag": 5,
           "n_obs_used": 9,
           "critical_values": {
@@ -37,49 +37,49 @@
             "5%": -3.28988060356653,
             "10%": -2.7723823456790124
           },
-          "ic_best": -25.129730601598936,
+          "ic_best": -25.129730601598965,
           "regression_type": "c",
           "regression": {
             "constant": {
-              "coef": 0.2568792982935854,
-              "se": 0.09230680642152259,
-              "t": 2.782885772480701
+              "coef": 0.2568792982935857,
+              "se": 0.09230680642152306,
+              "t": 2.78288577248069
             },
             "rho_minus_1": {
-              "coef": -1.484914879812138,
-              "se": 0.4890557505573003,
-              "t": -3.0362895807277863
+              "coef": -1.4849148798121394,
+              "se": 0.4890557505573026,
+              "t": -3.0362895807277748
             },
             "diff_lag_1": {
-              "coef": 0.3765213161238465,
-              "se": 0.4045386545773573,
-              "t": 0.9307424936121814
+              "coef": 0.37652131612384776,
+              "se": 0.40453865457735877,
+              "t": 0.9307424936121813
             },
             "diff_lag_2": {
-              "coef": 0.5481137100324905,
-              "se": 0.3231694358709333,
-              "t": 1.6960567714435564
+              "coef": 0.5481137100324909,
+              "se": 0.3231694358709342,
+              "t": 1.6960567714435526
             },
             "diff_lag_3": {
-              "coef": 0.3060972733342249,
-              "se": 0.3225067738425361,
-              "t": 0.94911889659619
+              "coef": 0.30609727333422576,
+              "se": 0.32250677384253695,
+              "t": 0.9491188965961903
             },
             "diff_lag_4": {
-              "coef": -0.16837621084046384,
-              "se": 0.3090032254517405,
-              "t": -0.5449011433272578
+              "coef": -0.16837621084046345,
+              "se": 0.3090032254517411,
+              "t": -0.5449011433272556
             },
             "diff_lag_5": {
-              "coef": 0.009146028720370777,
-              "se": 0.27119160075586635,
-              "t": 0.033725339187788
+              "coef": 0.009146028720371027,
+              "se": 0.2711916007558664,
+              "t": 0.033725339187788916
             }
           }
         },
         "kpss_level": {
           "series": "nd_share_of_us_intl_pct",
-          "statistic": 0.07029320902462563,
+          "statistic": 0.0702932090246256,
           "p_value": 0.1,
           "lags_used": 1,
           "critical_values": {
@@ -91,8 +91,8 @@
           "regression_type": "level"
         },
         "phillips_perron_level": {
-          "statistic": -4.263697110119461,
-          "p_value": 0.0005130993784872706,
+          "statistic": -4.263697110119462,
+          "p_value": 0.0005130993784872697,
           "lags_used": 0,
           "n_obs_used": 14,
           "critical_values": {
@@ -104,8 +104,8 @@
         },
         "zivot_andrews_level": {
           "series": "nd_share_of_us_intl_pct",
-          "statistic": -5.605683187852614,
-          "p_value": 0.0027822567901155757,
+          "statistic": -5.605683187852617,
+          "p_value": 0.002782256790115549,
           "critical_values": {
             "1%": -5.27644,
             "5%": -4.81067,
@@ -120,7 +120,7 @@
         },
         "adf_differenced": {
           "series": "d(nd_share_of_us_intl_pct)",
-          "statistic": -6.214191059942855,
+          "statistic": -6.214191059942854,
           "p_value": 5.4157813805922624e-08,
           "used_lag": 0,
           "n_obs_used": 13,
@@ -133,21 +133,21 @@
           "regression_type": "c",
           "regression": {
             "constant": {
-              "coef": -0.0002988418861058704,
+              "coef": -0.00029884188610588007,
               "se": 0.0189968259270381,
-              "t": -0.015731148311493977
+              "t": -0.015731148311494483
             },
             "rho_minus_1": {
-              "coef": -1.4838973417833328,
-              "se": 0.23879171519985076,
-              "t": -6.214191059942854
+              "coef": -1.483897341783333,
+              "se": 0.2387917151998507,
+              "t": -6.2141910599428565
             }
           }
         },
         "kpss_differenced": {
           "series": "d(nd_share_of_us_intl_pct)",
-          "statistic": 0.5,
-          "p_value": 0.04166666666666667,
+          "statistic": 0.5000000000000011,
+          "p_value": 0.04166666666666642,
           "lags_used": 13,
           "critical_values": {
             "10%": 0.347,
@@ -550,7 +550,7 @@
   "decisions": [
     {
       "decision_id": "D001",
-      "timestamp": "2025-12-30T04:23:49.638039+00:00",
+      "timestamp": "2026-01-02T17:21:09.679229+00:00",
       "category": "data_handling",
       "decision": "Include 2020 COVID year in analysis",
       "rationale": "With only 15 observations, excluding any year significantly reduces test power. 2020 anomaly is noted but retained for completeness. Sensitivity without 2020 could be performed in follow-up analysis.",
@@ -563,7 +563,7 @@
     },
     {
       "decision_id": "D002",
-      "timestamp": "2025-12-30T04:23:49.638055+00:00",
+      "timestamp": "2026-01-02T17:21:09.679293+00:00",
       "category": "methodology",
       "decision": "Proceed with unit root tests despite short series",
       "rationale": "With n=15, asymptotic distributions may not hold well. Tests have reduced power. Results should be interpreted with caution.",

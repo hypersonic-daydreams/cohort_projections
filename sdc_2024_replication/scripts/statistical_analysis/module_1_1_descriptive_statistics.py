@@ -26,6 +26,9 @@ from statsmodels.tsa.filters.hp_filter import hpfilter
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
+# Add scripts directory to path to find db_config
+sys.path.append(str(Path(__file__).parent.parent))
+
 # Project paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent  # cohort_projections/
 DATA_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "analysis"
@@ -68,8 +71,8 @@ class ModuleResult:
         category: str,
         decision: str,
         rationale: str,
-        alternatives: list[str] = None,
-        evidence: str = None,
+        alternatives: list[str] | None = None,
+        evidence: str | None = None,
     ):
         """Add a documented decision."""
         self.decisions.append(
@@ -108,18 +111,7 @@ class ModuleResult:
         return output_path
 
 
-def load_data(filename: str) -> pd.DataFrame:
-    """Load data file from analysis directory."""
-    filepath = DATA_DIR / filename
-    if not filepath.exists():
-        raise FileNotFoundError(f"Data file not found: {filepath}")
-
-    if filepath.suffix == ".csv":
-        return pd.read_csv(filepath)
-    elif filepath.suffix == ".parquet":
-        return pd.read_parquet(filepath)
-    else:
-        raise ValueError(f"Unsupported file type: {filepath.suffix}")
+from data_loader import load_migration_summary
 
 
 def setup_figure(figsize=(10, 8)):
@@ -627,9 +619,12 @@ def run_analysis() -> ModuleResult:
     print("=" * 60)
 
     # Load required data
-    nd_migration = load_data("nd_migration_summary.csv")
-    result.input_files.append("nd_migration_summary.csv")
-    print(f"  Loaded nd_migration_summary.csv: {len(nd_migration)} rows")
+    # Load required data
+    # nd_migration = load_data("nd_migration_summary.csv")
+    nd_migration = load_migration_summary()
+
+    result.input_files.append("census.state_components (PostgreSQL)")
+    print(f"  Loaded summary data from DB: {len(nd_migration)} rows")
 
     # Record parameters
     result.parameters = {

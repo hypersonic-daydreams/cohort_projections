@@ -106,8 +106,8 @@ class ModuleResult:
         category: str,
         decision: str,
         rationale: str,
-        alternatives: list[str] = None,
-        evidence: str = None,
+        alternatives: list[str] | None = None,
+        evidence: str | None = None,
         reversible: bool = True,
     ):
         """Log a decision with full context."""
@@ -186,6 +186,9 @@ def save_figure(fig, filepath_base, title, source_note):
     print(f"Figure saved: {filepath_base}.png/pdf")
 
 
+from data_loader import load_migration_summary
+
+
 def load_previous_results(result: ModuleResult) -> dict:
     """Load all previous module results for aggregation."""
     print("\n--- Loading Previous Module Results ---")
@@ -221,11 +224,10 @@ def load_previous_results(result: ModuleResult) -> dict:
 
 
 def load_migration_data(result: ModuleResult) -> pd.DataFrame:
-    """Load ND migration summary data."""
-    migration_path = DATA_DIR / "nd_migration_summary.csv"
-    df = pd.read_csv(migration_path)
-    result.input_files.append("nd_migration_summary.csv")
-    print(f"  Loaded migration data: {len(df)} years")
+    """Load ND migration summary data from PostgreSQL."""
+    df = load_migration_summary()
+    result.input_files.append("census.state_components (PostgreSQL)")
+    print(f"  Loaded migration data (DB): {len(df)} years")
     return df
 
 

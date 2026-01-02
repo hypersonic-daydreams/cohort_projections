@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 from db_utils import get_db_cursor, register_source_file
+from psycopg2.extras import execute_values
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -37,8 +38,8 @@ def ingest_census_population(cursor):
         logger.error(f"Failed to read {file_path}: {e}")
         return
 
-    # 3. Filter for ND (State FIPS 38) and County Level (SUMLEV 50)
-    df_nd = df[(df["STATE"] == "38") & (df["SUMLEV"] == 50)].copy()
+    # 3. Filter for County Level (SUMLEV 50) - All States
+    df_nd = df[(df["SUMLEV"] == 50)].copy()
 
     # 4. Insert Data
     # Mapping CSV columns to DB columns
@@ -234,7 +235,7 @@ def ingest_dhs_lpr(cursor):
 
             # Normalize columns
             df.columns = [str(c).lower().strip().replace("\n", " ") for c in df.columns]
-            logger.info(f"  Columns: {df.columns.tolist()}")
+            logger.info(f"  Columns: {list(df.columns)}")
 
             # Filter for ND
             state_col = next((c for c in df.columns if "state" in c), None)
@@ -243,66 +244,76 @@ def ingest_dhs_lpr(cursor):
                 # Handle merged cells in State column
                 df[state_col] = df[state_col].ffill()
 
-                # "North Dakota" or "ND"
-                df_nd = df[
-                    df[state_col].astype(str).str.contains("North Dakota", case=False, na=False)
-                ].copy()
-                logger.info(f"  Found {len(df_nd)} rows for North Dakota.")
+                df_to_ingest = df[df[state_col].notna()].copy()
+                logger.info(f"  Found {len(df_to_ingest)} rows (all states).")
 
-                if len(df_nd) == 0:
-                    unique_states = df[state_col].dropna().unique()
-                    logger.warning(
-                        f"  No ND rows found. Unique states (first 20): {unique_states[:20]}"
-                    )
+                # Prepare data for bulk insert using vectorization
+                # Identify columns once
+                county_col = next((c for c in df.columns if "county" in c), None)
+                country_col = next((c for c in df.columns if "country" in c or "birth" in c), None)
+                region_col = next((c for c in df.columns if "region" in c), None)
+                count_col = next(
+                    (c for c in df.columns if "total" in c or "number" in c or "count" in c), None
+                )
 
-                rows_inserted = 0
-                for _, row in df_nd.iterrows():
-                    # Map columns
-                    county_col = next((c for c in df.columns if "county" in c), None)
-                    country_col = next(
-                        (c for c in df.columns if "country" in c or "birth" in c), None
-                    )
-                    region_col = next((c for c in df.columns if "region" in c), None)
-                    count_col = next(
-                        (c for c in df.columns if "total" in c or "number" in c or "count" in c),
-                        None,
-                    )
+                if count_col:
+                    # Create a working copy
+                    df_batch = df_to_ingest.copy()
 
-                    if not count_col:
-                        logger.warning(
-                            f"  Skipping row, no count column found. Columns avail: {df.columns}"
-                        )
-                        continue
-
-                    val = row[count_col]
-
-                    # Handle "D" (Data withheld) or "-" or "X"
-                    if str(val).strip().upper() in ["D", "-", "X", "NA"]:
-                        lpr_count = None
-                    else:
+                    # vectorized cleaning of count
+                    def clean_count(val):
+                        if str(val).strip().upper() in ["D", "-", "X", "NA"]:
+                            return None
                         try:
-                            lpr_count = int(val)
+                            return int(val)
                         except:
-                            lpr_count = 0
+                            return 0
 
-                    cursor.execute(
-                        """
-                        INSERT INTO dhs.lpr_arrivals (
-                            source_file_id, fiscal_year, state_name, county_name, country_of_birth, region_of_birth, lpr_count
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s)
-                        """,
-                        (
-                            source_id,
-                            fiscal_year,
-                            row.get(state_col),
-                            row.get(county_col) if county_col else None,
-                            row.get(country_col) if country_col else None,
-                            row.get(region_col) if region_col else None,
-                            lpr_count,
-                        ),
+                    df_batch["lpr_count"] = df_batch[count_col].apply(clean_count)
+                    df_batch["source_file_id"] = source_id
+                    df_batch["fiscal_year"] = fiscal_year
+
+                    # Handle missing columns by assigning None
+                    if not county_col:
+                        df_batch["county_temp"] = None
+                        county_col = "county_temp"
+                    if not country_col:
+                        df_batch["country_temp"] = None
+                        country_col = "country_temp"
+                    if not region_col:
+                        df_batch["region_temp"] = None
+                        region_col = "region_temp"
+
+                    # Select ordered columns for DB
+                    # source_file_id, fiscal_year, state_name, county_name, country_of_birth, region_of_birth, lpr_count
+                    cols_to_insert = [
+                        "source_file_id",
+                        "fiscal_year",
+                        state_col,
+                        county_col,
+                        country_col,
+                        region_col,
+                        "lpr_count",
+                    ]
+
+                    # Convert to list of tuples
+                    # Replace NaN with None for SQL compatibility? Pandas treats NaN as float.
+                    # Psycopg2 handles None but not NaN usually.
+                    # Use "object" dtype and where(pd.notnull(df), None)
+                    data_to_insert = (
+                        df_batch[cols_to_insert]
+                        .where(pd.notnull(df_batch[cols_to_insert]), None)
+                        .values.tolist()
                     )
-                    rows_inserted += 1
-                logger.info(f"Ingested {rows_inserted} LPR rows for {fiscal_year}.")
+
+                    if data_to_insert:
+                        query = """
+                            INSERT INTO dhs.lpr_arrivals (
+                                source_file_id, fiscal_year, state_name, county_name, country_of_birth, region_of_birth, lpr_count
+                            ) VALUES %s
+                        """
+                        execute_values(cursor, query, data_to_insert)
+                        logger.info(f"Ingested {len(data_to_insert)} LPR rows for {fiscal_year}.")
 
         except Exception as e:
             logger.error(f"Error processing {file_path.name}: {e}")
@@ -352,8 +363,8 @@ def ingest_rpc_refugees(cursor):
             (
                 source_id,
                 row.get("fiscal_year"),
-                row.get("state_name"),  # Parquet usually has state/city
-                row.get("city_name"),
+                row.get("state"),  # Parquet has 'state'
+                None,  # Parquet has no city info
                 row.get("nationality"),
                 row.get("arrivals"),
             ),
@@ -500,16 +511,19 @@ def main():
     logger.info("Starting Data Ingestion...")
     try:
         with get_db_cursor(commit=True) as cursor:
-            # 1. Census
+            # 1. Census (Population + Components)
             ingest_census_population(cursor)
             ingest_census_components(cursor)
 
+        with get_db_cursor(commit=True) as cursor:
             # 2. DHS LPR
             ingest_dhs_lpr(cursor)
 
+        with get_db_cursor(commit=True) as cursor:
             # 3. ACS
             ingest_acs_foreign_born(cursor)
 
+        with get_db_cursor(commit=True) as cursor:
             # 4. RPC (Placeholder)
             ingest_rpc_refugees(cursor)
 

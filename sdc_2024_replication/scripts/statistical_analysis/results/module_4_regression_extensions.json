@@ -1,10 +1,10 @@
 {
   "module": "4",
   "analysis": "regression_extensions_beta_quantile_robust",
-  "generated": "2025-12-29T06:06:05.817899+00:00",
+  "generated": "2026-01-02T17:25:19.154993+00:00",
   "input_files": [
     "module_3_1_panel_data.parquet",
-    "nd_migration_summary.csv"
+    "census.state_components (PostgreSQL)"
   ],
   "parameters": {
     "panel_observations": 765,
@@ -61,66 +61,66 @@
   },
   "results": {
     "beta_regression": {
-      "pseudo_r2": 0.0003600419467170157,
+      "pseudo_r2": 0.0003600419467160165,
       "aic": 8.298819071664473,
-      "time_trend_odds_ratio": 1.0115621858041999,
-      "covid_odds_ratio": 0.8277865138704352
+      "time_trend_odds_ratio": 1.0115621858041994,
+      "covid_odds_ratio": 0.8277865138704309
     },
     "quantile_regression": {
-      "median_trend": 225.8888889876544,
-      "trend_heterogeneity": 315.3636360184975,
+      "median_trend": 225.88888898765478,
+      "trend_heterogeneity": 315.36363601847876,
       "covid_effect_range": [
-        -3890.7692296915698,
-        -424.363641966035
+        -3890.7692296916216,
+        -424.3636419659488
       ]
     },
     "robust_regression": {
-      "ols_r_squared": 0.49983497504012064,
+      "ols_r_squared": 0.49983497504012075,
       "outliers_identified": [
         2019,
         2021
       ],
-      "percent_diff_tukey_ols_trend": 22.13423433092716
+      "percent_diff_tukey_ols_trend": 22.13423433092714
     },
     "comparison_table": {
       "ols_vs_quantile_vs_robust": {
         "time_trend": {
-          "ols": 210.97384412153235,
-          "q10": -1.3636358518812426,
-          "q25": 71.5000004081527,
-          "q50": 225.8888889876544,
-          "q75": 314.00000016661625,
-          "q90": 301.30769243180805,
-          "huber": 237.32437175825825,
-          "tukey": 257.6712891563573
+          "ols": 210.9738441215323,
+          "q10": -1.3636358518899754,
+          "q25": 71.50000040801953,
+          "q50": 225.88888898765478,
+          "q75": 314.0000001665888,
+          "q90": 301.3076924317994,
+          "huber": 237.32437175825845,
+          "tukey": 257.6712891563572
         },
         "covid_2020": {
-          "ols": -2570.558784676354,
-          "q10": -424.363641966035,
-          "q25": -1360.0000010663118,
-          "q50": -2805.2222224691363,
-          "q75": -3786.9999999998954,
-          "q90": -3890.7692296915698,
-          "huber": -2837.969580705906,
-          "tukey": -3000.817892060426
+          "ols": -2570.5587846763538,
+          "q10": -424.3636419659488,
+          "q25": -1360.0000010660356,
+          "q50": -2805.2222224691404,
+          "q75": -3786.9999999998126,
+          "q90": -3890.7692296916216,
+          "huber": -2837.9695807059056,
+          "tukey": -3000.817892060427
         }
       }
     }
   },
   "diagnostics": {
     "beta_regression": {
-      "deviance": 0.0017209711746477266,
-      "pearson_chi2": 0.0018263128290094614,
-      "residual_mean": -1.939578829887204e-14,
-      "residual_std": 0.0004893782267439284
+      "deviance": 0.001720971174648004,
+      "pearson_chi2": 0.0018263128290094692,
+      "residual_mean": -1.938579815028271e-14,
+      "residual_std": 0.0004893782267439282
     },
     "quantile_regression": {
       "pseudo_r2_by_quantile": {
-        "q10": 0.16049221741444264,
-        "q25": 0.14625143093203052,
-        "q50": 0.313690906226044,
-        "q75": 0.5881184487617958,
-        "q90": 0.6972614575536038
+        "q10": 0.16049221741444797,
+        "q25": 0.14625143093203696,
+        "q50": 0.3136909062260438,
+        "q75": 0.5881184487617938,
+        "q90": 0.6972614575536151
       }
     },
     "robust_regression": {
@@ -134,7 +134,7 @@
   "decisions": [
     {
       "decision_id": "D001",
-      "timestamp": "2025-12-29T06:05:56.851914+00:00",
+      "timestamp": "2026-01-02T17:25:05.126362+00:00",
       "category": "data_preparation",
       "decision": "Bounded ND share to (epsilon, 1-epsilon) for beta regression",
       "rationale": "Beta regression requires outcomes strictly between 0 and 1",
@@ -147,7 +147,7 @@
     },
     {
       "decision_id": "D002",
-      "timestamp": "2025-12-29T06:05:56.861653+00:00",
+      "timestamp": "2026-01-02T17:25:05.145845+00:00",
       "category": "methodology",
       "decision": "Used GLM with binomial family as quasi-beta regression",
       "rationale": "Native beta regression not in statsmodels; binomial GLM with logit link approximates beta regression for proportions",
@@ -160,7 +160,7 @@
     },
     {
       "decision_id": "D003",
-      "timestamp": "2025-12-29T06:06:03.858817+00:00",
+      "timestamp": "2026-01-02T17:25:16.496269+00:00",
       "category": "methodology",
       "decision": "Estimated quantile regression at 10th, 25th, 50th, 75th, and 90th percentiles",
       "rationale": "Captures heterogeneous effects across the distribution; reveals if relationships differ at extremes",
@@ -173,7 +173,7 @@
     },
     {
       "decision_id": "D004",
-      "timestamp": "2025-12-29T06:06:03.866707+00:00",
+      "timestamp": "2026-01-02T17:25:16.509223+00:00",
       "category": "methodology",
       "decision": "Used Huber and Tukey biweight M-estimators for robust regression",
       "rationale": "Huber provides moderate robustness; Tukey biweight provides high breakdown point",

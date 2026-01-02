@@ -1,16 +1,16 @@
 {
   "module": "6",
   "analysis": "machine_learning_elastic_net_rf_clustering",
-  "generated": "2025-12-29T06:19:46.005083+00:00",
+  "generated": "2026-01-02T17:26:07.475875+00:00",
   "input_files": [
     "module_3_1_panel_data.parquet",
-    "combined_components_of_change.csv",
+    "census.state_components (PostgreSQL)",
     "module_1_1_summary_statistics.json",
     "module_1_1_trend_decomposition.json"
   ],
   "parameters": {
     "panel_observations": 765,
-    "n_states": 53,
+    "n_states": 51,
     "years_covered": [
       2010,
       2011,
@@ -81,25 +81,23 @@
     },
     "clustering": {
       "optimal_k": 2,
-      "silhouette_score": 0.6437630014080847,
-      "calinski_harabasz": 12.378947455526893,
-      "davies_bouldin": 0.2470529027156777,
+      "silhouette_score": 0.4779778097709744,
+      "calinski_harabasz": 17.56735013000971,
+      "davies_bouldin": 0.9489837437202685,
       "cluster_sizes": {
-        "0": 52,
-        "1": 1
+        "0": 4,
+        "1": 47
       },
-      "nd_cluster": 0,
+      "nd_cluster": 1,
       "nd_peer_states": [
         "Alabama",
         "Alaska",
         "Arizona",
         "Arkansas",
-        "California",
         "Colorado",
         "Connecticut",
         "Delaware",
         "District of Columbia",
-        "Florida",
         "Georgia",
         "Hawaii",
         "Idaho",
@@ -122,7 +120,6 @@
         "New Hampshire",
         "New Jersey",
         "New Mexico",
-        "New York",
         "North Carolina",
         "Ohio",
         "Oklahoma",
@@ -132,8 +129,6 @@
         "South Carolina",
         "South Dakota",
         "Tennessee",
-        "Texas",
-        "United States",
         "Utah",
         "Vermont",
         "Virginia",
@@ -160,12 +155,12 @@
       "max_depth": 10
     },
     "clustering": {
-      "pca_variance_explained": 0.5601489890550759,
+      "pca_variance_explained": 0.6467626976744968,
       "optimal_k_by_method": {
         "silhouette": 2,
-        "calinski_harabasz": 7,
-        "davies_bouldin": 2,
-        "elbow": 9
+        "calinski_harabasz": 3,
+        "davies_bouldin": 10,
+        "elbow": 6
       }
     }
   },
@@ -173,7 +168,7 @@
   "decisions": [
     {
       "decision_id": "D001",
-      "timestamp": "2025-12-29T06:19:34.174425+00:00",
+      "timestamp": "2026-01-02T17:25:42.684953+00:00",
       "category": "feature_engineering",
       "decision": "Created 30+ state-level aggregated features from panel data",
       "rationale": "Aggregating across years captures stable state characteristics for clustering",
@@ -181,12 +176,12 @@
         "Use year-specific features",
         "Time-weighted aggregation"
       ],
-      "evidence": "Generated 36 features for 53 states",
+      "evidence": "Generated 36 features for 51 states",
       "reversible": true
     },
     {
       "decision_id": "D002",
-      "timestamp": "2025-12-29T06:19:34.232856+00:00",
+      "timestamp": "2026-01-02T17:25:42.779027+00:00",
       "category": "model_selection",
       "decision": "Selected Elastic Net with alpha=0.0007, l1_ratio=0.90",
       "rationale": "ElasticNetCV performs 5-fold cross-validation across alpha and l1_ratio grid",
@@ -200,7 +195,7 @@
     },
     {
       "decision_id": "D003",
-      "timestamp": "2025-12-29T06:19:43.625070+00:00",
+      "timestamp": "2026-01-02T17:26:03.809920+00:00",
       "category": "model_selection",
       "decision": "Used Random Forest with 500 trees, max_depth=10 for feature importance",
       "rationale": "RF provides non-linear importance measures; permutation importance is more reliable than impurity-based",
@@ -214,15 +209,15 @@
     },
     {
       "decision_id": "D004",
-      "timestamp": "2025-12-29T06:19:43.732001+00:00",
+      "timestamp": "2026-01-02T17:26:04.002579+00:00",
       "category": "clustering",
       "decision": "Selected K=2 clusters based on silhouette score",
       "rationale": "Silhouette score balances cluster cohesion and separation",
       "alternatives_considered": [
-        "Elbow method suggests K=9",
-        "Calinski-Harabasz suggests K=7"
+        "Elbow method suggests K=6",
+        "Calinski-Harabasz suggests K=3"
       ],
-      "evidence": "Silhouette score at K=2: 0.6438",
+      "evidence": "Silhouette score at K=2: 0.4780",
       "reversible": true
     }
   ],

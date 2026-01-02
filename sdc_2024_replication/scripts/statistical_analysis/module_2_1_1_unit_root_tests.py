@@ -36,6 +36,8 @@ from statsmodels.tsa.stattools import adfuller, kpss, zivot_andrews
 # Suppress warnings during execution
 warnings.filterwarnings("ignore")
 
+from data_loader import load_migration_summary
+
 # Project paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent  # cohort_projections/
 DATA_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "analysis"
@@ -78,8 +80,8 @@ class ModuleResult:
         category: str,
         decision: str,
         rationale: str,
-        alternatives: list[str] = None,
-        evidence: str = None,
+        alternatives: list[str] | None = None,
+        evidence: str | None = None,
         reversible: bool = True,
     ):
         """Add a documented decision to the log."""
@@ -688,8 +690,11 @@ def run_analysis() -> ModuleResult:
 
     # Load required data
     print("\nLoading data...")
-    df = load_data("nd_migration_summary.csv")
-    result.input_files.append("nd_migration_summary.csv")
+    # Load required data
+    print("\nLoading data...")
+    # df = load_data("nd_migration_summary.csv")
+    df = load_migration_summary()
+    result.input_files.append("census.state_components (PostgreSQL)")
 
     print(
         f"  Loaded {len(df)} observations (years {df['year'].min()}-{df['year'].max()})"

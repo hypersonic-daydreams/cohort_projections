@@ -91,8 +91,8 @@ class ModuleResult:
         category: str,
         decision: str,
         rationale: str,
-        alternatives: list[str] = None,
-        evidence: str = None,
+        alternatives: list[str] | None = None,
+        evidence: str | None = None,
         reversible: bool = True,
     ):
         """Log a decision with full context."""
@@ -171,20 +171,27 @@ def save_figure(fig, filepath_base, title, source_note):
     print(f"Figure saved: {filepath_base}.png/pdf")
 
 
+from data_loader import load_migration_summary
+
+
 def load_data(result: ModuleResult) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Load panel data and ND migration summary."""
-    # Load panel data from Module 3.1
+    # Load panel data from Module 3.1 (Artifact)
     panel_path = RESULTS_DIR / "module_3_1_panel_data.parquet"
-    df_panel = pd.read_parquet(panel_path)
-    result.input_files.append("module_3_1_panel_data.parquet")
+    if panel_path.exists():
+        df_panel = pd.read_parquet(panel_path)
+        result.input_files.append("module_3_1_panel_data.parquet")
+    else:
+        # Fallback or warning if module 3.1 hasn't run
+        print("Warning: Module 3.1 panel data not found.")
+        df_panel = pd.DataFrame()
 
-    # Load ND migration summary
-    nd_summary_path = DATA_DIR / "nd_migration_summary.csv"
-    df_nd = pd.read_csv(nd_summary_path)
-    result.input_files.append("nd_migration_summary.csv")
+    # Load ND migration summary from DB
+    df_nd = load_migration_summary()
+    result.input_files.append("census.state_components (PostgreSQL)")
 
     print(f"Loaded panel data: {df_panel.shape[0]} rows, {df_panel.shape[1]} columns")
-    print(f"Loaded ND summary: {df_nd.shape[0]} rows, {df_nd.shape[1]} columns")
+    print(f"Loaded ND summary (DB): {df_nd.shape[0]} rows, {df_nd.shape[1]} columns")
 
     return df_panel, df_nd
 
