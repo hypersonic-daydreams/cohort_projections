@@ -18,8 +18,8 @@ from typing import Any, Literal, cast
 import numpy as np
 import pandas as pd
 
+from ..utils import get_logger_from_config
 from ..utils.config_loader import ConfigLoader
-from ..utils.logger import get_logger_from_config
 from .fertility import apply_fertility_scenario, calculate_births, validate_fertility_rates
 from .migration import apply_migration, apply_migration_scenario, validate_migration_data
 from .mortality import apply_survival_rates, validate_survival_rates

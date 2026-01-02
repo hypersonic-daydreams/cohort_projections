@@ -50,6 +50,8 @@ import pandas as pd
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
+from project_utils import setup_logger  # noqa: E402
+
 from cohort_projections.data.load.base_population_loader import (  # noqa: E402
     load_base_population_for_county,
 )
@@ -60,8 +62,7 @@ from cohort_projections.geographic.geography_loader import (  # noqa: E402
 from cohort_projections.geographic.multi_geography import (  # noqa: E402
     run_multi_geography_projections,
 )
-from cohort_projections.utils.config_loader import load_projection_config  # noqa: E402
-from cohort_projections.utils.logger import setup_logger  # noqa: E402
+from cohort_projections.utils import load_projection_config  # noqa: E402
 
 # Set up logging
 logger = setup_logger(__name__, log_level="INFO")

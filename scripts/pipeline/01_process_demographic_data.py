@@ -39,6 +39,8 @@ from typing import Any
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
+from project_utils import setup_logger  # noqa: E402
+
 from cohort_projections.data.process.fertility_rates import (  # noqa: E402
     process_fertility_rates,
     validate_fertility_rates,
@@ -51,8 +53,7 @@ from cohort_projections.data.process.survival_rates import (  # noqa: E402
     process_survival_rates,
     validate_survival_rates,
 )
-from cohort_projections.utils.config_loader import load_projection_config  # noqa: E402
-from cohort_projections.utils.logger import setup_logger  # noqa: E402
+from cohort_projections.utils import load_projection_config  # noqa: E402
 
 # Set up logging
 logger = setup_logger(__name__, log_level="INFO")

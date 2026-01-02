@@ -12,8 +12,9 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from cohort_projections.utils.config_loader import ConfigLoader  # noqa: E402
-from cohort_projections.utils.logger import setup_logger  # noqa: E402
+from project_utils import setup_logger  # noqa: E402
+
+from cohort_projections.utils import ConfigLoader  # noqa: E402
 
 logger = setup_logger(__name__)
 

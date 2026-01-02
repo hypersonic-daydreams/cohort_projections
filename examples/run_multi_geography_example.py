@@ -39,8 +39,7 @@ from cohort_projections.geographic import (  # noqa: E402
     run_single_geography_projection,
     validate_aggregation,
 )
-from cohort_projections.utils.config_loader import load_projection_config  # noqa: E402
-from cohort_projections.utils.logger import get_logger_from_config  # noqa: E402
+from cohort_projections.utils import get_logger_from_config, load_projection_config  # noqa: E402
 
 logger = get_logger_from_config(__name__)
 

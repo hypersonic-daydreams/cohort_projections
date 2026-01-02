@@ -506,11 +506,35 @@ wheels = [
 ]
 
 [[package]]
+name = "codebase-catalog"
+version = "0.1.0"
+source = { editable = "../../libs/codebase_catalog" }
+dependencies = [
+    { name = "pathspec" },
+    { name = "pyyaml" },
+    { name = "tomli" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0" },
+    { name = "pathspec", specifier = ">=0.12" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
+    { name = "tomli", specifier = ">=2.0" },
+]
+provides-extras = ["dev"]
+
+[[package]]
 name = "cohort-projections"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "codebase-catalog" },
     { name = "db-dtypes" },
+    { name = "evidence-review" },
     { name = "google-auth" },
     { name = "google-cloud-bigquery" },
     { name = "markdown" },
@@ -519,6 +543,7 @@ dependencies = [
     { name = "openpyxl" },
     { name = "pandas" },
     { name = "pathspec" },
+    { name = "project-utils" },
     { name = "psycopg2-binary" },
     { name = "pyarrow" },
     { name = "pyyaml" },
@@ -596,8 +621,10 @@ requires-dist = [
     { name = "arch", marker = "extra == 'stats'", specifier = ">=6.0" },
     { name = "arviz", marker = "extra == 'bayesian'", specifier = ">=0.17" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=23.0.0" },
+    { name = "codebase-catalog", editable = "../../libs/codebase_catalog" },
     { name = "cohort-projections", extras = ["dev", "viz", "geo", "stats", "bayesian"], marker = "extra == 'all'" },
     { name = "db-dtypes", specifier = ">=1.1.1" },
+    { name = "evidence-review", editable = "../../libs/evidence_review" },
     { name = "geopandas", marker = "extra == 'geo'", specifier = ">=0.13.0" },
     { name = "google-auth", specifier = ">=2.22.0" },
     { name = "google-cloud-bigquery", specifier = ">=3.11.0" },
@@ -614,6 +641,7 @@ requires-dist = [
     { name = "pathspec", specifier = ">=0.12.1" },
     { name = "plotly", marker = "extra == 'viz'", specifier = ">=5.14.0" },
     { name = "pmdarima", marker = "extra == 'stats'", specifier = ">=2.0" },
+    { name = "project-utils", editable = "../../libs/project_utils" },
     { name = "psycopg2-binary", specifier = ">=2.9.11" },
     { name = "pyarrow", specifier = ">=12.0.0" },
     { name = "pymc", marker = "extra == 'bayesian'", specifier = ">=5.10" },
@@ -987,6 +1015,20 @@ sdist = { url = "https://files.pythonhosted.org/packages/42/c0/ba049efa7d2162217
 wheels = [
     { url = "https://files.pythonhosted.org/packages/39/19/bf11636df040a9f9c3fd6959aedea5b5cfddd751272732278fb04ee0a78c/etuples-0.3.10-py3-none-any.whl", hash = "sha256:4408c7940ef06af52dbbea0954a8a1817ed5750ce905ff48091ac3cd3aeb720b", size = 12201, upload-time = "2025-07-14T18:49:34.557Z" },
 ]
+
+[[package]]
+name = "evidence-review"
+version = "0.1.0"
+source = { editable = "../../libs/evidence_review" }
+
+[package.metadata]
+requires-dist = [
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "executing"
@@ -2829,6 +2871,24 @@ sdist = { url = "https://files.pythonhosted.org/packages/40/f1/6d86a29246dfd2e9b
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5d/19/fd3ef348460c80af7bb4669ea7926651d1f95c23ff2df18b9d24bab4f3fa/pre_commit-4.5.1-py2.py3-none-any.whl", hash = "sha256:3b3afd891e97337708c1674210f8eba659b52a38ea5f822ff142d10786221f77", size = 226437, upload-time = "2025-12-16T21:14:32.409Z" },
 ]
+
+[[package]]
+name = "project-utils"
+version = "0.1.0"
+source = { editable = "../../libs/project_utils" }
+dependencies = [
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
+]
+provides-extras = ["dev"]
 
 [[package]]
 name = "prometheus-client"

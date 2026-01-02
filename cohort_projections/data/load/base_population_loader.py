@@ -21,8 +21,10 @@ from typing import Any
 
 import pandas as pd
 
-from cohort_projections.utils.config_loader import ConfigLoader
-from cohort_projections.utils.logger import get_logger_from_config
+from cohort_projections.utils import (
+    ConfigLoader,
+    get_logger_from_config,
+)
 
 logger = get_logger_from_config(__name__)
 

@@ -23,7 +23,7 @@ from cohort_projections.data.process.fertility_rates import (  # noqa: E402
     process_fertility_rates,
     validate_fertility_rates,
 )
-from cohort_projections.utils.logger import get_logger_from_config  # noqa: E402
+from cohort_projections.utils import get_logger_from_config  # noqa: E402
 
 logger = get_logger_from_config(__name__)
 

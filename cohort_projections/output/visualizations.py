@@ -41,7 +41,7 @@ try:
 except ImportError:
     SEABORN_AVAILABLE = False
 
-from ..utils.logger import get_logger_from_config
+from ..utils import get_logger_from_config
 
 logger = get_logger_from_config(__name__)
 

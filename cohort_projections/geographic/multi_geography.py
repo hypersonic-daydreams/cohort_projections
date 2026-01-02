@@ -46,8 +46,7 @@ from cohort_projections.geographic.geography_loader import (
     get_place_to_county_mapping,
     load_geography_list,
 )
-from cohort_projections.utils.config_loader import load_projection_config
-from cohort_projections.utils.logger import get_logger_from_config
+from cohort_projections.utils import get_logger_from_config, load_projection_config
 
 logger = get_logger_from_config(__name__)
 

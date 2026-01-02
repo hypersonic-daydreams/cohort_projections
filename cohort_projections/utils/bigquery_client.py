@@ -12,11 +12,11 @@ import pandas as pd
 from google.api_core.exceptions import GoogleAPIError
 from google.cloud import bigquery
 from google.oauth2 import service_account
+from project_utils import setup_logger
 
 from .config_loader import load_projection_config
-from .logger import get_logger_from_config
 
-logger = get_logger_from_config(__name__)
+logger = setup_logger(__name__, log_to_file=False)
 
 
 class BigQueryClient:

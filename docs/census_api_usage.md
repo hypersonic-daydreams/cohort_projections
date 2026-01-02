@@ -396,7 +396,7 @@ fetcher = CensusDataFetcher(api_key=api_key)
 
 ```python
 from cohort_projections.data.fetch.census_api import CensusDataFetcher
-from cohort_projections.utils.config_loader import ConfigLoader
+from cohort_projections.utils import ConfigLoader
 
 # Load configuration
 config = ConfigLoader()

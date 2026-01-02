@@ -372,8 +372,8 @@ python -c "from cohort_projections.data.process.base_population import *; print(
 
 ## Related Modules
 
-- `cohort_projections.utils.logger`: Logging utilities
-- `cohort_projections.utils.config_loader`: Configuration management
+- `project_utils`: Logger and configuration utilities (via `cohort_projections.utils`)
+- `cohort_projections.utils`: Project-specific configuration and re-exports
 - `cohort_projections.data.fetch`: Data acquisition from Census API
 - `cohort_projections.data.validate`: Additional validation tools
 
@@ -871,8 +871,8 @@ assert harmonized['race_ethnicity'].iloc[0] == 'White alone, Non-Hispanic'
 ## Related Modules
 
 - `cohort_projections.core.fertility`: Uses processed fertility rates
-- `cohort_projections.utils.logger`: Logging utilities
-- `cohort_projections.utils.config_loader`: Configuration management
+- `project_utils`: Logger and configuration utilities (via `cohort_projections.utils`)
+- `cohort_projections.utils`: Project-specific configuration and re-exports
 - `cohort_projections.data.process.base_population`: Population processing (similar pattern)
 
 ---
@@ -1492,8 +1492,8 @@ Required packages:
 ## Related Modules
 
 - `cohort_projections.core.mortality`: Uses processed survival rates
-- `cohort_projections.utils.logger`: Logging utilities
-- `cohort_projections.utils.config_loader`: Configuration management
+- `project_utils`: Logger and configuration utilities (via `cohort_projections.utils`)
+- `cohort_projections.utils`: Project-specific configuration and re-exports
 - `cohort_projections.data.process.fertility_rates`: Similar processing pattern
 
 ---
@@ -2241,7 +2241,7 @@ assert abs(age_dist['migrants'].sum() - 1000) < 0.01  # Preserves total
 ## Related Modules
 
 - `cohort_projections.core.migration`: Uses processed migration rates
-- `cohort_projections.utils.logger`: Logging utilities
-- `cohort_projections.utils.config_loader`: Configuration management
+- `project_utils`: Logger and configuration utilities (via `cohort_projections.utils`)
+- `cohort_projections.utils`: Project-specific configuration and re-exports
 - `cohort_projections.data.process.fertility_rates`: Similar processing pattern
 - `cohort_projections.data.process.survival_rates`: Similar processing pattern

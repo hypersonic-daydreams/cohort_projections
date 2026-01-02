@@ -21,10 +21,10 @@ from pathlib import Path
 
 import pandas as pd
 import requests  # type: ignore[import-untyped]
+from project_utils import setup_logger
 from tqdm import tqdm
 
-from cohort_projections.utils.config_loader import ConfigLoader
-from cohort_projections.utils.logger import setup_logger
+from cohort_projections.utils import ConfigLoader
 
 logger = setup_logger(__name__)
 

@@ -30,7 +30,7 @@ from cohort_projections.data.process.survival_rates import (  # noqa: E402
     process_survival_rates,
     validate_survival_rates,
 )
-from cohort_projections.utils.logger import get_logger_from_config  # noqa: E402
+from cohort_projections.utils import get_logger_from_config  # noqa: E402
 
 logger = get_logger_from_config(__name__)
 

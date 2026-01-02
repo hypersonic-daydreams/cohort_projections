@@ -45,6 +45,9 @@ dependencies = [
     "statsmodels>=0.14.6",
     "markdown>=3.10",
     "weasyprint>=67.0",
+    "project-utils",
+    "evidence-review",
+    "codebase-catalog",
 ]
 
 [project.optional-dependencies]
@@ -341,6 +344,11 @@ exclude = ["tests*", "scripts*", "docs*"]
 
 [tool.setuptools.package-data]
 cohort_projections = ["py.typed", "*.yaml", "*.yml"]
+
+[tool.uv.sources]
+project-utils = { path = "../../libs/project_utils", editable = true }
+evidence-review = { path = "../../libs/evidence_review", editable = true }
+codebase-catalog = { path = "../../libs/codebase_catalog", editable = true }
 
 [dependency-groups]
 dev = [

@@ -63,7 +63,7 @@ repos:
 
       - id: data-manifest-check
         name: data manifest enforcement
-        entry: .venv/bin/python scripts/hooks/check_data_manifest.py
+        entry: .venv/bin/check-data-manifest
         language: system
         pass_filenames: false
         always_run: true
@@ -71,7 +71,7 @@ repos:
 
       - id: update-code-inventory
         name: update code inventory
-        entry: .venv/bin/python scripts/hooks/update_code_inventory.py
+        entry: .venv/bin/update-code-inventory
         language: system
         pass_filenames: false
         always_run: true

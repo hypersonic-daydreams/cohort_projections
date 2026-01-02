@@ -17,8 +17,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from cohort_projections.utils.config_loader import load_projection_config
-from cohort_projections.utils.logger import get_logger_from_config
+from cohort_projections.utils import get_logger_from_config, load_projection_config
 
 logger = get_logger_from_config(__name__)
 

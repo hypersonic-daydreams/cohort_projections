@@ -73,12 +73,12 @@ uv lock --upgrade-package pandas # Update specific package
 ### Primary Configuration File
 
 - Location: `config/projection_config.yaml`
-- Loading: Use `cohort_projections.utils.config_loader`
+- Loading: Use `cohort_projections.utils`
 
 ```python
-from cohort_projections.utils.config_loader import load_config
+from cohort_projections.utils import load_projection_config
 
-config = load_config()
+config = load_projection_config()
 project_id = config["bigquery"]["project_id"]
 ```
 

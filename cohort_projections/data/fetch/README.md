@@ -133,7 +133,7 @@ rates:
 
 All fetcher modules implement:
 - Automatic retry logic for transient failures
-- Comprehensive logging via `cohort_projections.utils.logger`
+- Comprehensive logging via `project_utils`
 - Graceful fallback to cached data when available
 - Detailed error messages for debugging
 

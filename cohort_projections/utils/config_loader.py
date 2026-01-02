@@ -8,8 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-
-from .logger import setup_logger
+from project_utils import setup_logger
 
 logger = setup_logger(__name__)
 

@@ -332,7 +332,7 @@ Quick start:
 
 ```python
 from cohort_projections.core import CohortComponentProjection
-from cohort_projections.utils.config_loader import load_projection_config
+from cohort_projections.utils import load_projection_config
 
 # Load configuration
 config = load_projection_config()
