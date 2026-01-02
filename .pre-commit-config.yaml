@@ -59,3 +59,11 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-commit]
+
+      - id: update-code-inventory
+        name: update code inventory
+        entry: .venv/bin/python scripts/hooks/update_code_inventory.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]

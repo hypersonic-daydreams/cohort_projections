@@ -106,6 +106,11 @@ if [[ ! -f "$FILTER_FILE" ]]; then
 + /output/**
 + /exports/**
 
+# 4. METADATA AND REPLICATION DATA (Synced via rclone)
++ data/metadata/**
++ sdc_2024_replication/data_immigration_policy/scripts/b05006_*.csv
++ sdc_2024_replication/data_immigration_policy/scripts/b05006_*.json
+
 # 5. SENTINEL (for testing sync)
 + RCLONE_TEST
 

@@ -185,6 +185,28 @@ uv sync               # Install dependencies
 | [DEVELOPMENT_TRACKER.md](./DEVELOPMENT_TRACKER.md) | Current project status |
 | [docs/methodology_comparison_sdc_2024.md](./docs/methodology_comparison_sdc_2024.md) | SDC 2024 comparison |
 
+| [docs/methodology_comparison_sdc_2024.md](./docs/methodology_comparison_sdc_2024.md) | SDC 2024 comparison |
+
+---
+
+## 10. Repository Intelligence (Day 2 Operations)
+
+This repository uses a PostgreSQL-backed intelligence system to track code status, documentation links, and execution history.
+
+### For AI Agents:
+1.  **Context**: Read [REPOSITORY_INVENTORY.md](REPOSITORY_INVENTORY.md) first to understand the codebase structure and identify active/deprecated files.
+2.  **Status Check**: Before modifying a file, check `code_inventory` in `cohort_projections_meta` DB or the inventory file to ensure it is not deprecated.
+3.  **Reproducibility**: When creating scripts that generate results for papers, wrap the logic in the `log_execution` context manager.
+    ```python
+    from cohort_projections.utils.reproducibility import log_execution
+    with log_execution(__file__, parameters={...}):
+        main()
+    ```
+
+### Automation:
+-   **Pre-commit Hook**: Automatically updates the database when you commit changes. You do not need to manually update the inventory.
+-   **Documentation**: Run `python scripts/intelligence/generate_docs_index.py` to refresh `docs/INDEX.md`.
+
 ---
 
 ## 10. Version History
