@@ -242,9 +242,9 @@ def main():
     seniors = final_pop[final_pop["age"] >= 65]["population"].sum()
     total = final_pop["population"].sum()
 
-    print(f"  Under 18:    {under_18:>12,.0f}  ({under_18/total*100:>5.1f}%)")
-    print(f"  Working Age: {working_age:>12,.0f}  ({working_age/total*100:>5.1f}%)")
-    print(f"  65+:         {seniors:>12,.0f}  ({seniors/total*100:>5.1f}%)")
+    print(f"  Under 18:    {under_18:>12,.0f}  ({under_18 / total * 100:>5.1f}%)")
+    print(f"  Working Age: {working_age:>12,.0f}  ({working_age / total * 100:>5.1f}%)")
+    print(f"  65+:         {seniors:>12,.0f}  ({seniors / total * 100:>5.1f}%)")
     print()
 
     # Export results

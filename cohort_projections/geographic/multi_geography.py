@@ -712,7 +712,7 @@ def validate_aggregation(
     }
 
     if validation_result["valid"]:
-        logger.info(f"Aggregation validation passed. " f"Overall difference: {overall_pct:.3%}")
+        logger.info(f"Aggregation validation passed. Overall difference: {overall_pct:.3%}")
     else:
         logger.error(f"Aggregation validation failed with {len(errors)} errors")
 

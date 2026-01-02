@@ -130,7 +130,9 @@ def test_gather_tex_files_follows_input(tmp_path):
 
 def test_apply_fixes_updates_fields_and_entry_type():
     module = load_module()
-    entries = [{"entry_type": "misc", "key": "Key1", "fields": {"title": "Old"}}]
+    entries: list[dict[str, object]] = [
+        {"entry_type": "misc", "key": "Key1", "fields": {"title": "Old"}}
+    ]
     fixes = [
         {
             "citation_key": "Key1",

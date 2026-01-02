@@ -40,18 +40,15 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from cohort_projections.data.process.fertility_rates import (  # noqa: E402
-    load_seer_fertility_data,
-    process_seer_fertility_rates,
+    process_fertility_rates,
     validate_fertility_rates,
 )
 from cohort_projections.data.process.migration_rates import (  # noqa: E402
-    load_irs_migration_data,
-    process_migration_flows_to_rates,
-    validate_migration_rates,
+    process_migration_rates,
+    validate_migration_data,
 )
 from cohort_projections.data.process.survival_rates import (  # noqa: E402
-    load_life_table_data,
-    process_life_table_to_survival_rates,
+    process_survival_rates,
     validate_survival_rates,
 )
 from cohort_projections.utils.config_loader import load_projection_config  # noqa: E402
@@ -212,20 +209,18 @@ def process_fertility_data(config: dict[str, Any], dry_run: bool = False) -> Dat
             result.success = True
             return result
 
-        # Load raw data
+        # Process data using the unified pipeline function
         rate_config = config.get("rates", {}).get("fertility", {})
         year_range = (
             2018,
             2022,
         )  # Could come from averaging_period in config
 
-        raw_data = load_seer_fertility_data(input_file, year_range=year_range)
-        logger.info(f"Loaded {len(raw_data):,} raw fertility records")
-
-        # Process data
-        fertility_rates = process_seer_fertility_rates(
-            raw_data,
-            age_range=tuple(rate_config.get("apply_to_ages", [15, 49])),
+        fertility_rates = process_fertility_rates(
+            input_path=input_file,
+            output_dir=output_file.parent,
+            config=config,
+            year_range=year_range,
             averaging_period=rate_config.get("averaging_period", 5),
         )
         logger.info(f"Processed {len(fertility_rates):,} fertility rate records")
@@ -305,18 +300,16 @@ def process_survival_data(config: dict[str, Any], dry_run: bool = False) -> Data
             result.success = True
             return result
 
-        # Load raw data
+        # Process data using the unified pipeline function
         rate_config = config.get("rates", {}).get("mortality", {})
         life_table_year = rate_config.get("life_table_year", 2020)
 
-        raw_data = load_life_table_data(input_file, year=life_table_year)
-        logger.info(f"Loaded {len(raw_data):,} life table records")
-
-        # Process data
-        survival_rates = process_life_table_to_survival_rates(
-            raw_data,
+        survival_rates = process_survival_rates(
+            input_path=input_file,
+            output_dir=output_file.parent,
+            config=config,
+            base_year=life_table_year,
             improvement_factor=rate_config.get("improvement_factor", 0.005),
-            cap_at=rate_config.get("cap_survival_at", 1.0),
         )
         logger.info(f"Processed {len(survival_rates):,} survival rate records")
 
@@ -396,26 +389,20 @@ def process_migration_data(config: dict[str, Any], dry_run: bool = False) -> Dat
             result.success = True
             return result
 
-        # Load raw data
-        rate_config = config.get("rates", {}).get("migration", {}).get("domestic", {})
+        # Process data using the unified pipeline function
         year_range = (2018, 2022)  # From averaging_period
 
-        raw_data = load_irs_migration_data(
-            domestic_input,
+        migration_rates = process_migration_rates(
+            irs_path=domestic_input,
+            output_dir=output_file.parent,
+            config=config,
             year_range=year_range,
             target_county_fips=config.get("geography", {}).get("state", "38"),
-        )
-        logger.info(f"Loaded {len(raw_data):,} migration flow records")
-
-        # Process data
-        migration_rates = process_migration_flows_to_rates(
-            raw_data,
-            smooth_outliers=rate_config.get("smooth_extreme_outliers", True),
         )
         logger.info(f"Processed {len(migration_rates):,} migration rate records")
 
         # Validate output
-        validation = validate_migration_rates(migration_rates)
+        validation = validate_migration_data(migration_rates)
         result.validation_results = validation
 
         if not validation.get("valid", False):

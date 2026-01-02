@@ -20,7 +20,7 @@ from io import StringIO
 from pathlib import Path
 
 import pandas as pd
-import requests
+import requests  # type: ignore[import-untyped]
 from tqdm import tqdm
 
 from cohort_projections.utils.config_loader import ConfigLoader

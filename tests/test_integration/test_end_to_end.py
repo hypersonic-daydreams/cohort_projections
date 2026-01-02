@@ -364,12 +364,12 @@ class TestEndToEndProjection:
         assert self.FERTILITY_FILE.exists(), f"Fertility file not found: {self.FERTILITY_FILE}"
         assert self.SURVIVAL_FILE.exists(), f"Survival file not found: {self.SURVIVAL_FILE}"
         assert self.MIGRATION_FILE.exists(), f"Migration file not found: {self.MIGRATION_FILE}"
-        assert (
-            self.COUNTY_POP_FILE.exists()
-        ), f"County population file not found: {self.COUNTY_POP_FILE}"
-        assert (
-            self.AGE_SEX_RACE_FILE.exists()
-        ), f"Age-sex-race file not found: {self.AGE_SEX_RACE_FILE}"
+        assert self.COUNTY_POP_FILE.exists(), (
+            f"County population file not found: {self.COUNTY_POP_FILE}"
+        )
+        assert self.AGE_SEX_RACE_FILE.exists(), (
+            f"Age-sex-race file not found: {self.AGE_SEX_RACE_FILE}"
+        )
 
     def test_base_population_is_reasonable(self, cass_county_population):
         """Test that base population for Cass County is reasonable."""
@@ -377,9 +377,9 @@ class TestEndToEndProjection:
         total_pop = base_pop["population"].sum()
 
         # Cass County should have around 180-220K population
-        assert (
-            150_000 < total_pop < 250_000
-        ), f"Cass County population {total_pop:,.0f} outside expected range (150K-250K)"
+        assert 150_000 < total_pop < 250_000, (
+            f"Cass County population {total_pop:,.0f} outside expected range (150K-250K)"
+        )
 
         # Check for negative populations
         assert (base_pop["population"] >= 0).all(), "Base population contains negative values"
@@ -390,9 +390,9 @@ class TestEndToEndProjection:
         female_pop = base_pop[base_pop["sex"] == "Female"]["population"].sum()
         sex_ratio = male_pop / female_pop if female_pop > 0 else 0
 
-        assert (
-            0.8 < sex_ratio < 1.25
-        ), f"Sex ratio {sex_ratio:.2f} outside expected range (0.8-1.25)"
+        assert 0.8 < sex_ratio < 1.25, (
+            f"Sex ratio {sex_ratio:.2f} outside expected range (0.8-1.25)"
+        )
 
     def test_fertility_rates_are_valid(self, fertility_rates):
         """Test that fertility rates are valid."""
@@ -403,9 +403,9 @@ class TestEndToEndProjection:
 
         # Check rate values are reasonable (0 to 0.2 births per woman per year)
         assert (fertility_rates["fertility_rate"] >= 0).all(), "Negative fertility rates found"
-        assert (
-            fertility_rates["fertility_rate"] <= 0.2
-        ).all(), "Implausibly high fertility rates found (> 0.2)"
+        assert (fertility_rates["fertility_rate"] <= 0.2).all(), (
+            "Implausibly high fertility rates found (> 0.2)"
+        )
 
         # Peak fertility should be in ages 25-34
         peak_ages = fertility_rates[(fertility_rates["age"] >= 25) & (fertility_rates["age"] <= 34)]
@@ -432,9 +432,9 @@ class TestEndToEndProjection:
         infant_rates = survival_rates[survival_rates["age"] == 0]
         if not infant_rates.empty:
             min_infant_survival = infant_rates["survival_rate"].min()
-            assert (
-                min_infant_survival > 0.98
-            ), f"Infant survival rate {min_infant_survival:.4f} is too low"
+            assert min_infant_survival > 0.98, (
+                f"Infant survival rate {min_infant_survival:.4f} is too low"
+            )
 
         # Elderly survival should be lower than young adult survival
         young_adult = survival_rates[(survival_rates["age"] >= 20) & (survival_rates["age"] <= 40)]
@@ -685,9 +685,9 @@ class TestDataIntegrity:
         fertility_df = pd.read_csv(self.DATA_DIR / "fertility" / "asfr_processed.csv")
 
         assert "age" in fertility_df.columns, "Missing 'age' column"
-        assert (
-            "race_ethnicity" in fertility_df.columns or "race" in fertility_df.columns
-        ), "Missing race column"
+        assert "race_ethnicity" in fertility_df.columns or "race" in fertility_df.columns, (
+            "Missing race column"
+        )
         assert "asfr" in fertility_df.columns, "Missing 'asfr' column"
 
         # Check age groups cover reproductive ages

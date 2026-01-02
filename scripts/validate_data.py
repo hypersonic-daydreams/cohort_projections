@@ -618,9 +618,9 @@ info_count = sum(1 for r in validation_results if r["status"] == "INFO")
 total_checks = len(validation_results)
 
 print(f"\nTotal checks: {total_checks}")
-print(f"PASSED: {pass_count} ({100*pass_count/total_checks:.1f}%)")
-print(f"FAILED: {fail_count} ({100*fail_count/total_checks:.1f}%)")
-print(f"INFO: {info_count} ({100*info_count/total_checks:.1f}%)")
+print(f"PASSED: {pass_count} ({100 * pass_count / total_checks:.1f}%)")
+print(f"FAILED: {fail_count} ({100 * fail_count / total_checks:.1f}%)")
+print(f"INFO: {info_count} ({100 * info_count / total_checks:.1f}%)")
 
 if issues_found:
     print("\nISSUES FOUND:")
@@ -637,7 +637,7 @@ report_path = BASE_DIR / "data" / "DATA_VALIDATION_REPORT.md"
 report_content = f"""# Data Validation Report
 ## North Dakota Cohort Projection System
 
-**Generated:** {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}
+**Generated:** {datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")}
 **Validator:** `scripts/validate_data.py`
 
 ---
@@ -647,11 +647,11 @@ report_content = f"""# Data Validation Report
 | Metric | Value |
 |--------|-------|
 | Total Checks | {total_checks} |
-| Passed | {pass_count} ({100*pass_count/total_checks:.1f}%) |
-| Failed | {fail_count} ({100*fail_count/total_checks:.1f}%) |
-| Informational | {info_count} ({100*info_count/total_checks:.1f}%) |
+| Passed | {pass_count} ({100 * pass_count / total_checks:.1f}%) |
+| Failed | {fail_count} ({100 * fail_count / total_checks:.1f}%) |
+| Informational | {info_count} ({100 * info_count / total_checks:.1f}%) |
 
-**Overall Status:** {'PASS - All critical checks passed' if fail_count == 0 else 'ISSUES FOUND - See details below'}
+**Overall Status:** {"PASS - All critical checks passed" if fail_count == 0 else "ISSUES FOUND - See details below"}
 
 ---
 
@@ -672,7 +672,7 @@ for r in validation_results:
         report_content += f"| {r['check']} | {r['expected']} | {r['actual']} | {status_emoji} |\n"
 
 report_content += f"""
-**Notes:** {fertility_df['race_ethnicity'].unique().tolist() if 'fertility_df' in dir() else 'N/A'}
+**Notes:** {fertility_df["race_ethnicity"].unique().tolist() if "fertility_df" in dir() else "N/A"}
 
 ---
 
@@ -813,12 +813,12 @@ report_content += f"""
 
 | Data Category | Status | Completeness |
 |---------------|--------|--------------|
-| Fertility (ASFR) | {'Complete' if not any(r['status']=='FAIL' and r['file']=='asfr_processed.csv' for r in validation_results) else 'Issues'} | 7 age groups x 6 race categories |
-| Mortality (Life Tables) | {'Complete' if not any(r['status']=='FAIL' and r['file']=='survival_rates_processed.csv' for r in validation_results) else 'Issues'} | 101 ages x 2 sexes x 6 races |
-| Migration (IRS) | {'Complete' if not any(r['status']=='FAIL' and r['file']=='nd_migration_processed.csv' for r in validation_results) else 'Issues'} | 53 counties x 4 years |
-| Population (County) | {'Complete' if not any(r['status']=='FAIL' and r['file']=='nd_county_population.csv' for r in validation_results) else 'Issues'} | All 53 ND counties |
-| Population (Distribution) | {'Complete' if not any(r['status']=='FAIL' and r['file']=='nd_age_sex_race_distribution.csv' for r in validation_results) else 'Issues'} | Age/sex/race proportions |
-| Geographic | {'Complete' if not any(r['status']=='FAIL' and 'nd_' in r['file'] for r in validation_results) else 'Issues'} | Counties, places, metro areas |
+| Fertility (ASFR) | {"Complete" if not any(r["status"] == "FAIL" and r["file"] == "asfr_processed.csv" for r in validation_results) else "Issues"} | 7 age groups x 6 race categories |
+| Mortality (Life Tables) | {"Complete" if not any(r["status"] == "FAIL" and r["file"] == "survival_rates_processed.csv" for r in validation_results) else "Issues"} | 101 ages x 2 sexes x 6 races |
+| Migration (IRS) | {"Complete" if not any(r["status"] == "FAIL" and r["file"] == "nd_migration_processed.csv" for r in validation_results) else "Issues"} | 53 counties x 4 years |
+| Population (County) | {"Complete" if not any(r["status"] == "FAIL" and r["file"] == "nd_county_population.csv" for r in validation_results) else "Issues"} | All 53 ND counties |
+| Population (Distribution) | {"Complete" if not any(r["status"] == "FAIL" and r["file"] == "nd_age_sex_race_distribution.csv" for r in validation_results) else "Issues"} | Age/sex/race proportions |
+| Geographic | {"Complete" if not any(r["status"] == "FAIL" and "nd_" in r["file"] for r in validation_results) else "Issues"} | Counties, places, metro areas |
 
 ### Issues Found
 

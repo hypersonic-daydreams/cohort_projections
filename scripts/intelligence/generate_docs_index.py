@@ -45,7 +45,7 @@ def generate_index():
     conn.close()
 
     # Organize by function -> list of docs
-    by_function = {}
+    by_function: dict[str, list[dict[str, str | None]]] = {}
 
     for row in rows:
         filepath, desc, tag, doc_path, rel_type, status = row
@@ -83,7 +83,8 @@ def generate_index():
 
         for item in items:
             code_link = f"[`{item['code']}`](../{item['code']})"
-            doc_link = f"[`{Path(item['doc']).name}`](../{item['doc']})"
+            doc_path = item["doc"] or ""
+            doc_link = f"[`{Path(doc_path).name}`](../{doc_path})"
             status_icon = "🟢" if item["status"] == "current" else "🔴"
 
             lines.append(

@@ -379,7 +379,7 @@ def create_fertility_rate_table(
     # Filter to reproductive ages
     df = df[(df["age"] >= min_age) & (df["age"] <= max_age)].copy()
 
-    logger.info(f"Filtered to reproductive ages {min_age}-{max_age}: " f"{len(df)} records")
+    logger.info(f"Filtered to reproductive ages {min_age}-{max_age}: {len(df)} records")
 
     # Create complete index (all age-race combinations)
     ages = list(range(min_age, max_age + 1))

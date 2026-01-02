@@ -219,8 +219,7 @@ class CohortComponentProjection:
         if negative_cohorts.any():
             num_negative = negative_cohorts.sum()
             logger.warning(
-                f"Year {year + 1}: {num_negative} cohorts with negative population, "
-                f"setting to 0"
+                f"Year {year + 1}: {num_negative} cohorts with negative population, setting to 0"
             )
             combined_population.loc[negative_cohorts, "population"] = 0.0
 

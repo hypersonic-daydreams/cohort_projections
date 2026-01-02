@@ -745,8 +745,8 @@ def _build_html_report(
     <h1>{title}</h1>
 
     <div class="summary-box">
-        <p><strong>Generated:</strong> {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}</p>
-        <p><strong>Projection Period:</strong> {indicators.get('base_year', 'N/A')} - {indicators.get('final_year', 'N/A')}</p>
+        <p><strong>Generated:</strong> {datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")}</p>
+        <p><strong>Projection Period:</strong> {indicators.get("base_year", "N/A")} - {indicators.get("final_year", "N/A")}</p>
     </div>
 
     <h2>Executive Summary</h2>
@@ -754,19 +754,19 @@ def _build_html_report(
     <div class="stat-grid">
         <div class="stat-card">
             <div class="stat-label">Base Year Population</div>
-            <div class="stat-value">{indicators.get('base_population', 0):,.0f}</div>
+            <div class="stat-value">{indicators.get("base_population", 0):,.0f}</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Final Year Population</div>
-            <div class="stat-value">{indicators.get('final_population', 0):,.0f}</div>
+            <div class="stat-value">{indicators.get("final_population", 0):,.0f}</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Projected Growth</div>
-            <div class="stat-value {'positive' if indicators.get('absolute_growth', 0) >= 0 else 'negative'}">{indicators.get('absolute_growth', 0):+,.0f}</div>
+            <div class="stat-value {"positive" if indicators.get("absolute_growth", 0) >= 0 else "negative"}">{indicators.get("absolute_growth", 0):+,.0f}</div>
         </div>
         <div class="stat-card">
             <div class="stat-label">Growth Rate</div>
-            <div class="stat-value {'positive' if indicators.get('percent_growth', 0) >= 0 else 'negative'}">{indicators.get('percent_growth', 0):+.1f}%</div>
+            <div class="stat-value {"positive" if indicators.get("percent_growth", 0) >= 0 else "negative"}">{indicators.get("percent_growth", 0):+.1f}%</div>
         </div>
     </div>
 
@@ -781,21 +781,21 @@ def _build_html_report(
         </tr>
         <tr>
             <td>Median Age</td>
-            <td>{indicators.get('median_age_base', 0):.1f}</td>
-            <td>{indicators.get('median_age_final', 0):.1f}</td>
-            <td>{indicators.get('median_age_final', 0) - indicators.get('median_age_base', 0):+.1f}</td>
+            <td>{indicators.get("median_age_base", 0):.1f}</td>
+            <td>{indicators.get("median_age_final", 0):.1f}</td>
+            <td>{indicators.get("median_age_final", 0) - indicators.get("median_age_base", 0):+.1f}</td>
         </tr>
         <tr>
             <td>Dependency Ratio</td>
-            <td>{indicators.get('dependency_ratio_base', 0):.2f}</td>
-            <td>{indicators.get('dependency_ratio_final', 0):.2f}</td>
-            <td>{indicators.get('dependency_ratio_final', 0) - indicators.get('dependency_ratio_base', 0):+.2f}</td>
+            <td>{indicators.get("dependency_ratio_base", 0):.2f}</td>
+            <td>{indicators.get("dependency_ratio_final", 0):.2f}</td>
+            <td>{indicators.get("dependency_ratio_final", 0) - indicators.get("dependency_ratio_base", 0):+.2f}</td>
         </tr>
         <tr>
             <td>Sex Ratio (males per 100 females)</td>
-            <td>{indicators.get('sex_ratio_base', 0):.1f}</td>
-            <td>{indicators.get('sex_ratio_final', 0):.1f}</td>
-            <td>{indicators.get('sex_ratio_final', 0) - indicators.get('sex_ratio_base', 0):+.1f}</td>
+            <td>{indicators.get("sex_ratio_base", 0):.1f}</td>
+            <td>{indicators.get("sex_ratio_final", 0):.1f}</td>
+            <td>{indicators.get("sex_ratio_final", 0) - indicators.get("sex_ratio_base", 0):+.1f}</td>
         </tr>
     </table>
 
@@ -815,12 +815,12 @@ def _build_html_report(
     # Add yearly data
     for year_data in by_year:
         html += f"""        <tr>
-            <td>{year_data['year']}</td>
-            <td>{year_data['total_population']:,.0f}</td>
-            <td>{year_data['youth_0_17']:,.0f}</td>
-            <td>{year_data['working_age_18_64']:,.0f}</td>
-            <td>{year_data['elderly_65_plus']:,.0f}</td>
-            <td>{year_data['dependency_ratio']:.2f}</td>
+            <td>{year_data["year"]}</td>
+            <td>{year_data["total_population"]:,.0f}</td>
+            <td>{year_data["youth_0_17"]:,.0f}</td>
+            <td>{year_data["working_age_18_64"]:,.0f}</td>
+            <td>{year_data["elderly_65_plus"]:,.0f}</td>
+            <td>{year_data["dependency_ratio"]:.2f}</td>
         </tr>
 """
 
@@ -848,7 +848,7 @@ def _build_html_report(
     html += f"""
     <div class="footer">
         <p><strong>North Dakota Cohort Component Projection System</strong></p>
-        <p>Generated: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p>Generated: {datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")}</p>
     </div>
 
 </body>

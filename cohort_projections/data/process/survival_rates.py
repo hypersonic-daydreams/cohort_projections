@@ -131,7 +131,7 @@ def load_life_table_data(file_path: str | Path, year: int | None = None) -> pd.D
         else:
             original_len = len(df)
             df = df[df["year"] == year].copy()
-            logger.info(f"Filtered to year {year}: " f"{len(df)}/{original_len} records retained")
+            logger.info(f"Filtered to year {year}: {len(df)}/{original_len} records retained")
 
     # Validate required columns exist (flexible naming)
     age_col = None

@@ -140,7 +140,7 @@ def create_synthetic_life_table():
     logger.info(f"  Sexes: {df['sex'].nunique()}")
     logger.info(f"  Races: {df['race'].nunique()}")
     logger.info(
-        f"  Life expectancy at birth (e0) range: {df[df['age']==0]['ex'].min():.1f}-{df[df['age']==0]['ex'].max():.1f}"
+        f"  Life expectancy at birth (e0) range: {df[df['age'] == 0]['ex'].min():.1f}-{df[df['age'] == 0]['ex'].max():.1f}"
     )
 
     return df

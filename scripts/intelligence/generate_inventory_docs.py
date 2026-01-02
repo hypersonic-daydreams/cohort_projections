@@ -42,7 +42,7 @@ def generate_inventory():
     conn.close()
 
     # Organize by tag
-    by_tag = {}
+    by_tag: dict[str, list[tuple[str, str]]] = {}
     for tag, path, desc in rows:
         if tag not in by_tag:
             by_tag[tag] = []

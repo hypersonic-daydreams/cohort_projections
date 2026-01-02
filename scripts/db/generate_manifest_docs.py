@@ -64,7 +64,7 @@ def fetch_sources_by_category(conn) -> dict:
         "processing_script",
     ]
 
-    sources_by_category = {}
+    sources_by_category: dict[str, list[dict[str, str | None]]] = {}
     for row in cur.fetchall():
         source = dict(zip(columns, row, strict=False))
         cat = source["category"]

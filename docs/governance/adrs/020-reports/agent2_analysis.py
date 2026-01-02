@@ -291,7 +291,7 @@ def variance_analysis(nd_df):
             "hypothesis": "H0: Variances are equal across all three vintages",
             "test_statistic": levene_stat,
             "statistic_name": "W-statistic",
-            "df": f"({2}, {len(v2009)+len(v2020)+len(v2024)-3})",
+            "df": f"({2}, {len(v2009) + len(v2020) + len(v2024) - 3})",
             "p_value": levene_p,
             "significance_level": 0.05,
             "reject_null": levene_p < 0.05,
@@ -336,7 +336,7 @@ def variance_analysis(nd_df):
             "hypothesis": "H0: Variances are equal between Vintage 2009 and Vintage 2020",
             "test_statistic": levene_12,
             "statistic_name": "W-statistic",
-            "df": f"(1, {len(v2009)+len(v2020)-2})",
+            "df": f"(1, {len(v2009) + len(v2020) - 2})",
             "p_value": levene_p12,
             "significance_level": 0.05,
             "reject_null": levene_p12 < 0.05,
@@ -356,7 +356,7 @@ def variance_analysis(nd_df):
             "hypothesis": "H0: Variances are equal between Vintage 2020 and Vintage 2024",
             "test_statistic": levene_23,
             "statistic_name": "W-statistic",
-            "df": f"(1, {len(v2020)+len(v2024)-2})",
+            "df": f"(1, {len(v2020) + len(v2024) - 2})",
             "p_value": levene_p23,
             "significance_level": 0.05,
             "reject_null": levene_p23 < 0.05,
@@ -1246,15 +1246,15 @@ def generate_calculations_doc(
 ### Raw Data by Vintage
 
 **Vintage 2009 (2000-2009)**:
-Years: {list(nd_df[nd_df['vintage'] == 2009]['year'].values)}
+Years: {list(nd_df[nd_df["vintage"] == 2009]["year"].values)}
 Values: {list(v2009)}
 
 **Vintage 2020 (2010-2019)**:
-Years: {list(nd_df[nd_df['vintage'] == 2020]['year'].values)}
+Years: {list(nd_df[nd_df["vintage"] == 2020]["year"].values)}
 Values: {list(v2020)}
 
 **Vintage 2024 (2020-2024)**:
-Years: {list(nd_df[nd_df['vintage'] == 2024]['year'].values)}
+Years: {list(nd_df[nd_df["vintage"] == 2024]["year"].values)}
 Values: {list(v2024)}
 
 ---
@@ -1303,14 +1303,14 @@ Values: {list(v2024)}
 - Pooled variance = ((n1-1)*s1² + (n2-1)*s2²) / (n1+n2-2)
 - s1² = {np.var(v2009, ddof=1):.2f}
 - s2² = {np.var(v2020, ddof=1):.2f}
-- Pooled variance = (9*{np.var(v2009, ddof=1):.2f} + 9*{np.var(v2020, ddof=1):.2f}) / 18 = {((9*np.var(v2009, ddof=1) + 9*np.var(v2020, ddof=1))/18):.2f}
-- Pooled SE = sqrt(pooled_var * (1/n1 + 1/n2)) = {np.sqrt(((9*np.var(v2009, ddof=1) + 9*np.var(v2020, ddof=1))/18) * 0.2):.2f}
+- Pooled variance = (9*{np.var(v2009, ddof=1):.2f} + 9*{np.var(v2020, ddof=1):.2f}) / 18 = {((9 * np.var(v2009, ddof=1) + 9 * np.var(v2020, ddof=1)) / 18):.2f}
+- Pooled SE = sqrt(pooled_var * (1/n1 + 1/n2)) = {np.sqrt(((9 * np.var(v2009, ddof=1) + 9 * np.var(v2020, ddof=1)) / 18) * 0.2):.2f}
 
 - t-statistic = (x̄2 - x̄1) / SE
 - df = n1 + n2 - 2 = 18
 
 **Result from scipy.stats.ttest_ind**:
-{next((f"t = {r['test_statistic']:.4f}, p = {r['p_value']:.4f}" for r in all_results if r['test_id'] == 'LS-T1-TTEST'), 'N/A')}
+{next((f"t = {r['test_statistic']:.4f}, p = {r['p_value']:.4f}" for r in all_results if r["test_id"] == "LS-T1-TTEST"), "N/A")}
 
 ### Cohen's d Effect Size
 
@@ -1339,10 +1339,10 @@ H0: sigma1² = sigma2² = sigma3²
 H1: At least one variance differs
 
 **Result**:
-{next((f"W = {r['test_statistic']:.4f}, p = {r['p_value']:.4f}" for r in all_results if r['test_id'] == 'VAR-LEVENE-ALL'), 'N/A')}
+{next((f"W = {r['test_statistic']:.4f}, p = {r['p_value']:.4f}" for r in all_results if r["test_id"] == "VAR-LEVENE-ALL"), "N/A")}
 
 ### Variance Ratio
-Max/Min ratio = {variance_summary.get('variance_ratio_max_min', 'N/A'):.2f}
+Max/Min ratio = {variance_summary.get("variance_ratio_max_min", "N/A"):.2f}
 
 ---
 
@@ -1364,9 +1364,9 @@ Break point: t = 10 (year 2010)
 where k = 2 (parameters: intercept and slope)
 
 **Result**:
-F = {break_summary['transition_1']['F_statistic']:.4f}
-p = {break_summary['transition_1']['p_value']:.4f}
-Significant at alpha=0.05: {break_summary['transition_1']['significant']}
+F = {break_summary["transition_1"]["F_statistic"]:.4f}
+p = {break_summary["transition_1"]["p_value"]:.4f}
+Significant at alpha=0.05: {break_summary["transition_1"]["significant"]}
 
 ---
 
@@ -1375,22 +1375,22 @@ Significant at alpha=0.05: {break_summary['transition_1']['significant']}
 ### Vintage 2009 Linear Trend
 Model: IntlMig = a + b*time
 
-{f"Slope = {trend_results['vintage_2009']['slope']:.2f} persons/year" if 'vintage_2009' in trend_results else 'N/A'}
-{f"SE(slope) = {trend_results['vintage_2009']['slope_se']:.2f}" if 'vintage_2009' in trend_results else ''}
-{f"p-value = {trend_results['vintage_2009']['slope_pvalue']:.4f}" if 'vintage_2009' in trend_results else ''}
-{f"R² = {trend_results['vintage_2009']['r_squared']:.4f}" if 'vintage_2009' in trend_results else ''}
+{f"Slope = {trend_results['vintage_2009']['slope']:.2f} persons/year" if "vintage_2009" in trend_results else "N/A"}
+{f"SE(slope) = {trend_results['vintage_2009']['slope_se']:.2f}" if "vintage_2009" in trend_results else ""}
+{f"p-value = {trend_results['vintage_2009']['slope_pvalue']:.4f}" if "vintage_2009" in trend_results else ""}
+{f"R² = {trend_results['vintage_2009']['r_squared']:.4f}" if "vintage_2009" in trend_results else ""}
 
 ### Vintage 2020 Linear Trend
-{f"Slope = {trend_results['vintage_2020']['slope']:.2f} persons/year" if 'vintage_2020' in trend_results else 'N/A'}
-{f"SE(slope) = {trend_results['vintage_2020']['slope_se']:.2f}" if 'vintage_2020' in trend_results else ''}
-{f"p-value = {trend_results['vintage_2020']['slope_pvalue']:.4f}" if 'vintage_2020' in trend_results else ''}
-{f"R² = {trend_results['vintage_2020']['r_squared']:.4f}" if 'vintage_2020' in trend_results else ''}
+{f"Slope = {trend_results['vintage_2020']['slope']:.2f} persons/year" if "vintage_2020" in trend_results else "N/A"}
+{f"SE(slope) = {trend_results['vintage_2020']['slope_se']:.2f}" if "vintage_2020" in trend_results else ""}
+{f"p-value = {trend_results['vintage_2020']['slope_pvalue']:.4f}" if "vintage_2020" in trend_results else ""}
+{f"R² = {trend_results['vintage_2020']['r_squared']:.4f}" if "vintage_2020" in trend_results else ""}
 
 ### Vintage 2024 Linear Trend
-{f"Slope = {trend_results['vintage_2024']['slope']:.2f} persons/year" if 'vintage_2024' in trend_results else 'N/A'}
-{f"SE(slope) = {trend_results['vintage_2024']['slope_se']:.2f}" if 'vintage_2024' in trend_results else ''}
-{f"p-value = {trend_results['vintage_2024']['slope_pvalue']:.4f}" if 'vintage_2024' in trend_results else ''}
-{f"R² = {trend_results['vintage_2024']['r_squared']:.4f}" if 'vintage_2024' in trend_results else ''}
+{f"Slope = {trend_results['vintage_2024']['slope']:.2f} persons/year" if "vintage_2024" in trend_results else "N/A"}
+{f"SE(slope) = {trend_results['vintage_2024']['slope_se']:.2f}" if "vintage_2024" in trend_results else ""}
+{f"p-value = {trend_results['vintage_2024']['slope_pvalue']:.4f}" if "vintage_2024" in trend_results else ""}
+{f"R² = {trend_results['vintage_2024']['r_squared']:.4f}" if "vintage_2024" in trend_results else ""}
 
 ---
 
@@ -1421,7 +1421,7 @@ For a two-sample t-test with n1=n2=10, alpha=0.05, two-tailed:
 
 ---
 
-*Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
+*Generated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}*
 *Agent: 2 (Statistical Transition Analysis)*
 """
 

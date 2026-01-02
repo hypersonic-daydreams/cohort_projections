@@ -161,7 +161,7 @@ def plot_population_pyramid(
         if SEABORN_AVAILABLE:
             colors = sns.color_palette("Set2", len(races))
         else:
-            colors = plt.cm.Set2(np.linspace(0, 1, len(races)))
+            colors = plt.colormaps.get_cmap("Set2")(np.linspace(0, 1, len(races)))
 
         # Males (left side, negative values)
         left_cumsum = np.zeros(len(age_groups))
@@ -215,7 +215,7 @@ def plot_population_pyramid(
 
     # Age group labels
     if age_group_size > 1:
-        age_labels = [f"{age}-{age+age_group_size-1}" for age in age_groups]
+        age_labels = [f"{age}-{age + age_group_size - 1}" for age in age_groups]
     else:
         age_labels = [str(age) for age in age_groups]
 
@@ -367,7 +367,7 @@ def plot_population_trends(
     ax.set_ylabel("Population", fontsize=12)
 
     if title is None:
-        title = f'Population Trends by {by.replace("_", " ").title()}'
+        title = f"Population Trends by {by.replace('_', ' ').title()}"
 
     ax.set_title(title, fontsize=14, fontweight="bold")
 
@@ -655,7 +655,7 @@ def plot_scenario_comparison(
     if SEABORN_AVAILABLE:
         colors = sns.color_palette("Set1", len(scenario_projections))
     else:
-        colors = plt.cm.Set1(np.linspace(0, 1, len(scenario_projections)))
+        colors = plt.colormaps.get_cmap("Set1")(np.linspace(0, 1, len(scenario_projections)))
 
     # Plot each scenario
     for i, (scenario_name, projection_df) in enumerate(scenario_projections.items()):

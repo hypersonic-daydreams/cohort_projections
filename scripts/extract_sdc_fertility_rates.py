@@ -56,7 +56,7 @@ def extract_births_by_age_group() -> pd.DataFrame:
     }
 
     for i in range(3, 10):
-        age_label = df.iloc[i, 0]
+        age_label = str(df.iloc[i, 0])
         births = df.iloc[i, 1]
         if age_label in age_groups:
             age_start, age_end = age_groups[age_label]
@@ -92,7 +92,7 @@ def extract_female_population() -> pd.DataFrame:
 
     # Find rows with average data (around row 26-33)
     for i in range(26, 34):
-        age_label = df.iloc[i, 1]
+        age_label = str(df.iloc[i, 1])
         pop = df.iloc[i, 3]  # North Dakota column
         if age_label in age_mapping:
             age_start, age_end = age_mapping[age_label]
@@ -137,7 +137,7 @@ def extract_sdc_rates_from_projections() -> pd.DataFrame:
     }
 
     for i in range(38, 46):
-        age_label = df.iloc[i, 2]
+        age_label = str(df.iloc[i, 2])
         rate = df.iloc[i, 3]  # North Dakota column
         if age_label in age_mapping:
             age_start, age_end = age_mapping[age_label]
@@ -293,7 +293,7 @@ def main():
             # SDC 5-year rate should equal ASFR × 5
             print(
                 f"   Age {int(row['age_start'])}-{int(row['age_end'])}: "
-                f"ASFR×5 = {row['asfr']*5:.6f}, SDC 5yr = {sdc_5yr[0]:.6f}"
+                f"ASFR×5 = {row['asfr'] * 5:.6f}, SDC 5yr = {sdc_5yr[0]:.6f}"
             )
 
     # Step 3: Interpolate to single years (from raw data)

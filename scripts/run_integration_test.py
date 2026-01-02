@@ -518,9 +518,9 @@ def calculate_summary_statistics(results):
         total = year_data["population"].sum()
 
         print(f"\n  {label}:")
-        print(f"    Under 18:   {under_18:>10,.0f} ({under_18/total*100:>5.1f}%)")
-        print(f"    18-64:      {age_18_64:>10,.0f} ({age_18_64/total*100:>5.1f}%)")
-        print(f"    65+:        {age_65_plus:>10,.0f} ({age_65_plus/total*100:>5.1f}%)")
+        print(f"    Under 18:   {under_18:>10,.0f} ({under_18 / total * 100:>5.1f}%)")
+        print(f"    18-64:      {age_18_64:>10,.0f} ({age_18_64 / total * 100:>5.1f}%)")
+        print(f"    65+:        {age_65_plus:>10,.0f} ({age_65_plus / total * 100:>5.1f}%)")
 
     return {
         "start_population": start_pop,

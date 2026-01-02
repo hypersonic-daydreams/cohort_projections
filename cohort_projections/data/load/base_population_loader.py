@@ -148,7 +148,7 @@ def load_state_age_sex_race_distribution(
     total_proportion = distribution["proportion"].sum()
     if abs(total_proportion - 1.0) > 0.01:
         logger.warning(
-            f"Distribution proportions sum to {total_proportion:.4f}, " f"normalizing to 1.0"
+            f"Distribution proportions sum to {total_proportion:.4f}, normalizing to 1.0"
         )
         distribution["proportion"] = distribution["proportion"] / total_proportion
 
@@ -356,9 +356,7 @@ def load_base_population_for_county(
             f"expected {total_population:,.0f}, got {actual_total:,.0f}"
         )
 
-    logger.info(
-        f"Created base population with {len(base_pop)} cohorts, " f"total: {actual_total:,.0f}"
-    )
+    logger.info(f"Created base population with {len(base_pop)} cohorts, total: {actual_total:,.0f}")
 
     return base_pop
 

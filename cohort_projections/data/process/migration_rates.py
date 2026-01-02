@@ -301,8 +301,7 @@ def load_international_migration_data(
         original_len = len(df)
         df = df[(df["year"] >= min_year) & (df["year"] <= max_year)].copy()
         logger.info(
-            f"Filtered to years {min_year}-{max_year}: "
-            f"{len(df)}/{original_len} records retained"
+            f"Filtered to years {min_year}-{max_year}: {len(df)}/{original_len} records retained"
         )
 
     # Filter to target area if provided
@@ -310,7 +309,7 @@ def load_international_migration_data(
         original_len = len(df)
         df = df[df["county_fips"].str.startswith(target_county_fips)].copy()
         logger.info(
-            f"Filtered to area {target_county_fips}: " f"{len(df)}/{original_len} records retained"
+            f"Filtered to area {target_county_fips}: {len(df)}/{original_len} records retained"
         )
 
     # Remove NaN migrants
@@ -726,8 +725,7 @@ def calculate_net_migration(
     total_net = result_df["net_migration"].sum()
 
     logger.info(
-        f"Net migration calculated: "
-        f"in={total_in:,.0f}, out={total_out:,.0f}, net={total_net:+,.0f}"
+        f"Net migration calculated: in={total_in:,.0f}, out={total_out:,.0f}, net={total_net:+,.0f}"
     )
 
     return result_df
@@ -1077,8 +1075,7 @@ def validate_migration_data(
         max_abs_migration = df["net_migration"].abs().max()
         if max_abs_migration > 10000:
             warnings.append(
-                f"Very large net migration value: {max_abs_migration:,.0f} "
-                f"(possible data error)"
+                f"Very large net migration value: {max_abs_migration:,.0f} (possible data error)"
             )
 
     if has_migration_rate:
@@ -1253,8 +1250,7 @@ def process_migration_rates(
     net_domestic = total_in - total_out
 
     logger.info(
-        f"Domestic migration: in={total_in:,.0f}, out={total_out:,.0f}, "
-        f"net={net_domestic:+,.0f}"
+        f"Domestic migration: in={total_in:,.0f}, out={total_out:,.0f}, net={net_domestic:+,.0f}"
     )
 
     # Step 4: Load international migration (optional)

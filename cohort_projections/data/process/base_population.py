@@ -96,9 +96,7 @@ def harmonize_race_categories(df: pd.DataFrame) -> pd.DataFrame:
     if race_col != "race_ethnicity" and race_col in df.columns:
         df = df.drop(columns=[race_col])
 
-    logger.info(
-        f"Harmonized {len(df)} records across " f"{df['race_ethnicity'].nunique()} categories"
-    )
+    logger.info(f"Harmonized {len(df)} records across {df['race_ethnicity'].nunique()} categories")
 
     return df
 
@@ -124,7 +122,7 @@ def create_cohort_matrix(
         ValueError: If required columns missing
     """
     logger.info(
-        f"Creating cohort matrix for {geography_level} " f"{geography_id if geography_id else ''}"
+        f"Creating cohort matrix for {geography_level} {geography_id if geography_id else ''}"
     )
 
     # Validate required columns

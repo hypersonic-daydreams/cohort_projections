@@ -97,6 +97,7 @@ Issues = "https://github.com/nigel/cohort_projections/issues"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+extend-exclude = ["sdc_2024_replication"]
 
 [tool.ruff.lint]
 select = [
@@ -177,6 +178,18 @@ ignore = [
     "T201",    # Allow print statements
     "D",       # Ignore docstring requirements
 ]
+# SDC 2024 replication study - historical research scripts
+# These are exploratory analysis scripts for a completed study, not production code.
+"sdc_2024_replication/**/**.py" = [
+    "E402",    # Allow imports after sys.path modification
+    "E722",    # Allow bare except (legacy code)
+    "T201",    # Allow print statements
+    "D",       # Ignore docstring requirements
+    "N803",    # Allow uppercase argument names
+    "N806",    # Allow uppercase variable names
+    "F841",    # Allow unused variables
+    "PLR2004", # Allow magic values
+]
 
 [tool.ruff.lint.isort]
 known-first-party = ["cohort_projections"]
@@ -209,13 +222,13 @@ show_error_codes = true
 # Ignore missing imports for libraries without stubs
 ignore_missing_imports = true
 exclude = [
-    "scripts/",
     "examples/",
     "tests/",
     "docs/",
     "docs/governance/",
     "venv/",
     ".venv/",
+    "sdc_2024_replication/",
 ]
 
 [[tool.mypy.overrides]]
@@ -234,7 +247,13 @@ module = [
     "tqdm.*",
     "openpyxl.*",
     "yaml.*",
+    "requests",
+    "requests.*",
 ]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "requests"
 ignore_missing_imports = true
 
 # =============================================================================

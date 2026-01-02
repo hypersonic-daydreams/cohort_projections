@@ -40,7 +40,7 @@ import traceback
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import pandas as pd
 
@@ -144,7 +144,12 @@ class ExportReport:
         print("\n" + "=" * 80 + "\n")
 
 
-def convert_parquet_to_csv(parquet_file: Path, output_dir: Path, compression: str = "gzip") -> Path:
+CompressionType = Literal["infer", "gzip", "bz2", "zip", "xz", "zstd", "tar"]
+
+
+def convert_parquet_to_csv(
+    parquet_file: Path, output_dir: Path, compression: CompressionType | None = "gzip"
+) -> Path:
     """
     Convert Parquet file to CSV.
 
@@ -504,7 +509,7 @@ def generate_data_dictionary(
             return result
 
         # Create data dictionary content
-        data_dict = {
+        data_dict: dict[str, Any] = {
             "metadata": {
                 "title": "North Dakota Population Projections - Data Dictionary",
                 "generated": datetime.now(UTC).isoformat(),

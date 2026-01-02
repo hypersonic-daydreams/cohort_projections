@@ -367,7 +367,9 @@ def create_comparison_visualization(
 
     # 1b. Difference between methodologies
     ax2 = axes[0, 1]
-    diff = sdc_results["total_population"].values - baseline_results["total_population"].values
+    sdc_pop = sdc_results["total_population"].to_numpy()
+    baseline_pop = baseline_results["total_population"].to_numpy()
+    diff = sdc_pop - baseline_pop
     ax2.bar(sdc_results["year"], diff / 1000, color="purple", alpha=0.7)
     ax2.axhline(y=0, color="black", linestyle="-", linewidth=0.5)
     ax2.set_xlabel("Year")
@@ -377,8 +379,8 @@ def create_comparison_visualization(
 
     # 1c. Growth rates
     ax3 = axes[1, 0]
-    sdc_growth = sdc_results["total_population"].pct_change() * 100
-    baseline_growth = baseline_results["total_population"].pct_change() * 100
+    sdc_growth: pd.Series[float] = sdc_results["total_population"].pct_change() * 100
+    baseline_growth: pd.Series[float] = baseline_results["total_population"].pct_change() * 100
     ax3.plot(sdc_results["year"][1:], sdc_growth[1:], "b-", linewidth=2, label="SDC 2024")
     ax3.plot(
         baseline_results["year"][1:], baseline_growth[1:], "r--", linewidth=2, label="Baseline"
@@ -534,9 +536,9 @@ def main():
         for _, row in comparison_df.iterrows():
             print(
                 f"{int(row['year']):<10} "
-                f"{row['sdc_2024_population']/1000:>12,.1f}   "
-                f"{row['baseline_population']/1000:>15,.1f}   "
-                f"{row['difference']/1000:>12,.1f}"
+                f"{row['sdc_2024_population'] / 1000:>12,.1f}   "
+                f"{row['baseline_population'] / 1000:>15,.1f}   "
+                f"{row['difference'] / 1000:>12,.1f}"
             )
         print("-" * 60)
 

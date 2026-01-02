@@ -65,7 +65,9 @@ def load_scenario_data(scenario_name: str, base_path: Path) -> pd.DataFrame:
     combined = pd.concat(dfs, ignore_index=True)
 
     # Aggregate to state level (sum populations across counties)
-    state_df = combined.groupby(["year", "age", "sex", "race"], as_index=False)["population"].sum()
+    state_df = combined.groupby(["year", "age", "sex", "race"], as_index=False).agg(
+        {"population": "sum"}
+    )
 
     print(f"  Aggregated to state level: {len(state_df):,} rows")
     print(f"  Years: {state_df['year'].min()} - {state_df['year'].max()}")

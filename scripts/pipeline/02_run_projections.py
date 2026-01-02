@@ -42,7 +42,7 @@ import sys
 import traceback
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, cast
 
 import pandas as pd
 
@@ -116,7 +116,7 @@ def get_completed_geographies(output_dir: Path, scenario: str) -> set[str]:
     Returns:
         Set of completed FIPS codes
     """
-    completed = set()
+    completed: set[str] = set()
     scenario_dir = output_dir / scenario
 
     if not scenario_dir.exists():
@@ -463,22 +463,25 @@ def setup_projection_run(
     """
     logger.info("Setting up projection run...")
 
-    geographies = {"state": [], "county": [], "place": []}
+    geographies: dict[str, list[str]] = {"state": [], "county": [], "place": []}
 
     # Determine scenarios
+    resolved_scenarios: list[str]
     if scenarios is None:
         # Get active scenarios from config
         all_scenarios = config.get("scenarios", {})
-        scenarios = [
+        resolved_scenarios = [
             name for name, settings in all_scenarios.items() if settings.get("active", False)
         ]
-        if not scenarios:
+        if not resolved_scenarios:
             # Fallback to pipeline config
-            scenarios = (
+            resolved_scenarios = (
                 config.get("pipeline", {}).get("projection", {}).get("scenarios", ["baseline"])
             )
+    else:
+        resolved_scenarios = scenarios
 
-    logger.info(f"Scenarios to run: {', '.join(scenarios)}")
+    logger.info(f"Scenarios to run: {', '.join(resolved_scenarios)}")
 
     # State level
     if "state" in levels:
@@ -532,19 +535,16 @@ def setup_projection_run(
             place_fips = [f for f in fips_filter if len(f) == 7]
             geographies["place"] = place_fips
         else:
-            # Load places based on mode
-            places_df = load_geography_list(
+            # Load places based on config (mode/min_population read from config)
+            geographies["place"] = load_geography_list(
                 level="place",
                 config=config,
-                mode=mode,
-                min_population=place_config.get("min_population", 500),
-                fips_list=place_config.get("fips_codes", []),
+                fips_codes=place_config.get("fips_codes"),
             )
-            geographies["place"] = places_df["fips"].tolist()
 
         logger.info(f"Places: {len(geographies['place'])} to process")
 
-    return geographies, scenarios
+    return geographies, resolved_scenarios
 
 
 def apply_scenario_rate_adjustments(
@@ -683,9 +683,11 @@ def run_geographic_projections(
         logger.info(f"Resume mode: {len(completed)} geographies already completed")
 
     # Process each level
-    for level, fips_list in geographies.items():
+    for level_key, fips_list in geographies.items():
         if not fips_list:
             continue
+        # Cast to Literal for type safety
+        level = cast(Literal["state", "county", "place"], level_key)
 
         logger.info(f"\nProcessing {level} level: {len(fips_list)} geographies")
 

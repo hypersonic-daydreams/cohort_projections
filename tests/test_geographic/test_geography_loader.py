@@ -83,7 +83,7 @@ class TestLoadNdCounties:
     def test_load_counties_invalid_source_raises(self):
         """Test invalid source raises ValueError."""
         with pytest.raises(ValueError, match="Unknown source"):
-            load_nd_counties(source="invalid")
+            load_nd_counties(source="invalid")  # type: ignore[arg-type]
 
     @pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Dependencies not available")
     def test_load_counties_custom_reference_path(self, tmp_path):
@@ -196,7 +196,7 @@ class TestLoadNdPlaces:
     def test_load_places_invalid_source_raises(self):
         """Test invalid source raises ValueError."""
         with pytest.raises(ValueError, match="Unknown source"):
-            load_nd_places(source="invalid")
+            load_nd_places(source="invalid")  # type: ignore[arg-type]
 
 
 class TestGetPlaceToCountyMapping:
@@ -319,7 +319,7 @@ class TestLoadGeographyList:
     def test_load_invalid_level_raises(self):
         """Test invalid geographic level raises ValueError."""
         with pytest.raises(ValueError, match="Unknown geographic level"):
-            load_geography_list("invalid_level")
+            load_geography_list("invalid_level")  # type: ignore[arg-type]
 
     @pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Dependencies not available")
     def test_load_with_config_county_all(self):
@@ -606,7 +606,7 @@ class TestGeographyLoaderEdgeCases:
                 "county_name": ["String Path County"],
             }
         )
-        custom_path = str(tmp_path / "string_path.csv")
+        custom_path = tmp_path / "string_path.csv"
         custom_counties.to_csv(custom_path, index=False)
 
         counties = load_nd_counties(reference_path=custom_path)

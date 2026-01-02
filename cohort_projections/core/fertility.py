@@ -132,8 +132,8 @@ def calculate_births(
     if not births_df.empty:
         logger.debug(
             f"Year {year}: Births by sex - "
-            f"Male: {births_df[births_df['sex']=='Male']['population'].sum():,.0f}, "
-            f"Female: {births_df[births_df['sex']=='Female']['population'].sum():,.0f}"
+            f"Male: {births_df[births_df['sex'] == 'Male']['population'].sum():,.0f}, "
+            f"Female: {births_df[births_df['sex'] == 'Female']['population'].sum():,.0f}"
         )
 
     return births_df

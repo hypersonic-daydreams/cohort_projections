@@ -287,7 +287,7 @@ def main():
         .agg({"inflow_n2": "sum", "outflow_n2": "sum", "net_migration": "sum"})
         .reset_index()
     )
-    yearly_totals.columns = ["Year", "Total Inflows", "Total Outflows", "Net Migration"]
+    yearly_totals.columns = pd.Index(["Year", "Total Inflows", "Total Outflows", "Net Migration"])
     print(yearly_totals.to_string(index=False))
 
     # Top 5 counties by positive net migration (all years combined)

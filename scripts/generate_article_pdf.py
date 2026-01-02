@@ -8,7 +8,7 @@ Uses markdown + weasyprint to create a professional journal-style PDF.
 import re
 from pathlib import Path
 
-import markdown
+import markdown  # type: ignore[import-untyped]
 from weasyprint import CSS, HTML
 
 # Paths
@@ -209,7 +209,7 @@ def clean_markdown(content: str) -> str:
 
     # First, identify lines that look like subheadings (Title Case, short, followed by paragraph)
     lines = content.split("\n")
-    cleaned_lines = []
+    cleaned_lines: list[str] = []
     i = 0
     while i < len(lines):
         line = lines[i]

@@ -145,7 +145,7 @@ def example_2_cohort_matrix():
     cohort_matrix = create_cohort_matrix(harmonized, geography_level="state", geography_id="38")
 
     print(f"\nCohort matrix created: {len(cohort_matrix)} cells")
-    print(f"Expected cells: 91 ages × 2 sexes × 6 races = {91*2*6} cells")
+    print(f"Expected cells: 91 ages × 2 sexes × 6 races = {91 * 2 * 6} cells")
     print(f"Total population: {cohort_matrix['population'].sum():,.0f}")
 
     print("\nSample cohort matrix rows:")
