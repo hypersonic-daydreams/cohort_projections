@@ -154,18 +154,27 @@ Where:
 |-----|-------|--------|------|---------|
 | [020](020-extended-time-series-methodology-analysis.md) | Extended Time Series Methodology Analysis | Accepted | 2026-01-01 | Option C (Hybrid) for 2000-2024 vintage series; primary inference on 2010-2024 |
 
+### Package Extraction
+
+| ADR | Title | Status | Date | Summary |
+|-----|-------|--------|------|---------|
+| [023](023-package-extraction-strategy.md) | Package Extraction Strategy | Accepted | 2026-01-02 | Strategy for extracting reusable features into standalone packages |
+| [023a](023a-evidence-review-package.md) | Evidence Review Package | Accepted | 2026-01-02 | Citation audit, claims analysis, and Toulmin argument mapping package |
+| [023b](023b-project-utils-package.md) | Project Utils Package | Accepted | 2026-01-02 | Configuration loading and logging setup utilities |
+| [023c](023c-codebase-catalog-package.md) | Codebase Catalog Package | Accepted | 2026-01-02 | Codebase scanning, code inventory, and pre-commit hooks |
+
 ---
 
 ## ADR Status Summary
 
 | Status | Count |
 |--------|-------|
-| Accepted | 19 |
+| Accepted | 23 |
 | Proposed | 1 |
 | Deprecated | 0 |
 | Superseded | 0 |
 
-**Naming Convention Compliance**: All 20 ADRs follow the `NNN-short-title.md` naming convention.
+**Naming Convention Compliance**: All 24 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `023a`).
 
 ---
 
@@ -224,8 +233,8 @@ Across all ADRs, these principles guided decisions:
 
 ---
 
-**Last Updated**: 2025-12-28
+**Last Updated**: 2026-01-02
 
-**Total ADRs**: 16 (16 accepted)
+**Total ADRs**: 24 (23 accepted, 1 proposed)
 
 **Template**: See [TEMPLATE.md](TEMPLATE.md) for creating new ADRs
