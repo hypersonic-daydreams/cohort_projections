@@ -54,7 +54,12 @@ This document details the systematic response to the critique provided by the au
 **Proposed Remediation:**
 *   Correct text to "50 states (including DC)" or "51 jurisdictions" as appropriate based on the code verification.
 *   **Verification:** Check `03_results.tex` and the source script `run_ml_methods.py` (or similar) to confirm the exact count.
-**Status:** Implemented in `03_results.tex` and verified against `data_loader.py` ($N=51$).
 
-## Conclusion and Methodological Integrity
-The revisions outlined above address the substantive critiques regarding data provenance, causal logic, and reporting precision. By reframing the DiD estimate as a conservative lower bound and clarifying the spliced nature of the dataset, the manuscript's internal consistency is restored without requiring new statistical analysis.
+### 6. Methodological Clarifications
+**Critique:** The manuscript needed tighter justifications for model choices (Gravity distance omission, Panel interpretation) and a clearer hierarchy of methods in the introduction.
+**Action:**
+*   **Introduction:** Added text explicit rank-ordering the modules: Panel/Causal = Primary; ML = Diagnostic.
+*   **Gravity:** Promoted the "omitted distance" justification from footnote to main text to make the "two-stage allocation" argument explicit.
+*   **Panel:** Renamed "determinants" to "patterns" to avoid causal overstatement in the descriptive panel model.
+*   **Conclusion:** Added "Conservative Envelope" interpretation to synthesize the scenario logic.
+**Status:** Implemented in respective sections.

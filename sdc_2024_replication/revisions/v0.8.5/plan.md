@@ -30,14 +30,14 @@
 - [ ] **Major 9 (Arithmetic):** Fix "52 states" to "51 accounting for DC".
     - *Action:* Grep and fix in `03_results.tex`.
 
-### 2. Narrative & Methodology (Medium Priority)
-- [ ] **Major 2 (Intro):** Add "Module Ranking" text to Introduction.
-- [ ] **Major 5 (Panel):** Rename "determinants" to "decomposition" if covariates are absent.
-- [ ] **Major 6 (Gravity):** Explicitly justify omitting distance (allocation model).
-- [ ] **Major 8 (Uncertainty):** Add "Conservative Envelope" interpretation to Results/Conclusion.
+    - [x] **Narrative & Methodology (Medium Priority)** <!-- id: 22 -->
+        - [x] Major 2 (Intro): Add "Module Ranking" text <!-- id: 34 -->
+        - [x] Major 5 (Panel): Rename "determinants" to "patterns" <!-- id: 35 -->
+        - [x] Major 6 (Gravity): Justify omitting distance (promoted footnote) <!-- id: 36 -->
+        - [x] Major 8 (Uncertainty): Add "Conservative Envelope" interpretation <!-- id: 37 -->
+        - [x] Minor 7: Practical Implications (Verified existing section) <!-- id: 40 -->
 
-### 3. Polish (Low Priority)
-- [ ] **Minor 7:** Add "Practical Implications" paragraph to Discussion.
+    - [ ] **Polish (Low Priority)** <!-- id: 39 -->
 
 ## Verification
 - [ ] Run `verify_pipeline.py` (ensure no accidental data changes).
