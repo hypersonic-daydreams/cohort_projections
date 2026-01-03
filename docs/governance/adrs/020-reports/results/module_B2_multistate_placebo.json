@@ -1,7 +1,7 @@
 {
   "module": "B2",
   "analysis": "multistate_placebo_analysis",
-  "generated": "2026-01-03T01:35:57.756233+00:00",
+  "generated": "2026-01-03T01:35:57.758425+00:00",
   "input_files": [
     "census.state_components (PostgreSQL)"
   ],

@@ -6,8 +6,9 @@
 |-------|-------|
 | Phase ID | PHASE_B |
 | Start Date | 2026-01-01 |
-| Status | **ACTIVE** - Implementation in progress |
+| Status | **MOSTLY COMPLETE** - Core tasks done via ADR-021 |
 | Prerequisite | Phase A complete with Option C decision |
+| Related | See [ADR-020-021-RECONCILIATION.md](../ADR-020-021-RECONCILIATION.md) |
 
 ---
 
@@ -53,16 +54,18 @@ Implement Option C (Hybrid Approach) for the extended time series analysis:
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Create regime-aware module | Pending | B1 implementation |
-| Create multi-state module | Pending | B2 implementation |
-| Generate 50-state panel | Pending | B2 data preparation |
-| Run sensitivity suite | Pending | B1 analysis |
+| Create regime-aware module | **COMPLETE** | ADR-021 `module_regime_framework.py` (3 regimes, 25 events) |
+| Create multi-state module | **COMPLETE** | `module_B2_multistate_placebo.py` |
+| Generate 50-state panel | **COMPLETE** | PostgreSQL `census.state_components` |
+| Run sensitivity suite | **COMPLETE** | ADR-021 `module_9b_policy_scenarios.py` (5 scenarios) |
+
+**Key B2 Finding:** ND ranks #18/50 in regime shift magnitude (64th percentile). Pattern is nationwide, NOT ND-specific.
 
 ### Phase 3: Extensions
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Data Comparability section | Pending | B3 article update |
+| Data Comparability section | Pending | B3 article update (optional) |
 | Bayesian VAR | Pending | B4 optional extension |
 | Panel models | Pending | B4 optional extension |
 
@@ -70,8 +73,8 @@ Implement Option C (Hybrid Approach) for the extended time series analysis:
 
 | Task | Status | Notes |
 |------|--------|-------|
-| Test fixtures | Pending | B6 test infrastructure |
-| Unit tests | Pending | B6 test coverage |
+| Test fixtures | **COMPLETE** | `tests/unit/test_adr021_modules.py` (78 tests) |
+| Unit tests | **COMPLETE** | All ADR-021 modules have coverage |
 
 ---
 
@@ -98,14 +101,22 @@ Phase 4 (B6)
 
 ## Success Criteria
 
-- [ ] ADR-020 accepted with Option C decision documented
-- [ ] Regime-aware models produce sensitivity table
-- [ ] 50-state placebo analysis complete with ND percentile
-- [ ] Journal article has Data Comparability subsection
-- [ ] Bayesian/Panel recommendation documented
-- [ ] All new functions have unit tests
-- [ ] No broken cross-references
+- [x] ADR-020 accepted with Option C decision documented
+- [x] Regime-aware models produce sensitivity table (ADR-021 `module_9b_policy_scenarios.py`)
+- [x] 50-state placebo analysis complete with ND percentile (**ND = #18/50, 64th percentile**)
+- [ ] Journal article has Data Comparability subsection (optional, pending)
+- [ ] Bayesian/Panel recommendation documented (optional, pending)
+- [x] All new functions have unit tests (78 tests in `test_adr021_modules.py`)
+- [x] No broken cross-references
 
 ---
 
-*Last Updated: 2026-01-01*
+## Reconciliation with ADR-021
+
+Most ADR-020 Phase B tasks were completed under ADR-021 (Immigration Status Durability). See:
+- [ADR-020-021-RECONCILIATION.md](../ADR-020-021-RECONCILIATION.md) for full analysis
+- [ADR-021 Phase B Tracker](../../021-reports/PHASE_B_IMPLEMENTATION_TRACKER.md) for implementation details
+
+---
+
+*Last Updated: 2026-01-02*

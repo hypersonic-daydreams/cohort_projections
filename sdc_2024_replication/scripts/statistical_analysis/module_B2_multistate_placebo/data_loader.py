@@ -4,8 +4,13 @@ Data Loading for Multi-State Placebo Analysis
 
 Loads Census Bureau PEP state-level population components data
 and adds vintage labels for regime-aware analysis.
+
+Supports both:
+1. PostgreSQL database loading (preferred)
+2. CSV file loading (legacy fallback)
 """
 
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -21,6 +26,71 @@ REVISION_OUTPUTS = (
     / "journal_article"
     / "revision_outputs"
 )
+
+# Add database module to path
+sys.path.append(str(Path(__file__).parent.parent.parent))
+
+
+def load_state_panel_from_db(exclude_territories: bool = True) -> pd.DataFrame:
+    """
+    Load the 50-state population components panel data from PostgreSQL.
+
+    This is the preferred data loading method as it uses the centralized
+    database rather than CSV exports.
+
+    Parameters
+    ----------
+    exclude_territories : bool
+        If True, excludes DC, Puerto Rico, and other territories.
+        Default is True to focus on 50 states.
+
+    Returns
+    -------
+    pd.DataFrame
+        State-level panel with columns:
+        - state: State name
+        - state_fips: FIPS code
+        - year: Calendar year
+        - population: Total population
+        - intl_migration: International migration count
+        - domestic_migration: Domestic migration count
+        - net_migration: Net migration
+        - births, deaths, natural_change, pop_change
+    """
+    from database import db_config
+
+    conn = db_config.get_db_connection()
+    try:
+        query = """
+        SELECT
+            year,
+            state_name as state,
+            state_fips,
+            population,
+            intl_migration,
+            domestic_migration,
+            net_migration,
+            births,
+            deaths,
+            natural_change,
+            pop_change
+        FROM census.state_components
+        WHERE state_name IS NOT NULL
+        ORDER BY state_name, year
+        """
+        df = pd.read_sql(query, conn)
+    finally:
+        conn.close()
+
+    # Exclude territories if requested
+    if exclude_territories:
+        territories = ["District of Columbia", "Puerto Rico", "United States"]
+        df = df[~df["state"].isin(territories)]
+
+    # Sort by state and year
+    df = df.sort_values(["state", "year"]).reset_index(drop=True)
+
+    return df
 
 
 def load_state_panel(

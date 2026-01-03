@@ -25,7 +25,7 @@ Usage:
     )
 """
 
-from .data_loader import load_state_panel, add_vintage_labels
+from .data_loader import load_state_panel, load_state_panel_from_db, add_vintage_labels
 from .regime_shift_calculator import (
     calculate_state_shift,
     calculate_all_state_shifts,
@@ -59,6 +59,7 @@ from .oil_state_hypothesis import (
 __all__ = [
     # Data loading
     "load_state_panel",
+    "load_state_panel_from_db",
     "add_vintage_labels",
     # Regime shift calculation
     "calculate_state_shift",
