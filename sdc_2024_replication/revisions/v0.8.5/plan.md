@@ -37,11 +37,16 @@
         - [x] Major 8 (Uncertainty): Add "Conservative Envelope" interpretation <!-- id: 37 -->
         - [x] Minor 7: Practical Implications (Verified existing section) <!-- id: 40 -->
 
-    - [ ] **Polish (Low Priority)** <!-- id: 39 -->
+
+    - [x] **Polish (Low Priority)** <!-- id: 39 -->
+        - [x] Minor 2: Table Subtitles (Added units to Table 15) <!-- id: 41 -->
+        - [x] Minor 7: Practical Implications (Renamed section for clarity) <!-- id: 42 -->
+        - [x] Minor 1: Terminology (Verified PEP usage) <!-- id: 43 -->
+
 
 ## Verification
 - [ ] Run `verify_pipeline.py` (ensure no accidental data changes).
 - [ ] Manual review of diffs.
 
 ## Output Log
-- [ ] PDF Generated: `output/drafts/2026_immigration_policy_demographic_impact_v0.8.5.pdf`
+- [x] PDF Generated: `output/drafts/2026_immigration_policy_demographic_impact_v0.8.5.pdf`

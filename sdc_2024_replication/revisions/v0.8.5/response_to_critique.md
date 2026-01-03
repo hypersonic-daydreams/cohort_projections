@@ -62,4 +62,10 @@ This document details the systematic response to the critique provided by the au
 *   **Gravity:** Promoted the "omitted distance" justification from footnote to main text to make the "two-stage allocation" argument explicit.
 *   **Panel:** Renamed "determinants" to "patterns" to avoid causal overstatement in the descriptive panel model.
 *   **Conclusion:** Added "Conservative Envelope" interpretation to synthesize the scenario logic.
-**Status:** Implemented in respective sections.
+
+### 7. Final Polish
+**Critique:** Suggestions for improved readability: add table unit subtitles and "Practical Implications" framing.
+**Status:**
+*   **Table 15:** Added "(Units: Persons, Net)" to caption in `03_results.tex`.
+*   **Discussion:** Renamed "Policy Implications" to "Practical Implications for Policy and Planning" in `04_discussion.tex`.
+*   **Plan:** All items in `plan.md` marked complete.
