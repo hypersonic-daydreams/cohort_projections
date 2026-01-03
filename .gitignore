@@ -100,3 +100,11 @@ data/projections/**/*.json
 # B05006 Place of Birth for Foreign-Born Population
 sdc_2024_replication/data_immigration_policy/scripts/b05006_*.csv
 sdc_2024_replication/data_immigration_policy/scripts/b05006_*.json
+
+# SDC 2024 Replication Outputs
+sdc_2024_replication/output/
+sdc_2024_replication/scripts/statistical_analysis/journal_article/output/
+sdc_2024_replication/scripts/statistical_analysis/journal_article/main.pdf
+sdc_2024_replication/scripts/statistical_analysis/journal_article/*.aux
+sdc_2024_replication/scripts/statistical_analysis/journal_article/*.log
+sdc_2024_replication/scripts/statistical_analysis/journal_article/*.out
