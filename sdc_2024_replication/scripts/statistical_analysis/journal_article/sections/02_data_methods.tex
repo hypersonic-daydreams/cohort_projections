@@ -91,7 +91,7 @@ These sources are related but not interchangeable: \PEP international migration 
 
 \subsubsection{Census Bureau Population Estimates Program}
 
-The U.S. Census Bureau's Population Estimates Program (PEP) provides annual estimates of population and components of change for states and counties. This analysis employs the vintage 2024 estimates covering 2010--2024, which decompose annual population change into births, deaths, domestic migration, and international migration. The international migration component---designated \texttt{INTERNATIONALMIG} in Census Bureau nomenclature---comprises the net flow of foreign-born individuals crossing U.S. borders plus the net movement of native-born citizens and military personnel abroad. For subnational units, the Census Bureau allocates national international migration estimates to states using American Community Survey data on recent movers and foreign-born population distributions.
+The U.S. Census Bureau's Population Estimates Program (PEP) provides annual estimates of population and components of change for states and counties. This analysis employs a spliced time series combining Vintage 2020 estimates (covering 2010--2019) and Vintage 2024 estimates (covering 2020--2024). This approach bridges the two distinct post-censal estimation regimes to analyze the full 2010--2024 period. The series decomposes annual population change into births, deaths, domestic migration, and international migration. The international migration component---designated \texttt{INTERNATIONALMIG} in Census Bureau nomenclature---comprises the net flow of foreign-born individuals crossing U.S. borders plus the net movement of native-born citizens and military personnel abroad. For subnational units, the Census Bureau allocates national international migration estimates to states using American Community Survey data on recent movers and foreign-born population distributions.
 
 The PEP data provide the primary dependent variable for time series analysis: annual net international migration to North Dakota. Key advantages include consistent methodology across years and comprehensive geographic coverage. Limitations include the composite nature of the international migration variable, which aggregates heterogeneous streams (lawful permanent residents, refugees, temporary workers, and unauthorized migrants) into a single measure, and the allocation methodology, which may introduce smoothing artifacts at the state level.
 
@@ -381,14 +381,14 @@ Identification requires the parallel trends assumption: absent the Travel Ban, a
 
 \textbf{Restricted pre-period robustness.} When the joint pre-trend test rejects parallel trends over the full pre-period, we re-estimate the DiD restricting to years where pre-trends appear more plausibly parallel. If event study coefficients show greater divergence in early years than in years immediately preceding treatment, restricting the pre-period strengthens the parallel trends assumption at the cost of reduced sample size.
 
-\subsubsection{Interrupted Time Series (COVID-19)}
+\subsubsection{Interrupted Time Series (National System Diagnostic)}
 
-The COVID-19 analysis uses a state-level interrupted time series with state fixed effects to identify both an immediate level shift and a post-2020 trend change:
+To characterize the global migration regime shift associated with the pandemic, we employ a state-level interrupted time series (ITS) model estimated on the full 50-state panel. This analysis is intended as a \emph{national system diagnostic} to quantify the average state-level shock, not as a North Dakota-specific impact estimate. The model specifies:
 \begin{equation}
 \label{eq:its}
 y_{st} = \alpha_s + \beta_1 t + \beta_2 \text{Post}_{2020,t} + \beta_3 (t - 2020)\text{Post}_{2020,t} + \varepsilon_{st}
 \end{equation}
-where $y_{st}$ is net international migration for state $s$ in year $t$. The coefficient $\beta_2$ captures the immediate COVID-19 level shift, and $\beta_3$ captures the change in trend after 2020. Standard errors are clustered by state.
+where $y_{st}$ is net international migration for state $s$ in year $t$. The coefficient $\beta_2$ captures the immediate average COVID-19 level shift, and $\beta_3$ captures the change in trend after 2020. Standard errors are clustered by state. By estimating these parameters on the national panel, we establish the systemic volatility context within which North Dakota's specific recovery operates.
 
 \subsubsection{Synthetic Comparator (Descriptive Benchmark)}
 
@@ -474,11 +474,13 @@ As Table~\ref{tab:module_outputs} indicates, the VAR model (Module 2.2) and mach
 Scenario analysis translates analytical findings into forward-looking projections while explicitly characterizing uncertainty. The analysis develops four policy-indexed scenarios spanning the range of plausible future trajectories:
 
 \begin{enumerate}
-    \item \textbf{CBO Full}: Uses ARIMA point forecasts scaled by 1.1 for 2025--2029, then compounds at 8\% annually from 2030 onward. This scenario represents an upper bound predicated on policy liberalization.
+    \item \textbf{CBO Full}: Uses ARIMA point forecasts scaled by 1.1 for 2025--2029, then compounds at 8\% annually from 2030 onward. This scenario represents an explicit upper-bound stress test predicated on significant federal policy liberalization and sustained robust growth, shielding planning limits against extreme upside surprises.
 
     \item \textbf{Moderate}: Uses ARIMA point forecasts for 2025--2029, then applies a dampened trend (50\% of the averaged robust trend estimate) through 2045. This scenario represents the central tendency forecast.
 
     \item \textbf{Pre-2020 Trend}: Anchors at the 2019 level and extrapolates the 2010--2019 slope, treating COVID as a temporary deviation. This scenario provides a lower-bound estimate under restrictive policy assumptions.
+
+    \item \textbf{Immigration Policy}: Modifies the Moderate baseline by applying a 0.65 multiplier to future flows ($ 65\% $ of baseline). This shock magnitude is derived from the conservative lower bound of the Travel Ban DiD estimate (approx. $-75\%$, treated here conservatively as $-35\%$ impact on net total flows to account for non-refugee streams).
 
     \item \textbf{Zero}: Assumes complete cessation of international migration, providing a floor for population projection under extreme policy scenarios.
 \end{enumerate}
