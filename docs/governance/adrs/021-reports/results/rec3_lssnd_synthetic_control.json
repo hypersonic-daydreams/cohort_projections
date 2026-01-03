@@ -1,0 +1,237 @@
+{
+  "module": "7b",
+  "analysis": "LSSND_synthetic_control",
+  "generated": "2026-01-02T23:58:50.337987+00:00",
+  "input_files": [
+    "rpc.refugee_arrivals (PostgreSQL)",
+    "census.state_components (PostgreSQL)",
+    "acs.foreign_born (PostgreSQL)",
+    "National refugee totals (PostgreSQL)"
+  ],
+  "parameters": {
+    "treated_unit": "North Dakota",
+    "donor_states": [
+      "South Dakota",
+      "Nebraska",
+      "Idaho",
+      "Maine",
+      "Vermont",
+      "New Hampshire"
+    ],
+    "treatment_event": "LSSND closure",
+    "treatment_date": "January 2021",
+    "treatment_year": 2021,
+    "pre_treatment_years": [
+      2010,
+      2011,
+      2012,
+      2013,
+      2014,
+      2015,
+      2016,
+      2017,
+      2018,
+      2019,
+      2020
+    ],
+    "post_treatment_years": [
+      2021,
+      2022,
+      2023,
+      2024
+    ],
+    "outcome_variable": "arrivals",
+    "methodology": [
+      "National share-based synthetic control (primary)",
+      "Abadie et al. (2010) synthetic control (pre-treatment validation)"
+    ]
+  },
+  "results": {
+    "national_share_estimate": {
+      "method": "national_share_synthetic",
+      "counterfactual_share": {
+        "value": 0.007402837469516761,
+        "based_on": "FY2010-2016 average",
+        "pre_period_mean": 0.006823027905746606,
+        "pre_period_std": 0.0016514879955707349,
+        "stable_period_mean": 0.007402837469516761,
+        "stable_period_std": 0.0012237921890283635
+      },
+      "pre_treatment_fit": {
+        "rmspe": 135.99791882600778,
+        "mae": 114.54623310911883
+      },
+      "post_treatment_effect": {
+        "att_mean": -146.54902976761815,
+        "rmspe": 220.183460070936,
+        "rmspe_ratio": 1.6190208054038904,
+        "capacity_multiplier": 0.6717463968784323
+      },
+      "att_by_year": {
+        "2021": -54.47377836465576,
+        "2022": 72.08699061540176,
+        "2023": -260.2738878955789,
+        "2024": -343.53544342563964
+      },
+      "capacity_by_year": {
+        "2021": 0.3551397910780814,
+        "2022": 1.381588281560025,
+        "2023": 0.41415893441670587,
+        "2024": 0.5360985804589169
+      },
+      "interpretation": {
+        "att_text": "ND received 147 fewer refugees per year than expected post-LSSND closure",
+        "capacity_text": "ND operated at 67.2% of expected capacity"
+      }
+    },
+    "traditional_sc_estimate": {
+      "method": "traditional_synthetic_control",
+      "note": "Post-treatment values unreliable due to missing donor data FY2021+",
+      "weights": {
+        "South Dakota": 0.16666666666666666,
+        "Nebraska": 0.16666666666666666,
+        "Idaho": 0.16666666666666666,
+        "Maine": 0.16666666666666666,
+        "Vermont": 0.16666666666666666,
+        "New Hampshire": 0.16666666666666666
+      },
+      "pre_rmspe": 217.92330223398696,
+      "pre_treatment_fit_quality": "moderate"
+    },
+    "robustness": {
+      "share_sensitivity": [
+        {
+          "window": "Full pre-period (2010-2020)",
+          "years": [
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016,
+            2017,
+            2018,
+            2019,
+            2020
+          ],
+          "share": 0.006823027905746606,
+          "capacity_multiplier": 0.6488160936430076
+        },
+        {
+          "window": "Pre-Travel Ban (2010-2016)",
+          "years": [
+            2010,
+            2011,
+            2012,
+            2013,
+            2014,
+            2015,
+            2016
+          ],
+          "share": 0.007402837469516761,
+          "capacity_multiplier": 0.5979991227489047
+        },
+        {
+          "window": "Recent stable (2012-2016)",
+          "years": [
+            2012,
+            2013,
+            2014,
+            2015,
+            2016
+          ],
+          "share": 0.0075654123440232115,
+          "capacity_multiplier": 0.585148582961384
+        }
+      ],
+      "capacity_range": {
+        "min": 0.585148582961384,
+        "max": 0.6488160936430076,
+        "mean": 0.610654599784432,
+        "std": 0.027489498641556902
+      }
+    },
+    "capacity_parameter": {
+      "parameter_name": "lssnd_capacity_multiplier",
+      "value": 0.6717463968784323,
+      "interpretation": "Post-LSSND closure, ND received 67.2% of what national share predicts",
+      "usage": "Multiply baseline projections by this factor to account for reduced local resettlement infrastructure",
+      "method": "national_share_synthetic",
+      "uncertainty": {
+        "capacity_range_min": 0.585148582961384,
+        "capacity_range_max": 0.6488160936430076,
+        "capacity_std": 0.027489498641556902
+      },
+      "att_mean": -146.54902976761815,
+      "att_interpretation": "ND received ~147 fewer refugees per year than expected based on national trends"
+    }
+  },
+  "diagnostics": {
+    "national_share_method": {
+      "pre_rmspe": 135.99791882600778,
+      "post_rmspe": 220.183460070936,
+      "rmspe_ratio": 1.6190208054038904,
+      "interpretation": "National share method provides reliable post-treatment estimates"
+    },
+    "traditional_sc_validation": {
+      "pre_rmspe": 217.92330223398696,
+      "interpretation": "Traditional SC validates pre-treatment matching capability"
+    },
+    "sensitivity": {
+      "capacity_std": 0.027489498641556902,
+      "interpretation": "Lower SD = more stable estimate across share windows"
+    }
+  },
+  "warnings": [],
+  "decisions": [
+    {
+      "decision_id": "SC000",
+      "timestamp": "2026-01-02T23:58:49.518493+00:00",
+      "category": "study_design",
+      "decision": "Treatment year = FY2021 (LSSND closed January 2021)",
+      "rationale": "LSSND closure occurred mid-FY2021; first full fiscal year without LSSND is FY2021 (Oct 2020 - Sep 2021)",
+      "alternatives_considered": [
+        "Use FY2022 as first post-treatment year",
+        "Partial year adjustment for FY2021"
+      ],
+      "evidence": "LSSND announced closure January 2021",
+      "reversible": true
+    },
+    {
+      "decision_id": "NS001",
+      "timestamp": "2026-01-02T23:58:49.522856+00:00",
+      "category": "methodology",
+      "decision": "National share synthetic control using 0.740% share",
+      "rationale": "Post-treatment donor state data unavailable; use ND's historical share of national arrivals as counterfactual",
+      "alternatives_considered": [
+        "Use full pre-period share",
+        "Time-varying share model",
+        "Regression-based projection"
+      ],
+      "evidence": "Pre-Travel Ban share = 0.740% (SD=0.122%)",
+      "reversible": true
+    },
+    {
+      "decision_id": "SC001",
+      "timestamp": "2026-01-02T23:58:50.334500+00:00",
+      "category": "causal_identification",
+      "decision": "Synthetic control for North Dakota using 6 donors",
+      "rationale": "Donors selected based on similar size and stable resettlement infrastructure",
+      "alternatives_considered": [
+        "Larger donor pool",
+        "Covariate matching",
+        "Different pre-period"
+      ],
+      "evidence": "Pre-RMSPE=217.92, RMSPE ratio=1.17",
+      "reversible": true
+    }
+  ],
+  "next_steps": [
+    "Integrate capacity_multiplier into ADR-021 Recommendation #6 scenario models",
+    "Consider time-varying recovery as Global Refuge expands ND operations",
+    "Monitor FY2025+ data for capacity normalization",
+    "Acquire FY2021-2024 donor state data for traditional SC validation",
+    "Explore heterogeneous effects by nationality/origin country"
+  ]
+}

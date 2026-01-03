@@ -1,0 +1,96 @@
+{
+  "recommendation": {
+    "number": 8,
+    "title": "Journal-Standard Presentation Improvements",
+    "source": "ChatGPT 5.2 Pro Policy Integration Analysis",
+    "adr": "ADR-021"
+  },
+  "status": "COMPLETE",
+  "completion_date": "2026-01-02",
+  "agent_id": "a8f63c2",
+  "outputs": {
+    "policy_timeline_table": {
+      "path": "sdc_2024_replication/scripts/statistical_analysis/journal_article/policy_timeline_table.md",
+      "description": "Comprehensive table mapping policy events to model variables with primary sources",
+      "format": "markdown",
+      "sections": [
+        "Refugee Ceiling Determinations (FY2010-FY2024)",
+        "Executive Actions and Federal Rules",
+        "Parole and Humanitarian Programs",
+        "North Dakota-Specific Events",
+        "Model Variable Summary",
+        "Scenario Lever Mapping"
+      ],
+      "policy_events_documented": 28,
+      "primary_sources_cited": 9
+    },
+    "conceptual_diagram_mermaid": {
+      "path": "sdc_2024_replication/scripts/statistical_analysis/journal_article/conceptual_diagram.md",
+      "description": "Mermaid diagrams showing policy-migration causal pathways",
+      "format": "markdown (mermaid)",
+      "diagrams": [
+        "Primary Conceptual Diagram (full faucet-pipe-stickiness model)",
+        "Simplified Linear Diagram",
+        "Regime-Specific Pathway Diagram",
+        "Status Transition Hazard Diagram",
+        "Module Mapping Diagram"
+      ]
+    },
+    "conceptual_diagram_tikz": {
+      "path": "sdc_2024_replication/scripts/statistical_analysis/journal_article/conceptual_diagram.tex",
+      "description": "TikZ/LaTeX diagrams for journal article inclusion",
+      "format": "latex (tikz)",
+      "figures": [
+        "Figure 1: Primary Conceptual Framework",
+        "Figure 2: Simplified Linear Diagram",
+        "Figure 3: Regime Comparison Diagram",
+        "Figure 4: Status Transition Hazard (Parole Cliff)"
+      ],
+      "table": "Table: Policy Variables and Model Representations"
+    }
+  },
+  "deliverables": {
+    "policy_timeline_table": {
+      "columns": ["Event", "Date Range", "Expected Mechanism", "Model Variable", "Primary Source"],
+      "events_included": [
+        "Refugee ceiling changes (FY2010-FY2024)",
+        "Travel Ban (EO 13769, 13780, Proclamation 9645)",
+        "Public charge rule",
+        "Title 42",
+        "COVID-19 travel restrictions",
+        "Operation Allies Welcome (Afghan parole)",
+        "Uniting for Ukraine (U4U)",
+        "CHNV parole programs",
+        "Welcome Corps (private sponsorship pilot)",
+        "LSSND closure (ND-specific)"
+      ]
+    },
+    "conceptual_diagram": {
+      "framework": "Federal Policy (Supply/Faucet) x ND Capacity (Allocation/Pipe) x Status Durability (Retention/Stickiness) = Observed PEP Net International Migration",
+      "key_insight": "Post-2021 shift from durable (refugee) to temporary (parole) status creates long-horizon projection uncertainty",
+      "model_variables": {
+        "regime": "R_t with values 1 (Expansion), 2 (Restriction), 3 (Volatility)",
+        "interventions": ["D_travel_ban", "D_covid", "D_lssnd", "D_parole"],
+        "components": ["Y_t^dur (durable)", "Y_t^temp (temporary)", "Y_t (total)"]
+      }
+    }
+  },
+  "integration_notes": {
+    "latex_usage": "Include conceptual_diagram.tex with \\input{} after loading tikz package with positioning, shapes.geometric, arrows.meta, fit, backgrounds, calc libraries",
+    "mermaid_export": "Use mermaid-cli (mmdc) to export to PNG/SVG for non-mermaid-aware renderers",
+    "table_formats": "Markdown table is LaTeX-convertible; consider pandoc for automated conversion"
+  },
+  "dependencies_on_other_recs": {
+    "rec_2": "Status durability concepts referenced in diagrams",
+    "rec_3": "LSSND capacity shock included as ND-specific event",
+    "rec_4": "Regime framework (R_t) central to presentation",
+    "rec_6": "Scenario lever mapping connects to policy-lever scenarios"
+  },
+  "quality_checks": {
+    "primary_sources": true,
+    "mechanism_mapping": true,
+    "model_variable_definitions": true,
+    "latex_compilable": "Requires tikz package with specified libraries",
+    "mermaid_valid": "Tested syntax for flowchart TB/LR diagrams"
+  }
+}

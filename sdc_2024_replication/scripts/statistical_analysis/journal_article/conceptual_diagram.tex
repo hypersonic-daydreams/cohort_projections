@@ -1,0 +1,401 @@
+% Conceptual Diagram: Policy Mechanisms and Migration Flows
+% ADR-021 Recommendation #8: Journal-Standard Presentation Materials
+%
+% Usage: Include in main LaTeX document with:
+%   \input{conceptual_diagram.tex}
+%
+% Required packages in preamble:
+%   \usepackage{tikz}
+%   \usetikzlibrary{positioning,shapes.geometric,arrows.meta,fit,backgrounds,calc}
+
+% Define colors
+\definecolor{federalblue}{RGB}{225,245,254}
+\definecolor{federalborder}{RGB}{2,136,209}
+\definecolor{statepurple}{RGB}{243,229,245}
+\definecolor{stateborder}{RGB}{123,31,162}
+\definecolor{statusgreen}{RGB}{232,245,233}
+\definecolor{statusborder}{RGB}{56,142,60}
+\definecolor{observedorange}{RGB}{255,243,224}
+\definecolor{observedborder}{RGB}{245,124,0}
+\definecolor{exitred}{RGB}{255,235,238}
+\definecolor{exitborder}{RGB}{198,40,40}
+
+% TikZ styles
+\tikzset{
+    % Box styles for each layer
+    federalbox/.style={
+        rectangle,
+        rounded corners=3pt,
+        draw=federalborder,
+        fill=federalblue,
+        line width=1pt,
+        minimum height=1cm,
+        minimum width=3cm,
+        align=center,
+        font=\small
+    },
+    statebox/.style={
+        rectangle,
+        rounded corners=3pt,
+        draw=stateborder,
+        fill=statepurple,
+        line width=1pt,
+        minimum height=1cm,
+        minimum width=3cm,
+        align=center,
+        font=\small
+    },
+    statusbox/.style={
+        rectangle,
+        rounded corners=3pt,
+        draw=statusborder,
+        fill=statusgreen,
+        line width=1pt,
+        minimum height=1cm,
+        minimum width=3cm,
+        align=center,
+        font=\small
+    },
+    observedbox/.style={
+        rectangle,
+        rounded corners=3pt,
+        draw=observedborder,
+        fill=observedorange,
+        line width=1pt,
+        minimum height=1cm,
+        minimum width=3cm,
+        align=center,
+        font=\small
+    },
+    exitbox/.style={
+        rectangle,
+        rounded corners=3pt,
+        draw=exitborder,
+        fill=exitred,
+        line width=1pt,
+        minimum height=0.8cm,
+        minimum width=2cm,
+        align=center,
+        font=\small
+    },
+    % Arrow styles
+    mainflow/.style={
+        ->,
+        >=Stealth,
+        line width=1pt,
+        draw=black!70
+    },
+    constraint/.style={
+        ->,
+        >=Stealth,
+        line width=0.8pt,
+        draw=red!60,
+        dashed
+    },
+    % Layer label style
+    layerlabel/.style={
+        font=\bfseries\small,
+        align=center
+    }
+}
+
+%% =============================================================================
+%% FIGURE 1: Primary Conceptual Diagram (Full)
+%% =============================================================================
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=1.5cm and 2cm]
+
+    % === FEDERAL POLICY LAYER ===
+    \node[federalbox] (ceiling) {Refugee Ceilings\\(Presidential Det.)};
+    \node[federalbox, right=1cm of ceiling] (parole) {Parole Programs\\(OAW, U4U, CHNV)};
+    \node[federalbox, below=0.8cm of ceiling] (travel) {Travel Restrictions\\(EO, Proclamations)};
+    \node[federalbox, below=0.8cm of parole] (processing) {Processing Capacity\\(Consular, USCIS)};
+
+    % Federal layer background
+    \begin{scope}[on background layer]
+        \node[fit=(ceiling)(parole)(travel)(processing),
+              inner sep=10pt,
+              fill=federalblue!30,
+              rounded corners=5pt,
+              label={[layerlabel]above:Federal Policy (Supply/Faucet)}] (federallayer) {};
+    \end{scope}
+
+    % === ND CAPACITY LAYER ===
+    \node[statebox, below=2cm of $(travel)!0.5!(processing)$] (reception) {Reception Agencies\\(LSSND $\to$ Global Refuge)};
+    \node[statebox, left=1cm of reception] (labor) {Labor Demand\\(Oil, Healthcare, Ag)};
+    \node[statebox, right=1cm of reception] (secondary) {Secondary Migration\\(FB from other states)};
+
+    % State layer background
+    \begin{scope}[on background layer]
+        \node[fit=(labor)(reception)(secondary),
+              inner sep=10pt,
+              fill=statepurple!30,
+              rounded corners=5pt,
+              label={[layerlabel]above:ND Capacity (Allocation/Pipe)}] (statelayer) {};
+    \end{scope}
+
+    % === STATUS DURABILITY LAYER ===
+    \node[statusbox, below=2cm of labor] (durable) {Durable Status\\(Refugee, LPR, SIV)};
+    \node[statusbox, below=2cm of reception] (temp) {Temporary Status\\(Parole, 2-year)};
+    \node[statusbox, below=2cm of secondary] (regularize) {Regularization\\(Adjustment legislation)};
+
+    % Status layer background
+    \begin{scope}[on background layer]
+        \node[fit=(durable)(temp)(regularize),
+              inner sep=10pt,
+              fill=statusgreen!30,
+              rounded corners=5pt,
+              label={[layerlabel]above:Status Durability (Retention/Stickiness)}] (statuslayer) {};
+    \end{scope}
+
+    % === OBSERVED POPULATION ===
+    \node[observedbox, below=2cm of temp] (yt) {$Y_t$: PEP Net\\International Migration};
+    \node[observedbox, left=0.8cm of yt] (ydur) {$Y_t^{dur}$:\\Durable};
+    \node[observedbox, right=0.8cm of yt] (ytemp) {$Y_t^{temp}$:\\Temporary};
+
+    % Exit node
+    \node[exitbox, right=1.5cm of ytemp] (exit) {Exit/\\Emigration};
+
+    % Observed layer background
+    \begin{scope}[on background layer]
+        \node[fit=(ydur)(yt)(ytemp),
+              inner sep=10pt,
+              fill=observedorange!30,
+              rounded corners=5pt,
+              label={[layerlabel]below:Observed Population}] (observedlayer) {};
+    \end{scope}
+
+    % === ARROWS: Federal to State ===
+    \draw[mainflow] (ceiling) -- (reception);
+    \draw[mainflow] (parole) -- (reception);
+    \draw[constraint] (travel) -- node[left, font=\scriptsize] {restricts} (reception);
+    \draw[constraint] (processing) -- node[right, font=\scriptsize] {constrains} (reception);
+
+    % === ARROWS: State internal ===
+    \draw[mainflow] (labor) -- (secondary);
+    \draw[mainflow] (reception) -- (durable);
+    \draw[mainflow] (reception) -- (temp);
+
+    % === ARROWS: Status transitions ===
+    \draw[mainflow] (durable) -- (ydur);
+    \draw[mainflow] (temp) -- node[right, font=\scriptsize, pos=0.3] {if regularized} (regularize);
+    \draw[mainflow] (regularize) -- (ydur);
+    \draw[mainflow] (temp) -- (ytemp);
+    \draw[constraint] (temp) -- node[above, font=\scriptsize] {attrition} (exit);
+
+    % === ARROWS: Aggregation ===
+    \draw[mainflow] (ydur) -- (yt);
+    \draw[mainflow] (ytemp) -- (yt);
+    \draw[mainflow] (secondary) |- (yt);
+
+\end{tikzpicture}
+\caption{Conceptual framework mapping federal immigration policy to observed North Dakota net international migration. Policy operates through three layers: federal supply constraints (``faucet''), state-level reception capacity (``pipe''), and legal status durability (``stickiness''). The two-component estimand ($Y_t^{dur}$ + $Y_t^{temp}$) captures the shift from durable refugee status (pre-2021) to temporary parole status (post-2021).}
+\label{fig:conceptual-framework}
+\end{figure}
+
+%% =============================================================================
+%% FIGURE 2: Simplified Linear Diagram
+%% =============================================================================
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[node distance=2.5cm]
+
+    % Nodes
+    \node[federalbox, minimum width=4cm, minimum height=2cm] (federal) {
+        \textbf{Federal Policy}\\
+        (Supply/Faucet)\\[3pt]
+        {\scriptsize Ceilings, Parole,}\\
+        {\scriptsize Travel, Processing}
+    };
+
+    \node[statebox, right=of federal, minimum width=4cm, minimum height=2cm] (state) {
+        \textbf{ND Capacity}\\
+        (Allocation/Pipe)\\[3pt]
+        {\scriptsize Reception, Labor,}\\
+        {\scriptsize Sponsors}
+    };
+
+    \node[statusbox, right=of state, minimum width=4cm, minimum height=2cm] (status) {
+        \textbf{Status Durability}\\
+        (Retention/Stickiness)\\[3pt]
+        {\scriptsize Refugee: high}\\
+        {\scriptsize Parole: cliff yr 2--4}
+    };
+
+    \node[observedbox, right=of status, minimum width=3.5cm, minimum height=2cm] (observed) {
+        \textbf{Observed}\\[3pt]
+        $Y_t$: PEP Net\\
+        Int'l Migration
+    };
+
+    % Arrows with multiplication signs
+    \draw[mainflow] (federal) -- node[above, font=\large] {$\times$} (state);
+    \draw[mainflow] (state) -- node[above, font=\large] {$\times$} (status);
+    \draw[mainflow] (status) -- node[above, font=\large] {$=$} (observed);
+
+\end{tikzpicture}
+\caption{Simplified representation of the policy-to-migration pathway. North Dakota's observed international migration is the multiplicative product of federal supply, state capacity, and status retention factors.}
+\label{fig:conceptual-simple}
+\end{figure}
+
+%% =============================================================================
+%% FIGURE 3: Regime Comparison Diagram
+%% =============================================================================
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    regimebox/.style={
+        rectangle,
+        rounded corners=3pt,
+        draw=#1,
+        fill=#1!20,
+        line width=1pt,
+        minimum height=0.9cm,
+        minimum width=3.5cm,
+        align=center,
+        font=\small
+    },
+    node distance=0.6cm and 0.3cm
+]
+
+    % === EXPANSION REGIME ===
+    \node[regimebox=green!60!black] (e1) {High Ceilings\\(70K--110K)};
+    \node[regimebox=green!60!black, below=of e1] (e2) {LSSND Active\\Strong Reception};
+    \node[regimebox=green!60!black, below=of e2] (e3) {92\% Refugee\\(Durable)};
+    \node[regimebox=green!60!black, below=of e3] (e4) {Mean: 1,289/yr};
+
+    % Label
+    \node[above=0.3cm of e1, font=\bfseries] {Expansion\\(2010--2016)};
+
+    % Arrows
+    \draw[mainflow] (e1) -- (e2);
+    \draw[mainflow] (e2) -- (e3);
+    \draw[mainflow] (e3) -- (e4);
+
+    % === RESTRICTION REGIME ===
+    \node[regimebox=red!60!black, right=2cm of e1] (r1) {Low Ceilings\\(18K--45K) + Bans};
+    \node[regimebox=red!60!black, below=of r1] (r2) {LSSND Active\\Reduced Flow};
+    \node[regimebox=red!60!black, below=of r2] (r3) {$\sim$100\% Refugee\\(Durable)};
+    \node[regimebox=red!60!black, below=of r3] (r4) {Mean: 1,197/yr};
+
+    % Label
+    \node[above=0.3cm of r1, font=\bfseries] {Restriction\\(2017--2020)};
+
+    % Arrows
+    \draw[mainflow] (r1) -- (r2);
+    \draw[mainflow] (r2) -- (r3);
+    \draw[mainflow] (r3) -- (r4);
+
+    % === VOLATILITY REGIME ===
+    \node[regimebox=orange!80!black, right=2cm of r1] (v1) {High Ceilings\\(62.5K--125K) + Parole};
+    \node[regimebox=orange!80!black, below=of v1] (v2) {LSSND Closed\\Rebuilding};
+    \node[regimebox=orange!80!black, below=of v2] (v3) {7\% Refugee\\93\% Temp/Parole};
+    \node[regimebox=orange!80!black, below=of v3] (v4) {Mean: 3,284/yr\\(fragile)};
+
+    % Label
+    \node[above=0.3cm of v1, font=\bfseries] {Volatility\\(2021--2024)};
+
+    % Arrows
+    \draw[mainflow] (v1) -- (v2);
+    \draw[mainflow] (v2) -- (v3);
+    \draw[mainflow] (v3) -- (v4);
+
+\end{tikzpicture}
+\caption{Policy pathway comparison across three regimes. The Expansion regime (2010--2016) shows high refugee share with stable resettlement. The Restriction regime (2017--2020) maintained refugee composition despite reduced ceilings. The Volatility regime (2021--2024) exhibits high total migration but shifted to temporary parole status, creating long-horizon projection uncertainty.}
+\label{fig:regime-comparison}
+\end{figure}
+
+%% =============================================================================
+%% FIGURE 4: Status Transition Hazard (Parole Cliff)
+%% =============================================================================
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+    statusnode/.style={
+        rectangle,
+        rounded corners=2pt,
+        draw=black!60,
+        line width=0.8pt,
+        minimum height=0.8cm,
+        minimum width=2.2cm,
+        align=center,
+        font=\small
+    },
+    node distance=1.2cm and 1cm
+]
+
+    % === REFUGEE PATH (top) ===
+    \node[statusnode, fill=green!30] (ref0) {Refugee\\Arrival};
+    \node[statusnode, fill=green!35, right=of ref0] (ref1) {Year 1\\Stable};
+    \node[statusnode, fill=green!45, right=of ref1] (ref2) {Year 2\\$\to$ LPR};
+    \node[statusnode, fill=green!60, right=of ref2] (ref5) {Year 5+\\$\to$ Citizen};
+
+    \draw[mainflow, green!60!black] (ref0) -- (ref1);
+    \draw[mainflow, green!60!black] (ref1) -- (ref2);
+    \draw[mainflow, green!60!black] (ref2) -- (ref5);
+
+    % Label
+    \node[left=0.5cm of ref0, font=\bfseries\small, align=right] {Refugee\\Pathway};
+
+    % === PAROLE PATH (bottom) ===
+    \node[statusnode, fill=yellow!30, below=2cm of ref0] (par0) {Parole\\Arrival};
+    \node[statusnode, fill=yellow!35, right=of par0] (par1) {Year 1\\Active};
+    \node[statusnode, fill=orange!50, right=of par1] (par2) {Year 2\\``Cliff''};
+
+    % Branching outcomes
+    \node[statusnode, fill=green!40, above right=0.3cm and 1.2cm of par2] (asylum) {Asylum\\$\to$ LPR};
+    \node[statusnode, fill=yellow!40, right=1.2cm of par2] (extend) {Extension\\(uncertain)};
+    \node[statusnode, fill=red!30, below right=0.3cm and 1.2cm of par2] (exit) {Exit/\\Attrition};
+
+    \draw[mainflow, orange!70!black] (par0) -- (par1);
+    \draw[mainflow, orange!70!black] (par1) -- (par2);
+    \draw[mainflow, green!60!black] (par2) -- (asylum);
+    \draw[mainflow, orange!70!black] (par2) -- (extend);
+    \draw[constraint] (par2) -- (exit);
+
+    % Label
+    \node[left=0.5cm of par0, font=\bfseries\small, align=right] {Parole\\Pathway};
+
+    % Cliff annotation
+    \draw[decorate, decoration={brace, amplitude=8pt, mirror}, thick, red!70!black]
+        ([yshift=-0.5cm]par2.south west) -- ([yshift=-0.5cm]exit.south east)
+        node[midway, below=10pt, font=\small\itshape] {``Parole Cliff'' -- attrition hazard};
+
+\end{tikzpicture}
+\caption{Status transition pathways for refugees versus parolees. Refugees follow a predictable path to LPR and citizenship. Parolees face a ``cliff'' at year 2 when status expires, with uncertain outcomes depending on asylum approval, legislative action, or attrition. This hazard structure motivates separate forecasting for $Y_t^{dur}$ and $Y_t^{temp}$.}
+\label{fig:status-hazard}
+\end{figure}
+
+%% =============================================================================
+%% TABLE: Model Variable Summary (for text reference)
+%% =============================================================================
+
+\begin{table}[htbp]
+\centering
+\caption{Policy variables and their model representations}
+\label{tab:policy-variables}
+\begin{tabular}{llll}
+\toprule
+\textbf{Policy Event} & \textbf{Type} & \textbf{Variable} & \textbf{Interpretation} \\
+\midrule
+Refugee ceilings & Continuous & $C_t$ & Annual admission cap \\
+Travel bans & Dummy & $D_{travel}$ & Processing disruption \\
+COVID restrictions & Pulse & $D_{covid}$ & Temporary supply shock \\
+LSSND closure & Step (ND) & $D_{lssnd}$ & Capacity shock (DiD treatment) \\
+Parole surge & Step & $D_{parole}$ & Status composition shift \\
+\midrule
+Expansion regime & Regime & $R_t = 1$ & 2010--2016 baseline \\
+Restriction regime & Regime & $R_t = 2$ & 2017--2020 friction \\
+Volatility regime & Regime & $R_t = 3$ & 2021--2024 uncertainty \\
+\midrule
+Durable arrivals & Component & $Y_t^{dur}$ & High retention \\
+Temporary arrivals & Component & $Y_t^{temp}$ & Cliff hazard \\
+Total migration & Estimand & $Y_t$ & $Y_t^{dur} + Y_t^{temp}$ \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,313 @@
+{
+  "framework_version": "1.0.0",
+  "adr_reference": "ADR-021",
+  "module_reference": "Module 2.1.2 (Structural Break Detection)",
+  "regimes": {
+    "expansion": {
+      "boundaries": {
+        "start_year": 2010,
+        "end_year": 2016
+      },
+      "parameters": {
+        "mean_total_migration": 1289.0,
+        "std_total_migration": 506.7,
+        "mean_refugee_arrivals": 992.3,
+        "refugee_share_pct": 92.4,
+        "non_refugee_share_pct": 7.6,
+        "trend_coefficient": 182.3,
+        "volatility_ratio": 0.393,
+        "primary_status_composition": "refugee_dominant",
+        "status_durability": "high"
+      },
+      "events": [
+        {
+          "event_id": "PD_FY2011",
+          "name": "FY2011 Refugee Ceiling (80,000)",
+          "date": "2010-09-30",
+          "mechanism": "supply",
+          "expected_direction": "positive",
+          "primary_source": "Presidential Determination No. 2010-14, 75 FR 60773 (Oct 1, 2010)",
+          "description": "President Obama sets FY2011 refugee ceiling at 80,000, maintaining USRAP capacity."
+        },
+        {
+          "event_id": "PD_FY2012",
+          "name": "FY2012 Refugee Ceiling (76,000)",
+          "date": "2011-09-30",
+          "mechanism": "supply",
+          "expected_direction": "positive",
+          "primary_source": "Presidential Determination No. 2011-17, 76 FR 62765 (Oct 11, 2011)",
+          "description": "FY2012 refugee ceiling set at 76,000 with regional allocations."
+        },
+        {
+          "event_id": "PD_FY2013",
+          "name": "FY2013 Refugee Ceiling (70,000)",
+          "date": "2012-09-28",
+          "mechanism": "supply",
+          "expected_direction": "positive",
+          "primary_source": "Presidential Determination No. 2012-16, 77 FR 60527 (Oct 4, 2012)",
+          "description": "FY2013 refugee ceiling set at 70,000."
+        },
+        {
+          "event_id": "PD_FY2014",
+          "name": "FY2014 Refugee Ceiling (70,000)",
+          "date": "2013-09-30",
+          "mechanism": "supply",
+          "expected_direction": "positive",
+          "primary_source": "Presidential Determination No. 2013-15, 78 FR 62379 (Oct 11, 2013)",
+          "description": "FY2014 refugee ceiling maintained at 70,000."
+        },
+        {
+          "event_id": "PD_FY2015",
+          "name": "FY2015 Refugee Ceiling (70,000)",
+          "date": "2014-09-30",
+          "mechanism": "supply",
+          "expected_direction": "positive",
+          "primary_source": "Presidential Determination No. 2014-14, 79 FR 60089 (Oct 6, 2014)",
+          "description": "FY2015 refugee ceiling maintained at 70,000."
+        },
+        {
+          "event_id": "PD_FY2016",
+          "name": "FY2016 Refugee Ceiling (85,000)",
+          "date": "2015-09-29",
+          "mechanism": "supply",
+          "expected_direction": "positive",
+          "primary_source": "Presidential Determination No. 2015-14, 80 FR 61245 (Oct 9, 2015)",
+          "description": "FY2016 ceiling increased to 85,000 in response to Syrian crisis."
+        },
+        {
+          "event_id": "PD_FY2017",
+          "name": "FY2017 Refugee Ceiling (110,000)",
+          "date": "2016-09-28",
+          "mechanism": "supply",
+          "expected_direction": "positive",
+          "primary_source": "Presidential Determination No. 2016-13, 81 FR 70315 (Oct 12, 2016)",
+          "description": "FY2017 ceiling set at historic high of 110,000 by Obama administration."
+        }
+      ]
+    },
+    "restriction": {
+      "boundaries": {
+        "start_year": 2017,
+        "end_year": 2020
+      },
+      "parameters": {
+        "mean_total_migration": 1196.5,
+        "std_total_migration": 1221.0,
+        "mean_refugee_arrivals": 378.0,
+        "refugee_share_pct": 102.2,
+        "non_refugee_share_pct": -2.2,
+        "trend_coefficient": 467.3,
+        "volatility_ratio": 1.02,
+        "primary_status_composition": "refugee_declining",
+        "status_durability": "high"
+      },
+      "events": [
+        {
+          "event_id": "EO_13769",
+          "name": "Travel Ban Executive Order 13769",
+          "date": "2017-01-27",
+          "mechanism": "friction",
+          "expected_direction": "negative",
+          "primary_source": "Executive Order 13769, 82 FR 8977 (Jan 27, 2017)",
+          "description": "Initial Travel Ban: 90-day suspension of entry from 7 countries, 120-day suspension of USRAP, 50,000 cap on FY2017 admissions. Blocked by courts Feb 3, 2017."
+        },
+        {
+          "event_id": "EO_13780",
+          "name": "Revised Travel Ban Executive Order 13780",
+          "date": "2017-03-06",
+          "mechanism": "friction",
+          "expected_direction": "negative",
+          "primary_source": "Executive Order 13780, 82 FR 13209 (Mar 6, 2017)",
+          "description": "Revised Travel Ban: 90-day suspension from 6 countries (Iraq removed), 120-day USRAP suspension. Partially blocked by courts, upheld by SCOTUS June 2018 (Trump v. Hawaii)."
+        },
+        {
+          "event_id": "PD_FY2018",
+          "name": "FY2018 Refugee Ceiling (45,000)",
+          "date": "2017-09-29",
+          "mechanism": "supply",
+          "expected_direction": "negative",
+          "primary_source": "Presidential Determination No. 2017-13, 82 FR 46509 (Oct 5, 2017)",
+          "description": "Historic ceiling reduction from 110,000 to 45,000 (59% cut)."
+        },
+        {
+          "event_id": "PD_FY2019",
+          "name": "FY2019 Refugee Ceiling (30,000)",
+          "date": "2018-10-04",
+          "mechanism": "supply",
+          "expected_direction": "negative",
+          "primary_source": "Presidential Determination No. 2018-11, 83 FR 51299 (Oct 11, 2018)",
+          "description": "Further ceiling reduction to 30,000 (33% cut from FY2018)."
+        },
+        {
+          "event_id": "EO_13888",
+          "name": "State/Local Consent Requirement",
+          "date": "2019-09-26",
+          "mechanism": "capacity",
+          "expected_direction": "negative",
+          "primary_source": "Executive Order 13888, 84 FR 52355 (Oct 1, 2019)",
+          "description": "Required state and local written consent for refugee resettlement. North Dakota Governor Burgum provided consent Dec 2019. Order vacated by courts Jan 2020."
+        },
+        {
+          "event_id": "PD_FY2020",
+          "name": "FY2020 Refugee Ceiling (18,000)",
+          "date": "2019-11-01",
+          "mechanism": "supply",
+          "expected_direction": "negative",
+          "primary_source": "Presidential Determination No. 2019-15, 84 FR 60223 (Nov 7, 2019)",
+          "description": "Lowest ceiling in USRAP history (18,000)."
+        },
+        {
+          "event_id": "COVID_TRAVEL",
+          "name": "COVID-19 Travel Restrictions",
+          "date": "2020-03-20",
+          "mechanism": "friction",
+          "expected_direction": "negative",
+          "primary_source": "Proclamation 9984, 85 FR 16717 (Mar 20, 2020); CDC Order Mar 20, 2020",
+          "description": "COVID-19 pandemic leads to embassy closures, suspended USRAP interviews, and global travel restrictions. Near-complete halt to refugee arrivals."
+        },
+        {
+          "event_id": "PD_FY2021",
+          "name": "FY2021 Refugee Ceiling (15,000)",
+          "date": "2020-10-27",
+          "mechanism": "supply",
+          "expected_direction": "negative",
+          "primary_source": "Presidential Determination No. 2020-12, 85 FR 68705 (Oct 29, 2020)",
+          "description": "FY2021 ceiling set at record low 15,000 by outgoing Trump administration."
+        }
+      ]
+    },
+    "volatility": {
+      "boundaries": {
+        "start_year": 2021,
+        "end_year": 2024
+      },
+      "parameters": {
+        "mean_total_migration": 3283.8,
+        "std_total_migration": 1759.1,
+        "mean_refugee_arrivals": 218.0,
+        "refugee_share_pct": 6.7,
+        "non_refugee_share_pct": 93.3,
+        "trend_coefficient": 1500.1,
+        "volatility_ratio": 0.536,
+        "primary_status_composition": "parole_dominant",
+        "status_durability": "low"
+      },
+      "events": [
+        {
+          "event_id": "LSSND_CLOSURE",
+          "name": "LSSND Closure (ND Capacity Shock)",
+          "date": "2021-01-01",
+          "mechanism": "capacity",
+          "expected_direction": "negative",
+          "primary_source": "Lutheran Social Services of North Dakota closure announcement, Dec 2020",
+          "description": "Lutheran Social Services of North Dakota closes after 70+ years, ending primary refugee resettlement capacity. LIRS/Global Refuge assumes ND resettlement with reduced local infrastructure."
+        },
+        {
+          "event_id": "PD_FY2021_REVISION",
+          "name": "FY2021 Ceiling Raised (62,500)",
+          "date": "2021-05-03",
+          "mechanism": "supply",
+          "expected_direction": "positive",
+          "primary_source": "Presidential Determination No. 2021-05, 86 FR 24475 (May 7, 2021)",
+          "description": "Biden administration raises FY2021 ceiling from 15,000 to 62,500 and removes regional allocations. Processing backlog limits actual admissions to ~11,000."
+        },
+        {
+          "event_id": "OAW",
+          "name": "Operation Allies Welcome (Afghan Parole)",
+          "date": "2021-08-17",
+          "mechanism": "composition",
+          "expected_direction": "positive",
+          "primary_source": "DHS Operation Allies Welcome, Aug 2021; Afghan Adjustment Act pending",
+          "description": "Emergency Afghan evacuation and parole program following Taliban takeover. ~76,000 Afghans paroled to US with 2-year humanitarian parole status (no automatic path to permanence). ND estimated to receive 50-100 through FY2023."
+        },
+        {
+          "event_id": "PD_FY2022",
+          "name": "FY2022 Refugee Ceiling (125,000)",
+          "date": "2021-09-20",
+          "mechanism": "supply",
+          "expected_direction": "positive",
+          "primary_source": "Presidential Determination No. 2021-10, 86 FR 53057 (Sep 24, 2021)",
+          "description": "Biden sets aspirational ceiling of 125,000 for FY2022. Processing capacity limitations result in ~25,000 actual admissions."
+        },
+        {
+          "event_id": "U4U",
+          "name": "Uniting for Ukraine (U4U Parole)",
+          "date": "2022-04-21",
+          "mechanism": "composition",
+          "expected_direction": "positive",
+          "primary_source": "DHS Uniting for Ukraine, 87 FR 24548 (Apr 26, 2022)",
+          "description": "Humanitarian parole program for Ukrainian nationals following Russian invasion. Requires US sponsor. ~200,000+ paroled nationally by end 2024. ND estimated 600-800 arrivals. 2-year parole status with uncertain extension."
+        },
+        {
+          "event_id": "PD_FY2023",
+          "name": "FY2023 Refugee Ceiling (125,000)",
+          "date": "2022-09-27",
+          "mechanism": "supply",
+          "expected_direction": "positive",
+          "primary_source": "Presidential Determination No. 2022-11, 87 FR 59489 (Sep 30, 2022)",
+          "description": "FY2023 ceiling maintained at 125,000; ~60,000 actual admissions."
+        },
+        {
+          "event_id": "CHNV",
+          "name": "CHNV Parole Programs",
+          "date": "2023-01-05",
+          "mechanism": "composition",
+          "expected_direction": "positive",
+          "primary_source": "DHS CHNV Announcement, 88 FR 1266 (Jan 9, 2023)",
+          "description": "Parole programs for Cuban, Haitian, Nicaraguan, and Venezuelan nationals. 30,000/month cap. Minimal impact on ND due to resettlement patterns."
+        },
+        {
+          "event_id": "WELCOME_CORPS",
+          "name": "Welcome Corps (Private Sponsorship)",
+          "date": "2023-01-19",
+          "mechanism": "capacity",
+          "expected_direction": "positive",
+          "primary_source": "State Department Welcome Corps Launch, Jan 2023",
+          "description": "Private refugee sponsorship program launch (5-person groups can sponsor refugee families). Adds capacity outside traditional resettlement agencies. Potential future ND impact unclear."
+        },
+        {
+          "event_id": "PD_FY2024",
+          "name": "FY2024 Refugee Ceiling (125,000)",
+          "date": "2023-09-29",
+          "mechanism": "supply",
+          "expected_direction": "positive",
+          "primary_source": "Presidential Determination No. 2023-11, 88 FR 67893 (Oct 3, 2023)",
+          "description": "FY2024 ceiling maintained at 125,000; ~100,000 actual admissions achieved."
+        },
+        {
+          "event_id": "PD_FY2025",
+          "name": "FY2025 Refugee Ceiling (125,000)",
+          "date": "2024-09-30",
+          "mechanism": "supply",
+          "expected_direction": "uncertain",
+          "primary_source": "Presidential Determination No. 2024-10, 89 FR 79437 (Oct 3, 2024)",
+          "description": "FY2025 ceiling set at 125,000 by Biden administration. Incoming Trump administration expected to reduce ceiling significantly."
+        }
+      ]
+    }
+  },
+  "transition_years": [
+    2017,
+    2021
+  ],
+  "structural_break_evidence": {
+    "chow_test_2017": {
+      "f_statistic": 1.29,
+      "p_value": 0.314,
+      "significant": false,
+      "note": "Not significant at 5% level"
+    },
+    "chow_test_2020": {
+      "f_statistic": 16.01,
+      "p_value": 0.0006,
+      "significant": true,
+      "note": "Highly significant structural break"
+    },
+    "chow_test_2021": {
+      "f_statistic": 10.28,
+      "p_value": 0.003,
+      "significant": true,
+      "note": "Significant structural break"
+    }
+  }
+}

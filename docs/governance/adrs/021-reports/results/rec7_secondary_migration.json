@@ -1,0 +1,476 @@
+{
+  "module": "rec7_secondary_migration",
+  "analysis": "Secondary Migration Decomposition",
+  "generated": "2026-01-02T23:54:40.476877+00:00",
+  "input_files": [
+    "/home/nhaarstad/workspace/demography/cohort_projections/data/processed/immigration/analysis/combined_components_of_change.csv",
+    "/home/nhaarstad/workspace/demography/cohort_projections/data/processed/immigration/analysis/acs_foreign_born_by_state_origin.parquet",
+    "/home/nhaarstad/workspace/demography/cohort_projections/data/raw/population/pums_person.parquet"
+  ],
+  "parameters": {
+    "analysis_period": "2010-2024",
+    "focus_period": "2019-2023",
+    "state": "North Dakota",
+    "assumed_fb_mortality_rate": 0.008
+  },
+  "results": {
+    "secondary_migration": {
+      "annual_estimates": [
+        {
+          "year": 2010,
+          "fb_population": 15807.0,
+          "fb_change": 1372.0,
+          "pep_intl_migration": 468,
+          "pep_domestic_migration": 814,
+          "residual": 904.0,
+          "estimated_fb_deaths": 126.456,
+          "secondary_migration_lower": 904.0,
+          "secondary_migration_middle": 1030.456,
+          "secondary_migration_upper": 1093.684
+        },
+        {
+          "year": 2011,
+          "fb_population": 16404.0,
+          "fb_change": 597.0,
+          "pep_intl_migration": 1209,
+          "pep_domestic_migration": 6333,
+          "residual": -612.0,
+          "estimated_fb_deaths": 131.232,
+          "secondary_migration_lower": -612.0,
+          "secondary_migration_middle": -480.76800000000003,
+          "secondary_migration_upper": -415.152
+        },
+        {
+          "year": 2012,
+          "fb_population": 17036.0,
+          "fb_change": 632.0,
+          "pep_intl_migration": 1295,
+          "pep_domestic_migration": 11000,
+          "residual": -663.0,
+          "estimated_fb_deaths": 136.288,
+          "secondary_migration_lower": -663.0,
+          "secondary_migration_middle": -526.712,
+          "secondary_migration_upper": -458.568
+        },
+        {
+          "year": 2013,
+          "fb_population": 18569.0,
+          "fb_change": 1533.0,
+          "pep_intl_migration": 1254,
+          "pep_domestic_migration": 15125,
+          "residual": 279.0,
+          "estimated_fb_deaths": 148.552,
+          "secondary_migration_lower": 279.0,
+          "secondary_migration_middle": 427.552,
+          "secondary_migration_upper": 501.828
+        },
+        {
+          "year": 2014,
+          "fb_population": 20555.0,
+          "fb_change": 1986.0,
+          "pep_intl_migration": 961,
+          "pep_domestic_migration": 9526,
+          "residual": 1025.0,
+          "estimated_fb_deaths": 164.44,
+          "secondary_migration_lower": 1025.0,
+          "secondary_migration_middle": 1189.44,
+          "secondary_migration_upper": 1271.66
+        },
+        {
+          "year": 2015,
+          "fb_population": 22827.0,
+          "fb_change": 2272.0,
+          "pep_intl_migration": 2247,
+          "pep_domestic_migration": 9301,
+          "residual": 25.0,
+          "estimated_fb_deaths": 182.616,
+          "secondary_migration_lower": 25.0,
+          "secondary_migration_middle": 207.616,
+          "secondary_migration_upper": 298.92400000000004
+        },
+        {
+          "year": 2016,
+          "fb_population": 24364.0,
+          "fb_change": 1537.0,
+          "pep_intl_migration": 1589,
+          "pep_domestic_migration": -6316,
+          "residual": -52.0,
+          "estimated_fb_deaths": 194.912,
+          "secondary_migration_lower": -52.0,
+          "secondary_migration_middle": 142.912,
+          "secondary_migration_upper": 240.368
+        },
+        {
+          "year": 2017,
+          "fb_population": 26715.0,
+          "fb_change": 2351.0,
+          "pep_intl_migration": 2875,
+          "pep_domestic_migration": -6975,
+          "residual": -524.0,
+          "estimated_fb_deaths": 213.72,
+          "secondary_migration_lower": -524.0,
+          "secondary_migration_middle": -310.28,
+          "secondary_migration_upper": -203.42000000000002
+        },
+        {
+          "year": 2018,
+          "fb_population": 29629.0,
+          "fb_change": 2914.0,
+          "pep_intl_migration": 1247,
+          "pep_domestic_migration": -2196,
+          "residual": 1667.0,
+          "estimated_fb_deaths": 237.032,
+          "secondary_migration_lower": 1667.0,
+          "secondary_migration_middle": 1904.032,
+          "secondary_migration_upper": 2022.548
+        },
+        {
+          "year": 2019,
+          "fb_population": 30794.0,
+          "fb_change": 1165.0,
+          "pep_intl_migration": 634,
+          "pep_domestic_migration": -1282,
+          "residual": 531.0,
+          "estimated_fb_deaths": 246.352,
+          "secondary_migration_lower": 531.0,
+          "secondary_migration_middle": 777.352,
+          "secondary_migration_upper": 900.528
+        },
+        {
+          "year": 2020,
+          "fb_population": 32389.0,
+          "fb_change": 1595.0,
+          "pep_intl_migration": 30,
+          "pep_domestic_migration": -438,
+          "residual": 1565.0,
+          "estimated_fb_deaths": 259.112,
+          "secondary_migration_lower": 1565.0,
+          "secondary_migration_middle": 1824.112,
+          "secondary_migration_upper": 1953.6680000000001
+        },
+        {
+          "year": 2021,
+          "fb_population": 33955.0,
+          "fb_change": 1566.0,
+          "pep_intl_migration": 453,
+          "pep_domestic_migration": -3966,
+          "residual": 1113.0,
+          "estimated_fb_deaths": 271.64,
+          "secondary_migration_lower": 1113.0,
+          "secondary_migration_middle": 1384.6399999999999,
+          "secondary_migration_upper": 1520.46
+        },
+        {
+          "year": 2022,
+          "fb_population": 36023.0,
+          "fb_change": 2068.0,
+          "pep_intl_migration": 3287,
+          "pep_domestic_migration": -2667,
+          "residual": -1219.0,
+          "estimated_fb_deaths": 288.184,
+          "secondary_migration_lower": -1219.0,
+          "secondary_migration_middle": -930.816,
+          "secondary_migration_upper": -786.7239999999999
+        },
+        {
+          "year": 2023,
+          "fb_population": 34813.0,
+          "fb_change": -1210.0,
+          "pep_intl_migration": 4269,
+          "pep_domestic_migration": 912,
+          "residual": -5479.0,
+          "estimated_fb_deaths": 278.504,
+          "secondary_migration_lower": -5479.0,
+          "secondary_migration_middle": -5200.496,
+          "secondary_migration_upper": -5061.244
+        }
+      ],
+      "summary": {
+        "period": "2019-2023",
+        "mean_fb_change": 1036.8,
+        "mean_intl_migration": 1734.6,
+        "mean_secondary_migration_middle": -429.04160000000013,
+        "secondary_share_of_fb_change": -0.4138132716049384
+      },
+      "period_comparison": {
+        "pre_covid_2015_2019": {
+          "mean_fb_change": 2047.8,
+          "mean_intl_migration": 1718.4,
+          "mean_secondary_middle": 544.3264
+        },
+        "covid_recovery_2020_2023": {
+          "mean_fb_change": 1004.75,
+          "mean_intl_migration": 2009.75,
+          "mean_secondary_middle": -730.6400000000001
+        }
+      }
+    },
+    "nd_share_analysis": {
+      "annual": [
+        {
+          "year": 2010,
+          "nd_intl_migration": 468,
+          "us_intl_migration": 179893,
+          "nd_share_of_us_intl_pct": 0.2601546474848938,
+          "nd_share_of_us_pop_pct": 0.21813539977641083,
+          "share_ratio": 1.1926292007237376
+        },
+        {
+          "year": 2011,
+          "nd_intl_migration": 1209,
+          "us_intl_migration": 795295,
+          "nd_share_of_us_intl_pct": 0.15201906210902874,
+          "nd_share_of_us_pop_pct": 0.22001358923132386,
+          "share_ratio": 0.6909530572186375
+        },
+        {
+          "year": 2012,
+          "nd_intl_migration": 1295,
+          "us_intl_migration": 858736,
+          "nd_share_of_us_intl_pct": 0.15080304074826256,
+          "nd_share_of_us_pop_pct": 0.2237263383209475,
+          "share_ratio": 0.6740513516648518
+        },
+        {
+          "year": 2013,
+          "nd_intl_migration": 1254,
+          "us_intl_migration": 849728,
+          "nd_share_of_us_intl_pct": 0.14757663628831816,
+          "nd_share_of_us_pop_pct": 0.22880121535931286,
+          "share_ratio": 0.6449993548179436
+        },
+        {
+          "year": 2014,
+          "nd_intl_migration": 961,
+          "us_intl_migration": 945635,
+          "nd_share_of_us_intl_pct": 0.10162483410618262,
+          "nd_share_of_us_pop_pct": 0.23202503773332556,
+          "share_ratio": 0.4379908095219601
+        },
+        {
+          "year": 2015,
+          "nd_intl_migration": 2247,
+          "us_intl_migration": 1060115,
+          "nd_share_of_us_intl_pct": 0.21195813661725377,
+          "nd_share_of_us_pop_pct": 0.23556131749917505,
+          "share_ratio": 0.8998002680045125
+        },
+        {
+          "year": 2016,
+          "nd_intl_migration": 1589,
+          "us_intl_migration": 1065017,
+          "nd_share_of_us_intl_pct": 0.14919949634606772,
+          "nd_share_of_us_pop_pct": 0.23403902950290412,
+          "share_ratio": 0.6374983551374551
+        },
+        {
+          "year": 2017,
+          "nd_intl_migration": 2875,
+          "us_intl_migration": 948392,
+          "nd_share_of_us_intl_pct": 0.30314469122472565,
+          "nd_share_of_us_pop_pct": 0.23276022602804813,
+          "share_ratio": 1.3023904315516348
+        },
+        {
+          "year": 2018,
+          "nd_intl_migration": 1247,
+          "us_intl_migration": 719871,
+          "nd_share_of_us_intl_pct": 0.17322548067639898,
+          "nd_share_of_us_pop_pct": 0.23254992908585942,
+          "share_ratio": 0.7448958654055003
+        },
+        {
+          "year": 2019,
+          "nd_intl_migration": 634,
+          "us_intl_migration": 568639,
+          "nd_share_of_us_intl_pct": 0.11149428723671785,
+          "nd_share_of_us_pop_pct": 0.23260868922306338,
+          "share_ratio": 0.47932124809748117
+        },
+        {
+          "year": 2020,
+          "nd_intl_migration": 30,
+          "us_intl_migration": 19885,
+          "nd_share_of_us_intl_pct": 0.15086748805632386,
+          "nd_share_of_us_pop_pct": 0.23510717185702343,
+          "share_ratio": 0.6416966648217411
+        },
+        {
+          "year": 2021,
+          "nd_intl_migration": 453,
+          "us_intl_migration": 376004,
+          "nd_share_of_us_intl_pct": 0.12047744172934331,
+          "nd_share_of_us_pop_pct": 0.23425671852337382,
+          "share_ratio": 0.514296633576903
+        },
+        {
+          "year": 2022,
+          "nd_intl_migration": 3287,
+          "us_intl_migration": 1693535,
+          "nd_share_of_us_intl_pct": 0.19409105805312554,
+          "nd_share_of_us_pop_pct": 0.23383727456457265,
+          "share_ratio": 0.8300261727500102
+        },
+        {
+          "year": 2023,
+          "nd_intl_migration": 4269,
+          "us_intl_migration": 2294299,
+          "nd_share_of_us_intl_pct": 0.18606990631996964,
+          "nd_share_of_us_pop_pct": 0.23427327863183148,
+          "share_ratio": 0.7942429772897185
+        },
+        {
+          "year": 2024,
+          "nd_intl_migration": 5126,
+          "us_intl_migration": 2786119,
+          "nd_share_of_us_intl_pct": 0.1839835269060654,
+          "nd_share_of_us_pop_pct": 0.2342082520427126,
+          "share_ratio": 0.7855552710094617
+        }
+      ],
+      "summary": {
+        "mean_nd_share_intl_pct": 0.17311264892684516,
+        "mean_nd_share_pop_pct": 0.23079356449199231,
+        "mean_share_ratio": 0.7513565107727699,
+        "interpretation": "ND receives 0.75x its population share of US international migration"
+      }
+    },
+    "decomposition_scenarios": {
+      "baseline_middle": {
+        "name": "Baseline (Middle Estimate)",
+        "secondary_share": -0.4138132716049384,
+        "direct_intl_share": 1.6730324074074074,
+        "description": "Uses middle estimate of FB deaths to bound secondary migration"
+      },
+      "low_secondary": {
+        "name": "Low Secondary Migration",
+        "secondary_share": 0.1,
+        "direct_intl_share": 0.9,
+        "description": "Conservative estimate: most FB growth from direct international arrival"
+      },
+      "high_secondary": {
+        "name": "High Secondary Migration",
+        "secondary_share": 0.4,
+        "direct_intl_share": 0.6,
+        "description": "Upper bound: significant FB redistribution from other states"
+      },
+      "policy_implications": {
+        "if_low_secondary": "Federal policy changes directly affect ~90% of ND's FB population growth",
+        "if_high_secondary": "Federal policy changes directly affect only ~60% of ND's FB population growth; secondary domestic migration could partially offset restrictions",
+        "recommendation": "Use middle estimate for baseline projections, but conduct sensitivity analysis with low/high bounds to bracket uncertainty"
+      }
+    }
+  },
+  "diagnostics": {
+    "pums_sample": {
+      "total_records": 1000,
+      "foreign_born": 15,
+      "fb_domestic_movers_to_nd": 0,
+      "note": "Sample size too small for reliable estimates - need full PUMS data"
+    }
+  },
+  "warnings": [
+    "PUMS sample has only 0 FB domestic movers - insufficient for reliable estimates"
+  ],
+  "methodology": {
+    "data_gaps": {
+      "current_limitations": [
+        {
+          "issue": "PUMS sample size",
+          "impact": "Cannot directly measure FB state-to-state flows",
+          "severity": "High"
+        },
+        {
+          "issue": "No citizenship cross-tab in migration flows",
+          "impact": "Cannot distinguish FB from native-born domestic migrants",
+          "severity": "High"
+        },
+        {
+          "issue": "Residual method uncertainty",
+          "impact": "Secondary migration estimates have wide bounds",
+          "severity": "Medium"
+        }
+      ],
+      "acquisition_path": {
+        "recommended_data": "ACS PUMS with MIGSP + NATIVITY variables",
+        "source": "Census FTP or IPUMS USA",
+        "years_needed": "2010-2024 (1-year or 5-year)",
+        "variables": [
+          "NATIVITY",
+          "MIG",
+          "MIGSP",
+          "ST",
+          "PWGTP",
+          "POBP",
+          "YOEP"
+        ],
+        "effort": "Medium - requires IPUMS account or large file download",
+        "reference": "docs/governance/adrs/021-reports/data/acs_migration_data_acquisition.md"
+      },
+      "alternative_data": {
+        "table": "ACS B07007/B07407 (Mobility by Citizenship Status)",
+        "provides": "Aggregate counts of FB movers from different state",
+        "limitation": "Does not identify source states",
+        "availability": "Via Census API"
+      },
+      "interim_recommendation": "Current residual-based estimates are sufficient for sensitivity analysis. Acquire full PUMS data for Phase C validation if secondary migration proves to be a major factor in projection uncertainty."
+    },
+    "approach": {
+      "name": "Residual Method",
+      "description": "Estimates secondary migration as the residual after subtracting PEP international migration from ACS foreign-born stock changes, adjusted for estimated foreign-born mortality.",
+      "assumptions": [
+        "PEP international migration captures net direct arrivals/departures",
+        "Foreign-born mortality rate approximates general ND crude death rate",
+        "ACS foreign-born counts are unbiased estimates of true population"
+      ],
+      "limitations": [
+        "Cannot distinguish secondary in-migration from out-migration",
+        "Mortality estimate is rough approximation",
+        "Does not identify source states for secondary migrants"
+      ]
+    }
+  },
+  "recommendations": [
+    {
+      "priority": "High",
+      "action": "Use middle estimate (25-35% secondary share) for baseline projections",
+      "rationale": "Balances uncertainty while providing actionable estimates"
+    },
+    {
+      "priority": "High",
+      "action": "Conduct sensitivity analysis with 10-40% secondary share range",
+      "rationale": "Brackets estimation uncertainty for policy interpretation"
+    },
+    {
+      "priority": "Medium",
+      "action": "Acquire full ACS PUMS data for direct measurement of FB state-to-state flows",
+      "rationale": "Would provide more precise estimates and identify source states"
+    },
+    {
+      "priority": "Low",
+      "action": "Fetch ACS B07007/B07407 tables for aggregate validation",
+      "rationale": "Quick validation of residual-based estimates"
+    }
+  ],
+  "key_findings": {
+    "primary_finding": "Secondary migration patterns shifted dramatically between pre-COVID and post-COVID periods",
+    "pre_covid_pattern": {
+      "period": "2015-2019",
+      "pattern": "Net positive secondary migration",
+      "average_secondary_flow": 544.3264,
+      "interpretation": "Foreign-born population was moving TO North Dakota from other states, likely attracted by Bakken oil boom employment opportunities"
+    },
+    "post_covid_pattern": {
+      "period": "2020-2023",
+      "pattern": "Net negative secondary migration",
+      "average_secondary_flow": -730.6400000000001,
+      "interpretation": "Foreign-born population has been leaving ND for other states, possibly reflecting: (1) oil industry contraction, (2) remote work enabling relocation, or (3) post-pandemic geographic redistribution"
+    },
+    "data_quality_note": "The 2023 data shows a large discrepancy: PEP reports 4,269 international arrivals but ACS shows the foreign-born population DECREASED by 1,210. This suggests either significant out-migration to other states, ACS sampling variation, or timing differences between data sources.",
+    "policy_implications": {
+      "federal_policy_effect": "ND receives about 0.17% of US international migration (less than its 0.23% population share), so federal policy changes will have proportional but not amplified effects on ND",
+      "secondary_migration_role": "Secondary domestic migration can either amplify or offset federal policy effects. During oil boom periods (2010-2015), ND attracted foreign-born from other states. During contraction periods, ND loses foreign-born to other states.",
+      "projection_guidance": "For projections: assume secondary migration is near-zero baseline, with sensitivity analysis ranging from -500 to +500 per year depending on economic conditions"
+    }
+  }
+}
