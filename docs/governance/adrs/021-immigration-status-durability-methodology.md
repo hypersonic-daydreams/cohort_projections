@@ -1,10 +1,10 @@
 # ADR-021: Immigration Status Durability and Policy-Regime Methodology
 
 ## Status
-Proposed
+**Accepted** (Phase B Implementation Complete)
 
 ## Date
-2026-01-01
+2026-01-01 (Proposed) → 2026-01-02 (Accepted)
 
 ## Context
 
@@ -197,8 +197,40 @@ State-level parole data is **not systematically published** by DHS/USCIS.
 2. **Policy Research**: "Federal Immigration Policy and North Dakota Forecasts" (Gemini Deep Research)
 3. **Article Draft**: article_draft_v5_p305_complete.pdf
 
+## Phase B Implementation (Completed 2026-01-02)
+
+All 8 recommendations from external analysis have been implemented. See [021-reports/PHASE_B_IMPLEMENTATION_TRACKER.md](./021-reports/PHASE_B_IMPLEMENTATION_TRACKER.md) for full details.
+
+### New Modules Created
+
+| Module | Purpose | Key Output |
+|--------|---------|------------|
+| `module_regime_framework.py` | Policy regime classification | 3 regimes, 25 policy events |
+| `module_7b_lssnd_synthetic_control.py` | LSSND capacity analysis | capacity_multiplier = 67.2% |
+| `module_secondary_migration.py` | Domestic redistribution | Pre-COVID +544/yr, Post-COVID -731/yr |
+| `module_8b_status_durability.py` | Status-specific survival | Parole hazard 11.29x vs refugee |
+| `module_9b_policy_scenarios.py` | Policy-lever scenarios | 5 named scenarios with Monte Carlo |
+| `module_10_two_component_estimand.py` | Y_t decomposition | Y_t^dur + Y_t^temp framework |
+
+### Key Parameters Derived
+
+- **Capacity Multiplier**: 67.2% (ND receives 67% of expected post-LSSND)
+- **Regularization Probability**: 50.3% central, [29.9%, 72.5%] range
+- **Parole 5-year Survival**: 34.1% (vs refugee 95.4%)
+- **Parole Hazard Ratio**: 11.29x vs refugee (p < 0.0001)
+
+### 2045 Projection Range (by Scenario)
+
+| Scenario | Total | Durable | Temporary |
+|----------|-------|---------|-----------|
+| Durable-Growth | 71,254 | 59,262 | 11,645 |
+| Status-Quo | 42,645 | 36,258 | 6,558 |
+| Restriction | 17,762 | 16,263 | 1,496 |
+
 ## Revision History
 
+- **2026-01-02**: **Phase B COMPLETE** - All 8 recommendations implemented (Waves 1-4)
+- **2026-01-02**: New modules: regime_framework, 7b, 8b, 9b, 10, secondary_migration
 - **2026-01-01**: FY2021-2024 data INTEGRATED - Refugee share now measurable (6.7% in Volatility period)
 - **2026-01-01**: Temporal alignment discovery - FY/CY mismatch documented in DATA_MANIFEST.md
 - **2026-01-01**: Data acquisition research complete - Refugee data unblocked, parole estimates obtained

@@ -59,8 +59,29 @@ The baseline projection for all 53 counties is complete. The next step is to run
 
 | Sprint | Phase | Status | Progress | Notes |
 |--------|-------|--------|----------|-------|
+| ADR-021 Phase B | Complete | **Done** | 100% | All 8 recommendations implemented |
 | SPRINT_ANALYSIS_B_INFRASTRUCTURE | B | Active | 80% | Versioning, workflow templates, ADR-020 |
 | SPRINT_ANALYSIS_B_001 | B | Pending | 0% | Awaits infrastructure completion |
+
+## Recently Completed: ADR-021 Policy Integration (2026-01-02)
+
+**ADR-021: Immigration Status Durability and Policy-Regime Methodology** - COMPLETE
+
+All 8 recommendations from external AI analysis (ChatGPT 5.2 Pro) have been implemented:
+
+| Wave | Recommendations | Key Outputs |
+|------|-----------------|-------------|
+| 1 | Rec #3, #4, #7, #8 | Regime framework, LSSND capacity (67.2%), secondary migration |
+| 2 | Rec #2 | Status durability (parole hazard 11.29x) |
+| 3 | Rec #6 | 5 policy-lever scenarios with Monte Carlo |
+| 4 | Rec #1 | Two-component estimand (Y_t^dur + Y_t^temp) |
+
+New modules in `sdc_2024_replication/scripts/statistical_analysis/`:
+- `module_regime_framework.py`, `module_7b_lssnd_synthetic_control.py`
+- `module_8b_status_durability.py`, `module_9b_policy_scenarios.py`
+- `module_10_two_component_estimand.py`, `module_secondary_migration.py`
+
+See: [ADR-021](docs/governance/adrs/021-immigration-status-durability-methodology.md) | [Phase B Tracker](docs/governance/adrs/021-reports/PHASE_B_IMPLEMENTATION_TRACKER.md)
 
 ## Active Phase
 
@@ -71,6 +92,9 @@ The baseline projection for all 53 counties is complete. The next step is to run
 
 ## Completed Phases
 
+- **ADR-021 Phase B**: Immigration Status Durability (2026-01-02) - COMPLETE
+  - See: `docs/governance/adrs/021-reports/PHASE_B_IMPLEMENTATION_TRACKER.md`
+  - All 8 recommendations implemented across 4 waves
 - **Phase A**: Validity Risk Assessment (2025-12-31)
   - See: `docs/governance/adrs/020-reports/PHASE_A/PHASE_METADATA.md`
   - External Review: ChatGPT 5.2 Pro confirmed Option C recommendation
