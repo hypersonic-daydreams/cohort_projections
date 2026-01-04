@@ -60,8 +60,8 @@ The baseline projection for all 53 counties is complete. The next step is to run
 | Sprint | Phase | Status | Progress | Notes |
 |--------|-------|--------|----------|-------|
 | ADR-021 Phase B | Complete | **Done** | 100% | All 8 recommendations implemented |
-| SPRINT_ANALYSIS_B_INFRASTRUCTURE | B | Active | 80% | Versioning, workflow templates, ADR-020 |
-| SPRINT_ANALYSIS_B_001 | B | Pending | 0% | Awaits infrastructure completion |
+| SPRINT_ANALYSIS_B_INFRASTRUCTURE | B | Complete | 100% | Refactored Analysis Scripts, Archived Legacy Code |
+| SPRINT_ANALYSIS_B_001 | B | Active | 10% | Deep Research (Manual), Revision v0.8.5 Polish |
 
 ## Recently Completed: ADR-021 Policy Integration (2026-01-02)
 
@@ -91,6 +91,11 @@ See: [ADR-021](docs/governance/adrs/021-immigration-status-durability-methodolog
 - Planning complete (Agents B0a-B6), implementation in progress
 
 ## Completed Phases
+
+- **Refactoring & Hygiene** (2026-01-04) - COMPLETE
+  - Consolidated analysis modules to use `data_loader.py` (SQL-based).
+  - Archived 9 legacy scripts (ARIMA, etc.) to `_archive/`.
+  - Confirmed "Deep Research" as a manual workflow (docs at `docs/research/`).
 
 - **ADR-021 Phase B**: Immigration Status Durability (2026-01-02) - COMPLETE
   - See: `docs/governance/adrs/021-reports/PHASE_B_IMPLEMENTATION_TRACKER.md`

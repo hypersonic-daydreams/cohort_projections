@@ -93,7 +93,7 @@ This project uses **rclone bisync** to sync data files between development compu
 - Running projections that create output files
 - Before switching to another computer
 
-See [ADR-016](./docs/governance/adrs/016-raw-data-management-strategy.md) for the full data management strategy.
+See [Git & Rclone Sync Guide](docs/GIT_RCLONE_SYNC.md) and [ADR-016](docs/governance/adrs/016-raw-data-management-strategy.md) for the full data management strategy.
 
 ## Data Sources
 

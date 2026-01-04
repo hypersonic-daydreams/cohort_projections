@@ -1,10 +1,10 @@
 {
   "module": "7",
   "analysis": "causal_inference_did_event_study",
-  "generated": "2026-01-02T06:16:40.931336+00:00",
+  "generated": "2026-01-04T16:28:55.255658+00:00",
   "input_files": [
-    "census.state_components (PostgreSQL)",
-    "rpc.refugee_arrivals (PostgreSQL)"
+    "census.state_components (PostgreSQL via data_loader)",
+    "rpc.refugee_arrivals (PostgreSQL via data_loader)"
   ],
   "parameters": {
     "analyses": [
@@ -421,7 +421,7 @@
   "decisions": [
     {
       "decision_id": "D001",
-      "timestamp": "2026-01-02T06:16:38.043770+00:00",
+      "timestamp": "2026-01-04T16:28:50.523909+00:00",
       "category": "causal_identification",
       "decision": "Use 2018 as first post-treatment year for Travel Ban DiD",
       "rationale": "Executive Order 13769 signed Jan 27, 2017, repeatedly blocked. 2017 reflects partial implementation; 2018 is first full year of effect.",
@@ -434,7 +434,7 @@
     },
     {
       "decision_id": "D003",
-      "timestamp": "2026-01-02T06:16:38.336731+00:00",
+      "timestamp": "2026-01-04T16:28:51.032652+00:00",
       "category": "model_specification",
       "decision": "Use two-way fixed effects with nationality-clustered standard errors",
       "rationale": "Nationality FE controls for time-invariant heterogeneity; Year FE controls for common shocks",
@@ -448,7 +448,7 @@
     },
     {
       "decision_id": "D002",
-      "timestamp": "2026-01-02T06:16:38.342823+00:00",
+      "timestamp": "2026-01-04T16:28:51.043430+00:00",
       "category": "causal_identification",
       "decision": "Use 2020 as COVID treatment year for state-level DiD",
       "rationale": "COVID-19 travel restrictions began March 2020, affecting international migration universally",

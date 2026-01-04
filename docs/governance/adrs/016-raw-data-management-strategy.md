@@ -63,6 +63,8 @@ This project will produce an official demographic report. All data sources, tran
 
 ### Decision 1: Hybrid Data Management Strategy
 
+> **Operational Guide:** See [docs/GIT_RCLONE_SYNC.md](../../GIT_RCLONE_SYNC.md) for daily usage instructions.
+
 We adopt a hybrid approach:
 
 1. **`data/raw/` contains actual data files** (not symlinks)

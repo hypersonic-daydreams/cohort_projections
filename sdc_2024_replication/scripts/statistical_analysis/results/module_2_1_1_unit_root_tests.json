@@ -1,7 +1,7 @@
 {
   "module": "2.1.1",
   "analysis": "unit_root_tests",
-  "generated": "2026-01-02T17:21:12.001912+00:00",
+  "generated": "2026-01-04T16:28:57.298986+00:00",
   "input_files": [
     "census.state_components (PostgreSQL)"
   ],
@@ -550,7 +550,7 @@
   "decisions": [
     {
       "decision_id": "D001",
-      "timestamp": "2026-01-02T17:21:09.679229+00:00",
+      "timestamp": "2026-01-04T16:28:53.868200+00:00",
       "category": "data_handling",
       "decision": "Include 2020 COVID year in analysis",
       "rationale": "With only 15 observations, excluding any year significantly reduces test power. 2020 anomaly is noted but retained for completeness. Sensitivity without 2020 could be performed in follow-up analysis.",
@@ -563,7 +563,7 @@
     },
     {
       "decision_id": "D002",
-      "timestamp": "2026-01-02T17:21:09.679293+00:00",
+      "timestamp": "2026-01-04T16:28:53.868217+00:00",
       "category": "methodology",
       "decision": "Proceed with unit root tests despite short series",
       "rationale": "With n=15, asymptotic distributions may not hold well. Tests have reduced power. Results should be interpreted with caution.",

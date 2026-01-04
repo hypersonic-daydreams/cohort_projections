@@ -204,49 +204,29 @@ def save_figure(fig, filepath_base, title, source_note):
 # =============================================================================
 
 
+from data_loader import load_refugee_arrivals, load_state_components
+
+
 def load_data(result: ModuleResult) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Load all required data for causal inference analysis from PostgreSQL."""
-    conn = db_config.get_db_connection()
-    try:
-        # 1. Load Census Components of Change (Historical & Recent)
-        # Using the new census.state_components table which contains 2010+ data
-        query_components = """
-        SELECT
-            year,
-            state_name as state,
-            intl_migration,
-            domestic_migration,
-            population as pop_estimate
-        FROM census.state_components
-        WHERE state_name IS NOT NULL
-        """
+    """Load all required data for causal inference analysis from shared loader."""
 
-        df_components = pd.read_sql(query_components, conn)
-        result.input_files.append("census.state_components (PostgreSQL)")
-        print(f"Loaded components of change (DB): {df_components.shape}")
+    # 1. Load Census Components (Generic)
+    df_components = load_state_components()
+    result.input_files.append("census.state_components (PostgreSQL via data_loader)")
+    print(f"Loaded components of change (DB): {df_components.shape}")
 
-        # 2. Load Refugee Arrivals (RPC)
-        query_refugee = """
-        SELECT
-            fiscal_year,
-            nationality,
-            arrivals
-        FROM rpc.refugee_arrivals
-        """
-        df_refugee = pd.read_sql(query_refugee, conn)
-        df_refugee = pd.read_sql(query_refugee, conn)
-        result.input_files.append("rpc.refugee_arrivals (PostgreSQL)")
-        print(f"Loaded refugee arrivals (DB): {df_refugee.shape}")
+    # 2. Load Refugee Arrivals
+    df_refugee = load_refugee_arrivals()
+    result.input_files.append("rpc.refugee_arrivals (PostgreSQL via data_loader)")
+    print(f"Loaded refugee arrivals (DB): {df_refugee.shape}")
 
-        # 3. Create Panel Data
-        df_panel = df_components[
-            ~df_components["state"].isin(
-                ["Puerto Rico", "United States", "US Region", "US Division"]
-            )
-        ].copy()
-
-    finally:
-        conn.close()
+    # 3. Create Panel Data
+    # Filter out aggregates
+    df_panel = df_components[
+        ~df_components["state"].isin(
+            ["Puerto Rico", "United States", "US Region", "US Division"]
+        )
+    ].copy()
 
     return df_components, df_refugee, df_panel
 

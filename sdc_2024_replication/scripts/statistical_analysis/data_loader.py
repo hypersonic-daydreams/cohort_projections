@@ -96,3 +96,47 @@ def load_panel_data() -> pd.DataFrame:
         return df
     finally:
         conn.close()
+
+
+def load_refugee_arrivals() -> pd.DataFrame:
+    """
+    Load refugee arrivals data from PostgreSQL (rpc.refugee_arrivals).
+    """
+    query = """
+    SELECT
+        fiscal_year,
+        nationality,
+        arrivals
+    FROM rpc.refugee_arrivals
+    """
+    conn = db_config.get_db_connection()
+    try:
+        print("Executing SQL query for refugee arrivals...")
+        df = pd.read_sql(query, conn)
+        return df
+    finally:
+        conn.close()
+
+
+def load_state_components() -> pd.DataFrame:
+    """
+    Load raw state components data from PostgreSQL (census.state_components).
+    Returns basic columns needed for custom analysis.
+    """
+    query = """
+    SELECT
+        year,
+        state_name as state,
+        intl_migration,
+        domestic_migration,
+        population as pop_estimate
+    FROM census.state_components
+    WHERE state_name IS NOT NULL
+    """
+    conn = db_config.get_db_connection()
+    try:
+        print("Executing SQL query for state components...")
+        df = pd.read_sql(query, conn)
+        return df
+    finally:
+        conn.close()

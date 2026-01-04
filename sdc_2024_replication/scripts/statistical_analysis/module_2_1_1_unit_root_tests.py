@@ -161,18 +161,6 @@ def save_figure(
     plt.close(fig)
 
 
-def load_data(filename: str) -> pd.DataFrame:
-    """Load data file from analysis directory."""
-    filepath = DATA_DIR / filename
-    if not filepath.exists():
-        raise FileNotFoundError(f"Data file not found: {filepath}")
-
-    if filepath.suffix == ".csv":
-        return pd.read_csv(filepath)
-    elif filepath.suffix == ".parquet":
-        return pd.read_parquet(filepath)
-    else:
-        raise ValueError(f"Unsupported file type: {filepath.suffix}")
 
 
 def phillips_perron_test(series, regression="c"):

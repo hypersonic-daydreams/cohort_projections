@@ -7,7 +7,8 @@
 #   ./scripts/bisync.sh --dry-run    # Preview without changes
 #
 # This script syncs data files between local and Google Drive while
-# excluding code (which is synced via git). See ADR-016 for details.
+# excluding code (which is synced via git).
+# See docs/GIT_RCLONE_SYNC.md for usage details.
 
 set -e
 
