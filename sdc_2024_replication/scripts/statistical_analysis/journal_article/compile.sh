@@ -101,9 +101,12 @@ if [ -f "main.pdf" ]; then
 
     # Copy to output directory
     mkdir -p output
-    cp main.pdf output/article_draft.pdf
+    cp main.pdf output/article_draft_v0.8.5.pdf
+    mkdir -p ../../../revisions/v0.8.5
+    cp main.pdf ../../../revisions/v0.8.5/article_draft_v0.8.5.pdf
     echo "Output: $(pwd)/main.pdf"
-    echo "Copy:   $(pwd)/output/article_draft.pdf"
+    echo "Copy 1: $(pwd)/output/article_draft_v0.8.5.pdf"
+    echo "Copy 2: $(pwd)/../../../revisions/v0.8.5/article_draft_v0.8.5.pdf"
 
     # Report PDF info
     if command -v pdfinfo &> /dev/null; then

@@ -439,5 +439,21 @@ python scripts/projections/run_all_projections.py
 - Added a QA layer (`sdc_2024_replication/scripts/statistical_analysis/journal_article/claim_review/v3_phase3/claims/qa_claims.py`) and documented usage in the claim review README and status notes.
 - Pending: refine claim splitting, remove residual plot-label artifacts, and reclassify claim types where needed.
 
-**Last Updated:** 2026-01-01
+#### 2026-01-04 - Finalized Revision v0.8.5
+- **Documentation**: Harmonized Git/Rclone documentation (`docs/GIT_RCLONE_SYNC.md`).
+- **Triage Fixes**: Corrected DiD interpretation and ITS framing in LaTeX source.
+- **Pipeline**: Verified data integrity with `verify_pipeline.py`.
+- **Output**: Compiled final PDF `sdc_2024_replication/revisions/v0.8.5/article_draft_v0.8.5.pdf`.
+
+#### 2026-01-04 - v0.8.6 Critique Intake
+- Created intake placeholder for the new ChatGPT 5.2 Pro critique to start the v0.8.6 revision cycle.
+- Location: `sdc_2024_replication/revisions/v0.8.6/critique_chatgpt_5_2_pro_v0.8.5.md`.
+- Created a progress tracker to split critique advice into discrete tasks for future agents.
+- Location: `sdc_2024_replication/revisions/v0.8.6/progress_tracker_v0.8.6_critique_v0.8.5.md`.
+- Created a response-to-critique stub for v0.8.6 decisions and approvals.
+- Location: `sdc_2024_replication/revisions/v0.8.6/response_to_critique.md`.
+- Drafted ADR-024 for immigration data extension and fusion strategy.
+- Location: `docs/governance/adrs/024-immigration-data-extension-fusion.md`.
+
+**Last Updated:** 2026-01-04
 **Tracker Status:** Phase B infrastructure implementation in progress

@@ -258,6 +258,16 @@ def main() -> None:
     comparison.to_csv(output_path, index=False)
     print(f"\nSaved comparison to: {output_path}")
 
+    # Save original variant state totals
+    original_state_file = output_dir / "original_variant_state_totals.csv"
+    original_outputs.state_totals.to_csv(original_state_file, index=False)
+    print(f"Saved original variant state totals to: {original_state_file}")
+
+    # Save updated variant state totals
+    updated_state_file = output_dir / "updated_variant_state_totals.csv"
+    updated_outputs.state_totals.to_csv(updated_state_file, index=False)
+    print(f"Saved updated variant state totals to: {updated_state_file}")
+
     # Save policy variant state totals
     policy_state_file = output_dir / "policy_variant_state_totals.csv"
     policy_outputs.state_totals.to_csv(policy_state_file, index=False)
