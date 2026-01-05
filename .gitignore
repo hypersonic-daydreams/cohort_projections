@@ -65,6 +65,9 @@ data/projections/**/*.csv
 data/projections/**/*.parquet
 data/projections/**/*.xlsx
 
+# Interim data files (synced via rclone, not git)
+data/interim/**
+
 # Metadata (database backups synced via rclone, not git)
 data/metadata/**/*.sql
 
@@ -77,6 +80,8 @@ data/output/
 !data/raw/**/.gitkeep
 !data/processed/.gitkeep
 !data/projections/.gitkeep
+!data/interim/.gitkeep
+!data/interim/**/.gitkeep
 
 # Logs
 *.log
