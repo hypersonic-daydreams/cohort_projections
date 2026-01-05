@@ -22,11 +22,14 @@ status_update_memo: "sdc_2024_replication/revisions/v0.8.6/status_update_2026-01
 
 ## Integration and Pipeline Checks
 - [ ] Decide whether to model Amerasian/SIV as separate covariate or merged humanitarian series (approval required).
-- [ ] Confirm downstream scripts reference updated outputs (no hard-coded paths).
-- [ ] Update database/loader plumbing if using PostgreSQL tables (e.g., `rpc.refugee_arrivals`).
+- [x] Confirm downstream scripts reference updated outputs (no hard-coded paths).
+  - Centralized `sdc_2024_replication/scripts/statistical_analysis/data_loader.py` now resolves the analysis directory via `config/projection_config.yaml` and supports `SDC_ANALYSIS_DATA_SOURCE={auto,db,files}` to avoid brittle hard-coded paths.
+- [x] Update database/loader plumbing if using PostgreSQL tables (e.g., `rpc.refugee_arrivals`).
+  - `sdc_2024_replication/scripts/database/db_config.py` now uses environment variables (no user-specific credentials in code); `data_loader.py` falls back to processed parquet/CSV when DB is unavailable or incomplete.
 - [x] Reconcile partial FY2021-FY2024 refugee data and prevent ND-only placeholders from being treated as full panels.
   - Missing states are left missing (no zero-fill); state-panel analyses drop incomplete states post-2020; national totals use official FY2021-2024 values (ADR-025).
-- [ ] Build LPR multi-year panel variants needed for modeling (state totals + any aggregation variants).
+- [x] Build LPR multi-year panel variants needed for modeling (state totals + any aggregation variants).
+  - New script: `sdc_2024_replication/data_immigration_policy/scripts/build_dhs_lpr_panel_variants.py` (writes states-only panel, balanced panel, US totals, ND shares).
 
 ## Modeling Updates (Approval Required if Results Change)
 - [ ] Update Travel Ban DiD/event-study with extended refugee data and refined timing.
@@ -45,14 +48,15 @@ status_update_memo: "sdc_2024_replication/revisions/v0.8.6/status_update_2026-01
 - [ ] Update `data/raw/immigration/census_population_estimates/README_census_vintages.md` if new vintages are added.
 
 ## Methodological Pitfalls to Document
-- [ ] Time-base mismatch: FY vs PEP-year vs calendar year (document mapping logic).
-- [ ] Net vs gross flows: ensure consistent interpretation across sources.
-- [ ] Vintage revisions: treat Census vintage choice as sensitivity dimension.
+- [x] Time-base mismatch: FY vs PEP-year vs calendar year (document mapping logic).
+- [x] Net vs gross flows: ensure consistent interpretation across sources.
+- [x] Vintage revisions: treat Census vintage choice as sensitivity dimension.
 - [ ] Measurement error (ACS MOE; LPR reporting lags).
 - [ ] Double counting: avoid stacking variance from multiple correlated signals.
-- [ ] Partial series risk: prevent ND-only data from being misinterpreted as national panel data.
+- [x] Partial series risk: prevent ND-only data from being misinterpreted as national panel data.
 
 ## Validation and Testing
-- [ ] Add/extend tests for new data ingestion and model components.
+- [x] Add/extend tests for new data ingestion and model components.
+  - Added unit tests for the data loader file-fallback mode and LPR panel variant builder.
 - [x] Add unit tests for post-2020 missing-state filtering in Module 8.
-- [ ] Run targeted test suite for updated modules.
+- [x] Run targeted test suite for updated modules.

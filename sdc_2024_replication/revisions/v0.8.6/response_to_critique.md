@@ -25,20 +25,30 @@ This document records how each critique item is evaluated and addressed for v0.8
 ## Critique Response Matrix
 | Critique Item | Decision | Implementation Notes | Status |
 |---|---|---|---|
-| Extend refugee arrivals beyond FY2020 | Approved | Extract from RPC archives; alternate sources allowed if RPC insufficient. | Pending |
-| Replace FY-to-PEP-year approximation with month-aware alignment | Approved | Use monthly arrivals where available; document crosswalk. | Pending |
-| Add SIV/Amerasian humanitarian series | Approved | Prefer RPC archives; alternate sources allowed for coverage/trust. | Pending |
-| Use long-run Census components series for regime modeling | Approved | Add regime markers to 2000–2024 series. | Pending |
-| Integrate multi-year LPR series | Approved | Expand beyond FY2014 using existing DHS files. | Pending |
-| Add ACS moved-from-abroad proxy | Approved | Use B07007/B07407 for aggregate proxy; PUMS if needed. | Pending |
+| Extend refugee arrivals beyond FY2020 | Approved | RPC archive PDFs integrated with explicit missing-state handling (ADR-025); month-level and PEP-year variants exported. | Complete |
+| Replace FY-to-PEP-year approximation with month-aware alignment | Approved | FY month → PEP-year crosswalk exported; PEP-year aligned series exported for refugees (and SIV/Amerasian). | Complete |
+| Add SIV/Amerasian humanitarian series | Approved | Parallel series exported (monthly, FY, PEP-year) to avoid forcing early merging decisions. | Complete |
+| Use long-run Census components series for regime modeling | Approved | 2000–2024 components exported with regime markers. | Complete |
+| Integrate multi-year LPR series | Approved | LPR state totals extended to FY2000–FY2023 and saved to processed outputs. | Complete |
+| Add ACS moved-from-abroad proxy | Approved | ACS moved-from-abroad proxy exported for 2010–2023 with validation note. | Complete |
 | Improve Travel Ban DiD timing/robustness |  |  |  |
 | Update wave duration analyses (right-censoring) |  |  |  |
 | Fusion modeling / uncertainty envelope updates |  |  |  |
 
 ## Data and Documentation Notes
 - New data sources added:
-- Files/manifests updated:
+  - RPC archive PDFs for FY2021–FY2024 refugee arrivals (partial state coverage post-2020).
+  - DHS/OIS LPR yearbooks (including FY2007–FY2013 ZIP tables; FY2012 PDF fallback).
+  - ACS moved-from-abroad proxy series (B07007).
 - Known data limitations remaining:
+  - Post-2020 refugee state omissions remain missing (not imputed); state-panel analyses must drop incomplete states (ADR-025).
+  - Amerasian/SIV merging decision for forecasting remains pending (approval required).
+
+## Methodological Pitfalls (Short Notes)
+- **Time-base mismatch (FY vs PEP-year vs calendar year)**: Refugee/SIV/Amerasian monthly series are aligned to PEP-year using the exported crosswalk (`data/processed/immigration/analysis/refugee_fy_month_to_pep_year_crosswalk.csv`); calendar-year PEP components remain calendar-year.
+- **Net vs gross flows**: DHS LPR and refugee series are gross admissions/arrivals; Census PEP components are net migration components and should not be interpreted as gross flows.
+- **Vintage revisions**: Census PEP components include vintage markers and should be treated as a sensitivity dimension when mixing pre/post-2020 segments.
+- **Partial series risk**: Post-2020 refugee state panels have missing-state omissions; downstream state-panel analyses must explicitly drop incomplete states and avoid implicit zero-fill (ADR-025).
 
 ## Approval Log (Tier 3)
 | Date | Decision | Scope | Approved By |

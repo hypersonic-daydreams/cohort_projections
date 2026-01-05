@@ -3,29 +3,20 @@ import logging
 from contextlib import contextmanager
 from pathlib import Path
 
-import psycopg2
 from psycopg2.extras import RealDictCursor
+
+from database import db_config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-DB_NAME = "demography_db"
-DB_USER = "nhaarstad"  # Assuming current user
-# DB_HOST = "localhost" # Default
-
-
 def get_db_connection():
     """Establishes and returns a database connection."""
     try:
-        conn = psycopg2.connect(
-            dbname=DB_NAME,
-            user=DB_USER,
-            # host=DB_HOST
-        )
-        return conn
-    except Exception as e:
-        logger.error(f"Failed to connect to database: {e}")
+        return db_config.get_db_connection()
+    except Exception as exc:
+        logger.error("Failed to connect to database: %s", exc)
         raise
 
 
@@ -38,9 +29,9 @@ def get_db_cursor(commit=False):
         yield cur
         if commit:
             conn.commit()
-    except Exception as e:
+    except Exception as exc:
         conn.rollback()
-        logger.error(f"Database error: {e}")
+        logger.error("Database error: %s", exc)
         raise
     finally:
         conn.close()
@@ -89,6 +80,6 @@ def register_source_file(cursor, file_path: Path, description: str = None) -> in
         logger.info(f"Registered new file {file_name} (ID: {source_id}).")
         return source_id
 
-    except Exception as e:
-        logger.error(f"Error registering file {file_path}: {e}")
+    except Exception as exc:
+        logger.error("Error registering file %s: %s", file_path, exc)
         raise
