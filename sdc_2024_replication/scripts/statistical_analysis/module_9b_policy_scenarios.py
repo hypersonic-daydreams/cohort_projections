@@ -521,15 +521,29 @@ def load_national_refugee_totals(result: ModuleResult) -> pd.DataFrame:
             fiscal_year as year,
             SUM(arrivals) as national_arrivals
         FROM rpc.refugee_arrivals
+        WHERE fiscal_year <= 2020
         GROUP BY fiscal_year
         ORDER BY fiscal_year
         """
         df = pd.read_sql(query, conn)
         result.input_files.append("rpc.refugee_arrivals (national, PostgreSQL)")
-        print(f"  Loaded national refugee totals: {len(df)} years")
-        return df
+        print(f"  Loaded national refugee totals: {len(df)} years (FY2002-2020)")
     finally:
         conn.close()
+
+    official_post_2020 = pd.DataFrame(
+        {
+            "year": [2021, 2022, 2023, 2024],
+            "national_arrivals": [11411, 25519, 60014, 100034],
+        }
+    )
+
+    df = pd.concat([df, official_post_2020], ignore_index=True)
+    df = df.sort_values("year").reset_index(drop=True)
+    result.input_files.append("RPC/DHS official national totals (FY2021-2024)")
+    print("  Added official FY2021-2024 national totals")
+    print(f"  Total: {len(df)} years (FY2002-2024)")
+    return df
 
 
 # =============================================================================

@@ -78,6 +78,29 @@ demographics:
       - "Two or more races, Non-Hispanic"
       - "Hispanic (any race)"
 
+data_sources:
+  acs_api_base: "https://api.census.gov/data/{year}/acs/acs5"
+  acs_moved_from_abroad:
+    table_id: "B07007"
+    start_year: 2010
+    end_year: 2023
+    raw_dir: "data/raw/immigration/acs_migration"
+    processed_dir: "data/processed/immigration/analysis"
+    output_prefix: "acs_moved_from_abroad_by_state"
+  census_components:
+    raw_dir: "data/raw/immigration/census_population_estimates"
+    output_dir: "data/processed/immigration"
+    output_file: "state_migration_components_2000_2024.csv"
+    regime_output_file: "state_migration_components_2000_2024_with_regime.csv"
+  dhs_lpr:
+    raw_dir: "data/raw/immigration/dhs_lpr"
+    yearbook_tables_file: "yearbook_lpr_2023_all_tables.xlsx"
+    historical_zip_glob: "LPR*.zip"
+  dhs_naturalizations:
+    raw_dir: "data/raw/immigration/dhs_naturalizations"
+  dhs_refugees_asylees:
+    raw_dir: "data/raw/immigration/dhs_refugees_asylees"
+
 rates:
   fertility:
     source: "SEER"  # or "NVSS", "custom"

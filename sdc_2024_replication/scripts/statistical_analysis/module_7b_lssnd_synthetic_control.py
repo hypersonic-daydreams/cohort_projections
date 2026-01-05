@@ -218,9 +218,9 @@ def load_national_refugee_totals() -> pd.DataFrame:
     """
     Load national (US total) refugee arrivals by year.
 
-    Note: For FY2021-2024, the database only contains ND data since post-2020
-    data for other states has not been ingested. We supplement with official
-    national totals from the Refugee Processing Center and DHS.
+    Note: For FY2021-2024, the database contains partial state coverage.
+    We supplement with official national totals from the Refugee Processing
+    Center and DHS to avoid undercounting.
 
     Official sources:
     - FY2021: 11,411 (DHS Yearbook 2021)
@@ -283,9 +283,10 @@ def prepare_panel_data(
     # Merge ACS foreign-born
     df = df.merge(df_acs, on=["year", "state"], how="left")
 
-    # Calculate rates and shares
-    df["arrivals"] = df["arrivals"].fillna(0)
-    df["arrivals_rate"] = (df["arrivals"] / df["population"]) * 100000
+    # Calculate rates and shares (preserve missing arrivals to avoid implicit zero-fill)
+    df["arrivals_rate"] = np.where(
+        df["arrivals"].notna(), (df["arrivals"] / df["population"]) * 100000, np.nan
+    )
     df["foreign_born_share"] = (df["foreign_born"] / df["population"]) * 100
 
     result.input_files.extend([
@@ -342,8 +343,8 @@ def estimate_synthetic_control(
     relevant_states = [treated_unit] + donor_states
 
     df_analysis = df[
-        (df["state"].isin(relevant_states)) &
-        (df["year"].isin(all_years))
+        (df["state"].isin(relevant_states))
+        & (df["year"].isin(all_years))
     ].copy()
 
     # Pivot to wide format: rows = years, columns = states
@@ -351,14 +352,29 @@ def estimate_synthetic_control(
         index="year",
         columns="state",
         values=outcome_var,
-        aggfunc="first"
+        aggfunc="first",
     )
 
-    # Check data availability
-    if treated_unit not in outcome_matrix.columns:
-        raise ValueError(f"Treated unit '{treated_unit}' not found in data")
+    # Drop states with missing outcome data in any required year
+    complete_states = [
+        state for state in outcome_matrix.columns if outcome_matrix[state].notna().all()
+    ]
+    missing_states = sorted(set(relevant_states) - set(complete_states))
+    if missing_states:
+        msg = (
+            "Dropping states with missing refugee data in analysis window: "
+            + ", ".join(missing_states)
+        )
+        print(f"WARNING: {msg}")
+        if result is not None:
+            result.warnings.append(msg)
 
-    available_donors = [s for s in donor_states if s in outcome_matrix.columns]
+    if treated_unit not in complete_states:
+        raise ValueError(
+            f"Treated unit '{treated_unit}' missing data in analysis window"
+        )
+
+    available_donors = [s for s in donor_states if s in complete_states]
     if len(available_donors) < 2:
         raise ValueError(f"Insufficient donors: only {len(available_donors)} found")
 

@@ -1101,6 +1101,26 @@ def estimate_bartik_instrument(
     df_ref = df_refugee.copy()
     df_ref = df_ref.rename(columns={"fiscal_year": "year"})
 
+    # Drop states missing post-2020 totals (unknown coverage)
+    total_rows = df_ref[df_ref["nationality"] == "Total"]
+    post_years = sorted(y for y in total_rows["year"].unique() if y >= 2021)
+    if post_years:
+        coverage = (
+            total_rows[total_rows["year"].isin(post_years)]
+            .groupby("state")["year"]
+            .nunique()
+        )
+        complete_states = set(coverage[coverage == len(post_years)].index)
+        missing_states = sorted(set(total_rows["state"].unique()) - complete_states)
+        if missing_states:
+            msg = (
+                "Dropping states missing post-2020 refugee totals for Bartik: "
+                + ", ".join(missing_states)
+            )
+            print(f"WARNING: {msg}")
+            result.warnings.append(msg)
+        df_ref = df_ref[df_ref["state"].isin(complete_states)]
+
     # Baseline year for shares
     baseline_year = 2010
 
@@ -1152,6 +1172,7 @@ def estimate_bartik_instrument(
         on=["year", "nationality", "state"],
         how="left",
     )
+    # Missing nationality rows within covered states are treated as zero arrivals.
     panel["state_arrivals"] = panel["state_arrivals"].fillna(0)
 
     # Baseline totals and state arrivals (for leave-one-out baseline)

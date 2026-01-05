@@ -25,6 +25,7 @@ Output:
 from pathlib import Path
 
 import pandas as pd
+from cohort_projections.utils import ConfigLoader
 
 
 def load_vintage_data(filepath: Path) -> pd.DataFrame:
@@ -181,24 +182,55 @@ def generate_summary_statistics(df: pd.DataFrame) -> pd.DataFrame:
     return summary
 
 
+def add_regime_markers(df: pd.DataFrame) -> pd.DataFrame:
+    """Add regime flags for pre/post-2010 and pre/post-2020 periods."""
+    result = df.copy()
+    result["regime_pre_2010"] = result["year"] < 2010
+    result["regime_post_2010"] = result["year"] >= 2010
+    result["regime_post_2020"] = result["year"] >= 2020
+    result["regime_period"] = pd.cut(
+        result["year"],
+        bins=[0, 2010, 2020, 2025],
+        labels=["pre_2010", "2010_2019", "2020_2024"],
+        right=False,
+    )
+    return result
+
+
 def main():
     """Main entry point."""
     # Define paths - Use project-level data directories
     script_dir = Path(__file__).parent
     project_root = script_dir.parent.parent.parent  # cohort_projections/
 
+    config = ConfigLoader().get_projection_config()
+    data_sources = config.get("data_sources", {})
+    census_cfg = data_sources.get("census_components", {})
+
+    raw_dir = census_cfg.get("raw_dir", "data/raw/immigration/census_population_estimates")
+    output_dir_cfg = census_cfg.get("output_dir", "data/processed/immigration")
+    output_file = census_cfg.get("output_file", "state_migration_components_2000_2024.csv")
+    regime_output_file = census_cfg.get(
+        "regime_output_file", "state_migration_components_2000_2024_with_regime.csv"
+    )
+
     # Raw data source (input)
-    source_dir = project_root / "data" / "raw" / "immigration"
+    source_dir = project_root / raw_dir
 
     # Processed data output
-    output_dir = project_root / "data" / "processed" / "immigration"
+    output_dir = project_root / output_dir_cfg
 
     # Create output directory if it doesn't exist
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Combine vintages
-    output_path = output_dir / "state_migration_components_2000_2024.csv"
+    output_path = output_dir / output_file
     combined = combine_vintages(source_dir, output_path)
+
+    # Add regime markers and save a derived file for analysis
+    regime_output_path = output_dir / regime_output_file
+    combined_with_regime = add_regime_markers(combined)
+    combined_with_regime.to_csv(regime_output_path, index=False)
 
     # Print summary
     print("\n" + "=" * 60)

@@ -167,12 +167,37 @@ def save_figure(fig, filepath_base, title, source_note):
     print(f"Figure saved: {filepath_base}.png/pdf")
 
 
+def drop_states_missing_post_2020(
+    df_refugee: pd.DataFrame, result: ModuleResult
+) -> pd.DataFrame:
+    """Drop states missing any post-2020 totals (FY2021+) when present."""
+    total_rows = df_refugee[df_refugee["nationality"] == "Total"]
+    post_years = sorted(y for y in total_rows["fiscal_year"].unique() if y >= 2021)
+    if not post_years:
+        return df_refugee
+
+    coverage = (
+        total_rows[total_rows["fiscal_year"].isin(post_years)]
+        .groupby("state")["fiscal_year"]
+        .nunique()
+    )
+    complete_states = set(coverage[coverage == len(post_years)].index)
+    missing_states = sorted(set(total_rows["state"].unique()) - complete_states)
+    if missing_states:
+        result.warnings.append(
+            "Dropping states missing post-2020 refugee totals: "
+            + ", ".join(missing_states)
+        )
+    return df_refugee[df_refugee["state"].isin(complete_states)].copy()
+
+
 def load_data(result: ModuleResult) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Load refugee arrivals and ACS foreign-born data."""
+    """Load refugee arrivals and ACS foreign-born data with post-2020 coverage checks."""
     # Load refugee arrivals
     refugee_path = DATA_DIR / "refugee_arrivals_by_state_nationality.parquet"
     df_refugee = pd.read_parquet(refugee_path)
     result.input_files.append("refugee_arrivals_by_state_nationality.parquet")
+    df_refugee = drop_states_missing_post_2020(df_refugee, result)
 
     # Load ACS foreign-born data
     acs_path = DATA_DIR / "acs_foreign_born_by_state_origin.parquet"
@@ -847,6 +872,8 @@ def plot_survival_curves(
     kmf_overall: KaplanMeierFitter,
     km_by_region: dict,
     result: ModuleResult,
+    start_year: int,
+    end_year: int,
 ):
     """Plot Kaplan-Meier survival curves."""
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
@@ -886,7 +913,10 @@ def plot_survival_curves(
     save_figure(
         fig,
         str(FIGURES_DIR / "module_8_survival_curves"),
-        "Kaplan-Meier Survival Analysis - Immigration Wave Duration (FY 2002-2020)",
+        (
+            "Kaplan-Meier Survival Analysis - Immigration Wave Duration "
+            f"(FY {start_year}-{end_year})"
+        ),
         "Refugee Processing Center, Department of State",
     )
 
@@ -1118,6 +1148,9 @@ def run_analysis() -> ModuleResult:
     wave_threshold_pct = 50.0
     min_wave_years = 2
 
+    start_year = int(df_refugee["fiscal_year"].min())
+    end_year = int(df_refugee["fiscal_year"].max())
+
     result.parameters = {
         "wave_definition": {
             "threshold_percent_above_baseline": wave_threshold_pct,
@@ -1137,8 +1170,8 @@ def run_analysis() -> ModuleResult:
             ],
         },
         "data_period": {
-            "start_year": int(df_refugee["fiscal_year"].min()),
-            "end_year": int(df_refugee["fiscal_year"].max()),
+            "start_year": start_year,
+            "end_year": end_year,
         },
     }
 
@@ -1215,7 +1248,7 @@ def run_analysis() -> ModuleResult:
     print("GENERATING VISUALIZATIONS")
     print("=" * 60)
 
-    plot_survival_curves(kmf_overall, km_by_region, result)
+    plot_survival_curves(kmf_overall, km_by_region, result, start_year, end_year)
     plot_cumulative_hazard(kmf_overall, km_by_intensity, result)
     plot_forest_plot(cox_results, result)
     plot_schoenfeld_residuals(cph, df_survival, result)
@@ -1277,7 +1310,7 @@ def run_analysis() -> ModuleResult:
             "rate": float((df_survival["event"] == 0).mean() * 100)
             if len(df_survival) > 0
             else None,
-            "reason": "Wave ongoing at end of data period (FY2020)",
+            "reason": f"Wave ongoing at end of data period (FY{end_year})",
         },
         "model_fit": {
             "concordance_index": cox_results["fit_statistics"]["concordance_index"],

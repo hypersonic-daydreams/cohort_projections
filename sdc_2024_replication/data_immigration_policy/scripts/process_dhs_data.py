@@ -14,12 +14,23 @@ Output files:
 from pathlib import Path
 
 import pandas as pd
+from cohort_projections.utils import ConfigLoader, setup_logger
+from cohort_projections.utils.reproducibility import log_execution
+
+logger = setup_logger(__name__)
 
 # Paths - Use project-level data directories
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent  # cohort_projections/
+CONFIG = ConfigLoader().get_projection_config()
+DATA_SOURCES = CONFIG.get("data_sources", {})
 
 # Input: raw DHS data
-SOURCE_DIR = PROJECT_ROOT / "data" / "raw" / "immigration" / "dhs_refugees_naturalization"
+NATURALIZATION_SOURCE_DIR = PROJECT_ROOT / DATA_SOURCES.get("dhs_naturalizations", {}).get(
+    "raw_dir", "data/raw/immigration/dhs_naturalizations"
+)
+REFUGEE_SOURCE_DIR = PROJECT_ROOT / DATA_SOURCES.get("dhs_refugees_asylees", {}).get(
+    "raw_dir", "data/raw/immigration/dhs_refugees_asylees"
+)
 
 # Output: analysis goes to project-level processed directory
 ANALYSIS_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "analysis"
@@ -183,7 +194,9 @@ def process_naturalization_data() -> pd.DataFrame:
     # Process FY2023 data
     try:
         df_2023 = pd.read_excel(
-            SOURCE_DIR / "naturalizations_fy2023.xlsx", sheet_name="Table 22", header=5
+            NATURALIZATION_SOURCE_DIR / "naturalizations_fy2023.xlsx",
+            sheet_name="Table 22",
+            header=5,
         )
         df_2023 = df_2023.dropna(how="all")
         df_2023.columns = [clean_column_name(c) for c in df_2023.columns]
@@ -203,16 +216,20 @@ def process_naturalization_data() -> pd.DataFrame:
         )
         df_long["fiscal_year"] = df_long["fiscal_year"].str.replace(".0", "").astype(int)
         all_data.append(df_long)
-        print(
-            f"Processed FY2023 naturalization data: {len(df_2023)} states, {len(year_cols)} years"
+        logger.info(
+            "Processed FY2023 naturalization data: %s states, %s years",
+            len(df_2023),
+            len(year_cols),
         )
     except Exception as e:
-        print(f"Error processing FY2023: {e}")
+        logger.warning("Error processing FY2023: %s", e)
 
     # Process FY2022 data
     try:
         df_2022 = pd.read_excel(
-            SOURCE_DIR / "naturalizations_fy2022.xlsx", sheet_name="Table 22", header=5
+            NATURALIZATION_SOURCE_DIR / "naturalizations_fy2022.xlsx",
+            sheet_name="Table 22",
+            header=5,
         )
         df_2022 = df_2022.dropna(how="all")
         df_2022.columns = [clean_column_name(c) for c in df_2022.columns]
@@ -232,11 +249,13 @@ def process_naturalization_data() -> pd.DataFrame:
         )
         df_long["fiscal_year"] = df_long["fiscal_year"].str.replace(".0", "").astype(int)
         # Only add years not already present
-        print(
-            f"Processed FY2022 naturalization data: {len(df_2022)} states, {len(year_cols)} years"
+        logger.info(
+            "Processed FY2022 naturalization data: %s states, %s years",
+            len(df_2022),
+            len(year_cols),
         )
     except Exception as e:
-        print(f"Error processing FY2022: {e}")
+        logger.warning("Error processing FY2022: %s", e)
 
     if all_data:
         combined = pd.concat(all_data, ignore_index=True)
@@ -252,7 +271,9 @@ def process_naturalization_by_state_and_country() -> pd.DataFrame:
     """
     try:
         df = pd.read_excel(
-            SOURCE_DIR / "naturalizations_fy2023.xlsx", sheet_name="NATZSuppTable1", header=5
+            NATURALIZATION_SOURCE_DIR / "naturalizations_fy2023.xlsx",
+            sheet_name="NATZSuppTable1",
+            header=5,
         )
         df = df.dropna(how="all")
         df.columns = [clean_column_name(c) for c in df.columns]
@@ -269,10 +290,10 @@ def process_naturalization_by_state_and_country() -> pd.DataFrame:
         # Add fiscal year
         df["fiscal_year"] = 2023
 
-        print(f"Processed naturalization by state and country: {len(df)} countries")
+        logger.info("Processed naturalization by state and country: %s countries", len(df))
         return df
     except Exception as e:
-        print(f"Error processing supplemental table: {e}")
+        logger.warning("Error processing supplemental table: %s", e)
         return pd.DataFrame()
 
 
@@ -340,16 +361,16 @@ def add_state_population_data() -> pd.DataFrame:
     return pd.DataFrame([{"state": k, "population_2022": v} for k, v in state_pops.items()])
 
 
-def main():
-    print("=" * 60)
-    print("Processing DHS Refugee and Naturalization Data")
-    print("=" * 60)
+def main() -> None:
+    logger.info("%s", "=" * 60)
+    logger.info("Processing DHS Refugee and Naturalization Data")
+    logger.info("%s", "=" * 60)
 
     # Create analysis directory
     ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
 
     # Process refugee data
-    print("\n--- Refugee Admissions Data ---")
+    logger.info("--- Refugee Admissions Data ---")
 
     refugee_by_state = extract_refugee_state_data()
     refugee_by_country = extract_refugee_country_data()
@@ -367,9 +388,9 @@ def main():
     ).round(2)
 
     # Print summary
-    print(f"\nRefugee by state: {len(refugee_by_state)} records")
-    print(f"Refugee by country: {len(refugee_by_country)} records")
-    print(f"Refugee by region: {len(refugee_by_region)} records")
+    logger.info("Refugee by state: %s records", len(refugee_by_state))
+    logger.info("Refugee by country: %s records", len(refugee_by_country))
+    logger.info("Refugee by region: %s records", len(refugee_by_region))
 
     # Top states by 2023 per-capita rate
     top_states = (
@@ -382,10 +403,13 @@ def main():
         .head(10)
     )
 
-    print("\nTop 10 states by refugee resettlement per capita (FY2023):")
+    logger.info("Top 10 states by refugee resettlement per capita (FY2023):")
     for _, row in top_states.iterrows():
-        print(
-            f"  {row['state']}: {row['refugees_per_100k']:.1f} per 100k ({row['refugee_arrivals']:,} total)"
+        logger.info(
+            "  %s: %.1f per 100k (%s total)",
+            row["state"],
+            row["refugees_per_100k"],
+            f"{int(row['refugee_arrivals']):,}",
         )
 
     # Save refugee data
@@ -399,10 +423,10 @@ def main():
         ignore_index=True,
     )
     refugee_combined.to_parquet(refugee_output, index=False)
-    print(f"\nSaved refugee data to: {refugee_output}")
+    logger.info("Saved refugee data to: %s", refugee_output)
 
     # Process naturalization data
-    print("\n--- Naturalization Data ---")
+    logger.info("--- Naturalization Data ---")
 
     naturalization_by_state = process_naturalization_data()
     naturalization_detail = process_naturalization_by_state_and_country()
@@ -427,9 +451,9 @@ def main():
             .head(10)
         )
 
-        print("\nTop 10 states by naturalizations (FY2023):")
+        logger.info("Top 10 states by naturalizations (FY2023):")
         for _, row in top_nat_states.iterrows():
-            print(f"  {row['state']}: {int(row['naturalizations']):,}")
+            logger.info("  %s: %s", row["state"], f"{int(row['naturalizations']):,}")
 
         # Find North Dakota's position
         nd_data = naturalization_by_state[
@@ -446,23 +470,28 @@ def main():
                 .rank(ascending=False)
                 .loc[nd_data.index[0]]
             )
-            print(f"\nNorth Dakota FY2023: {int(nd_nat):,} naturalizations (rank #{int(nd_rank)})")
+            logger.info(
+                "North Dakota FY2023: %s naturalizations (rank #%s)",
+                f"{int(nd_nat):,}",
+                int(nd_rank),
+            )
 
         # Save naturalization data
         nat_output = ANALYSIS_DIR / "dhs_naturalizations_by_state.parquet"
         naturalization_by_state.to_parquet(nat_output, index=False)
-        print(f"\nSaved naturalization data to: {nat_output}")
+        logger.info("Saved naturalization data to: %s", nat_output)
 
     # Save detailed state-country data if available
     if not naturalization_detail.empty:
         detail_output = ANALYSIS_DIR / "dhs_naturalizations_by_state_country.parquet"
         naturalization_detail.to_parquet(detail_output, index=False)
-        print(f"Saved detailed naturalization data to: {detail_output}")
+        logger.info("Saved detailed naturalization data to: %s", detail_output)
 
-    print("\n" + "=" * 60)
-    print("Processing complete!")
-    print("=" * 60)
+    logger.info("%s", "=" * 60)
+    logger.info("Processing complete!")
+    logger.info("%s", "=" * 60)
 
 
 if __name__ == "__main__":
-    main()
+    with log_execution(__file__, parameters={"series": "dhs_refugees_naturalizations"}):
+        main()

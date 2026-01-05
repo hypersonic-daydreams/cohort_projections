@@ -154,6 +154,7 @@ Where:
 |-----|-------|--------|------|---------|
 | [020](020-extended-time-series-methodology-analysis.md) | Extended Time Series Methodology Analysis | Accepted | 2026-01-01 | Option C (Hybrid) for 2000-2024 vintage series; primary inference on 2010-2024 |
 | [024](024-immigration-data-extension-fusion.md) | Immigration Data Extension and Fusion Strategy | Proposed | 2026-01-04 | Extend refugee/LPR series, align time bases, and incorporate regime-aware modeling |
+| [025](025-refugee-coverage-missing-state-handling.md) | Post-2020 Refugee Coverage and Missing-State Handling | Accepted | 2026-01-04 | Missing states left unknown; drop missing post-2020 in state panels; official national totals |
 
 ### Package Extraction
 
@@ -170,12 +171,12 @@ Where:
 
 | Status | Count |
 |--------|-------|
-| Accepted | 23 |
+| Accepted | 24 |
 | Proposed | 2 |
 | Deprecated | 0 |
 | Superseded | 0 |
 
-**Naming Convention Compliance**: All 25 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `023a`).
+**Naming Convention Compliance**: All 26 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `023a`).
 
 ---
 
@@ -236,6 +237,6 @@ Across all ADRs, these principles guided decisions:
 
 **Last Updated**: 2026-01-04
 
-**Total ADRs**: 25 (23 accepted, 2 proposed)
+**Total ADRs**: 26 (24 accepted, 2 proposed)
 
 **Template**: See [TEMPLATE.md](TEMPLATE.md) for creating new ADRs

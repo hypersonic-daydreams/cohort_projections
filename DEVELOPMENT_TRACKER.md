@@ -126,6 +126,14 @@ Tasks for current phase. States: `[ ]` pending | `[x]` complete
 - [ ] Document methodology with mathematical formulas
 - [ ] Add troubleshooting guide
 
+### v0.8.6 Critique Implementation
+
+- [ ] Data extension and provenance updates (see `sdc_2024_replication/revisions/v0.8.6/remaining_tasks_v0.8.6.md`)
+  - In progress: ACS B07007 moved-from-abroad proxy processed (2010-2023), LPR state totals now cover FY2000-2023 (FY2012 state totals extracted from yearbook PDF), PEP regime markers added, DHS yearbook raw downloads organized with manifests updated; OCR extraction improved FY2022/FY2024 refugee coverage (FY2022 ND-only placeholder removed; missing states left omitted; post-2020 state-panel analyses now drop missing states per ADR-025).
+- [x] Pre-2007 DHS LPR yearbook downloads (manual browser; CDN blocks automated fetch)
+- Status update memo (2026-01-04): `sdc_2024_replication/revisions/v0.8.6/status_update_2026-01-04.md`
+- Archived full tracker: `sdc_2024_replication/revisions/v0.8.6/progress_tracker_v0.8.6_critique_v0.8.5.md`
+
 ### Optional Enhancements (Priority 3)
 
 - [ ] Complete TIGER geographic data loading (falls back to defaults)

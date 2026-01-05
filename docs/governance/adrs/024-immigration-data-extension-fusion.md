@@ -1,7 +1,7 @@
 # ADR-024: Immigration Data Extension and Fusion Strategy
 
 ## Status
-Proposed
+Accepted
 
 ## Date
 2026-01-04
@@ -40,6 +40,7 @@ The repository already contains raw RPC archives for FY2021–FY2024 (PDFs) and 
 **Implementation**:
 - Extract FY2021–FY2024 state×nationality arrivals from RPC archive PDFs.
 - Store raw PDFs in `data/raw/immigration/refugee_arrivals/` and document in its manifest.
+- When PDFs are not machine-readable, generate OCR-enhanced copies under `data/interim/immigration/ocr/` and prefer those for extraction.
 - Produce a monthly-to-PEP-year crosswalk and persist in processed metadata.
 - Regenerate `data/processed/immigration/analysis/refugee_arrivals_by_state_nationality.parquet`.
 
@@ -161,6 +162,11 @@ No changes to `config/projection_config.yaml` expected initially; analysis scrip
 ## Revision History
 
 - **2026-01-04**: Initial draft (ADR-024) - Proposed data extension and fusion strategy.
+- **2026-01-04**: Accepted with approval to implement items #1-#5; added pdfplumber and xlrd dependencies for RPC PDF extraction and legacy XLS parsing.
+- **2026-01-04**: Added ACS B07007 config entries in `config/projection_config.yaml` for moved-from-abroad acquisition and processing.
+- **2026-01-04**: Added census components path/output config entries for regime-marked PEP migration series.
+- **2026-01-04**: Added DHS LPR, DHS naturalizations, and DHS refugees/asylees raw-dir config entries to support reorganized raw folders.
+- **2026-01-04**: Added OCR workflow for RPC PDFs and `ocrmypdf` dependency (requires system `tesseract-ocr`, `ghostscript`, and `qpdf`).
 
 ## Related ADRs
 

@@ -30,7 +30,7 @@ This project uses multiple data sources with **different temporal bases**:
 | Attribute | Value |
 |-----------|-------|
 | **Source** | Refugee Processing Center (rpc.state.gov) |
-| **Format** | Excel (.xls/.xlsx) for FY2012-2020; PDF for FY2021-2024 |
+| **Format** | Excel (.xls/.xlsx) for FY2012-2020; PDF for FY2021-2024 (mixed text/encoded) |
 | **Temporal Basis** | **FISCAL YEAR (Oct 1 - Sep 30)** |
 | **Years Available** | FY2002-FY2024 |
 | **Location** | `data/raw/immigration/refugee_arrivals/` |
@@ -39,8 +39,24 @@ This project uses multiple data sources with **different temporal bases**:
 
 **Files**:
 - `FY_2012_Arrivals_by_State_and_Nationality.xls` through `FY_2020_Arrivals_by_State_and_Nationality.xlsx` (Excel)
-- `FY_2021_Arrivals_by_State_and_Nationality.pdf` through `FY_2024_Arrivals_by_State_and_Nationality.pdf` (PDF)
+- `FY 2021 Arrivals by State and Nationality as of 30 Sep 2021.pdf` (PDF)
+- `FY 2022 Arrivals by State and Nationality as of 30 Sep 2022.pdf` (PDF; image-only after page 1)
+- `FY 2023 Refugee Arrivals by State and Nationality as of 30 Sep 2023.pdf` (PDF)
+- `FY 2024 Arrivals by State and Nationality as of 30 Oct 2024_updated.pdf` (PDF; encoded text)
+- Legacy copies: `FY_2021_Arrivals_by_State_and_Nationality.pdf` through `FY_2024_Arrivals_by_State_and_Nationality.pdf`
 - `orr_prm_1975_2018_v1.dta` (Stata - academic dataset FY2002-2011)
+- `PRM_Refugee_Admissions_Report_Nov_2025.xlsx` (national-level monthly admissions, no state breakdown)
+
+**Archive URLs (downloaded 2026-01-04):**
+- https://www.rpc.state.gov/documents/FY%202021%20Arrivals%20by%20State%20and%20Nationality%20as%20of%2030%20Sep%202021.pdf
+- https://www.rpc.state.gov/documents/FY%202022%20Arrivals%20by%20State%20and%20Nationality%20as%20of%2030%20Sep%202022.pdf
+- https://www.rpc.state.gov/documents/FY%202023%20Refugee%20Arrivals%20by%20State%20and%20Nationality%20as%20of%2030%20Sep%202023.pdf
+- https://www.rpc.state.gov/documents/FY%202024%20Arrivals%20by%20State%20and%20Nationality%20as%20of%2030%20Oct%202024_updated.pdf
+
+**Processed Output Notes:**
+- `data/processed/immigration/analysis/refugee_arrivals_by_state_nationality.parquet` includes extracted state×nationality panels for FY2021–FY2024 from RPC PDFs (FY2022 uses OCR tesseract/Acrobat; FY2024 uses OCR). State coverage remains partial but improved (FY2021=46, FY2022=49, FY2023=48, FY2024=50); remaining gaps reflect omissions in source PDFs and are left missing for downstream handling.
+- Monthly and PEP-year aligned outputs (FY2021–FY2024): `refugee_arrivals_by_state_nationality_monthly.parquet`, `refugee_arrivals_by_state_nationality_pep_year.parquet`, and `refugee_fy_month_to_pep_year_crosswalk.csv`.
+- OCR-enhanced PDF inputs are stored in `data/interim/immigration/ocr/` and used for FY2022/FY2024 extraction (including `FY2022_Arrivals_by_State_and_Nationality_ocr_acrobat.pdf`).
 
 **Temporal Conversion**:
 ```
@@ -54,6 +70,37 @@ To align with CY2024 population (Jul 1 estimate):
 
 ---
 
+#### 1.1b Amerasian & SIV Arrivals (RPC)
+
+| Attribute | Value |
+|-----------|-------|
+| **Source** | Refugee Processing Center (rpc.state.gov) |
+| **Format** | PDF |
+| **Temporal Basis** | **FISCAL YEAR (Oct 1 - Sep 30)** |
+| **Years Available** | FY2021-FY2024 (additional years available in archives) |
+| **Location** | `data/raw/immigration/refugee_arrivals/` |
+| **Processing Script** | `sdc_2024_replication/data_immigration_policy/scripts/process_siv_amerasian_data.py` |
+| **Alignment Notes** | Same FY-to-PEP alignment logic as refugee arrivals. |
+
+**Files**:
+- `FY2021 Amerasian & SIV Arrivals by Nationality and State.pdf`
+- `FY 2022 Amerasian & SIV Arrivals by Nationality and State.pdf`
+- `FY 2023 Amerasian & SIV Arrivals by Nationality and State.pdf`
+- `FY 2024 Amerasian & SIV Arrivals by Nationality and State_updated_2025_01_14.pdf`
+
+**Processed Outputs:**
+- `data/processed/immigration/analysis/amerasian_siv_arrivals_by_state_nationality.parquet`
+- `data/processed/immigration/analysis/amerasian_siv_arrivals_by_state_nationality_monthly.parquet`
+- `data/processed/immigration/analysis/amerasian_siv_arrivals_by_state_nationality_pep_year.parquet`
+
+**Archive URLs (downloaded 2026-01-04):**
+- https://www.rpc.state.gov/documents/FY2021%20Amerasian%20%26%20SIV%20Arrivals%20by%20Nationality%20and%20State.pdf
+- https://www.rpc.state.gov/documents/FY%202022%20Amerasian%20%26%20SIV%20Arrivals%20by%20Nationality%20and%20State.pdf
+- https://www.rpc.state.gov/documents/FY%202023%20Amerasian%20%26%20SIV%20Arrivals%20by%20Nationality%20and%20State.pdf
+- https://www.rpc.state.gov/documents/FY%202024%20Amerasian%20%26%20SIV%20Arrivals%20by%20Nationality%20and%20State_updated_2025_01_14.pdf
+
+---
+
 #### 1.2 Census Foreign-Born Population (ACS B05006)
 
 | Attribute | Value |
@@ -62,11 +109,32 @@ To align with CY2024 population (Jul 1 estimate):
 | **Format** | CSV |
 | **Temporal Basis** | **CALENDAR YEAR (5-year rolling average)** |
 | **Years Available** | 2009-2023 |
-| **Location** | `sdc_2024_replication/data_immigration_policy/data/census_foreign_born/` |
+| **Location** | `data/raw/immigration/census_foreign_born/` |
 | **Processing Script** | `sdc_2024_replication/data_immigration_policy/scripts/process_b05006.py` |
 | **Alignment Notes** | "2023" = 2019-2023 average, centered on Dec 2021. Population STOCK, not flow. |
 
-**Files**: `b05006_{state}_{year}.csv` for years 2009-2023
+**Files**: `b05006_states_{year}.csv` for years 2009-2023
+
+---
+
+#### 1.2b ACS Mobility (B07007) - Moved From Abroad
+
+| Attribute | Value |
+|-----------|-------|
+| **Source** | American Community Survey (Census Bureau) |
+| **Format** | CSV |
+| **Temporal Basis** | **CALENDAR YEAR (5-year rolling average)** |
+| **Years Available** | 2010-2023 (B07007 group; 2009 not available) |
+| **Location** | `data/raw/immigration/acs_migration/` |
+| **Processing Script** | `sdc_2024_replication/data_immigration_policy/scripts/process_b07007.py` |
+| **Alignment Notes** | "2023" = 2019-2023 average. Flow proxy (moved-from-abroad), not a direct net migration measure. |
+
+**Files**: `b07007_states_{year}.csv` for years 2010-2023, plus `b07007_states_all_years.csv` and year-specific label JSON files.
+
+**Processed Outputs:**
+- `data/processed/immigration/analysis/acs_moved_from_abroad_by_state.parquet`
+- `data/processed/immigration/analysis/acs_moved_from_abroad_by_state.csv`
+- `data/processed/immigration/analysis/acs_moved_from_abroad_by_state_validation.md`
 
 ---
 
@@ -77,9 +145,11 @@ To align with CY2024 population (Jul 1 estimate):
 | **Source** | DHS Office of Immigration Statistics |
 | **Format** | Excel, CSV |
 | **Temporal Basis** | **FISCAL YEAR (Oct 1 - Sep 30)** |
-| **Years Available** | FY2000-FY2023 |
+| **Years Available** | FY2000-FY2023 yearbook tables (FY2012 state totals sourced from yearbook PDF) |
 | **Location** | `data/raw/immigration/dhs_lpr/` |
 | **Alignment Notes** | DHS uses federal FY. Same alignment issue as refugee data. |
+
+**Notes:** Pre-2007 yearbook ZIPs require manual browser download (CDN blocks programmatic access). State-level time series now covers FY2000-FY2023; FY2012 state totals were extracted from `data/raw/immigration/dhs_lpr/yearbook_pdfs/Yearbook_Immigration_Statistics_2012.pdf` due to missing main ZIP.
 
 ---
 
@@ -90,9 +160,54 @@ To align with CY2024 population (Jul 1 estimate):
 | **Source** | DHS Office of Immigration Statistics |
 | **Format** | Excel, CSV |
 | **Temporal Basis** | **FISCAL YEAR (Oct 1 - Sep 30)** |
-| **Years Available** | FY1999-FY2023 |
+| **Years Available** | FY1999-FY2023 (plus supplemental FY2012 ZIP staged) |
 | **Location** | `data/raw/immigration/dhs_naturalizations/` |
 | **Alignment Notes** | DHS uses federal FY. |
+
+---
+
+#### 1.5 Census PEP Components of Change (Migration)
+
+| Attribute | Value |
+|-----------|-------|
+| **Source** | Census Population Estimates Program (PEP) |
+| **Format** | CSV |
+| **Temporal Basis** | **CALENDAR YEAR (as of July 1)** |
+| **Years Available** | 2000-2024 (combined vintages) |
+| **Raw Location** | `data/raw/immigration/census_population_estimates/` |
+| **Processing Script** | `sdc_2024_replication/data_immigration_policy/scripts/combine_census_vintages.py` |
+| **Alignment Notes** | Net international and domestic migration components; used for regime-aware modeling. |
+
+**Processed Outputs:**
+- `data/processed/immigration/state_migration_components_2000_2024.csv`
+- `data/processed/immigration/state_migration_components_2000_2024_with_regime.csv` (adds `regime_pre_2010`, `regime_post_2010`, `regime_post_2020`, `regime_period`)
+- `data/processed/immigration/state_migration_decade_summary.csv`
+
+---
+
+#### 1.6 DHS Refugees and Asylees (Yearbook Tables + Flow Reports)
+
+| Attribute | Value |
+|-----------|-------|
+| **Source** | DHS Office of Immigration Statistics |
+| **Format** | ZIP (tables), PDF (annual flow reports) |
+| **Temporal Basis** | **FISCAL YEAR** |
+| **Years Available** | FY2000-FY2006 and FY2012 (yearbook tables), FY2019-FY2023 (flow reports) |
+| **Location** | `data/raw/immigration/dhs_refugees_asylees/` |
+| **Alignment Notes** | Stored for provenance; no current processing pipeline in v0.8.6. |
+
+---
+
+#### 1.7 DHS Nonimmigrant Admissions (Yearbook Tables)
+
+| Attribute | Value |
+|-----------|-------|
+| **Source** | DHS Office of Immigration Statistics |
+| **Format** | ZIP |
+| **Temporal Basis** | **FISCAL YEAR** |
+| **Years Available** | FY2004 (supplementary tables only), FY2012 (yearbook + supplemental tables) |
+| **Location** | `data/raw/immigration/dhs_nonimmigrants/` |
+| **Alignment Notes** | Stored for provenance; not used in current analyses. |
 
 ---
 

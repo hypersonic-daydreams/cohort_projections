@@ -101,10 +101,13 @@ def load_panel_data() -> pd.DataFrame:
 def load_refugee_arrivals() -> pd.DataFrame:
     """
     Load refugee arrivals data from PostgreSQL (rpc.refugee_arrivals).
+
+    Returns DataFrame with fiscal_year, state, nationality, arrivals.
     """
     query = """
     SELECT
         fiscal_year,
+        destination_state as state,
         nationality,
         arrivals
     FROM rpc.refugee_arrivals

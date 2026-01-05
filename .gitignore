@@ -54,6 +54,7 @@ data/raw/**/*.docx
 data/raw/**/*.pptx
 data/raw/**/*.dta
 data/raw/**/*.md
+!data/raw/**/MANIFEST.md
 
 # Processed and projection output files
 data/processed/**/*.csv
