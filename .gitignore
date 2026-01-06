@@ -114,3 +114,17 @@ sdc_2024_replication/scripts/statistical_analysis/journal_article/main.pdf
 sdc_2024_replication/scripts/statistical_analysis/journal_article/*.aux
 sdc_2024_replication/scripts/statistical_analysis/journal_article/*.log
 sdc_2024_replication/scripts/statistical_analysis/journal_article/*.out
+
+# SDC 2024 Generated Figures and Results (synced via rclone, not git)
+sdc_2024_replication/scripts/statistical_analysis/figures/*.pdf
+sdc_2024_replication/scripts/statistical_analysis/figures/*.png
+sdc_2024_replication/scripts/statistical_analysis/journal_article/figures/*.pdf
+sdc_2024_replication/scripts/statistical_analysis/journal_article/figures/*.png
+sdc_2024_replication/scripts/statistical_analysis/results/*.json
+sdc_2024_replication/scripts/statistical_analysis/results/*.parquet
+
+# Claude Code config (ephemeral, not tracked)
+.claude/
+
+# Misc data files in project root
+*.xlsx
