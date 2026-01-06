@@ -67,6 +67,16 @@ def test_data_loader_files_mode_uses_local_files(
             }
         ).to_parquet(tmp_path / "refugee_arrivals_by_state_nationality.parquet", index=False)
 
+        pd.DataFrame(
+            {
+                "state": ["North Dakota"],
+                "nationality": ["Afghanistan"],
+                "fiscal_year": [2022],
+                "arrivals": [18],
+                "data_source": ["RPC Archives (Amerasian/SIV PDF)"],
+            }
+        ).to_parquet(tmp_path / "amerasian_siv_arrivals_by_state_nationality.parquet", index=False)
+
         migration = data_loader.load_migration_summary()
         assert migration.loc[0, "nd_intl_migration"] == 100
 
@@ -92,6 +102,10 @@ def test_data_loader_files_mode_uses_local_files(
         refugees = data_loader.load_refugee_arrivals()
         assert refugees.loc[0, "arrivals"] == 123
         assert {"fiscal_year", "state", "nationality", "arrivals"} <= set(refugees.columns)
+
+        siv = data_loader.load_amerasian_siv_arrivals()
+        assert siv.loc[0, "arrivals"] == 18
+        assert {"fiscal_year", "state", "nationality", "arrivals"} <= set(siv.columns)
     finally:
         sys.path.remove(str(sdc_scripts_dir))
         monkeypatch.delenv("SDC_ANALYSIS_DATA_SOURCE", raising=False)

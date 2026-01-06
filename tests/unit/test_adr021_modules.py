@@ -760,6 +760,7 @@ class TestArrivalCohort:
         cohort = ArrivalCohort(
             arrival_year=2022,
             refugee_arrivals=200.0,
+            siv_arrivals=25.0,
             parole_arrivals=500.0,
             other_arrivals=100.0,
             regime=PolicyRegime.VOLATILITY,
@@ -773,11 +774,12 @@ class TestArrivalCohort:
         cohort = ArrivalCohort(
             arrival_year=2022,
             refugee_arrivals=200.0,
+            siv_arrivals=25.0,
             parole_arrivals=500.0,
             other_arrivals=100.0,
             regime=PolicyRegime.VOLATILITY,
         )
-        assert cohort.get_total_arrivals() == 800.0
+        assert cohort.get_total_arrivals() == 825.0
 
     def test_to_dict(self):
         """to_dict should return serializable dictionary."""
@@ -786,13 +788,15 @@ class TestArrivalCohort:
         cohort = ArrivalCohort(
             arrival_year=2022,
             refugee_arrivals=200.0,
+            siv_arrivals=25.0,
             parole_arrivals=500.0,
             other_arrivals=100.0,
             regime=PolicyRegime.VOLATILITY,
         )
         cohort_dict = cohort.to_dict()
         assert cohort_dict["arrival_year"] == 2022
-        assert cohort_dict["total_arrivals"] == 800.0
+        assert cohort_dict["siv_arrivals"] == 25.0
+        assert cohort_dict["total_arrivals"] == 825.0
         assert cohort_dict["regime"] == "volatility"
 
 
@@ -809,6 +813,7 @@ class TestCohortSurvivalState:
         cohort = ArrivalCohort(
             arrival_year=2020,
             refugee_arrivals=200.0,
+            siv_arrivals=50.0,
             parole_arrivals=500.0,
             other_arrivals=100.0,
             regime=PolicyRegime.RESTRICTION,
@@ -817,15 +822,16 @@ class TestCohortSurvivalState:
             cohort=cohort,
             observation_year=2024,
             refugee_surviving=180.0,
+            siv_surviving=45.0,
             parole_regularized=200.0,
             parole_temporary=100.0,
             other_surviving=90.0,
         )
 
         assert state.duration == 4
-        assert state.durable_component == 180.0 + 200.0 + 90.0  # 470
+        assert state.durable_component == 180.0 + 45.0 + 200.0 + 90.0  # 515
         assert state.temporary_component == 100.0
-        assert state.total == 570.0
+        assert state.total == 615.0
 
 
 class TestTwoComponentEstimate:

@@ -64,6 +64,17 @@ def prepare_travel_ban_did_data(df_refugee: pd.DataFrame) -> pd.DataFrame:
     )
     df_nat_year.columns = ["year", "nationality", "arrivals"]
 
+    # Exclude aggregate pseudo-nationalities that are not country units.
+    pseudo_nationalities = {"total", "fy refugee admissions"}
+    nat_lower = (
+        df_nat_year["nationality"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    df_nat_year = df_nat_year.loc[~nat_lower.isin(pseudo_nationalities)].copy()
+
     # Create treatment indicator
     df_nat_year["treated"] = (
         df_nat_year["nationality"].isin(travel_ban_countries).astype(int)
@@ -662,7 +673,7 @@ def main():
     print("# ANALYSIS 1: WILD CLUSTER BOOTSTRAP (Full Pre-Period)")
     print("#" * 70)
 
-    wcb_full = wild_cluster_bootstrap(df_did, n_bootstrap=1999, seed=42)
+    wcb_full = wild_cluster_bootstrap(df_did, n_bootstrap=999, seed=42)
     results["analyses"]["wild_cluster_bootstrap_full"] = wcb_full
 
     # ==========================================================================
@@ -672,7 +683,7 @@ def main():
     print("# ANALYSIS 2: RANDOMIZATION INFERENCE (Full Pre-Period)")
     print("#" * 70)
 
-    ri_full = randomization_inference(df_did, n_permutations=1999, seed=42)
+    ri_full = randomization_inference(df_did, n_permutations=999, seed=42)
     results["analyses"]["randomization_inference_full"] = ri_full
 
     # ==========================================================================
@@ -728,7 +739,7 @@ def main():
     print("#" * 70)
 
     wcb_restricted = wild_cluster_bootstrap(
-        df_did, n_bootstrap=1999, seed=42, pre_period_start=2013
+        df_did, n_bootstrap=999, seed=42, pre_period_start=2013
     )
     results["analyses"]["wild_cluster_bootstrap_restricted_2013"] = wcb_restricted
 
@@ -740,7 +751,7 @@ def main():
     print("#" * 70)
 
     ri_restricted = randomization_inference(
-        df_did, n_permutations=1999, seed=42, pre_period_start=2013
+        df_did, n_permutations=999, seed=42, pre_period_start=2013
     )
     results["analyses"]["randomization_inference_restricted_2013"] = ri_restricted
 

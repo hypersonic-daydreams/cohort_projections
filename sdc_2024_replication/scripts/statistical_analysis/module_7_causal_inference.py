@@ -259,6 +259,30 @@ def prepare_travel_ban_did_data(
     )
     df_nat_year.columns = ["year", "nationality", "arrivals"]
 
+    # Exclude aggregate pseudo-nationalities that are not country units.
+    # These rows appear in some RPC exports and violate the analysis unit
+    # definition for nationality-level DiD/event-study estimation.
+    pseudo_nationalities = {"total", "fy refugee admissions"}
+    nat_lower = (
+        df_nat_year["nationality"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    pseudo_mask = nat_lower.isin(pseudo_nationalities)
+    if pseudo_mask.any():
+        dropped = sorted(df_nat_year.loc[pseudo_mask, "nationality"].unique().tolist())
+        df_nat_year = df_nat_year.loc[~pseudo_mask].copy()
+        result.add_decision(
+            decision_id="D001A",
+            category="data_hygiene",
+            decision="Exclude pseudo-nationalities from Travel Ban DiD/event study",
+            rationale="Aggregate rows such as 'Total' are not nationality units and can distort estimates.",
+            alternatives=["Leave aggregates in sample", "Filter only in supplemental extension"],
+            evidence=f"Dropped: {dropped}",
+        )
+
     # Create treatment indicator
     df_nat_year["treated"] = (
         df_nat_year["nationality"].isin(travel_ban_countries).astype(int)
@@ -691,7 +715,7 @@ def estimate_did_covid(df: pd.DataFrame, result: ModuleResult) -> dict:
 
 
 def estimate_event_study(
-    df: pd.DataFrame, result: ModuleResult
+    df: pd.DataFrame, result: ModuleResult, max_year: int = 2019
 ) -> tuple[dict, pd.DataFrame]:
     """
     Estimate event study for Travel Ban with dynamic treatment effects.
@@ -704,8 +728,7 @@ def estimate_event_study(
     print("EVENT STUDY: DYNAMIC TREATMENT EFFECTS")
     print("=" * 60)
 
-    # Exclude 2020 due to COVID
-    df_analysis = df[df["year"] < 2020].copy()
+    df_analysis = df[df["year"] <= max_year].copy()
 
     # Create relative time dummies (omit -1 as reference)
     df_analysis["year"].min()
@@ -891,6 +914,141 @@ def estimate_event_study(
     }
 
     return es_results, es_df
+
+
+def estimate_event_study_extended(
+    df: pd.DataFrame, result: ModuleResult, max_year: int = 2024
+) -> tuple[dict, pd.DataFrame]:
+    """
+    Supplemental extended event study through a later year.
+
+    This extension is explicitly descriptive (regime dynamics), not a causal Travel Ban effect,
+    because FY2020+ overlaps COVID, USRAP collapse/rebuild, rescission, and major composition shifts.
+    See ADR-027.
+    """
+    es_results, es_df = estimate_event_study(df, result, max_year=max_year)
+    es_results = dict(es_results)
+    es_results["analysis"] = "Event Study - Travel Ban (Extended; Descriptive)"
+    es_results["supplemental"] = True
+    es_results["max_year"] = int(max_year)
+    return es_results, es_df
+
+
+def estimate_travel_ban_regime_dynamics(df: pd.DataFrame, result: ModuleResult) -> dict:
+    """
+    Supplemental: summarize treated/control divergence across post-2017 regime blocks.
+
+    Model (TWFE):
+        log(arrivals_ct + 1) = alpha_c + lambda_t + sum_p delta_p * Treated_c * 1{t in period p} + e_ct
+
+    This is a descriptive extension, not a causal Travel Ban effect. See ADR-027.
+    """
+    print("\n" + "=" * 60)
+    print("SUPPLEMENT: TRAVEL BAN REGIME-DYNAMICS (FY2002-2024)")
+    print("=" * 60)
+
+    df_analysis = df.copy().reset_index(drop=True)
+
+    # Period blocks (fiscal years)
+    periods = {
+        "ban_era_2018_2019": (2018, 2019),
+        "covid_transition_2020_2021": (2020, 2021),
+        "rebuild_2022_2024": (2022, 2024),
+    }
+
+    for name, (start, end) in periods.items():
+        df_analysis[name] = df_analysis["year"].between(start, end).astype(int)
+        df_analysis[f"treated_x_{name}"] = (
+            df_analysis["treated"] * df_analysis[name]
+        ).astype(float)
+
+    y = df_analysis["log_arrivals"].values
+    interaction_cols = [f"treated_x_{name}" for name in periods]
+
+    X = pd.DataFrame({col: df_analysis[col].values for col in interaction_cols})
+    nat_dummies = pd.get_dummies(
+        df_analysis["nationality"], prefix="nat", drop_first=True
+    )
+    year_dummies = pd.get_dummies(df_analysis["year"], prefix="year", drop_first=True)
+    X = pd.concat([X.reset_index(drop=True), nat_dummies.reset_index(drop=True)], axis=1)
+    X = pd.concat([X.reset_index(drop=True), year_dummies.reset_index(drop=True)], axis=1)
+    X = sm.add_constant(X)
+    X = X.astype(float)
+
+    model = OLS(y, X).fit(
+        cov_type="cluster", cov_kwds={"groups": df_analysis["nationality"]}
+    )
+
+    regime_effects = {}
+    for period_name in periods:
+        col = f"treated_x_{period_name}"
+        if col not in model.params:
+            continue
+        ci = model.conf_int().loc[col]
+        coef = float(model.params[col])
+        pct_effect = float((np.exp(coef) - 1) * 100)
+        regime_effects[period_name] = {
+            "coefficient": coef,
+            "std_error": float(model.bse[col]),
+            "t_statistic": float(model.tvalues[col]),
+            "p_value": float(model.pvalues[col]),
+            "ci_95_lower": float(ci[0]),
+            "ci_95_upper": float(ci[1]),
+            "percentage_effect": pct_effect,
+        }
+
+    result.add_decision(
+        decision_id="D006",
+        category="supplemental_analysis",
+        decision="Add post-2017 regime-dynamics extension for treated/control divergence",
+        rationale="Extend learning through FY2024 while avoiding causal claims under post-2020 confounding and post-rescission invalidity.",
+        alternatives=["Treat FY2020+ as causal post period", "Omit post-2020 dynamics entirely"],
+        evidence=f"Regime blocks: {periods}",
+    )
+
+    return {
+        "analysis": "Travel Ban Regime-Dynamics (Supplemental; Descriptive)",
+        "treatment_definition": {
+            "treated_countries": [
+                "Iran",
+                "Iraq",
+                "Libya",
+                "Somalia",
+                "Sudan",
+                "Syria",
+                "Yemen",
+            ],
+            "policy": "Executive Order 13769 (Travel Ban)",
+        },
+        "periods": {k: {"start_year": v[0], "end_year": v[1]} for k, v in periods.items()},
+        "sample_info": {
+            "n_treatment_units": int(
+                df_analysis[df_analysis["treated"] == 1]["nationality"].nunique()
+            ),
+            "n_control_units": int(
+                df_analysis[df_analysis["treated"] == 0]["nationality"].nunique()
+            ),
+            "n_observations": int(len(df_analysis)),
+            "years_analyzed": sorted(df_analysis["year"].unique().tolist()),
+        },
+        "regime_effects": regime_effects,
+        "notes": [
+            "This extension is descriptive (regime dynamics), not a causal Travel Ban effect.",
+            "FY2020+ overlaps COVID travel restrictions, USRAP collapse/rebuild, rescission, and major composition shifts.",
+        ],
+        "model_specification": {
+            "dependent_variable": "log(arrivals + 1)",
+            "fixed_effects": ["nationality", "year"],
+            "standard_errors": "clustered by nationality",
+            "regressors": interaction_cols,
+        },
+        "model_fit": {
+            "r_squared": float(model.rsquared),
+            "r_squared_adj": float(model.rsquared_adj),
+            "df_model": int(model.df_model),
+            "df_resid": int(model.df_resid),
+        },
+    }
 
 
 # =============================================================================
@@ -1632,7 +1790,16 @@ def run_analysis() -> ModuleResult:
     print("# ANALYSIS 3: EVENT STUDY - TRAVEL BAN")
     print("#" * 70)
 
-    event_study, es_df = estimate_event_study(df_travel_ban, result)
+    event_study, es_df = estimate_event_study(df_travel_ban, result, max_year=2019)
+
+    print("\n" + "#" * 70)
+    print("# ANALYSIS 3B (SUPPLEMENT): EXTENDED EVENT STUDY + REGIME DYNAMICS")
+    print("#" * 70)
+
+    event_study_extended, es_df_extended = estimate_event_study_extended(
+        df_travel_ban, result, max_year=2024
+    )
+    travel_ban_regime_dynamics = estimate_travel_ban_regime_dynamics(df_travel_ban, result)
 
     # ==========================================================================
     # 4. Synthetic Control for ND
@@ -1682,6 +1849,8 @@ def run_analysis() -> ModuleResult:
         "did_travel_ban": did_travel_ban,
         "did_covid": did_covid,
         "event_study": event_study,
+        "event_study_extended": event_study_extended,
+        "travel_ban_regime_dynamics": travel_ban_regime_dynamics,
         "synthetic_control": synthetic_control,
         "bartik_instrument": bartik,
     }
@@ -1698,6 +1867,15 @@ def run_analysis() -> ModuleResult:
     # Event study parquet
     es_df.to_parquet(RESULTS_DIR / "module_7_event_study.parquet", index=False)
     print(f"  Saved: {RESULTS_DIR / 'module_7_event_study.parquet'}")
+
+    es_df_extended.to_parquet(
+        RESULTS_DIR / "module_7_event_study_extended.parquet", index=False
+    )
+    print(f"  Saved: {RESULTS_DIR / 'module_7_event_study_extended.parquet'}")
+
+    with open(RESULTS_DIR / "module_7_travel_ban_regime_dynamics.json", "w") as f:
+        json.dump(travel_ban_regime_dynamics, f, indent=2, default=str)
+    print(f"  Saved: {RESULTS_DIR / 'module_7_travel_ban_regime_dynamics.json'}")
 
     # Synthetic control (if feasible)
     if synthetic_control.get("feasible", False):

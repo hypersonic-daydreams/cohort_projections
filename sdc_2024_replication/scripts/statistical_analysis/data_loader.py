@@ -167,6 +167,32 @@ def load_refugee_arrivals() -> pd.DataFrame:
     return pd.read_parquet(parquet_path)
 
 
+def load_amerasian_siv_arrivals() -> pd.DataFrame:
+    """Load Amerasian/SIV arrivals (DB optional; parquet fallback)."""
+    if _should_try_db() and not _should_use_files_only():
+        query = """
+        SELECT
+            fiscal_year,
+            destination_state as state,
+            nationality,
+            arrivals
+        FROM rpc.amerasian_siv_arrivals
+        """
+        try:
+            return _read_sql(query)
+        except Exception as exc:
+            if _data_source_mode() == "db":
+                raise
+            logger.warning(
+                "PostgreSQL Amerasian/SIV load failed; falling back to files (%s).", exc
+            )
+
+    parquet_path = (
+        _immigration_analysis_dir() / "amerasian_siv_arrivals_by_state_nationality.parquet"
+    )
+    return pd.read_parquet(parquet_path)
+
+
 def load_state_components() -> pd.DataFrame:
     """Load basic state components (DB preferred; CSV fallback)."""
     if _should_try_db() and not _should_use_files_only():

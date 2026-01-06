@@ -121,20 +121,20 @@ Table~\ref{tab:app_did} reports the complete difference-in-differences estimates
 \toprule
 \textbf{Variable} & \textbf{(1) Basic} & \textbf{(2) + Year FE} & \textbf{(3) + Country FE} & \textbf{(4) Full} \\
 \midrule
-Affected $\times$ Post & $-$1.673** & $-$1.663** & $-$1.360* & $-$1.384* \\
- & (0.611) & (0.616) & (0.639) & (0.646) \\
-Affected & 2.622** & 2.619** & --- & --- \\
- & (0.947) & (0.957) & & \\
-Post & $-$0.237 & --- & $-$0.330* & --- \\
- & (0.202) & & (0.163) & \\
-Constant & 3.525*** & 3.100*** & --- & --- \\
- & (0.274) & (0.363) & & \\
+Affected $\times$ Post & $-$1.689** & $-$1.680** & $-$1.368* & $-$1.393* \\
+ & (0.612) & (0.617) & (0.640) & (0.647) \\
+Affected & 2.755** & 2.753** & --- & --- \\
+ & (0.940) & (0.950) & & \\
+Post & $-$0.221 & --- & $-$0.321 & --- \\
+ & (0.206) & & (0.166) & \\
+Constant & 3.392*** & 2.951*** & --- & --- \\
+ & (0.247) & (0.338) & & \\
 \midrule
 Year FE & No & Yes & No & Yes \\
 Country FE & No & No & Yes & Yes \\
-$n$ & 1,137 & 1,137 & 1,137 & 1,137 \\
-$R^2$ & 0.077 & 0.080 & 0.823 & 0.829 \\
-Pre-trend test ($p$) & --- & --- & --- & 0.334 \\
+$n$ & 1,119 & 1,119 & 1,119 & 1,119 \\
+$R^2$ & 0.095 & 0.099 & 0.801 & 0.807 \\
+Pre-trend test ($p$) & --- & --- & --- & 0.349 \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
@@ -415,6 +415,17 @@ Figure~\ref{fig:app_state_distribution} displays the distribution of \PEP net in
 \includegraphics[width=0.9\textwidth]{figures/fig_app_state_distribution.pdf}
 \caption{Distribution of mean annual net international migration (\PEP) across U.S.\ states, 2010--2024. The histogram shows the frequency of states by migration volume category. North Dakota (mean = 1,796) falls in the lowest category, along with Wyoming, Vermont, and other small-population states. The distribution is highly right-skewed, with California, Texas, Florida, and New York comprising the upper tail.}
 \label{fig:app_state_distribution}
+\end{figure}
+
+\subsection{Extended Travel Ban Event Study (Supplemental)}
+
+Figure~\ref{fig:app_event_study_extended} extends the nationality-level Travel Ban event study through FY2024. Coefficients after FY2019 should be interpreted as treated--control divergence across overlapping regimes (COVID-19 disruptions, formal rescission in 2021, and USRAP rebuilding), not as a causal Travel Ban effect.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/fig_app_event_study_extended.pdf}
+\caption{Extended event study coefficients for treated Travel Ban nationalities (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) relative to control nationalities, using FY2017 as the reference period ($t=-1$). Shaded bands mark post-2017 regime blocks for visual context only. This figure is a supplemental descriptive extension: post-2020 estimates do not represent a standalone Travel Ban causal effect because FY2020--FY2024 overlap multiple confounding shocks and the Travel Ban was formally rescinded in 2021.}
+\label{fig:app_event_study_extended}
 \end{figure}
 
 \subsection{Residual Diagnostics}

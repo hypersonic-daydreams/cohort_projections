@@ -70,6 +70,7 @@ COLORS = {
 SCENARIO_COLORS = {
     "cbo_full": "#0072B2",  # Blue
     "moderate": "#009E73",  # Teal
+    "immigration_policy": "#56B4E9",  # Light blue
     "zero": "#D55E00",  # Orange
     "pre_2020_trend": "#CC79A7",  # Pink
 }
@@ -524,8 +525,9 @@ def generate_scenarios(
     Scenarios:
     1. CBO Full: Based on CBO immigration projections (high growth)
     2. Moderate: Weighted average of model estimates
-    3. Zero: Zero net immigration
-    4. Pre-2020 Trend: Continue 2010-2019 trend
+    3. Immigration Policy: Restrictive multiplier on Moderate
+    4. Zero: Zero net immigration
+    5. Pre-2020 Trend: Continue 2010-2019 trend
     """
     print("\n--- Generating Scenarios ---")
 
@@ -624,7 +626,28 @@ def generate_scenarios(
     }
     print(f"  Moderate 2045: {moderate_projections[-1]['value']:.0f}")
 
-    # Scenario 3: Zero Net Immigration
+    # Scenario 3: Immigration Policy (scaled Moderate baseline)
+    policy_multiplier = 0.65
+    immigration_policy_projections = [
+        {"year": p["year"], "value": max(0, p["value"] * policy_multiplier)}
+        for p in moderate_projections
+    ]
+
+    scenarios["immigration_policy"] = {
+        "name": "Immigration Policy",
+        "description": "Restrictive-policy multiplier applied to the Moderate scenario",
+        "assumptions": {
+            "multiplier": policy_multiplier,
+            "base_scenario": "moderate",
+        },
+        "projections": immigration_policy_projections,
+    }
+    print(
+        "  Immigration Policy 2045: "
+        f"{immigration_policy_projections[-1]['value']:.0f}"
+    )
+
+    # Scenario 4: Zero Net Immigration
     zero_projections = []
     for year in projection_years:
         zero_projections.append({"year": year, "value": 0.0})
@@ -639,7 +662,7 @@ def generate_scenarios(
     }
     print(f"  Zero 2045: {zero_projections[-1]['value']:.0f}")
 
-    # Scenario 4: Pre-2020 Trend
+    # Scenario 5: Pre-2020 Trend
     pre2020_projections = []
     start_val = float(pre_2020.iloc[-1]) if len(pre_2020) > 0 else baseline
     for i, year in enumerate(projection_years):
@@ -661,7 +684,10 @@ def generate_scenarios(
     result.add_decision(
         decision_id="D003",
         category="scenario_design",
-        decision="Generated 4 scenarios: CBO Full, Moderate, Zero, Pre-2020 Trend",
+        decision=(
+            "Generated 5 scenarios: CBO Full, Moderate, Immigration Policy, Zero, "
+            "Pre-2020 Trend"
+        ),
         rationale="Cover range from optimistic to restrictive immigration policy outcomes",
         alternatives=["5-scenario approach", "Probabilistic weighting of scenarios"],
         evidence=f"Baseline 2024 = {baseline:.0f}, Pre-2020 trend = {pre_2020_trend:.2f}/yr",
@@ -1244,7 +1270,13 @@ def run_analysis() -> ModuleResult:
         "projection_horizon": "2025-2045",
         "n_projection_years": 21,
         "monte_carlo_draws": 1000,
-        "scenarios": ["CBO Full", "Moderate", "Zero", "Pre-2020 Trend"],
+        "scenarios": [
+            "CBO Full",
+            "Moderate",
+            "Immigration Policy",
+            "Zero",
+            "Pre-2020 Trend",
+        ],
         "confidence_intervals": ["50%", "80%", "95%"],
         "model_weights": weights,
         "input_modules": list(all_results.keys()),

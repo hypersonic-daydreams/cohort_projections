@@ -56,6 +56,18 @@ def prepare_travel_ban_did_data(df_refugee: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
     df_nat_year.columns = ["year", "nationality", "arrivals"]
+
+    # Exclude aggregate pseudo-nationalities that are not country units.
+    pseudo_nationalities = {"total", "fy refugee admissions"}
+    nat_lower = (
+        df_nat_year["nationality"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    df_nat_year = df_nat_year.loc[~nat_lower.isin(pseudo_nationalities)].copy()
+
     df_nat_year["treated"] = (
         df_nat_year["nationality"].isin(travel_ban_countries).astype(int)
     )

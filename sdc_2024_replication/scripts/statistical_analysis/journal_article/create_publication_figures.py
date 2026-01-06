@@ -820,6 +820,115 @@ def create_figure_06_event_study() -> None:
 
 
 # =============================================================================
+# Appendix Figure: Extended Event Study (Supplemental)
+# =============================================================================
+
+
+def create_fig_app_event_study_extended() -> None:
+    """Create Appendix Figure: extended event study through FY2024 (supplemental; descriptive)."""
+    causal_data = load_json("module_7_causal_inference.json")
+    event_study = causal_data["results"]["event_study_extended"]
+
+    coef_df = pd.DataFrame(event_study["coefficients"]).sort_values("year")
+
+    fig, ax = plt.subplots(figsize=(6.5, 4.5))
+
+    # Regime shading (visual aid only; not causal identification)
+    ax.axvspan(2017.5, 2019.5, alpha=0.08, color=COLORS["red"])
+    ax.axvspan(2019.5, 2021.5, alpha=0.08, color=COLORS["blue"])
+    ax.axvspan(2021.5, 2024.5, alpha=0.08, color=COLORS["green"])
+
+    # Reference line at zero
+    ax.axhline(0, color="black", linewidth=0.8, alpha=0.6)
+
+    # Plot coefficients with 95% CIs, split pre/post for styling
+    non_ref = coef_df[~coef_df["is_reference"]].copy()
+    pre = non_ref[non_ref["year"] < 2018]
+    post = non_ref[non_ref["year"] >= 2018]
+
+    for group, marker, color, label in [
+        (pre, "o", COLORS["blue"], "Pre-treatment"),
+        (post, "s", COLORS["red"], "Post (includes multiple regimes)"),
+    ]:
+        if group.empty:
+            continue
+        ax.vlines(
+            group["year"],
+            group["ci_lower"],
+            group["ci_upper"],
+            color=color,
+            linewidth=1.2,
+            alpha=0.8,
+        )
+        ax.scatter(
+            group["year"],
+            group["coefficient"],
+            marker=marker,
+            color=color,
+            s=30,
+            label=label,
+            zorder=3,
+        )
+
+    # Reference period marker (t = -1, FY2017)
+    ref = coef_df[coef_df["is_reference"]]
+    if not ref.empty:
+        ax.scatter(
+            ref["year"],
+            ref["coefficient"],
+            marker="o",
+            facecolors="white",
+            edgecolors=COLORS["gray"],
+            linewidths=1.5,
+            s=40,
+            label="Reference (FY2017)",
+            zorder=4,
+        )
+
+    # Regime markers
+    ax.axvline(2017.5, color=COLORS["gray"], linestyle="--", linewidth=0.8, alpha=0.8)
+    ax.axvline(2019.5, color=COLORS["gray"], linestyle="--", linewidth=0.8, alpha=0.8)
+    ax.axvline(2020.5, color=COLORS["gray"], linestyle="--", linewidth=0.8, alpha=0.8)
+    ax.text(2018.0, ax.get_ylim()[1] * 0.92, "FY2018", fontsize=7, color=COLORS["gray"])
+    ax.text(2020.0, ax.get_ylim()[1] * 0.92, "FY2020", fontsize=7, color=COLORS["gray"])
+    ax.text(2021.0, ax.get_ylim()[1] * 0.92, "FY2021", fontsize=7, color=COLORS["gray"])
+
+    ax.set_xlabel("Fiscal year")
+    ax.set_ylabel("Event-study coefficient (log arrivals)")
+    ax.set_title(
+        "Extended Event Study: Treated vs Control Refugee Arrivals (FY2002–FY2024)\n"
+        "(Supplemental; descriptive regime dynamics)",
+        fontsize=10,
+        fontweight="bold",
+    )
+    ax.set_xlim(coef_df["year"].min() - 0.5, 2024.5)
+    ax.legend(loc="upper left", fontsize=7, framealpha=0.9)
+
+    pre_trend = event_study.get("pre_trend_test", {})
+    p_val = pre_trend.get("p_value")
+    p_label = (
+        "<0.001" if p_val is not None and p_val < 0.001 else f"{p_val:.3f}" if p_val is not None else "NA"
+    )
+    ax.text(
+        0.98,
+        0.02,
+        "Not a causal Travel Ban estimand post-2019.\n"
+        "Post-2020 overlaps COVID, rescission, and USRAP rebuild.\n"
+        f"Joint pre-trend test: p = {p_label}",
+        transform=ax.transAxes,
+        fontsize=7,
+        verticalalignment="bottom",
+        horizontalalignment="right",
+        bbox=dict(
+            boxstyle="round", facecolor="white", edgecolor=COLORS["gray"], alpha=0.9
+        ),
+    )
+
+    plt.tight_layout()
+    save_figure(fig, "fig_app_event_study_extended")
+
+
+# =============================================================================
 # Figure 7: Survival Curves
 # =============================================================================
 
@@ -930,6 +1039,9 @@ def create_figure_08_scenarios() -> None:
     """Create Figure 8: Forecast scenarios with uncertainty bands."""
     # Load data
     scenario_data = load_json("module_9_scenario_modeling.json")
+    scenario_projections = pd.read_parquet(
+        RESULTS_DIR / "module_9_scenario_projections.parquet"
+    )
     nd_data = pd.read_csv(DATA_DIR / "nd_migration_summary.csv")
 
     # Historical data
@@ -960,64 +1072,36 @@ def create_figure_08_scenarios() -> None:
         label="Historical",
     )
 
-    # Generate scenario projections
+    scenario_order = [
+        "cbo_full",
+        "moderate",
+        "immigration_policy",
+        "pre_2020_trend",
+        "zero",
+    ]
     scenario_colors = {
-        "CBO Full": COLORS["blue"],
-        "Moderate": COLORS["green"],
-        "Zero": COLORS["gray"],
-        "Pre-2020 Trend": COLORS["orange"],
+        "cbo_full": COLORS["blue"],
+        "moderate": COLORS["green"],
+        "immigration_policy": COLORS["cyan"],
+        "zero": COLORS["gray"],
+        "pre_2020_trend": COLORS["orange"],
     }
 
-    # CBO Full scenario (exponential growth)
-    cbo_growth = scenarios["cbo_full"]["assumptions"]["growth_rate"]
-    cbo_proj = base_value * (1 + cbo_growth) ** np.arange(len(proj_years))
-    ax.plot(
-        proj_years,
-        cbo_proj,
-        "-",
-        color=scenario_colors["CBO Full"],
-        linewidth=1.5,
-        label="CBO Full",
-    )
+    for scenario_code in scenario_order:
+        scenario_subset = scenario_projections[
+            scenario_projections["scenario"] == scenario_code
+        ].sort_values("year")
+        if scenario_subset.empty:
+            continue
 
-    # Moderate scenario (dampened trend)
-    moderate_trend = scenarios["moderate"]["assumptions"]["average_trend_used"]
-    moderate_dampen = scenarios["moderate"]["assumptions"]["trend_dampening"]
-    moderate_proj = base_value + moderate_trend * moderate_dampen * np.arange(
-        len(proj_years)
-    )
-    ax.plot(
-        proj_years,
-        moderate_proj,
-        "-",
-        color=scenario_colors["Moderate"],
-        linewidth=1.5,
-        label="Moderate",
-    )
-
-    # Zero scenario
-    zero_proj = np.zeros(len(proj_years))
-    ax.plot(
-        proj_years,
-        zero_proj,
-        "-",
-        color=scenario_colors["Zero"],
-        linewidth=1.5,
-        label="Zero migration",
-    )
-
-    # Pre-2020 Trend scenario
-    pre2020_slope = scenarios["pre_2020_trend"]["assumptions"]["trend_slope"]
-    pre2020_start = scenarios["pre_2020_trend"]["assumptions"]["start_value"]
-    pre2020_proj = pre2020_start + pre2020_slope * (proj_years - 2010)
-    ax.plot(
-        proj_years,
-        pre2020_proj,
-        "-",
-        color=scenario_colors["Pre-2020 Trend"],
-        linewidth=1.5,
-        label="Pre-2020 trend",
-    )
+        ax.plot(
+            scenario_subset["year"].values,
+            scenario_subset["value"].values,
+            "-",
+            color=scenario_colors.get(scenario_code, COLORS["gray"]),
+            linewidth=1.5,
+            label=scenario_subset["scenario_name"].iloc[0],
+        )
 
     # Add Monte Carlo uncertainty bands (95% CI)
     mc_median = mc_results["median_2045"]
@@ -1059,27 +1143,21 @@ def create_figure_08_scenarios() -> None:
     ax.legend(loc="upper left", fontsize=8, framealpha=0.9, ncol=2)
 
     # Add 2045 endpoint annotations
-    ax.scatter(
-        [2045],
-        [scenarios["cbo_full"]["final_2045_value"]],
-        color=scenario_colors["CBO Full"],
-        s=30,
-        zorder=5,
+    endpoints = (
+        scenario_projections[scenario_projections["year"] == 2045]
+        .set_index("scenario")["value"]
+        .to_dict()
     )
-    ax.scatter(
-        [2045],
-        [scenarios["moderate"]["final_2045_value"]],
-        color=scenario_colors["Moderate"],
-        s=30,
-        zorder=5,
-    )
-    ax.scatter(
-        [2045],
-        [scenarios["pre_2020_trend"]["final_2045_value"]],
-        color=scenario_colors["Pre-2020 Trend"],
-        s=30,
-        zorder=5,
-    )
+    for scenario_code in scenario_order:
+        if scenario_code not in endpoints:
+            continue
+        ax.scatter(
+            [2045],
+            [endpoints[scenario_code]],
+            color=scenario_colors.get(scenario_code, COLORS["gray"]),
+            s=30,
+            zorder=5,
+        )
 
     # Add Monte Carlo note
     ax.text(
@@ -1149,7 +1227,7 @@ def create_figure_captions() -> None:
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_06_event_study.pdf}
-\caption{Event study estimates for the Travel Ban effect on refugee arrivals. Coefficients represent the difference in log arrivals between treated countries (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) and control countries relative to the reference period ($t = -1$, 2017). Blue circles show pre-treatment estimates; red squares show post-treatment effects. The joint pre-trend test rejects parallel trends over the full pre-period ($F = 4.31$, $p < 0.001$). The average treatment effect on the treated (ATT) is $-1.38$ ($p = 0.032$), corresponding to a 74.9\% reduction in arrivals.}
+\caption{Event study estimates for the Travel Ban effect on refugee arrivals. Coefficients represent the difference in log arrivals between treated countries (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) and control countries relative to the reference period ($t = -1$, 2017). Blue circles show pre-treatment estimates; red squares show post-treatment effects. The joint pre-trend test rejects parallel trends over the full pre-period ($F = 4.22$, $p < 0.001$). The average treatment effect on the treated (ATT) is $-1.39$ ($p = 0.031$), corresponding to a 75.2\% reduction in arrivals.}
 \label{fig:eventstudy}
 \end{figure}
 
@@ -1163,7 +1241,7 @@ def create_figure_captions() -> None:
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_08_scenarios.pdf}
-\caption{Projection scenarios for North Dakota international migration, 2025--2045. Four scenarios are shown: CBO Full (2025--2029 at 1.1$\times$ ARIMA, then 8\% annual growth), Moderate (dampened historical trend), Zero (counterfactual with no international migration), and Pre-2020 Trend (anchored to 2019 with the 2010--2019 slope). Shaded bands represent 50\% and 95\% prediction intervals from 1,000 Monte Carlo simulations. Historical data (2010--2024) shown with black circles. The vertical dashed line separates historical observations from projections.}
+\caption{Projection scenarios for North Dakota international migration, 2025--2045. Five scenarios are shown: CBO Full (2025--2029 at 1.1$\times$ ARIMA, then 8\% annual growth), Moderate (dampened historical trend), Immigration Policy (0.65$\times$ Moderate), Zero (counterfactual with no international migration), and Pre-2020 Trend (anchored to 2019 with the 2010--2019 slope). Shaded bands represent 50\% and 95\% prediction intervals from 1,000 Monte Carlo simulations. Historical data (2010--2024) shown with black circles. The vertical dashed line separates historical observations from projections.}
 \label{fig:scenarios}
 \end{figure}
 """
@@ -1203,6 +1281,9 @@ def main() -> None:
 
     print("\nFigure 6: Event Study")
     create_figure_06_event_study()
+
+    print("\nAppendix Figure: Extended Event Study (Supplemental)")
+    create_fig_app_event_study_extended()
 
     print("\nFigure 7: Survival Curves")
     create_figure_07_survival()

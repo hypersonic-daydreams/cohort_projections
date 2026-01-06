@@ -8,7 +8,7 @@ separating immigration into durable-status and temporary/precarious components.
 
 Key Features:
 1. Status-specific classification:
-   - Durable (Y_t^dur): Refugee arrivals + regularized parole
+   - Durable (Y_t^dur): Refugee arrivals (USRAP) + Amerasian/SIV arrivals + regularized parole
    - Temporary (Y_t^temp): Non-regularized parole
 
 2. Integration with prior wave outputs:
@@ -28,7 +28,7 @@ Key Features:
    - PEP continuity validation
 
 Components:
-- Y_t^dur = refugees_surviving(t) + parolees_regularized(t)
+- Y_t^dur = refugees_surviving(t) + siv_surviving(t) + parolees_regularized(t)
 - Y_t^temp = parolees_not_regularized(t) * survival_probability(t)
 
 Data Sources:
@@ -60,6 +60,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from cohort_projections.utils import ConfigLoader
+
 # Add scripts directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -89,6 +91,17 @@ ADR_RESULTS_DIR = (
 ADR_FIGURES_DIR = (
     PROJECT_ROOT / "docs" / "governance" / "adrs" / "021-reports" / "figures"
 )
+
+
+def _immigration_analysis_dir() -> Path:
+    cfg = ConfigLoader().get_projection_config()
+    processed_dir = (
+        cfg.get("data_sources", {})
+        .get("acs_moved_from_abroad", {})
+        .get("processed_dir", "data/processed/immigration/analysis")
+    )
+    return PROJECT_ROOT / processed_dir
+
 
 # Ensure output directories exist
 RESULTS_DIR.mkdir(exist_ok=True)
@@ -206,6 +219,7 @@ class ArrivalCohort:
     Attributes:
         arrival_year: Year of arrival (fiscal/calendar)
         refugee_arrivals: Initial refugee arrivals
+        siv_arrivals: Initial Amerasian/SIV arrivals (durable humanitarian)
         parole_arrivals: Initial parole arrivals
         other_arrivals: Initial other category arrivals
         regime: Policy regime at time of arrival
@@ -213,19 +227,26 @@ class ArrivalCohort:
 
     arrival_year: int
     refugee_arrivals: float
+    siv_arrivals: float
     parole_arrivals: float
     other_arrivals: float
     regime: PolicyRegime
 
     def get_total_arrivals(self) -> float:
         """Get total arrivals in cohort."""
-        return self.refugee_arrivals + self.parole_arrivals + self.other_arrivals
+        return (
+            self.refugee_arrivals
+            + self.siv_arrivals
+            + self.parole_arrivals
+            + self.other_arrivals
+        )
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
         return {
             "arrival_year": self.arrival_year,
             "refugee_arrivals": self.refugee_arrivals,
+            "siv_arrivals": self.siv_arrivals,
             "parole_arrivals": self.parole_arrivals,
             "other_arrivals": self.other_arrivals,
             "total_arrivals": self.get_total_arrivals(),
@@ -245,6 +266,7 @@ class CohortSurvivalState:
         cohort: The original ArrivalCohort
         observation_year: Year of observation
         refugee_surviving: Refugees still present
+        siv_surviving: Amerasian/SIV still present (treated as durable)
         parole_regularized: Parolees who regularized (now durable)
         parole_temporary: Parolees who did not regularize (temporary)
         other_surviving: Other category still present
@@ -253,6 +275,7 @@ class CohortSurvivalState:
     cohort: ArrivalCohort
     observation_year: int
     refugee_surviving: float
+    siv_surviving: float
     parole_regularized: float
     parole_temporary: float
     other_surviving: float
@@ -265,7 +288,12 @@ class CohortSurvivalState:
     @property
     def durable_component(self) -> float:
         """Y_t^dur: Sum of durable-status population."""
-        return self.refugee_surviving + self.parole_regularized + self.other_surviving
+        return (
+            self.refugee_surviving
+            + self.siv_surviving
+            + self.parole_regularized
+            + self.other_surviving
+        )
 
     @property
     def temporary_component(self) -> float:
@@ -284,6 +312,7 @@ class CohortSurvivalState:
             "observation_year": self.observation_year,
             "duration": self.duration,
             "refugee_surviving": self.refugee_surviving,
+            "siv_surviving": self.siv_surviving,
             "parole_regularized": self.parole_regularized,
             "parole_temporary": self.parole_temporary,
             "other_surviving": self.other_surviving,
@@ -652,6 +681,26 @@ def load_refugee_arrivals(result: ModuleResult) -> pd.DataFrame:
         conn.close()
 
 
+def load_siv_arrivals(result: ModuleResult) -> pd.DataFrame:
+    """Load ND Amerasian/SIV arrivals by fiscal year (file-based)."""
+    parquet_path = (
+        _immigration_analysis_dir() / "amerasian_siv_arrivals_by_state_nationality.parquet"
+    )
+    df_raw = pd.read_parquet(parquet_path)
+    result.input_files.append(
+        "amerasian_siv_arrivals_by_state_nationality.parquet (files)"
+    )
+    df = (
+        df_raw[df_raw["state"] == "North Dakota"]
+        .groupby("fiscal_year", as_index=False)["arrivals"]
+        .sum()
+        .rename(columns={"fiscal_year": "year", "arrivals": "siv_arrivals"})
+        .sort_values("year")
+        .reset_index(drop=True)
+    )
+    return df
+
+
 def load_national_refugee_totals(result: ModuleResult) -> pd.DataFrame:
     """
     Load national refugee arrival totals by fiscal year.
@@ -696,6 +745,7 @@ def load_national_refugee_totals(result: ModuleResult) -> pd.DataFrame:
 def classify_arrivals_by_status(
     df_pep: pd.DataFrame,
     df_refugee: pd.DataFrame,
+    df_siv: pd.DataFrame,
     result: ModuleResult,
     non_humanitarian_share: float = 0.05,
 ) -> list[ArrivalCohort]:
@@ -704,7 +754,8 @@ def classify_arrivals_by_status(
 
     Uses the residual method from Rec #2:
     - Refugee arrivals: Direct from USRAP data
-    - Parole proxy: PEP total - Refugee - Non-humanitarian
+    - Amerasian/SIV arrivals: Durable humanitarian (kept separate from USRAP refugees)
+    - Parole proxy: PEP total - Refugee - SIV - Non-humanitarian
     - Other: Estimated as share of total (LPR family, employment)
 
     Args:
@@ -720,12 +771,15 @@ def classify_arrivals_by_status(
     print("CLASSIFYING ARRIVALS BY STATUS")
     print("=" * 60)
 
-    # Merge PEP and refugee data
-    df = df_pep.merge(df_refugee, on="year", how="outer")
+    # Merge PEP + refugee + SIV data
+    df = df_pep.merge(df_refugee, on="year", how="outer").merge(
+        df_siv, on="year", how="outer"
+    )
     df = df.sort_values("year").reset_index(drop=True)
 
     # Fill missing
     df["refugee_arrivals"] = df["refugee_arrivals"].fillna(0)
+    df["siv_arrivals"] = df["siv_arrivals"].fillna(0)
     df["intl_migration"] = df["intl_migration"].fillna(0)
 
     cohorts: list[ArrivalCohort] = []
@@ -739,6 +793,7 @@ def classify_arrivals_by_status(
 
         total = max(0, float(row["intl_migration"]))
         refugee = max(0, float(row["refugee_arrivals"]))
+        siv = max(0, float(row["siv_arrivals"]))
 
         # Get regime for year
         try:
@@ -750,11 +805,12 @@ def classify_arrivals_by_status(
         other = max(0, total * non_humanitarian_share)
 
         # Parole proxy = residual
-        parole = max(0, total - refugee - other)
+        parole = max(0, total - refugee - siv - other)
 
         cohort = ArrivalCohort(
             arrival_year=year,
             refugee_arrivals=refugee,
+            siv_arrivals=siv,
             parole_arrivals=parole,
             other_arrivals=other,
             regime=regime,
@@ -767,25 +823,35 @@ def classify_arrivals_by_status(
         regime_cohorts = [c for c in cohorts if c.regime == regime]
         if regime_cohorts:
             total_refugee = sum(c.refugee_arrivals for c in regime_cohorts)
+            total_siv = sum(c.siv_arrivals for c in regime_cohorts)
             total_parole = sum(c.parole_arrivals for c in regime_cohorts)
             total_other = sum(c.other_arrivals for c in regime_cohorts)
-            total_all = total_refugee + total_parole + total_other
+            total_all = total_refugee + total_siv + total_parole + total_other
 
             refugee_share = (total_refugee / total_all * 100) if total_all > 0 else 0
+            siv_share = (total_siv / total_all * 100) if total_all > 0 else 0
             parole_share = (total_parole / total_all * 100) if total_all > 0 else 0
 
             years = [c.arrival_year for c in regime_cohorts]
             print(f"\n  {regime.value.upper()} ({min(years)}-{max(years)}):")
             print(f"    Total migration: {total_all:,.0f}")
             print(f"    Refugee: {total_refugee:,.0f} ({refugee_share:.1f}%)")
+            print(f"    SIV: {total_siv:,.0f} ({siv_share:.1f}%)")
             print(f"    Parole proxy: {total_parole:,.0f} ({parole_share:.1f}%)")
             print(f"    Other: {total_other:,.0f}")
 
     result.add_decision(
         decision_id="TC001",
         category="methodology",
-        decision=f"Status classification using residual method: Parole = PEP - Refugee - {non_humanitarian_share*100:.0f}% other",
-        rationale="Direct parole arrival counts unavailable; residual method provides proxy using PEP total minus known components",
+        decision=(
+            "Status classification using residual method with SIV separated: "
+            f"Parole = PEP - Refugee(USRAP) - SIV - {non_humanitarian_share*100:.0f}% other"
+        ),
+        rationale=(
+            "Direct parole arrival counts unavailable; residual method provides proxy using "
+            "PEP total minus known components. Amerasian/SIV arrivals are treated as durable "
+            "humanitarian and kept separate from USRAP refugees."
+        ),
         alternatives=["ACS entry cohort data", "DHS I-94 records", "USCIS statistics"],
         evidence=f"Classified {len(cohorts)} cohorts from {cohorts[0].arrival_year}-{cohorts[-1].arrival_year}",
     )
@@ -877,6 +943,7 @@ def apply_cohort_survival(
             cohort=cohort,
             observation_year=observation_year,
             refugee_surviving=0.0,
+            siv_surviving=0.0,
             parole_regularized=0.0,
             parole_temporary=0.0,
             other_surviving=0.0,
@@ -885,6 +952,7 @@ def apply_cohort_survival(
     # Refugee survival
     refugee_survival = survival_params[StatusCategory.REFUGEE].get_survival_at(duration)
     refugee_surviving = cohort.refugee_arrivals * refugee_survival
+    siv_surviving = cohort.siv_arrivals * refugee_survival
 
     # Parole regularization and survival
     parole_cliff_start = survival_params[StatusCategory.PAROLE_NON_REGULARIZED].cliff_start or 2.0
@@ -929,6 +997,7 @@ def apply_cohort_survival(
         cohort=cohort,
         observation_year=observation_year,
         refugee_surviving=refugee_surviving,
+        siv_surviving=siv_surviving,
         parole_regularized=parole_regularized,
         parole_temporary=parole_temporary,
         other_surviving=other_surviving,
@@ -1367,8 +1436,14 @@ def validate_against_empirical_targets(
 
         # Calculate actual composition from arrivals
         total_refugee = sum(c.refugee_arrivals for c in regime_cohorts)
-        total_all = sum(c.get_total_arrivals() for c in regime_cohorts)
-        actual_refugee_share = total_refugee / total_all if total_all > 0 else 0.0
+        # Validation targets from ADR-021 were derived before separating Amerasian/SIV.
+        # For comparability, compute refugee share excluding SIV from the denominator.
+        total_non_siv = sum(
+            c.refugee_arrivals + c.parole_arrivals + c.other_arrivals for c in regime_cohorts
+        )
+        actual_refugee_share = (
+            total_refugee / total_non_siv if total_non_siv > 0 else 0.0
+        )
 
         # Check against target
         diff = abs(actual_refugee_share - target.refugee_share)
@@ -1384,6 +1459,7 @@ def validate_against_empirical_targets(
             "tolerance": target.tolerance,
             "passed": passed,
             "description": target.description,
+            "denominator": "refugee + parole + other (excludes SIV)",
             "year_range": f"{regime_params.start_year}-{regime_params.end_year}",
         }
 
@@ -1734,6 +1810,7 @@ def run_analysis() -> ModuleResult:
 
     df_pep = load_pep_migration(result)
     df_refugee = load_refugee_arrivals(result)
+    df_siv = load_siv_arrivals(result)
     # Load national totals for input_files tracking (used in future extensions)
     _ = load_national_refugee_totals(result)
 
@@ -1742,7 +1819,7 @@ def run_analysis() -> ModuleResult:
     # =========================================================================
     print("\n[3/8] Classifying arrivals by status...")
 
-    cohorts = classify_arrivals_by_status(df_pep, df_refugee, result)
+    cohorts = classify_arrivals_by_status(df_pep, df_refugee, df_siv, result)
 
     # =========================================================================
     # 4. Build Survival Parameters

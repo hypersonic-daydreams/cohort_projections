@@ -51,6 +51,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from cohort_projections.utils import ConfigLoader
+
 # Add scripts directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -75,6 +77,17 @@ ADR_RESULTS_DIR = (
 ADR_FIGURES_DIR = (
     PROJECT_ROOT / "docs" / "governance" / "adrs" / "021-reports" / "figures"
 )
+
+
+def _immigration_analysis_dir() -> Path:
+    cfg = ConfigLoader().get_projection_config()
+    processed_dir = (
+        cfg.get("data_sources", {})
+        .get("acs_moved_from_abroad", {})
+        .get("processed_dir", "data/processed/immigration/analysis")
+    )
+    return PROJECT_ROOT / processed_dir
+
 
 # Ensure output directories exist
 RESULTS_DIR.mkdir(exist_ok=True)
@@ -546,6 +559,62 @@ def load_national_refugee_totals(result: ModuleResult) -> pd.DataFrame:
     return df
 
 
+def load_nd_siv_arrivals(result: ModuleResult) -> pd.DataFrame:
+    """Load ND Amerasian/SIV arrivals by fiscal year (file-based)."""
+    parquet_path = (
+        _immigration_analysis_dir() / "amerasian_siv_arrivals_by_state_nationality.parquet"
+    )
+    df_raw = pd.read_parquet(parquet_path)
+    result.input_files.append(
+        "amerasian_siv_arrivals_by_state_nationality.parquet (files)"
+    )
+    df = (
+        df_raw[df_raw["state"] == "North Dakota"]
+        .groupby("fiscal_year", as_index=False)["arrivals"]
+        .sum()
+        .rename(columns={"fiscal_year": "year", "arrivals": "siv_arrivals"})
+        .sort_values("year")
+        .reset_index(drop=True)
+    )
+    return df
+
+
+def estimate_nd_siv_baseline(
+    df_siv: pd.DataFrame,
+    result: ModuleResult,
+    start_year: int = 2021,
+    end_year: int = 2024,
+    statistic: str = "median",
+) -> float:
+    """Estimate baseline ND SIV arrivals from recent fiscal years."""
+    window = df_siv[(df_siv["year"] >= start_year) & (df_siv["year"] <= end_year)]
+    if window.empty:
+        result.warnings.append("No ND SIV data found; setting baseline SIV arrivals to 0")
+        return 0.0
+
+    values = window["siv_arrivals"].astype(float)
+    if statistic == "median":
+        return float(values.median())
+    if statistic == "mean":
+        return float(values.mean())
+    raise ValueError(f"Unsupported statistic: {statistic}")
+
+
+def siv_decay_factor(
+    year: int,
+    base_year: int = 2024,
+    half_life_years: float = 6.0,
+    floor: float = 0.10,
+) -> float:
+    """Default sunset for SIV pipeline after the base year."""
+    if year <= base_year:
+        return 1.0
+    if half_life_years <= 0:
+        return floor
+    decay = 0.5 ** ((year - base_year) / half_life_years)
+    return max(float(floor), float(decay))
+
+
 # =============================================================================
 # BUILD POLICY SCENARIOS
 # =============================================================================
@@ -845,9 +914,12 @@ def estimate_nd_share(
 def project_scenario(
     scenario: PolicyScenario,
     nd_share: float,
+    siv_baseline: float,
     base_year: int = 2024,
     horizon_end: int = 2045,
     n_simulations: int = 1000,
+    siv_half_life_years: float = 6.0,
+    siv_floor: float = 0.10,
     result: ModuleResult | None = None,
 ) -> ScenarioProjection:
     """
@@ -883,6 +955,7 @@ def project_scenario(
         ceiling_variation = rng.uniform(0.85, 1.15)
         share_variation = rng.uniform(0.90, 1.10)
         parole_variation = rng.uniform(0.80, 1.20)
+        siv_variation = rng.uniform(0.85, 1.15)
 
         # Track cumulative cohorts for survival modeling
         parole_cohorts: list[tuple[int, float]] = []  # (arrival_year, amount)
@@ -892,6 +965,24 @@ def project_scenario(
 
             # Get capacity multiplier for this year
             cap_mult = scenario.capacity.get_multiplier(years_from_base)
+
+            # --- Amerasian/SIV Component (durable, scenario-linked + sunset) ---
+            siv_capacity_ratio = (
+                cap_mult / scenario.capacity.base_multiplier
+                if scenario.capacity.base_multiplier > 0
+                else cap_mult
+            )
+            nd_siv_new = (
+                siv_baseline
+                * siv_capacity_ratio
+                * siv_decay_factor(
+                    year,
+                    base_year=base_year,
+                    half_life_years=siv_half_life_years,
+                    floor=siv_floor,
+                )
+                * siv_variation
+            )
 
             # --- Refugee Component ---
             ceiling = scenario.refugee_ceiling.get_ceiling(year)
@@ -916,8 +1007,9 @@ def project_scenario(
                 welcome_corps = base_wc * (1 + scenario.welcome_corps_growth) ** years_from_base
 
             # --- Apply Survival/Durability ---
-            # Durable: refugees + regularized parole survivors + welcome corps
+            # Durable: refugees + SIV + regularized parole survivors + welcome corps
             durable = nd_refugee * scenario.durability.refugee_survival_5yr
+            durable += nd_siv_new * scenario.durability.refugee_survival_5yr
             durable += welcome_corps * scenario.durability.refugee_survival_5yr
 
             # Parole survivors after cliff
@@ -990,6 +1082,7 @@ def project_scenario(
 def run_all_projections(
     scenarios: dict[ScenarioType, PolicyScenario],
     nd_share: float,
+    siv_baseline: float,
     result: ModuleResult,
     n_simulations: int = 1000,
 ) -> dict[ScenarioType, ScenarioProjection]:
@@ -1007,6 +1100,7 @@ def run_all_projections(
         projection = project_scenario(
             scenario=scenario,
             nd_share=nd_share,
+            siv_baseline=siv_baseline,
             n_simulations=n_simulations,
             result=result,
         )
@@ -1294,7 +1388,30 @@ def run_analysis() -> ModuleResult:
 
     df_historical = load_historical_data(result)
     df_refugee = load_nd_refugee_arrivals(result)
+    df_siv = load_nd_siv_arrivals(result)
     df_national = load_national_refugee_totals(result)
+
+    siv_baseline = estimate_nd_siv_baseline(df_siv, result)
+    result.add_decision(
+        decision_id="PS004",
+        category="parameters",
+        decision=(
+            f"SIV modeled as separate durable series with capacity linkage and sunset: "
+            f"baseline={siv_baseline:.1f} (FY2021-2024 median), half_life_years=6.0, floor=0.10"
+        ),
+        rationale=(
+            "Amerasian/SIV arrivals are policy-driven humanitarian flows with limited history "
+            "(FY2021-2024). Keeping the series separate preserves definitional clarity while "
+            "linking to local capacity ensures scenario coherence; a default sunset avoids "
+            "extrapolating Afghanistan-era volumes indefinitely."
+        ),
+        alternatives=[
+            "Treat SIV as part of USRAP refugee totals",
+            "Independent time-series model for SIV (overfits short series)",
+            "Flat SIV level with no sunset",
+        ],
+        evidence="Baseline derived from extracted RPC archive PDFs",
+    )
 
     # =========================================================================
     # 3. Estimate ND Share
@@ -1315,7 +1432,9 @@ def run_analysis() -> ModuleResult:
     # =========================================================================
     print("\n[5/6] Running projections...")
 
-    projections = run_all_projections(scenarios, nd_share, result, n_simulations=1000)
+    projections = run_all_projections(
+        scenarios, nd_share, siv_baseline, result, n_simulations=1000
+    )
 
     # =========================================================================
     # 6. Generate Visualizations
@@ -1341,6 +1460,9 @@ def run_analysis() -> ModuleResult:
             "rec2_parole_survival_5yr": durability_params["parole_survival_5yr"],
         },
         "nd_share": nd_share,
+        "siv_baseline_fy2021_2024_median": siv_baseline,
+        "siv_sunset_half_life_years": 6.0,
+        "siv_sunset_floor": 0.10,
         "base_year": 2024,
         "projection_horizon": "2025-2045",
         "n_simulations": 1000,
@@ -1373,6 +1495,7 @@ def run_analysis() -> ModuleResult:
             "parole_continuation": "Affects temporary component size and cliff timing",
             "regularization_probability": "Converts temporary to durable over time",
             "capacity_multiplier": "Scales all arrivals based on local infrastructure",
+            "siv_arrivals": "Separate durable series linked to capacity with default sunset",
             "welcome_corps_growth": "Adds supplemental durable pathway",
         },
     }

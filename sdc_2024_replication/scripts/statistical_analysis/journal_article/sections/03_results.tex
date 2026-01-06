@@ -268,13 +268,13 @@ Causal inference results focus on difference-in-differences for the Travel Ban a
 \toprule
 \textbf{Method} & \textbf{Policy} & \textbf{Estimate} & \textbf{SE} & \textbf{95\% CI} \\
 \midrule
-DiD (log scale) & Travel Ban & $-1.384$* & 0.646 & [$-2.65$, $-0.12$] \\
-\quad \textit{Percentage effect} & & $-74.9\%$ & --- & --- \\
+DiD (log scale) & Travel Ban & $-1.393$* & 0.647 & [$-2.66$, $-0.12$] \\
+\quad \textit{Percentage effect} & & $-75.2\%$ & --- & --- \\
 ITS Level Shift & COVID-19 & $-19,503$*** & 4,556 & [$-28,432$, $-10,573$] \\
 ITS Trend Change & COVID-19 & $+14,113$*** & 3,288 & [$+7,667$, $+20,558$] \\
 \midrule
-Shift-share (first stage) & National shocks & 5.51*** & 0.87 & [$+3.80$, $+7.22$] \\
-\quad First-stage $F$ & & 39.95 & & \\
+Shift-share (first stage) & National shocks & 8.88*** & 1.16 & [$+6.61$, $+11.15$] \\
+\quad First-stage $F$ & & 58.76 & & \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
@@ -285,13 +285,13 @@ Shift-share (first stage) & National shocks & 5.51*** & 0.87 & [$+3.80$, $+7.22$
 
 \subsubsection{Travel Ban Difference-in-Differences}
 
-The Travel Ban analysis employs refugee arrival data spanning 2002--2019, with 2018 designated as the first full post-treatment year. The treatment group comprises seven affected nationalities (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen), while 119 unaffected nationalities serve as controls. The sample includes 1,137 nationality-year observations.
+The Travel Ban analysis employs refugee arrival data spanning 2002--2019, with 2018 designated as the first full post-treatment year. The treatment group comprises seven affected nationalities (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen), while 118 unaffected nationalities serve as controls. The sample includes 1,119 nationality-year observations.
 
-The estimated average treatment effect on the treated (ATT) is $-1.384$ on the log scale ($t = -2.14$, $p = 0.032$), corresponding to a policy-associated divergence of 74.9\% in refugee arrivals from affected countries. The 95\% confidence interval [$-2.65$, $-0.12$] excludes zero, indicating a statistically significant and economically substantial short-run divergence.
+The estimated average treatment effect on the treated (ATT) is $-1.393$ on the log scale ($t = -2.15$, $p = 0.031$), corresponding to a policy-associated divergence of 75.2\% in refugee arrivals from affected countries. The 95\% confidence interval [$-2.66$, $-0.12$] excludes zero, indicating a statistically significant and economically substantial short-run divergence.
 
-Parallel trends diagnostics are mixed, requiring caution in causal interpretation. The linear pre-trend test yields a treated-country trend coefficient of 0.087 ($t = 0.97$, $p = 0.334$), but the event study's joint pre-treatment test rejects parallel trends over the full pre-period ($F = 4.31$, $p < 0.001$). Figure~\ref{fig:eventstudy} shows divergence beginning approximately 10 years before treatment, indicating that the treatment and control groups were on different trajectories prior to the policy. The immediate post-treatment coefficients shift sharply negative in 2018--2019, but because the parallel trends assumption is violated, the estimated effect conflates the policy impact with pre-existing divergence. We therefore interpret the 75\% estimate as an upper bound on the causal policy effect magnitude rather than a point estimate of the true effect, as it likely conflates the policy impact with pre-existing divergence.
+Parallel trends diagnostics are mixed, requiring caution in causal interpretation. The linear pre-trend test yields a treated-country trend coefficient of 0.085 ($t = 0.94$, $p = 0.349$), but the event study's joint pre-treatment test rejects parallel trends over the full pre-period ($F = 4.22$, $p < 0.001$). Figure~\ref{fig:eventstudy} shows divergence beginning approximately 10 years before treatment, indicating that the treatment and control groups were on different trajectories prior to the policy. The immediate post-treatment coefficients shift sharply negative in 2018--2019, but because the parallel trends assumption is violated, the estimated effect conflates the policy impact with pre-existing divergence. We therefore interpret the 75\% estimate as an upper bound on the causal policy effect magnitude rather than a point estimate of the true effect, as it likely conflates the policy impact with pre-existing divergence. Appendix Figure~\ref{fig:app_event_study_extended} reports a descriptive extension through FY2024 (ADR-027); post-2020 coefficients are not interpreted as causal Travel Ban effects.
 
-\textbf{Small-sample inference robustness.} With only seven treated clusters (nationalities), conventional cluster-robust inference may be unreliable. Table~\ref{tab:bootstrap_inference} reports alternative $p$-values from wild cluster bootstrap and randomization inference. For the full pre-period specification, the wild cluster bootstrap yields $p = 0.077$ and randomization inference yields $p = 0.058$---both above the conventional $\alpha = 0.05$ threshold, though significant at $\alpha = 0.10$. This attenuation relative to the conventional $p = 0.032$ reflects the small number of treated clusters and suggests caution in claiming strong statistical significance.
+\textbf{Small-sample inference robustness.} With only seven treated clusters (nationalities), conventional cluster-robust inference may be unreliable. Table~\ref{tab:bootstrap_inference} reports alternative $p$-values from wild cluster bootstrap and randomization inference. For the full pre-period specification, the wild cluster bootstrap yields $p = 0.084$ (not significant at $\alpha = 0.05$), while randomization inference yields $p = 0.043$ (significant at $\alpha = 0.05$). This sensitivity reflects the small number of treated clusters and suggests caution in claiming strong statistical significance.
 
 \begin{table}[htbp]
 \centering
@@ -301,8 +301,8 @@ Parallel trends diagnostics are mixed, requiring caution in causal interpretatio
 \toprule
 \textbf{Specification} & \textbf{ATT} & \textbf{Conventional $p$} & \textbf{WCB $p$} & \textbf{RI $p$} \\
 \midrule
-Full pre-period (2002--2017) & $-1.384$ & 0.032* & 0.077 & 0.058 \\
-Restricted (2013--2017) & $-1.983$ & $<$0.001*** & 0.003** & 0.004** \\
+Full pre-period (2002--2017) & $-1.393$ & 0.031* & 0.084 & 0.043* \\
+Restricted (2013--2017) & $-1.992$ & $<$0.001*** & 0.003** & 0.002** \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
@@ -311,7 +311,7 @@ Restricted (2013--2017) & $-1.983$ & $<$0.001*** & 0.003** & 0.004** \\
 \end{tablenotes}
 \end{table}
 
-\textbf{Restricted pre-period robustness.} Because the event study reveals greater pre-trend divergence in early years (2002--2012) than in years immediately preceding treatment, we re-estimate the DiD restricting to years where parallel trends appear more plausible. Restricting the pre-period to 2013--2017 substantially improves the pre-trend diagnostic: the joint $F$-test yields $F = 0.76$, $p = 0.553$, failing to reject parallel trends. The ATT estimate increases in magnitude to $-1.983$ (SE = 0.506), and inference strengthens: the conventional $p$-value falls to $p < 0.001$, with bootstrap ($p = 0.003$) and randomization ($p = 0.004$) inference confirming significance at the 1\% level.
+\textbf{Restricted pre-period robustness.} Because the event study reveals greater pre-trend divergence in early years (2002--2012) than in years immediately preceding treatment, we re-estimate the DiD restricting to years where parallel trends appear more plausible. Restricting the pre-period to 2013--2017 substantially improves the pre-trend diagnostic: the joint $F$-test yields $F = 0.75$, $p = 0.562$, failing to reject parallel trends. The ATT estimate increases in magnitude to $-1.992$ (SE = 0.507), and inference strengthens: the conventional $p$-value falls to $p < 0.001$, with bootstrap ($p = 0.003$) and randomization ($p = 0.002$) inference confirming significance at the 1\% level.
 
 This pattern---larger ATT magnitude and stronger significance with the restricted pre-period---suggests that the full-sample estimate is attenuated by pre-existing negative divergence between treatment and control groups. When analysis focuses on years where parallel trends are more defensible, the estimated policy effect is larger ($-$86\% vs.\ $-$75\%) and more precisely estimated. The restricted-period results strengthen confidence that the Travel Ban produced a genuine reduction in refugee arrivals from affected countries, though the magnitude remains subject to specification uncertainty.
 
@@ -333,9 +333,9 @@ Pre-treatment fit is strong: the root mean squared prediction error (RMSPE) of 0
 
 \subsubsection{Shift-Share (Bartik) Index}
 
-The shift-share index combines baseline state shares with leave-one-out national origin shocks to summarize predicted refugee inflows. The first-stage $F$-statistic of 39.95 exceeds the conventional threshold of 10, supporting instrument relevance.
+The shift-share index combines baseline state shares with leave-one-out national origin shocks to summarize predicted refugee inflows. The first-stage $F$-statistic of 58.76 exceeds the conventional threshold of 10, supporting instrument relevance.
 
-The estimated first-stage coefficient is 5.51 ($p < 0.001$), indicating that a one-unit increase in the shift-share index predicts a 5.51-unit increase in state-level international migration. Because no second-stage causal model is estimated, this result is interpreted as predictive relevance rather than a causal effect.
+The estimated first-stage coefficient is 8.88 ($p < 0.001$), indicating that a one-unit increase in the shift-share index predicts an 8.88-unit increase in state-level international migration. Because no second-stage causal model is estimated, this result is interpreted as predictive relevance rather than a causal effect.
 
 % ==============================================================================
 % 3.8 DURATION ANALYSIS
@@ -397,7 +397,7 @@ To connect duration estimates to forecasting, we translate the Cox model into ye
 \subsection{Forecast Scenarios}
 \label{subsec:scenario_results}
 
-Scenario analysis translates analytical findings into forward-looking projections through 2045. Four policy-indexed scenarios span the range of plausible trajectories, while Monte Carlo simulation quantifies parametric uncertainty. Although the Driver OLS model achieves superior backtesting accuracy (Table~\ref{tab:backtesting}), it requires contemporaneous knowledge of national migration---information unavailable at forecast time. Long-term scenarios therefore employ the conservative ARIMA baseline, which relies only on historical data and represents the best-performing feasible univariate method. Table~\ref{tab:scenarios} summarizes 2045 projections under each scenario.
+Scenario analysis translates analytical findings into forward-looking projections through 2045. Five policy-indexed scenarios span the range of plausible trajectories, while Monte Carlo simulation quantifies parametric uncertainty. Although the Driver OLS model achieves superior backtesting accuracy (Table~\ref{tab:backtesting}), it requires contemporaneous knowledge of national migration---information unavailable at forecast time. Long-term scenarios therefore employ the conservative ARIMA baseline, which relies only on historical data and represents the best-performing feasible univariate method. Table~\ref{tab:scenarios} summarizes 2045 projections under each scenario.
 
 \begin{table}[htbp]
 \centering
@@ -410,7 +410,7 @@ Scenario analysis translates analytical findings into forward-looking projection
 CBO Full & 2025--2029: 1.1$\times$ARIMA; 2030--2045: 8\% growth & 19,318 \\
 Moderate & Dampened historical trend (50\% weight) & 7,048 \\
 Pre-2020 Trend & Anchor 2019; continue 2010--2019 slope (+72/year) & 2,517 \\
-Immigration Policy & Reduced admissions via SDC factor (0.65x) & 3,893 \\
+Immigration Policy & Reduced admissions via SDC factor (0.65x) & 4,581 \\
 Zero & No international migration & 0 \\
 \midrule
 Monte Carlo Median & Stochastic trend with $CV_{2045} = 0.38$ & 9,056 \\
@@ -424,7 +424,7 @@ Monte Carlo Median & Stochastic trend with $CV_{2045} = 0.38$ & 9,056 \\
 \end{tablenotes}
 \end{table}
 
-The four deterministic scenarios yield dramatically different endpoints. The CBO Full scenario applies 10\% above-ARIMA levels for 2025--2029 and then compounds at 8\% annually, projecting net international migration of 19,318 persons by 2045. The Moderate scenario, applying 50\% dampening to historical trends, yields 7,048. The Pre-2020 Trend scenario anchors at the 2019 level and extrapolates the 2010--2019 slope, projecting only 2,517---reflecting the modest pre-pandemic growth rate. Finally, the Immigration Policy scenario, which applies a 35\% reduction to baseline rates (reflecting restrictive admission caps), yields 3,893 migrants---a value intermediate between the pre-pandemic trend and the moderate growth scenario.
+The five deterministic scenarios yield dramatically different endpoints. The CBO Full scenario applies 10\% above-ARIMA levels for 2025--2029 and then compounds at 8\% annually, projecting net international migration of 19,318 persons by 2045. The Moderate scenario, applying 50\% dampening to historical trends, yields 7,048. The Pre-2020 Trend scenario anchors at the 2019 level and extrapolates the 2010--2019 slope, projecting only 2,517---reflecting the modest pre-pandemic growth rate. The Immigration Policy scenario applies a 35\% reduction to the Moderate trajectory (0.65$\times$), yielding 4,581 migrants by 2045. The Zero scenario provides a floor of 0.
 
 Monte Carlo simulation propagates parameter uncertainty through the projection model. Based on 1,000 draws from estimated trend and volatility distributions ($CV_{2045} = 0.38$), the median 2045 projection is 9,056 persons, with a 50\% prediction interval of [6,450, 11,292] and a 95\% prediction interval of [3,570, 14,491]. The latter interval spans a factor of 4.1, reflecting substantial irreducible uncertainty over a 20-year horizon given the observed volatility and structural instability. The simulation CV refers to dispersion in projected 2045 outcomes and is not directly comparable to the historical CV of annual observations.
 
