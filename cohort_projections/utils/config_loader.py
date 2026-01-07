@@ -4,13 +4,15 @@ Configuration file loader for cohort projections.
 Loads and validates YAML configuration files.
 """
 
+import logging
 from pathlib import Path
 from typing import Any
 
 import yaml
-from project_utils import setup_logger
 
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    logging.basicConfig(level=logging.INFO)
 
 
 class ConfigLoader:

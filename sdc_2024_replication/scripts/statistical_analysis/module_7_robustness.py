@@ -10,8 +10,11 @@ Implements causal inference robustness checks for P3.10 and P3.14:
 
 Usage:
     python module_7_robustness.py
+    python module_7_robustness.py --rigorous
+    python module_7_robustness.py --n-bootstrap 9999 --n-permutations 9999
 """
 
+import argparse
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -652,6 +655,40 @@ def run_joint_pretrend_test(
 
 def main():
     """Main entry point."""
+    parser = argparse.ArgumentParser(
+        description=(
+            "Module 7 robustness checks (Travel Ban DiD): wild cluster bootstrap, "
+            "randomization inference, and restricted pre-period diagnostics."
+        )
+    )
+    parser.add_argument(
+        "--n-bootstrap",
+        type=int,
+        default=999,
+        help="Wild cluster bootstrap iterations (default: 999).",
+    )
+    parser.add_argument(
+        "--n-permutations",
+        type=int,
+        default=999,
+        help="Randomization inference permutations (default: 999).",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for bootstrap/permutation (default: 42).",
+    )
+    parser.add_argument(
+        "--rigorous",
+        action="store_true",
+        help="Convenience flag: set both --n-bootstrap and --n-permutations to 9999.",
+    )
+    args = parser.parse_args()
+    if args.rigorous:
+        args.n_bootstrap = 9999
+        args.n_permutations = 9999
+
     print("=" * 70)
     print("Module 7 Robustness: Wild Cluster Bootstrap & Restricted Pre-Period")
     print(f"Started: {datetime.now(UTC).isoformat()}")
@@ -673,7 +710,9 @@ def main():
     print("# ANALYSIS 1: WILD CLUSTER BOOTSTRAP (Full Pre-Period)")
     print("#" * 70)
 
-    wcb_full = wild_cluster_bootstrap(df_did, n_bootstrap=999, seed=42)
+    wcb_full = wild_cluster_bootstrap(
+        df_did, n_bootstrap=args.n_bootstrap, seed=args.seed
+    )
     results["analyses"]["wild_cluster_bootstrap_full"] = wcb_full
 
     # ==========================================================================
@@ -683,7 +722,9 @@ def main():
     print("# ANALYSIS 2: RANDOMIZATION INFERENCE (Full Pre-Period)")
     print("#" * 70)
 
-    ri_full = randomization_inference(df_did, n_permutations=999, seed=42)
+    ri_full = randomization_inference(
+        df_did, n_permutations=args.n_permutations, seed=args.seed
+    )
     results["analyses"]["randomization_inference_full"] = ri_full
 
     # ==========================================================================
@@ -739,7 +780,7 @@ def main():
     print("#" * 70)
 
     wcb_restricted = wild_cluster_bootstrap(
-        df_did, n_bootstrap=999, seed=42, pre_period_start=2013
+        df_did, n_bootstrap=args.n_bootstrap, seed=args.seed, pre_period_start=2013
     )
     results["analyses"]["wild_cluster_bootstrap_restricted_2013"] = wcb_restricted
 
@@ -751,7 +792,10 @@ def main():
     print("#" * 70)
 
     ri_restricted = randomization_inference(
-        df_did, n_permutations=999, seed=42, pre_period_start=2013
+        df_did,
+        n_permutations=args.n_permutations,
+        seed=args.seed,
+        pre_period_start=2013,
     )
     results["analyses"]["randomization_inference_restricted_2013"] = ri_restricted
 
@@ -778,12 +822,12 @@ def main():
 
     print("\n2. RESTRICTED PRE-PERIOD (2013-2017):")
     r13 = restricted_results.get("restricted_2013_2017", {})
-    print(
-        f"   ATT: {r13.get('att', 'N/A'):.4f if isinstance(r13.get('att'), float) else 'N/A'}"
-    )
-    print(
-        f"   Conventional p-value: {r13.get('p_value', 'N/A'):.4f if isinstance(r13.get('p_value'), float) else 'N/A'}"
-    )
+    att_13 = r13.get("att")
+    p_13 = r13.get("p_value")
+    att_13_str = f"{att_13:.4f}" if isinstance(att_13, (int, float)) else "N/A"
+    p_13_str = f"{p_13:.4f}" if isinstance(p_13, (int, float)) else "N/A"
+    print(f"   ATT: {att_13_str}")
+    print(f"   Conventional p-value: {p_13_str}")
     print(f"   WCB p-value: {wcb_restricted['bootstrap_p_value']:.4f}")
     print(f"   RI p-value: {ri_restricted['p_value_twosided']:.4f}")
 

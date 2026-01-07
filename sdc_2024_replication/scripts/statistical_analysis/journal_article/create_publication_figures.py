@@ -1246,6 +1246,21 @@ def create_figure_captions() -> None:
 \end{figure}
 """
 
+    # Keep captions synchronized with the scenario engine's Monte Carlo draw count.
+    try:
+        scenario_data = load_json("module_9_scenario_modeling.json")
+        n_draws = (
+            scenario_data.get("results", {})
+            .get("monte_carlo", {})
+            .get("n_draws", 1000)
+        )
+        captions = captions.replace(
+            "1,000 Monte Carlo simulations", f"{int(n_draws):,} Monte Carlo simulations"
+        )
+    except Exception:
+        # Fall back to the legacy caption if results are not available.
+        pass
+
     output_path = FIGURES_DIR / "figure_captions.tex"
     with open(output_path, "w") as f:
         f.write(captions)

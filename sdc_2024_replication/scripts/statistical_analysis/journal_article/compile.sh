@@ -18,11 +18,13 @@
 #     - geometry, setspace (page layout)
 #
 # Usage:
-#   ./compile.sh [--clean] [--quick]
+#   ./compile.sh [--clean] [--quick] [--output <path>] [--no-copy]
 #
 # Options:
-#   --clean    Remove auxiliary files before compilation
-#   --quick    Run only pdflatex once (skip bibtex and multiple passes)
+#   --clean      Remove auxiliary files before compilation
+#   --quick      Run only pdflatex once (skip bibtex and multiple passes)
+#   --output     Copy compiled PDF to the specified path
+#   --no-copy    Skip copying the PDF to the output directory
 #
 # Output:
 #   main.pdf   Compiled PDF document
@@ -37,13 +39,33 @@ cd "$SCRIPT_DIR"
 # Parse arguments
 CLEAN=false
 QUICK=false
-for arg in "$@"; do
-    case $arg in
+COPY_OUTPUT=true
+OUTPUT_PATH=""
+while [ "$#" -gt 0 ]; do
+    case "$1" in
         --clean)
             CLEAN=true
+            shift
             ;;
         --quick)
             QUICK=true
+            shift
+            ;;
+        --output)
+            if [ -z "$2" ]; then
+                echo "ERROR: --output requires a path"
+                exit 1
+            fi
+            OUTPUT_PATH="$2"
+            shift 2
+            ;;
+        --no-copy)
+            COPY_OUTPUT=false
+            shift
+            ;;
+        *)
+            echo "ERROR: Unknown option: $1"
+            exit 1
             ;;
     esac
 done
@@ -99,14 +121,19 @@ if [ -f "main.pdf" ]; then
     echo "Compilation successful!"
     echo "============================================================"
 
-    # Copy to output directory
-    mkdir -p output
-    cp main.pdf output/article_draft_v0.8.5.pdf
-    mkdir -p ../../../revisions/v0.8.5
-    cp main.pdf ../../../revisions/v0.8.5/article_draft_v0.8.5.pdf
+    # Copy to output directory unless disabled
+    if [ "$COPY_OUTPUT" = true ]; then
+        if [ -n "$OUTPUT_PATH" ]; then
+            mkdir -p "$(dirname "$OUTPUT_PATH")"
+            cp main.pdf "$OUTPUT_PATH"
+            echo "Copy: $OUTPUT_PATH"
+        else
+            mkdir -p output
+            cp main.pdf output/article_draft.pdf
+            echo "Copy: $(pwd)/output/article_draft.pdf"
+        fi
+    fi
     echo "Output: $(pwd)/main.pdf"
-    echo "Copy 1: $(pwd)/output/article_draft_v0.8.5.pdf"
-    echo "Copy 2: $(pwd)/../../../revisions/v0.8.5/article_draft_v0.8.5.pdf"
 
     # Report PDF info
     if command -v pdfinfo &> /dev/null; then

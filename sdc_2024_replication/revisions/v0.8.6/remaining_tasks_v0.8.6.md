@@ -35,6 +35,7 @@ status_update_memo: "sdc_2024_replication/revisions/v0.8.6/status_update_2026-01
 ## Modeling Updates (Approval Required if Results Change)
 - [x] Update Travel Ban DiD/event-study with extended refugee data and refined timing.
   - Added ADR-027 to preserve pre-COVID causal estimand and add an explicitly-labeled FY2024 regime-dynamics supplement; excluded pseudo-nationalities (e.g., `Total`) from DiD units; added appendix figure `fig_app_event_study_extended`.
+- [x] Increase Monte Carlo scenario simulation counts and parallelize for reproducible multi-core execution (ADR-028).
 - [ ] Refit wave duration metrics; reassess right-censoring and hazard ratios.
 - [ ] Add regime-aware modeling for long-run PEP series (state-space or regime dummies).
 - [ ] Integrate LPR + refugee + ACS covariates into forecasting (ARIMAX or state-space).

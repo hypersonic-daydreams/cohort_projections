@@ -1608,6 +1608,7 @@ def plot_event_study(es_df: pd.DataFrame, result: ModuleResult):
         [
             str(FIGURES_DIR / "module_7_event_study_plot"),
             str(ARTICLE_FIGURES_DIR / "event_study_travel_ban"),
+            str(ARTICLE_FIGURES_DIR / "fig_06_event_study"),
         ],
         "Event Study: Dynamic Treatment Effects of Travel Ban",
         "State Department Refugee Processing Center",

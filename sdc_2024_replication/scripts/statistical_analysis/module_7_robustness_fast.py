@@ -10,8 +10,11 @@ Implements causal inference robustness checks for P3.10 and P3.14:
 
 Usage:
     python module_7_robustness_fast.py
+    python module_7_robustness_fast.py --rigorous
+    python module_7_robustness_fast.py --n-bootstrap 9999 --n-permutations 9999
 """
 
+import argparse
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -475,6 +478,40 @@ def run_joint_pretrend_test(
 
 def main():
     """Main entry point."""
+    parser = argparse.ArgumentParser(
+        description=(
+            "Fast Module 7 robustness checks (Travel Ban DiD): wild cluster bootstrap, "
+            "randomization inference, and restricted pre-period diagnostics."
+        )
+    )
+    parser.add_argument(
+        "--n-bootstrap",
+        type=int,
+        default=999,
+        help="Wild cluster bootstrap iterations (default: 999).",
+    )
+    parser.add_argument(
+        "--n-permutations",
+        type=int,
+        default=999,
+        help="Randomization inference permutations (default: 999).",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Random seed for bootstrap/permutation (default: 42).",
+    )
+    parser.add_argument(
+        "--rigorous",
+        action="store_true",
+        help="Convenience flag: set both --n-bootstrap and --n-permutations to 9999.",
+    )
+    args = parser.parse_args()
+    if args.rigorous:
+        args.n_bootstrap = 9999
+        args.n_permutations = 9999
+
     print("=" * 70)
     print("Module 7 Robustness (Fast): Wild Cluster Bootstrap & Restricted Pre-Period")
     print(f"Started: {datetime.now(UTC).isoformat()}")
@@ -489,14 +526,18 @@ def main():
     print("\n" + "#" * 70)
     print("# ANALYSIS 1: WILD CLUSTER BOOTSTRAP (Full Pre-Period)")
     print("#" * 70)
-    wcb_full = wild_cluster_bootstrap_fast(df_did, n_bootstrap=999, seed=42)
+    wcb_full = wild_cluster_bootstrap_fast(
+        df_did, n_bootstrap=args.n_bootstrap, seed=args.seed
+    )
     results["analyses"]["wild_cluster_bootstrap_full"] = wcb_full
 
     # 2. Randomization Inference (full pre-period)
     print("\n" + "#" * 70)
     print("# ANALYSIS 2: RANDOMIZATION INFERENCE (Full Pre-Period)")
     print("#" * 70)
-    ri_full = randomization_inference_fast(df_did, n_permutations=999, seed=42)
+    ri_full = randomization_inference_fast(
+        df_did, n_permutations=args.n_permutations, seed=args.seed
+    )
     results["analyses"]["randomization_inference_full"] = ri_full
 
     # 3. Restricted Pre-Period Analysis
@@ -539,7 +580,7 @@ def main():
     print("# ANALYSIS 5: WILD CLUSTER BOOTSTRAP (Restricted 2013-2017)")
     print("#" * 70)
     wcb_restricted = wild_cluster_bootstrap_fast(
-        df_did, n_bootstrap=999, seed=42, pre_period_start=2013
+        df_did, n_bootstrap=args.n_bootstrap, seed=args.seed, pre_period_start=2013
     )
     results["analyses"]["wild_cluster_bootstrap_restricted_2013"] = wcb_restricted
 
@@ -548,7 +589,10 @@ def main():
     print("# ANALYSIS 6: RANDOMIZATION INFERENCE (Restricted 2013-2017)")
     print("#" * 70)
     ri_restricted = randomization_inference_fast(
-        df_did, n_permutations=999, seed=42, pre_period_start=2013
+        df_did,
+        n_permutations=args.n_permutations,
+        seed=args.seed,
+        pre_period_start=2013,
     )
     results["analyses"]["randomization_inference_restricted_2013"] = ri_restricted
 

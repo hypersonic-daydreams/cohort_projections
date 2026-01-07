@@ -291,7 +291,7 @@ The estimated average treatment effect on the treated (ATT) is $-1.393$ on the l
 
 Parallel trends diagnostics are mixed, requiring caution in causal interpretation. The linear pre-trend test yields a treated-country trend coefficient of 0.085 ($t = 0.94$, $p = 0.349$), but the event study's joint pre-treatment test rejects parallel trends over the full pre-period ($F = 4.22$, $p < 0.001$). Figure~\ref{fig:eventstudy} shows divergence beginning approximately 10 years before treatment, indicating that the treatment and control groups were on different trajectories prior to the policy. The immediate post-treatment coefficients shift sharply negative in 2018--2019, but because the parallel trends assumption is violated, the estimated effect conflates the policy impact with pre-existing divergence. We therefore interpret the 75\% estimate as an upper bound on the causal policy effect magnitude rather than a point estimate of the true effect, as it likely conflates the policy impact with pre-existing divergence. Appendix Figure~\ref{fig:app_event_study_extended} reports a descriptive extension through FY2024 (ADR-027); post-2020 coefficients are not interpreted as causal Travel Ban effects.
 
-\textbf{Small-sample inference robustness.} With only seven treated clusters (nationalities), conventional cluster-robust inference may be unreliable. Table~\ref{tab:bootstrap_inference} reports alternative $p$-values from wild cluster bootstrap and randomization inference. For the full pre-period specification, the wild cluster bootstrap yields $p = 0.084$ (not significant at $\alpha = 0.05$), while randomization inference yields $p = 0.043$ (significant at $\alpha = 0.05$). This sensitivity reflects the small number of treated clusters and suggests caution in claiming strong statistical significance.
+\textbf{Small-sample inference robustness.} With only seven treated clusters (nationalities), conventional cluster-robust inference may be unreliable. Table~\ref{tab:bootstrap_inference} reports alternative $p$-values from wild cluster bootstrap and randomization inference. For the full pre-period specification, the wild cluster bootstrap yields $p = 0.083$ (not significant at $\alpha = 0.05$). Randomization inference yields a two-sided $p = 0.057$ (not significant at $\alpha = 0.05$); a directionally motivated one-sided test yields $p = 0.041$. This sensitivity reflects the small number of treated clusters and suggests caution in claiming strong statistical significance.
 
 \begin{table}[htbp]
 \centering
@@ -301,13 +301,13 @@ Parallel trends diagnostics are mixed, requiring caution in causal interpretatio
 \toprule
 \textbf{Specification} & \textbf{ATT} & \textbf{Conventional $p$} & \textbf{WCB $p$} & \textbf{RI $p$} \\
 \midrule
-Full pre-period (2002--2017) & $-1.393$ & 0.031* & 0.084 & 0.043* \\
-Restricted (2013--2017) & $-1.992$ & $<$0.001*** & 0.003** & 0.002** \\
+Full pre-period (2002--2017) & $-1.393$ & 0.031* & 0.083 & 0.057 \\
+Restricted (2013--2017) & $-1.992$ & $<$0.001*** & 0.009** & 0.004** \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: WCB = Wild cluster bootstrap with Rademacher weights (999 iterations). RI = Randomization inference with treatment permutation (999 permutations). * $p < 0.05$; ** $p < 0.01$; *** $p < 0.001$.
+\item \textit{Notes}: WCB = Wild cluster bootstrap with Rademacher weights (9,999 iterations, two-sided test based on the treatment $t$-statistic). RI = Randomization inference with treatment permutation (9,999 permutations; two-sided $p$ shown). * $p < 0.05$; ** $p < 0.01$; *** $p < 0.001$.
 \end{tablenotes}
 \end{table}
 
@@ -413,20 +413,20 @@ Pre-2020 Trend & Anchor 2019; continue 2010--2019 slope (+72/year) & 2,517 \\
 Immigration Policy & Reduced admissions via SDC factor (0.65x) & 4,581 \\
 Zero & No international migration & 0 \\
 \midrule
-Monte Carlo Median & Stochastic trend with $CV_{2045} = 0.38$ & 9,056 \\
-\quad 50\% PI & & [6,450, 11,292] \\
-\quad 95\% PI & & [3,570, 14,491] \\
+Monte Carlo Median & Stochastic trend with $CV_{2045} = 0.38$ & 9,070 \\
+\quad 50\% PI & & [6,773, 11,353] \\
+\quad 95\% PI & & [3,360, 14,756] \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: CBO = Congressional Budget Office elevated immigration scenario. PI = prediction interval from 1,000 Monte Carlo draws. $CV_{2045}$ denotes the coefficient of variation of simulated 2045 outcomes (historical CV is 82.5\%). Baseline 2024 value = 5,126.
+\item \textit{Notes}: CBO = Congressional Budget Office elevated immigration scenario. PI = prediction interval from 25,000 Monte Carlo draws. $CV_{2045}$ denotes the coefficient of variation of simulated 2045 outcomes (historical CV is 82.5\%). Baseline 2024 value = 5,126.
 \end{tablenotes}
 \end{table}
 
 The five deterministic scenarios yield dramatically different endpoints. The CBO Full scenario applies 10\% above-ARIMA levels for 2025--2029 and then compounds at 8\% annually, projecting net international migration of 19,318 persons by 2045. The Moderate scenario, applying 50\% dampening to historical trends, yields 7,048. The Pre-2020 Trend scenario anchors at the 2019 level and extrapolates the 2010--2019 slope, projecting only 2,517---reflecting the modest pre-pandemic growth rate. The Immigration Policy scenario applies a 35\% reduction to the Moderate trajectory (0.65$\times$), yielding 4,581 migrants by 2045. The Zero scenario provides a floor of 0.
 
-Monte Carlo simulation propagates parameter uncertainty through the projection model. Based on 1,000 draws from estimated trend and volatility distributions ($CV_{2045} = 0.38$), the median 2045 projection is 9,056 persons, with a 50\% prediction interval of [6,450, 11,292] and a 95\% prediction interval of [3,570, 14,491]. The latter interval spans a factor of 4.1, reflecting substantial irreducible uncertainty over a 20-year horizon given the observed volatility and structural instability. The simulation CV refers to dispersion in projected 2045 outcomes and is not directly comparable to the historical CV of annual observations.
+Monte Carlo simulation propagates parameter uncertainty through the projection model. Based on 25,000 draws from estimated trend and volatility distributions ($CV_{2045} = 0.38$), the median 2045 projection is 9,070 persons, with a 50\% prediction interval of [6,773, 11,353] and a 95\% prediction interval of [3,360, 14,756]. The latter interval spans a factor of 4.4, reflecting substantial irreducible uncertainty over a 20-year horizon given the observed volatility and structural instability. The simulation CV refers to dispersion in projected 2045 outcomes and is not directly comparable to the historical CV of annual observations.
 
 Model averaging weights alternative time series specifications by AIC. The VAR model receives effectively all AIC weight (1.000) relative to the univariate ARIMA (weight $\approx 0$), reflecting the superior fit of the multivariate specification. For cross-sectional models, Random Forest receives the highest $R^2$-based weight (0.462), followed by Elastic Net (0.293) and OLS (0.245).
 

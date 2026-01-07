@@ -12,18 +12,23 @@ projections for North Dakota immigration. Implements:
    - Moderate: Middle-ground assumptions
    - Zero: Zero net immigration scenario
    - Pre-2020 Trend: Continue historical trend
-3. Monte Carlo simulation (1000 draws) for uncertainty quantification
+3. Monte Carlo simulation (configurable draws) for uncertainty quantification
 4. Prediction intervals and fan chart data for visualization
 
 Usage:
     micromamba run -n cohort_proj python module_9_scenario_modeling.py
+    python module_9_scenario_modeling.py --rigorous
+    python module_9_scenario_modeling.py --n-draws 25000 --n-jobs 0
 """
 
+import argparse
 import json
 import logging
+import os
 import sys
 import traceback
 import warnings
+from concurrent.futures import ProcessPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Optional
@@ -85,6 +90,69 @@ CATEGORICAL = [
     "#E69F00",
     "#999999",
 ]
+
+
+def _simulate_module9_monte_carlo_chunk(
+    *,
+    chunk_seed: int,
+    n_chunk_draws: int,
+    n_years: int,
+    baseline: float,
+    median_trend: float,
+    trend_std: float,
+    arima_forecasts: list[dict],
+    arima_ses: list[float],
+    active_waves: list,
+    duration_bundle: Optional[DurationModelBundle],
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Run a Monte Carlo simulation chunk for Module 9.
+
+    This function is defined at module scope so it can be pickled by
+    `ProcessPoolExecutor`.
+    """
+    rng = np.random.default_rng(chunk_seed)
+    sims_chunk = np.zeros((n_chunk_draws, n_years))
+    wave_chunk = np.zeros((n_chunk_draws, n_years))
+
+    for draw in range(n_chunk_draws):
+        trend_draw = float(rng.normal(median_trend, trend_std))
+        innovation_scale = float(rng.uniform(0.8, 1.2))
+
+        current = baseline
+        for t in range(n_years):
+            if t < len(arima_ses):
+                se = float(arima_ses[t]) * innovation_scale
+                point = (
+                    float(arima_forecasts[t]["point"])
+                    if t < len(arima_forecasts)
+                    else current + trend_draw
+                )
+                current = float(rng.normal(point, se))
+            else:
+                innovation_std = float(
+                    trend_std * np.sqrt(t - len(arima_ses) + 1) * innovation_scale
+                )
+                current = float(current + trend_draw + rng.normal(0, innovation_std))
+
+            sims_chunk[draw, t] = max(0.0, current)
+
+        if active_waves and duration_bundle is not None:
+            # Keep wave randomness independent of parallel scheduling.
+            wave_rng = np.random.default_rng(int(rng.integers(0, 2**32 - 1)))
+            draw_adjustment = np.zeros(n_years)
+            for wave in active_waves:
+                draw_adjustment += simulate_wave_contributions(
+                    wave,
+                    duration_bundle.predictor,
+                    duration_bundle.lifecycle_stats,
+                    horizon=n_years,
+                    rng=wave_rng,
+                )
+            wave_chunk[draw, :] = draw_adjustment
+            sims_chunk[draw, :] = np.maximum(0.0, sims_chunk[draw, :] + draw_adjustment)
+
+    return sims_chunk, wave_chunk
 
 
 class ModuleResult:
@@ -701,6 +769,9 @@ def monte_carlo_simulation(
     estimates: dict,
     result: ModuleResult,
     n_draws: int = 1000,
+    seed: int = 42,
+    n_jobs: int = 1,
+    chunk_size: int = 1000,
 ) -> dict:
     """
     Run Monte Carlo simulation to quantify forecast uncertainty.
@@ -708,9 +779,7 @@ def monte_carlo_simulation(
     Uses parameter uncertainty from model estimates to generate
     distribution of future outcomes.
     """
-    print(f"\n--- Monte Carlo Simulation ({n_draws} draws) ---")
-
-    np.random.seed(42)  # Reproducibility
+    print(f"\n--- Monte Carlo Simulation ({n_draws:,} draws) ---")
 
     # Projection parameters
     base_year = 2024
@@ -760,53 +829,81 @@ def monte_carlo_simulation(
                 wave_baseline,
             )
 
+    if n_draws <= 0:
+        raise ValueError("n_draws must be positive.")
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be positive.")
+
+    if n_jobs == 0:
+        n_jobs = os.cpu_count() or 1
+    n_jobs = max(1, int(n_jobs))
+
+    n_chunks = int(np.ceil(n_draws / chunk_size))
+    chunk_sizes = [
+        chunk_size if i < n_chunks - 1 else (n_draws - chunk_size * (n_chunks - 1))
+        for i in range(n_chunks)
+    ]
+    chunk_seed_sequences = np.random.SeedSequence(seed).spawn(n_chunks)
+    chunk_seeds = [
+        int(np.random.default_rng(seq).integers(0, 2**32 - 1))
+        for seq in chunk_seed_sequences
+    ]
+
+    effective_workers = min(n_jobs, n_chunks)
+    print(
+        f"  Parallel settings: workers={effective_workers}, chunk_size={chunk_size:,}, "
+        f"chunks={n_chunks}, seed={seed}"
+    )
+
     # Storage for simulation results
     simulations = np.zeros((n_draws, n_years))
     wave_adjustments = np.zeros((n_draws, n_years))
-    wave_rng = np.random.default_rng(42)
 
-    for draw in range(n_draws):
-        # Draw trend parameter
-        trend_draw = np.random.normal(median_trend, trend_std)
-
-        # Draw random walk innovation variance scale
-        innovation_scale = np.random.uniform(0.8, 1.2)
-
-        # Simulate path
-        current = baseline
-        for t in range(n_years):
-            # Trend component
-            if t < len(arima_ses):
-                # Use ARIMA forecast uncertainty for near term
-                se = arima_ses[t] * innovation_scale
-                point = (
-                    arima_forecasts[t]["point"]
-                    if t < len(arima_forecasts)
-                    else current + trend_draw
+    if effective_workers == 1:
+        offset = 0
+        for chunk_seed, n_chunk_draws in zip(chunk_seeds, chunk_sizes, strict=False):
+            sims_chunk, wave_chunk = _simulate_module9_monte_carlo_chunk(
+                chunk_seed=chunk_seed,
+                n_chunk_draws=n_chunk_draws,
+                n_years=n_years,
+                baseline=baseline,
+                median_trend=median_trend,
+                trend_std=trend_std,
+                arima_forecasts=arima_forecasts,
+                arima_ses=arima_ses,
+                active_waves=active_waves,
+                duration_bundle=duration_bundle,
+            )
+            simulations[offset : offset + n_chunk_draws, :] = sims_chunk
+            wave_adjustments[offset : offset + n_chunk_draws, :] = wave_chunk
+            offset += n_chunk_draws
+    else:
+        futures = {}
+        with ProcessPoolExecutor(max_workers=effective_workers) as executor:
+            for chunk_idx, (chunk_seed, n_chunk_draws) in enumerate(
+                zip(chunk_seeds, chunk_sizes, strict=False)
+            ):
+                futures[chunk_idx] = executor.submit(
+                    _simulate_module9_monte_carlo_chunk,
+                    chunk_seed=chunk_seed,
+                    n_chunk_draws=n_chunk_draws,
+                    n_years=n_years,
+                    baseline=baseline,
+                    median_trend=median_trend,
+                    trend_std=trend_std,
+                    arima_forecasts=arima_forecasts,
+                    arima_ses=arima_ses,
+                    active_waves=active_waves,
+                    duration_bundle=duration_bundle,
                 )
-                current = np.random.normal(point, se)
-            else:
-                # Random walk with drift for longer horizon
-                innovation_std = (
-                    trend_std * np.sqrt(t - len(arima_ses) + 1) * innovation_scale
-                )
-                current = current + trend_draw + np.random.normal(0, innovation_std)
 
-            # Enforce non-negativity
-            simulations[draw, t] = max(0, current)
-
-        if active_waves:
-            draw_adjustment = np.zeros(n_years)
-            for wave in active_waves:
-                draw_adjustment += simulate_wave_contributions(
-                    wave,
-                    duration_bundle.predictor,
-                    duration_bundle.lifecycle_stats,
-                    horizon=n_years,
-                    rng=wave_rng,
-                )
-            wave_adjustments[draw, :] = draw_adjustment
-            simulations[draw, :] = np.maximum(0, simulations[draw, :] + draw_adjustment)
+            offset = 0
+            for chunk_idx in range(n_chunks):
+                sims_chunk, wave_chunk = futures[chunk_idx].result()
+                n_chunk_draws = sims_chunk.shape[0]
+                simulations[offset : offset + n_chunk_draws, :] = sims_chunk
+                wave_adjustments[offset : offset + n_chunk_draws, :] = wave_chunk
+                offset += n_chunk_draws
 
     # Compute percentiles
     percentiles = [5, 10, 25, 50, 75, 90, 95]
@@ -843,7 +940,7 @@ def monte_carlo_simulation(
     result.add_decision(
         decision_id="D004",
         category="uncertainty_quantification",
-        decision=f"Ran {n_draws}-draw Monte Carlo simulation",
+        decision=f"Ran {n_draws:,}-draw Monte Carlo simulation (seed={seed}, workers={effective_workers})",
         rationale="Propagate parameter uncertainty through projections",
         alternatives=["Analytical prediction intervals", "Bootstrapping"],
         evidence="Trend uncertainty from quantile regression range",
@@ -872,6 +969,9 @@ def monte_carlo_simulation(
 
     mc_results = {
         "n_draws": n_draws,
+        "seed": seed,
+        "n_jobs": n_jobs,
+        "chunk_size": chunk_size,
         "projection_years": projection_years,
         "parameters": {
             "trend_mean": median_trend,
@@ -1141,7 +1241,7 @@ def plot_fan_chart(
         fig,
         str(FIGURES_DIR / "module_9_fan_chart"),
         "International Migration to North Dakota: Fan Chart Projection (2025-2045)",
-        "Monte Carlo simulation with 1,000 draws | Census Bureau Components of Change",
+        f"Monte Carlo simulation with {mc_results['n_draws']:,} draws | Census Bureau Components of Change",
     )
 
 
@@ -1245,7 +1345,13 @@ def plot_scenario_comparison(
     )
 
 
-def run_analysis() -> ModuleResult:
+def run_analysis(
+    *,
+    n_draws: int,
+    seed: int,
+    n_jobs: int,
+    chunk_size: int,
+) -> ModuleResult:
     """Main analysis function for Module 9."""
     result = ModuleResult(
         module_id="9",
@@ -1269,7 +1375,10 @@ def run_analysis() -> ModuleResult:
         "base_year": 2024,
         "projection_horizon": "2025-2045",
         "n_projection_years": 21,
-        "monte_carlo_draws": 1000,
+        "monte_carlo_draws": n_draws,
+        "monte_carlo_seed": seed,
+        "monte_carlo_workers_requested": n_jobs,
+        "monte_carlo_chunk_size": chunk_size,
         "scenarios": [
             "CBO Full",
             "Moderate",
@@ -1287,8 +1396,15 @@ def run_analysis() -> ModuleResult:
 
     # Run Monte Carlo simulation
     mc_results, simulations = monte_carlo_simulation(
-        df_migration, estimates, result, n_draws=1000
+        df_migration,
+        estimates,
+        result,
+        n_draws=n_draws,
+        seed=seed,
+        n_jobs=n_jobs,
+        chunk_size=chunk_size,
     )
+    result.parameters["monte_carlo_workers"] = mc_results.get("n_jobs")
 
     # Compute prediction intervals
     ci_data = compute_confidence_intervals(scenarios, mc_results, result)
@@ -1400,13 +1516,53 @@ def run_analysis() -> ModuleResult:
 
 def main():
     """Main entry point."""
+    parser = argparse.ArgumentParser(description="Module 9 scenario modeling.")
+    parser.add_argument(
+        "--n-draws",
+        type=int,
+        default=1000,
+        help="Monte Carlo draw count (default: 1000).",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Monte Carlo random seed (default: 42).",
+    )
+    parser.add_argument(
+        "--n-jobs",
+        type=int,
+        default=1,
+        help="Parallel worker processes; 0 uses all CPUs (default: 1).",
+    )
+    parser.add_argument(
+        "--chunk-size",
+        type=int,
+        default=1000,
+        help="Draws per parallel chunk (default: 1000).",
+    )
+    parser.add_argument(
+        "--rigorous",
+        action="store_true",
+        help="Convenience flag: set --n-draws 25000 and --n-jobs 0.",
+    )
+    args = parser.parse_args()
+    if args.rigorous:
+        args.n_draws = 25000
+        args.n_jobs = 0
+
     print("=" * 70)
     print("Module 9: Scenario Modeling Agent")
     print(f"Started: {datetime.now(UTC).isoformat()}")
     print("=" * 70)
 
     try:
-        result = run_analysis()
+        result = run_analysis(
+            n_draws=args.n_draws,
+            seed=args.seed,
+            n_jobs=args.n_jobs,
+            chunk_size=args.chunk_size,
+        )
         output_file = result.save("module_9_scenario_modeling.json")
 
         print("\n" + "=" * 70)

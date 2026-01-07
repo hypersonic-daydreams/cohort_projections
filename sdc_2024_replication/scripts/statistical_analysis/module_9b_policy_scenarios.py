@@ -27,6 +27,8 @@ Key Features:
 
 Usage:
     uv run python module_9b_policy_scenarios.py
+    uv run python module_9b_policy_scenarios.py --rigorous
+    uv run python module_9b_policy_scenarios.py --n-simulations 25000 --n-jobs 0
 
 References:
 - ADR-021 Phase B Wave 3
@@ -37,10 +39,13 @@ References:
 
 from __future__ import annotations
 
+import argparse
 import json
+import os
 import sys
 import traceback
 import warnings
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
@@ -77,6 +82,121 @@ ADR_RESULTS_DIR = (
 ADR_FIGURES_DIR = (
     PROJECT_ROOT / "docs" / "governance" / "adrs" / "021-reports" / "figures"
 )
+
+
+def _simulate_module9b_policy_chunk(
+    *,
+    scenario: PolicyScenario,
+    nd_share: float,
+    siv_baseline: float,
+    base_year: int,
+    proj_years: list[int],
+    n_chunk_sims: int,
+    chunk_seed: int,
+    siv_half_life_years: float,
+    siv_floor: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Run a Monte Carlo chunk for a single policy scenario."""
+    rng = np.random.default_rng(chunk_seed)
+    n_years = len(proj_years)
+
+    durable_sims = np.zeros((n_chunk_sims, n_years))
+    temporary_sims = np.zeros((n_chunk_sims, n_years))
+
+    ceiling_achievement = 0.60  # Ceilings are aspirational; typical realization ~60%.
+    years_from_base = [year - base_year for year in proj_years]
+    cap_mults = [scenario.capacity.get_multiplier(t) for t in years_from_base]
+    ceilings = [scenario.refugee_ceiling.get_ceiling(year) for year in proj_years]
+    siv_decay = [
+        siv_decay_factor(
+            year,
+            base_year=base_year,
+            half_life_years=siv_half_life_years,
+            floor=siv_floor,
+        )
+        for year in proj_years
+    ]
+    parole_wind_down = [max(0.0, 1.0 - (t / 3.0)) for t in years_from_base]
+
+    welcome_corps = None
+    if scenario.welcome_corps_growth is not None:
+        base_wc = 50.0
+        welcome_corps = [
+            base_wc * (1 + float(scenario.welcome_corps_growth)) ** t for t in years_from_base
+        ]
+
+    for sim in range(n_chunk_sims):
+        ceiling_variation = float(rng.uniform(0.85, 1.15))
+        share_variation = float(rng.uniform(0.90, 1.10))
+        parole_variation = float(rng.uniform(0.80, 1.20))
+        siv_variation = float(rng.uniform(0.85, 1.15))
+
+        parole_cohorts: list[tuple[int, float]] = []
+
+        for t, year in enumerate(proj_years):
+            cap_mult = cap_mults[t]
+
+            siv_capacity_ratio = (
+                cap_mult / scenario.capacity.base_multiplier
+                if scenario.capacity.base_multiplier > 0
+                else cap_mult
+            )
+            nd_siv_new = (
+                siv_baseline
+                * siv_capacity_ratio
+                * siv_decay[t]
+                * siv_variation
+            )
+
+            national_arrivals = ceilings[t] * ceiling_achievement * ceiling_variation
+            nd_refugee = national_arrivals * nd_share * cap_mult * share_variation
+
+            if scenario.parole_continuation:
+                nd_parole_new = float(scenario.parole_annual_estimate) * parole_variation
+            else:
+                nd_parole_new = (
+                    float(scenario.parole_annual_estimate)
+                    * parole_wind_down[t]
+                    * parole_variation
+                )
+
+            parole_cohorts.append((year, nd_parole_new))
+
+            welcome_val = welcome_corps[t] if welcome_corps is not None else 0.0
+
+            durable = nd_refugee * scenario.durability.refugee_survival_5yr
+            durable += nd_siv_new * scenario.durability.refugee_survival_5yr
+            durable += welcome_val * scenario.durability.refugee_survival_5yr
+
+            for cohort_year, cohort_amount in parole_cohorts:
+                cohort_age = year - cohort_year
+                cliff_start, cliff_end = scenario.durability.parole_cliff_years
+
+                if cohort_age <= cliff_start:
+                    survival_factor = 1.0
+                elif cohort_age <= cliff_end:
+                    cliff_progress = (cohort_age - cliff_start) / (cliff_end - cliff_start)
+                    reg_prob = scenario.durability.regularization_probability
+                    survival_factor = reg_prob + (1 - reg_prob) * (1 - cliff_progress)
+                else:
+                    reg_prob = scenario.durability.regularization_probability
+                    survival_factor = (
+                        reg_prob * scenario.durability.refugee_survival_5yr
+                        + (1 - reg_prob) * 0.10
+                    )
+
+                reg_prob = scenario.durability.regularization_probability
+                if cohort_age > cliff_end:
+                    durable += cohort_amount * survival_factor * reg_prob
+                    temporary_sims[sim, t] += (
+                        cohort_amount * survival_factor * (1 - reg_prob)
+                    )
+                else:
+                    temporary_sims[sim, t] += cohort_amount * survival_factor
+
+            durable_sims[sim, t] = durable
+
+    return durable_sims, temporary_sims
 
 
 def _immigration_analysis_dir() -> Path:
@@ -485,64 +605,123 @@ def load_historical_data(result: ModuleResult) -> pd.DataFrame:
 
     Returns DataFrame with year and nd_intl_migration columns.
     """
-    conn = db_config.get_db_connection()
     try:
-        query = """
-        SELECT
-            year,
-            intl_migration as nd_intl_migration
-        FROM census.state_components
-        WHERE state_name = 'North Dakota'
-          AND intl_migration IS NOT NULL
-        ORDER BY year
-        """
-        df = pd.read_sql(query, conn)
-        result.input_files.append("census.state_components (PostgreSQL)")
-        print(f"  Loaded historical data: {len(df)} years ({df['year'].min()}-{df['year'].max()})")
+        conn = db_config.get_db_connection()
+        try:
+            query = """
+            SELECT
+                year,
+                intl_migration as nd_intl_migration
+            FROM census.state_components
+            WHERE state_name = 'North Dakota'
+              AND intl_migration IS NOT NULL
+            ORDER BY year
+            """
+            df = pd.read_sql(query, conn)
+            result.input_files.append("census.state_components (PostgreSQL)")
+            print(
+                f"  Loaded historical data: {len(df)} years ({df['year'].min()}-{df['year'].max()})"
+            )
+            return df
+        finally:
+            conn.close()
+    except Exception as exc:
+        result.warnings.append(
+            f"PostgreSQL load failed for historical migration; falling back to files ({exc})."
+        )
+        path = _immigration_analysis_dir() / "nd_migration_summary.csv"
+        df = pd.read_csv(path)[["year", "nd_intl_migration"]].copy()
+        result.input_files.append(str(path))
+        print(
+            f"  Loaded historical data (files): {len(df)} years ({df['year'].min()}-{df['year'].max()})"
+        )
         return df
-    finally:
-        conn.close()
 
 
 def load_nd_refugee_arrivals(result: ModuleResult) -> pd.DataFrame:
     """Load ND refugee arrivals by fiscal year."""
-    conn = db_config.get_db_connection()
     try:
-        query = """
-        SELECT
-            fiscal_year as year,
-            SUM(arrivals) as refugee_arrivals
-        FROM rpc.refugee_arrivals
-        WHERE destination_state = 'North Dakota'
-        GROUP BY fiscal_year
-        ORDER BY fiscal_year
-        """
-        df = pd.read_sql(query, conn)
-        result.input_files.append("rpc.refugee_arrivals (PostgreSQL)")
-        print(f"  Loaded refugee arrivals: {len(df)} years")
+        conn = db_config.get_db_connection()
+        try:
+            query = """
+            SELECT
+                fiscal_year as year,
+                SUM(arrivals) as refugee_arrivals
+            FROM rpc.refugee_arrivals
+            WHERE destination_state = 'North Dakota'
+            GROUP BY fiscal_year
+            ORDER BY fiscal_year
+            """
+            df = pd.read_sql(query, conn)
+            result.input_files.append("rpc.refugee_arrivals (PostgreSQL)")
+            print(f"  Loaded refugee arrivals: {len(df)} years")
+            return df
+        finally:
+            conn.close()
+    except Exception as exc:
+        result.warnings.append(
+            f"PostgreSQL load failed for ND refugee arrivals; falling back to files ({exc})."
+        )
+        path = _immigration_analysis_dir() / "refugee_arrivals_by_state_nationality.parquet"
+        df_raw = pd.read_parquet(path)
+        result.input_files.append(str(path))
+
+        nat_lower = (
+            df_raw["nationality"].fillna("").astype(str).str.strip().str.lower()
+        )
+        df_raw = df_raw.loc[~nat_lower.isin({"total", "fy refugee admissions"})].copy()
+
+        df = (
+            df_raw[df_raw["state"] == "North Dakota"]
+            .groupby("fiscal_year", as_index=False)["arrivals"]
+            .sum()
+            .rename(columns={"fiscal_year": "year", "arrivals": "refugee_arrivals"})
+            .sort_values("year")
+            .reset_index(drop=True)
+        )
+        print(f"  Loaded refugee arrivals (files): {len(df)} years")
         return df
-    finally:
-        conn.close()
 
 
 def load_national_refugee_totals(result: ModuleResult) -> pd.DataFrame:
     """Load national refugee arrival totals by fiscal year."""
-    conn = db_config.get_db_connection()
     try:
-        query = """
-        SELECT
-            fiscal_year as year,
-            SUM(arrivals) as national_arrivals
-        FROM rpc.refugee_arrivals
-        WHERE fiscal_year <= 2020
-        GROUP BY fiscal_year
-        ORDER BY fiscal_year
-        """
-        df = pd.read_sql(query, conn)
-        result.input_files.append("rpc.refugee_arrivals (national, PostgreSQL)")
-        print(f"  Loaded national refugee totals: {len(df)} years (FY2002-2020)")
-    finally:
-        conn.close()
+        conn = db_config.get_db_connection()
+        try:
+            query = """
+            SELECT
+                fiscal_year as year,
+                SUM(arrivals) as national_arrivals
+            FROM rpc.refugee_arrivals
+            WHERE fiscal_year <= 2020
+            GROUP BY fiscal_year
+            ORDER BY fiscal_year
+            """
+            df = pd.read_sql(query, conn)
+            result.input_files.append("rpc.refugee_arrivals (national, PostgreSQL)")
+            print(f"  Loaded national refugee totals: {len(df)} years (FY2002-2020)")
+        finally:
+            conn.close()
+    except Exception as exc:
+        result.warnings.append(
+            f"PostgreSQL load failed for national refugee totals; falling back to files ({exc})."
+        )
+        path = _immigration_analysis_dir() / "refugee_arrivals_by_state_nationality.parquet"
+        df_raw = pd.read_parquet(path)
+        result.input_files.append(str(path))
+
+        nat_lower = (
+            df_raw["nationality"].fillna("").astype(str).str.strip().str.lower()
+        )
+        df_raw = df_raw.loc[~nat_lower.isin({"total", "fy refugee admissions"})].copy()
+
+        df = (
+            df_raw.groupby("fiscal_year", as_index=False)["arrivals"]
+            .sum()
+            .rename(columns={"fiscal_year": "year", "arrivals": "national_arrivals"})
+        )
+        df = df[df["year"] <= 2020].sort_values("year").reset_index(drop=True)
+        print(f"  Loaded national refugee totals (files): {len(df)} years (FY2002-2020)")
 
     official_post_2020 = pd.DataFrame(
         {
@@ -918,6 +1097,9 @@ def project_scenario(
     base_year: int = 2024,
     horizon_end: int = 2045,
     n_simulations: int = 1000,
+    seed: int = 42,
+    n_jobs: int = 1,
+    chunk_size: int = 1000,
     siv_half_life_years: float = 6.0,
     siv_floor: float = 0.10,
     result: ModuleResult | None = None,
@@ -933,114 +1115,92 @@ def project_scenario(
         base_year: Starting year for projection
         horizon_end: End year for projection
         n_simulations: Number of Monte Carlo draws
+        seed: Random seed for Monte Carlo
+        n_jobs: Parallel worker processes; 0 uses all CPUs
+        chunk_size: Simulations per parallel chunk
         result: Optional ModuleResult for logging
 
     Returns:
         ScenarioProjection with point estimates and uncertainty bounds
     """
-    rng = np.random.default_rng(42)
-
     proj_years = list(range(base_year + 1, horizon_end + 1))
     n_years = len(proj_years)
 
-    # Storage for Monte Carlo simulation
-    durable_sims = np.zeros((n_simulations, n_years))
-    temporary_sims = np.zeros((n_simulations, n_years))
+    if n_simulations <= 0:
+        raise ValueError("n_simulations must be positive.")
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be positive.")
 
-    # Ceiling achievement rate (ceilings are aspirational)
-    ceiling_achievement = 0.60  # Typical ~60% of ceiling achieved
+    if n_jobs == 0:
+        n_jobs = os.cpu_count() or 1
+    n_jobs = max(1, int(n_jobs))
 
-    for sim in range(n_simulations):
-        # Draw stochastic parameters
-        ceiling_variation = rng.uniform(0.85, 1.15)
-        share_variation = rng.uniform(0.90, 1.10)
-        parole_variation = rng.uniform(0.80, 1.20)
-        siv_variation = rng.uniform(0.85, 1.15)
+    n_chunks = int(np.ceil(n_simulations / chunk_size))
+    chunk_sizes = [
+        chunk_size
+        if i < n_chunks - 1
+        else (n_simulations - chunk_size * (n_chunks - 1))
+        for i in range(n_chunks)
+    ]
+    chunk_seed_sequences = np.random.SeedSequence(seed).spawn(n_chunks)
+    chunk_seeds = [
+        int(np.random.default_rng(seq).integers(0, 2**32 - 1))
+        for seq in chunk_seed_sequences
+    ]
 
-        # Track cumulative cohorts for survival modeling
-        parole_cohorts: list[tuple[int, float]] = []  # (arrival_year, amount)
+    effective_workers = min(n_jobs, n_chunks)
+    if result is not None:
+        result.add_decision(
+            decision_id="PS_MC01",
+            category="uncertainty_quantification",
+            decision=(
+                f"Policy-scenario Monte Carlo: {n_simulations:,} simulations "
+                f"(seed={seed}, workers={effective_workers}, chunk_size={chunk_size:,})"
+            ),
+            rationale="Increase Monte Carlo sample size for stable interval estimates; parallelize across CPU cores.",
+            alternatives=["1,000 draws (legacy default)", "Analytical intervals"],
+        )
 
-        for t, year in enumerate(proj_years):
-            years_from_base = year - base_year
-
-            # Get capacity multiplier for this year
-            cap_mult = scenario.capacity.get_multiplier(years_from_base)
-
-            # --- Amerasian/SIV Component (durable, scenario-linked + sunset) ---
-            siv_capacity_ratio = (
-                cap_mult / scenario.capacity.base_multiplier
-                if scenario.capacity.base_multiplier > 0
-                else cap_mult
-            )
-            nd_siv_new = (
-                siv_baseline
-                * siv_capacity_ratio
-                * siv_decay_factor(
-                    year,
+    chunks: list[tuple[np.ndarray, np.ndarray]] = []
+    if effective_workers == 1:
+        for n_chunk_sims, chunk_seed in zip(chunk_sizes, chunk_seeds, strict=False):
+            chunks.append(
+                _simulate_module9b_policy_chunk(
+                    scenario=scenario,
+                    nd_share=nd_share,
+                    siv_baseline=siv_baseline,
                     base_year=base_year,
-                    half_life_years=siv_half_life_years,
-                    floor=siv_floor,
+                    proj_years=proj_years,
+                    n_chunk_sims=n_chunk_sims,
+                    chunk_seed=chunk_seed,
+                    siv_half_life_years=siv_half_life_years,
+                    siv_floor=siv_floor,
                 )
-                * siv_variation
             )
+    else:
+        futures = {}
+        with ProcessPoolExecutor(max_workers=effective_workers) as executor:
+            for idx, (n_chunk_sims, chunk_seed) in enumerate(
+                zip(chunk_sizes, chunk_seeds, strict=False)
+            ):
+                futures[idx] = executor.submit(
+                    _simulate_module9b_policy_chunk,
+                    scenario=scenario,
+                    nd_share=nd_share,
+                    siv_baseline=siv_baseline,
+                    base_year=base_year,
+                    proj_years=proj_years,
+                    n_chunk_sims=n_chunk_sims,
+                    chunk_seed=chunk_seed,
+                    siv_half_life_years=siv_half_life_years,
+                    siv_floor=siv_floor,
+                )
 
-            # --- Refugee Component ---
-            ceiling = scenario.refugee_ceiling.get_ceiling(year)
-            national_arrivals = ceiling * ceiling_achievement * ceiling_variation
-            nd_refugee = national_arrivals * nd_share * cap_mult * share_variation
+            for idx in range(n_chunks):
+                chunks.append(futures[idx].result())
 
-            # --- Parole Component ---
-            if scenario.parole_continuation:
-                nd_parole_new = scenario.parole_annual_estimate * parole_variation
-            else:
-                # Parole winds down
-                wind_down_factor = max(0, 1 - (years_from_base / 3))
-                nd_parole_new = scenario.parole_annual_estimate * wind_down_factor * parole_variation
-
-            parole_cohorts.append((year, nd_parole_new))
-
-            # --- Welcome Corps Component ---
-            welcome_corps = 0.0
-            if scenario.welcome_corps_growth is not None:
-                # Start with ~50 ND arrivals, grow at specified rate
-                base_wc = 50
-                welcome_corps = base_wc * (1 + scenario.welcome_corps_growth) ** years_from_base
-
-            # --- Apply Survival/Durability ---
-            # Durable: refugees + SIV + regularized parole survivors + welcome corps
-            durable = nd_refugee * scenario.durability.refugee_survival_5yr
-            durable += nd_siv_new * scenario.durability.refugee_survival_5yr
-            durable += welcome_corps * scenario.durability.refugee_survival_5yr
-
-            # Parole survivors after cliff
-            for cohort_year, cohort_amount in parole_cohorts:
-                cohort_age = year - cohort_year
-                cliff_start, cliff_end = scenario.durability.parole_cliff_years
-
-                if cohort_age <= cliff_start:
-                    # Pre-cliff: full survival
-                    survival_factor = 1.0
-                elif cohort_age <= cliff_end:
-                    # During cliff
-                    cliff_progress = (cohort_age - cliff_start) / (cliff_end - cliff_start)
-                    reg_prob = scenario.durability.regularization_probability
-                    # Regularized survive, non-regularized depart
-                    survival_factor = reg_prob + (1 - reg_prob) * (1 - cliff_progress)
-                else:
-                    # Post-cliff
-                    reg_prob = scenario.durability.regularization_probability
-                    survival_factor = reg_prob * scenario.durability.refugee_survival_5yr + \
-                                      (1 - reg_prob) * 0.10  # Non-regularized mostly departed
-
-                # Add surviving parole to durable or temporary
-                if cohort_age > cliff_end:
-                    # Post-cliff survivors are mostly regularized = durable
-                    durable += cohort_amount * survival_factor * reg_prob
-                    temporary_sims[sim, t] += cohort_amount * survival_factor * (1 - reg_prob)
-                else:
-                    temporary_sims[sim, t] += cohort_amount * survival_factor
-
-            durable_sims[sim, t] = durable
+    durable_sims = np.vstack([chunk[0] for chunk in chunks])
+    temporary_sims = np.vstack([chunk[1] for chunk in chunks])
 
     # Compute summary statistics
     total_sims = durable_sims + temporary_sims
@@ -1084,7 +1244,11 @@ def run_all_projections(
     nd_share: float,
     siv_baseline: float,
     result: ModuleResult,
+    *,
     n_simulations: int = 1000,
+    seed: int = 42,
+    n_jobs: int = 1,
+    chunk_size: int = 1000,
 ) -> dict[ScenarioType, ScenarioProjection]:
     """
     Run projections for all scenarios.
@@ -1102,6 +1266,9 @@ def run_all_projections(
             nd_share=nd_share,
             siv_baseline=siv_baseline,
             n_simulations=n_simulations,
+            seed=seed,
+            n_jobs=n_jobs,
+            chunk_size=chunk_size,
             result=result,
         )
         projections[scenario_type] = projection
@@ -1115,10 +1282,13 @@ def run_all_projections(
     result.add_decision(
         decision_id="PS003",
         category="methodology",
-        decision=f"Ran Monte Carlo projections with {n_simulations} simulations per scenario",
+        decision=(
+            f"Ran Monte Carlo projections with {n_simulations:,} simulations per scenario "
+            f"(seed={seed}, workers={n_jobs}, chunk_size={chunk_size:,})"
+        ),
         rationale="Propagate parameter uncertainty through projections",
         alternatives=["Deterministic projections", "Bootstrapping"],
-        evidence="Random seed fixed at 42 for reproducibility",
+        evidence="Parallelized simulation chunks with deterministic per-chunk seeds",
     )
 
     return projections
@@ -1360,8 +1530,18 @@ def plot_policy_lever_sensitivity(
 # =============================================================================
 
 
-def run_analysis() -> ModuleResult:
+def run_analysis(
+    *,
+    n_simulations: int,
+    seed: int,
+    n_jobs: int,
+    chunk_size: int,
+) -> ModuleResult:
     """Main analysis function for Module 9b Policy Scenarios."""
+    n_jobs_requested = n_jobs
+    if n_jobs == 0:
+        n_jobs = os.cpu_count() or 1
+
     result = ModuleResult(
         module_id="9b",
         analysis_name="policy_scenarios",
@@ -1433,7 +1613,14 @@ def run_analysis() -> ModuleResult:
     print("\n[5/6] Running projections...")
 
     projections = run_all_projections(
-        scenarios, nd_share, siv_baseline, result, n_simulations=1000
+        scenarios,
+        nd_share,
+        siv_baseline,
+        result,
+        n_simulations=n_simulations,
+        seed=seed,
+        n_jobs=n_jobs,
+        chunk_size=chunk_size,
     )
 
     # =========================================================================
@@ -1465,7 +1652,11 @@ def run_analysis() -> ModuleResult:
         "siv_sunset_floor": 0.10,
         "base_year": 2024,
         "projection_horizon": "2025-2045",
-        "n_simulations": 1000,
+        "n_simulations": n_simulations,
+        "monte_carlo_seed": seed,
+        "monte_carlo_workers_requested": n_jobs_requested,
+        "monte_carlo_workers": n_jobs,
+        "monte_carlo_chunk_size": chunk_size,
         "scenarios": [s.value for s in ScenarioType],
     }
 
@@ -1521,7 +1712,49 @@ def run_analysis() -> ModuleResult:
 def main() -> int:
     """Main entry point."""
     try:
-        result = run_analysis()
+        parser = argparse.ArgumentParser(
+            description="Module 9b policy scenario projections (Monte Carlo)."
+        )
+        parser.add_argument(
+            "--n-simulations",
+            type=int,
+            default=1000,
+            help="Monte Carlo simulations per scenario (default: 1000).",
+        )
+        parser.add_argument(
+            "--seed",
+            type=int,
+            default=42,
+            help="Monte Carlo seed (default: 42).",
+        )
+        parser.add_argument(
+            "--n-jobs",
+            type=int,
+            default=1,
+            help="Parallel worker processes; 0 uses all CPUs (default: 1).",
+        )
+        parser.add_argument(
+            "--chunk-size",
+            type=int,
+            default=1000,
+            help="Simulations per parallel chunk (default: 1000).",
+        )
+        parser.add_argument(
+            "--rigorous",
+            action="store_true",
+            help="Convenience flag: set --n-simulations 25000 and --n-jobs 0.",
+        )
+        args = parser.parse_args()
+        if args.rigorous:
+            args.n_simulations = 25000
+            args.n_jobs = 0
+
+        result = run_analysis(
+            n_simulations=args.n_simulations,
+            seed=args.seed,
+            n_jobs=args.n_jobs,
+            chunk_size=args.chunk_size,
+        )
 
         # Save results
         output_file = result.save("module_9b_policy_scenarios.json")
