@@ -12,7 +12,7 @@
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_02_concentration.pdf}
-\caption{Geographic concentration of foreign-born population in North Dakota by country of origin (2023). Bars show location quotients (LQ), where LQ $> 1$ indicates overrepresentation relative to the national average. The dashed vertical line marks LQ $= 1$. Countries are sorted by LQ value; bar intensity reflects population size (darker indicates larger foreign-born population in North Dakota). Egypt, India, and several African origin countries show the highest concentration relative to their national presence.}
+\caption{Geographic concentration of foreign-born population in North Dakota by country of origin (2023). Bars show location quotients (LQ), where LQ $> 1$ indicates overrepresentation relative to the national average. The dashed vertical line marks LQ $= 1$. Countries are sorted by LQ value; bar intensity reflects population size (darker indicates larger foreign-born population in North Dakota). Liberia, Ivory Coast, Somalia, and Tanzania show the highest concentration relative to their national presence.}
 \label{fig:concentration}
 \end{figure}
 
@@ -40,20 +40,20 @@
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_06_event_study.pdf}
-\caption{Event study estimates for the Travel Ban effect on refugee arrivals. Coefficients represent the difference in log arrivals between treated countries (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) and control countries relative to the reference period ($t = -1$, 2017). Blue circles show pre-treatment estimates; red squares show post-treatment effects. The joint pre-trend test rejects parallel trends over the full pre-period ($F = 4.22$, $p < 0.001$). The average treatment effect on the treated (ATT) is $-1.39$ ($p = 0.031$), corresponding to a 75.2\% reduction in arrivals.}
+\caption{Event study estimates for treated--control divergence around the Travel Ban in refugee arrivals. Coefficients represent the difference in log arrivals between treated countries (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) and control countries relative to the reference period ($t = -1$, 2017). Blue circles show pre-treatment estimates; red squares show post-treatment estimates. The joint pre-trend test rejects parallel trends over the full pre-period ($F = 4.22$, $p < 0.001$). The average treatment effect on the treated (ATT) is $-1.39$ (conventional $p = 0.031$), corresponding to a 75.2\% lower level of arrivals for treated relative to control in the post period; because parallel trends are not supported in the full pre-period, coefficients are interpreted as policy-associated divergence rather than definitive causal effects.}
 \label{fig:eventstudy}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_07_survival.pdf}
-\caption{Kaplan--Meier survival curves for immigration wave duration by initial intensity quartile. Waves are defined as periods where arrivals exceed 50\% above baseline for at least two consecutive years. Q1 (lowest intensity) waves have median duration of 2 years, while Q4 (highest intensity) waves persist for a median of 4 years. The log-rank test strongly rejects equality across groups ($\chi^2 = 278.7$, $p < 0.001$), indicating that higher-intensity immigration flows are significantly more persistent.}
+\caption{Kaplan--Meier survival curves for immigration wave duration by initial intensity quartile. Waves are defined as periods where arrivals exceed 50\% above baseline for at least two consecutive years. Q1 (lowest intensity) waves have median duration of 2 years, while Q4 (highest intensity) waves persist for a median of 6 years. The log-rank test strongly rejects equality across groups ($\chi^2 = 633.0$, $p < 10^{-136}$), indicating that higher-intensity immigration flows are significantly more persistent.}
 \label{fig:survival}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_08_scenarios.pdf}
-\caption{Projection scenarios for North Dakota international migration, 2025--2045. Five scenarios are shown: CBO Full (2025--2029 at 1.1$\times$ ARIMA, then 8\% annual growth), Moderate (dampened historical trend), Immigration Policy (0.65$\times$ Moderate), Zero (counterfactual with no international migration), and Pre-2020 Trend (anchored to 2019 with the 2010--2019 slope). Shaded bands represent 50\% and 95\% prediction intervals from 25,000 Monte Carlo simulations. Historical data (2010--2024) shown with black circles. The vertical dashed line separates historical observations from projections.}
+\caption{Projection scenarios for North Dakota international migration, 2025--2045. Five scenarios are shown: CBO Full (2025--2029 at 1.1$\times$ ARIMA, then 8\% annual growth), Moderate (dampened historical trend), Immigration Policy (0.65$\times$ Moderate), Zero (counterfactual with no international migration), and Pre-2020 Trend (anchored to 2019 with the 2010--2019 slope). Shaded bands represent (i) baseline-only 50\% and 95\% prediction intervals from 25,000 Monte Carlo simulations and (ii) an outer 95\% wave-adjusted uncertainty envelope that adds hazard-based wave persistence draws. The wave-adjusted envelope should be interpreted as conservative because wave-driven variation may already be reflected in baseline forecast uncertainty. Historical data (2010--2024) shown with black circles. The vertical dashed line separates historical observations from projections.}
 \label{fig:scenarios}
 \end{figure}

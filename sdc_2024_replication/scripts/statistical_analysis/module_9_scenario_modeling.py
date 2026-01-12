@@ -110,9 +110,13 @@ def _simulate_module9_monte_carlo_chunk(
 
     This function is defined at module scope so it can be pickled by
     `ProcessPoolExecutor`.
+
+    Returns a tuple of:
+    - baseline simulations (without wave adjustments)
+    - wave adjustments (to be added to the baseline simulations)
     """
     rng = np.random.default_rng(chunk_seed)
-    sims_chunk = np.zeros((n_chunk_draws, n_years))
+    baseline_chunk = np.zeros((n_chunk_draws, n_years))
     wave_chunk = np.zeros((n_chunk_draws, n_years))
 
     for draw in range(n_chunk_draws):
@@ -135,7 +139,7 @@ def _simulate_module9_monte_carlo_chunk(
                 )
                 current = float(current + trend_draw + rng.normal(0, innovation_std))
 
-            sims_chunk[draw, t] = max(0.0, current)
+            baseline_chunk[draw, t] = max(0.0, current)
 
         if active_waves and duration_bundle is not None:
             # Keep wave randomness independent of parallel scheduling.
@@ -150,9 +154,8 @@ def _simulate_module9_monte_carlo_chunk(
                     rng=wave_rng,
                 )
             wave_chunk[draw, :] = draw_adjustment
-            sims_chunk[draw, :] = np.maximum(0.0, sims_chunk[draw, :] + draw_adjustment)
 
-    return sims_chunk, wave_chunk
+    return baseline_chunk, wave_chunk
 
 
 class ModuleResult:
@@ -300,10 +303,19 @@ def load_migration_data(result: ModuleResult) -> pd.DataFrame:
     return df
 
 
-def load_duration_bundle(result: ModuleResult) -> Optional[DurationModelBundle]:
+def load_duration_bundle(
+    result: ModuleResult, *, tag: str | None = None
+) -> Optional[DurationModelBundle]:
     """Load hazard-based duration model inputs, if available."""
-    hazard_path = RESULTS_DIR / "module_8_hazard_model.json"
-    duration_path = RESULTS_DIR / "module_8_duration_analysis.json"
+
+    def _tagged(filename: str) -> str:
+        if not tag:
+            return filename
+        path = Path(filename)
+        return f"{path.stem}__{tag}{path.suffix}"
+
+    hazard_path = RESULTS_DIR / _tagged("module_8_hazard_model.json")
+    duration_path = RESULTS_DIR / _tagged("module_8_duration_analysis.json")
     if not hazard_path.exists() or not duration_path.exists():
         result.warnings.append(
             "Duration model outputs missing; wave adjustments skipped."
@@ -311,7 +323,7 @@ def load_duration_bundle(result: ModuleResult) -> Optional[DurationModelBundle]:
         LOGGER.warning("Duration model outputs missing; wave adjustments skipped.")
         return None
     try:
-        return load_duration_model_bundle(RESULTS_DIR)
+        return load_duration_model_bundle(RESULTS_DIR, tag=tag)
     except Exception as exc:  # pragma: no cover - defensive guard
         result.warnings.append(f"Duration model load failed: {exc}")
         LOGGER.exception("Duration model load failed.", exc_info=exc)
@@ -772,7 +784,8 @@ def monte_carlo_simulation(
     seed: int = 42,
     n_jobs: int = 1,
     chunk_size: int = 1000,
-) -> dict:
+    duration_tag: str | None = None,
+) -> tuple[dict, np.ndarray, np.ndarray]:
     """
     Run Monte Carlo simulation to quantify forecast uncertainty.
 
@@ -814,7 +827,7 @@ def monte_carlo_simulation(
 
     print(f"  Trend mean: {median_trend:.2f}, std: {trend_std:.2f}")
 
-    duration_bundle = load_duration_bundle(result)
+    duration_bundle = load_duration_bundle(result, tag=duration_tag)
     wave_registry = None
     active_waves: list = []
     wave_baseline = None
@@ -856,13 +869,13 @@ def monte_carlo_simulation(
     )
 
     # Storage for simulation results
-    simulations = np.zeros((n_draws, n_years))
+    baseline_simulations = np.zeros((n_draws, n_years))
     wave_adjustments = np.zeros((n_draws, n_years))
 
     if effective_workers == 1:
         offset = 0
         for chunk_seed, n_chunk_draws in zip(chunk_seeds, chunk_sizes, strict=False):
-            sims_chunk, wave_chunk = _simulate_module9_monte_carlo_chunk(
+            baseline_chunk, wave_chunk = _simulate_module9_monte_carlo_chunk(
                 chunk_seed=chunk_seed,
                 n_chunk_draws=n_chunk_draws,
                 n_years=n_years,
@@ -874,7 +887,7 @@ def monte_carlo_simulation(
                 active_waves=active_waves,
                 duration_bundle=duration_bundle,
             )
-            simulations[offset : offset + n_chunk_draws, :] = sims_chunk
+            baseline_simulations[offset : offset + n_chunk_draws, :] = baseline_chunk
             wave_adjustments[offset : offset + n_chunk_draws, :] = wave_chunk
             offset += n_chunk_draws
     else:
@@ -899,43 +912,57 @@ def monte_carlo_simulation(
 
             offset = 0
             for chunk_idx in range(n_chunks):
-                sims_chunk, wave_chunk = futures[chunk_idx].result()
-                n_chunk_draws = sims_chunk.shape[0]
-                simulations[offset : offset + n_chunk_draws, :] = sims_chunk
+                baseline_chunk, wave_chunk = futures[chunk_idx].result()
+                n_chunk_draws = baseline_chunk.shape[0]
+                baseline_simulations[offset : offset + n_chunk_draws, :] = baseline_chunk
                 wave_adjustments[offset : offset + n_chunk_draws, :] = wave_chunk
                 offset += n_chunk_draws
 
-    # Compute percentiles
-    percentiles = [5, 10, 25, 50, 75, 90, 95]
-    percentile_values = {}
-    for p in percentiles:
-        percentile_values[f"p{p}"] = np.percentile(simulations, p, axis=0).tolist()
+    wave_simulations = np.maximum(0.0, baseline_simulations + wave_adjustments)
 
-    # Summary statistics by year
-    mc_summary = []
-    for t, year in enumerate(projection_years):
-        year_sims = simulations[:, t]
-        mc_summary.append(
-            {
-                "year": year,
-                "mean": float(np.mean(year_sims)),
-                "std": float(np.std(year_sims)),
-                "min": float(np.min(year_sims)),
-                "max": float(np.max(year_sims)),
-                "p5": float(np.percentile(year_sims, 5)),
-                "p25": float(np.percentile(year_sims, 25)),
-                "p50": float(np.percentile(year_sims, 50)),
-                "p75": float(np.percentile(year_sims, 75)),
-                "p95": float(np.percentile(year_sims, 95)),
-            }
+    def _summarize(simulations: np.ndarray) -> tuple[dict[str, list[float]], list[dict]]:
+        percentiles = [5, 10, 25, 50, 75, 90, 95]
+        percentile_values = {
+            f"p{p}": np.percentile(simulations, p, axis=0).tolist() for p in percentiles
+        }
+
+        mc_summary = []
+        for t, year in enumerate(projection_years):
+            year_sims = simulations[:, t]
+            mc_summary.append(
+                {
+                    "year": year,
+                    "mean": float(np.mean(year_sims)),
+                    "std": float(np.std(year_sims)),
+                    "min": float(np.min(year_sims)),
+                    "max": float(np.max(year_sims)),
+                    "p5": float(np.percentile(year_sims, 5)),
+                    "p10": float(np.percentile(year_sims, 10)),
+                    "p25": float(np.percentile(year_sims, 25)),
+                    "p50": float(np.percentile(year_sims, 50)),
+                    "p75": float(np.percentile(year_sims, 75)),
+                    "p90": float(np.percentile(year_sims, 90)),
+                    "p95": float(np.percentile(year_sims, 95)),
+                }
+            )
+        return percentile_values, mc_summary
+
+    baseline_percentiles, baseline_summary = _summarize(baseline_simulations)
+    wave_percentiles, wave_summary = _summarize(wave_simulations)
+
+    print(
+        f"  Baseline-only 2030 median: {baseline_summary[5]['p50']:.0f} "
+        f"(95% PI: [{baseline_summary[5]['p5']:.0f}, {baseline_summary[5]['p95']:.0f}])"
+    )
+    print(
+        f"  Baseline-only 2045 median: {baseline_summary[-1]['p50']:.0f} "
+        f"(95% PI: [{baseline_summary[-1]['p5']:.0f}, {baseline_summary[-1]['p95']:.0f}])"
+    )
+    if active_waves:
+        print(
+            f"  Wave-adjusted 2045 median: {wave_summary[-1]['p50']:.0f} "
+            f"(95% envelope: [{wave_summary[-1]['p5']:.0f}, {wave_summary[-1]['p95']:.0f}])"
         )
-
-    print(
-        f"  2030 median: {mc_summary[5]['p50']:.0f} (95% CI: [{mc_summary[5]['p5']:.0f}, {mc_summary[5]['p95']:.0f}])"
-    )
-    print(
-        f"  2045 median: {mc_summary[-1]['p50']:.0f} (95% CI: [{mc_summary[-1]['p5']:.0f}, {mc_summary[-1]['p95']:.0f}])"
-    )
 
     result.add_decision(
         decision_id="D004",
@@ -946,9 +973,9 @@ def monte_carlo_simulation(
         evidence="Trend uncertainty from quantile regression range",
     )
 
-    wave_summary = None
+    wave_adjustment_summary = None
     if active_waves:
-        wave_summary = {
+        wave_adjustment_summary = {
             "active_waves": len(active_waves),
             "baseline": wave_baseline,
             "mean_adjustment_2030": float(np.mean(wave_adjustments[:, 5]))
@@ -964,7 +991,19 @@ def monte_carlo_simulation(
             decision="Applied hazard-based wave persistence adjustments",
             rationale="Map duration model outputs into scenario Monte Carlo paths",
             alternatives=["No wave adjustments", "Deterministic wave overlays"],
-            evidence=f"Active waves detected: {wave_summary['active_waves']}",
+            evidence=f"Active waves detected: {wave_adjustment_summary['active_waves']}",
+        )
+        result.add_decision(
+            decision_id="D004B",
+            category="uncertainty_quantification",
+            decision="Reported two-band uncertainty (baseline PI + wave-adjusted envelope)",
+            rationale="Avoid over-interpreting stacked stochastic components as a single calibrated PI",
+            alternatives=[
+                "Single wave-adjusted interval only",
+                "Drop wave adjustment",
+                "Refit baseline variance conditional on waves",
+            ],
+            evidence="ADR-032 (two-band uncertainty after fusion)",
         )
 
     mc_results = {
@@ -978,13 +1017,20 @@ def monte_carlo_simulation(
             "trend_std": trend_std,
             "baseline_2024": baseline,
         },
-        "wave_adjustment": wave_summary,
-        "percentiles": percentile_values,
-        "summary_by_year": mc_summary,
-        "simulations_shape": list(simulations.shape),
+        "baseline_only": {
+            "percentiles": baseline_percentiles,
+            "summary_by_year": baseline_summary,
+            "simulations_shape": list(baseline_simulations.shape),
+        },
+        "wave_adjusted": {
+            "percentiles": wave_percentiles,
+            "summary_by_year": wave_summary,
+            "simulations_shape": list(wave_simulations.shape),
+        },
+        "wave_adjustment": wave_adjustment_summary,
     }
 
-    return mc_results, simulations
+    return mc_results, baseline_simulations, wave_simulations
 
 
 def compute_confidence_intervals(
@@ -999,42 +1045,39 @@ def compute_confidence_intervals(
 
     ci_data = {
         "projection_years": mc_results["projection_years"],
-        "intervals": {},
     }
 
-    # Extract MC percentiles
-    summary = mc_results["summary_by_year"]
-    [s["year"] for s in summary]
-
-    # 50% CI (25th-75th)
-    ci_data["intervals"]["ci_50"] = {
-        "lower": [s["p25"] for s in summary],
-        "upper": [s["p75"] for s in summary],
-    }
-
-    # 80% CI (10th-90th)
-    percentiles = mc_results["percentiles"]
-    if "p10" in percentiles:
-        ci_data["intervals"]["ci_80"] = {
-            "lower": percentiles["p10"],
-            "upper": percentiles["p90"],
+    def _build_band_summary(
+        summary: list[dict], percentiles: dict[str, list[float]]
+    ) -> dict:
+        band = {
+            "intervals": {},
         }
-    else:
-        # Approximate from summary
-        ci_data["intervals"]["ci_80"] = {
-            "lower": [s["p5"] * 1.2 for s in summary],  # Rough approximation
-            "upper": [s["p95"] * 0.85 for s in summary],
+        band["intervals"]["ci_50"] = {
+            "lower": [s["p25"] for s in summary],
+            "upper": [s["p75"] for s in summary],
         }
+        band["intervals"]["ci_80"] = {
+            "lower": percentiles.get("p10", [s["p10"] for s in summary]),
+            "upper": percentiles.get("p90", [s["p90"] for s in summary]),
+        }
+        band["intervals"]["ci_95"] = {
+            "lower": [s["p5"] for s in summary],
+            "upper": [s["p95"] for s in summary],
+        }
+        band["median"] = [s["p50"] for s in summary]
+        band["mean"] = [s["mean"] for s in summary]
+        return band
 
-    # 95% CI (5th-95th)
-    ci_data["intervals"]["ci_95"] = {
-        "lower": [s["p5"] for s in summary],
-        "upper": [s["p95"] for s in summary],
-    }
+    baseline = mc_results["baseline_only"]
+    wave = mc_results["wave_adjusted"]
 
-    # Median (point forecast)
-    ci_data["median"] = [s["p50"] for s in summary]
-    ci_data["mean"] = [s["mean"] for s in summary]
+    ci_data["baseline_only"] = _build_band_summary(
+        baseline["summary_by_year"], baseline["percentiles"]
+    )
+    ci_data["wave_adjusted"] = _build_band_summary(
+        wave["summary_by_year"], wave["percentiles"]
+    )
 
     # Add scenario paths for comparison
     ci_data["scenarios"] = {}
@@ -1043,7 +1086,7 @@ def compute_confidence_intervals(
             p["value"] for p in scenario["projections"]
         ]
 
-    print("  Computed 50%, 80%, and 95% prediction intervals")
+    print("  Computed 50%, 80%, and 95% prediction intervals (baseline + wave-adjusted)")
     print(f"  Added {len(scenarios)} scenario paths for comparison")
 
     return ci_data
@@ -1054,19 +1097,22 @@ def create_combined_forecasts_df(
 ) -> pd.DataFrame:
     """Create DataFrame with combined forecasts for parquet output."""
     years = mc_results["projection_years"]
-    summary = mc_results["summary_by_year"]
+    baseline_summary = mc_results["baseline_only"]["summary_by_year"]
+    wave_summary = mc_results["wave_adjusted"]["summary_by_year"]
 
     rows = []
     for i, year in enumerate(years):
         row = {
             "year": year,
-            "mc_mean": summary[i]["mean"],
-            "mc_median": summary[i]["p50"],
-            "mc_std": summary[i]["std"],
-            "ci_50_lower": summary[i]["p25"],
-            "ci_50_upper": summary[i]["p75"],
-            "ci_95_lower": summary[i]["p5"],
-            "ci_95_upper": summary[i]["p95"],
+            "mc_mean": baseline_summary[i]["mean"],
+            "mc_median": baseline_summary[i]["p50"],
+            "mc_std": baseline_summary[i]["std"],
+            "ci_50_lower": baseline_summary[i]["p25"],
+            "ci_50_upper": baseline_summary[i]["p75"],
+            "ci_95_lower": baseline_summary[i]["p5"],
+            "ci_95_upper": baseline_summary[i]["p95"],
+            "envelope_ci_95_lower": wave_summary[i]["p5"],
+            "envelope_ci_95_upper": wave_summary[i]["p95"],
         }
         # Add scenarios
         for scenario_name, scenario in scenarios.items():
@@ -1148,51 +1194,62 @@ def plot_fan_chart(
     # Projection years
     proj_years = ci_data["projection_years"]
 
-    # 95% CI band
-    ax.fill_between(
-        proj_years,
-        ci_data["intervals"]["ci_95"]["lower"],
-        ci_data["intervals"]["ci_95"]["upper"],
-        alpha=0.15,
-        color=COLORS["primary"],
-        label="95% CI",
-    )
+    baseline = ci_data["baseline_only"]
+    envelope = ci_data["wave_adjusted"]
+    wave_adjusted_applied = bool(mc_results.get("wave_adjustment"))
 
-    # 80% CI band (if available)
-    if "ci_80" in ci_data["intervals"]:
+    if wave_adjusted_applied:
+        # Outer: wave-adjusted 95% envelope (conservative)
         ax.fill_between(
             proj_years,
-            ci_data["intervals"]["ci_80"]["lower"],
-            ci_data["intervals"]["ci_80"]["upper"],
-            alpha=0.25,
+            envelope["intervals"]["ci_95"]["lower"],
+            envelope["intervals"]["ci_95"]["upper"],
+            alpha=0.12,
             color=COLORS["primary"],
-            label="80% CI",
+            label="95% Envelope (wave-adjusted)",
         )
 
-    # 50% CI band
+    # Inner: baseline-only prediction intervals
     ax.fill_between(
         proj_years,
-        ci_data["intervals"]["ci_50"]["lower"],
-        ci_data["intervals"]["ci_50"]["upper"],
-        alpha=0.4,
+        baseline["intervals"]["ci_95"]["lower"],
+        baseline["intervals"]["ci_95"]["upper"],
+        alpha=0.20,
         color=COLORS["primary"],
-        label="50% CI",
+        label="95% PI (baseline)",
+    )
+    ax.fill_between(
+        proj_years,
+        baseline["intervals"]["ci_50"]["lower"],
+        baseline["intervals"]["ci_50"]["upper"],
+        alpha=0.35,
+        color=COLORS["primary"],
+        label="50% PI (baseline)",
     )
 
-    # Median projection
+    # Median projections (baseline vs wave-adjusted)
     ax.plot(
         proj_years,
-        ci_data["median"],
+        baseline["median"],
         "-",
         color=COLORS["primary"],
         linewidth=2,
-        label="Median Projection",
+        label="Median (baseline)",
     )
+    if wave_adjusted_applied:
+        ax.plot(
+            proj_years,
+            envelope["median"],
+            ":",
+            color=COLORS["primary"],
+            linewidth=2,
+            label="Median (wave-adjusted)",
+        )
 
     # Connect historical to projection
     ax.plot(
         [hist_years[-1], proj_years[0]],
-        [hist_values[-1], ci_data["median"][0]],
+        [hist_values[-1], baseline["median"][0]],
         "--",
         color=COLORS["neutral"],
         linewidth=1,
@@ -1224,7 +1281,12 @@ def plot_fan_chart(
     ax.grid(True, alpha=0.3)
 
     # Add text box with key statistics
-    textstr = f"2030 Median: {ci_data['median'][5]:,.0f}\n2045 Median: {ci_data['median'][-1]:,.0f}"
+    textstr = (
+        f"2030 Median (baseline): {baseline['median'][5]:,.0f}\n"
+        f"2045 Median (baseline): {baseline['median'][-1]:,.0f}"
+    )
+    if wave_adjusted_applied:
+        textstr += f"\n2045 Median (wave-adj): {envelope['median'][-1]:,.0f}"
     props = {"boxstyle": "round", "facecolor": "wheat", "alpha": 0.5}
     ax.text(
         0.98,
@@ -1306,7 +1368,7 @@ def plot_scenario_comparison(
     proj_years = ci_data["projection_years"]
     ax.plot(
         proj_years,
-        ci_data["median"],
+        ci_data["baseline_only"]["median"],
         color=COLORS["neutral"],
         linewidth=1.5,
         linestyle=":",
@@ -1351,6 +1413,7 @@ def run_analysis(
     seed: int,
     n_jobs: int,
     chunk_size: int,
+    duration_tag: str | None = None,
 ) -> ModuleResult:
     """Main analysis function for Module 9."""
     result = ModuleResult(
@@ -1379,6 +1442,7 @@ def run_analysis(
         "monte_carlo_seed": seed,
         "monte_carlo_workers_requested": n_jobs,
         "monte_carlo_chunk_size": chunk_size,
+        "duration_model_tag": duration_tag,
         "scenarios": [
             "CBO Full",
             "Moderate",
@@ -1395,7 +1459,7 @@ def run_analysis(
     scenarios = generate_scenarios(df_migration, estimates, result)
 
     # Run Monte Carlo simulation
-    mc_results, simulations = monte_carlo_simulation(
+    mc_results, baseline_simulations, wave_simulations = monte_carlo_simulation(
         df_migration,
         estimates,
         result,
@@ -1403,6 +1467,7 @@ def run_analysis(
         seed=seed,
         n_jobs=n_jobs,
         chunk_size=chunk_size,
+        duration_tag=duration_tag,
     )
     result.parameters["monte_carlo_workers"] = mc_results.get("n_jobs")
 
@@ -1414,7 +1479,12 @@ def run_analysis(
 
     df_combined = create_combined_forecasts_df(scenarios, mc_results, ci_data)
     df_scenarios = create_scenario_projections_df(scenarios)
-    df_monte_carlo = create_monte_carlo_df(simulations, mc_results["projection_years"])
+    df_monte_carlo = create_monte_carlo_df(
+        wave_simulations, mc_results["projection_years"]
+    )
+    df_monte_carlo_baseline = create_monte_carlo_df(
+        baseline_simulations, mc_results["projection_years"]
+    )
 
     # Save DataFrames to parquet
     combined_path = RESULTS_DIR / "module_9_combined_forecasts.parquet"
@@ -1428,6 +1498,9 @@ def run_analysis(
     mc_path = RESULTS_DIR / "module_9_monte_carlo.parquet"
     df_monte_carlo.to_parquet(mc_path, index=False)
     print(f"  Monte Carlo results saved: {mc_path}")
+    mc_baseline_path = RESULTS_DIR / "module_9_monte_carlo_baseline.parquet"
+    df_monte_carlo_baseline.to_parquet(mc_baseline_path, index=False)
+    print(f"  Monte Carlo baseline-only results saved: {mc_baseline_path}")
 
     # Generate visualizations
     print("\n" + "=" * 60)
@@ -1438,6 +1511,8 @@ def run_analysis(
     plot_scenario_comparison(df_migration, scenarios, ci_data, result)
 
     # Compile results
+    baseline_summary = mc_results["baseline_only"]["summary_by_year"]
+    wave_summary = mc_results["wave_adjusted"]["summary_by_year"]
     result.results = {
         "model_averaging": {
             "aic_weights": weights.get("aic_based", {}),
@@ -1453,34 +1528,63 @@ def run_analysis(
         },
         "monte_carlo": {
             "n_draws": mc_results["n_draws"],
-            "median_2030": mc_results["summary_by_year"][5]["p50"],
-            "median_2045": mc_results["summary_by_year"][-1]["p50"],
-            "ci_95_2045": [
-                mc_results["summary_by_year"][-1]["p5"],
-                mc_results["summary_by_year"][-1]["p95"],
-            ],
+            "seed": mc_results["seed"],
+            "baseline_only": {
+                "median_2030": baseline_summary[5]["p50"],
+                "median_2045": baseline_summary[-1]["p50"],
+                "ci_95_2045": [baseline_summary[-1]["p5"], baseline_summary[-1]["p95"]],
+            },
+            "wave_adjusted": {
+                "median_2030": wave_summary[5]["p50"],
+                "median_2045": wave_summary[-1]["p50"],
+                "ci_95_2045": [wave_summary[-1]["p5"], wave_summary[-1]["p95"]],
+            },
             "wave_adjustment": mc_results.get("wave_adjustment"),
         },
         "confidence_intervals": {
-            "ci_50": {
-                "2030": [
-                    ci_data["intervals"]["ci_50"]["lower"][5],
-                    ci_data["intervals"]["ci_50"]["upper"][5],
-                ],
-                "2045": [
-                    ci_data["intervals"]["ci_50"]["lower"][-1],
-                    ci_data["intervals"]["ci_50"]["upper"][-1],
-                ],
+            "baseline_only": {
+                "ci_50": {
+                    "2030": [
+                        ci_data["baseline_only"]["intervals"]["ci_50"]["lower"][5],
+                        ci_data["baseline_only"]["intervals"]["ci_50"]["upper"][5],
+                    ],
+                    "2045": [
+                        ci_data["baseline_only"]["intervals"]["ci_50"]["lower"][-1],
+                        ci_data["baseline_only"]["intervals"]["ci_50"]["upper"][-1],
+                    ],
+                },
+                "ci_95": {
+                    "2030": [
+                        ci_data["baseline_only"]["intervals"]["ci_95"]["lower"][5],
+                        ci_data["baseline_only"]["intervals"]["ci_95"]["upper"][5],
+                    ],
+                    "2045": [
+                        ci_data["baseline_only"]["intervals"]["ci_95"]["lower"][-1],
+                        ci_data["baseline_only"]["intervals"]["ci_95"]["upper"][-1],
+                    ],
+                },
             },
-            "ci_95": {
-                "2030": [
-                    ci_data["intervals"]["ci_95"]["lower"][5],
-                    ci_data["intervals"]["ci_95"]["upper"][5],
-                ],
-                "2045": [
-                    ci_data["intervals"]["ci_95"]["lower"][-1],
-                    ci_data["intervals"]["ci_95"]["upper"][-1],
-                ],
+            "wave_adjusted": {
+                "ci_50": {
+                    "2030": [
+                        ci_data["wave_adjusted"]["intervals"]["ci_50"]["lower"][5],
+                        ci_data["wave_adjusted"]["intervals"]["ci_50"]["upper"][5],
+                    ],
+                    "2045": [
+                        ci_data["wave_adjusted"]["intervals"]["ci_50"]["lower"][-1],
+                        ci_data["wave_adjusted"]["intervals"]["ci_50"]["upper"][-1],
+                    ],
+                },
+                "ci_95": {
+                    "2030": [
+                        ci_data["wave_adjusted"]["intervals"]["ci_95"]["lower"][5],
+                        ci_data["wave_adjusted"]["intervals"]["ci_95"]["upper"][5],
+                    ],
+                    "2045": [
+                        ci_data["wave_adjusted"]["intervals"]["ci_95"]["lower"][-1],
+                        ci_data["wave_adjusted"]["intervals"]["ci_95"]["upper"][-1],
+                    ],
+                },
             },
         },
     }
@@ -1493,12 +1597,20 @@ def run_analysis(
         "projection_years": len(mc_results["projection_years"]),
         "wave_adjustment_applied": bool(mc_results.get("wave_adjustment")),
         "mc_convergence": {
-            "mean_2045": mc_results["summary_by_year"][-1]["mean"],
-            "std_2045": mc_results["summary_by_year"][-1]["std"],
-            "cv_2045": mc_results["summary_by_year"][-1]["std"]
-            / mc_results["summary_by_year"][-1]["mean"]
-            if mc_results["summary_by_year"][-1]["mean"] > 0
-            else None,
+            "baseline_only": {
+                "mean_2045": baseline_summary[-1]["mean"],
+                "std_2045": baseline_summary[-1]["std"],
+                "cv_2045": baseline_summary[-1]["std"] / baseline_summary[-1]["mean"]
+                if baseline_summary[-1]["mean"] > 0
+                else None,
+            },
+            "wave_adjusted": {
+                "mean_2045": wave_summary[-1]["mean"],
+                "std_2045": wave_summary[-1]["std"],
+                "cv_2045": wave_summary[-1]["std"] / wave_summary[-1]["mean"]
+                if wave_summary[-1]["mean"] > 0
+                else None,
+            },
         },
     }
 
@@ -1546,6 +1658,12 @@ def main():
         action="store_true",
         help="Convenience flag: set --n-draws 25000 and --n-jobs 0.",
     )
+    parser.add_argument(
+        "--duration-tag",
+        type=str,
+        default=None,
+        help="Optional tag to load Module 8 duration/hazard outputs (e.g., P0, S1).",
+    )
     args = parser.parse_args()
     if args.rigorous:
         args.n_draws = 25000
@@ -1562,6 +1680,7 @@ def main():
             seed=args.seed,
             n_jobs=args.n_jobs,
             chunk_size=args.chunk_size,
+            duration_tag=args.duration_tag,
         )
         output_file = result.save("module_9_scenario_modeling.json")
 
@@ -1577,10 +1696,21 @@ def main():
             print(f"    - {name}: {scenario['final_2045_value']:,.0f} (2045)")
 
         print("\nMonte Carlo Simulation:")
-        print(f"  2030 Median: {result.results['monte_carlo']['median_2030']:,.0f}")
-        print(f"  2045 Median: {result.results['monte_carlo']['median_2045']:,.0f}")
-        ci_95 = result.results["monte_carlo"]["ci_95_2045"]
-        print(f"  2045 95% CI: [{ci_95[0]:,.0f}, {ci_95[1]:,.0f}]")
+        baseline_mc = result.results["monte_carlo"]["baseline_only"]
+        wave_mc = result.results["monte_carlo"]["wave_adjusted"]
+        wave_adjusted_applied = bool(result.results["monte_carlo"].get("wave_adjustment"))
+        print(f"  2030 Median (baseline): {baseline_mc['median_2030']:,.0f}")
+        print(f"  2045 Median (baseline): {baseline_mc['median_2045']:,.0f}")
+        print(
+            "  2045 95% PI (baseline): "
+            f"[{baseline_mc['ci_95_2045'][0]:,.0f}, {baseline_mc['ci_95_2045'][1]:,.0f}]"
+        )
+        if wave_adjusted_applied:
+            print(f"  2045 Median (wave-adjusted): {wave_mc['median_2045']:,.0f}")
+            print(
+                "  2045 95% Envelope (wave-adjusted): "
+                f"[{wave_mc['ci_95_2045'][0]:,.0f}, {wave_mc['ci_95_2045'][1]:,.0f}]"
+            )
 
         if result.warnings:
             print("\nWarnings:")
@@ -1596,6 +1726,7 @@ def main():
         print("    - module_9_combined_forecasts.parquet")
         print("    - module_9_scenario_projections.parquet")
         print("    - module_9_monte_carlo.parquet")
+        print("    - module_9_monte_carlo_baseline.parquet")
         print("  Figures:")
         print("    - module_9_fan_chart.png/pdf")
         print("    - module_9_scenario_comparison.png/pdf")

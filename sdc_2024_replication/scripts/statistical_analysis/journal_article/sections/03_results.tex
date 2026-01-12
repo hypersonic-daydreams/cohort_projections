@@ -184,7 +184,7 @@ The 2020 COVID-19 pandemic represents a highly significant structural break ($F 
 
 The 2021 break point similarly proves significant ($F = 10.28$, $p = 0.003$), with mean migration increasing from 1,255 (2010--2020) to 3,284 (2021--2024)---a 161.6\% change. This breakpoint more cleanly separates the COVID-affected period from the subsequent recovery.
 
-Notably, the 2017 Travel Ban shows no statistically significant break at the aggregate North Dakota level ($F = 1.29$, $p = 0.314$). This null result contrasts with the significant Travel Ban effects identified in the nationality-level difference-in-differences analysis (Section~\ref{subsec:causal_did}), suggesting that aggregate flows may mask compositional shifts in origin countries.
+Notably, the 2017 Travel Ban shows no statistically significant break at the aggregate North Dakota level ($F = 1.29$, $p = 0.314$). This null result contrasts with the large policy-associated treated--control divergence estimated in the nationality-level difference-in-differences analysis (Section~\ref{subsec:causal_did}), suggesting that aggregate flows may mask compositional shifts in origin countries.
 
 The CUSUM test for parameter stability corroborates these findings. The cumulative sum of recursive residuals remains within the 5\% significance bounds throughout the observation period (maximum CUSUM = 2.37, bound = 10.25), indicating no evidence of continuous parameter drift. The stability ratio of 0.23 suggests that cumulative deviations from the fitted model remain modest relative to permissible fluctuation.
 
@@ -199,7 +199,7 @@ The Bai-Perron procedure for endogenous break detection identifies zero breaks u
 
 Panel analysis exploits cross-state and temporal variation to examine patterns of international migration allocation. The estimation sample comprises 765 state-year observations (51 states $\times$ 15 years), forming a balanced panel.
 
-The Hausman specification test compares fixed effects and random effects estimators. Under the null hypothesis that random effects estimates are consistent and efficient, the test statistic follows a chi-squared distribution. The computed test statistic is effectively zero ($H = 7.18 \times 10^{-31}$, $p = 1.000$), indicating no systematic difference between estimators and thus supporting random effects as the preferred specification. The Breusch-Pagan LM test strongly rejects pooled OLS in favor of the random effects model ($\chi^2 = 1,502$, $p < 0.001$), confirming the presence of state-level heterogeneity requiring panel methods.
+Because this panel block is an intercept-only benchmarking specification (state and year effects without additional covariates), fixed effects and random effects represent alternative parameterizations of state heterogeneity rather than competing causal specifications. The Hausman statistic is effectively zero ($H = 7.18 \times 10^{-31}$, $p = 1.000$), indicating that FE and RE estimates are numerically indistinguishable in this setting; we therefore do not interpret it as evidence favoring random effects. The Breusch-Pagan LM test strongly rejects pooled OLS in favor of a model with state-level heterogeneity ($\chi^2 = 1,502$, $p < 0.001$), confirming that between-state differences are substantial.
 
 State fixed effects from the two-way specification reveal substantial cross-sectional variation in international migration levels. Florida exhibits the largest positive effect ($+$125,526 relative to the grand mean), followed by California ($+$106,259) and Texas ($+$89,232). North Dakota's fixed effect of $-$18,022 places it near the bottom of the distribution, exceeded in negativity only by Wyoming ($-$19,332). This ranking accords with population-weighted expectations and confirms North Dakota's status as a minor destination in absolute terms.
 
@@ -262,7 +262,7 @@ Causal inference results focus on difference-in-differences for the Travel Ban a
 
 \begin{table}[htbp]
 \centering
-\caption{Policy Effects and Predictive Relevance}
+\caption{Policy-Associated Divergence and Predictive Relevance}
 \label{tab:causal_effects}
 \begin{tabular}{@{}llccc@{}}
 \toprule
@@ -287,9 +287,9 @@ Shift-share (first stage) & National shocks & 8.88*** & 1.16 & [$+6.61$, $+11.15
 
 The Travel Ban analysis employs refugee arrival data spanning 2002--2019, with 2018 designated as the first full post-treatment year. The treatment group comprises seven affected nationalities (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen), while 118 unaffected nationalities serve as controls. The sample includes 1,119 nationality-year observations.
 
-The estimated average treatment effect on the treated (ATT) is $-1.393$ on the log scale ($t = -2.15$, $p = 0.031$), corresponding to a policy-associated divergence of 75.2\% in refugee arrivals from affected countries. The 95\% confidence interval [$-2.66$, $-0.12$] excludes zero, indicating a statistically significant and economically substantial short-run divergence.
+The estimated average treatment effect on the treated (ATT) is $-1.393$ on the log scale ($t = -2.15$, conventional $p = 0.031$), corresponding to a policy-associated divergence of 75.2\% in refugee arrivals from affected countries. The 95\% confidence interval [$-2.66$, $-0.12$] excludes zero under conventional clustered-SE inference, though inference is sensitive with only seven treated nationalities (see robustness checks below).
 
-Parallel trends diagnostics are mixed, requiring caution in causal interpretation. The linear pre-trend test yields a treated-country trend coefficient of 0.085 ($t = 0.94$, $p = 0.349$), but the event study's joint pre-treatment test rejects parallel trends over the full pre-period ($F = 4.22$, $p < 0.001$). Figure~\ref{fig:eventstudy} shows divergence beginning approximately 10 years before treatment, indicating that the treatment and control groups were on different trajectories prior to the policy. The immediate post-treatment coefficients shift sharply negative in 2018--2019, but because the parallel trends assumption is violated, the estimated effect conflates the policy impact with pre-existing divergence. We therefore interpret the 75\% estimate as an upper bound on the causal policy effect magnitude rather than a point estimate of the true effect, as it likely conflates the policy impact with pre-existing divergence. Appendix Figure~\ref{fig:app_event_study_extended} reports a descriptive extension through FY2024 (ADR-027); post-2020 coefficients are not interpreted as causal Travel Ban effects.
+Parallel trends diagnostics are mixed, requiring caution in causal interpretation. The linear pre-trend test yields a treated-country trend coefficient of 0.085 ($t = 0.94$, $p = 0.349$), but the event study's joint pre-treatment test rejects parallel trends over the full pre-period ($F = 4.22$, $p < 0.001$). Figure~\ref{fig:eventstudy} shows divergence beginning approximately 10 years before treatment, indicating that the treatment and control groups were on different trajectories prior to the policy. The immediate post-treatment coefficients shift sharply negative in 2018--2019, but because the parallel trends assumption is not supported in the full pre-period, the DiD estimate may conflate the policy impact with pre-existing divergence. We therefore interpret the 75\% estimate as policy-associated divergence (descriptive policy-sensitivity evidence) rather than a precise causal effect magnitude. Appendix Figure~\ref{fig:app_event_study_extended} reports a descriptive extension through FY2024 (ADR-027); post-2020 coefficients are not interpreted as standalone causal Travel Ban effects.
 
 \textbf{Small-sample inference robustness.} With only seven treated clusters (nationalities), conventional cluster-robust inference may be unreliable. Table~\ref{tab:bootstrap_inference} reports alternative $p$-values from wild cluster bootstrap and randomization inference. For the full pre-period specification, the wild cluster bootstrap yields $p = 0.083$ (not significant at $\alpha = 0.05$). Randomization inference yields a two-sided $p = 0.057$ (not significant at $\alpha = 0.05$); a directionally motivated one-sided test yields $p = 0.041$. This sensitivity reflects the small number of treated clusters and suggests caution in claiming strong statistical significance.
 
@@ -311,9 +311,9 @@ Restricted (2013--2017) & $-1.992$ & $<$0.001*** & 0.009** & 0.004** \\
 \end{tablenotes}
 \end{table}
 
-\textbf{Restricted pre-period robustness.} Because the event study reveals greater pre-trend divergence in early years (2002--2012) than in years immediately preceding treatment, we re-estimate the DiD restricting to years where parallel trends appear more plausible. Restricting the pre-period to 2013--2017 substantially improves the pre-trend diagnostic: the joint $F$-test yields $F = 0.75$, $p = 0.562$, failing to reject parallel trends. The ATT estimate increases in magnitude to $-1.992$ (SE = 0.507), and inference strengthens: the conventional $p$-value falls to $p < 0.001$, with bootstrap ($p = 0.003$) and randomization ($p = 0.002$) inference confirming significance at the 1\% level.
+\textbf{Restricted pre-period robustness.} Because the event study reveals greater pre-trend divergence in early years (2002--2012) than in years immediately preceding treatment, we re-estimate the DiD restricting to years where parallel trends appear more plausible. Restricting the pre-period to 2013--2017 substantially improves the pre-trend diagnostic: the joint $F$-test yields $F = 0.75$, $p = 0.562$, failing to reject parallel trends. The ATT estimate increases in magnitude to $-1.992$ (SE = 0.507), and inference strengthens: the conventional $p$-value falls to $p < 0.001$, with bootstrap ($p = 0.009$) and randomization ($p = 0.004$) inference confirming significance at the 1\% level.
 
-This pattern---larger ATT magnitude and stronger significance with the restricted pre-period---suggests that the full-sample estimate is attenuated by pre-existing negative divergence between treatment and control groups. When analysis focuses on years where parallel trends are more defensible, the estimated policy effect is larger ($-$86\% vs.\ $-$75\%) and more precisely estimated. The restricted-period results strengthen confidence that the Travel Ban produced a genuine reduction in refugee arrivals from affected countries, though the magnitude remains subject to specification uncertainty.
+This pattern---a more negative ATT magnitude in the restricted window alongside improved pre-trend diagnostics---is consistent with a sharp post-2017 treated--control divergence in refugee arrivals. However, because the restricted window is chosen based on diagnostics, it should be interpreted as a sensitivity check rather than a definitive identification strategy. Taken together, the full-period and restricted-period results indicate that the post-2017 divergence is large and robust in sign, while the causal magnitude remains uncertain due to violated parallel trends in the full pre-period, small treated-cluster count, and window-selection concerns.
 
 \subsubsection{COVID-19 Interrupted Time Series (National System Diagnostic)}
 
@@ -344,9 +344,9 @@ The estimated first-stage coefficient is 8.88 ($p < 0.001$), indicating that a o
 \subsection{Duration Analysis}
 \label{subsec:duration_results}
 
-Duration analysis examines the lifecycle of immigration ``waves''---sustained periods of elevated arrivals from specific origin countries. Wave identification criteria require arrivals to exceed 150\% of baseline for at least two consecutive years. This procedure identifies 940 waves across 56 nationalities and 48 states in the 2002--2020 refugee data.
+Duration analysis examines the lifecycle of immigration ``waves''---sustained periods of elevated arrivals from specific origin countries. Wave identification criteria require arrivals to exceed 150\% of baseline for at least two consecutive years. Using the extended FY2002--FY2024 refugee arrivals series, this procedure identifies 2,057 waves across 78 nationalities and 45 states.
 
-Kaplan-Meier estimation yields a median wave duration of 3.0 years (mean = 3.54 years). Survival probabilities decline steadily over the wave lifecycle: 51.6\% of waves survive past year 2; 31.8\% survive past year 3; 21.6\% survive past year 4; and only 6.2\% survive past year 10. The censoring rate of 10\% reflects waves still active at the end of the observation period (FY 2020).
+Kaplan-Meier estimation yields a median wave duration of 3.0 years (mean = 3.48 years). Survival probabilities decline steadily over the wave lifecycle: 68.8\% of waves survive past year 2; 48.1\% survive past year 3; 33.8\% survive past year 4; and only 5.2\% survive past year 10. The censoring rate of 25.5\% reflects waves still active at the end of the observation period (FY 2024), including a large cohort of waves initiated in FY2021+.
 
 Stratified analysis reveals significant heterogeneity by wave intensity. Table~\ref{tab:survival} reports median survival by intensity quartile.
 
@@ -358,12 +358,12 @@ Stratified analysis reveals significant heterogeneity by wave intensity. Table~\
 \toprule
 \textbf{Intensity Quartile} & \textbf{$n$} & \textbf{Median Survival} & \textbf{Mean Duration} \\
 \midrule
-Q1 (Low) & 247 & 2.0 years & 2.43 years \\
-Q2 & 223 & 2.0 years & 2.80 years \\
-Q3 & 236 & 3.0 years & 3.61 years \\
-Q4 (High) & 234 & 4.0 years & 5.35 years \\
+Q1 (Low) & 515 & 2.0 years & 2.59 years \\
+Q2 & 514 & 3.0 years & 3.13 years \\
+Q3 & 522 & 4.0 years & 3.61 years \\
+Q4 (High) & 506 & 6.0 years & 4.62 years \\
 \midrule
-\multicolumn{4}{l}{\textit{Log-rank test}: $\chi^2 = 278.7$, $p < 10^{-60}$} \\
+\multicolumn{4}{l}{\textit{Log-rank test}: $\chi^2 = 633.0$, $p < 10^{-136}$} \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
@@ -372,21 +372,21 @@ Q4 (High) & 234 & 4.0 years & 5.35 years \\
 \end{tablenotes}
 \end{table}
 
-The log-rank test decisively rejects equality of survival curves across intensity quartiles ($\chi^2 = 278.7$, $p < 10^{-60}$), confirming that higher-intensity waves persist substantially longer. The median survival differential between Q1 and Q4---two years versus four years---indicates that wave duration doubles at the upper extreme of initial intensity.
+The log-rank test decisively rejects equality of survival curves across intensity quartiles ($\chi^2 = 633.0$, $p < 10^{-136}$), confirming that higher-intensity waves persist substantially longer. The median survival differential between Q1 and Q4---two years versus six years---indicates that wave duration triples at the upper extreme of initial intensity.
 
-Regional origin also influences wave persistence. African (mean duration = 3.99 years), Middle Eastern (4.14 years), and Asian (4.28 years) waves outlast those from Europe (2.40 years) and the Americas (2.25 years). The log-rank test confirms significant regional heterogeneity ($\chi^2 = 89.7$, $p < 10^{-17}$).
+Regional origin also influences wave persistence. European (mean duration = 5.93 years) and Asian (3.88 years) waves outlast those from Africa (3.58 years), the Middle East (3.44 years), the Americas (2.24 years), and the residual ``Other'' category (3.25 years). The log-rank test confirms significant regional heterogeneity ($\chi^2 = 114.2$, $p < 10^{-22}$).
 
 Cox proportional hazards regression quantifies the multivariate relationship between wave characteristics and termination risk. Key findings include:
 
 \begin{itemize}
-    \item \textbf{Log intensity}: HR = 0.412 ($p < 0.001$). Higher-intensity waves exhibit 59\% lower hazard of termination, confirming the protective effect of initial magnitude.
-    \item \textbf{Early wave}: HR = 1.361 ($p < 0.001$). Waves beginning in the early observation period terminate faster, potentially reflecting data truncation or secular trends.
-    \item \textbf{Peak arrivals}: HR = 0.656 ($p < 0.001$). Higher peak arrivals during the wave reduce termination hazard.
-    \item \textbf{Americas origin}: HR = 1.711 ($p = 0.005$). Waves from the Americas terminate 71\% faster than the reference category (Africa).
-    \item \textbf{Europe origin}: HR = 1.568 ($p = 0.004$). European-origin waves similarly exhibit elevated termination hazard.
+    \item \textbf{Log intensity}: HR = 0.591 ($p < 0.001$). Higher-intensity waves exhibit 41\% lower hazard of termination, confirming the protective effect of initial magnitude.
+    \item \textbf{Early wave}: HR = 1.767 ($p < 0.001$). Waves beginning in the early observation period terminate faster, consistent with endpoint truncation and secular timing effects.
+    \item \textbf{Peak arrivals}: HR = 0.565 ($p < 0.001$). Higher peak arrivals during the wave reduce termination hazard.
+    \item \textbf{Americas origin}: HR = 1.772 ($p < 0.001$). Waves from the Americas terminate 77\% faster than the reference category (Africa).
+    \item \textbf{Europe origin}: HR = 0.629 ($p < 0.001$). European-origin waves exhibit 37\% lower termination hazard than the reference category (Africa).
 \end{itemize}
 
-The Cox model achieves a concordance index of 0.769, indicating good discriminative ability---the model correctly ranks wave pairs by survival time 77\% of the time. The proportional hazards assumption is satisfied based on the global Schoenfeld residual test.
+The Cox model achieves a concordance index of 0.777, indicating good discriminative ability---the model correctly ranks wave pairs by survival time 78\% of the time. The proportional hazards assumption is satisfied based on the global Schoenfeld residual test.
 
 To connect duration estimates to forecasting, we translate the Cox model into year-ahead survival probabilities for any active wave. For a wave observed at age $a$, the conditional survival ratio $S(a+k \mid x) / S(a \mid x)$ yields the probability the wave persists $k$ additional years, which we combine with the empirically estimated lifecycle shape (initiation $\rightarrow$ peak $\rightarrow$ decline) to simulate wave contributions within the Monte Carlo scenario engine. Figure~\ref{fig:survival} summarizes the survival curves that anchor these persistence draws.
 
@@ -413,25 +413,27 @@ Pre-2020 Trend & Anchor 2019; continue 2010--2019 slope (+72/year) & 2,517 \\
 Immigration Policy & Reduced admissions via SDC factor (0.65x) & 4,581 \\
 Zero & No international migration & 0 \\
 \midrule
-Monte Carlo Median & Stochastic trend with $CV_{2045} = 0.38$ & 9,070 \\
-\quad 50\% PI & & [6,773, 11,353] \\
-\quad 95\% PI & & [3,360, 14,756] \\
+Monte Carlo (Baseline) & Stochastic trend with $CV_{2045} = 0.39$ & 8,720 \\
+\quad 50\% PI & & [6,431, 11,024] \\
+\quad 95\% PI & & [3,011, 14,393] \\
+Wave-adjusted Envelope & Baseline + hazard-based wave persistence draws & 9,119 \\
+\quad 95\% Envelope & & [3,407, 14,806] \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: CBO = Congressional Budget Office elevated immigration scenario. PI = prediction interval from 25,000 Monte Carlo draws. $CV_{2045}$ denotes the coefficient of variation of simulated 2045 outcomes (historical CV is 82.5\%). Baseline 2024 value = 5,126.
+\item \textit{Notes}: CBO = Congressional Budget Office elevated immigration scenario. PI = baseline-only prediction interval from 25,000 Monte Carlo draws. The wave-adjusted envelope adds hazard-based wave persistence draws and should be interpreted as conservative because wave-driven variation may already be reflected in baseline forecast uncertainty. $CV_{2045}$ denotes the coefficient of variation of baseline-only simulated 2045 outcomes (historical CV is 82.5\%). Baseline 2024 value = 5,126.
 \end{tablenotes}
 \end{table}
 
 The five deterministic scenarios yield dramatically different endpoints. The CBO Full scenario applies 10\% above-ARIMA levels for 2025--2029 and then compounds at 8\% annually, projecting net international migration of 19,318 persons by 2045. The Moderate scenario, applying 50\% dampening to historical trends, yields 7,048. The Pre-2020 Trend scenario anchors at the 2019 level and extrapolates the 2010--2019 slope, projecting only 2,517---reflecting the modest pre-pandemic growth rate. The Immigration Policy scenario applies a 35\% reduction to the Moderate trajectory (0.65$\times$), yielding 4,581 migrants by 2045. The Zero scenario provides a floor of 0.
 
-Monte Carlo simulation propagates parameter uncertainty through the projection model. Based on 25,000 draws from estimated trend and volatility distributions ($CV_{2045} = 0.38$), the median 2045 projection is 9,070 persons, with a 50\% prediction interval of [6,773, 11,353] and a 95\% prediction interval of [3,360, 14,756]. The latter interval spans a factor of 4.4, reflecting substantial irreducible uncertainty over a 20-year horizon given the observed volatility and structural instability. The simulation CV refers to dispersion in projected 2045 outcomes and is not directly comparable to the historical CV of annual observations.
+	Monte Carlo simulation propagates baseline parameter uncertainty through the projection model. Based on 25,000 draws from estimated trend and volatility distributions ($CV_{2045} = 0.39$), the baseline-only median 2045 projection is 8,720 persons, with a 50\% prediction interval of [6,431, 11,024] and a 95\% prediction interval of [3,011, 14,393]. Adding hazard-based wave persistence draws yields a conservative wave-adjusted uncertainty envelope: the median 2045 projection rises to 9,119 with a 95\% envelope of [3,407, 14,806]. The wave-adjusted envelope spans a factor of 4.3, reflecting substantial irreducible uncertainty over a 20-year horizon given the observed volatility and structural instability. The simulation CV refers to dispersion in projected 2045 outcomes and is not directly comparable to the historical CV of annual observations.
 
-Model averaging weights alternative time series specifications by AIC. The VAR model receives effectively all AIC weight (1.000) relative to the univariate ARIMA (weight $\approx 0$), reflecting the superior fit of the multivariate specification. For cross-sectional models, Random Forest receives the highest $R^2$-based weight (0.462), followed by Elastic Net (0.293) and OLS (0.245).
+		Diagnostics from multivariate and cross-sectional models are reported for triangulation and benchmarking. Scenario paths are defined by explicit, policy-indexed rules rather than by weighting forecasts across specifications.
 
 \paragraph{Role of Machine Learning Methods.} The ML methods described in Section~\ref{subsec:ml_methods} serve an auxiliary role in this analysis rather than contributing directly to the scenario trajectories. Elastic Net regularization ($R^2_{CV} = 0.60$) identifies three non-zero predictors of state-level international migration share: log population (coefficient = 0.015), natural change (0.011), and birth rate ($-0.003$). Random Forest ($R^2_{CV} = 0.94$) confirms that log population dominates feature importance (93\% of relative importance), with death rate and domestic migration rate contributing marginally. K-means clustering ($K = 2$; silhouette = 0.64) places North Dakota in the larger cluster containing 50 states (including DC), with only one state forming a distinct outlier cluster.
 
 These ML results provide three contributions to the broader analysis: (1) they validate that population scale is the primary determinant of state-level migration allocation, consistent with the cross-sectional models in Section~\ref{subsec:gravity_results}; (2) they identify peer states for North Dakota (the 51 states in its cluster) useful for comparative benchmarking; and (3) they confirm that no parsimonious feature set substantially improves upon simple population-based allocation models. Because ML methods are trained on cross-sectional variation and do not generate time-series forecasts, they do not directly parameterize the scenario engine. Full ML diagnostics are available in the supplementary materials.
 
-The fan chart visualization (Figure~\ref{fig:scenarios}) depicts the scenario trajectories with Monte Carlo uncertainty bands, illustrating both the range of policy-contingent outcomes and the widening uncertainty envelope over the projection horizon.
+The fan chart visualization (Figure~\ref{fig:scenarios}) depicts the scenario trajectories with nested Monte Carlo uncertainty bands: a baseline-only prediction interval and an outer wave-adjusted uncertainty envelope that adds hazard-based persistence draws. The nested presentation makes uncertainty sources transparent and avoids implicitly treating stacked stochastic components as a single calibrated prediction interval.

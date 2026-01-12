@@ -55,9 +55,47 @@ DEFAULT_REFRESH_SCRIPTS = [
     "module_10_two_component_estimand.py",
     "module_secondary_migration.py",
     "module_B1_regime_aware_models.py",
+    "run_pep_regime_modeling.py",
     "module_B4_bayesian_panel_var.py",
     "run_module_B2_multistate_placebo.py",
 ]
+
+
+def ensure_journal_pep_regime_figure(
+    analysis_dir: Path,
+    journal_dir: Path,
+    refresh_enabled: bool,
+    logs_dir: Path,
+) -> None:
+    """
+    Ensure the appendix PEP regime diagnostic figure exists in the LaTeX figures directory.
+
+    The manuscript references `figures/fig_app_pep_regime_diagnostic.png`. This helper makes the
+    one-command build robust by copying from the statistical-analysis output figure when present,
+    and otherwise guiding the user to run with `--refresh`.
+    """
+    journal_figure = journal_dir / "figures" / "fig_app_pep_regime_diagnostic.png"
+    if journal_figure.exists():
+        return
+
+    source = analysis_dir / "figures" / "module_B1_pep_regime_modeling__P0.png"
+    if source.exists():
+        journal_figure.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, journal_figure)
+        return
+
+    if refresh_enabled:
+        runner = analysis_dir / "run_pep_regime_modeling.py"
+        runner_log = logs_dir / "refresh" / "run_pep_regime_modeling.log"
+        run_command([sys.executable, str(runner)], runner_log, cwd=analysis_dir)
+        if journal_figure.exists():
+            return
+
+    raise FileNotFoundError(
+        "Missing appendix figure `figures/fig_app_pep_regime_diagnostic.png`. "
+        "Run `build_versioned_artifacts.py --refresh` (or run "
+        "`python sdc_2024_replication/scripts/statistical_analysis/run_pep_regime_modeling.py`)."
+    )
 
 
 def _project_root() -> Path:
@@ -429,6 +467,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             [sys.executable, str(journal_dir / "create_publication_figures.py")],
             figures_log,
             cwd=journal_dir,
+        )
+
+        ensure_journal_pep_regime_figure(
+            analysis_dir=analysis_dir,
+            journal_dir=journal_dir,
+            refresh_enabled=args.refresh,
+            logs_dir=logs_dir,
         )
 
         pdf_output_path = output_root / f"{version_basename}.pdf"

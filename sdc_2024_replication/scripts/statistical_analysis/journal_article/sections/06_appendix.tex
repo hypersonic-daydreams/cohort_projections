@@ -18,11 +18,11 @@ This appendix presents complete regression output for all specifications discuss
 \subsection{Panel Data Models}
 \label{app:panel_models}
 
-Table~\ref{tab:app_panel} reports the full panel regression results comparing pooled OLS, fixed effects, and random effects specifications for state-level international migration.
+Table~\ref{tab:app_panel} reports benchmarking panel decompositions comparing pooled OLS, fixed effects, and random effects specifications for state-level international migration. The specification is intercept-only with year effects; no additional covariates are included.
 
 \begin{table}[htbp]
 \centering
-\caption{Panel Regression Results: Full Specifications}
+\caption{Panel Benchmarking Results (Intercept-only with Year Effects)}
 \label{tab:app_panel}
 \begin{tabular}{@{}lccc@{}}
 \toprule
@@ -69,7 +69,7 @@ $R^2$ / Overall $R^2$ & 0.312 & 0.298 & 0.308 \\
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: Standard errors in parentheses, clustered at state level for FE and RE specifications. Reference year: 2010--2024 mean. * $p < 0.05$; ** $p < 0.01$; *** $p < 0.001$.
+\item \textit{Notes}: Intercept-only benchmarking specification with year effects and no additional time-varying covariates. The FE column includes state fixed effects (not reported), and the RE column includes a state-level random intercept. Standard errors in parentheses (clustered at the state level for FE and RE). Coefficients are interpreted descriptively as a two-way effects decomposition of state/year variation rather than causal estimates of covariate effects. * $p < 0.05$; ** $p < 0.01$; *** $p < 0.001$.
 \end{tablenotes}
 \end{table}
 
@@ -115,7 +115,7 @@ Table~\ref{tab:app_did} reports the complete difference-in-differences estimates
 
 \begin{table}[htbp]
 \centering
-\caption{Difference-in-Differences Estimates: Travel Ban Effect}
+\caption{Difference-in-Differences Estimates: Travel Ban Policy-Associated Divergence}
 \label{tab:app_did}
 \begin{tabular}{@{}lcccc@{}}
 \toprule
@@ -182,6 +182,72 @@ KPSS & Constant only & 0.189 & $\ge 0.10$ & Fail to reject stationarity \\
 \end{tablenotes}
 \end{table}
 
+\subsection{Vintage-Regime Diagnostic for the Long-Run PEP Series}
+\label{app:pep_vintage_regime}
+
+Figure~\ref{fig:app_pep_regime_diagnostic} visualizes the long-run (2000--2024) PEP net international migration series for North Dakota, explicitly separating decennial-vintage measurement regimes and treating the COVID year (2020) as a one-year intervention. The purpose of this diagnostic is to clarify that the extended series is a \emph{spliced} measurement product, not a methodologically homogeneous time series, and to quantify regime-specific trend slopes used in robustness discussions.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.90\textwidth]{figures/fig_app_pep_regime_diagnostic.png}
+\caption{Measurement-regime diagnostic for North Dakota PEP net international migration, 2000--2024. Points are colored by PEP vintage (2009/2020/2024). The fitted line reflects a piecewise (vintage-regime) trend model with a COVID-19 pulse intervention in 2020 and HAC (Newey--West) standard errors.}
+\label{fig:app_pep_regime_diagnostic}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\caption{Regime-Specific Trend Slopes in Long-Run PEP Series (Diagnostic)}
+\label{tab:app_pep_regime_slopes}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Regime (Years)} & \textbf{Slope} & \textbf{SE (HAC)} & \textbf{$p$-value} \\
+\midrule
+Vintage 2009 (2000--2009) & 39.2 & 17.8 & 0.028 \\
+Vintage 2020 (2010--2019) & 72.4 & 72.3 & 0.316 \\
+Vintage 2024 (2020--2024) & 1500.1 & 191.6 & $< 0.001$ \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item \textit{Notes}: Slopes represent annual change in PEP net international migration (persons) within each decennial-vintage regime. Standard errors are HAC (Newey--West) with 2 lags. The model includes level shifts at vintage boundaries and a one-year COVID-19 pulse intervention for 2020. Replication artifacts: \texttt{\detokenize{sdc_2024_replication/scripts/statistical_analysis/results/module_B1_pep_regime_modeling.json}} and \texttt{\detokenize{sdc_2024_replication/scripts/statistical_analysis/results/module_B1_pep_regime_modeling_slopes.csv}}.
+\end{tablenotes}
+\end{table}
+
+\subsection{Covariate-Conditioned Near-Term Forecast Anchor (2025--2029)}
+\label{app:covariate_anchor}
+
+As an appendix-only robustness check, we estimate a parsimonious state-space ``local level + regression'' model that conditions North Dakota \PEP net international migration on lagged auxiliary signals: (i) ND refugee arrivals (RPC; fiscal-year totals) and (ii) ND LPR admissions (DHS; fiscal-year totals). We also report a sensitivity specification that adds an ACS moved-from-abroad proxy (B07007; ``Foreign born, moved from abroad''). This diagnostic is not used to parameterize the main scenario engine or to replace the Moderate baseline; it is intended to assess whether policy-linked covariates materially change the near-term forecast under minimal and transparent covariate-path assumptions (last-observation carried forward). Scope and interpretation are formalized in ADR-031.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.90\textwidth]{figures/fig_app_covariate_anchor_2025_2029.png}
+\caption{Appendix diagnostic: covariate-conditioned near-term forecast anchor (2025--2029). The baseline is the univariate ARIMA forecast used for the Moderate scenario's near-term anchor. The covariate-conditioned forecasts use a local-level state-space regression with lagged regressors (RPC refugee FY totals, DHS LPR FY totals; ACS B07007 sensitivity). Covariate paths beyond the last observed year are held constant (LOCF) to avoid embedding a separate long-horizon covariate-forecasting model. Replication artifacts: \texttt{\detokenize{sdc_2024_replication/scripts/statistical_analysis/results/module_app_covariate_anchor.json}} and \texttt{\detokenize{sdc_2024_replication/scripts/statistical_analysis/results/module_app_covariate_anchor_2025_2029.csv}}.}
+\label{fig:app_covariate_anchor_2025_2029}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\caption{Near-Term Forecast Comparison: Baseline vs.\ Covariate-Conditioned Anchor (2025--2029)}
+\label{tab:app_covariate_anchor_2025_2029}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Year} & \textbf{Baseline (ARIMA)} & \textbf{Refugees + LPR (P0)} & \textbf{+ ACS Sensitivity (S3)} \\
+\midrule
+2025 & 5,126 [2,928, 7,324] & 5,968 [3,946, 7,989] & 4,542 [2,906, 6,179] \\
+2026 & 5,126 [2,018, 8,234] & 5,968 [3,109, 8,826] & 4,542 [2,647, 6,437] \\
+2027 & 5,126 [1,320, 8,932] & 5,968 [2,467, 9,468] & 4,542 [2,420, 6,665] \\
+2028 & 5,126 [731, 9,521] & 5,968 [1,925, 10,010] & 4,542 [2,215, 6,870] \\
+2029 & 5,126 [212, 10,040] & 5,968 [1,448, 10,487] & 4,542 [2,026, 7,059] \\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\small
+\item \textit{Notes}: Entries report point forecasts with 95\% prediction intervals in brackets. The P0 and S3 columns are produced by the appendix state-space regression (local level + lagged covariates) and are presented as a diagnostic overlay; they do not replace the Moderate baseline or feed the main Monte Carlo scenario engine.
+\end{tablenotes}
+\end{table}
+
 \subsection{Alternative Structural Break Tests}
 \label{app:break_robustness}
 
@@ -195,10 +261,10 @@ The Bai-Perron procedure for endogenous break detection yields the following res
 
 The divergence between criteria reflects the tension between model fit and parsimony in short time series. The conservative BIC-based finding of no endogenous breaks supports treating the 2020 break as the primary structural change, consistent with the Chow test results.
 
-\subsection{VAR Model Results}
-\label{app:var_results}
+	\subsection{VAR Model Results}
+	\label{app:var_results}
 
-Section~\ref{subsec:time_series_methods} describes the VAR methodology, and Section~\ref{subsec:scenario_results} notes that the VAR model receives effectively all AIC weight in model averaging. This section reports the underlying VAR diagnostics and coefficient estimates.
+	Section~\ref{subsec:time_series_methods} describes the VAR methodology, and Section~\ref{subsec:scenario_results} explains why multivariate models are treated as diagnostics rather than inputs to the scenario engine. This section reports the underlying VAR diagnostics and coefficient estimates.
 
 \paragraph{Lag Selection and Model Fit.} Lag order selection across multiple criteria uniformly favors VAR(1):
 
@@ -253,7 +319,7 @@ US Int'l Mig. & L1.ND Int'l Mig. & 198,274 & 256,279 & 0.77 & 0.439 \\
 
 \paragraph{Cointegration.} Engle-Granger and Johansen tests yield conflicting results. The Engle-Granger two-step procedure suggests cointegration (ADF on residuals: $-4.48$, $p < 0.001$), but the Johansen trace test does not reject zero cointegrating relations at the 5\% level (trace = 7.18, critical value = 15.49). Given the mixed integration orders of the component series (ND: I(1); US: I(0) per ADF) and the very short sample, we do not impose a cointegrating restriction and proceed with VAR in levels.
 
-\paragraph{Role in Forecasting.} Despite receiving high AIC weight in model averaging, the VAR is not used for standalone long-horizon forecasting because it requires future values of US international migration---information unavailable at forecast time. The VAR's contribution to the analysis is primarily diagnostic: it confirms the contemporaneous ND--US correlation (cointegrating relationship) and provides variance decomposition context for interpreting scenario uncertainty.
+	\paragraph{Role in Forecasting.} The VAR is not used for standalone long-horizon forecasting because it requires future values of US international migration---information unavailable at forecast time. The VAR's contribution to the analysis is primarily diagnostic: it characterizes ND--US comovement and provides variance decomposition context for interpreting scenario uncertainty.
 
 \subsection{Sensitivity to PPML Specification}
 \label{app:ppml_robustness}

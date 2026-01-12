@@ -12,6 +12,31 @@
 
 ---
 
+## v0.8.6 Revision Addendum (Adopted Methodology Changes)
+
+This document primarily specifies the SDC’s 2024 cohort-survival spreadsheet methodology. For the **v0.8.6 journal-article replication and analysis pipeline**, we adopt a set of additional methodological choices and robustness enhancements (data extensions, time-base alignment, regime diagnostics, and uncertainty reporting) that are **not** part of the original SDC workbook, but are required to address the v0.8.5 critique and to make uncertainty sources auditable.
+
+Canonical decision records (v0.8.6 adopted):
+
+- Data extension + alignment:
+  - ADR-024 `docs/governance/adrs/024-immigration-data-extension-fusion.md`
+  - ADR-025 `docs/governance/adrs/025-refugee-coverage-missing-state-handling.md`
+  - ADR-026 `docs/governance/adrs/026-amerasian-siv-handling-forecasting.md`
+- Causal timing + robustness:
+  - ADR-027 `docs/governance/adrs/027-travel-ban-extended-dynamics-supplement.md`
+- Uncertainty and simulation rigor:
+  - ADR-028 `docs/governance/adrs/028-monte-carlo-simulation-rigor-parallelization.md`
+  - ADR-029 `docs/governance/adrs/029-wave-duration-refit-right-censoring-hazard.md`
+  - ADR-032 `docs/governance/adrs/032-uncertainty-envelopes-two-band-approach.md`
+- Long-run context / measurement regimes:
+  - ADR-020 `docs/governance/adrs/020-extended-time-series-methodology-analysis.md`
+  - ADR-030 `docs/governance/adrs/030-pep-regime-aware-modeling-long-run-series.md`
+- Appendix-only covariate-conditioned near-term diagnostic:
+  - ADR-031 `docs/governance/adrs/031-covariate-conditioned-near-term-forecast-anchor.md`
+
+Important scope note:
+- These v0.8.6 changes refine the **replication/analysis** and the paper’s forecasting uncertainty reporting; they do not redefine the SDC 2024 cohort-component projection engine documented below.
+
 ## 1. Projection Framework
 
 ### 1.1 Method Classification

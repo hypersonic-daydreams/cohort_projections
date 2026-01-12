@@ -106,6 +106,12 @@ Dickey, D.~A. and Fuller, W.~A. (1979).
 \newblock {\em Journal of the American Statistical Association},
   74(366a):427--431.
 
+\bibitem[Dreher et~al., 2020]{DreherLanglotzMatzatParsons2020}
+Dreher, A., Langlotz, S., Matzat, J., and Parsons, C. (2020).
+\newblock Immigration, political ideologies and the polarization of american
+  politics.
+\newblock Working Paper 8789, CESifo.
+
 \bibitem[Goldsmith-Pinkham et~al., 2020]{GoldsmithPinkhamSorkinSwift2020}
 Goldsmith-Pinkham, P., Sorkin, I., and Swift, H. (2020).
 \newblock Bartik instruments: What, when, why, and how.
@@ -151,6 +157,13 @@ Mossaad, N., Ferwerda, J., Lawrence, D., Weinstein, J.~M., and Hainmueller, J.
   refugees in the {United States}.
 \newblock {\em Science Advances}, 6(32):eabb0295.
 
+\bibitem[{Office of Homeland Security Statistics}, 2023]{DHSYearbook2023}
+{Office of Homeland Security Statistics} (2023).
+\newblock Yearbook of immigration statistics: Lawful permanent resident (lpr)
+  admissions tables.
+\newblock \url{https://ohss.dhs.gov/topics/immigration/yearbook}.
+\newblock Department of Homeland Security. Accessed 2026-01-05.
+
 \bibitem[Phillimore et~al., 2022]{Phillimore2022}
 Phillimore, J., Morrice, L., Kabe, K., Sandoz, L., Sherrell, K., and Sim, D.
   (2022).
@@ -180,6 +193,20 @@ Ravn, M.~O. and Uhlig, H. (2002).
   observations.
 \newblock {\em Review of Economics and Statistics}, 84(2):371--376.
 
+\bibitem[{Refugee Processing Center}, 2026a]{RPCAdmissionsArrivals2026}
+{Refugee Processing Center} (2026a).
+\newblock Admissions \& arrivals: Refugee arrivals by state and nationality.
+\newblock \url{https://www.rpc.state.gov/admissions-and-arrivals/}.
+\newblock U.S. Department of State, Bureau of Population, Refugees, and
+  Migration. Accessed 2026-01-05.
+
+\bibitem[{Refugee Processing Center}, 2026b]{RPCArchives2026}
+{Refugee Processing Center} (2026b).
+\newblock Archives: Refugee and amerasian/siv arrivals reports.
+\newblock \url{https://www.rpc.state.gov/archives/}.
+\newblock U.S. Department of State, Bureau of Population, Refugees, and
+  Migration. Accessed 2026-01-05.
+
 \bibitem[Santos~Silva and Tenreyro, 2006]{SantosSilvaTenreyro2006}
 Santos~Silva, J. M.~C. and Tenreyro, S. (2006).
 \newblock The log of gravity.
@@ -190,6 +217,44 @@ Tinbergen, J. (1962).
 \newblock An analysis of world trade flows.
 \newblock In Tinbergen, J., editor, {\em Shaping the World Economy}. Twentieth
   Century Fund, New York.
+
+\bibitem[{U.S. Census Bureau}, 2020]{CensusPEP2020}
+{U.S. Census Bureau} (2020).
+\newblock Annual estimates of the resident population and components of change
+  for the united states, regions, states, and puerto rico: April 1, 2010 to
+  july 1, 2020 (nst-est2020-alldata).
+\newblock
+  \url{https://www2.census.gov/programs-surveys/popest/datasets/2010-2020/state/totals/nst-est2020-alldata.csv}.
+\newblock Population Estimates Program (PEP). Accessed 2026-01-05.
+
+\bibitem[{U.S. Census Bureau}, 2023a]{CensusACS2023}
+{U.S. Census Bureau} (2023a).
+\newblock American community survey (acs).
+\newblock \url{https://www.census.gov/programs-surveys/acs}.
+\newblock Accessed 2026-01-05.
+
+\bibitem[{U.S. Census Bureau}, 2023b]{ACS_B05006_2023}
+{U.S. Census Bureau} (2023b).
+\newblock American community survey table b05006: Place of birth for the
+  foreign-born population.
+\newblock \url{https://api.census.gov/data/2023/acs/acs5/groups/B05006.html}.
+\newblock ACS 5-year estimates API group. Accessed 2026-01-05.
+
+\bibitem[{U.S. Census Bureau}, 2023c]{ACS_B07007_2023}
+{U.S. Census Bureau} (2023c).
+\newblock American community survey table b07007: Geographical mobility in the
+  past year by citizenship status.
+\newblock \url{https://api.census.gov/data/2023/acs/acs1/groups/B07007.html}.
+\newblock ACS 1-year estimates API group. Accessed 2026-01-05.
+
+\bibitem[{U.S. Census Bureau}, 2024]{CensusPEP2024}
+{U.S. Census Bureau} (2024).
+\newblock Annual estimates of the resident population and components of change
+  for the united states, regions, states, and puerto rico: April 1, 2020 to
+  july 1, 2024 (nst-est2024-alldata).
+\newblock
+  \url{https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/state/totals/nst-est2024-alldata.csv}.
+\newblock Population Estimates Program (PEP). Accessed 2026-01-05.
 
 \bibitem[Weber et~al., 2014]{EnergyBoomDemographics2015}
 Weber, B.~A., Geigle, K.~J., and Barkdull, C. (2014).

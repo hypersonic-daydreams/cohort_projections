@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "project-utils"
+version = "0.1.0"
+description = "Common utilities for Python projects: configuration and logging"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pyyaml>=6.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["project_utils*"]
+
+[tool.setuptools.package-data]
+project_utils = ["py.typed"]

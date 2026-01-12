@@ -16,12 +16,15 @@ Usage:
     micromamba run -n cohort_proj python module_8_duration_analysis.py
 """
 
+import argparse
 import json
+import re
 import sys
 import traceback
 import warnings
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Iterable
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -167,6 +170,38 @@ def save_figure(fig, filepath_base, title, source_note):
     print(f"Figure saved: {filepath_base}.png/pdf")
 
 
+def normalize_output_tag(tag: str | None) -> str | None:
+    """Normalize a run tag into a filesystem-safe token."""
+    if tag is None:
+        return None
+    cleaned = tag.strip()
+    if not cleaned:
+        return None
+    cleaned = re.sub(r"\s+", "_", cleaned)
+    cleaned = re.sub(r"[^A-Za-z0-9_.-]+", "_", cleaned)
+    cleaned = cleaned.strip("_")
+    return cleaned or None
+
+
+def tagged_stem(stem: str, tag: str | None) -> str:
+    """Append `__{tag}` to a stem if a tag is provided."""
+    tag_norm = normalize_output_tag(tag)
+    if not tag_norm:
+        return stem
+    return f"{stem}__{tag_norm}"
+
+
+def tagged_filename(filename: str, tag: str | None) -> str:
+    """Insert `__{tag}` before the file extension."""
+    tag_norm = normalize_output_tag(tag)
+    if not tag_norm:
+        return filename
+    path = Path(filename)
+    if not path.suffix:
+        return f"{filename}__{tag_norm}"
+    return f"{path.stem}__{tag_norm}{path.suffix}"
+
+
 def drop_states_missing_post_2020(
     df_refugee: pd.DataFrame, result: ModuleResult
 ) -> pd.DataFrame:
@@ -211,81 +246,180 @@ def load_data(result: ModuleResult) -> tuple[pd.DataFrame, pd.DataFrame]:
 
 
 def identify_immigration_waves(
-    df: pd.DataFrame, threshold_pct: float = 50.0, min_wave_years: int = 2
+    df: pd.DataFrame,
+    *,
+    threshold_pct: float = 50.0,
+    min_wave_years: int = 2,
+    baseline_start_year: int | None = None,
+    baseline_end_year: int | None = None,
+    fill_missing_years: bool = False,
+    gap_tolerance_years: int = 0,
+    min_peak_arrivals: int = 0,
 ) -> pd.DataFrame:
     """
     Identify immigration waves: periods where arrivals exceed baseline by threshold.
 
-    An immigration "wave" is defined as consecutive years where arrivals
-    exceed the long-term median by at least threshold_pct percent.
+    By default, this reproduces the legacy implementation:
+      - baseline = median of the first half of the observation period
+      - waves = consecutive observed rows above threshold
+
+    Optional enhancements (for v0.8.6 spec grid):
+      - fixed baseline window via (baseline_start_year, baseline_end_year)
+      - explicit year completion (fill missing years with 0) before wave detection
+      - gap tolerance (allow <= k below-threshold years within a wave)
+      - minimum absolute peak arrivals filter
 
     Parameters:
         df: DataFrame with fiscal_year, state, nationality, arrivals
-        threshold_pct: Percentage above baseline to define wave start (default 50%)
-        min_wave_years: Minimum consecutive years to qualify as a wave
+        threshold_pct: Percent above baseline to define wave years (default 50%)
+        min_wave_years: Minimum number of above-threshold years required (default 2)
+        baseline_start_year: First year (inclusive) for baseline median (optional)
+        baseline_end_year: Last year (inclusive) for baseline median (optional)
+        fill_missing_years: If True, reindex each series to all years and fill 0
+        gap_tolerance_years: Allowed consecutive below-threshold years within a wave
+        min_peak_arrivals: Filter out waves with peak arrivals below this threshold
 
     Returns:
-        DataFrame with wave definitions including start, peak, end, duration
+        DataFrame with wave definitions including start/end/peak/duration/censoring
     """
-    # Exclude 'Total' rows
-    df_filtered = df[df["nationality"] != "Total"].copy()
+    if gap_tolerance_years < 0:
+        raise ValueError("gap_tolerance_years must be >= 0")
+    if min_wave_years < 1:
+        raise ValueError("min_wave_years must be >= 1")
+    if min_peak_arrivals < 0:
+        raise ValueError("min_peak_arrivals must be >= 0")
+    if gap_tolerance_years > 0 and not fill_missing_years:
+        raise ValueError(
+            "gap_tolerance_years requires fill_missing_years=True to define pauses."
+        )
 
-    # Calculate baseline (median) arrivals for each state-nationality pair
-    # Use first half of data as "baseline period" (2002-2010)
-    baseline_years = (
-        df_filtered["fiscal_year"].min()
-        + (df_filtered["fiscal_year"].max() - df_filtered["fiscal_year"].min()) // 2
+    df_filtered = df[df["nationality"] != "Total"].copy()
+    if df_filtered.empty:
+        print("Identified 0 immigration waves (no non-Total rows)")
+        return pd.DataFrame()
+
+    analysis_start_year = int(df_filtered["fiscal_year"].min())
+    analysis_end_year = int(df_filtered["fiscal_year"].max())
+
+    # Legacy baseline window (first half of the observation period)
+    baseline_split_year = (
+        analysis_start_year + (analysis_end_year - analysis_start_year) // 2
     )
 
-    waves = []
+    all_years = list(range(analysis_start_year, analysis_end_year + 1))
+    waves: list[dict] = []
+
+    def _baseline_window_description() -> str:
+        if baseline_end_year is None:
+            return "median of first half of observation period"
+        start = baseline_start_year if baseline_start_year is not None else analysis_start_year
+        return f"median of fiscal years {start}-{baseline_end_year}"
+
+    def _select_baseline(arrivals_by_year: pd.Series) -> float:
+        if baseline_end_year is None:
+            baseline_slice = arrivals_by_year.loc[
+                arrivals_by_year.index <= baseline_split_year
+            ]
+        else:
+            start = baseline_start_year if baseline_start_year is not None else analysis_start_year
+            baseline_slice = arrivals_by_year.loc[
+                (arrivals_by_year.index >= start) & (arrivals_by_year.index <= baseline_end_year)
+            ]
+        baseline = float(arrivals_by_year.median()) if baseline_slice.empty else float(baseline_slice.median())
+        return 1.0 if baseline == 0 else baseline
+
+    def _find_wave_spans(
+        above: list[bool],
+        years: list[int],
+    ) -> list[tuple[int, int, int]]:
+        """Return spans as (start_idx, end_idx, n_above) on a consecutive year grid."""
+        spans: list[tuple[int, int, int]] = []
+        start_idx: int | None = None
+        gap_run = 0
+        above_count = 0
+        last_above_idx: int | None = None
+
+        for idx, flag in enumerate(above):
+            if start_idx is None:
+                if flag:
+                    start_idx = idx
+                    gap_run = 0
+                    above_count = 1
+                    last_above_idx = idx
+                continue
+
+            if flag:
+                above_count += 1
+                last_above_idx = idx
+                gap_run = 0
+            else:
+                gap_run += 1
+                if gap_run > gap_tolerance_years:
+                    if (
+                        above_count >= min_wave_years
+                        and last_above_idx is not None
+                        and start_idx is not None
+                    ):
+                        spans.append((start_idx, last_above_idx, above_count))
+                    start_idx = None
+                    gap_run = 0
+                    above_count = 0
+                    last_above_idx = None
+
+        if (
+            start_idx is not None
+            and above_count >= min_wave_years
+            and last_above_idx is not None
+        ):
+            spans.append((start_idx, last_above_idx, above_count))
+
+        # Basic guard: ensure indices map to provided years
+        for start, end, _n in spans:
+            if start < 0 or end >= len(years) or end < start:
+                raise RuntimeError("Invalid wave span indices computed.")
+
+        return spans
 
     # Group by state-nationality combinations
     for (state, nationality), group in df_filtered.groupby(["state", "nationality"]):
         group = group.sort_values("fiscal_year")
 
-        if len(group) < 3:  # Need at least 3 years of data
-            continue
+        # Build arrivals series on either the observed grid (legacy) or full year grid.
+        if not fill_missing_years and gap_tolerance_years == 0 and baseline_end_year is None:
+            # -----------------------------------------------------------------
+            # Legacy path: preserve behavior for backward comparability
+            # -----------------------------------------------------------------
+            if len(group) < 3:
+                continue
+            baseline_data = group[group["fiscal_year"] <= baseline_split_year]["arrivals"]
+            baseline = (
+                float(group["arrivals"].median())
+                if len(baseline_data) == 0
+                else float(baseline_data.median())
+            )
+            if baseline == 0:
+                baseline = 1.0
+            wave_threshold = baseline * (1 + threshold_pct / 100)
 
-        # Calculate baseline as median of first half of data
-        baseline_data = group[group["fiscal_year"] <= baseline_years]["arrivals"]
-        baseline = (
-            group["arrivals"].median()
-            if len(baseline_data) == 0
-            else baseline_data.median()
-        )
+            group["above_threshold"] = group["arrivals"] >= wave_threshold
+            group["run_id"] = (
+                group["above_threshold"] != group["above_threshold"].shift()
+            ).cumsum()
 
-        if baseline == 0:
-            baseline = 1  # Avoid division by zero
-
-        # Calculate threshold for wave identification
-        wave_threshold = baseline * (1 + threshold_pct / 100)
-
-        # Identify years above threshold
-        group["above_threshold"] = group["arrivals"] >= wave_threshold
-
-        # Find consecutive runs of above-threshold years
-        group["run_id"] = (
-            group["above_threshold"] != group["above_threshold"].shift()
-        ).cumsum()
-
-        # Extract wave periods
-        for _run_id, run_group in group[group["above_threshold"]].groupby("run_id"):
-            if len(run_group) >= min_wave_years:
+            for _run_id, run_group in group[group["above_threshold"]].groupby("run_id"):
+                if len(run_group) < min_wave_years:
+                    continue
                 wave_years = run_group["fiscal_year"].tolist()
                 wave_arrivals = run_group["arrivals"].tolist()
+                peak_arrivals = float(max(wave_arrivals))
+                if peak_arrivals < min_peak_arrivals:
+                    continue
 
-                # Peak year is year with maximum arrivals
-                peak_idx = np.argmax(wave_arrivals)
-
-                # Identify phase: initiation, peak, decline
-                phases = []
-                for i, _year in enumerate(wave_years):
-                    if i < peak_idx:
-                        phases.append("initiation")
-                    elif i == peak_idx:
-                        phases.append("peak")
-                    else:
-                        phases.append("decline")
+                peak_idx = int(np.argmax(wave_arrivals))
+                phases = [
+                    "initiation" if i < peak_idx else "peak" if i == peak_idx else "decline"
+                    for i in range(len(wave_years))
+                ]
 
                 waves.append(
                     {
@@ -297,22 +431,103 @@ def identify_immigration_waves(
                         "duration_years": len(wave_years),
                         "baseline_arrivals": float(baseline),
                         "threshold_arrivals": float(wave_threshold),
-                        "peak_arrivals": float(max(wave_arrivals)),
+                        "peak_arrivals": peak_arrivals,
                         "total_wave_arrivals": float(sum(wave_arrivals)),
-                        "intensity_ratio": float(max(wave_arrivals) / baseline)
+                        "intensity_ratio": float(peak_arrivals / baseline)
                         if baseline > 0
                         else np.nan,
                         "all_wave_years": wave_years,
                         "all_wave_arrivals": wave_arrivals,
                         "phases": phases,
-                        # Was wave still ongoing at end of data?
-                        "censored": max(wave_years) >= df_filtered["fiscal_year"].max(),
+                        "censored": max(wave_years) >= analysis_end_year,
+                        "baseline_window": _baseline_window_description(),
+                        "year_completion": False,
+                        "gap_tolerance_years": 0,
                     }
                 )
+            continue
+
+        # ---------------------------------------------------------------------
+        # Enhanced path: fixed baseline / year completion / gap tolerance
+        # ---------------------------------------------------------------------
+        arrivals_by_year = (
+            group.groupby("fiscal_year")["arrivals"].sum().reindex(all_years, fill_value=0)
+            if fill_missing_years
+            else group.groupby("fiscal_year")["arrivals"].sum()
+        )
+        baseline = _select_baseline(arrivals_by_year)
+        wave_threshold = baseline * (1 + threshold_pct / 100)
+
+        if fill_missing_years:
+            years = all_years
+            arrivals = [float(arrivals_by_year.loc[y]) for y in years]
+        else:
+            years = [int(y) for y in arrivals_by_year.index.tolist()]
+            arrivals = [float(v) for v in arrivals_by_year.values.tolist()]
+
+        above_threshold = [val >= wave_threshold for val in arrivals]
+
+        if fill_missing_years:
+            spans = _find_wave_spans(above_threshold, years)
+        else:
+            # If we are not filling missing years (and not in legacy), we
+            # still interpret "consecutive" on the observed year grid.
+            spans = []
+            start = None
+            for idx, flag in enumerate(above_threshold):
+                if flag and start is None:
+                    start = idx
+                elif not flag and start is not None:
+                    if idx - start >= min_wave_years:
+                        spans.append((start, idx - 1, idx - start))
+                    start = None
+            if start is not None and len(above_threshold) - start >= min_wave_years:
+                spans.append((start, len(above_threshold) - 1, len(above_threshold) - start))
+
+        for start_idx, end_idx, n_above in spans:
+            wave_years = years[start_idx : end_idx + 1]
+            wave_arrivals = arrivals[start_idx : end_idx + 1]
+            if not wave_years:
+                continue
+
+            peak_idx = int(np.argmax(wave_arrivals))
+            peak_arrivals = float(max(wave_arrivals))
+            if peak_arrivals < min_peak_arrivals:
+                continue
+
+            phases = [
+                "initiation" if i < peak_idx else "peak" if i == peak_idx else "decline"
+                for i in range(len(wave_years))
+            ]
+
+            waves.append(
+                {
+                    "state": state,
+                    "nationality": nationality,
+                    "wave_start": int(wave_years[0]),
+                    "wave_end": int(wave_years[-1]),
+                    "wave_peak_year": int(wave_years[peak_idx]),
+                    "duration_years": int(wave_years[-1] - wave_years[0] + 1),
+                    "baseline_arrivals": float(baseline),
+                    "threshold_arrivals": float(wave_threshold),
+                    "peak_arrivals": peak_arrivals,
+                    "total_wave_arrivals": float(sum(wave_arrivals)),
+                    "intensity_ratio": float(peak_arrivals / baseline)
+                    if baseline > 0
+                    else np.nan,
+                    "all_wave_years": [int(y) for y in wave_years],
+                    "all_wave_arrivals": [float(a) for a in wave_arrivals],
+                    "phases": phases,
+                    "censored": int(wave_years[-1]) >= analysis_end_year,
+                    "baseline_window": _baseline_window_description(),
+                    "year_completion": bool(fill_missing_years),
+                    "gap_tolerance_years": int(gap_tolerance_years),
+                    "n_above_threshold_years": int(n_above),
+                }
+            )
 
     df_waves = pd.DataFrame(waves)
     print(f"Identified {len(df_waves)} immigration waves")
-
     return df_waves
 
 
@@ -874,6 +1089,8 @@ def plot_survival_curves(
     result: ModuleResult,
     start_year: int,
     end_year: int,
+    *,
+    tag: str | None = None,
 ):
     """Plot Kaplan-Meier survival curves."""
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
@@ -912,7 +1129,7 @@ def plot_survival_curves(
 
     save_figure(
         fig,
-        str(FIGURES_DIR / "module_8_survival_curves"),
+        str(FIGURES_DIR / tagged_stem("module_8_survival_curves", tag)),
         (
             "Kaplan-Meier Survival Analysis - Immigration Wave Duration "
             f"(FY {start_year}-{end_year})"
@@ -925,6 +1142,8 @@ def plot_cumulative_hazard(
     kmf_overall: KaplanMeierFitter,
     km_by_intensity: dict,
     result: ModuleResult,
+    *,
+    tag: str | None = None,
 ):
     """Plot cumulative hazard functions."""
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
@@ -963,13 +1182,13 @@ def plot_cumulative_hazard(
 
     save_figure(
         fig,
-        str(FIGURES_DIR / "module_8_cumulative_hazard"),
+        str(FIGURES_DIR / tagged_stem("module_8_cumulative_hazard", tag)),
         "Cumulative Hazard Functions - Immigration Wave Duration",
         "Refugee Processing Center, Department of State",
     )
 
 
-def plot_forest_plot(cox_results: dict, result: ModuleResult):
+def plot_forest_plot(cox_results: dict, result: ModuleResult, *, tag: str | None = None):
     """Create forest plot for Cox PH hazard ratios."""
     fig, ax = plt.subplots(figsize=(10, 8))
 
@@ -1041,14 +1260,18 @@ def plot_forest_plot(cox_results: dict, result: ModuleResult):
 
     save_figure(
         fig,
-        str(FIGURES_DIR / "module_8_forest_plot"),
+        str(FIGURES_DIR / tagged_stem("module_8_forest_plot", tag)),
         "Cox Proportional Hazards: Hazard Ratios for Wave Duration",
         "Refugee Processing Center, Department of State",
     )
 
 
 def plot_schoenfeld_residuals(
-    cph: CoxPHFitter, df_survival: pd.DataFrame, result: ModuleResult
+    cph: CoxPHFitter,
+    df_survival: pd.DataFrame,
+    result: ModuleResult,
+    *,
+    tag: str | None = None,
 ):
     """Plot Schoenfeld residuals for PH assumption diagnostics."""
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
@@ -1128,13 +1351,24 @@ def plot_schoenfeld_residuals(
 
     save_figure(
         fig,
-        str(FIGURES_DIR / "module_8_schoenfeld_residuals"),
+        str(FIGURES_DIR / tagged_stem("module_8_schoenfeld_residuals", tag)),
         "Schoenfeld Residuals - Proportional Hazards Assumption Diagnostics",
         "Refugee Processing Center, Department of State",
     )
 
 
-def run_analysis() -> ModuleResult:
+def run_analysis(
+    *,
+    end_year: int | None = None,
+    wave_threshold_pct: float = 50.0,
+    min_wave_years: int = 2,
+    baseline_start_year: int | None = None,
+    baseline_end_year: int | None = None,
+    fill_missing_years: bool = False,
+    gap_tolerance_years: int = 0,
+    min_peak_arrivals: int = 0,
+    tag: str | None = None,
+) -> ModuleResult:
     """Main analysis function for Module 8."""
     result = ModuleResult(
         module_id="8",
@@ -1144,18 +1378,36 @@ def run_analysis() -> ModuleResult:
     print("Loading data...")
     df_refugee, df_acs = load_data(result)
 
-    # Parameters
-    wave_threshold_pct = 50.0
-    min_wave_years = 2
+    if end_year is not None:
+        df_refugee = df_refugee[df_refugee["fiscal_year"] <= end_year].copy()
+        if "fiscal_year" in df_acs.columns:
+            df_acs = df_acs[df_acs["fiscal_year"] <= end_year].copy()
+        elif "year" in df_acs.columns:
+            df_acs = df_acs[df_acs["year"] <= end_year].copy()
+        if df_refugee.empty:
+            raise ValueError(f"No refugee data available through FY{end_year}.")
 
     start_year = int(df_refugee["fiscal_year"].min())
-    end_year = int(df_refugee["fiscal_year"].max())
+    end_year_actual = int(df_refugee["fiscal_year"].max())
+
+    baseline_description = (
+        "median of first half of observation period"
+        if baseline_end_year is None
+        else (
+            f"median of fiscal years "
+            f"{baseline_start_year if baseline_start_year is not None else start_year}"
+            f"-{baseline_end_year}"
+        )
+    )
 
     result.parameters = {
         "wave_definition": {
             "threshold_percent_above_baseline": wave_threshold_pct,
             "minimum_consecutive_years": min_wave_years,
-            "baseline_calculation": "median of first half of observation period",
+            "baseline_calculation": baseline_description,
+            "fill_missing_years": fill_missing_years,
+            "gap_tolerance_years": gap_tolerance_years,
+            "min_peak_arrivals": min_peak_arrivals,
         },
         "survival_analysis": {
             "method": "Kaplan-Meier",
@@ -1171,14 +1423,29 @@ def run_analysis() -> ModuleResult:
         },
         "data_period": {
             "start_year": start_year,
-            "end_year": end_year,
+            "end_year": end_year_actual,
+        },
+        "outputs": {
+            "tag": normalize_output_tag(tag),
         },
     }
+
+    wave_definition_bits = [
+        f"{wave_threshold_pct}% above baseline",
+        f"{min_wave_years}+ years",
+        baseline_description,
+    ]
+    if fill_missing_years:
+        wave_definition_bits.append("fill missing years with 0")
+    if gap_tolerance_years:
+        wave_definition_bits.append(f"gap tolerance={gap_tolerance_years}y")
+    if min_peak_arrivals:
+        wave_definition_bits.append(f"min peak arrivals={min_peak_arrivals}")
 
     result.add_decision(
         decision_id="D001",
         category="wave_definition",
-        decision=f"Defined immigration wave as {wave_threshold_pct}% above baseline for {min_wave_years}+ years",
+        decision="Defined immigration wave as " + "; ".join(wave_definition_bits),
         rationale="50% threshold captures significant departures from normal; 2-year minimum filters noise",
         alternatives=[
             "100% above baseline",
@@ -1196,6 +1463,11 @@ def run_analysis() -> ModuleResult:
         df_refugee,
         threshold_pct=wave_threshold_pct,
         min_wave_years=min_wave_years,
+        baseline_start_year=baseline_start_year,
+        baseline_end_year=baseline_end_year,
+        fill_missing_years=fill_missing_years,
+        gap_tolerance_years=gap_tolerance_years,
+        min_peak_arrivals=min_peak_arrivals,
     )
 
     if len(df_waves) == 0:
@@ -1248,10 +1520,12 @@ def run_analysis() -> ModuleResult:
     print("GENERATING VISUALIZATIONS")
     print("=" * 60)
 
-    plot_survival_curves(kmf_overall, km_by_region, result, start_year, end_year)
-    plot_cumulative_hazard(kmf_overall, km_by_intensity, result)
-    plot_forest_plot(cox_results, result)
-    plot_schoenfeld_residuals(cph, df_survival, result)
+    plot_survival_curves(
+        kmf_overall, km_by_region, result, start_year, end_year_actual, tag=tag
+    )
+    plot_cumulative_hazard(kmf_overall, km_by_intensity, result, tag=tag)
+    plot_forest_plot(cox_results, result, tag=tag)
+    plot_schoenfeld_residuals(cph, df_survival, result, tag=tag)
 
     # Compile results
     result.results = {
@@ -1285,9 +1559,10 @@ def run_analysis() -> ModuleResult:
         },
     }
 
-    with open(RESULTS_DIR / "module_8_wave_durations.json", "w") as f:
+    wave_durations_path = RESULTS_DIR / tagged_filename("module_8_wave_durations.json", tag)
+    with open(wave_durations_path, "w") as f:
         json.dump(wave_durations_output, f, indent=2, default=str)
-    print(f"Wave durations saved: {RESULTS_DIR / 'module_8_wave_durations.json'}")
+    print(f"Wave durations saved: {wave_durations_path}")
 
     # Save hazard model to separate file
     hazard_model_output = {
@@ -1295,9 +1570,10 @@ def run_analysis() -> ModuleResult:
         "lifecycle_analysis": lifecycle_results,
     }
 
-    with open(RESULTS_DIR / "module_8_hazard_model.json", "w") as f:
+    hazard_model_path = RESULTS_DIR / tagged_filename("module_8_hazard_model.json", tag)
+    with open(hazard_model_path, "w") as f:
         json.dump(hazard_model_output, f, indent=2, default=str)
-    print(f"Hazard model saved: {RESULTS_DIR / 'module_8_hazard_model.json'}")
+    print(f"Hazard model saved: {hazard_model_path}")
 
     # Diagnostics
     result.diagnostics = {
@@ -1310,7 +1586,7 @@ def run_analysis() -> ModuleResult:
             "rate": float((df_survival["event"] == 0).mean() * 100)
             if len(df_survival) > 0
             else None,
-            "reason": f"Wave ongoing at end of data period (FY{end_year})",
+            "reason": f"Wave ongoing at end of data period (FY{end_year_actual})",
         },
         "model_fit": {
             "concordance_index": cox_results["fit_statistics"]["concordance_index"],
@@ -1332,14 +1608,94 @@ def run_analysis() -> ModuleResult:
 
 def main():
     """Main entry point."""
+    parser = argparse.ArgumentParser(
+        description="Module 8: Duration Analysis (Wave survival and hazard models)"
+    )
+    parser.add_argument(
+        "--end-year",
+        type=int,
+        default=None,
+        help="Maximum fiscal year (inclusive) to include (e.g., 2020 for FY2002–FY2020).",
+    )
+    parser.add_argument(
+        "--threshold-pct",
+        type=float,
+        default=50.0,
+        help="Wave threshold as percent above baseline median (default: 50.0).",
+    )
+    parser.add_argument(
+        "--min-wave-years",
+        type=int,
+        default=2,
+        help="Minimum number of above-threshold years required (default: 2).",
+    )
+    parser.add_argument(
+        "--baseline-start-year",
+        type=int,
+        default=None,
+        help="Baseline window start year (inclusive). Requires --baseline-end-year.",
+    )
+    parser.add_argument(
+        "--baseline-end-year",
+        type=int,
+        default=None,
+        help="Baseline window end year (inclusive). If omitted, uses legacy first-half baseline.",
+    )
+    parser.add_argument(
+        "--fill-missing-years",
+        action="store_true",
+        help="Fill missing years with arrivals=0 before wave detection (recommended for spec grid).",
+    )
+    parser.add_argument(
+        "--gap-tolerance-years",
+        type=int,
+        default=0,
+        help="Allow up to this many consecutive below-threshold years within a wave (requires --fill-missing-years).",
+    )
+    parser.add_argument(
+        "--min-peak-arrivals",
+        type=int,
+        default=0,
+        help="Exclude waves whose peak arrivals fall below this threshold (default: 0).",
+    )
+    parser.add_argument(
+        "--tag",
+        type=str,
+        default=None,
+        help="Optional output tag appended to result/figure filenames (e.g., P0, S1).",
+    )
+    args = parser.parse_args()
+
+    tag = normalize_output_tag(args.tag)
+    if args.baseline_start_year is not None and args.baseline_end_year is None:
+        raise SystemExit("--baseline-start-year requires --baseline-end-year.")
+    if (
+        args.baseline_start_year is not None
+        and args.baseline_end_year is not None
+        and args.baseline_start_year > args.baseline_end_year
+    ):
+        raise SystemExit("--baseline-start-year must be <= --baseline-end-year.")
+    if args.gap_tolerance_years > 0 and not args.fill_missing_years:
+        raise SystemExit("--gap-tolerance-years requires --fill-missing-years.")
+
     print("=" * 70)
     print("Module 8: Duration Analysis - Survival Analysis for Immigration Waves")
     print(f"Started: {datetime.now(UTC).isoformat()}")
     print("=" * 70)
 
     try:
-        result = run_analysis()
-        output_file = result.save("module_8_duration_analysis.json")
+        result = run_analysis(
+            end_year=args.end_year,
+            wave_threshold_pct=args.threshold_pct,
+            min_wave_years=args.min_wave_years,
+            baseline_start_year=args.baseline_start_year,
+            baseline_end_year=args.baseline_end_year,
+            fill_missing_years=args.fill_missing_years,
+            gap_tolerance_years=args.gap_tolerance_years,
+            min_peak_arrivals=args.min_peak_arrivals,
+            tag=tag,
+        )
+        output_file = result.save(tagged_filename("module_8_duration_analysis.json", tag))
 
         print("\n" + "=" * 70)
         print("Analysis completed successfully!")
@@ -1380,14 +1736,14 @@ def main():
             print(f"  [{d['decision_id']}] {d['decision']}")
 
         print("\nFigures generated:")
-        print("  - module_8_survival_curves.png/pdf")
-        print("  - module_8_cumulative_hazard.png/pdf")
-        print("  - module_8_forest_plot.png/pdf")
-        print("  - module_8_schoenfeld_residuals.png/pdf")
+        print(f"  - {tagged_stem('module_8_survival_curves', tag)}.png/pdf")
+        print(f"  - {tagged_stem('module_8_cumulative_hazard', tag)}.png/pdf")
+        print(f"  - {tagged_stem('module_8_forest_plot', tag)}.png/pdf")
+        print(f"  - {tagged_stem('module_8_schoenfeld_residuals', tag)}.png/pdf")
 
         print("\nAdditional outputs:")
-        print("  - module_8_wave_durations.json")
-        print("  - module_8_hazard_model.json")
+        print(f"  - {tagged_filename('module_8_wave_durations.json', tag)}")
+        print(f"  - {tagged_filename('module_8_hazard_model.json', tag)}")
 
         return 0
 

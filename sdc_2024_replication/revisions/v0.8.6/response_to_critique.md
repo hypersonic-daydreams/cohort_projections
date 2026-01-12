@@ -33,8 +33,8 @@ This document records how each critique item is evaluated and addressed for v0.8
 | Integrate multi-year LPR series | Approved | LPR state totals extended to FY2000–FY2023 and saved to processed outputs. | Complete |
 | Add ACS moved-from-abroad proxy | Approved | ACS moved-from-abroad proxy exported for 2010–2023 with validation note. | Complete |
 | Improve Travel Ban DiD/event-study timing/robustness | Approved | Preserve FY2002--FY2019 as primary causal estimand; add FY2024 descriptive regime-dynamics supplement + appendix figure; enforce nationality-unit hygiene (exclude pseudo-nationalities) (ADR-027). | Complete |
-| Update wave duration analyses (right-censoring) | Pending approval (Tier 3) | Re-estimate wave identification and survival/hazard models with FY2021–FY2024 extensions; reassess whether apparent terminations are pauses; update censoring assumptions and Monte Carlo inputs. | Not started |
-| Fusion modeling / uncertainty envelope updates | Pending approval (Tier 3) | Specify a fusion model (ARIMAX/state-space) that treats admin series as correlated signals of net migration; redesign uncertainty aggregation to avoid double-counting correlated variance. | Not started |
+| Update wave duration analyses (right-censoring) | Approved (Tier 3) | Adopt P0 as primary (fixed baseline end-year FY2016; fill missing years; no gap tolerance) and retain S1 (1-year gap tolerance) as sensitivity. Module 8 spec grid executed with delta table + censoring/pause audit; Module 9 rerun for P0 and S1 to quantify downstream impact; manuscript duration section/captions updated. See `sdc_2024_replication/revisions/v0.8.6/wave_duration_refit_spec_grid.md` and ADR-029. | Complete |
+| Fusion modeling / uncertainty envelope updates | Approved (Tier 3) | Implemented two-band uncertainty reporting to avoid variance stacking: baseline-only prediction intervals + wave-adjusted uncertainty envelope (ADR-032). Full latent data-fusion state-space model remains deferred/out-of-scope for v0.8.6. | Complete |
 
 ## Data and Documentation Notes
 - New data sources added:
@@ -46,6 +46,15 @@ This document records how each critique item is evaluated and addressed for v0.8
   - Amerasian/SIV forecasting integration: keep USRAP refugees as strict exposure; treat Amerasian/SIV as a separate durable series linked to scenario capacity with a default post-2024 sunset (ADR-026).
   - Measurement error is nontrivial (ACS margins of error; LPR reporting lags/revisions); treat these as noisy signals rather than ground truth.
   - Correlated-signal risk: refugee/SIV, LPR, and ACS proxies overlap conceptually; uncertainty modeling must avoid stacking independent-error assumptions.
+
+## v0.8.6 Implementation Notes (Discoverability)
+- **Long-run PEP regime-aware modeling**: Decision + runbook added; execution complete (artifacts saved).
+  - ADR: `docs/governance/adrs/030-pep-regime-aware-modeling-long-run-series.md`
+  - Spec grid + definition-of-done: `sdc_2024_replication/revisions/v0.8.6/pep_regime_modeling_spec_grid.md`
+  - Execution artifacts:
+    - `sdc_2024_replication/scripts/statistical_analysis/results/module_B1_pep_regime_modeling.json`
+    - `sdc_2024_replication/scripts/statistical_analysis/results/module_B1_pep_regime_modeling_slopes.csv`
+    - `sdc_2024_replication/scripts/statistical_analysis/figures/module_B1_pep_regime_modeling__P0.png`
 
 ## Methodological Pitfalls (Short Notes)
 - **Time-base mismatch (FY vs PEP-year vs calendar year)**: Refugee/SIV/Amerasian monthly series are aligned to PEP-year using the exported crosswalk (`data/processed/immigration/analysis/refugee_fy_month_to_pep_year_crosswalk.csv`); calendar-year PEP components remain calendar-year.
@@ -60,7 +69,8 @@ This document records how each critique item is evaluated and addressed for v0.8
 |---|---|---|---|
 | 2026-01-04 | Approved items (refugee extension, month-aware alignment, SIV/Amerasian series, LPR expansion, long-run PEP regime markers, ACS moved-from-abroad proxy) | v0.8.6 critique implementation | User |
 | 2026-01-06 | Approved Travel Ban DiD refinements and supplemental FY2024 regime-dynamics extension (ADR-027) | v0.8.6 critique implementation | User |
+| 2026-01-07 | Approved wave-duration refit primary spec (P0) with S1 sensitivity; reran Module 9 to assess downstream impact | v0.8.6 wave duration refit | User |
 
 ## Open Decisions (Require User Direction)
 - **Amerasian/SIV handling**: Approved. Keep USRAP refugees as strict exposure; treat Amerasian/SIV as a separate durable series linked to scenario capacity with a default post-2024 sunset (ADR-026). A merged “humanitarian” sensitivity variant is optional, but not the default.
-- **Pre-2000 Census components**: Expand long-run series into the 1980s/1990s (if feasible) or remain at 2000–2024. Recommend: remain at 2000–2024 unless a specific inferential need is identified (unit-root/break power gains may be offset by comparability and sourcing effort).
+- **Pre-2000 Census components**: Decision for v0.8.6 is to **defer** and remain at 2000–2024. Rationale: the added length is not required for the revision’s regime/uncertainty objectives and may introduce additional comparability burdens that outweigh power gains in this setting.

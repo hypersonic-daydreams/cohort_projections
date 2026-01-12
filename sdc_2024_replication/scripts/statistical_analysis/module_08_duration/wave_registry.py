@@ -382,9 +382,19 @@ def simulate_wave_contributions(
     return contributions
 
 
-def load_duration_model_bundle(results_dir: Path) -> DurationModelBundle:
-    hazard_path = results_dir / "module_8_hazard_model.json"
-    duration_path = results_dir / "module_8_duration_analysis.json"
+def load_duration_model_bundle(
+    results_dir: Path, *, tag: str | None = None
+) -> DurationModelBundle:
+    """Load Module 8 duration + hazard outputs, optionally from a tagged run."""
+
+    def _tagged(filename: str) -> str:
+        if not tag:
+            return filename
+        path = Path(filename)
+        return f"{path.stem}__{tag}{path.suffix}"
+
+    hazard_path = results_dir / _tagged("module_8_hazard_model.json")
+    duration_path = results_dir / _tagged("module_8_duration_analysis.json")
     with hazard_path.open() as fp:
         hazard_model = json.load(fp)
     with duration_path.open() as fp:

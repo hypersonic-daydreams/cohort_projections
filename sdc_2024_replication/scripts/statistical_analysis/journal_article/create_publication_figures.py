@@ -22,6 +22,7 @@ Date: 2025-12-29
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -935,8 +936,22 @@ def create_fig_app_event_study_extended() -> None:
 
 def create_figure_07_survival() -> None:
     """Create Figure 7: Kaplan-Meier survival curves by intensity quartile."""
+    duration_tag = os.environ.get("SDC_DURATION_TAG")
+    if not duration_tag:
+        try:
+            scenario_data = load_json("module_9_scenario_modeling.json")
+            duration_tag = scenario_data.get("parameters", {}).get("duration_model_tag")
+        except Exception:
+            duration_tag = None
+
+    duration_filename = "module_8_duration_analysis.json"
+    if duration_tag:
+        tagged_filename = f"module_8_duration_analysis__{duration_tag}.json"
+        if (RESULTS_DIR / tagged_filename).exists():
+            duration_filename = tagged_filename
+
     # Load data
-    duration_data = load_json("module_8_duration_analysis.json")
+    duration_data = load_json(duration_filename)
 
     # Get KM data by intensity
     km_intensity = duration_data["results"]["kaplan_meier_by_intensity"]
@@ -1054,9 +1069,10 @@ def create_figure_08_scenarios() -> None:
     base_value = hist_migration[hist_years == base_year][0]
 
     # Extract scenario parameters
-    scenarios = scenario_data["results"]["scenarios"]
     mc_results = scenario_data["results"]["monte_carlo"]
     ci_data = scenario_data["results"]["confidence_intervals"]
+    baseline_ci = ci_data["baseline_only"]
+    wave_ci = ci_data["wave_adjusted"]
 
     # Create figure
     fig, ax = plt.subplots(figsize=(6.5, 5))
@@ -1103,26 +1119,62 @@ def create_figure_08_scenarios() -> None:
             label=scenario_subset["scenario_name"].iloc[0],
         )
 
-    # Add Monte Carlo uncertainty bands (95% CI)
-    mc_median = mc_results["median_2045"]
-    ci_95 = ci_data["ci_95"]["2045"]
-    ci_50 = ci_data["ci_50"]["2045"]
+    # Two-band Monte Carlo uncertainty:
+    # - baseline-only PI (inner band)
+    # - wave-adjusted envelope (outer band)
+    mc_median_baseline = mc_results["baseline_only"]["median_2045"]
+    mc_median_wave = mc_results["wave_adjusted"]["median_2045"]
+    ci_95_baseline = baseline_ci["ci_95"]["2045"]
+    ci_50_baseline = baseline_ci["ci_50"]["2045"]
+    ci_95_wave = wave_ci["ci_95"]["2045"]
 
     # Create smooth bands from base to 2045
     t_proj = np.linspace(0, len(proj_years) - 1, len(proj_years))
 
     # Lower and upper bounds (linear interpolation for visualization)
-    lower_95 = base_value + (ci_95[0] - base_value) * t_proj / (len(proj_years) - 1)
-    upper_95 = base_value + (ci_95[1] - base_value) * t_proj / (len(proj_years) - 1)
-    lower_50 = base_value + (ci_50[0] - base_value) * t_proj / (len(proj_years) - 1)
-    upper_50 = base_value + (ci_50[1] - base_value) * t_proj / (len(proj_years) - 1)
+    lower_95_wave = base_value + (ci_95_wave[0] - base_value) * t_proj / (
+        len(proj_years) - 1
+    )
+    upper_95_wave = base_value + (ci_95_wave[1] - base_value) * t_proj / (
+        len(proj_years) - 1
+    )
+    lower_95 = base_value + (ci_95_baseline[0] - base_value) * t_proj / (
+        len(proj_years) - 1
+    )
+    upper_95 = base_value + (ci_95_baseline[1] - base_value) * t_proj / (
+        len(proj_years) - 1
+    )
+    lower_50 = base_value + (ci_50_baseline[0] - base_value) * t_proj / (
+        len(proj_years) - 1
+    )
+    upper_50 = base_value + (ci_50_baseline[1] - base_value) * t_proj / (
+        len(proj_years) - 1
+    )
 
     # Plot bands
     ax.fill_between(
-        proj_years, lower_95, upper_95, alpha=0.15, color=COLORS["blue"], label="95% CI"
+        proj_years,
+        lower_95_wave,
+        upper_95_wave,
+        alpha=0.12,
+        color=COLORS["blue"],
+        label="95% Envelope (wave-adjusted)",
     )
     ax.fill_between(
-        proj_years, lower_50, upper_50, alpha=0.25, color=COLORS["blue"], label="50% CI"
+        proj_years,
+        lower_95,
+        upper_95,
+        alpha=0.15,
+        color=COLORS["blue"],
+        label="95% PI (baseline)",
+    )
+    ax.fill_between(
+        proj_years,
+        lower_50,
+        upper_50,
+        alpha=0.25,
+        color=COLORS["blue"],
+        label="50% PI (baseline)",
     )
 
     # Add vertical line at forecast start
@@ -1164,7 +1216,8 @@ def create_figure_08_scenarios() -> None:
         0.95,
         0.05,
         f'Monte Carlo: n = {mc_results["n_draws"]:,}\n'
-        f'2045 median: {mc_median:,.0f}',
+        f'2045 median (baseline): {mc_median_baseline:,.0f}\n'
+        f'2045 median (wave-adj): {mc_median_wave:,.0f}',
         transform=ax.transAxes,
         fontsize=8,
         verticalalignment="bottom",
@@ -1199,7 +1252,7 @@ def create_figure_captions() -> None:
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_02_concentration.pdf}
-\caption{Geographic concentration of foreign-born population in North Dakota by country of origin (2023). Bars show location quotients (LQ), where LQ $> 1$ indicates overrepresentation relative to the national average. The dashed vertical line marks LQ $= 1$. Countries are sorted by LQ value; bar intensity reflects population size (darker indicates larger foreign-born population in North Dakota). Egypt, India, and several African origin countries show the highest concentration relative to their national presence.}
+\caption{Geographic concentration of foreign-born population in North Dakota by country of origin (2023). Bars show location quotients (LQ), where LQ $> 1$ indicates overrepresentation relative to the national average. The dashed vertical line marks LQ $= 1$. Countries are sorted by LQ value; bar intensity reflects population size (darker indicates larger foreign-born population in North Dakota). Liberia, Ivory Coast, Somalia, and Tanzania show the highest concentration relative to their national presence.}
 \label{fig:concentration}
 \end{figure}
 
@@ -1234,14 +1287,14 @@ def create_figure_captions() -> None:
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_07_survival.pdf}
-\caption{Kaplan--Meier survival curves for immigration wave duration by initial intensity quartile. Waves are defined as periods where arrivals exceed 50\% above baseline for at least two consecutive years. Q1 (lowest intensity) waves have median duration of 2 years, while Q4 (highest intensity) waves persist for a median of 4 years. The log-rank test strongly rejects equality across groups ($\chi^2 = 278.7$, $p < 0.001$), indicating that higher-intensity immigration flows are significantly more persistent.}
+\caption{Kaplan--Meier survival curves for immigration wave duration by initial intensity quartile. Waves are defined as periods where arrivals exceed 50\% above baseline for at least two consecutive years. Q1 (lowest intensity) waves have median duration of 2 years, while Q4 (highest intensity) waves persist for a median of 6 years. The log-rank test strongly rejects equality across groups ($\chi^2 = 633.0$, $p < 10^{-136}$), indicating that higher-intensity immigration flows are significantly more persistent.}
 \label{fig:survival}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_08_scenarios.pdf}
-\caption{Projection scenarios for North Dakota international migration, 2025--2045. Five scenarios are shown: CBO Full (2025--2029 at 1.1$\times$ ARIMA, then 8\% annual growth), Moderate (dampened historical trend), Immigration Policy (0.65$\times$ Moderate), Zero (counterfactual with no international migration), and Pre-2020 Trend (anchored to 2019 with the 2010--2019 slope). Shaded bands represent 50\% and 95\% prediction intervals from 1,000 Monte Carlo simulations. Historical data (2010--2024) shown with black circles. The vertical dashed line separates historical observations from projections.}
+\caption{Projection scenarios for North Dakota international migration, 2025--2045. Five scenarios are shown: CBO Full (2025--2029 at 1.1$\times$ ARIMA, then 8\% annual growth), Moderate (dampened historical trend), Immigration Policy (0.65$\times$ Moderate), Zero (counterfactual with no international migration), and Pre-2020 Trend (anchored to 2019 with the 2010--2019 slope). Shaded bands represent (i) baseline-only 50\% and 95\% prediction intervals from 1,000 Monte Carlo simulations and (ii) an outer 95\% wave-adjusted uncertainty envelope that adds hazard-based wave persistence draws. The wave-adjusted envelope should be interpreted as conservative because wave-driven variation may already be reflected in baseline forecast uncertainty. Historical data (2010--2024) shown with black circles. The vertical dashed line separates historical observations from projections.}
 \label{fig:scenarios}
 \end{figure}
 """

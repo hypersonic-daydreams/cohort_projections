@@ -157,6 +157,11 @@ Where:
 | [025](025-refugee-coverage-missing-state-handling.md) | Post-2020 Refugee Coverage and Missing-State Handling | Accepted | 2026-01-04 | Missing states left unknown; drop missing post-2020 in state panels; official national totals |
 | [026](026-amerasian-siv-handling-forecasting.md) | Amerasian/SIV Handling in Status Decomposition and Scenario Forecasts | Accepted | 2026-01-06 | Keep USRAP exposure strict; treat SIV as separate durable series linked to capacity with default sunset |
 | [027](027-travel-ban-extended-dynamics-supplement.md) | Supplemental Travel Ban Regime-Dynamics Extension | Accepted | 2026-01-06 | Keep pre-COVID Travel Ban DiD primary; add FY2024 regime-dynamics supplement; exclude pseudo-nationalities |
+| [028](028-monte-carlo-simulation-rigor-parallelization.md) | Monte Carlo Simulation Rigor and Parallelization | Accepted | 2026-01-06 | Increase draw counts, deterministic multi-process chunking, reproducible parallel MC |
+| [029](029-wave-duration-refit-right-censoring-hazard.md) | Wave Duration Refit for Right-Censoring and Hazard Stability | Accepted | 2026-01-07 | Fixed baseline + year completion; tagged specs; Module 9 duration-tag integration |
+| [030](030-pep-regime-aware-modeling-long-run-series.md) | Regime-Aware Modeling for Long-Run PEP Net International Migration Series | Accepted | 2026-01-07 | Use regime dummies + interventions (COVID) for long-run PEP; defer full state-space fusion |
+| [031](031-covariate-conditioned-near-term-forecast-anchor.md) | Covariate-Conditioned Near-Term Forecast Anchor (Appendix-Only) | Accepted | 2026-01-07 | Keep Moderate baseline; add appendix-only covariate-conditioned near-term diagnostic |
+| [032](032-uncertainty-envelopes-two-band-approach.md) | Two-Band Uncertainty After Fusion (Avoid Double-Counting Variance) | Accepted | 2026-01-07 | Report baseline-only PI plus wave-adjusted conservative envelope (nested bands) |
 
 ### Package Extraction
 
@@ -173,12 +178,12 @@ Where:
 
 | Status | Count |
 |--------|-------|
-| Accepted | 26 |
+| Accepted | 29 |
 | Proposed | 2 |
 | Deprecated | 0 |
 | Superseded | 0 |
 
-**Naming Convention Compliance**: All 28 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `023a`).
+**Naming Convention Compliance**: All 31 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `023a`).
 
 ---
 

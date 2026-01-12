@@ -351,9 +351,9 @@ exclude = ["tests*", "scripts*", "docs*"]
 cohort_projections = ["py.typed", "*.yaml", "*.yml"]
 
 [tool.uv.sources]
-project-utils = { path = "../../libs/project_utils", editable = true }
-evidence-review = { path = "../../libs/evidence_review", editable = true }
-codebase-catalog = { path = "../../libs/codebase_catalog", editable = true }
+project-utils = { path = "libs/project_utils", editable = true }
+evidence-review = { path = "libs/evidence_review", editable = true }
+codebase-catalog = { path = "libs/codebase_catalog", editable = true }
 
 [dependency-groups]
 dev = [

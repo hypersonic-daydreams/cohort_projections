@@ -114,7 +114,7 @@ To proxy recent international inflows, we also extract ACS Table B07007 (Geograp
 
 The Refugee Processing Center (RPC), operated by the Department of State, publishes U.S.\ Refugee Admissions Program arrivals by state of initial resettlement and nationality \citep{RPCAdmissionsArrivals2026, RPCArchives2026}. We construct a unified FY2002--FY2024 series by combining an ORR/PRM academic dataset for FY2002--FY2011 \citep{DreherLanglotzMatzatParsons2020} with WRAPS/RPC tabulations for FY2012--FY2020 and RPC archive PDFs for FY2021--FY2024, enabling duration analysis of migration ``waves'' from specific origin countries. For recent years, RPC archives provide month-level reports, which we use to construct an explicit FY-month$\rightarrow$\PEP-year crosswalk for exact time-base alignment. RPC archives also provide Amerasian and Special Immigrant Visa (SIV) arrivals; we extract these as a parallel humanitarian series rather than forcing an early merge into refugee totals, and treat SIV as a separate durable channel in forecasting with capacity linkage and a conservative post-2024 sunset (ADR-026).
 
-Refugee arrival data offer precise counts (not estimates) of a well-defined population admitted through federal resettlement programs. Limitations include restriction to initial placement, which may differ from eventual settlement after secondary migration, and incomplete state panels in some post-2020 RPC archive reports (states omitted in the source are left missing rather than zero-filled; ADR-025). Analyses that require a balanced state$\times$nationality panel (e.g., wave duration across states) therefore restrict to FY2002--FY2020, while national-total and North Dakota-focused descriptive series use the extended FY2021--FY2024 window where available.
+Refugee arrival data offer precise counts (not estimates) of a well-defined population admitted through federal resettlement programs. Limitations include restriction to initial placement, which may differ from eventual settlement after secondary migration, and incomplete state panels in some post-2020 RPC archive reports (states omitted in the source are left missing rather than zero-filled; ADR-025). Analyses that require a balanced state$\times$nationality panel (e.g., wave duration across states) therefore restrict the post-2020 window to states with complete FY2021--FY2024 archive coverage (ADR-025) and complete each state$\times$nationality annual series by inserting zero-arrival years before applying the wave rule, allowing duration analysis to use the full FY2002--FY2024 window without spurious adjacency when sources omit zero years.
 
 % ==============================================================================
 % 2.1.5 DATA COMPARABILITY ACROSS CENSUS VINTAGES
@@ -161,7 +161,7 @@ The analysis employs a two-track strategy:
     \item \textbf{Extended robustness window (2000--2024, $n=25$)}: Sensitivity analyses incorporate the Vintage 2009 data (2000--2009) to assess whether conclusions remain stable under the longer series. These results are reported as robustness checks rather than primary findings, and we explicitly model potential vintage effects through regime-aware specifications.
 \end{enumerate}
 
-Throughout the analysis, we refer to the concatenated 2000--2024 data as a ``spliced \PEP-vintage series'' to signal that it bridges distinct measurement regimes rather than representing a methodologically homogeneous time series.
+Throughout the analysis, we refer to the concatenated 2000--2024 data as a ``spliced \PEP-vintage series'' to signal that it bridges distinct measurement regimes rather than representing a methodologically homogeneous time series. Appendix Figure~\ref{fig:app_pep_regime_diagnostic} provides a measurement-regime diagnostic visualization and reports regime-specific trend slopes under a piecewise specification with an explicit COVID-19 intervention.
 
 \subsubsection{Regime-Aware Modeling and Sensitivity Analysis}
 
@@ -298,20 +298,16 @@ where $\mathbf{y}_t = (y_t^{\text{ND}}, y_t^{\text{US}})'$ contains North Dakota
 \subsection{Panel Data Methods}
 \label{subsec:panel_methods}
 
-Panel data analysis exploits variation across states and time to estimate relationships unidentifiable from single-state time series. The analysis employs state-year observations spanning 51 states (including the District of Columbia) over 15 years (2010--2024), yielding 765 observations.
+Panel benchmarking exploits variation across states and time to characterize international migration levels in the national state system. The analysis employs a balanced state-year panel spanning 51 states (including the District of Columbia) over 15 years (2010--2024), yielding 765 observations.
 
-The fixed effects model specifies:
+We estimate an intercept-only two-way effects model:
 \begin{equation}
 \label{eq:fixed_effects}
-y_{it} = \alpha_i + \lambda_t + \mathbf{x}_{it}'\boldsymbol{\beta} + \varepsilon_{it}
+y_{it} = \mu + \alpha_i + \lambda_t + \varepsilon_{it}
 \end{equation}
-where $y_{it}$ denotes international migration to state $i$ in year $t$, $\alpha_i$ represents state-specific intercepts absorbing time-invariant heterogeneity, $\lambda_t$ captures common year effects, and $\mathbf{x}_{it}$ contains time-varying covariates. The random effects model treats $\alpha_i$ as random draws from a population distribution rather than fixed parameters to be estimated.
+where $y_{it}$ denotes international migration to state $i$ in year $t$, $\mu$ is the grand mean, $\alpha_i$ captures time-invariant differences across states (benchmarking relative scale), and $\lambda_t$ captures common year shocks (national system dynamics). No additional time-varying covariates are included in this panel block; it is therefore interpreted as a descriptive two-way effects decomposition rather than a causal estimate of covariate effects.
 
-Model selection between fixed and random effects employs the Hausman test \citep{Hausman1978}, which evaluates whether random effects estimates exhibit bias due to correlation between $\alpha_i$ and regressors. Under the null hypothesis of no correlation, random effects is efficient; under the alternative, fixed effects is consistent but random effects is biased. The test statistic follows a chi-squared distribution under the null:
-\begin{equation}
-\label{eq:hausman}
-H = (\hat{\boldsymbol{\beta}}_{\text{FE}} - \hat{\boldsymbol{\beta}}_{\text{RE}})' [\text{Var}(\hat{\boldsymbol{\beta}}_{\text{FE}}) - \text{Var}(\hat{\boldsymbol{\beta}}_{\text{RE}})]^{-1} (\hat{\boldsymbol{\beta}}_{\text{FE}} - \hat{\boldsymbol{\beta}}_{\text{RE}}) \sim \chi^2_k
-\end{equation}
+For completeness, we also report pooled OLS and state random-effects variants of the same intercept-only specification. Because the specification contains no substantive time-varying regressors, the fixed-versus-random effects distinction is not treated as a model-selection exercise; the Hausman statistic \citep{Hausman1978} is reported only as a diagnostic that the two parameterizations yield essentially identical estimates in this setting.
 
 Standard errors are clustered at the state level to account for within-state serial correlation.
 
@@ -367,7 +363,7 @@ where $C_k$ denotes cluster $k$ and $\boldsymbol{\mu}_k$ its centroid. Optimal c
 \subsection{Causal Inference Methods}
 \label{subsec:causal_methods}
 
-Causal inference methods estimate the effects of specific policy interventions---the 2017 Travel Ban and the 2020 COVID-19 pandemic---on international migration flows. Identification relies on nationality-level difference-in-differences and a state-level interrupted time series. Two additional components provide context: a synthetic comparator for descriptive benchmarking and a shift-share index used to assess the predictive relevance of refugee-driven shocks.
+Causal inference methods are used to assess whether major policy interventions---the 2017 Travel Ban and the 2020 COVID-19 pandemic---are associated with detectable divergences in migration flows. The primary design is a nationality-level difference-in-differences; under parallel trends it estimates an average treatment effect on the treated, but when diagnostics indicate pre-treatment divergence we interpret results as policy-associated divergence rather than a precise causal effect magnitude. A state-level interrupted time series provides a national system diagnostic for the COVID-19 regime shift. Two additional components provide context: a synthetic comparator for descriptive benchmarking and a shift-share index used to assess the predictive relevance of refugee-driven shocks.
 
 \subsubsection{Difference-in-Differences}
 
@@ -376,13 +372,13 @@ The Travel Ban analysis employs a difference-in-differences (DiD) design compari
 \label{eq:did}
 \ln(y_{ct} + 1) = \alpha_c + \lambda_t + \delta \cdot (\text{Affected}_c \times \text{Post}_t) + \varepsilon_{ct}
 \end{equation}
-where $y_{ct}$ denotes arrivals from country $c$ in year $t$, $\alpha_c$ and $\lambda_t$ are country and year fixed effects, and the coefficient $\delta$ identifies the average treatment effect on the treated (ATT). The logarithmic transformation accommodates the multiplicative nature of policy effects; the addition of unity handles zero arrivals.
+where $y_{ct}$ denotes arrivals from country $c$ in year $t$, $\alpha_c$ and $\lambda_t$ are country and year fixed effects, and the coefficient $\delta$ estimates the average treatment effect on the treated (ATT) under the parallel trends assumption. The logarithmic transformation accommodates the multiplicative nature of policy effects; the addition of unity handles zero arrivals.
 
 Identification requires the parallel trends assumption: absent the Travel Ban, affected and unaffected countries would have exhibited similar trends in arrivals. The analysis evaluates this assumption through pre-treatment trend tests and graphical inspection of pre-period trajectories. Standard errors are clustered by nationality to account for serial correlation within origin groups.
 
 \textbf{Small-sample inference robustness.} With only seven treated nationalities, conventional cluster-robust inference may be unreliable \citep{CameronGelbachMiller2008}. We supplement clustered standard errors with two small-sample approaches. First, wild cluster bootstrap with Rademacher weights generates the null distribution by resampling cluster-level residuals under the null hypothesis of no treatment effect; bootstrap $p$-values correct for the small number of treated clusters. Second, randomization (permutation) inference implements Fisher's exact test by permuting the treatment assignment across clusters and computing the proportion of permutations yielding an ATT as extreme as observed. Both approaches provide finite-sample valid inference without relying on asymptotic cluster count assumptions.
 
-\textbf{Restricted pre-period robustness.} When the joint pre-trend test rejects parallel trends over the full pre-period, we re-estimate the DiD restricting to years where pre-trends appear more plausibly parallel. If event study coefficients show greater divergence in early years than in years immediately preceding treatment, restricting the pre-period strengthens the parallel trends assumption at the cost of reduced sample size.
+\textbf{Restricted pre-period robustness.} When the joint pre-trend test rejects parallel trends over the full pre-period, we re-estimate the DiD restricting to years where pre-trends appear more plausibly parallel. This restriction is treated as a sensitivity analysis rather than a fully pre-specified identification strategy: it can improve diagnostics but may introduce window-selection concerns. If event study coefficients show greater divergence in early years than in years immediately preceding treatment, restricting the pre-period focuses attention on the years closest to treatment at the cost of reduced sample size.
 
 \subsubsection{Interrupted Time Series (National System Diagnostic)}
 
@@ -420,6 +416,8 @@ where $\omega_{od,t_0}$ is origin $o$'s share of state $d$'s baseline arrivals a
 
 Duration analysis examines the lifecycle of migration ``waves''---sustained periods of elevated arrivals from specific origin countries. A wave is defined operationally as a period during which arrivals from a nationality exceed 150\% of that nationality's baseline for two or more consecutive years. This definition balances sensitivity (detecting genuine surges) against specificity (avoiding false positives from random fluctuation).
 
+To avoid baseline-window drift when extending the observation endpoint, baselines are computed as the median FY2002--FY2016 arrivals for each state$\times$nationality (a fixed pre--Travel Ban window). To ensure that ``two consecutive years'' denotes consecutive fiscal years (not consecutive non-missing observations), missing years in each state$\times$nationality series are treated as zero arrivals prior to wave identification. Waves still active in FY2024 are treated as right-censored.
+
 The Kaplan-Meier estimator \citep{KaplanMeier1958} provides nonparametric estimates of the survival function $S(t) = P(T > t)$, where $T$ denotes wave duration:
 \begin{equation}
 \label{eq:km}
@@ -448,19 +446,19 @@ Table~\ref{tab:module_outputs} summarizes how outputs from each analytical modul
 \caption{Module Outputs and Scenario Integration}
 \label{tab:module_outputs}
 \small
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.2cm} >{\raggedright\arraybackslash}p{3.5cm} >{\raggedright\arraybackslash}p{4.5cm} >{\raggedright\arraybackslash}p{2.8cm}@{}}
-\toprule
-\textbf{Module} & \textbf{Key Output(s)} & \textbf{Role in Scenario Engine} & \textbf{Scenarios Affected} \\
-\midrule
-1.1--1.2 (Descriptive) & Summary statistics; HHI; Location Quotients & Context for origin composition assumptions; validates concentration patterns & All (interpretation) \\
-2.1 (ARIMA) & Baseline drift ($\hat{\beta}$); residual variance ($\hat{\sigma}^2$) & ARIMA point forecasts anchor Moderate and CBO scenarios; variance feeds MC simulation & Moderate, CBO Full \\
-2.2 (VAR) & AIC model weights; FEVD proportions & Model averaging weights for ensemble; not used for standalone forecast & Model ensemble \\
-3--4 (Panel/Robust) & State/year fixed effects; covariate elasticities & Validates ND position in state distribution; informs plausibility bounds & All (validation) \\
-5 (Cross-sectional) & Diaspora elasticity (predictive) & Context for composition stability; not directly in forecast & None (context) \\
-6 (ML) & Feature importance rankings; cluster membership & Auxiliary validation; identifies ND peer states for comparison & None (context) \\
-7 (Policy) & DiD ATT bounds; ITS level/trend shifts & Informs restrictive vs.\ permissive scenario multipliers; policy sensitivity & Pre-2020 Trend \\
-8 (Duration) & Cox survival probabilities; wave lifecycle shape & Wave persistence draws for MC; conditional survival by intensity/region & MC simulation \\
-9 (Scenarios) & Combined trajectory paths; MC prediction intervals & Final output & All \\
+	\begin{tabular}{@{}>{\raggedright\arraybackslash}p{2.2cm} >{\raggedright\arraybackslash}p{3.5cm} >{\raggedright\arraybackslash}p{4.5cm} >{\raggedright\arraybackslash}p{2.8cm}@{}}
+	\toprule
+	\textbf{Module} & \textbf{Key Output(s)} & \textbf{Role in Scenario Engine} & \textbf{Scenarios Affected} \\
+	\midrule
+	1.1--1.2 (Descriptive) & Summary statistics; HHI; Location Quotients & Context for origin composition assumptions; validates concentration patterns & All (interpretation) \\
+	2.1 (ARIMA) & Baseline drift ($\hat{\beta}$); residual variance ($\hat{\sigma}^2$) & ARIMA point forecasts anchor Moderate and CBO scenarios; variance feeds MC simulation & Moderate, CBO Full \\
+	2.2 (VAR) & FEVD proportions; Granger causality; ND--US comovement diagnostics & Diagnostic evidence on multivariate dynamics; does not parameterize scenario trajectories & None (diagnostic) \\
+	3--4 (Panel/Robust) & State/year effects; between/within variance ratio & Validates ND position in state distribution; informs plausibility bounds & All (validation) \\
+	5 (Cross-sectional) & Diaspora elasticity (predictive) & Context for composition stability; not directly in forecast & None (context) \\
+	6 (ML) & Feature importance rankings; cluster membership & Auxiliary validation; identifies ND peer states for comparison & None (context) \\
+	7 (Policy) & DiD ATT bounds; ITS level/trend shifts & Informs restrictive vs.\ permissive scenario multipliers; policy sensitivity & Pre-2020 Trend \\
+	8 (Duration) & Cox survival probabilities; wave lifecycle shape & Wave persistence draws for MC; conditional survival by intensity/region & MC simulation \\
+	9 (Scenarios) & Combined trajectory paths; MC prediction intervals & Final output & All \\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
@@ -469,7 +467,7 @@ Table~\ref{tab:module_outputs} summarizes how outputs from each analytical modul
 \end{tablenotes}
 \end{table}
 
-As Table~\ref{tab:module_outputs} indicates, the VAR model (Module 2.2) and machine learning methods (Module 6) serve primarily as auxiliary analyses. The VAR model contributes to AIC-based model averaging weights but is not used for standalone long-horizon forecasting due to the infeasibility of obtaining future national migration values. Similarly, ML methods (Elastic Net, Random Forest, K-means clustering) provide feature importance rankings and state clustering for comparative context, but do not directly parameterize the scenario trajectories. These modules support triangulation and validation rather than primary forecast generation.
+	As Table~\ref{tab:module_outputs} indicates, the VAR model (Module 2.2) and machine learning methods (Module 6) serve primarily as auxiliary analyses. The VAR provides diagnostic evidence on ND--US comovement (e.g., forecast error variance decomposition (FEVD) and Granger causality tests) but is not used to generate scenario trajectories because long-horizon VAR forecasting would require future national migration values unavailable at forecast time. Similarly, ML methods (Elastic Net, Random Forest, K-means clustering) provide feature importance rankings and state clustering for comparative context, but do not directly parameterize the scenario trajectories. These modules support triangulation and validation rather than primary forecast generation.
 
 \subsection{Scenario Construction}
 \label{subsec:scenario_methods}
@@ -477,25 +475,31 @@ As Table~\ref{tab:module_outputs} indicates, the VAR model (Module 2.2) and mach
 Scenario analysis translates analytical findings into forward-looking projections while explicitly characterizing uncertainty. The analysis develops five policy-indexed scenarios spanning the range of plausible future trajectories:
 
 \begin{enumerate}
-    \item \textbf{CBO Full}: Uses ARIMA point forecasts scaled by 1.1 for 2025--2029, then compounds at 8\% annually from 2030 onward. This scenario represents an explicit upper-bound stress test predicated on significant federal policy liberalization and sustained robust growth, shielding planning limits against extreme upside surprises.
+	    \item \textbf{CBO Full}: Uses ARIMA point forecasts scaled by 1.1 for 2025--2029, then compounds at 8\% annually from 2030 onward. This scenario represents an explicit upper-bound stress test predicated on significant federal policy liberalization and sustained robust growth, shielding planning limits against extreme upside surprises.
 
-    \item \textbf{Moderate}: Uses ARIMA point forecasts for 2025--2029, then applies a dampened trend (50\% of the averaged robust trend estimate) through 2045. This scenario represents the central tendency forecast.
+	    \item \textbf{Moderate}: Uses ARIMA point forecasts for 2025--2029, then applies a dampened trend (50\% of the averaged robust trend estimate) through 2045. This scenario represents the central tendency forecast.
 
-    \item \textbf{Pre-2020 Trend}: Anchors at the 2019 level and extrapolates the 2010--2019 slope, treating COVID as a temporary deviation. This scenario provides a lower-bound estimate under restrictive policy assumptions.
+	    \item \textbf{Pre-2020 Trend}: Anchors at the 2019 level and extrapolates the 2010--2019 slope, treating COVID as a temporary deviation. This scenario provides a lower-bound estimate under restrictive policy assumptions.
 
-    \item \textbf{Immigration Policy}: Modifies the Moderate baseline by applying a 0.65 multiplier to future flows ($ 65\% $ of baseline). This shock magnitude is derived from the conservative lower bound of the Travel Ban DiD estimate (approx. $-75\%$, treated here conservatively as $-35\%$ impact on net total flows to account for non-refugee streams).
+	    \item \textbf{Immigration Policy}: Modifies the Moderate baseline by applying a 0.65 multiplier to future flows ($65\%$ of baseline). The multiplier is a scenario design choice informed by the Travel Ban DiD policy-associated divergence in refugee arrivals and a share-based scaling that translates a humanitarian-channel shock to the \PEP\ net international migration total.
 
-    \item \textbf{Zero}: Assumes complete cessation of international migration, providing a floor for population projection under extreme policy scenarios.
+	    \begin{center}
+	    \fbox{\begin{minipage}{0.95\linewidth}
+	    \small
+	    \textbf{Calibration note (policy multiplier).} Let $\Delta_{\mathrm{hum}}$ denote a proportional shock to the refugee/humanitarian channel and let $s_{\mathrm{hum}}$ denote its share of the total migration flow. If non-humanitarian streams are unchanged, the implied multiplier on the \PEP\ total is:
+	    \[
+	        m_{\mathrm{policy}} = 1 - s_{\mathrm{hum}} \cdot \Delta_{\mathrm{hum}}.
+	    \]
+		    Module~7 estimates a Travel Ban DiD policy-associated divergence of approximately $-75.2\%$ in refugee arrivals from affected origins, so we take $\Delta_{\mathrm{hum}} \approx 0.75$ as a reference magnitude for calibration. To motivate $s_{\mathrm{hum}}$ using existing series (no new data pulls), we compare ND refugee arrivals (RPC) and ND LPR admissions (DHS) over 2010--2016: refugees comprise 0.383--0.492 of measured durable inflows (Refugees + LPR). This implies $m_{\mathrm{policy}} \in [0.630, 0.712]$; the chosen 0.65 multiplier corresponds to $s_{\mathrm{hum}} \approx 0.466$. Because 0.65 lies within this implied interval, we retain it in the main specification. This calibration is presented for transparency and should not be interpreted as an identified causal effect on the \PEP\ total.
+	    \end{minipage}}
+	    \end{center}
+
+	    \item \textbf{Zero}: Assumes complete cessation of international migration, providing a floor for population projection under extreme policy scenarios.
 \end{enumerate}
 
-Monte Carlo simulation propagates uncertainty through projection models by sampling from estimated parameter distributions. The procedure draws 1,000 realizations of model parameters, generates projected trajectories for each draw, and summarizes the resulting distribution through percentiles. The 50\% prediction interval spans the 25th to 75th percentiles; the 95\% prediction interval spans the 2.5th to 97.5th percentiles. This approach quantifies forecast uncertainty arising from parameter estimation imprecision while holding the structural model fixed.
+	Monte Carlo simulation propagates uncertainty through projection models by sampling from estimated parameter distributions. The procedure draws 25,000 realizations of model parameters, generates projected trajectories for each draw, and summarizes the resulting distribution through percentiles. The 50\% prediction interval spans the 25th to 75th percentiles; the 95\% prediction interval spans the 5th to 95th percentiles. To avoid overstating precision when combining multiple stochastic components, we report two nested uncertainty summaries: (i) a baseline-only prediction interval from the univariate projection process and (ii) an outer wave-adjusted uncertainty envelope that adds hazard-based wave persistence draws (Module 8). The wave-adjusted envelope is intentionally conservative and should not be interpreted as a strictly calibrated predictive probability, because wave-driven variation may already contribute to baseline forecast uncertainty.
 
-Model averaging combines forecasts from multiple specifications using AIC-derived weights:
-\begin{equation}
-\label{eq:model_avg}
-w_m = \frac{\exp(-\Delta_m / 2)}{\sum_{j=1}^{M} \exp(-\Delta_j / 2)}
-\end{equation}
-where $\Delta_m = \text{AIC}_m - \text{AIC}_{\min}$ is the AIC difference between model $m$ and the best-fitting model. Weighted averaging reduces dependence on any single specification while preserving interpretability \citep{HyndmanAthanasopoulos2021}.
+	The scenario engine does not combine forecasts via information-criterion weights. Instead, scenarios are defined by explicit, policy-indexed rules applied to the univariate baseline and trend components described above.
 
 % ==============================================================================
 % 2.10 IMPLEMENTATION
