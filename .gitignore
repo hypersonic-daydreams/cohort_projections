@@ -122,6 +122,7 @@ sdc_2024_replication/scripts/statistical_analysis/journal_article/figures/*.pdf
 sdc_2024_replication/scripts/statistical_analysis/journal_article/figures/*.png
 sdc_2024_replication/scripts/statistical_analysis/results/*.json
 sdc_2024_replication/scripts/statistical_analysis/results/*.parquet
+sdc_2024_replication/scripts/statistical_analysis/results/*.csv
 
 # Claude Code config (ephemeral, not tracked)
 .claude/
