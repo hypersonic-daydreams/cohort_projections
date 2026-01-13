@@ -1280,7 +1280,7 @@ def create_figure_captions() -> None:
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_06_event_study.pdf}
-\caption{Event study estimates for the Travel Ban effect on refugee arrivals. Coefficients represent the difference in log arrivals between treated countries (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) and control countries relative to the reference period ($t = -1$, 2017). Blue circles show pre-treatment estimates; red squares show post-treatment effects. The joint pre-trend test rejects parallel trends over the full pre-period ($F = 4.22$, $p < 0.001$). The average treatment effect on the treated (ATT) is $-1.39$ ($p = 0.031$), corresponding to a 75.2\% reduction in arrivals.}
+\caption{Event study estimates for treated--control divergence around the Travel Ban in refugee arrivals. Coefficients represent the difference in log arrivals between treated countries (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) and control countries relative to the reference period ($t = -1$, 2017). Blue circles show pre-treatment estimates; red squares show post-treatment estimates. The joint pre-trend test rejects parallel trends over the full pre-period ($F = 4.22$, $p < 0.001$). The average treatment effect on the treated (ATT) is $-1.39$ (conventional $p = 0.031$), corresponding to a 75.2\% lower level of arrivals for treated relative to control in the post period; because parallel trends are not supported in the full pre-period, estimates are interpreted as policy-associated divergence rather than definitive causal effects.}
 \label{fig:eventstudy}
 \end{figure}
 

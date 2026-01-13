@@ -1,0 +1,927 @@
+# Statistical Concordance for "Forecasting International Migration to North Dakota"
+# =================================================================================
+# This document provides a systematic mapping of all statistical tests and equations
+# used in the journal article, with LaTeX formulations and Python implementations.
+#
+# Target Audience: AI Agents (requires both LaTeX and Python representations)
+# Version: 0.1 (Structure Only - Explanatory Text Pending)
+# Generated: 2026-01-12
+# Source Article: article-0.9-production_20260112_210131.pdf
+
+metadata:
+  article_title: "Forecasting International Migration to North Dakota: A Multi-Method Analysis"
+  source_pdf: "journal_article/output/versions/production/article-0.9-production_20260112_210131/"
+  latex_source_dir: "journal_article/sections/"
+  python_scripts_dir: "statistical_analysis/"
+  total_equations: 17
+  total_statistical_tests: 18
+
+# =============================================================================
+# SECTION 1: STATISTICAL TESTS
+# =============================================================================
+statistical_tests:
+
+  # ---------------------------------------------------------------------------
+  # 1.1 Unit Root and Stationarity Tests
+  # ---------------------------------------------------------------------------
+
+  adf_test:
+    full_name: "Augmented Dickey-Fuller Test"
+    category: "unit_root"
+    null_hypothesis: "Unit root present (series is non-stationary)"
+    alternative_hypothesis: "Series is stationary"
+    paper_section: "2.3 Time Series Methods"
+    paper_context: "Tests whether ND international migration series contains a unit root"
+    python_module: "module_2_1_1_unit_root_tests.py"
+    python_function: "run_adf_test()"
+    python_library: "statsmodels.tsa.stattools.adfuller"
+    related_equation: "eq_adf"
+    decision_rule: "Reject H0 if p-value < 0.05 (series is stationary)"
+    # PLACEHOLDER: explanatory_text
+
+  phillips_perron_test:
+    full_name: "Phillips-Perron Test"
+    category: "unit_root"
+    null_hypothesis: "Unit root present (series is non-stationary)"
+    alternative_hypothesis: "Series is stationary"
+    paper_section: "2.3 Time Series Methods"
+    paper_context: "Nonparametric alternative to ADF that corrects for serial correlation"
+    python_module: "module_2_1_1_unit_root_tests.py"
+    python_function: "phillips_perron_test()"
+    python_library: "statsmodels.tsa.stattools.adfuller (approximation with maxlag=0)"
+    related_equation: null
+    decision_rule: "Reject H0 if p-value < 0.05"
+    # PLACEHOLDER: explanatory_text
+
+  kpss_test:
+    full_name: "Kwiatkowski-Phillips-Schmidt-Shin Test"
+    category: "stationarity"
+    null_hypothesis: "Series is stationary"
+    alternative_hypothesis: "Series has a unit root"
+    paper_section: "2.3 Time Series Methods"
+    paper_context: "Complements ADF by reversing null/alternative hypotheses"
+    python_module: "module_2_1_1_unit_root_tests.py"
+    python_function: "run_kpss_test()"
+    python_library: "statsmodels.tsa.stattools.kpss"
+    related_equation: null
+    decision_rule: "Reject H0 if p-value < 0.05 (series is non-stationary)"
+    # PLACEHOLDER: explanatory_text
+
+  zivot_andrews_test:
+    full_name: "Zivot-Andrews Test"
+    category: "unit_root_with_break"
+    null_hypothesis: "Unit root with no structural break"
+    alternative_hypothesis: "Trend-stationary with one endogenous structural break"
+    paper_section: "2.3 Time Series Methods"
+    paper_context: "Break-robust unit root test for sensitivity analysis"
+    python_module: "module_2_1_1_unit_root_tests.py"
+    python_function: "run_zivot_andrews_test()"
+    python_library: "statsmodels.tsa.stattools.zivot_andrews"
+    related_equation: null
+    decision_rule: "Reject H0 if p-value < 0.05"
+    # PLACEHOLDER: explanatory_text
+
+  # ---------------------------------------------------------------------------
+  # 1.2 Residual Diagnostics
+  # ---------------------------------------------------------------------------
+
+  ljung_box_test:
+    full_name: "Ljung-Box Portmanteau Test"
+    category: "residual_autocorrelation"
+    null_hypothesis: "No autocorrelation in residuals (residuals are white noise)"
+    alternative_hypothesis: "Residuals exhibit autocorrelation"
+    paper_section: "2.3.2 ARIMA Model Selection"
+    paper_context: "Diagnostic checking for ARIMA model residual autocorrelation"
+    python_module: "_archive/module_2_1_arima.py"
+    python_function: null
+    python_library: "statsmodels.stats.diagnostic.acorr_ljungbox"
+    related_equation: null
+    decision_rule: "Fail to reject H0 if p-value > 0.05 (model adequate)"
+    # PLACEHOLDER: explanatory_text
+
+  shapiro_wilk_test:
+    full_name: "Shapiro-Wilk Test"
+    category: "normality"
+    null_hypothesis: "Data are normally distributed"
+    alternative_hypothesis: "Data are not normally distributed"
+    paper_section: "3.1 Descriptive Patterns"
+    paper_context: "Tests normality of annual migration distribution and model residuals"
+    python_module: "module_1_1_descriptive_statistics.py"
+    python_function: null
+    python_library: "scipy.stats.shapiro"
+    related_equation: null
+    decision_rule: "Fail to reject H0 if p-value > 0.05 (data are normal)"
+    # PLACEHOLDER: explanatory_text
+
+  # ---------------------------------------------------------------------------
+  # 1.3 Structural Break Tests
+  # ---------------------------------------------------------------------------
+
+  chow_test:
+    full_name: "Chow Test"
+    category: "structural_break"
+    null_hypothesis: "Regression parameters are stable across subsamples"
+    alternative_hypothesis: "Regression parameters differ across candidate break point"
+    paper_section: "2.3.3 Structural Break Tests"
+    paper_context: "Tests for parameter stability at known candidate break points (2017 Travel Ban, 2020 COVID)"
+    python_module: null
+    python_function: null
+    python_library: "Custom implementation comparing restricted/unrestricted RSS"
+    related_equation: null
+    decision_rule: "Reject H0 if F-statistic exceeds critical value"
+    # PLACEHOLDER: explanatory_text
+
+  cusum_test:
+    full_name: "CUSUM Test (Cumulative Sum of Recursive Residuals)"
+    category: "parameter_stability"
+    null_hypothesis: "Regression parameters are stable over time"
+    alternative_hypothesis: "Parameters exhibit structural change"
+    paper_section: "2.3.3 Structural Break Tests"
+    paper_context: "Detects parameter instability through cumulative deviations"
+    python_module: null
+    python_function: null
+    python_library: "statsmodels.stats.diagnostic.breaks_cusumolsresid"
+    related_equation: null
+    decision_rule: "Reject H0 if CUSUM exceeds 5% significance bounds"
+    # PLACEHOLDER: explanatory_text
+
+  bai_perron_test:
+    full_name: "Bai-Perron Multiple Structural Breaks Test"
+    category: "endogenous_break_detection"
+    null_hypothesis: "No structural breaks"
+    alternative_hypothesis: "One or more structural breaks at unknown dates"
+    paper_section: "2.3.3 Structural Break Tests"
+    paper_context: "Endogenous detection of optimal break points"
+    python_module: null
+    python_function: null
+    python_library: "ruptures (for break detection)"
+    related_equation: "eq_bai_perron"
+    decision_rule: "Break points selected by minimizing sum of squared residuals subject to BIC penalty"
+    # PLACEHOLDER: explanatory_text
+
+  # ---------------------------------------------------------------------------
+  # 1.4 Panel Data Tests
+  # ---------------------------------------------------------------------------
+
+  hausman_test:
+    full_name: "Hausman Specification Test"
+    category: "panel_model_selection"
+    null_hypothesis: "Random effects estimator is consistent (no correlation between effects and regressors)"
+    alternative_hypothesis: "Fixed effects estimator is required"
+    paper_section: "2.4 Panel Data Methods"
+    paper_context: "Diagnostic for FE vs RE model choice in intercept-only benchmarking specification"
+    python_module: "module_3_1_panel_data.py"
+    python_function: null
+    python_library: "linearmodels.panel.compare"
+    related_equation: null
+    decision_rule: "Reject H0 if p-value < 0.05 (use fixed effects)"
+    # PLACEHOLDER: explanatory_text
+
+  breusch_pagan_lm_test:
+    full_name: "Breusch-Pagan Lagrange Multiplier Test"
+    category: "panel_heterogeneity"
+    null_hypothesis: "No unobserved heterogeneity (pooled OLS is adequate)"
+    alternative_hypothesis: "Significant state-level random effects"
+    paper_section: "3.5 Panel Data Results"
+    paper_context: "Tests whether cross-sectional heterogeneity warrants panel model"
+    python_module: "module_3_1_panel_data.py"
+    python_function: null
+    python_library: "linearmodels diagnostics"
+    related_equation: null
+    decision_rule: "Reject H0 if p-value < 0.05 (use panel model)"
+    # PLACEHOLDER: explanatory_text
+
+  # ---------------------------------------------------------------------------
+  # 1.5 Causal Inference Tests
+  # ---------------------------------------------------------------------------
+
+  parallel_trends_test:
+    full_name: "Parallel Trends Test (Pre-Treatment F-Test)"
+    category: "did_assumption"
+    null_hypothesis: "Treatment and control groups had parallel trends pre-treatment"
+    alternative_hypothesis: "Pre-treatment trends differ between groups"
+    paper_section: "3.7.1 Travel Ban DiD"
+    paper_context: "Tests key identifying assumption for DiD validity"
+    python_module: "module_7_causal_inference.py"
+    python_function: "estimate_did_travel_ban()"
+    python_library: "statsmodels (OLS with joint F-test)"
+    related_equation: null
+    decision_rule: "Fail to reject H0 if p-value > 0.05 (parallel trends supported)"
+    # PLACEHOLDER: explanatory_text
+
+  wild_cluster_bootstrap:
+    full_name: "Wild Cluster Bootstrap"
+    category: "small_sample_inference"
+    null_hypothesis: "Treatment effect is zero"
+    alternative_hypothesis: "Treatment effect is non-zero"
+    paper_section: "3.7.1 Travel Ban DiD"
+    paper_context: "Small-sample inference robustness with only 7 treated nationality clusters"
+    python_module: "module_7_robustness.py"
+    python_function: null
+    python_library: "Custom implementation with Rademacher weights"
+    related_equation: null
+    decision_rule: "Reject H0 if bootstrap p-value < 0.05"
+    # PLACEHOLDER: explanatory_text
+
+  randomization_inference:
+    full_name: "Randomization (Permutation) Inference"
+    category: "small_sample_inference"
+    null_hypothesis: "Treatment effect is zero (Fisher sharp null)"
+    alternative_hypothesis: "Treatment effect is non-zero"
+    paper_section: "3.7.1 Travel Ban DiD"
+    paper_context: "Finite-sample valid inference via treatment assignment permutation"
+    python_module: "module_7_robustness.py"
+    python_function: null
+    python_library: "Custom implementation"
+    related_equation: null
+    decision_rule: "Reject H0 if permutation p-value < 0.05"
+    # PLACEHOLDER: explanatory_text
+
+  granger_causality_test:
+    full_name: "Granger Causality Test"
+    category: "var_causality"
+    null_hypothesis: "Variable X does not Granger-cause variable Y"
+    alternative_hypothesis: "Variable X Granger-causes variable Y"
+    paper_section: "2.3.4 Vector Autoregression"
+    paper_context: "Tests directional predictive relationships in VAR model"
+    python_module: "_archive/module_2_2_var_cointegration.py"
+    python_function: null
+    python_library: "statsmodels.tsa.stattools.grangercausalitytests"
+    related_equation: null
+    decision_rule: "Reject H0 if p-value < 0.05"
+    # PLACEHOLDER: explanatory_text
+
+  # ---------------------------------------------------------------------------
+  # 1.6 Survival Analysis Tests
+  # ---------------------------------------------------------------------------
+
+  log_rank_test:
+    full_name: "Log-Rank Test"
+    category: "survival_comparison"
+    null_hypothesis: "Survival curves are equal across groups"
+    alternative_hypothesis: "Survival curves differ across groups"
+    paper_section: "2.8 Duration Analysis"
+    paper_context: "Tests whether wave survival differs by intensity quartiles or nationality region"
+    python_module: "module_8_duration_analysis.py"
+    python_function: "kaplan_meier_by_group()"
+    python_library: "lifelines.statistics.multivariate_logrank_test"
+    related_equation: null
+    decision_rule: "Reject H0 if p-value < 0.05 (survival curves differ)"
+    # PLACEHOLDER: explanatory_text
+
+  schoenfeld_residual_test:
+    full_name: "Schoenfeld Residual Test"
+    category: "cox_ph_assumption"
+    null_hypothesis: "Proportional hazards assumption holds"
+    alternative_hypothesis: "Hazard ratios vary over time"
+    paper_section: "2.8 Duration Analysis"
+    paper_context: "Validates proportional hazards assumption for Cox model"
+    python_module: "module_8_duration_analysis.py"
+    python_function: "plot_schoenfeld_residuals()"
+    python_library: "lifelines.CoxPHFitter.check_assumptions"
+    related_equation: null
+    decision_rule: "Fail to reject H0 if p-value > 0.05 (PH assumption valid)"
+    # PLACEHOLDER: explanatory_text
+
+# =============================================================================
+# SECTION 2: EQUATIONS
+# =============================================================================
+equations:
+
+  # ---------------------------------------------------------------------------
+  # 2.1 Descriptive and Concentration Methods
+  # ---------------------------------------------------------------------------
+
+  eq_hp_filter:
+    number: 1
+    name: "Hodrick-Prescott Filter"
+    category: "trend_decomposition"
+    paper_section: "2.2 Descriptive and Concentration Methods"
+    paper_label: "eq:hp_filter"
+    latex: |
+      \min_{\{g_t\}} \left\{ \sum_{t=1}^{T} (y_t - g_t)^2 + \lambda \sum_{t=2}^{T-1} [(g_{t+1} - g_t) - (g_t - g_{t-1})]^2 \right\}
+    symbols:
+      y_t: "Observed series at time t"
+      g_t: "Trend component at time t"
+      T: "Total number of observations"
+      lambda: "Smoothing parameter (6.25 for annual data per Ravn-Uhlig 2002)"
+    python_module: "module_1_1_descriptive_statistics.py"
+    python_implementation: |
+      from statsmodels.tsa.filters.hp_filter import hpfilter
+      cycle, trend = hpfilter(series, lamb=6.25)
+    python_library: "statsmodels.tsa.filters.hp_filter.hpfilter"
+    # PLACEHOLDER: explanatory_text
+
+  eq_hhi:
+    number: 2
+    name: "Herfindahl-Hirschman Index"
+    category: "concentration_measure"
+    paper_section: "2.2 Descriptive and Concentration Methods"
+    paper_label: "eq:hhi"
+    latex: |
+      \text{HHI} = \sum_{i=1}^{N} s_i^2 \times 10{,}000
+    symbols:
+      HHI: "Herfindahl-Hirschman Index (0-10,000 scale)"
+      s_i: "Share of migration from origin country i (as decimal)"
+      N: "Number of origin countries"
+    interpretation:
+      unconcentrated: "HHI < 1,500"
+      moderate_concentration: "1,500 <= HHI <= 2,500"
+      high_concentration: "HHI > 2,500"
+    python_module: "module_1_1_descriptive_statistics.py"
+    python_implementation: |
+      def calculate_hhi(shares):
+          """Calculate HHI from shares (as decimals summing to 1)."""
+          return sum(s**2 for s in shares) * 10000
+    python_library: null
+    # PLACEHOLDER: explanatory_text
+
+  eq_lq:
+    number: 3
+    name: "Location Quotient"
+    category: "concentration_measure"
+    paper_section: "2.2 Descriptive and Concentration Methods"
+    paper_label: "eq:lq"
+    latex: |
+      \text{LQ}_{i,\text{ND}} = \frac{(\text{Foreign-born from } i \text{ in ND}) / (\text{Total foreign-born in ND})}{(\text{Foreign-born from } i \text{ in US}) / (\text{Total foreign-born in US})}
+    symbols:
+      LQ_i_ND: "Location quotient for origin country i in North Dakota"
+    interpretation: "LQ > 1 indicates overrepresentation relative to national composition"
+    python_module: "module_1_1_descriptive_statistics.py"
+    python_implementation: |
+      def calculate_lq(nd_from_i, nd_total, us_from_i, us_total):
+          """Calculate Location Quotient."""
+          nd_share = nd_from_i / nd_total
+          us_share = us_from_i / us_total
+          return nd_share / us_share if us_share > 0 else np.nan
+    python_library: null
+    # PLACEHOLDER: explanatory_text
+
+  # ---------------------------------------------------------------------------
+  # 2.2 Time Series Methods
+  # ---------------------------------------------------------------------------
+
+  eq_adf:
+    number: 4
+    name: "Augmented Dickey-Fuller Regression"
+    category: "unit_root_test"
+    paper_section: "2.3.1 Unit Root Tests"
+    paper_label: "eq:adf"
+    latex: |
+      \Delta y_t = \alpha + \beta t + \gamma y_{t-1} + \sum_{j=1}^{p} \delta_j \Delta y_{t-j} + \varepsilon_t
+    symbols:
+      Delta_y_t: "First difference of series (y_t - y_{t-1})"
+      alpha: "Constant (intercept)"
+      beta: "Trend coefficient"
+      t: "Time trend"
+      gamma: "Coefficient on lagged level (test statistic based on this)"
+      y_t_minus_1: "Lagged level of series"
+      delta_j: "Coefficients on lagged differences"
+      p: "Number of lags (selected by AIC)"
+      epsilon_t: "Error term"
+    hypothesis_test: "H0: gamma = 0 (unit root) vs H1: gamma < 0 (stationary)"
+    python_module: "module_2_1_1_unit_root_tests.py"
+    python_implementation: |
+      from statsmodels.tsa.stattools import adfuller
+      result = adfuller(series, maxlag=None, regression='c', autolag='AIC')
+      adf_statistic = result[0]
+      p_value = result[1]
+      used_lag = result[2]
+      critical_values = result[4]
+    python_library: "statsmodels.tsa.stattools.adfuller"
+    # PLACEHOLDER: explanatory_text
+
+  eq_aic:
+    number: 5
+    name: "Akaike Information Criterion"
+    category: "model_selection"
+    paper_section: "2.3.2 ARIMA Model Selection"
+    paper_label: "eq:aic"
+    latex: |
+      \text{AIC} = -2 \ln(\hat{L}) + 2k
+    symbols:
+      AIC: "Akaike Information Criterion"
+      L_hat: "Maximized likelihood of the model"
+      k: "Number of parameters"
+    interpretation: "Lower AIC indicates better model fit (balancing fit and complexity)"
+    python_module: "_archive/module_2_1_arima.py"
+    python_implementation: |
+      # AIC is computed automatically by statsmodels ARIMA
+      from statsmodels.tsa.arima.model import ARIMA
+      model = ARIMA(series, order=(p, d, q)).fit()
+      aic = model.aic
+    python_library: "statsmodels.tsa.arima.model.ARIMA"
+    # PLACEHOLDER: explanatory_text
+
+  eq_bai_perron:
+    number: 6
+    name: "Bai-Perron Break Detection"
+    category: "structural_break"
+    paper_section: "2.3.3 Structural Break Tests"
+    paper_label: "eq:bai_perron"
+    latex: |
+      (\hat{T}_1, \ldots, \hat{T}_m) = \arg\min_{T_1, \ldots, T_m} \sum_{j=0}^{m} \sum_{t=T_j+1}^{T_{j+1}} (y_t - \bar{y}_j)^2
+    symbols:
+      T_hat_1_to_m: "Estimated break dates"
+      m: "Number of breaks"
+      T_j: "j-th break point"
+      y_t: "Observed value at time t"
+      y_bar_j: "Mean of segment j"
+    constraint: "Subject to minimum segment length constraints"
+    python_module: null
+    python_implementation: |
+      import ruptures as rpt
+      algo = rpt.Binseg(model="l2").fit(series.values)
+      breakpoints = algo.predict(n_bkps=m)
+    python_library: "ruptures"
+    # PLACEHOLDER: explanatory_text
+
+  eq_var:
+    number: 7
+    name: "Vector Autoregression (VAR)"
+    category: "multivariate_time_series"
+    paper_section: "2.3.4 Vector Autoregression"
+    paper_label: "eq:var"
+    latex: |
+      \mathbf{y}_t = \mathbf{c} + \sum_{i=1}^{p} \mathbf{A}_i \mathbf{y}_{t-i} + \boldsymbol{\varepsilon}_t
+    symbols:
+      y_t: "Vector of endogenous variables [y_t^ND, y_t^US]'"
+      c: "Vector of constants"
+      A_i: "Coefficient matrices for lag i"
+      p: "VAR lag order (selected by AIC)"
+      epsilon_t: "Vector white noise process"
+    python_module: "_archive/module_2_2_var_cointegration.py"
+    python_implementation: |
+      from statsmodels.tsa.api import VAR
+      model = VAR(data)
+      fitted = model.fit(maxlags=p, ic='aic')
+      granger_results = fitted.test_causality('nd_intl_migration', 'us_intl_migration')
+    python_library: "statsmodels.tsa.api.VAR"
+    # PLACEHOLDER: explanatory_text
+
+  # ---------------------------------------------------------------------------
+  # 2.3 Panel Data Methods
+  # ---------------------------------------------------------------------------
+
+  eq_fixed_effects:
+    number: 8
+    name: "Two-Way Fixed Effects Panel Model"
+    category: "panel_regression"
+    paper_section: "2.4 Panel Data Methods"
+    paper_label: "eq:fixed_effects"
+    latex: |
+      y_{it} = \mu + \alpha_i + \lambda_t + \varepsilon_{it}
+    symbols:
+      y_it: "International migration to state i in year t"
+      mu: "Grand mean"
+      alpha_i: "State fixed effect (time-invariant state heterogeneity)"
+      lambda_t: "Year fixed effect (common temporal shocks)"
+      epsilon_it: "Error term"
+    note: "Intercept-only specification for benchmarking; no additional covariates"
+    python_module: "module_3_1_panel_data.py"
+    python_implementation: |
+      from linearmodels.panel import PanelOLS
+      model = PanelOLS.from_formula(
+          'intl_migration ~ 1 + EntityEffects + TimeEffects',
+          data=panel_data.set_index(['state', 'year'])
+      )
+      result = model.fit(cov_type='clustered', cluster_entity=True)
+    python_library: "linearmodels.panel.PanelOLS"
+    # PLACEHOLDER: explanatory_text
+
+  # ---------------------------------------------------------------------------
+  # 2.4 Gravity and Network Models
+  # ---------------------------------------------------------------------------
+
+  eq_gravity:
+    number: 9
+    name: "PPML Gravity/Allocation Model"
+    category: "cross_sectional_allocation"
+    paper_section: "2.5 Cross-Sectional Allocation Models"
+    paper_label: "eq:gravity"
+    latex: |
+      E[M_{od}] = \exp(\beta_0 + \beta_1 \ln \text{Stock}_{od} + \beta_2 \ln \text{OriginTotal}_o + \beta_3 \ln \text{DestTotal}_d + \boldsymbol{\gamma}'\mathbf{Z}_{od})
+    symbols:
+      M_od: "LPR admissions from origin o to destination d (FY2023)"
+      Stock_od: "Existing diaspora (foreign-born from o residing in d)"
+      OriginTotal_o: "National foreign-born population from origin o"
+      DestTotal_d: "Total foreign-born in destination state d"
+      Z_od: "Additional bilateral controls"
+      beta_1: "Diaspora elasticity (predictive association)"
+    note: "Distance omitted because within-US variation is minimal"
+    python_module: "_archive/module_5_gravity_network.py"
+    python_implementation: |
+      import statsmodels.api as sm
+      from statsmodels.genmod.families import Poisson
+
+      model = sm.GLM(
+          endog=M_od,
+          exog=X,  # includes log(Stock), log(OriginTotal), log(DestTotal)
+          family=Poisson()
+      )
+      result = model.fit()
+    python_library: "statsmodels.genmod.generalized_linear_model.GLM"
+    # PLACEHOLDER: explanatory_text
+
+  # ---------------------------------------------------------------------------
+  # 2.5 Machine Learning Methods
+  # ---------------------------------------------------------------------------
+
+  eq_elastic_net:
+    number: 10
+    name: "Elastic Net Regularization"
+    category: "regularized_regression"
+    paper_section: "2.6 Machine Learning Methods"
+    paper_label: "eq:elastic_net"
+    latex: |
+      \hat{\boldsymbol{\beta}} = \arg\min_{\boldsymbol{\beta}} \left\{ \sum_{i=1}^{n} (y_i - \mathbf{x}_i'\boldsymbol{\beta})^2 + \lambda \left[ \alpha \|\boldsymbol{\beta}\|_1 + (1-\alpha) \|\boldsymbol{\beta}\|_2^2 \right] \right\}
+    symbols:
+      beta_hat: "Estimated coefficient vector"
+      y_i: "Outcome for observation i"
+      x_i: "Feature vector for observation i"
+      lambda: "Overall regularization strength"
+      alpha: "Mixing parameter (0=Ridge, 1=Lasso, 0<alpha<1=Elastic Net)"
+      L1_norm: "Sum of absolute coefficient values (sparsity-inducing)"
+      L2_norm_squared: "Sum of squared coefficients (shrinkage)"
+    python_module: "module_6_machine_learning.py"
+    python_implementation: |
+      from sklearn.linear_model import ElasticNetCV
+
+      model = ElasticNetCV(
+          l1_ratio=[0.1, 0.5, 0.7, 0.9, 0.95, 0.99, 1],
+          alphas=np.logspace(-4, 1, 50),
+          cv=5
+      )
+      model.fit(X, y)
+      best_alpha = model.alpha_
+      best_l1_ratio = model.l1_ratio_
+      coefficients = model.coef_
+    python_library: "sklearn.linear_model.ElasticNetCV"
+    # PLACEHOLDER: explanatory_text
+
+  eq_kmeans:
+    number: 11
+    name: "K-Means Clustering"
+    category: "unsupervised_learning"
+    paper_section: "2.6 Machine Learning Methods"
+    paper_label: "eq:kmeans"
+    latex: |
+      \arg\min_{\mathcal{C}} \sum_{k=1}^{K} \sum_{i \in C_k} \|\mathbf{x}_i - \boldsymbol{\mu}_k\|^2
+    symbols:
+      C: "Set of cluster assignments"
+      K: "Number of clusters (selected by silhouette criterion)"
+      C_k: "Set of observations in cluster k"
+      x_i: "Feature vector for observation i"
+      mu_k: "Centroid of cluster k"
+    python_module: "module_6_machine_learning.py"
+    python_implementation: |
+      from sklearn.cluster import KMeans
+      from sklearn.metrics import silhouette_score
+
+      # Find optimal K
+      silhouette_scores = []
+      for k in range(2, 10):
+          kmeans = KMeans(n_clusters=k, random_state=42)
+          labels = kmeans.fit_predict(X)
+          silhouette_scores.append(silhouette_score(X, labels))
+
+      optimal_k = np.argmax(silhouette_scores) + 2
+      final_model = KMeans(n_clusters=optimal_k).fit(X)
+    python_library: "sklearn.cluster.KMeans"
+    # PLACEHOLDER: explanatory_text
+
+  # ---------------------------------------------------------------------------
+  # 2.6 Causal Inference Methods
+  # ---------------------------------------------------------------------------
+
+  eq_did:
+    number: 12
+    name: "Difference-in-Differences"
+    category: "causal_inference"
+    paper_section: "2.7.1 Difference-in-Differences"
+    paper_label: "eq:did"
+    latex: |
+      \ln(y_{ct} + 1) = \alpha_c + \lambda_t + \delta \cdot (\text{Affected}_c \times \text{Post}_t) + \varepsilon_{ct}
+    symbols:
+      y_ct: "Arrivals from country c in year t"
+      alpha_c: "Country fixed effect"
+      lambda_t: "Year fixed effect"
+      delta: "Average treatment effect on the treated (ATT)"
+      Affected_c: "Indicator for Travel Ban affected country"
+      Post_t: "Indicator for post-treatment period (>=2018)"
+      epsilon_ct: "Error term"
+    note: "Log transformation with +1 to handle zeros; percentage effect = exp(delta) - 1"
+    python_module: "module_7_causal_inference.py"
+    python_implementation: |
+      import statsmodels.api as sm
+      from statsmodels.regression.linear_model import OLS
+
+      # Create interaction term
+      df['treated_x_post'] = df['treated'] * df['post']
+
+      # Add fixed effects dummies
+      y = df['log_arrivals'].values
+      X = pd.get_dummies(df[['treated_x_post', 'nationality', 'year']], drop_first=True)
+      X = sm.add_constant(X)
+
+      # Fit with clustered standard errors
+      model = OLS(y, X).fit(
+          cov_type='cluster',
+          cov_kwds={'groups': df['nationality']}
+      )
+      att = model.params['treated_x_post']
+      pct_effect = (np.exp(att) - 1) * 100
+    python_library: "statsmodels.regression.linear_model.OLS"
+    # PLACEHOLDER: explanatory_text
+
+  eq_its:
+    number: 13
+    name: "Interrupted Time Series"
+    category: "causal_inference"
+    paper_section: "2.7.2 Interrupted Time Series"
+    paper_label: "eq:its"
+    latex: |
+      y_{st} = \alpha_s + \beta_1 t + \beta_2 \text{Post}_{2020,t} + \beta_3 (t - 2020)\text{Post}_{2020,t} + \varepsilon_{st}
+    symbols:
+      y_st: "Net international migration for state s in year t"
+      alpha_s: "State fixed effect"
+      beta_1: "Pre-treatment trend"
+      beta_2: "Immediate COVID level shift"
+      beta_3: "Change in trend after 2020"
+      Post_2020_t: "Indicator for year >= 2020"
+      t_minus_2020: "Years since 2020 (for post-treatment trend)"
+      epsilon_st: "Error term"
+    python_module: "module_7_causal_inference.py"
+    python_implementation: |
+      # Create ITS variables
+      df['time'] = df['year'] - df['year'].min()
+      df['post_covid'] = (df['year'] >= 2020).astype(int)
+      df['time_since_covid'] = np.maximum(0, df['year'] - 2020)
+
+      # Fit with state FE and clustered SE
+      X = pd.DataFrame({
+          'time': df['time'],
+          'post_covid': df['post_covid'],
+          'time_since_covid': df['time_since_covid']
+      })
+      state_dummies = pd.get_dummies(df['state'], drop_first=True)
+      X = pd.concat([X, state_dummies], axis=1)
+      X = sm.add_constant(X)
+
+      model = OLS(df['intl_migration'], X).fit(
+          cov_type='cluster',
+          cov_kwds={'groups': df['state']}
+      )
+      level_shift = model.params['post_covid']
+      trend_change = model.params['time_since_covid']
+    python_library: "statsmodels.regression.linear_model.OLS"
+    # PLACEHOLDER: explanatory_text
+
+  eq_synth:
+    number: 14
+    name: "Synthetic Control Weights"
+    category: "causal_inference"
+    paper_section: "2.7.3 Synthetic Comparator"
+    paper_label: "eq:synth"
+    latex: |
+      \hat{y}_{1t}^{S} = \sum_{j=2}^{J+1} w_j^* y_{jt}
+    symbols:
+      y_hat_1t_S: "Synthetic control outcome for treated unit at time t"
+      w_j_star: "Optimal weight for donor unit j"
+      y_jt: "Outcome for donor unit j at time t"
+      J: "Number of donor units"
+    constraints:
+      - "w_j >= 0 (non-negative weights)"
+      - "sum(w_j) = 1 (weights sum to one)"
+    optimization: "Weights chosen to minimize pre-treatment discrepancy"
+    python_module: "module_7_causal_inference.py"
+    python_implementation: |
+      from scipy.optimize import minimize
+
+      def objective(w):
+          synthetic = Y_donors_pre @ w
+          return np.sum((Y_treated_pre - synthetic) ** 2)
+
+      constraints = [{'type': 'eq', 'fun': lambda w: np.sum(w) - 1}]
+      bounds = [(0, 1) for _ in range(len(donor_states))]
+      w0 = np.ones(len(donor_states)) / len(donor_states)
+
+      result = minimize(objective, w0, method='SLSQP',
+                       bounds=bounds, constraints=constraints)
+      weights = result.x
+    python_library: "scipy.optimize.minimize"
+    # PLACEHOLDER: explanatory_text
+
+  eq_bartik:
+    number: 15
+    name: "Shift-Share (Bartik) Index"
+    category: "instrumental_variables"
+    paper_section: "2.7.4 Shift-Share (Bartik) Index"
+    paper_label: "eq:bartik"
+    latex: |
+      B_{dt} = \sum_{o} \omega_{od,t_0} \cdot g_{o,t}^{\text{US},-d}
+    symbols:
+      B_dt: "Bartik index for destination d at time t"
+      omega_od_t0: "Origin o's share of state d's baseline arrivals"
+      g_o_t_US_minus_d: "Leave-one-out national change in arrivals from origin o"
+    note: "Leave-one-out construction avoids mechanical correlation"
+    python_module: "module_7_causal_inference.py"
+    python_implementation: |
+      # Calculate baseline shares (t0 = 2010)
+      baseline_shares = baseline_data.groupby(['state', 'nationality']).apply(
+          lambda g: g['arrivals'].sum() / nat_totals_baseline[g.name[1]]
+      )
+
+      # Calculate leave-one-out national changes
+      panel['nat_total_excl_state'] = panel['nat_total'] - panel['state_arrivals']
+      panel['delta_shift'] = panel['nat_total_excl_state'] - panel['nat_total_baseline_excl_state']
+
+      # Construct Bartik instrument
+      bartik_df = panel.groupby(['state', 'year']).apply(
+          lambda g: np.sum(g['state_share'] * g['delta_shift'])
+      ).reset_index(name='bartik_instrument')
+    python_library: null
+    # PLACEHOLDER: explanatory_text
+
+  # ---------------------------------------------------------------------------
+  # 2.7 Duration Analysis
+  # ---------------------------------------------------------------------------
+
+  eq_km:
+    number: 16
+    name: "Kaplan-Meier Survival Estimator"
+    category: "survival_analysis"
+    paper_section: "2.8 Duration Analysis"
+    paper_label: "eq:km"
+    latex: |
+      \hat{S}(t) = \prod_{t_i \leq t} \left( 1 - \frac{d_i}{n_i} \right)
+    symbols:
+      S_hat_t: "Estimated survival probability at time t"
+      t_i: "Time of i-th event"
+      d_i: "Number of events (wave terminations) at time t_i"
+      n_i: "Number at risk just before time t_i"
+    interpretation: "Probability that a wave survives past time t"
+    python_module: "module_8_duration_analysis.py"
+    python_implementation: |
+      from lifelines import KaplanMeierFitter
+
+      kmf = KaplanMeierFitter()
+      kmf.fit(
+          durations=df_survival['duration'],
+          event_observed=df_survival['event'],
+          label='All Immigration Waves'
+      )
+
+      survival_function = kmf.survival_function_
+      median_survival = kmf.median_survival_time_
+      confidence_intervals = kmf.confidence_interval_
+    python_library: "lifelines.KaplanMeierFitter"
+    # PLACEHOLDER: explanatory_text
+
+  eq_cox:
+    number: 17
+    name: "Cox Proportional Hazards Model"
+    category: "survival_analysis"
+    paper_section: "2.8 Duration Analysis"
+    paper_label: "eq:cox"
+    latex: |
+      h(t|\mathbf{x}) = h_0(t) \exp(\boldsymbol{\beta}'\mathbf{x})
+    symbols:
+      h_t_x: "Hazard rate at time t given covariates x"
+      h_0_t: "Baseline hazard function"
+      beta: "Vector of regression coefficients"
+      x: "Vector of covariates"
+      exp_beta_j: "Hazard ratio for one-unit increase in x_j"
+    interpretation:
+      HR_less_than_1: "Factor prolongs wave duration"
+      HR_greater_than_1: "Factor accelerates wave termination"
+    python_module: "module_8_duration_analysis.py"
+    python_implementation: |
+      from lifelines import CoxPHFitter
+
+      cph = CoxPHFitter()
+      cph.fit(df_model, duration_col='duration', event_col='event')
+
+      # Extract results
+      hazard_ratios = cph.summary['exp(coef)']
+      coefficients = cph.summary['coef']
+      p_values = cph.summary['p']
+      concordance_index = cph.concordance_index_
+
+      # Check proportional hazards assumption
+      cph.check_assumptions(df_model, p_value_threshold=0.05)
+    python_library: "lifelines.CoxPHFitter"
+    # PLACEHOLDER: explanatory_text
+
+# =============================================================================
+# SECTION 3: PYTHON SCRIPT INDEX
+# =============================================================================
+python_scripts:
+
+  module_1_1:
+    filename: "module_1_1_descriptive_statistics.py"
+    implements:
+      - eq_hp_filter
+      - eq_hhi
+      - eq_lq
+      - shapiro_wilk_test
+    role: "Descriptive statistics, HP filtering, concentration measures"
+
+  module_2_1_1:
+    filename: "module_2_1_1_unit_root_tests.py"
+    implements:
+      - eq_adf
+      - adf_test
+      - phillips_perron_test
+      - kpss_test
+      - zivot_andrews_test
+    role: "Unit root and stationarity testing"
+
+  module_2_1_arima:
+    filename: "_archive/module_2_1_arima.py"
+    implements:
+      - eq_aic
+      - ljung_box_test
+    role: "ARIMA model selection and forecasting"
+
+  module_2_2_var:
+    filename: "_archive/module_2_2_var_cointegration.py"
+    implements:
+      - eq_var
+      - granger_causality_test
+    role: "VAR modeling and cointegration analysis"
+
+  module_3_1:
+    filename: "module_3_1_panel_data.py"
+    implements:
+      - eq_fixed_effects
+      - hausman_test
+      - breusch_pagan_lm_test
+    role: "Panel data analysis"
+
+  module_5_gravity:
+    filename: "_archive/module_5_gravity_network.py"
+    implements:
+      - eq_gravity
+    role: "Gravity models and diaspora analysis"
+
+  module_6_ml:
+    filename: "module_6_machine_learning.py"
+    implements:
+      - eq_elastic_net
+      - eq_kmeans
+    role: "Machine learning methods"
+
+  module_7_causal:
+    filename: "module_7_causal_inference.py"
+    implements:
+      - eq_did
+      - eq_its
+      - eq_synth
+      - eq_bartik
+      - parallel_trends_test
+    role: "Causal inference (DiD, ITS, Synthetic Control, Bartik)"
+
+  module_7_robustness:
+    filename: "module_7_robustness.py"
+    implements:
+      - wild_cluster_bootstrap
+      - randomization_inference
+    role: "Small-sample inference robustness"
+
+  module_8_duration:
+    filename: "module_8_duration_analysis.py"
+    implements:
+      - eq_km
+      - eq_cox
+      - log_rank_test
+      - schoenfeld_residual_test
+    role: "Survival analysis for immigration waves"
+
+# =============================================================================
+# SECTION 4: LATEX CUSTOM COMMANDS (from preamble.tex)
+# =============================================================================
+latex_custom_commands:
+
+  statistical_notation:
+    E: "\\mathbb{E}"
+    Var: "\\text{Var}"
+    Cov: "\\text{Cov}"
+    se: "\\text{SE}"
+    pvalue: "p\\text{-value}"
+
+  abbreviations:
+    ND: "North Dakota"
+    US: "United States"
+    LPR: "LPR"
+    ACS: "ACS"
+    PEP: "PEP"
+    DHS: "DHS"
+
+  model_names:
+    ARIMA: "\\textsc{arima}"
+    VAR: "\\textsc{var}"
+    ADF: "\\textsc{adf}"
+    HHI: "\\textsc{hhi}"
+    LQ: "\\textsc{lq}"
+    DiD: "DiD"
