@@ -104,7 +104,7 @@ Log Likelihood & $-$934,340 & $-$734,629 & $-$717,292 \\
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: Poisson pseudo-maximum likelihood (PPML) estimation. Two-way clustered SEs (state and origin) in parentheses. Dependent variable: LPR admissions by state-country pair, FY 2023. * $p < 0.05$; *** $p < 0.001$.
+\item \textit{Notes}: Poisson pseudo-maximum likelihood (PPML) estimation. Two-way clustered SEs (state and origin) in parentheses. Log covariates are computed as $\ln(x+1)$ (log1p). Dependent variable: LPR admissions by state-country pair, FY 2023. * $p < 0.05$; *** $p < 0.001$.
 \end{tablenotes}
 \end{table}
 
@@ -537,12 +537,12 @@ Net International Migration (\PEP) & Net annual international migration componen
 LPR Admissions (DHS, FY) & Count of lawful permanent resident admissions by state of intended residence and country of birth (fiscal year) \\
 Diaspora Stock (\ACS) & Foreign-born population from origin country $o$ residing in destination state $d$ (\ACS estimate) \\
 Location Quotient & Ratio of origin $o$'s share in state $d$ to origin $o$'s share nationally \\
-HHI & Herfindahl-Hirschman Index: $\sum_i s_i^2 \times 10,000$ where $s_i$ is origin $i$'s share \\
+HHI & Herfindahl-Hirschman Index: $\sum_i s_i^2 \times 10,000$ where $s_i \in [0,1]$ is origin $i$'s share \\
 Wave & Period of $\geq 2$ consecutive years with arrivals $> 150\%$ of baseline \\
 Wave Intensity & Peak-to-baseline ratio during wave \\
 Affected Country & Travel Ban target: Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen \\
 Post & Indicator for years $\geq 2018$ (first full year after Travel Ban implementation) \\
-Shift-share (Bartik) index & $\sum_o \omega_{od,t_0} \cdot g_{o,t}^{\text{US},-d}$: base-period shares $\times$ leave-one-out national change by origin \\
+Shift-share (Bartik) index & $\sum_o \omega_{od,t_0} \cdot g_{o,t}^{\text{US},-d}$: $\omega_{od,t_0}$ is state $d$'s share of national arrivals from origin $o$ in the baseline year $t_0$ (here $t_0 = 2010$) and $g_{o,t}^{\text{US},-d}$ is the corresponding leave-one-out level change between $t_0$ and $t$ \\
 \bottomrule
 \end{tabular}
 \end{table}

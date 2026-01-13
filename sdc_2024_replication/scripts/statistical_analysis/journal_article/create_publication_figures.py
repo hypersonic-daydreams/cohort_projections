@@ -21,6 +21,7 @@ Date: 2025-12-29
 
 from __future__ import annotations
 
+import math
 import json
 import os
 from pathlib import Path
@@ -95,6 +96,32 @@ def save_figure(fig: plt.Figure, name: str) -> None:
     fig.savefig(png_path, format="png", bbox_inches="tight", pad_inches=0.1, dpi=300)
     print(f"Saved: {pdf_path.name}, {png_path.name}")
     plt.close(fig)
+
+
+def _resolve_duration_results_filename() -> str:
+    """Resolve the duration results filename for the survival figure."""
+    duration_tag = os.environ.get("SDC_DURATION_TAG")
+    if duration_tag:
+        duration_tag = duration_tag.strip() or None
+
+    if not duration_tag:
+        try:
+            scenario_data = load_json("module_9_scenario_modeling.json")
+            duration_tag = (
+                scenario_data.get("parameters", {}).get("duration_model_tag") or None
+            )
+        except Exception:
+            duration_tag = None
+
+    if not duration_tag and (RESULTS_DIR / "module_8_duration_analysis__P0.json").exists():
+        duration_tag = "P0"
+
+    if duration_tag:
+        tagged_filename = f"module_8_duration_analysis__{duration_tag}.json"
+        if (RESULTS_DIR / tagged_filename).exists():
+            return tagged_filename
+
+    return "module_8_duration_analysis.json"
 
 
 # =============================================================================
@@ -936,19 +963,7 @@ def create_fig_app_event_study_extended() -> None:
 
 def create_figure_07_survival() -> None:
     """Create Figure 7: Kaplan-Meier survival curves by intensity quartile."""
-    duration_tag = os.environ.get("SDC_DURATION_TAG")
-    if not duration_tag:
-        try:
-            scenario_data = load_json("module_9_scenario_modeling.json")
-            duration_tag = scenario_data.get("parameters", {}).get("duration_model_tag")
-        except Exception:
-            duration_tag = None
-
-    duration_filename = "module_8_duration_analysis.json"
-    if duration_tag:
-        tagged_filename = f"module_8_duration_analysis__{duration_tag}.json"
-        if (RESULTS_DIR / tagged_filename).exists():
-            duration_filename = tagged_filename
+    duration_filename = _resolve_duration_results_filename()
 
     # Load data
     duration_data = load_json(duration_filename)
@@ -1024,10 +1039,19 @@ def create_figure_07_survival() -> None:
 
     # Add log-rank test result
     log_rank = km_intensity["log_rank_test"]
+    p_value = log_rank.get("p_value")
+    if isinstance(p_value, (int, float)) and p_value > 0:
+        if p_value < 0.001:
+            power = int(math.floor(-math.log10(p_value)))
+            p_label = rf"p < $10^{{-{power}}}$"
+        else:
+            p_label = f"p = {p_value:.3f}"
+    else:
+        p_label = "p = NA"
     ax.text(
         0.05,
         0.05,
-        f'Log-rank test: {log_rank["test_statistic"]:.1f}\n' f'p < 0.001***',
+        rf'Log-rank test: $\chi^2$ = {log_rank["test_statistic"]:.1f}' "\n" f"{p_label}",
         transform=ax.transAxes,
         fontsize=8,
         verticalalignment="bottom",

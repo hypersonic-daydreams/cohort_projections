@@ -40,6 +40,13 @@ def test_build_version_basename(versioning_module):
     )
 
 
+def test_build_published_pdf_name(versioning_module):
+    assert (
+        versioning_module.build_published_pdf_name("0.9.2", "20260113_184034")
+        == "article-0.9.2_20260113_184034.pdf"
+    )
+
+
 def test_hash_file(versioning_module, tmp_path):
     target = tmp_path / "sample.txt"
     target.write_text("hello", encoding="utf-8")

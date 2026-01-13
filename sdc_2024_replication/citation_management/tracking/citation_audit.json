@@ -1,0 +1,154 @@
+{
+    "citations": [
+        {
+            "id": "1",
+            "citation_key": "Bansak2018",
+            "title": "Improving refugee integration through data-driven algorithmic assignment",
+            "claim_in_paper": "Refugee resettlement programs have produced migration processes shaped by federal decisions and local placement capacity.",
+            "scite_status": "Verified",
+            "scite_metrics": {
+                "supporting": 4,
+                "mentioning": 212,
+                "contrasting": 0
+            },
+            "notes": "Verified via Scite Assistant. Supports the interaction of federal/local capacity logic.",
+            "last_checked": "2026-01-13T09:30:00Z",
+            "verification_method": "Web Search"
+        },
+        {
+            "id": "2",
+            "citation_key": "Albrecht1993",
+            "title": "The Renewal of Population Loss in the Nonmetropolitan Great Plains",
+            "claim_in_paper": "Great Plains population decline is shaped by agricultural consolidation.",
+            "scite_status": "Verified",
+            "scite_metrics": {
+                "supporting": 1,
+                "mentioning": 10,
+                "contrasting": 0
+            },
+            "notes": "Re-verified via Scite Assistant. Found as 'The Renewal of Population Loss in the Nonmetropolitan Great Plains' (1993) in Rural Sociology. Assistant confirms support.",
+            "last_checked": "2026-01-13T11:51:00Z",
+            "verification_method": "Scite"
+        },
+        {
+            "id": "78ed17bd-b671-4385-9029-6d02aa20271d",
+            "citation_key": "Wilson2022",
+            "title": "Pending Title Check",
+            "claim_in_paper": "North Dakota receives just 0.17% of national international migration flows",
+            "scite_status": "Pending",
+            "scite_metrics": {
+                "supporting": 0,
+                "mentioning": 0,
+                "contrasting": 0
+            },
+            "notes": "Deferred Scite verification.",
+            "last_checked": "2026-01-13T12:00:00Z",
+            "verification_method": "Pending"
+        },
+        {
+            "id": "9d41ca2b-a98f-4ca8-af48-62f51ba18d09",
+            "citation_key": "Weber2014",
+            "title": "Rural North Dakota's Oil Boom and Its Impact on Social Services",
+            "claim_in_paper": "Underlying structural forces favoring out-migration have proven resilient",
+            "scite_status": "Pending",
+            "scite_metrics": {
+                "supporting": 0,
+                "mentioning": 0,
+                "contrasting": 0
+            },
+            "notes": "Deferred Scite verification.",
+            "last_checked": "2026-01-13T12:00:00Z",
+            "verification_method": "Pending"
+        },
+        {
+            "id": "e8d7a833-3331-425f-b622-5ea103e05732",
+            "citation_key": "Beine2011",
+            "title": "Diasporas",
+            "claim_in_paper": "Concentrations create diaspora networks that are predictive of subsequent migration streams",
+            "scite_status": "Pending",
+            "scite_metrics": {
+                "supporting": 0,
+                "mentioning": 0,
+                "contrasting": 0
+            },
+            "notes": "Deferred Scite verification.",
+            "last_checked": "2026-01-13T12:00:00Z",
+            "verification_method": "Pending"
+        },
+        {
+            "id": "017f459d-8a14-4dcb-b9cd-e61db9676a91",
+            "citation_key": "Massey1993",
+            "title": "Theories of International Migration",
+            "claim_in_paper": "Dominant paradigm focuses on national-level flows using gravity models",
+            "scite_status": "Pending",
+            "scite_metrics": {
+                "supporting": 0,
+                "mentioning": 0,
+                "contrasting": 0
+            },
+            "notes": "Deferred Scite verification.",
+            "last_checked": "2026-01-13T12:00:00Z",
+            "verification_method": "Pending"
+        },
+        {
+            "id": "91e8357a-d090-4fe7-a85e-54dbe9bba7e1",
+            "citation_key": "Mayda2010",
+            "title": "International migration: a panel data analysis",
+            "claim_in_paper": "Migration forecasting focuses on national-level flows using gravity models calibrated to large-sample settings",
+            "scite_status": "Pending",
+            "scite_metrics": {
+                "supporting": 0,
+                "mentioning": 0,
+                "contrasting": 0
+            },
+            "notes": "Deferred Scite verification.",
+            "last_checked": "2026-01-13T12:00:00Z",
+            "verification_method": "Pending"
+        },
+        {
+            "id": "67d65b1f-8c05-49eb-842d-b309413b70c8",
+            "citation_key": "Portes2006",
+            "title": "Immigrant America: A Portrait",
+            "claim_in_paper": "Subnational analysis focuses on major receiving states (gateway states)",
+            "scite_status": "Pending",
+            "scite_metrics": {
+                "supporting": 0,
+                "mentioning": 0,
+                "contrasting": 0
+            },
+            "notes": "Deferred Scite verification.",
+            "last_checked": "2026-01-13T12:00:00Z",
+            "verification_method": "Pending"
+        },
+        {
+            "id": "f85771f0-acbf-45e4-ac9e-e54c71ea2237",
+            "citation_key": "Cerqueira2019",
+            "title": "Machine Learning vs Statistical Methods for Time Series Forecasting",
+            "claim_in_paper": "Unit root tests lose power and model selection becomes unreliable in small samples",
+            "scite_status": "Pending",
+            "scite_metrics": {
+                "supporting": 0,
+                "mentioning": 0,
+                "contrasting": 0
+            },
+            "notes": "Deferred Scite verification.",
+            "last_checked": "2026-01-13T12:00:00Z",
+            "verification_method": "Pending"
+        },
+        {
+            "id": "ad580f3c-04f2-4565-bf22-47ffaf84a395",
+            "citation_key": "Hyndman2021",
+            "title": "Forecasting: Principles and Practice",
+            "claim_in_paper": "Long-horizon forecasts carry prediction intervals so wide as to approach uninformativeness",
+            "scite_status": "Pending",
+            "scite_metrics": {
+                "supporting": 0,
+                "mentioning": 0,
+                "contrasting": 0
+            },
+            "notes": "Deferred Scite verification.",
+            "last_checked": "2026-01-13T12:00:00Z",
+            "verification_method": "Pending"
+        }
+    ]
+}

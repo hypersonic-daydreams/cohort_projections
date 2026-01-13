@@ -57,6 +57,11 @@ DATA_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "analysis"
 RESULTS_DIR = Path(__file__).parent / "results"
 FIGURES_DIR = Path(__file__).parent / "figures"
 
+# Default IO directories. These can be overridden at runtime via CLI flags.
+RESULTS_READ_DIR = RESULTS_DIR
+RESULTS_WRITE_DIR = RESULTS_DIR
+FIGURES_WRITE_DIR = FIGURES_DIR
+
 # Ensure output directories exist
 RESULTS_DIR.mkdir(exist_ok=True)
 FIGURES_DIR.mkdir(exist_ok=True)
@@ -212,7 +217,7 @@ class ModuleResult:
 
     def save(self, filename: str) -> Path:
         """Save results to JSON file."""
-        output_path = RESULTS_DIR / filename
+        output_path = RESULTS_WRITE_DIR / filename
         with open(output_path, "w") as f:
             json.dump(self.to_dict(), f, indent=2, default=str)
         print(f"Results saved to: {output_path}")
@@ -283,7 +288,7 @@ def load_previous_results(result: ModuleResult) -> dict:
     ]
 
     for pattern in module_patterns:
-        for f in RESULTS_DIR.glob(pattern):
+        for f in RESULTS_READ_DIR.glob(pattern):
             try:
                 with open(f) as fp:
                     all_results[f.stem] = json.load(fp)
@@ -314,8 +319,8 @@ def load_duration_bundle(
         path = Path(filename)
         return f"{path.stem}__{tag}{path.suffix}"
 
-    hazard_path = RESULTS_DIR / _tagged("module_8_hazard_model.json")
-    duration_path = RESULTS_DIR / _tagged("module_8_duration_analysis.json")
+    hazard_path = RESULTS_READ_DIR / _tagged("module_8_hazard_model.json")
+    duration_path = RESULTS_READ_DIR / _tagged("module_8_duration_analysis.json")
     if not hazard_path.exists() or not duration_path.exists():
         result.warnings.append(
             "Duration model outputs missing; wave adjustments skipped."
@@ -323,7 +328,7 @@ def load_duration_bundle(
         LOGGER.warning("Duration model outputs missing; wave adjustments skipped.")
         return None
     try:
-        return load_duration_model_bundle(RESULTS_DIR, tag=tag)
+        return load_duration_model_bundle(RESULTS_READ_DIR, tag=tag)
     except Exception as exc:  # pragma: no cover - defensive guard
         result.warnings.append(f"Duration model load failed: {exc}")
         LOGGER.exception("Duration model load failed.", exc_info=exc)
@@ -891,13 +896,43 @@ def monte_carlo_simulation(
             wave_adjustments[offset : offset + n_chunk_draws, :] = wave_chunk
             offset += n_chunk_draws
     else:
-        futures = {}
-        with ProcessPoolExecutor(max_workers=effective_workers) as executor:
-            for chunk_idx, (chunk_seed, n_chunk_draws) in enumerate(
-                zip(chunk_seeds, chunk_sizes, strict=False)
-            ):
-                futures[chunk_idx] = executor.submit(
-                    _simulate_module9_monte_carlo_chunk,
+        try:
+            futures = {}
+            with ProcessPoolExecutor(max_workers=effective_workers) as executor:
+                for chunk_idx, (chunk_seed, n_chunk_draws) in enumerate(
+                    zip(chunk_seeds, chunk_sizes, strict=False)
+                ):
+                    futures[chunk_idx] = executor.submit(
+                        _simulate_module9_monte_carlo_chunk,
+                        chunk_seed=chunk_seed,
+                        n_chunk_draws=n_chunk_draws,
+                        n_years=n_years,
+                        baseline=baseline,
+                        median_trend=median_trend,
+                        trend_std=trend_std,
+                        arima_forecasts=arima_forecasts,
+                        arima_ses=arima_ses,
+                        active_waves=active_waves,
+                        duration_bundle=duration_bundle,
+                    )
+
+                offset = 0
+                for chunk_idx in range(n_chunks):
+                    baseline_chunk, wave_chunk = futures[chunk_idx].result()
+                    n_chunk_draws = baseline_chunk.shape[0]
+                    baseline_simulations[offset : offset + n_chunk_draws, :] = baseline_chunk
+                    wave_adjustments[offset : offset + n_chunk_draws, :] = wave_chunk
+                    offset += n_chunk_draws
+        except PermissionError as exc:
+            message = (
+                "Multiprocessing unavailable in this environment; falling back to serial "
+                f"Monte Carlo execution (error: {exc})."
+            )
+            result.warnings.append(message)
+            LOGGER.warning(message)
+            offset = 0
+            for chunk_seed, n_chunk_draws in zip(chunk_seeds, chunk_sizes, strict=False):
+                baseline_chunk, wave_chunk = _simulate_module9_monte_carlo_chunk(
                     chunk_seed=chunk_seed,
                     n_chunk_draws=n_chunk_draws,
                     n_years=n_years,
@@ -909,11 +944,6 @@ def monte_carlo_simulation(
                     active_waves=active_waves,
                     duration_bundle=duration_bundle,
                 )
-
-            offset = 0
-            for chunk_idx in range(n_chunks):
-                baseline_chunk, wave_chunk = futures[chunk_idx].result()
-                n_chunk_draws = baseline_chunk.shape[0]
                 baseline_simulations[offset : offset + n_chunk_draws, :] = baseline_chunk
                 wave_adjustments[offset : offset + n_chunk_draws, :] = wave_chunk
                 offset += n_chunk_draws
@@ -1301,7 +1331,7 @@ def plot_fan_chart(
 
     save_figure(
         fig,
-        str(FIGURES_DIR / "module_9_fan_chart"),
+        str(FIGURES_WRITE_DIR / "module_9_fan_chart"),
         "International Migration to North Dakota: Fan Chart Projection (2025-2045)",
         f"Monte Carlo simulation with {mc_results['n_draws']:,} draws | Census Bureau Components of Change",
     )
@@ -1401,7 +1431,7 @@ def plot_scenario_comparison(
 
     save_figure(
         fig,
-        str(FIGURES_DIR / "module_9_scenario_comparison"),
+        str(FIGURES_WRITE_DIR / "module_9_scenario_comparison"),
         "International Migration to North Dakota: Scenario Comparison (2025-2045)",
         "Multiple projection scenarios | Census Bureau Components of Change",
     )
@@ -1414,6 +1444,7 @@ def run_analysis(
     n_jobs: int,
     chunk_size: int,
     duration_tag: str | None = None,
+    skip_plots: bool = False,
 ) -> ModuleResult:
     """Main analysis function for Module 9."""
     result = ModuleResult(
@@ -1443,6 +1474,7 @@ def run_analysis(
         "monte_carlo_workers_requested": n_jobs,
         "monte_carlo_chunk_size": chunk_size,
         "duration_model_tag": duration_tag,
+        "skip_plots": skip_plots,
         "scenarios": [
             "CBO Full",
             "Moderate",
@@ -1487,28 +1519,29 @@ def run_analysis(
     )
 
     # Save DataFrames to parquet
-    combined_path = RESULTS_DIR / "module_9_combined_forecasts.parquet"
+    combined_path = RESULTS_WRITE_DIR / "module_9_combined_forecasts.parquet"
     df_combined.to_parquet(combined_path, index=False)
     print(f"  Combined forecasts saved: {combined_path}")
 
-    scenarios_path = RESULTS_DIR / "module_9_scenario_projections.parquet"
+    scenarios_path = RESULTS_WRITE_DIR / "module_9_scenario_projections.parquet"
     df_scenarios.to_parquet(scenarios_path, index=False)
     print(f"  Scenario projections saved: {scenarios_path}")
 
-    mc_path = RESULTS_DIR / "module_9_monte_carlo.parquet"
+    mc_path = RESULTS_WRITE_DIR / "module_9_monte_carlo.parquet"
     df_monte_carlo.to_parquet(mc_path, index=False)
     print(f"  Monte Carlo results saved: {mc_path}")
-    mc_baseline_path = RESULTS_DIR / "module_9_monte_carlo_baseline.parquet"
+    mc_baseline_path = RESULTS_WRITE_DIR / "module_9_monte_carlo_baseline.parquet"
     df_monte_carlo_baseline.to_parquet(mc_baseline_path, index=False)
     print(f"  Monte Carlo baseline-only results saved: {mc_baseline_path}")
 
     # Generate visualizations
-    print("\n" + "=" * 60)
-    print("GENERATING VISUALIZATIONS")
-    print("=" * 60)
+    if not skip_plots:
+        print("\n" + "=" * 60)
+        print("GENERATING VISUALIZATIONS")
+        print("=" * 60)
 
-    plot_fan_chart(df_migration, ci_data, mc_results, result)
-    plot_scenario_comparison(df_migration, scenarios, ci_data, result)
+        plot_fan_chart(df_migration, ci_data, mc_results, result)
+        plot_scenario_comparison(df_migration, scenarios, ci_data, result)
 
     # Compile results
     baseline_summary = mc_results["baseline_only"]["summary_by_year"]
@@ -1664,10 +1697,32 @@ def main():
         default=None,
         help="Optional tag to load Module 8 duration/hazard outputs (e.g., P0, S1).",
     )
+    parser.add_argument(
+        "--output-subdir",
+        type=str,
+        default=None,
+        help=(
+            "Optional subdirectory under the module's `results/` and `figures/` folders "
+            "to write outputs without overwriting canonical artifacts."
+        ),
+    )
+    parser.add_argument(
+        "--skip-plots",
+        action="store_true",
+        help="Skip generating Module 9 figures (fan chart and scenario comparison).",
+    )
     args = parser.parse_args()
     if args.rigorous:
         args.n_draws = 25000
         args.n_jobs = 0
+
+    if args.output_subdir:
+        global RESULTS_WRITE_DIR
+        global FIGURES_WRITE_DIR
+        RESULTS_WRITE_DIR = (RESULTS_DIR / args.output_subdir).resolve()
+        FIGURES_WRITE_DIR = (FIGURES_DIR / args.output_subdir).resolve()
+        RESULTS_WRITE_DIR.mkdir(parents=True, exist_ok=True)
+        FIGURES_WRITE_DIR.mkdir(parents=True, exist_ok=True)
 
     print("=" * 70)
     print("Module 9: Scenario Modeling Agent")
@@ -1681,6 +1736,7 @@ def main():
             n_jobs=args.n_jobs,
             chunk_size=args.chunk_size,
             duration_tag=args.duration_tag,
+            skip_plots=args.skip_plots,
         )
         output_file = result.save("module_9_scenario_modeling.json")
 

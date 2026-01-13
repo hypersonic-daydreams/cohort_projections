@@ -237,7 +237,7 @@ Pseudo $R^2$ & 0.236 & 0.399 & 0.413 \\
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: Two-way clustered standard errors (state and origin) in parentheses. PPML estimation. * $p < 0.05$; *** $p < 0.001$. Dependent variable: LPR admissions by state-country pair, FY 2023. Distance is omitted because within-U.S.\ variation in origin--state distance is minimal (see Section~\ref{subsec:gravity_methods}). State FE specification includes 50 state dummy variables (coefficients not reported).
+\item \textit{Notes}: Two-way clustered standard errors (state and origin) in parentheses. PPML estimation. Log covariates are computed as $\ln(x+1)$ (log1p). * $p < 0.05$; *** $p < 0.001$. Dependent variable: LPR admissions by state-country pair, FY 2023. Distance is omitted because within-U.S.\ variation in origin--state distance is minimal (see Section~\ref{subsec:gravity_methods}). State FE specification includes 50 state dummy variables (coefficients not reported).
 \end{tablenotes}
 \end{table}
 
@@ -279,7 +279,7 @@ Shift-share (first stage) & National shocks & 8.88*** & 1.16 & [$+6.61$, $+11.15
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: DiD = Difference-in-differences with nationality and year fixed effects, SEs clustered by nationality. ITS = Interrupted time series with state fixed effects, SEs clustered by state. Shift-share row reports first-stage relevance only (not a causal effect). * $p < 0.05$; *** $p < 0.001$. Travel Ban affected countries: Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen.
+\item \textit{Notes}: DiD = Difference-in-differences with nationality and year fixed effects, SEs clustered by nationality. The reported ``percentage effect'' for DiD is computed as $100\times(\exp(\widehat{\text{ATT}})-1)$ from the $\ln(y+1)$ specification, so it is formally a percent change in $(y+1)$. ITS = Interrupted time series with state fixed effects, SEs clustered by state. Shift-share row reports first-stage relevance only (not a causal effect). * $p < 0.05$; *** $p < 0.001$. Travel Ban affected countries: Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen.
 \end{tablenotes}
 \end{table}
 
@@ -287,7 +287,7 @@ Shift-share (first stage) & National shocks & 8.88*** & 1.16 & [$+6.61$, $+11.15
 
 The Travel Ban analysis employs refugee arrival data spanning 2002--2019, with 2018 designated as the first full post-treatment year. The treatment group comprises seven affected nationalities (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen), while 118 unaffected nationalities serve as controls. The sample includes 1,119 nationality-year observations.
 
-The estimated average treatment effect on the treated (ATT) is $-1.393$ on the log scale ($t = -2.15$, conventional $p = 0.031$), corresponding to a policy-associated divergence of 75.2\% in refugee arrivals from affected countries. The 95\% confidence interval [$-2.66$, $-0.12$] excludes zero under conventional clustered-SE inference, though inference is sensitive with only seven treated nationalities (see robustness checks below).
+The estimated average treatment effect on the treated (ATT) is $-1.393$ on the log scale ($t = -2.15$, conventional $p = 0.031$), corresponding to a policy-associated divergence of 75.2\% on the $(\text{arrivals}+1)$ scale implied by the $\ln(y+1)$ outcome. The 95\% confidence interval [$-2.66$, $-0.12$] excludes zero under conventional clustered-SE inference, though inference is sensitive with only seven treated nationalities (see robustness checks below).
 
 Parallel trends diagnostics are mixed, requiring caution in causal interpretation. The linear pre-trend test yields a treated-country trend coefficient of 0.085 ($t = 0.94$, $p = 0.349$), but the event study's joint pre-treatment test rejects parallel trends over the full pre-period ($F = 4.22$, $p < 0.001$). Figure~\ref{fig:eventstudy} shows divergence beginning approximately 10 years before treatment, indicating that the treatment and control groups were on different trajectories prior to the policy. The immediate post-treatment coefficients shift sharply negative in 2018--2019, but because the parallel trends assumption is not supported in the full pre-period, the DiD estimate may conflate the policy impact with pre-existing divergence. We therefore interpret the 75\% estimate as policy-associated divergence (descriptive policy-sensitivity evidence) rather than a precise causal effect magnitude. Appendix Figure~\ref{fig:app_event_study_extended} reports a descriptive extension through FY2024 (ADR-027); post-2020 coefficients are not interpreted as standalone causal Travel Ban effects.
 

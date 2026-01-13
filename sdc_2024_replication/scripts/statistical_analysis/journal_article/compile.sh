@@ -36,6 +36,13 @@ set -e  # Exit on error
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# TeX Live writes cache/fonts under user-level TEXMFVAR by default (often under `$HOME`),
+# which may be outside the workspace sandbox. Redirect these paths into the repo so
+# compilation succeeds in sandboxed environments.
+export TEXMFVAR="${SCRIPT_DIR}/.texmf-var"
+export TEXMFCONFIG="${SCRIPT_DIR}/.texmf-config"
+mkdir -p "$TEXMFVAR" "$TEXMFCONFIG"
+
 # Parse arguments
 CLEAN=false
 QUICK=false
@@ -137,6 +144,11 @@ if [ -f "main.pdf" ]; then
             mkdir -p "$(dirname "$OUTPUT_PATH")"
             cp main.pdf "$OUTPUT_PATH"
             echo "Copy: $OUTPUT_PATH"
+            # Keep the standard draft copy in sync even when an explicit output path is used
+            # (e.g., during versioned artifact builds).
+            mkdir -p output
+            cp main.pdf output/article_draft.pdf
+            echo "Copy: $(pwd)/output/article_draft.pdf"
         else
             mkdir -p output
             cp main.pdf output/article_draft.pdf

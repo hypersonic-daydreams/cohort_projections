@@ -2,7 +2,7 @@
 
 Canonical instruction set for all AI agents working on this codebase.
 
-**Last Updated:** 2026-01-01 | **Version:** 1.3.0 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
+**Last Updated:** 2026-01-13 | **Version:** 1.3.1 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
 
 ---
 
@@ -62,6 +62,20 @@ Data deletion, security changes, breaking output formats, **methodology changes 
 **ALWAYS check `scripts/` before inventing new commands.**
 - **Backups**: Use `scripts/bisync.sh`. NEVER run raw `rclone` commands for syncing.
 - **Maintenance**: Use provided scripts in `scripts/maintenance/`.
+
+### Journal Article (SDC 2024 Replication)
+When asked to “work with the latest journal article PDF”, treat these as the canonical locations:
+
+1. **Fastest to browse (flat PDFs, repo root)**: `journal_article_pdfs/` (if present)
+   - Contains only PDFs named `article-{version}_{timestamp}.pdf` (no `draft/production` folders).
+   - These are created by the versioned builder via `--publish-pdf-dir journal_article_pdfs`.
+2. **Canonical version pointer (tracked)**: `sdc_2024_replication/scripts/statistical_analysis/journal_article/output/CURRENT_VERSION.txt`
+   - Contains the latest versioned bundle PDF filename (includes status + timestamp).
+   - Resolve it under `sdc_2024_replication/scripts/statistical_analysis/journal_article/output/versions/` (or the root symlink `journal_article_versions` if present).
+
+Notes:
+- `sdc_2024_replication/scripts/statistical_analysis/journal_article/main.pdf` is a local compile output and can drift; prefer the versioned build + `CURRENT_VERSION.txt` when “latest” matters.
+- Root-level symlinks `journal_article_output` and `journal_article_versions` may exist for easier navigation.
 
 ---
 
@@ -231,7 +245,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-01-01 |
-| **Version** | 1.3.0 |
+| **Last Updated** | 2026-01-13 |
+| **Version** | 1.3.1 |
 | **Status** | Current |
 | **Applies To** | All AI Agents |

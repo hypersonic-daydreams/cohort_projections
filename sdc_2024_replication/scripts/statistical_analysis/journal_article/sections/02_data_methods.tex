@@ -64,7 +64,7 @@ The analysis draws on four primary data sources---Census \PEP, RPC refugee arriv
 
 \textbf{Auxiliary data sources.} DHS lawful permanent resident (\LPR) admissions, Refugee Processing Center (RPC) refugee arrivals, and \ACS foreign-born stock estimates are not alternative outcomes; they are used to (i) characterize and partially decompose international migration, (ii) construct predictors (e.g., diaspora measures and origin-composition features), and (iii) triangulate mechanisms and scenario sensitivity.
 
-\textbf{Time base and harmonization.} \PEP estimates are reported on an estimate-year basis, while DHS and RPC series are reported in fiscal years and \ACS estimates in survey years. We preserve native time bases and label them explicitly. When fiscal-year series are used as predictors for \PEP-year outcomes, we use an explicit month-overlap crosswalk when monthly data are available (RPC refugees and related humanitarian arrivals) and an overlap-weighted approximation \(X^{\text{PEP}}_{t} \approx 0.75\,X^{\text{FY}}_{t} + 0.25\,X^{\text{FY}}_{t-1}\) for annual-only FY sources (e.g., DHS \LPR), reporting one-year-shift sensitivity where timing is ambiguous.
+\textbf{Time base and harmonization.} \PEP estimates are reported on an estimate-year basis, while DHS and RPC series are reported in fiscal years and \ACS estimates in survey years. We preserve native time bases and label them explicitly. When fiscal-year series are used as predictors for \PEP-year outcomes, we use an explicit month-overlap crosswalk when monthly data are available (RPC refugees and related humanitarian arrivals) and an overlap-weighted approximation \(X^{\text{PEP}}_{t} \approx 0.75\,X^{\text{FY}}_{t} + 0.25\,X^{\text{FY}}_{t-1}\) for annual-only FY sources (e.g., DHS \LPR), reporting one-year-shift sensitivity where timing is ambiguous. Implementation decisions and robustness choices are documented in \emph{Analysis Decision Records} (ADRs) included in the replication materials; ADR references in the text (e.g., ADR-025) point to those notes.
 
 \begin{table}[htbp]
 \centering
@@ -239,7 +239,7 @@ Geographic concentration analysis employs two complementary measures. The Herfin
 \label{eq:hhi}
 \text{HHI} = \sum_{i=1}^{N} s_i^2 \times 10{,}000
 \end{equation}
-where $s_i$ denotes the share of migration from origin country $i$. HHI values below 1,500 indicate unconcentrated distributions; values between 1,500 and 2,500 indicate moderate concentration; values above 2,500 indicate high concentration. Location Quotients (LQ) measure the degree to which North Dakota's immigrant composition deviates from national patterns:
+where $s_i$ denotes the share (fraction in $[0,1]$) of migration from origin country $i$; the $\times 10{,}000$ scaling expresses the index on the conventional $0$--$10{,}000$ scale. HHI values below 1,500 indicate unconcentrated distributions; values between 1,500 and 2,500 indicate moderate concentration; values above 2,500 indicate high concentration. Location Quotients (LQ) measure the degree to which North Dakota's immigrant composition deviates from national patterns:
 \begin{equation}
 \label{eq:lq}
 \text{LQ}_{i,\text{ND}} = \frac{(\text{Foreign-born from } i \text{ in ND}) / (\text{Total foreign-born in ND})}{(\text{Foreign-born from } i \text{ in US}) / (\text{Total foreign-born in US})}
@@ -260,9 +260,9 @@ Time series analysis characterizes the stochastic properties of international mi
 Stationarity assessment employs ADF and PP tests alongside KPSS (null: stationarity) to triangulate integration properties in a very short series. The Augmented Dickey-Fuller (ADF) test \citep{DickeyFuller1979} estimates the regression:
 \begin{equation}
 \label{eq:adf}
-\Delta y_t = \alpha + \beta t + \gamma y_{t-1} + \sum_{j=1}^{p} \delta_j \Delta y_{t-j} + \varepsilon_t
+\Delta y_t = \alpha + \gamma y_{t-1} + \sum_{j=1}^{p} \delta_j \Delta y_{t-j} + \varepsilon_t
 \end{equation}
-and tests $H_0: \gamma = 0$ (unit root) against $H_1: \gamma < 0$ (stationarity). Lag length $p$ is selected by the Akaike Information Criterion (AIC). The Phillips-Perron (PP) test \citep{PhillipsPerron1988} provides a nonparametric alternative that corrects for serial correlation without augmenting the regression. KPSS tests are run with a constant-only specification (level-stationarity). Break-robust Zivot-Andrews tests (single endogenous break) are reported as sensitivity checks. Where tests yield conflicting conclusions, the analysis reports both and interprets results cautiously.
+and tests $H_0: \gamma = 0$ (unit root) against $H_1: \gamma < 0$ (stationarity). Lag length $p$ is selected by the Akaike Information Criterion (AIC). The Phillips-Perron (PP) test \citep{PhillipsPerron1988} provides a nonparametric alternative that corrects for serial correlation without augmenting the regression. Reported ADF and PP results use a constant-only specification (no deterministic trend), consistent with Appendix Table~\ref{tab:app_unitroot}. KPSS tests are run with a constant-only specification (level-stationarity). Break-robust Zivot-Andrews tests (single endogenous break) are reported as sensitivity checks. Where tests yield conflicting conclusions, the analysis reports both and interprets results cautiously.
 
 \subsubsection{ARIMA Model Selection}
 
@@ -275,7 +275,7 @@ where $\hat{L}$ denotes the maximized likelihood and $k$ the number of parameter
 
 \subsubsection{Structural Break Tests}
 
-Structural break analysis employs three complementary approaches. The Chow test \citep{Chow1960} evaluates whether regression parameters differ across known candidate break points by comparing residual sums of squares from restricted (single-regime) and unrestricted (regime-specific) models. The CUSUM test \citep{BrownDurbinEvans1975} detects parameter instability through cumulative sums of recursive residuals; departures from the zero line indicate structural change. For endogenous break detection, the analysis employs the \citet{BaiPerron1998} procedure, which identifies multiple break points by minimizing the sum of squared residuals across all possible segmentations:
+Structural break analysis employs three complementary approaches. The Chow test \citep{Chow1960} evaluates whether regression parameters differ across known candidate break points by comparing residual sums of squares from restricted (single-regime) and unrestricted (regime-specific) models. The CUSUM test \citep{BrownDurbinEvans1975} detects parameter instability through cumulative sums of recursive residuals; departures from the zero line indicate structural change. For endogenous break detection, the analysis employs the \citet{BaiPerron1998} procedure as a constant-only mean-shift change-point detector (breaks in the mean level of $y_t$), identifying multiple break points by minimizing the sum of squared residuals across all possible segmentations:
 \begin{equation}
 \label{eq:bai_perron}
 (\hat{T}_1, \ldots, \hat{T}_m) = \arg\min_{T_1, \ldots, T_m} \sum_{j=0}^{m} \sum_{t=T_j+1}^{T_{j+1}} (y_t - \bar{y}_j)^2
@@ -289,7 +289,7 @@ To examine dynamic interdependencies between North Dakota and national migration
 \label{eq:var}
 \mathbf{y}_t = \mathbf{c} + \sum_{i=1}^{p} \mathbf{A}_i \mathbf{y}_{t-i} + \boldsymbol{\varepsilon}_t
 \end{equation}
-where $\mathbf{y}_t = (y_t^{\text{ND}}, y_t^{\text{US}})'$ contains North Dakota and national international migration, $\mathbf{A}_i$ are coefficient matrices, and $\boldsymbol{\varepsilon}_t$ is a vector white noise process. Lag order selection employs AIC, and Granger causality tests evaluate directional predictive relationships. Forecast error variance decomposition quantifies the contribution of each variable to forecast uncertainty at various horizons.
+where $\mathbf{y}_t = (y_t^{\text{ND}}, y_t^{\text{US}})^\top$ is a $2 \times 1$ vector containing North Dakota and national international migration, $\mathbf{A}_i$ are coefficient matrices, and $\boldsymbol{\varepsilon}_t$ is a vector white noise process (bold symbols denote vectors/matrices). Lag order selection employs AIC, and Granger causality tests evaluate directional predictive relationships. Forecast error variance decomposition quantifies the contribution of each variable to forecast uncertainty at various horizons.
 
 % ==============================================================================
 % 2.4 PANEL DATA METHODS
@@ -325,9 +325,9 @@ The analysis estimates specifications using the Poisson pseudo-maximum likelihoo
 The estimated specification takes the form:
 \begin{equation}
 \label{eq:gravity}
-E[M_{od}] = \exp(\beta_0 + \beta_1 \ln \text{Stock}_{od} + \beta_2 \ln \text{OriginTotal}_o + \beta_3 \ln \text{DestTotal}_d + \boldsymbol{\gamma}'\mathbf{Z}_{od})
+E[M_{od} \mid X_{od}] = \exp(\beta_0 + \beta_1 \ln(\text{Stock}_{od} + 1) + \beta_2 \ln(\text{OriginTotal}_o + 1) + \beta_3 \ln(\text{DestTotal}_d + 1) + \boldsymbol{\gamma}'\mathbf{Z}_{od})
 \end{equation}
-where $M_{od}$ denotes LPR admissions from origin country $o$ to destination state $d$ (FY2023), $\text{Stock}_{od}$ is the existing diaspora (foreign-born from $o$ residing in $d$), $\text{OriginTotal}_o$ is the national foreign-born population from origin $o$, $\text{DestTotal}_d$ is the total foreign-born population in destination state $d$, and $\mathbf{Z}_{od}$ contains additional bilateral controls. The coefficient $\beta_1$ on diaspora stock captures a cross-sectional diaspora--flow association useful for prediction.
+where $M_{od}$ denotes LPR admissions from origin country $o$ to destination state $d$ (FY2023), $X_{od}$ denotes the right-hand-side covariate set, $\text{Stock}_{od}$ is the existing diaspora (foreign-born from $o$ residing in $d$), $\text{OriginTotal}_o$ is the national foreign-born population from origin $o$, $\text{DestTotal}_d$ is the total foreign-born population in destination state $d$, and $\mathbf{Z}_{od}$ contains additional bilateral controls. Log covariates are computed as $\ln(x+1)$ (log1p) to retain zero-stock pairs and avoid undefined $\ln(0)$. The coefficient $\beta_1$ on diaspora stock captures a cross-sectional diaspora--flow association useful for prediction.
 
 Diaspora elasticity estimation acknowledges endogeneity concerns: diaspora stocks and migration flows are jointly determined, and historical flows mechanically generate stocks. The analysis therefore frames coefficients as predictive associations rather than causal effects; robustness checks consider lagged stock measures and historical settlement patterns \citep{Card2001}.
 
@@ -345,14 +345,14 @@ Elastic Net \citep{ZouHastie2005} combines $L_1$ (Lasso) and $L_2$ (Ridge) penal
 \label{eq:elastic_net}
 \hat{\boldsymbol{\beta}} = \arg\min_{\boldsymbol{\beta}} \left\{ \sum_{i=1}^{n} (y_i - \mathbf{x}_i'\boldsymbol{\beta})^2 + \lambda \left[ \alpha \|\boldsymbol{\beta}\|_1 + (1-\alpha) \|\boldsymbol{\beta}\|_2^2 \right] \right\}
 \end{equation}
-where $\lambda$ controls overall regularization strength and $\alpha \in [0,1]$ balances sparsity-inducing $L_1$ penalty against coefficient-shrinking $L_2$ penalty. Cross-validation selects $(\lambda, \alpha)$ values. Coefficients shrunk exactly to zero identify variables excluded from the predictive model.
+where $\lambda$ controls overall regularization strength and $\alpha \in [0,1]$ balances sparsity-inducing $L_1$ penalty against coefficient-shrinking $L_2$ penalty. The objective is written up to a constant scaling of the squared-error term, which can be absorbed into $\lambda$; the implementation follows scikit-learn's conventional $(1/2n)$ loss scaling. Cross-validation selects $(\lambda, \alpha)$ values. Coefficients shrunk exactly to zero identify variables excluded from the predictive model.
 
 Random Forest \citep{Breiman2001} aggregates predictions from an ensemble of decision trees, each trained on bootstrap samples with random feature subsets. Feature importance is measured by permutation importance: the decrease in out-of-bag prediction accuracy when feature values are randomly shuffled.
 
 K-means clustering partitions states into groups exhibiting similar migration profiles. The algorithm minimizes within-cluster sum of squared distances to cluster centroids:
 \begin{equation}
 \label{eq:kmeans}
-\arg\min_{\mathcal{C}} \sum_{k=1}^{K} \sum_{i \in C_k} \|\mathbf{x}_i - \boldsymbol{\mu}_k\|^2
+\arg\min_{\mathcal{C}, \{\boldsymbol{\mu}_k\}_{k=1}^{K}} \sum_{k=1}^{K} \sum_{i \in C_k} \|\mathbf{x}_i - \boldsymbol{\mu}_k\|^2
 \end{equation}
 where $C_k$ denotes cluster $k$ and $\boldsymbol{\mu}_k$ its centroid. Optimal cluster count $K$ is selected by the silhouette criterion.
 
@@ -373,6 +373,7 @@ The Travel Ban analysis employs a difference-in-differences (DiD) design compari
 \ln(y_{ct} + 1) = \alpha_c + \lambda_t + \delta \cdot (\text{Affected}_c \times \text{Post}_t) + \varepsilon_{ct}
 \end{equation}
 where $y_{ct}$ denotes arrivals from country $c$ in year $t$, $\alpha_c$ and $\lambda_t$ are country and year fixed effects, and the coefficient $\delta$ estimates the average treatment effect on the treated (ATT) under the parallel trends assumption. The logarithmic transformation accommodates the multiplicative nature of policy effects; the addition of unity handles zero arrivals.
+Because the outcome is $\ln(y_{ct}+1)$, $\exp(\delta)-1$ is formally the proportional effect on $(y_{ct}+1)$; when arrivals are not near zero, this closely approximates the percent change in arrivals.
 
 Identification requires the parallel trends assumption: absent the Travel Ban, affected and unaffected countries would have exhibited similar trends in arrivals. The analysis evaluates this assumption through pre-treatment trend tests and graphical inspection of pre-period trajectories. Standard errors are clustered by nationality to account for serial correlation within origin groups.
 
@@ -405,7 +406,7 @@ To assess the predictive relevance of refugee-driven shocks for state-level migr
 \label{eq:bartik}
 B_{dt} = \sum_{o} \omega_{od,t_0} \cdot g_{o,t}^{\text{US},-d}
 \end{equation}
-where $\omega_{od,t_0}$ is origin $o$'s share of state $d$'s baseline arrivals and $g_{o,t}^{\text{US},-d}$ is the leave-one-out national change in arrivals from origin $o$ (excluding state $d$). Because no second-stage causal model is estimated, the results are interpreted as first-stage relevance: the strength of the relationship between predicted refugee inflows and state-level international migration. Standard errors are clustered by state; first-stage F-statistics assess instrument strength, with values exceeding 10 indicating adequate relevance.
+where $\omega_{od,t_0}$ is state $d$'s share of national arrivals from origin $o$ in the baseline year $t_0$ (here $t_0=2010$) and $g_{o,t}^{\text{US},-d}$ is the corresponding leave-one-out \emph{level change} in national arrivals from origin $o$ between $t_0$ and $t$ (excluding state $d$ in both years). Thus $g$ is a change in persons (not a growth rate). Because no second-stage causal model is estimated, the results are interpreted as first-stage relevance: the strength of the relationship between predicted refugee inflows and state-level international migration. Standard errors are clustered by state; first-stage F-statistics assess instrument strength, with values exceeding 10 indicating adequate relevance.
 
 % ==============================================================================
 % 2.8 DURATION ANALYSIS
@@ -490,14 +491,14 @@ Scenario analysis translates analytical findings into forward-looking projection
 	    \[
 	        m_{\mathrm{policy}} = 1 - s_{\mathrm{hum}} \cdot \Delta_{\mathrm{hum}}.
 	    \]
-		    Module~7 estimates a Travel Ban DiD policy-associated divergence of approximately $-75.2\%$ in refugee arrivals from affected origins, so we take $\Delta_{\mathrm{hum}} \approx 0.75$ as a reference magnitude for calibration. To motivate $s_{\mathrm{hum}}$ using existing series (no new data pulls), we compare ND refugee arrivals (RPC) and ND LPR admissions (DHS) over 2010--2016: refugees comprise 0.383--0.492 of measured durable inflows (Refugees + LPR). This implies $m_{\mathrm{policy}} \in [0.630, 0.712]$; the chosen 0.65 multiplier corresponds to $s_{\mathrm{hum}} \approx 0.466$. Because 0.65 lies within this implied interval, we retain it in the main specification. This calibration is presented for transparency and should not be interpreted as an identified causal effect on the \PEP\ total.
+		    We parameterize $\Delta_{\mathrm{hum}} \in [0,1]$ as a reduction magnitude (e.g., $\Delta_{\mathrm{hum}} = 0.75$ denotes a 75\% decrease in the humanitarian channel). Module~7 estimates a Travel Ban DiD policy-associated divergence of approximately $-75.2\%$ in refugee arrivals from affected origins, so we take $\Delta_{\mathrm{hum}} \approx 0.75$ as a reference magnitude for calibration. To motivate $s_{\mathrm{hum}}$ using existing series (no new data pulls), we compare ND refugee arrivals (RPC) and ND LPR admissions (DHS) over 2010--2016: refugees comprise 0.383--0.492 of measured durable inflows (Refugees + LPR). This implies $m_{\mathrm{policy}} \in [0.630, 0.712]$; the chosen 0.65 multiplier corresponds to $s_{\mathrm{hum}} \approx 0.466$. Because 0.65 lies within this implied interval, we retain it in the main specification. This calibration is presented for transparency and should not be interpreted as an identified causal effect on the \PEP\ total.
 	    \end{minipage}}
 	    \end{center}
 
 	    \item \textbf{Zero}: Assumes complete cessation of international migration, providing a floor for population projection under extreme policy scenarios.
 \end{enumerate}
 
-	Monte Carlo simulation propagates uncertainty through projection models by sampling from estimated parameter distributions. The procedure draws 25,000 realizations of model parameters, generates projected trajectories for each draw, and summarizes the resulting distribution through percentiles. The 50\% prediction interval spans the 25th to 75th percentiles; the 95\% prediction interval spans the 5th to 95th percentiles. To avoid overstating precision when combining multiple stochastic components, we report two nested uncertainty summaries: (i) a baseline-only prediction interval from the univariate projection process and (ii) an outer wave-adjusted uncertainty envelope that adds hazard-based wave persistence draws (Module 8). The wave-adjusted envelope is intentionally conservative and should not be interpreted as a strictly calibrated predictive probability, because wave-driven variation may already contribute to baseline forecast uncertainty.
+	Monte Carlo simulation propagates uncertainty through projection models by sampling from estimated parameter distributions. The procedure draws 25,000 realizations of model parameters, generates projected trajectories for each draw, and summarizes the resulting distribution through percentiles. The 50\% prediction interval spans the 25th to 75th percentiles; the 95\% prediction interval spans the 5th to 95th percentiles. To ensure reported 2045 summaries are not an artifact of a particular random seed, we ran a 10-seed stability check (seeds 42--51; 25,000 draws each) and found negligible Monte Carlo variation in the reported medians and 95\% endpoints (replication materials); we fix seed 42 for reproducibility of the main artifact. To avoid overstating precision when combining multiple stochastic components, we report two nested uncertainty summaries: (i) a baseline-only prediction interval from the univariate projection process and (ii) an outer wave-adjusted uncertainty envelope that adds hazard-based wave persistence draws (Module 8). The wave-adjusted envelope is intentionally conservative and should not be interpreted as a strictly calibrated predictive probability, because wave-driven variation may already contribute to baseline forecast uncertainty.
 
 	The scenario engine does not combine forecasts via information-criterion weights. Instead, scenarios are defined by explicit, policy-indexed rules applied to the univariate baseline and trend components described above.
 

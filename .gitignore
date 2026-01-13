@@ -114,6 +114,9 @@ sdc_2024_replication/scripts/statistical_analysis/journal_article/*.pdf
 sdc_2024_replication/scripts/statistical_analysis/journal_article/*.aux
 sdc_2024_replication/scripts/statistical_analysis/journal_article/*.log
 sdc_2024_replication/scripts/statistical_analysis/journal_article/*.out
+sdc_2024_replication/scripts/statistical_analysis/journal_article/build_info.tex
+sdc_2024_replication/scripts/statistical_analysis/journal_article/.texmf-var/
+sdc_2024_replication/scripts/statistical_analysis/journal_article/.texmf-config/
 
 # Claim review generated outputs (synced via rclone, not git)
 sdc_2024_replication/scripts/statistical_analysis/journal_article/claim_review/v*/
@@ -138,3 +141,15 @@ sdc_2024_replication/scripts/statistical_analysis/results/*.csv
 
 # Misc data files in project root
 *.xlsx
+
+# Local convenience outputs (not tracked)
+journal_article_pdfs/
+journal_article_output
+journal_article_versions
+
+# Generated audit/review documents in project root
+formula_audit_article-*.md
+chatgpt_feedback_on_v0.9.md
+
+# Seed sweep results (synced via rclone, not git)
+sdc_2024_replication/scripts/statistical_analysis/results/seed_sweeps/

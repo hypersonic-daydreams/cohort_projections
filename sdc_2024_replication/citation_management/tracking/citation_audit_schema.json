@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "citations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the audit entry (e.g., UUID or autoincrement)"
+          },
+          "citation_key": {
+            "type": "string",
+            "description": "The citation key used in the paper (e.g., Bansak2018)"
+          },
+          "title": {
+            "type": "string",
+            "description": "Full title of the cited paper"
+          },
+          "claim_in_paper": {
+            "type": "string",
+            "description": "The specific claim made in our paper that cites this source"
+          },
+          "scite_status": {
+            "type": "string",
+            "enum": ["Verified", "Contested", "Nuanced", "Retracted", "Pending"],
+            "description": "The outcome of the verification"
+          },
+          "scite_metrics": {
+            "type": "object",
+            "properties": {
+              "supporting": { "type": "integer" },
+              "mentioning": { "type": "integer" },
+              "contrasting": { "type": "integer" }
+            },
+            "required": ["supporting", "mentioning", "contrasting"]
+          },
+          "notes": {
+            "type": "string",
+            "description": "Any manual notes, clarifications, or action items"
+          },
+          "last_checked": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp of the check"
+          }
+        },
+        "required": ["id", "citation_key", "title", "scite_status"]
+      }
+    }
+  },
+  "required": ["citations"]
+}
