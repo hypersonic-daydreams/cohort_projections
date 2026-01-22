@@ -100,7 +100,11 @@ htmlcov/
 .env
 .env.local
 data/projections/**/*.json
+data/projections/**/*.pdf
 !data/projections/.gitkeep
+
+# Local scratch work (not synced anywhere)
+scratch/
 
 # SDC Replication raw Census data (synced via rclone, not git)
 # B05006 Place of Birth for Foreign-Born Population
@@ -112,6 +116,8 @@ sdc_2024_replication/output/
 sdc_2024_replication/scripts/statistical_analysis/journal_article/output/
 sdc_2024_replication/scripts/statistical_analysis/journal_article/*.pdf
 sdc_2024_replication/scripts/statistical_analysis/journal_article/*.aux
+sdc_2024_replication/scripts/statistical_analysis/journal_article/*.bbl
+sdc_2024_replication/scripts/statistical_analysis/journal_article/*.blg
 sdc_2024_replication/scripts/statistical_analysis/journal_article/*.log
 sdc_2024_replication/scripts/statistical_analysis/journal_article/*.out
 sdc_2024_replication/scripts/statistical_analysis/journal_article/build_info.tex

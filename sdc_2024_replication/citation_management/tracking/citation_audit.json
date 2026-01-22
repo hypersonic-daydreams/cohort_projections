@@ -19,46 +19,61 @@
             "id": "2",
             "citation_key": "Albrecht1993",
             "title": "The Renewal of Population Loss in the Nonmetropolitan Great Plains",
-            "claim_in_paper": "Great Plains population decline is shaped by agricultural consolidation.",
+            "claim_in_paper": "Nonmetropolitan Great Plains population loss is renewed in the late 20th century (context for rural Great Plains decline).",
             "scite_status": "Verified",
             "scite_metrics": {
                 "supporting": 1,
                 "mentioning": 10,
                 "contrasting": 0
             },
-            "notes": "Re-verified via Scite Assistant. Found as 'The Renewal of Population Loss in the Nonmetropolitan Great Plains' (1993) in Rural Sociology. Assistant confirms support.",
+            "notes": "Re-verified via Scite Assistant. Use as support for renewed nonmetropolitan Great Plains population loss; avoid over-claiming specific mechanisms unless directly quoted from the paper.",
             "last_checked": "2026-01-13T11:51:00Z",
             "verification_method": "Scite"
         },
         {
-            "id": "78ed17bd-b671-4385-9029-6d02aa20271d",
-            "citation_key": "Wilson2022",
-            "title": "Pending Title Check",
-            "claim_in_paper": "North Dakota receives just 0.17% of national international migration flows",
-            "scite_status": "Pending",
+            "id": "9d5b3f0a-49e5-4f23-92dd-f0838b8d0e22",
+            "citation_key": "ArcherLonsdale2003",
+            "title": "Geography of Population Change and Redistribution within the Post-Frontier Great Plains",
+            "claim_in_paper": "The Great Plains 'ongoing population decline' narrative is only partly accurate; population growth concentrated in metropolitan counties along the periphery while many interior nonmetropolitan counties decline.",
+            "scite_status": "Verified",
             "scite_metrics": {
                 "supporting": 0,
                 "mentioning": 0,
                 "contrasting": 0
             },
-            "notes": "Deferred Scite verification.",
-            "last_checked": "2026-01-13T12:00:00Z",
-            "verification_method": "Pending"
+            "notes": "Verified directly from the open-access PDF on DigitalCommons@UNL. Abstract states the 'only partly appropriate' qualifier and the core-periphery divide; paper reports Great Plains population increasing from 9.92M (1930) to 19.80M (2000) and metro share rising (Table 1).",
+            "last_checked": "2026-01-20T00:00:00Z",
+            "verification_method": "Local PDF (DigitalCommons@UNL)"
+        },
+        {
+            "id": "78ed17bd-b671-4385-9029-6d02aa20271d",
+            "citation_key": "CensusPEP2024",
+            "title": "Annual Estimates of the Resident Population and Components of Change for the United States, Regions, States, and Puerto Rico: April 1, 2020 to July 1, 2024 (NST-EST2024-ALLDATA)",
+            "claim_in_paper": "North Dakota accounts for about 0.17% of U.S. net international migration on average over 2010-2024, below its 0.23% share of the U.S. population",
+            "scite_status": "Verified",
+            "scite_metrics": {
+                "supporting": 0,
+                "mentioning": 0,
+                "contrasting": 0
+            },
+            "notes": "Computed directly from local PEP vintages in `data/raw/immigration/census_population_estimates/` (preferring newer revisions for overlapping years).",
+            "last_checked": "2026-01-20T00:00:00Z",
+            "verification_method": "Computed (PEP)"
         },
         {
             "id": "9d41ca2b-a98f-4ca8-af48-62f51ba18d09",
-            "citation_key": "Weber2014",
+            "citation_key": "EnergyBoomDemographics2015",
             "title": "Rural North Dakota's Oil Boom and Its Impact on Social Services",
-            "claim_in_paper": "Underlying structural forces favoring out-migration have proven resilient",
-            "scite_status": "Pending",
+            "claim_in_paper": "The Bakken oil boom brought population growth to rural ND communities that had previously experienced decades of depopulation and economic struggle",
+            "scite_status": "Verified",
             "scite_metrics": {
                 "supporting": 0,
                 "mentioning": 0,
                 "contrasting": 0
             },
-            "notes": "Deferred Scite verification.",
-            "last_checked": "2026-01-13T12:00:00Z",
-            "verification_method": "Pending"
+            "notes": "Verified via the paper abstract (OpenAlex record for DOI 10.1093/sw/swt068). Abstract text includes: 'This has brought economic expansion and population growth to rural communities that had previously experienced decades of depopulation and economic struggle.' Full-text PDF appears paywalled (OUP 403).",
+            "last_checked": "2026-01-20T00:00:00Z",
+            "verification_method": "Abstract (OpenAlex)"
         },
         {
             "id": "e8d7a833-3331-425f-b622-5ea103e05732",

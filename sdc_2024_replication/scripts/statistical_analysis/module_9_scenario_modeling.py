@@ -8,7 +8,7 @@ projections for North Dakota immigration. Implements:
 
 1. Model averaging using fit statistics (R-squared, AIC weights)
 2. Scenario generation:
-   - CBO Full: Full immigration policy scenario
+   - CBO (Jan 2026): National baseline scaled to ND share
    - Moderate: Middle-ground assumptions
    - Zero: Zero net immigration scenario
    - Pre-2020 Trend: Continue historical trend
@@ -54,6 +54,7 @@ LOGGER = logging.getLogger(__name__)
 # Project paths
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent  # cohort_projections/
 DATA_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "analysis"
+CBO_DIR = PROJECT_ROOT / "data" / "projections" / "CBO"
 RESULTS_DIR = Path(__file__).parent / "results"
 FIGURES_DIR = Path(__file__).parent / "figures"
 
@@ -601,6 +602,48 @@ def calculate_model_weights(estimates: dict, result: ModuleResult) -> dict:
     return weights
 
 
+def load_cbo_net_immigration_series(workbook_path: Path) -> pd.DataFrame:
+    """
+    Load the U.S. net immigration series from a CBO Demographic Outlook workbook.
+
+    The CBO `*-Data.xlsx` workbooks include a national net-immigration time series in
+    `Figure 7`. This helper parses that series and returns values in persons.
+
+    Args:
+        workbook_path: Path to a CBO `*-Data.xlsx` workbook.
+
+    Returns:
+        DataFrame with columns `year` (int) and `net_immigration_persons` (float).
+    """
+    if not workbook_path.exists():
+        raise FileNotFoundError(f"Missing CBO workbook: {workbook_path}")
+
+    raw = pd.read_excel(workbook_path, sheet_name="Figure 7", header=None)
+    year_col = raw.iloc[:, 0]
+    value_col = raw.iloc[:, 1]
+    mask = year_col.apply(
+        lambda x: isinstance(x, (int, float)) and 1900 <= x <= 2100
+    ) & value_col.notna()
+    if not mask.any():
+        raise ValueError(
+            f"No year/value rows detected in CBO workbook Figure 7: {workbook_path}"
+        )
+
+    series = raw.loc[mask, [0, 1]].copy()
+    series.columns = ["year", "value"]
+    series["year"] = series["year"].astype(int)
+
+    max_value = float(series["value"].max())
+    # CBO workbooks label Figure 7 as "Millions of people" (values like ~1.2).
+    # Some exports use thousands (values like ~1111). Support both.
+    if max_value < 50:
+        series["net_immigration_persons"] = series["value"].astype(float) * 1_000_000.0
+    else:
+        series["net_immigration_persons"] = series["value"].astype(float) * 1_000.0
+
+    return series[["year", "net_immigration_persons"]]
+
+
 def generate_scenarios(
     df_migration: pd.DataFrame, estimates: dict, result: ModuleResult
 ) -> dict:
@@ -608,9 +651,9 @@ def generate_scenarios(
     Generate projection scenarios for 2025-2045.
 
     Scenarios:
-    1. CBO Full: Based on CBO immigration projections (high growth)
+    1. CBO (Jan 2026): CBO net immigration baseline scaled to ND share
     2. Moderate: Weighted average of model estimates
-    3. Immigration Policy: Restrictive multiplier on Moderate
+    3. Restrictive policy: 0.65× multiplier on Moderate
     4. Zero: Zero net immigration
     5. Pre-2020 Trend: Continue 2010-2019 trend
     """
@@ -663,30 +706,42 @@ def generate_scenarios(
 
     scenarios = {}
 
-    # Scenario 1: CBO Full (high immigration assumption)
-    # Assume immigration continues to grow at elevated rates post-2024
-    cbo_growth_rate = 0.08  # 8% annual growth (aggressive)
+    # Scenario 1: CBO (Jan 2026) national baseline scaled to ND share.
+    cbo_workbook = CBO_DIR / "61879-Data.xlsx"
+    cbo_us = load_cbo_net_immigration_series(cbo_workbook).set_index("year")[
+        "net_immigration_persons"
+    ]
+
+    nd_share_mean_pct = float(df_migration["nd_share_of_us_intl_pct"].mean())
+    nd_share = nd_share_mean_pct / 100.0
     cbo_projections = []
-    current = baseline
-    for i, year in enumerate(projection_years):
-        if i < len(arima_forecasts):
-            # Use ARIMA for first few years
-            current = arima_forecasts[i]["point"] * 1.1  # 10% above ARIMA
-        else:
-            current = current * (1 + cbo_growth_rate)
-        cbo_projections.append({"year": year, "value": current})
+    for year in projection_years:
+        if year not in cbo_us.index:
+            raise ValueError(
+                f"CBO workbook missing net immigration value for year {year}: {cbo_workbook}"
+            )
+        cbo_projections.append(
+            {"year": year, "value": float(cbo_us.loc[year]) * nd_share}
+        )
 
     scenarios["cbo_full"] = {
-        "name": "CBO Full Immigration",
-        "description": "2025--2029 at 10% above ARIMA, then 8% compound growth",
+        "name": "CBO (Jan 2026) Baseline",
+        "description": (
+            "CBO Jan 2026 U.S. net immigration projection scaled by ND's mean share "
+            "of U.S. net international migration (PEP 2010--2024)"
+        ),
         "assumptions": {
-            "growth_rate": cbo_growth_rate,
-            "arima_multiplier": 1.1,
-            "arima_years": len(arima_forecasts),
+            "cbo_publication_id": "61879",
+            "cbo_workbook": str(cbo_workbook.relative_to(PROJECT_ROOT)),
+            "nd_share_mean_pct": nd_share_mean_pct,
+            "nd_share_window": [
+                int(df_migration["year"].min()),
+                int(df_migration["year"].max()),
+            ],
         },
         "projections": cbo_projections,
     }
-    print(f"  CBO Full 2045: {cbo_projections[-1]['value']:.0f}")
+    print(f"  CBO (Jan 2026) 2045: {cbo_projections[-1]['value']:.0f}")
 
     # Scenario 2: Moderate (weighted average)
     moderate_projections = []
@@ -711,7 +766,7 @@ def generate_scenarios(
     }
     print(f"  Moderate 2045: {moderate_projections[-1]['value']:.0f}")
 
-    # Scenario 3: Immigration Policy (scaled Moderate baseline)
+    # Scenario 3: Restrictive policy (scaled Moderate baseline)
     policy_multiplier = 0.65
     immigration_policy_projections = [
         {"year": p["year"], "value": max(0, p["value"] * policy_multiplier)}
@@ -719,7 +774,7 @@ def generate_scenarios(
     ]
 
     scenarios["immigration_policy"] = {
-        "name": "Immigration Policy",
+        "name": "Restrictive policy (0.65× Moderate)",
         "description": "Restrictive-policy multiplier applied to the Moderate scenario",
         "assumptions": {
             "multiplier": policy_multiplier,
@@ -728,7 +783,7 @@ def generate_scenarios(
         "projections": immigration_policy_projections,
     }
     print(
-        "  Immigration Policy 2045: "
+        "  Restrictive policy (0.65× Moderate) 2045: "
         f"{immigration_policy_projections[-1]['value']:.0f}"
     )
 
@@ -770,10 +825,10 @@ def generate_scenarios(
         decision_id="D003",
         category="scenario_design",
         decision=(
-            "Generated 5 scenarios: CBO Full, Moderate, Immigration Policy, Zero, "
+            "Generated 5 scenarios: CBO (Jan 2026), Moderate, Restrictive policy, Zero, "
             "Pre-2020 Trend"
         ),
-        rationale="Cover range from optimistic to restrictive immigration policy outcomes",
+        rationale="Cover range from externally benchmarked to restrictive/counterfactual outcomes",
         alternatives=["5-scenario approach", "Probabilistic weighting of scenarios"],
         evidence=f"Baseline 2024 = {baseline:.0f}, Pre-2020 trend = {pre_2020_trend:.2f}/yr",
     )
@@ -1476,9 +1531,9 @@ def run_analysis(
         "duration_model_tag": duration_tag,
         "skip_plots": skip_plots,
         "scenarios": [
-            "CBO Full",
+            "CBO (Jan 2026)",
             "Moderate",
-            "Immigration Policy",
+            "Restrictive policy (0.65× Moderate)",
             "Zero",
             "Pre-2020 Trend",
         ],

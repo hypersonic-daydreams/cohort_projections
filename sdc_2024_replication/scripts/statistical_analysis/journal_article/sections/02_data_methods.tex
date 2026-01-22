@@ -92,7 +92,7 @@ These sources are related but not interchangeable: \PEP international migration 
 
 \subsubsection{Census Bureau Population Estimates Program}
 
-The U.S. Census Bureau's Population Estimates Program (PEP) provides annual estimates of population and components of change for states and counties \citep{CensusPEP2020, CensusPEP2024}. This analysis employs a spliced time series combining Vintage 2020 estimates (covering 2010--2019) and Vintage 2024 estimates (covering 2020--2024). This approach bridges the two distinct post-censal estimation regimes to analyze the full 2010--2024 period. The series decomposes annual population change into births, deaths, domestic migration, and international migration. The international migration component---designated \texttt{INTERNATIONALMIG} in Census Bureau nomenclature---comprises the net flow of foreign-born individuals crossing U.S. borders plus the net movement of native-born citizens and military personnel abroad. For subnational units, the Census Bureau allocates national international migration estimates to states using American Community Survey data on recent movers and foreign-born population distributions.
+The U.S. Census Bureau's Population Estimates Program (PEP) provides annual estimates of population and components of change for states and counties \citep{CensusPEP2020, CensusPEP2024}. This analysis employs a spliced time series combining Vintage 2020 estimates (covering 2010--2019) and Vintage 2024 estimates (covering 2020--2024). This approach bridges two distinct post-censal estimation vintages to analyze the full 2010--2024 period. The series decomposes annual population change into births, deaths, domestic migration, and international migration. The international migration component---designated \texttt{INTERNATIONALMIG} in Census Bureau nomenclature---comprises the net flow of foreign-born individuals crossing U.S. borders plus the net movement of native-born citizens and military personnel abroad. For subnational units, the Census Bureau allocates national international migration estimates to states using American Community Survey data on recent movers and foreign-born population distributions.
 
 The PEP data provide the primary dependent variable for time series analysis: annual net international migration to North Dakota. Key advantages include consistent methodology across years and comprehensive geographic coverage. Limitations include the composite nature of the international migration variable, which aggregates heterogeneous streams (lawful permanent residents, refugees, temporary workers, and unauthorized migrants) into a single measure, and the allocation methodology, which may introduce smoothing artifacts at the state level.
 
@@ -158,14 +158,14 @@ The analysis employs a two-track strategy:
 \begin{enumerate}
     \item \textbf{Primary inference window (2010--2024, $n=15$)}: All causal claims, point estimates, and statistical tests reported in the main text derive from data within the Vintage 2020 and Vintage 2024 estimates. This window maintains methodological consistency (both vintages use ROYA-based estimation) while spanning the periods of substantive interest.
 
-    \item \textbf{Extended robustness window (2000--2024, $n=25$)}: Sensitivity analyses incorporate the Vintage 2009 data (2000--2009) to assess whether conclusions remain stable under the longer series. These results are reported as robustness checks rather than primary findings, and we explicitly model potential vintage effects through regime-aware specifications.
+    \item \textbf{Extended robustness window (2000--2024, $n=25$)}: Sensitivity analyses incorporate the Vintage 2009 data (2000--2009) to assess whether conclusions remain stable under the longer series. These results are reported as robustness checks rather than primary findings, and we explicitly model potential vintage effects through vintage-aware specifications.
 \end{enumerate}
 
-Throughout the analysis, we refer to the concatenated 2000--2024 data as a ``spliced \PEP-vintage series'' to signal that it bridges distinct measurement regimes rather than representing a methodologically homogeneous time series. Appendix Figure~\ref{fig:app_pep_regime_diagnostic} provides a measurement-regime diagnostic visualization and reports regime-specific trend slopes under a piecewise specification with an explicit COVID-19 intervention.
+Throughout the analysis, we refer to the concatenated 2000--2024 data as a ``spliced \PEP-vintage series'' to signal that it bridges distinct measurement vintages rather than representing a methodologically homogeneous time series. Appendix Figure~\ref{fig:app_pep_regime_diagnostic} provides a measurement-vintage diagnostic visualization and reports vintage-specific trend slopes under a piecewise specification with an explicit COVID-19 intervention.
 
-\subsubsection{Regime-Aware Modeling and Sensitivity Analysis}
+\subsubsection{Vintage-Aware Modeling and Sensitivity Analysis}
 
-To assess whether vintage transitions introduce spurious patterns, we employ piecewise trend models that allow slope and intercept shifts at vintage boundaries (2010 and 2020). The estimated piecewise slopes reveal substantial regime differences: the 2000--2009 period exhibits a modest positive trend of 39 persons per year ($\text{SE} = 17.8$), the 2010--2019 period shows an insignificant trend of 72 persons per year ($\text{SE} = 72.3$, $p = 0.32$), and the 2020--2024 period displays a steep positive trend of 1,401 persons per year ($\text{SE} = 84.7$). A formal test of slope equality across regimes strongly rejects the null hypothesis ($F_{2,19} = 124.5$, $p < 0.001$), confirming that the extended series exhibits distinct temporal dynamics across vintage boundaries.
+To assess whether vintage transitions introduce spurious patterns, we employ piecewise trend models that allow slope and intercept shifts at vintage boundaries (2010 and 2020). The estimated piecewise slopes reveal substantial differences across vintage periods: the 2000--2009 period exhibits a modest positive trend of 39 persons per year ($\text{SE} = 17.8$), the 2010--2019 period shows an insignificant trend of 72 persons per year ($\text{SE} = 72.3$, $p = 0.32$), and the 2020--2024 period displays a steep positive trend of 1,401 persons per year ($\text{SE} = 84.7$). A formal test of slope equality across vintage periods strongly rejects the null hypothesis ($F_{2,19} = 124.5$, $p < 0.001$), confirming that the extended series exhibits distinct temporal dynamics across vintage boundaries.
 
 Sensitivity analysis across six specifications reveals that key findings are moderately robust to sample definition and vintage treatment. Table~\ref{tab:sensitivity_summary} presents results across alternative specifications:
 
@@ -275,7 +275,7 @@ where $\hat{L}$ denotes the maximized likelihood and $k$ the number of parameter
 
 \subsubsection{Structural Break Tests}
 
-Structural break analysis employs three complementary approaches. The Chow test \citep{Chow1960} evaluates whether regression parameters differ across known candidate break points by comparing residual sums of squares from restricted (single-regime) and unrestricted (regime-specific) models. The CUSUM test \citep{BrownDurbinEvans1975} detects parameter instability through cumulative sums of recursive residuals; departures from the zero line indicate structural change. For endogenous break detection, the analysis employs the \citet{BaiPerron1998} procedure as a constant-only mean-shift change-point detector (breaks in the mean level of $y_t$), identifying multiple break points by minimizing the sum of squared residuals across all possible segmentations:
+Structural break analysis employs three complementary approaches. The Chow test \citep{Chow1960} evaluates whether regression parameters differ across known candidate break points by comparing residual sums of squares from restricted (single-segment) and unrestricted (segment-specific) models. The CUSUM test \citep{BrownDurbinEvans1975} detects parameter instability through cumulative sums of recursive residuals; departures from the zero line indicate structural change. For endogenous break detection, the analysis employs the \citet{BaiPerron1998} procedure as a constant-only mean-shift change-point detector (breaks in the mean level of $y_t$), identifying multiple break points by minimizing the sum of squared residuals across all possible segmentations:
 \begin{equation}
 \label{eq:bai_perron}
 (\hat{T}_1, \ldots, \hat{T}_m) = \arg\min_{T_1, \ldots, T_m} \sum_{j=0}^{m} \sum_{t=T_j+1}^{T_{j+1}} (y_t - \bar{y}_j)^2
@@ -363,7 +363,7 @@ where $C_k$ denotes cluster $k$ and $\boldsymbol{\mu}_k$ its centroid. Optimal c
 \subsection{Causal Inference Methods}
 \label{subsec:causal_methods}
 
-Causal inference methods are used to assess whether major policy interventions---the 2017 Travel Ban and the 2020 COVID-19 pandemic---are associated with detectable divergences in migration flows. The primary design is a nationality-level difference-in-differences; under parallel trends it estimates an average treatment effect on the treated, but when diagnostics indicate pre-treatment divergence we interpret results as policy-associated divergence rather than a precise causal effect magnitude. A state-level interrupted time series provides a national system diagnostic for the COVID-19 regime shift. Two additional components provide context: a synthetic comparator for descriptive benchmarking and a shift-share index used to assess the predictive relevance of refugee-driven shocks.
+Causal inference methods are used to assess whether major policy interventions---the 2017 Travel Ban and the 2020 COVID-19 pandemic---are associated with detectable divergences in migration flows. The primary design is a nationality-level difference-in-differences; under parallel trends it estimates an average treatment effect on the treated, but when diagnostics indicate pre-treatment divergence we interpret results as policy-associated divergence rather than a precise causal effect magnitude. A state-level interrupted time series provides a national system diagnostic for the COVID-19 structural break. Two additional components provide context: a synthetic comparator for descriptive benchmarking and a shift-share index used to assess the predictive relevance of refugee-driven shocks.
 
 \subsubsection{Difference-in-Differences}
 
@@ -383,7 +383,7 @@ Identification requires the parallel trends assumption: absent the Travel Ban, a
 
 \subsubsection{Interrupted Time Series (National System Diagnostic)}
 
-To characterize the global migration regime shift associated with the pandemic, we employ a state-level interrupted time series (ITS) model estimated on the full 50-state panel. This analysis is intended as a \emph{national system diagnostic} to quantify the average state-level shock, not as a North Dakota-specific impact estimate. The model specifies:
+To characterize the global migration shift associated with the pandemic, we employ a state-level interrupted time series (ITS) model estimated on the full 50-state panel. This analysis is intended as a \emph{national system diagnostic} to quantify the average state-level shock, not as a North Dakota-specific impact estimate. The model specifies:
 \begin{equation}
 \label{eq:its}
 y_{st} = \alpha_s + \beta_1 t + \beta_2 \text{Post}_{2020,t} + \beta_3 (t - 2020)\text{Post}_{2020,t} + \varepsilon_{st}
@@ -452,7 +452,7 @@ Table~\ref{tab:module_outputs} summarizes how outputs from each analytical modul
 	\textbf{Module} & \textbf{Key Output(s)} & \textbf{Role in Scenario Engine} & \textbf{Scenarios Affected} \\
 	\midrule
 	1.1--1.2 (Descriptive) & Summary statistics; HHI; Location Quotients & Context for origin composition assumptions; validates concentration patterns & All (interpretation) \\
-	2.1 (ARIMA) & Baseline drift ($\hat{\beta}$); residual variance ($\hat{\sigma}^2$) & ARIMA point forecasts anchor Moderate and CBO scenarios; variance feeds MC simulation & Moderate, CBO Full \\
+	2.1 (ARIMA) & Baseline drift ($\hat{\beta}$); residual variance ($\hat{\sigma}^2$) & ARIMA point forecasts anchor Moderate; variance feeds MC simulation & Moderate \\
 	2.2 (VAR) & FEVD proportions; Granger causality; ND--US comovement diagnostics & Diagnostic evidence on multivariate dynamics; does not parameterize scenario trajectories & None (diagnostic) \\
 	3--4 (Panel/Robust) & State/year effects; between/within variance ratio & Validates ND position in state distribution; informs plausibility bounds & All (validation) \\
 	5 (Cross-sectional) & Diaspora elasticity (predictive) & Context for composition stability; not directly in forecast & None (context) \\
@@ -476,13 +476,13 @@ Table~\ref{tab:module_outputs} summarizes how outputs from each analytical modul
 Scenario analysis translates analytical findings into forward-looking projections while explicitly characterizing uncertainty. The analysis develops five policy-indexed scenarios spanning the range of plausible future trajectories:
 
 \begin{enumerate}
-	    \item \textbf{CBO Full}: Uses ARIMA point forecasts scaled by 1.1 for 2025--2029, then compounds at 8\% annually from 2030 onward. This scenario represents an explicit upper-bound stress test predicated on significant federal policy liberalization and sustained robust growth, shielding planning limits against extreme upside surprises.
+	    \item \textbf{CBO (Jan 2026)}: Uses the Congressional Budget Office's January 2026 national net immigration projection and scales it to North Dakota using the state's mean share of U.S.\ net international migration in the \PEP series (2010--2024). This scenario provides an externally benchmarked national baseline rather than an assumed growth rule \citep{CBODemographicOutlook2026}.
 
 	    \item \textbf{Moderate}: Uses ARIMA point forecasts for 2025--2029, then applies a dampened trend (50\% of the averaged robust trend estimate) through 2045. This scenario represents the central tendency forecast.
 
 	    \item \textbf{Pre-2020 Trend}: Anchors at the 2019 level and extrapolates the 2010--2019 slope, treating COVID as a temporary deviation. This scenario provides a lower-bound estimate under restrictive policy assumptions.
 
-	    \item \textbf{Immigration Policy}: Modifies the Moderate baseline by applying a 0.65 multiplier to future flows ($65\%$ of baseline). The multiplier is a scenario design choice informed by the Travel Ban DiD policy-associated divergence in refugee arrivals and a share-based scaling that translates a humanitarian-channel shock to the \PEP\ net international migration total.
+	    \item \textbf{Restrictive policy (0.65$\times$ Moderate)}: Modifies the Moderate baseline by applying a 0.65 multiplier to future flows ($65\%$ of baseline). The multiplier is a scenario design choice informed by the Travel Ban DiD policy-associated divergence in refugee arrivals and a share-based scaling that translates a humanitarian-channel shock to the \PEP\ net international migration total.
 
 	    \begin{center}
 	    \fbox{\begin{minipage}{0.95\linewidth}

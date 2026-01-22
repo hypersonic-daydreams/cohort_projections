@@ -10,6 +10,28 @@
     \newcommand{\BuildVersion}{DEV}
     \newcommand{\BuildTimestampUTC}{}
 }
+\IfFileExists{derived_stats.tex}{\input{derived_stats}}{
+    \newcommand{\PEPLatestYear}{2024}
+    \newcommand{\PEPShareYearStart}{2010}
+    \newcommand{\PEPShareYearEnd}{2024}
+    \newcommand{\PEPShareNYears}{15}
+    \newcommand{\NDShareUSIntlMigPctLatest}{0.18}
+    \newcommand{\NDShareUSPopPctLatest}{0.23}
+    \newcommand{\NDShareUSIntlMigPctMean}{0.17}
+    \newcommand{\NDShareUSPopPctMean}{0.23}
+    \newcommand{\PEPContextWindowYears}{5}
+    \newcommand{\PEPPriorFiveYearStart}{2015}
+    \newcommand{\PEPPriorFiveYearEnd}{2019}
+    \newcommand{\PEPLastFiveYearStart}{2020}
+    \newcommand{\PEPLastFiveYearEnd}{2024}
+    \newcommand{\PEPLastTenYearStart}{2015}
+    \newcommand{\PEPLastTenYearEnd}{2024}
+    \newcommand{\NDNaturalIncreaseMeanPriorFive}{4,724}
+    \newcommand{\NDNaturalIncreaseMeanLastFive}{2,217}
+    \newcommand{\NDDomesticMigMeanLastTen}{-1,392}
+    \newcommand{\NDDomesticMigNegYearsLastTen}{8}
+    \newcommand{\NDDomesticMigYearsLastTen}{10}
+}
 
 \begin{document}
 
@@ -56,13 +78,13 @@ A Multi-Method Empirical Analysis}
 % ------------------------------------------------------------------------------
 
 \begin{abstract}
-International migration is numerically small in many U.S.\ states yet demographically decisive in the periphery, where low fertility, population aging, and domestic out-migration leave migration as the primary swing factor in population change. Forecasting these flows is unusually difficult because arrivals are often ``lumpy''---shaped by discrete refugee resettlement cohorts and employer-specific recruitment---and because key levers are federal policy and local resettlement capacity rather than stable long-run trends. This study develops and applies a multi-method empirical framework for forecasting net international migration to North Dakota, a state of roughly 797,000 residents that receives about 0.17\% of national international migration despite holding about 0.23\% of the U.S.\ population.
+International migration is numerically small in many U.S.\ states yet demographically decisive in small-population, non-gateway states, where low fertility, population aging, and domestic out-migration leave migration as the primary swing factor in population change. Forecasting these flows is unusually difficult because arrivals are often ``lumpy''---shaped by discrete refugee resettlement cohorts and employer-specific recruitment---and because key levers are federal policy and local resettlement capacity rather than stable long-run trends. This study develops and applies a multi-method empirical framework for forecasting net international migration to North Dakota, a state of roughly 797,000 residents that accounts for about \NDShareUSIntlMigPctMean\% of U.S.\ net international migration on average over \PEPShareYearStart{}--\PEPShareYearEnd{}---below its \NDShareUSPopPctMean\% share of the U.S.\ population.
 
 Using the Census Bureau Population Estimates Program (\PEP) net international migration component as the forecasting target (2010--2024) and triangulating with Refugee Processing Center arrivals (FY2002--FY2024), DHS lawful permanent resident admissions, and \ACS{} foreign-born stocks, we combine descriptive concentration measures, time-series diagnostics, cross-state benchmarking, gravity-style allocation models, machine-learning diagnostics, and difference-in-differences analysis of policy-associated divergence, alongside wave-duration modeling and Monte Carlo scenario simulation.
 
-Results show that North Dakota's migration profile is refugee-dominated and origin-specific: location quotients exceed 40 for Liberia and exceed 20 for several other African origins. Annual net international migration is highly volatile (coefficient of variation 82.5\%) and the series is approximately integrated, implying that departures from historical averages can persist rather than rapidly mean-revert. Structural break analysis identifies major regime shifts in 2020 and 2021 associated with the COVID-19 pandemic ($F = 16.01$, $p < 0.001$). Aggregate break tests detect no statistically significant 2017 shift, yet nationality-level difference-in-differences estimates a policy-associated treated--control divergence, with estimated refugee arrivals from Travel Ban-affected origins roughly 75\% lower than those from unaffected origins in the first full post years (conventional $p = 0.031$). Given mixed pre-trends (parallel-trends diagnostics) and only seven treated nationalities, we interpret this pattern as descriptive policy-associated divergence rather than a precise causal effect magnitude, highlighting how compositional divergence can be muted in state totals. Cross-sectional allocation estimates suggest diaspora associations attenuate sharply once population mass is controlled.
+Results show that North Dakota's migration profile is refugee-dominated and origin-specific: location quotients exceed 40 for Liberia and exceed 20 for several other African origins. Annual net international migration is highly volatile (coefficient of variation 82.5\%) and the series is approximately integrated, implying that departures from historical averages can persist rather than rapidly mean-revert. Structural break analysis identifies major shifts in migration dynamics in 2020 and 2021 associated with the COVID-19 pandemic ($F = 16.01$, $p < 0.001$). Aggregate break tests detect no statistically significant 2017 shift, yet nationality-level difference-in-differences estimates a policy-associated treated--control divergence, with estimated refugee arrivals from Travel Ban-affected origins roughly 75\% lower than those from unaffected origins in the first full post years (conventional $p = 0.031$). Given mixed pre-trends (parallel-trends diagnostics) and only seven treated nationalities, we interpret this pattern as descriptive policy-associated divergence rather than a precise causal effect magnitude, highlighting how compositional divergence can be muted in state totals. Cross-sectional allocation estimates suggest diaspora associations attenuate sharply once population mass is controlled.
 
-Scenario projections through 2045 yield a median net international migration of 9,119 with a conservative 95\% uncertainty envelope of 3,407--14,806. These results argue for scenario-based planning and transparent uncertainty quantification when forecasting migration in small, policy-sensitive states.
+Scenario projections through 2045 yield a median net international migration of 9,079 with a conservative 95\% uncertainty envelope of 3,360--14,774. These results argue for scenario-based planning and transparent uncertainty quantification when forecasting migration in small, policy-sensitive states.
 \end{abstract}
 
 \vspace{1em}

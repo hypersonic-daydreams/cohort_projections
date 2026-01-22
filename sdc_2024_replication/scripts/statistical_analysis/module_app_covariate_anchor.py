@@ -422,7 +422,7 @@ def _plot_overlay(
     fig, ax = plt.subplots(figsize=(8.5, 5.0))
 
     # Historical (2010–2024)
-    ax.plot(
+    (obs_line,) = ax.plot(
         historical.index,
         historical.values,
         color="#333333",
@@ -433,7 +433,7 @@ def _plot_overlay(
     )
 
     # Baseline (ARIMA)
-    ax.plot(
+    (baseline_line,) = ax.plot(
         baseline["year"],
         baseline["baseline_point"],
         color="#666666",
@@ -449,17 +449,17 @@ def _plot_overlay(
         baseline["baseline_ci95_hi"],
         color="#999999",
         alpha=0.18,
-        label="Baseline 95% PI",
     )
 
     # Covariate-conditioned specs (points + 95% intervals)
     palette = {
-        "P0": ("#0072B2", "Covariates (Refugees + LPR)"),
-        "S3": ("#D55E00", "Covariates (+ ACS sensitivity)"),
+        "P0": ("#0072B2", "P0: Refugees + LPR"),
+        "S3": ("#D55E00", "S3: + ACS sensitivity"),
     }
+    forecast_lines: dict[str, Any] = {}
     for tag, df_fc in forecasts.items():
         color, label = palette.get(tag, ("#009E73", f"Covariates ({tag})"))
-        ax.plot(
+        (line,) = ax.plot(
             df_fc["year"],
             df_fc["point"],
             color=color,
@@ -468,6 +468,7 @@ def _plot_overlay(
             markersize=4,
             label=label,
         )
+        forecast_lines[tag] = line
         ax.fill_between(
             df_fc["year"],
             df_fc["ci95_lo"],
@@ -480,7 +481,45 @@ def _plot_overlay(
     ax.set_xlabel("Year")
     ax.set_ylabel("Net International Migration (persons; PEP)")
     ax.grid(True, alpha=0.25, linewidth=0.6)
-    ax.legend(frameon=False, fontsize=9, ncol=1)
+
+    # Two-part legend: lines (series) + patches (95% prediction intervals).
+    from matplotlib.patches import Patch  # local import keeps module imports minimal
+
+    series_handles = [obs_line, baseline_line]
+    for tag in ["P0", "S3"]:
+        line = forecast_lines.get(tag)
+        if line is not None:
+            series_handles.append(line)
+    legend_series = ax.legend(
+        handles=series_handles,
+        frameon=False,
+        fontsize=9,
+        loc="upper left",
+        handlelength=2.6,
+        handletextpad=0.6,
+        borderaxespad=0.4,
+    )
+    ax.add_artist(legend_series)
+
+    pi_handles = [
+        Patch(facecolor="#999999", alpha=0.18, edgecolor="none", label="Baseline"),
+        Patch(facecolor=palette["P0"][0], alpha=0.12, edgecolor="none", label="P0"),
+        Patch(facecolor=palette["S3"][0], alpha=0.12, edgecolor="none", label="S3"),
+    ]
+    ax.legend(
+        handles=pi_handles,
+        title="95% PI",
+        frameon=False,
+        fontsize=9,
+        title_fontsize=9,
+        loc="upper left",
+        bbox_to_anchor=(0.0, 0.82),
+        borderaxespad=0.4,
+        ncol=3,
+        columnspacing=1.2,
+        handlelength=1.8,
+        handletextpad=0.5,
+    )
 
     fig.tight_layout()
     out_png.parent.mkdir(parents=True, exist_ok=True)

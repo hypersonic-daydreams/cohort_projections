@@ -3,7 +3,7 @@
 Validate scenario arithmetic for Module 9 projections.
 
 Checks:
-- CBO Full uses ARIMA*1.1 for 2025--2029 and 8% growth thereafter.
+- CBO (Jan 2026) scales CBO net immigration by ND share.
 - Pre-2020 Trend is anchored to 2019 with the 2010--2019 slope.
 - CV diagnostics for historical series and 2045 Monte Carlo distribution.
 """
@@ -29,7 +29,6 @@ ANALYSIS_DIR = (
 RESULTS_DIR = ANALYSIS_DIR / "results"
 DATA_DIR = PROJECT_ROOT / "data" / "processed" / "immigration" / "analysis"
 
-ARIMA_PATH = RESULTS_DIR / "module_2_1_arima_model.json"
 SCENARIO_META_PATH = RESULTS_DIR / "module_9_scenario_modeling.json"
 SCENARIO_PROJ_PATH = RESULTS_DIR / "module_9_scenario_projections.parquet"
 COMBINED_PATH = RESULTS_DIR / "module_9_combined_forecasts.parquet"
@@ -64,53 +63,37 @@ def validate_series(
 
 
 def validate_cbo_full(
-    projections: pd.DataFrame, arima: dict, assumptions: dict
+    projections: pd.DataFrame, assumptions: dict
 ) -> list[str]:
-    """Validate CBO Full scenario arithmetic."""
+    """Validate CBO (Jan 2026) scenario arithmetic."""
     issues = []
-    forecasts = arima.get("results", {}).get("forecasts", [])
-    arima_multiplier = assumptions.get("arima_multiplier", 1.1)
-    growth_rate = assumptions.get("growth_rate", 0.08)
+    workbook = assumptions.get("cbo_workbook")
+    if not workbook:
+        return ["CBO scenario missing `cbo_workbook` in assumptions."]
+    workbook_path = PROJECT_ROOT / workbook
+    if not workbook_path.exists():
+        return [f"CBO workbook missing: {workbook_path}"]
 
-    if not forecasts:
-        return ["Missing ARIMA forecasts for CBO Full validation."]
-
-    forecast_years = [2024 + f["horizon"] for f in forecasts]
-    expected_early = [f["point"] * arima_multiplier for f in forecasts]
-
-    cbo = projections.sort_values("year")
-    cbo_map = cbo.set_index("year")["value"].to_dict()
-
-    actual_early = [cbo_map.get(year) for year in forecast_years]
-    if any(val is None for val in actual_early):
-        issues.append("CBO Full missing early-year projections for ARIMA horizons.")
+    df = pd.read_excel(workbook_path, sheet_name="Figure 7", header=None)
+    mask = df.iloc[:, 0].apply(lambda x: isinstance(x, (int, float)) and 1900 <= x <= 2100) & df.iloc[:, 1].notna()
+    series = df.loc[mask, [0, 1]].copy()
+    series.columns = ["year", "value"]
+    series["year"] = series["year"].astype(int)
+    max_value = float(series["value"].max())
+    if max_value < 50:
+        series["net_immigration_persons"] = series["value"].astype(float) * 1_000_000.0
     else:
-        issues.extend(
-            validate_series(
-                "CBO Full (ARIMA*1.1)",
-                forecast_years,
-                actual_early,
-                expected_early,
-            )
-        )
+        series["net_immigration_persons"] = series["value"].astype(float) * 1_000.0
 
-    last_arima_year = forecast_years[-1]
-    last_val = cbo_map.get(last_arima_year)
-    if last_val is None:
-        issues.append("CBO Full missing last ARIMA year for growth validation.")
-        return issues
+    nd_share_mean_pct = assumptions.get("nd_share_mean_pct")
+    if nd_share_mean_pct is None:
+        return ["CBO scenario missing `nd_share_mean_pct` in assumptions."]
+    nd_share = float(nd_share_mean_pct) / 100.0
 
-    for year in range(last_arima_year + 1, int(cbo["year"].max()) + 1):
-        expected = last_val * (1 + growth_rate)
-        actual = cbo_map.get(year)
-        if actual is None:
-            issues.append(f"CBO Full missing projection for {year}.")
-            continue
-        if not is_close(actual, expected):
-            issues.append(
-                f"CBO Full growth mismatch {year}: actual={actual:.2f}, expected={expected:.2f}"
-            )
-        last_val = actual
+    us_map = series.set_index("year")["net_immigration_persons"].to_dict()
+    cbo = projections.sort_values("year")
+    expected_vals = [float(us_map[int(y)]) * nd_share for y in cbo["year"]]
+    issues.extend(validate_series("CBO (Jan 2026)", cbo["year"], cbo["value"], expected_vals))
 
     return issues
 
@@ -169,7 +152,6 @@ def main() -> int:
     missing = [
         path
         for path in [
-            ARIMA_PATH,
             SCENARIO_META_PATH,
             SCENARIO_PROJ_PATH,
             MIGRATION_PATH,
@@ -181,7 +163,6 @@ def main() -> int:
             LOGGER.error("Missing required input: %s", path)
         return 1
 
-    arima = load_json(ARIMA_PATH)
     scenario_meta = load_json(SCENARIO_META_PATH)
     scenario_proj = pd.read_parquet(SCENARIO_PROJ_PATH)
     migration = pd.read_csv(MIGRATION_PATH)
@@ -190,7 +171,7 @@ def main() -> int:
 
     cbo_proj = scenario_proj[scenario_proj["scenario"] == "cbo_full"]
     cbo_assumptions = scenario_meta["results"]["scenarios"]["cbo_full"]["assumptions"]
-    issues.extend(validate_cbo_full(cbo_proj, arima, cbo_assumptions))
+    issues.extend(validate_cbo_full(cbo_proj, cbo_assumptions))
 
     pre_proj = scenario_proj[scenario_proj["scenario"] == "pre_2020_trend"]
     pre_assumptions = scenario_meta["results"]["scenarios"]["pre_2020_trend"][

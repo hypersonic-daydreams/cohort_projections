@@ -28,6 +28,9 @@ from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
+from matplotlib.ticker import FuncFormatter
 import numpy as np
 import pandas as pd
 
@@ -113,7 +116,10 @@ def _resolve_duration_results_filename() -> str:
         except Exception:
             duration_tag = None
 
-    if not duration_tag and (RESULTS_DIR / "module_8_duration_analysis__P0.json").exists():
+    if (
+        not duration_tag
+        and (RESULTS_DIR / "module_8_duration_analysis__P0.json").exists()
+    ):
         duration_tag = "P0"
 
     if duration_tag:
@@ -161,7 +167,7 @@ def create_figure_01_timeseries() -> None:
         color=COLORS["blue"],
         linewidth=1.5,
         markersize=4,
-        label="Annual migration",
+        label="Net international migration",
     )
 
     # Add trend line for migration (simple linear for visual)
@@ -182,24 +188,27 @@ def create_figure_01_timeseries() -> None:
             x=break_year, color=COLORS["red"], linestyle=":", linewidth=1.0, alpha=0.7
         )
 
-    ax1.set_ylabel("International migration (persons)")
+    ax1.set_ylabel("Net int'l migration (persons)")
     ax1.set_title(
-        "(A) Annual International Migration to North Dakota",
+        "(A) Annual Net International Migration to North Dakota",
         fontsize=11,
         fontweight="bold",
     )
     ax1.legend(loc="upper left", framealpha=0.9)
     ax1.set_ylim(bottom=0)
 
-    # Add annotation for COVID
-    ax1.annotate(
-        "COVID-19\nPandemic",
-        xy=(2020, 100),
-        xytext=(2016, 1500),
-        arrowprops=dict(arrowstyle="->", color=COLORS["gray"], lw=0.8),
+    # Break year labels and COVID annotation (avoid long cross-plot arrow)
+    ax1.text(2020.2, ax1.get_ylim()[1] * 0.95, "2020", fontsize=8, color=COLORS["red"])
+    ax1.text(2021.2, ax1.get_ylim()[1] * 0.95, "2021", fontsize=8, color=COLORS["red"])
+    ax1.text(
+        2020.05,
+        ax1.get_ylim()[1] * 0.75,
+        "COVID-19",
         fontsize=8,
-        ha="center",
         color=COLORS["gray"],
+        rotation=90,
+        va="center",
+        ha="left",
     )
 
     # Panel B: ND Share with HP trend
@@ -230,9 +239,10 @@ def create_figure_01_timeseries() -> None:
         )
 
     ax2.set_xlabel("Year")
-    ax2.set_ylabel("ND share of US int'l migration (%)")
+    ax2.set_ylabel("ND share of U.S. net int'l migration")
+    ax2.yaxis.set_major_formatter(FuncFormatter(lambda y, _: f"{y:.2f}%"))
     ax2.set_title(
-        "(B) North Dakota Share of U.S. International Migration",
+        "(B) North Dakota Share of U.S. Net International Migration",
         fontsize=11,
         fontweight="bold",
     )
@@ -276,6 +286,8 @@ def create_figure_02_concentration() -> None:
         "Other Northern Africa": "N. Africa (Other)",
         "United Kingdom (inc. Crown Dependencies)": "United Kingdom",
         "Czechoslovakia (includes Czech Republic and Slovakia)": "Czechia/Slovakia",
+        "Democratic Republic of Congo (Zaire)": "DR Congo",
+        "Bosnia and Herzegovina": "Bosnia & Herzegovina",
     }
     countries = [name_map.get(c, c) for c in countries]
 
@@ -289,40 +301,48 @@ def create_figure_02_concentration() -> None:
         intensity = 0.3 + 0.7 * (pop / max_pop)
         bar.set_alpha(intensity)
 
+    # Add ND foreign-born counts as end labels.
+    for bar, pop in zip(bars, nd_pops):
+        width = bar.get_width()
+        ax.text(
+            width + 0.5,
+            bar.get_y() + bar.get_height() / 2,
+            f"{int(pop):,}",
+            fontsize=8,
+            color="#555555",
+            verticalalignment="center",
+            horizontalalignment="left",
+        )
+
     # Add reference line at LQ = 1
-    ax.axvline(
-        x=1,
+    ax.axvline(x=1, color=COLORS["red"], linestyle="--", linewidth=1.0)
+    ax.text(
+        1.05,
+        -0.01,
+        "LQ = 1 (national average)",
+        transform=ax.get_xaxis_transform(),
+        fontsize=8,
         color=COLORS["red"],
-        linestyle="--",
-        linewidth=1.0,
-        label="LQ = 1 (national average)",
+        verticalalignment="top",
+        horizontalalignment="left",
+        clip_on=False,
     )
 
     ax.set_yticks(y_pos)
     ax.set_yticklabels(countries)
+    ax.tick_params(axis="y", pad=3)
     ax.set_xlabel("Location Quotient (LQ)")
     ax.set_title(
-        "Top Origin Countries by Concentration in North Dakota (2023)",
+        "Top Origins by Concentration in North Dakota (2023)",
         fontsize=11,
         fontweight="bold",
     )
     ax.invert_yaxis()
-    ax.legend(loc="lower right", fontsize=8)
+    ax.set_axisbelow(True)
+    ax.xaxis.grid(True, linestyle=":", linewidth=0.6, color=COLORS["gray"], alpha=0.6)
+    ax.set_xlim(0, math.ceil((max(lq_values) + 6) / 5) * 5)
 
-    # Add annotation
-    ax.text(
-        0.95,
-        0.05,
-        "Darker bars indicate\nlarger populations",
-        transform=ax.transAxes,
-        fontsize=8,
-        verticalalignment="bottom",
-        horizontalalignment="right",
-        style="italic",
-        color=COLORS["gray"],
-    )
-
-    plt.tight_layout()
+    fig.tight_layout(pad=0.4)
     save_figure(fig, "fig_02_concentration")
 
 
@@ -461,6 +481,7 @@ def create_figure_04_structural_breaks() -> None:
 
     # Pre-2020 trend line
     pre_mask = years < 2020
+    pre_years = years[pre_mask]
     z_pre = np.polyfit(years[pre_mask], migration[pre_mask], 1)
     p_pre = np.poly1d(z_pre)
     ax1.plot(
@@ -469,11 +490,12 @@ def create_figure_04_structural_breaks() -> None:
         "--",
         color=COLORS["orange"],
         linewidth=1.5,
-        label="Pre-2020 trend",
+        label=f"Pre-break trend ({pre_years.min()}-{pre_years.max()})",
     )
 
     # Post-2020 trend line
     post_mask = years >= 2020
+    post_years = years[post_mask]
     z_post = np.polyfit(years[post_mask], migration[post_mask], 1)
     p_post = np.poly1d(z_post)
     ax1.plot(
@@ -482,20 +504,29 @@ def create_figure_04_structural_breaks() -> None:
         "--",
         color=COLORS["green"],
         linewidth=1.5,
-        label="Post-2020 trend",
+        label=f"Post-break trend ({post_years.min()}-{post_years.max()})",
     )
 
     # Mark break points
-    ax1.axvline(x=2020, color=COLORS["red"], linestyle=":", linewidth=1.2, alpha=0.8)
+    ax1.axvline(
+        x=2020,
+        color=COLORS["red"],
+        linestyle=":",
+        linewidth=1.2,
+        alpha=0.8,
+        label="Candidate break (2020)",
+    )
 
     # Add annotation
     ax1.annotate(
-        f'Chow test:\nF = {chow_2020["f_statistic"]:.2f}\np = {chow_2020["p_value"]:.4f}***',
+        "Chow test:\n"
+        f"F = {chow_2020['f_statistic']:.2f}\n"
+        f"p = {chow_2020['p_value']:.4f}",
         xy=(2020, migration[years == 2020][0] if 2020 in years else 0),
-        xytext=(2016, 4000),
+        xytext=(2017.0, 3900),
         arrowprops=dict(arrowstyle="->", color=COLORS["gray"], lw=0.8),
         fontsize=8,
-        ha="center",
+        ha="left",
         bbox=dict(
             boxstyle="round", facecolor="white", edgecolor=COLORS["gray"], alpha=0.9
         ),
@@ -519,7 +550,8 @@ def create_figure_04_structural_breaks() -> None:
 
     # Generate x-values for CUSUM (recursive residuals start later)
     n_cusum = len(cusum_values)
-    cusum_x = np.arange(1, n_cusum + 1)
+    cusum_years = years[2 : 2 + n_cusum] if len(years) >= n_cusum + 2 else None
+    cusum_x = cusum_years if cusum_years is not None else np.arange(1, n_cusum + 1)
 
     ax2.plot(
         cusum_x,
@@ -535,7 +567,7 @@ def create_figure_04_structural_breaks() -> None:
         "--",
         color=COLORS["red"],
         linewidth=1.0,
-        label="95% critical bounds",
+        label="95% bounds (α=0.05)",
     )
     ax2.plot(cusum_x, lower_bounds, "--", color=COLORS["red"], linewidth=1.0)
     ax2.fill_between(
@@ -543,30 +575,16 @@ def create_figure_04_structural_breaks() -> None:
     )
     ax2.axhline(y=0, color="black", linewidth=0.5)
 
-    ax2.set_xlabel("Recursive residual index")
+    if cusum_years is not None:
+        ax2.set_xlabel("Year (recursive residual)")
+        ax2.set_xticks(cusum_years[::2])
+    else:
+        ax2.set_xlabel("Recursive residual index")
     ax2.set_ylabel("CUSUM")
     ax2.set_title(
         "(B) CUSUM Test for Parameter Stability", fontsize=11, fontweight="bold"
     )
     ax2.legend(loc="upper left", framealpha=0.9)
-
-    # Add stability conclusion
-    stability_text = "Stable" if cusum_data["stable"] else "Unstable"
-    ax2.text(
-        0.95,
-        0.05,
-        f"Parameters: {stability_text}",
-        transform=ax2.transAxes,
-        fontsize=9,
-        verticalalignment="bottom",
-        horizontalalignment="right",
-        bbox=dict(
-            boxstyle="round",
-            facecolor="lightgreen" if cusum_data["stable"] else "lightyellow",
-            edgecolor=COLORS["gray"],
-            alpha=0.9,
-        ),
-    )
 
     plt.tight_layout()
     save_figure(fig, "fig_04_structural_breaks")
@@ -797,8 +815,7 @@ def create_figure_06_event_study() -> None:
     ax.text(
         0.95,
         0.95,
-        f"Pre-trend test: F = {pre_trend['f_statistic']:.2f}\n"
-        f"p = {pre_trend_p_label}",
+        f"Pre-trend test: F = {pre_trend['f_statistic']:.2f}\np = {pre_trend_p_label}",
         transform=ax.transAxes,
         fontsize=8,
         verticalalignment="top",
@@ -830,7 +847,7 @@ def create_figure_06_event_study() -> None:
         0.95,
         0.05,
         f"ATT = {att['coefficient']:.2f} (p = {att_p_label}{att_sig})\n"
-        f'Effect: {did_data["percentage_effect"]["estimate"]:.1f}% reduction',
+        f"Effect: {did_data['percentage_effect']['estimate']:.1f}% reduction",
         transform=ax.transAxes,
         fontsize=8,
         verticalalignment="bottom",
@@ -935,7 +952,11 @@ def create_fig_app_event_study_extended() -> None:
     pre_trend = event_study.get("pre_trend_test", {})
     p_val = pre_trend.get("p_value")
     p_label = (
-        "<0.001" if p_val is not None and p_val < 0.001 else f"{p_val:.3f}" if p_val is not None else "NA"
+        "<0.001"
+        if p_val is not None and p_val < 0.001
+        else f"{p_val:.3f}"
+        if p_val is not None
+        else "NA"
     )
     ax.text(
         0.98,
@@ -1023,7 +1044,7 @@ def create_figure_07_survival() -> None:
                 surv,
                 linewidth=1.5,
                 color=quartile_colors[quartile],
-                label=f'{quartile} (n={info["n_subjects"]}, med={median:.1f}yr)',
+                label=f"{quartile} (n={info['n_subjects']}, med={median:.1f}yr)",
             )
 
     ax.set_xlabel("Duration (years)")
@@ -1051,7 +1072,9 @@ def create_figure_07_survival() -> None:
     ax.text(
         0.05,
         0.05,
-        rf'Log-rank test: $\chi^2$ = {log_rank["test_statistic"]:.1f}' "\n" f"{p_label}",
+        rf"Log-rank test: $\chi^2$ = {log_rank['test_statistic']:.1f}"
+        "\n"
+        f"{p_label}",
         transform=ax.transAxes,
         fontsize=8,
         verticalalignment="bottom",
@@ -1086,45 +1109,48 @@ def create_figure_08_scenarios() -> None:
     # Historical data
     hist_years = nd_data["year"].values
     hist_migration = nd_data["nd_intl_migration"].values
+    hist_last_year = int(hist_years.max())
+    hist_last_value = float(hist_migration[hist_years == hist_last_year][0])
 
     # Projection parameters
-    base_year = 2024
     proj_years = np.arange(2025, 2046)
-    base_value = hist_migration[hist_years == base_year][0]
 
     # Extract scenario parameters
     mc_results = scenario_data["results"]["monte_carlo"]
-    ci_data = scenario_data["results"]["confidence_intervals"]
-    baseline_ci = ci_data["baseline_only"]
-    wave_ci = ci_data["wave_adjusted"]
+    baseline_mc = pd.read_parquet(RESULTS_DIR / "module_9_monte_carlo_baseline.parquet")
+    wave_mc = pd.read_parquet(RESULTS_DIR / "module_9_monte_carlo.parquet")
 
     # Create figure
-    fig, ax = plt.subplots(figsize=(6.5, 5))
+    fig, ax = plt.subplots(figsize=(7.25, 5.25))
 
     # Plot historical data
-    ax.plot(
+    scenario_handles: list[Any] = []
+    scenario_labels: list[str] = []
+    (hist_handle,) = ax.plot(
         hist_years,
         hist_migration,
         "o-",
         color="black",
         linewidth=1.5,
         markersize=4,
-        label="Historical",
+        zorder=6,
     )
+    scenario_handles.append(hist_handle)
+    scenario_labels.append("Historical")
 
-    scenario_order = [
-        "cbo_full",
-        "moderate",
-        "immigration_policy",
-        "pre_2020_trend",
-        "zero",
-    ]
+    # Note: the "zero" counterfactual is a flat line at y=0 and provides little
+    # additional information in this fan chart. It is intentionally omitted for
+    # readability (it remains documented and tabulated elsewhere in the manuscript).
+    scenario_order = ["cbo_full", "moderate", "immigration_policy", "pre_2020_trend"]
     scenario_colors = {
         "cbo_full": COLORS["blue"],
         "moderate": COLORS["green"],
         "immigration_policy": COLORS["cyan"],
         "zero": COLORS["gray"],
         "pre_2020_trend": COLORS["orange"],
+    }
+    scenario_display_names = {
+        "immigration_policy": "Restrictive policy (0.65× Moderate)",
     }
 
     for scenario_code in scenario_order:
@@ -1134,71 +1160,127 @@ def create_figure_08_scenarios() -> None:
         if scenario_subset.empty:
             continue
 
-        ax.plot(
+        # A few scenarios are intentionally anchored away from the final historical year
+        # (e.g., CBO scaling, pre-2020 counterfactual, and immediate policy multipliers).
+        # Draw a subtle connector to make the discontinuity visually explicit.
+        first_year = int(scenario_subset["year"].iloc[0])
+        first_value = float(scenario_subset["value"].iloc[0])
+        if first_year == hist_last_year + 1 and scenario_code in {
+            "cbo_full",
+            "immigration_policy",
+            "pre_2020_trend",
+        }:
+            ax.plot(
+                [hist_last_year, first_year],
+                [hist_last_value, first_value],
+                linestyle=":",
+                linewidth=1.0,
+                alpha=0.7,
+                color=scenario_colors.get(scenario_code, COLORS["gray"]),
+                label="_nolegend_",
+                zorder=4,
+            )
+
+        (scenario_handle,) = ax.plot(
             scenario_subset["year"].values,
             scenario_subset["value"].values,
             "-",
             color=scenario_colors.get(scenario_code, COLORS["gray"]),
             linewidth=1.5,
-            label=scenario_subset["scenario_name"].iloc[0],
+            zorder=5,
+        )
+        scenario_handles.append(scenario_handle)
+        scenario_labels.append(
+            scenario_display_names.get(
+                scenario_code, str(scenario_subset["scenario_name"].iloc[0])
+            )
         )
 
-    # Two-band Monte Carlo uncertainty:
+    # Two-band Monte Carlo uncertainty (year-specific percentiles):
     # - baseline-only PI (inner band)
     # - wave-adjusted envelope (outer band)
     mc_median_baseline = mc_results["baseline_only"]["median_2045"]
     mc_median_wave = mc_results["wave_adjusted"]["median_2045"]
-    ci_95_baseline = baseline_ci["ci_95"]["2045"]
-    ci_50_baseline = baseline_ci["ci_50"]["2045"]
-    ci_95_wave = wave_ci["ci_95"]["2045"]
+    baseline_mc = baseline_mc.set_index("year").sort_index()
+    wave_mc = wave_mc.set_index("year").sort_index()
 
-    # Create smooth bands from base to 2045
-    t_proj = np.linspace(0, len(proj_years) - 1, len(proj_years))
+    missing_baseline_years = [
+        int(y) for y in proj_years if int(y) not in baseline_mc.index
+    ]
+    missing_wave_years = [int(y) for y in proj_years if int(y) not in wave_mc.index]
+    if missing_baseline_years:
+        raise ValueError(
+            "Baseline Monte Carlo percentiles missing years: "
+            f"{missing_baseline_years} (expected {int(proj_years[0])}--{int(proj_years[-1])})"
+        )
+    if missing_wave_years:
+        raise ValueError(
+            "Wave-adjusted Monte Carlo percentiles missing years: "
+            f"{missing_wave_years} (expected {int(proj_years[0])}--{int(proj_years[-1])})"
+        )
 
-    # Lower and upper bounds (linear interpolation for visualization)
-    lower_95_wave = base_value + (ci_95_wave[0] - base_value) * t_proj / (
-        len(proj_years) - 1
-    )
-    upper_95_wave = base_value + (ci_95_wave[1] - base_value) * t_proj / (
-        len(proj_years) - 1
-    )
-    lower_95 = base_value + (ci_95_baseline[0] - base_value) * t_proj / (
-        len(proj_years) - 1
-    )
-    upper_95 = base_value + (ci_95_baseline[1] - base_value) * t_proj / (
-        len(proj_years) - 1
-    )
-    lower_50 = base_value + (ci_50_baseline[0] - base_value) * t_proj / (
-        len(proj_years) - 1
-    )
-    upper_50 = base_value + (ci_50_baseline[1] - base_value) * t_proj / (
-        len(proj_years) - 1
-    )
+    # Baseline-only bands: 50% = [p25, p75], 95% = [p5, p95]
+    lower_50 = baseline_mc.loc[proj_years, "p25"].to_numpy()
+    upper_50 = baseline_mc.loc[proj_years, "p75"].to_numpy()
+    lower_95 = baseline_mc.loc[proj_years, "p5"].to_numpy()
+    upper_95 = baseline_mc.loc[proj_years, "p95"].to_numpy()
+    median_50 = baseline_mc.loc[proj_years, "p50"].to_numpy()
 
-    # Plot bands
-    ax.fill_between(
-        proj_years,
-        lower_95_wave,
-        upper_95_wave,
-        alpha=0.12,
-        color=COLORS["blue"],
-        label="95% Envelope (wave-adjusted)",
-    )
+    # Wave-adjusted envelope: 95% = [p5, p95]
+    lower_95_wave = wave_mc.loc[proj_years, "p5"].to_numpy()
+    upper_95_wave = wave_mc.loc[proj_years, "p95"].to_numpy()
+
+    # Plot uncertainty as a standard fan chart:
+    # - baseline-only pointwise prediction intervals (50% and 95%)
+    # - baseline median line
+    # - wave-adjusted 95% envelope as dashed bounds
+    band_95_color = "#D9D9D9"
+    band_50_color = "#BDBDBD"
+    band_95_alpha = 0.55
+    band_50_alpha = 0.75
+    median_color = "#4D4D4D"
+    wave_color = "#7F7F7F"
+
     ax.fill_between(
         proj_years,
         lower_95,
         upper_95,
-        alpha=0.15,
-        color=COLORS["blue"],
-        label="95% PI (baseline)",
+        alpha=band_95_alpha,
+        color=band_95_color,
+        linewidth=0,
+        zorder=1,
     )
     ax.fill_between(
         proj_years,
         lower_50,
         upper_50,
-        alpha=0.25,
-        color=COLORS["blue"],
-        label="50% PI (baseline)",
+        alpha=band_50_alpha,
+        color=band_50_color,
+        linewidth=0,
+        zorder=2,
+    )
+    ax.plot(
+        proj_years,
+        median_50,
+        color=median_color,
+        linewidth=2,
+        zorder=3,
+    )
+    ax.plot(
+        proj_years,
+        lower_95_wave,
+        color=wave_color,
+        linestyle="--",
+        linewidth=1.2,
+        zorder=2,
+    )
+    ax.plot(
+        proj_years,
+        upper_95_wave,
+        color=wave_color,
+        linestyle="--",
+        linewidth=1.2,
+        zorder=2,
     )
 
     # Add vertical line at forecast start
@@ -1216,7 +1298,35 @@ def create_figure_08_scenarios() -> None:
     )
     ax.set_xlim(2009, 2046)
     ax.set_ylim(bottom=0)
-    ax.legend(loc="upper left", fontsize=8, framealpha=0.9, ncol=2)
+    uncertainty_handles = [
+        Line2D(
+            [0],
+            [0],
+            color=median_color,
+            linewidth=2,
+            label="Baseline median (MC)",
+        ),
+        Patch(
+            facecolor=band_50_color,
+            edgecolor="none",
+            alpha=band_50_alpha,
+            label="50% PI (baseline)",
+        ),
+        Patch(
+            facecolor=band_95_color,
+            edgecolor="none",
+            alpha=band_95_alpha,
+            label="95% PI (baseline)",
+        ),
+        Line2D(
+            [0],
+            [0],
+            color=wave_color,
+            linestyle="--",
+            linewidth=1.2,
+            label="Wave-adjusted 95% envelope",
+        ),
+    ]
 
     # Add 2045 endpoint annotations
     endpoints = (
@@ -1232,26 +1342,38 @@ def create_figure_08_scenarios() -> None:
             [endpoints[scenario_code]],
             color=scenario_colors.get(scenario_code, COLORS["gray"]),
             s=30,
-            zorder=5,
+            zorder=7,
         )
 
     # Add Monte Carlo note
     ax.text(
-        0.95,
-        0.05,
-        f'Monte Carlo: n = {mc_results["n_draws"]:,}\n'
-        f'2045 median (baseline): {mc_median_baseline:,.0f}\n'
-        f'2045 median (wave-adj): {mc_median_wave:,.0f}',
+        0.02,
+        0.98,
+        f"Monte Carlo: n = {mc_results['n_draws']:,}\n"
+        f"2045 median (baseline): {mc_median_baseline:,.0f}\n"
+        f"2045 median (wave-adj): {mc_median_wave:,.0f}",
         transform=ax.transAxes,
         fontsize=8,
-        verticalalignment="bottom",
-        horizontalalignment="right",
+        verticalalignment="top",
+        horizontalalignment="left",
         bbox=dict(
             boxstyle="round", facecolor="white", edgecolor=COLORS["gray"], alpha=0.9
         ),
     )
 
-    plt.tight_layout()
+    combined_handles = scenario_handles + uncertainty_handles
+    combined_labels = scenario_labels + [h.get_label() for h in uncertainty_handles]
+    ax.legend(
+        handles=combined_handles,
+        labels=combined_labels,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.18),
+        ncol=2,
+        fontsize=8,
+        framealpha=0.9,
+    )
+
+    fig.tight_layout()
     save_figure(fig, "fig_08_scenarios")
 
 
@@ -1269,14 +1391,14 @@ def create_figure_captions() -> None:
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_01_timeseries.pdf}
-\caption{International migration to North Dakota, 2010--2024. Panel~(A) shows annual migration flows with a quadratic trend line. Panel~(B) displays North Dakota's share of total U.S.\ international migration, with the solid line showing observed values and the dashed line indicating the HP filter trend component ($\lambda = 6.25$). Vertical dotted lines mark identified structural breaks at 2020 (COVID-19 pandemic) and 2021 (recovery period), both significant at $p < 0.01$ using Chow tests.}
+\caption{International migration to North Dakota, 2010--2024. Panel~(A) shows annual net international migration (persons) with a quadratic trend line. Panel~(B) displays North Dakota's share of total U.S.\ net international migration, with the solid line showing observed values and the dashed line indicating the HP filter trend component ($\lambda = 6.25$). Vertical dotted lines mark candidate break years tested via Chow tests at 2020 (COVID-19 pandemic) and 2021 (post-pandemic period), both significant at $p < 0.01$.}
 \label{fig:timeseries}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_02_concentration.pdf}
-\caption{Geographic concentration of foreign-born population in North Dakota by country of origin (2023). Bars show location quotients (LQ), where LQ $> 1$ indicates overrepresentation relative to the national average. The dashed vertical line marks LQ $= 1$. Countries are sorted by LQ value; bar intensity reflects population size (darker indicates larger foreign-born population in North Dakota). Liberia, Ivory Coast, Somalia, and Tanzania show the highest concentration relative to their national presence.}
+\caption{Geographic concentration of foreign-born population in North Dakota by origin (2023). Bars show location quotients (LQ), defined as the ratio of an origin's share of North Dakota's foreign-born population to its share of the U.S.\ foreign-born population: $\mathrm{LQ}_i = (FB_{i,\mathrm{ND}}/FB_{\mathrm{ND}})\,/\,(FB_{i,\mathrm{US}}/FB_{\mathrm{US}})$. Values $> 1$ indicate overrepresentation relative to the national average; the dashed vertical line marks LQ $= 1$. Origins are sorted by LQ value; bar intensity reflects population size (darker indicates larger foreign-born population in North Dakota). Numbers at bar ends show the origin-specific foreign-born population in North Dakota (persons). Liberia, Ivory Coast, Somalia, and Tanzania show the highest concentration relative to their national presence.}
 \label{fig:concentration}
 \end{figure}
 
@@ -1290,7 +1412,7 @@ def create_figure_captions() -> None:
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_04_structural_breaks.pdf}
-\caption{Structural break analysis for North Dakota international migration. Panel~(A) shows the time series with segmented regression fits before and after 2020, with Chow test statistics indicating a significant break ($F = 16.01$, $p < 0.001$). Panel~(B) displays the CUSUM test for parameter stability, where the test statistic (solid line) remains within the 95\% critical bounds (dashed lines), suggesting overall parameter stability despite the level shift.}
+\caption{Structural break diagnostics for North Dakota international migration. Panel~(A) shows annual net international migration with separate linear fits for 2010--2019 and 2020--2024; the vertical dotted line marks the candidate break year (2020). The Chow test rejects equality of pre/post trend parameters at 2020 ($F = 16.01$, $p = 0.0006$). Panel~(B) displays the CUSUM test for parameter stability; the statistic remains within the 95\% bounds (dashed lines), so we do not reject stability at $\alpha = 0.05$. Because the series contains only 15 annual observations, these diagnostics have limited power and should be interpreted cautiously.}
 \label{fig:breaks}
 \end{figure}
 
@@ -1318,7 +1440,7 @@ def create_figure_captions() -> None:
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_08_scenarios.pdf}
-\caption{Projection scenarios for North Dakota international migration, 2025--2045. Five scenarios are shown: CBO Full (2025--2029 at 1.1$\times$ ARIMA, then 8\% annual growth), Moderate (dampened historical trend), Immigration Policy (0.65$\times$ Moderate), Zero (counterfactual with no international migration), and Pre-2020 Trend (anchored to 2019 with the 2010--2019 slope). Shaded bands represent (i) baseline-only 50\% and 95\% prediction intervals from 1,000 Monte Carlo simulations and (ii) an outer 95\% wave-adjusted uncertainty envelope that adds hazard-based wave persistence draws. The wave-adjusted envelope should be interpreted as conservative because wave-driven variation may already be reflected in baseline forecast uncertainty. Historical data (2010--2024) shown with black circles. The vertical dashed line separates historical observations from projections.}
+\caption{Projection scenarios for North Dakota international migration, 2025--2045. The figure shows four non-zero scenario paths: CBO (Jan 2026) Baseline (CBO national net immigration projection scaled by North Dakota's mean share of U.S.\ net international migration in the \PEP series), Moderate (dampened historical trend), Restrictive policy (0.65$\times$ Moderate), and Pre-2020 Trend (anchored to 2019 with the 2010--2019 slope). The Zero counterfactual (no international migration) is a flat line at $y=0$ and is omitted from the plot for readability but remains part of the scenario set reported in Table~\ref{tab:scenarios}. Shaded bands show baseline-only pointwise prediction intervals from Monte Carlo simulations: the dark band is the central 50\% interval (25th--75th percentiles) and the light band is the central 95\% interval (5th--95th percentiles). The solid gray line is the baseline median. Dashed lines show a wave-adjusted 95\% envelope that adds hazard-based wave persistence draws; this envelope is conservative because wave-driven variation may already be reflected in baseline forecast uncertainty. Because some scenarios are intentionally anchored away from the final historical year (e.g., external CBO scaling, pre-2020 counterfactual anchoring, or immediate policy multipliers), paths may be discontinuous at 2025; dotted connectors indicate the change from the 2024 observation to each scenario's 2025 starting value. Pointwise intervals should not be interpreted as guaranteeing that 95\% of full simulated trajectories lie entirely within the band across all horizons. Historical data (2010--2024) shown with black circles. The vertical dashed line separates historical data from projections.}
 \label{fig:scenarios}
 \end{figure}
 """
@@ -1327,9 +1449,7 @@ def create_figure_captions() -> None:
     try:
         scenario_data = load_json("module_9_scenario_modeling.json")
         n_draws = (
-            scenario_data.get("results", {})
-            .get("monte_carlo", {})
-            .get("n_draws", 1000)
+            scenario_data.get("results", {}).get("monte_carlo", {}).get("n_draws", 1000)
         )
         captions = captions.replace(
             "1,000 Monte Carlo simulations", f"{int(n_draws):,} Monte Carlo simulations"

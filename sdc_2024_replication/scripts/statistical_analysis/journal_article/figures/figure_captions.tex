@@ -5,14 +5,14 @@
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_01_timeseries.pdf}
-\caption{International migration to North Dakota, 2010--2024. Panel~(A) shows annual migration flows with a quadratic trend line. Panel~(B) displays North Dakota's share of total U.S.\ international migration, with the solid line showing observed values and the dashed line indicating the HP filter trend component ($\lambda = 6.25$). Vertical dotted lines mark identified structural breaks at 2020 (COVID-19 pandemic) and 2021 (recovery period), both significant at $p < 0.01$ using Chow tests.}
+\caption{International migration to North Dakota, 2010--2024. Panel~(A) shows annual net international migration (persons) with a quadratic trend line. Panel~(B) displays North Dakota's share of total U.S.\ net international migration, with the solid line showing observed values and the dashed line indicating the HP filter trend component ($\lambda = 6.25$). Vertical dotted lines mark candidate break years tested via Chow tests at 2020 (COVID-19 pandemic) and 2021 (post-pandemic period), both significant at $p < 0.01$.}
 \label{fig:timeseries}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_02_concentration.pdf}
-\caption{Geographic concentration of foreign-born population in North Dakota by country of origin (2023). Bars show location quotients (LQ), where LQ $> 1$ indicates overrepresentation relative to the national average. The dashed vertical line marks LQ $= 1$. Countries are sorted by LQ value; bar intensity reflects population size (darker indicates larger foreign-born population in North Dakota). Liberia, Ivory Coast, Somalia, and Tanzania show the highest concentration relative to their national presence.}
+\caption{Geographic concentration of foreign-born population in North Dakota by origin (2023). Bars show location quotients (LQ), defined as the ratio of an origin's share of North Dakota's foreign-born population to its share of the U.S.\ foreign-born population: $\mathrm{LQ}_i = (FB_{i,\mathrm{ND}}/FB_{\mathrm{ND}})\,/\,(FB_{i,\mathrm{US}}/FB_{\mathrm{US}})$. Values $> 1$ indicate overrepresentation relative to the national average; the dashed vertical line marks LQ $= 1$. Origins are sorted by LQ value; bar intensity reflects population size (darker indicates larger foreign-born population in North Dakota). Numbers at bar ends show the origin-specific foreign-born population in North Dakota (persons). Liberia, Ivory Coast, Somalia, and Tanzania show the highest concentration relative to their national presence.}
 \label{fig:concentration}
 \end{figure}
 
@@ -26,7 +26,7 @@
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_04_structural_breaks.pdf}
-\caption{Structural break analysis for North Dakota international migration. Panel~(A) shows the time series with segmented regression fits before and after 2020, with Chow test statistics indicating a significant break ($F = 16.01$, $p < 0.001$). Panel~(B) displays the CUSUM test for parameter stability, where the test statistic (solid line) remains within the 95\% critical bounds (dashed lines), suggesting overall parameter stability despite the level shift.}
+\caption{Structural break diagnostics for North Dakota international migration. Panel~(A) shows annual net international migration with separate linear fits for 2010--2019 and 2020--2024; the vertical dotted line marks the candidate break year (2020). The Chow test rejects equality of pre/post trend parameters at 2020 ($F = 16.01$, $p = 0.0006$). Panel~(B) displays the CUSUM test for parameter stability; the statistic remains within the 95\% bounds (dashed lines), so we do not reject stability at $\alpha = 0.05$. Because the series contains only 15 annual observations, these diagnostics have limited power and should be interpreted cautiously.}
 \label{fig:breaks}
 \end{figure}
 
@@ -54,6 +54,6 @@
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_08_scenarios.pdf}
-\caption{Projection scenarios for North Dakota international migration, 2025--2045. Five scenarios are shown: CBO Full (2025--2029 at 1.1$\times$ ARIMA, then 8\% annual growth), Moderate (dampened historical trend), Immigration Policy (0.65$\times$ Moderate), Zero (counterfactual with no international migration), and Pre-2020 Trend (anchored to 2019 with the 2010--2019 slope). Shaded bands represent (i) baseline-only 50\% and 95\% prediction intervals from 25,000 Monte Carlo simulations and (ii) an outer 95\% wave-adjusted uncertainty envelope that adds hazard-based wave persistence draws. The wave-adjusted envelope should be interpreted as conservative because wave-driven variation may already be reflected in baseline forecast uncertainty. Historical data (2010--2024) shown with black circles. The vertical dashed line separates historical observations from projections.}
+\caption{Projection scenarios for North Dakota international migration, 2025--2045. The figure shows four non-zero scenario paths: CBO (Jan 2026) Baseline (CBO national net immigration projection scaled by North Dakota's mean share of U.S.\ net international migration in the \PEP series), Moderate (dampened historical trend), Restrictive policy (0.65$\times$ Moderate), and Pre-2020 Trend (anchored to 2019 with the 2010--2019 slope). The Zero counterfactual (no international migration) is a flat line at $y=0$ and is omitted from the plot for readability but remains part of the scenario set reported in Table~\ref{tab:scenarios}. Shaded bands show baseline-only pointwise prediction intervals from Monte Carlo simulations: the dark band is the central 50\% interval (25th--75th percentiles) and the light band is the central 95\% interval (5th--95th percentiles). The solid gray line is the baseline median. Dashed lines show a wave-adjusted 95\% envelope that adds hazard-based wave persistence draws; this envelope is conservative because wave-driven variation may already be reflected in baseline forecast uncertainty. Because some scenarios are intentionally anchored away from the final historical year (e.g., external CBO scaling, pre-2020 counterfactual anchoring, or immediate policy multipliers), paths may be discontinuous at 2025; dotted connectors indicate the change from the 2024 observation to each scenario's 2025 starting value. Pointwise intervals should not be interpreted as guaranteeing that 95\% of full simulated trajectories lie entirely within the band across all horizons. Historical data (2010--2024) shown with black circles. The vertical dashed line separates historical data from projections.}
 \label{fig:scenarios}
 \end{figure}

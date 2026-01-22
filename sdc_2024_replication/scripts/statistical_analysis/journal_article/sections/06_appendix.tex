@@ -182,26 +182,26 @@ KPSS & Constant only & 0.189 & $\ge 0.10$ & Fail to reject stationarity \\
 \end{tablenotes}
 \end{table}
 
-\subsection{Vintage-Regime Diagnostic for the Long-Run PEP Series}
+\subsection{Vintage Diagnostic for the Long-Run PEP Series}
 \label{app:pep_vintage_regime}
 
-Figure~\ref{fig:app_pep_regime_diagnostic} visualizes the long-run (2000--2024) PEP net international migration series for North Dakota, explicitly separating decennial-vintage measurement regimes and treating the COVID year (2020) as a one-year intervention. The purpose of this diagnostic is to clarify that the extended series is a \emph{spliced} measurement product, not a methodologically homogeneous time series, and to quantify regime-specific trend slopes used in robustness discussions.
+Figure~\ref{fig:app_pep_regime_diagnostic} visualizes the long-run (2000--2024) PEP net international migration series for North Dakota, explicitly separating decennial-vintage measurement periods and treating the COVID year (2020) as a one-year intervention. The purpose of this diagnostic is to clarify that the extended series is a \emph{spliced} measurement product, not a methodologically homogeneous time series, and to quantify vintage-specific trend slopes used in robustness discussions.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.90\textwidth]{figures/fig_app_pep_regime_diagnostic.png}
-\caption{Measurement-regime diagnostic for North Dakota PEP net international migration, 2000--2024. Points are colored by PEP vintage (2009/2020/2024). The fitted line reflects a piecewise (vintage-regime) trend model with a COVID-19 pulse intervention in 2020 and HAC (Newey--West) standard errors.}
+\caption{Measurement-vintage diagnostic for North Dakota PEP net international migration, 2000--2024. Points are colored by PEP vintage (2009/2020/2024). The fitted line reflects a piecewise (vintage-period) trend model with a COVID-19 pulse intervention in 2020 and HAC (Newey--West) standard errors.}
 \label{fig:app_pep_regime_diagnostic}
 \end{figure}
 
 \begin{table}[htbp]
 \centering
-\caption{Regime-Specific Trend Slopes in Long-Run PEP Series (Diagnostic)}
+\caption{Vintage-Specific Trend Slopes in Long-Run PEP Series (Diagnostic)}
 \label{tab:app_pep_regime_slopes}
 \small
 \begin{tabular}{@{}lccc@{}}
 \toprule
-\textbf{Regime (Years)} & \textbf{Slope} & \textbf{SE (HAC)} & \textbf{$p$-value} \\
+\textbf{Vintage (Years)} & \textbf{Slope} & \textbf{SE (HAC)} & \textbf{$p$-value} \\
 \midrule
 Vintage 2009 (2000--2009) & 39.2 & 17.8 & 0.028 \\
 Vintage 2020 (2010--2019) & 72.4 & 72.3 & 0.316 \\
@@ -210,7 +210,7 @@ Vintage 2024 (2020--2024) & 1500.1 & 191.6 & $< 0.001$ \\
 \end{tabular}
 \begin{tablenotes}
 \small
-\item \textit{Notes}: Slopes represent annual change in PEP net international migration (persons) within each decennial-vintage regime. Standard errors are HAC (Newey--West) with 2 lags. The model includes level shifts at vintage boundaries and a one-year COVID-19 pulse intervention for 2020. Replication artifacts: \texttt{\detokenize{sdc_2024_replication/scripts/statistical_analysis/results/module_B1_pep_regime_modeling.json}} and \texttt{\detokenize{sdc_2024_replication/scripts/statistical_analysis/results/module_B1_pep_regime_modeling_slopes.csv}}.
+\item \textit{Notes}: Slopes represent annual change in PEP net international migration (persons) within each decennial-vintage period. Standard errors are HAC (Newey--West) with 2 lags. The model includes level shifts at vintage boundaries and a one-year COVID-19 pulse intervention for 2020. Replication artifacts: \texttt{\detokenize{sdc_2024_replication/scripts/statistical_analysis/results/module_B1_pep_regime_modeling.json}} and \texttt{\detokenize{sdc_2024_replication/scripts/statistical_analysis/results/module_B1_pep_regime_modeling_slopes.csv}}.
 \end{tablenotes}
 \end{table}
 
@@ -222,7 +222,7 @@ As an appendix-only robustness check, we estimate a parsimonious state-space ``l
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.90\textwidth]{figures/fig_app_covariate_anchor_2025_2029.png}
-\caption{Appendix diagnostic: covariate-conditioned near-term forecast anchor (2025--2029). The baseline is the univariate ARIMA forecast used for the Moderate scenario's near-term anchor. The covariate-conditioned forecasts use a local-level state-space regression with lagged regressors (RPC refugee FY totals, DHS LPR FY totals; ACS B07007 sensitivity). Covariate paths beyond the last observed year are held constant (LOCF) to avoid embedding a separate long-horizon covariate-forecasting model. Replication artifacts: \texttt{\detokenize{sdc_2024_replication/scripts/statistical_analysis/results/module_app_covariate_anchor.json}} and \texttt{\detokenize{sdc_2024_replication/scripts/statistical_analysis/results/module_app_covariate_anchor_2025_2029.csv}}.}
+\caption{Appendix diagnostic: covariate-conditioned near-term forecast anchor (2025--2029). The baseline is the univariate ARIMA forecast used for the Moderate scenario's near-term anchor. The covariate-conditioned forecasts use a local-level state-space regression with lagged regressors (RPC refugee FY totals, DHS LPR FY totals; ACS B07007 sensitivity). Covariate paths beyond the last observed year are held constant (LOCF) to avoid embedding a separate long-horizon covariate-forecasting model. Shaded bands indicate 95\% prediction intervals for each forecast (baseline in gray; covariate-conditioned specifications in their corresponding colors).}
 \label{fig:app_covariate_anchor_2025_2029}
 \end{figure}
 
@@ -367,10 +367,9 @@ The parallel trends assumption is evaluated through multiple approaches:
 
 This section documents the update rules used to generate scenario paths in Module 9.
 
-\paragraph{CBO Full.} For 2025--2029, projections use 10\% above the ARIMA point forecasts. From 2030 onward, values compound at 8\% annually:
+\paragraph{CBO (Jan 2026).} This scenario scales the Congressional Budget Office's January 2026 national net immigration projection to North Dakota using the state's mean share of U.S.\ net international migration in the \PEP series (2010--2024):
 \begin{verbatim}
-cbo_t = 1.1 * arima_t   (t = 2025..2029)
-cbo_t = cbo_{t-1} * 1.08 (t >= 2030)
+nd_cbo_t = share_nd * cbo_us_t   (t = 2025..2045)
 \end{verbatim}
 
 \paragraph{Pre-2020 Trend.} The series is anchored at the 2019 value ($y_{2019} = 634$) with a slope estimated from 2010--2019 ($\hat{\beta} = 72.43$ per year):
@@ -485,12 +484,12 @@ Figure~\ref{fig:app_state_distribution} displays the distribution of \PEP net in
 
 \subsection{Extended Travel Ban Event Study (Supplemental)}
 
-Figure~\ref{fig:app_event_study_extended} extends the nationality-level Travel Ban event study through FY2024. Coefficients after FY2019 should be interpreted as treated--control divergence across overlapping regimes (COVID-19 disruptions, formal rescission in 2021, and USRAP rebuilding), not as a causal Travel Ban effect.
+Figure~\ref{fig:app_event_study_extended} extends the nationality-level Travel Ban event study through FY2024. Coefficients after FY2019 should be interpreted as treated--control divergence across overlapping shocks and policy periods (COVID-19 disruptions, formal rescission in 2021, and USRAP rebuilding), not as a causal Travel Ban effect.
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=0.9\textwidth]{figures/fig_app_event_study_extended.pdf}
-\caption{Extended event study coefficients for treated Travel Ban nationalities (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) relative to control nationalities, using FY2017 as the reference period ($t=-1$). Shaded bands mark post-2017 regime blocks for visual context only. This figure is a supplemental descriptive extension: post-2020 estimates do not represent a standalone Travel Ban causal effect because FY2020--FY2024 overlap multiple confounding shocks and the Travel Ban was formally rescinded in 2021.}
+\caption{Extended event study coefficients for treated Travel Ban nationalities (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) relative to control nationalities, using FY2017 as the reference period ($t=-1$). Shaded bands mark post-2017 policy-period blocks for visual context only. This figure is a supplemental descriptive extension: post-2020 estimates do not represent a standalone Travel Ban causal effect because FY2020--FY2024 overlap multiple confounding shocks and the Travel Ban was formally rescinded in 2021.}
 \label{fig:app_event_study_extended}
 \end{figure}
 
