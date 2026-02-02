@@ -28,30 +28,31 @@ This project implements cohort component population projections for North Dakota
 
 **When asked to "work on the next task", do this:**
 
-### Task: Generate High/Low Growth Scenarios & Final Reports
+### Task: Documentation Polish and Optional Enhancements
 
-**Priority:** MEDIUM
-**Type:** Scenario Analysis & Reporting
+**Priority:** LOW
+**Type:** Documentation & Polish
 
 **Overview:**
-The baseline projection for all 53 counties is complete. The next step is to run alternative scenarios (high growth, low growth) and generate final reports and visualizations.
+Core projection system is complete. Remaining work is documentation polish and optional enhancements.
 
 **Before Starting:**
-1. Review: `data/projections/baseline/county/` - 53 county projection files
-2. Check: `config/projection_config.yaml` - Scenario definitions
-3. Read: `scripts/pipeline/03_export_results.py` - Export script
+1. Review: `docs/guides/` - Existing documentation guides
+2. Check: `AGENTS.md` - Agent guidance document
+3. Review: Test coverage with `pytest --cov`
 
-**Steps:**
-1. Run high growth scenario (fertility +10%, migration +25%)
-2. Run low growth scenario (fertility -10%, migration -25%)
-3. Generate Excel reports with all scenarios
-4. Create population pyramid visualizations
-5. Generate summary statistics reports
+**Potential Tasks:**
+1. Write user guide for running complete system
+2. Create production deployment guide
+3. Document methodology with mathematical formulas
+4. Complete TIGER geographic data loading (optional)
+5. Implement geospatial shapefile export (optional)
+6. Add place-level projections (optional)
 
 **Success Criteria:**
-- All 3 scenarios complete for 53 counties
-- Excel workbooks with comparison charts
-- Visualization files in `data/output/visualizations/`
+- All documentation up to date
+- All tests passing
+- Pre-commit hooks passing
 
 ---
 
@@ -61,7 +62,8 @@ The baseline projection for all 53 counties is complete. The next step is to run
 |--------|-------|--------|----------|-------|
 | ADR-021 Phase B | Complete | **Done** | 100% | All 8 recommendations implemented |
 | SPRINT_ANALYSIS_B_INFRASTRUCTURE | B | Complete | 100% | Refactored Analysis Scripts, Archived Legacy Code |
-| SPRINT_ANALYSIS_B_001 | B | Active | 10% | Deep Research (Manual), Revision v0.8.5 Polish |
+| SPRINT_ANALYSIS_B_001 | B | Complete | 100% | Deep Research (Manual), Revision v0.8.5 Polish |
+| Repository Hygiene | - | Complete | 100% | Documentation guides added, AGENTS.md established |
 
 ## Recently Completed: ADR-021 Policy Integration (2026-01-02)
 
@@ -124,7 +126,9 @@ Tasks for current phase. States: `[ ]` pending | `[x]` complete
 - [ ] Write user guide for running complete system
 - [ ] Create production deployment guide
 - [ ] Document methodology with mathematical formulas
-- [ ] Add troubleshooting guide
+- [x] Add troubleshooting guide (docs/guides/troubleshooting.md)
+- [x] Add data sources workflow guide (docs/guides/data-sources-workflow.md)
+- [x] Add geographic hierarchy reference (docs/reference/geographic-hierarchy.md)
 
 ### v0.8.6 Critique Implementation
 
@@ -463,5 +467,5 @@ python scripts/projections/run_all_projections.py
 - Drafted ADR-024 for immigration data extension and fusion strategy.
 - Location: `docs/governance/adrs/024-immigration-data-extension-fusion.md`.
 
-**Last Updated:** 2026-01-04
-**Tracker Status:** Phase B infrastructure implementation in progress
+**Last Updated:** 2026-02-02
+**Tracker Status:** Production complete, documentation polish in progress
