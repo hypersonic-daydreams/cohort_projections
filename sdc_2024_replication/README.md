@@ -114,8 +114,10 @@ sdc_2024_replication/
 │
 ├── scripts/                       # Projection and analysis scripts
 │   ├── projection_engine.py       # Core SDC methodology implementation
-│   ├── run_both_variants.py       # Run Original + Updated variants
-│   ├── run_three_variants.py      # Run all three variants
+│   ├── run_all_variants.py        # RECOMMENDED: Run any/all variants
+│   ├── run_both_variants.py       # (deprecated) Run Original + Updated
+│   ├── run_three_variants.py      # (deprecated) Run all three variants
+│   ├── run_replication.py         # (deprecated) Run Original only
 │   ├── analyze_migration_components.py   # Census data analysis
 │   └── prepare_immigration_policy_data.py # Create policy variant data
 │
@@ -130,20 +132,34 @@ sdc_2024_replication/
 
 ## Running Projections
 
-### Run All Three Variants
+**For quick start instructions, see [GETTING_STARTED.md](GETTING_STARTED.md).**
+
+### Recommended: Use run_all_variants.py
 
 ```bash
 cd sdc_2024_replication/scripts
-python run_three_variants.py
+
+# Run all variants (default)
+python run_all_variants.py
+
+# Run specific variant(s)
+python run_all_variants.py --variant original
+python run_all_variants.py --variant updated
+python run_all_variants.py --variant policy
+python run_all_variants.py --variant original --variant updated
+
+# List available variants
+python run_all_variants.py --list
 ```
 
 This produces `output/three_variant_comparison.csv` with all variants side-by-side.
 
-### Run Original + Updated Only
+### Deprecated Scripts
 
-```bash
-python run_both_variants.py
-```
+The following scripts are deprecated but maintained for backwards compatibility:
+- `run_replication.py` - Use `run_all_variants.py --variant original`
+- `run_both_variants.py` - Use `run_all_variants.py --variant original --variant updated`
+- `run_three_variants.py` - Use `run_all_variants.py --all`
 
 ### Regenerate Immigration Policy Data
 

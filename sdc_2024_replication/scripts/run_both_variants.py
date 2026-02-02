@@ -2,6 +2,10 @@
 """
 SDC 2024 Replication: Run Both Methodology Variants and Compare
 
+DEPRECATED: This script is deprecated. Please use run_all_variants.py instead.
+
+    python run_all_variants.py --variant original --variant updated
+
 This script runs both the original data variant and the updated data variant
 of the SDC 2024 population projection methodology, then produces a comparison
 table showing results side-by-side with SDC official projections.
@@ -16,6 +20,20 @@ Date: 2025-12-28
 # mypy: disable-error-code="assignment"
 
 from __future__ import annotations
+
+import warnings
+
+warnings.warn(
+    "run_both_variants.py is deprecated. "
+    "Use run_all_variants.py --variant original --variant updated instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+print(
+    "\n*** DEPRECATION WARNING ***\n"
+    "This script is deprecated. Please use run_all_variants.py instead:\n"
+    "    python run_all_variants.py --variant original --variant updated\n"
+)
 
 import logging
 from pathlib import Path

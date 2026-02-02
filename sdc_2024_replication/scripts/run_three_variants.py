@@ -2,6 +2,12 @@
 """
 SDC 2024 Replication: Run All Three Methodology Variants and Compare
 
+DEPRECATED: This script is deprecated. Please use run_all_variants.py instead.
+
+    python run_all_variants.py --all
+    # or simply
+    python run_all_variants.py
+
 This script runs all three variants of the SDC 2024 population projection methodology:
 1. Original Data Variant: Uses data from data/ directory, base year 2020
 2. Updated Data Variant: Uses data from data_updated/ directory, base year 2024
@@ -13,6 +19,21 @@ Date: 2025-12-28
 # mypy: disable-error-code="assignment"
 
 from __future__ import annotations
+
+import warnings
+
+warnings.warn(
+    "run_three_variants.py is deprecated. Use run_all_variants.py instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+print(
+    "\n*** DEPRECATION WARNING ***\n"
+    "This script is deprecated. Please use run_all_variants.py instead:\n"
+    "    python run_all_variants.py --all\n"
+    "    # or simply\n"
+    "    python run_all_variants.py\n"
+)
 
 import logging
 from pathlib import Path
@@ -196,7 +217,7 @@ def main() -> None:
         end_year=end_year,
     )
     print(
-        f"  2050 projection: {original_outputs.state_totals[original_outputs.state_totals['year']==2050]['population'].values[0]:,.0f}"
+        f"  2050 projection: {original_outputs.state_totals[original_outputs.state_totals['year'] == 2050]['population'].values[0]:,.0f}"
     )
 
     # =========================================================================
@@ -218,7 +239,7 @@ def main() -> None:
         projection_years=updated_projection_years,
     )
     print(
-        f"  2050 projection: {updated_outputs.state_totals[updated_outputs.state_totals['year']==2050]['population'].values[0]:,.0f}"
+        f"  2050 projection: {updated_outputs.state_totals[updated_outputs.state_totals['year'] == 2050]['population'].values[0]:,.0f}"
     )
 
     # =========================================================================
@@ -239,7 +260,7 @@ def main() -> None:
         projection_years=updated_projection_years,
     )
     print(
-        f"  2050 projection: {policy_outputs.state_totals[policy_outputs.state_totals['year']==2050]['population'].values[0]:,.0f}"
+        f"  2050 projection: {policy_outputs.state_totals[policy_outputs.state_totals['year'] == 2050]['population'].values[0]:,.0f}"
     )
 
     # =========================================================================

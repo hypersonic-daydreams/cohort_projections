@@ -2,6 +2,10 @@
 """
 SDC 2024 Replication: Runner Script
 
+DEPRECATED: This script is deprecated. Please use run_all_variants.py instead.
+
+    python run_all_variants.py --variant original
+
 This script:
 1. Loads the extracted data from the SDC 2024 replication data directory
 2. Runs the projection engine
@@ -14,6 +18,19 @@ Date: 2025-12-28
 """
 
 from __future__ import annotations
+
+import warnings
+
+warnings.warn(
+    "run_replication.py is deprecated. Use run_all_variants.py --variant original instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+print(
+    "\n*** DEPRECATION WARNING ***\n"
+    "This script is deprecated. Please use run_all_variants.py instead:\n"
+    "    python run_all_variants.py --variant original\n"
+)
 
 import logging
 from pathlib import Path
