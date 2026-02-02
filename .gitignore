@@ -115,6 +115,8 @@ sdc_2024_replication/data_immigration_policy/scripts/b05006_*.json
 # SDC 2024 Replication Outputs
 sdc_2024_replication/output/
 sdc_2024_replication/scripts/statistical_analysis/journal_article/output/
+sdc_2024_replication/scripts/statistical_analysis/journal_article/output_v*/
+sdc_2024_replication/scripts/statistical_analysis/results/
 sdc_2024_replication/scripts/statistical_analysis/journal_article/**/*.pdf
 sdc_2024_replication/scripts/statistical_analysis/journal_article/**/*.png
 sdc_2024_replication/scripts/statistical_analysis/journal_article/*.aux
@@ -127,7 +129,7 @@ sdc_2024_replication/scripts/statistical_analysis/journal_article/.texmf-var/
 sdc_2024_replication/scripts/statistical_analysis/journal_article/.texmf-config/
 
 # Claim review generated outputs (synced via rclone, not git)
-sdc_2024_replication/scripts/statistical_analysis/journal_article/claim_review/**/
+sdc_2024_replication/scripts/statistical_analysis/journal_article/claim_review/
 
 # SDC Revisions folder (versioned artifacts, synced via rclone)
 sdc_2024_replication/revisions/
