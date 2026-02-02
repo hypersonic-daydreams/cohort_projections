@@ -775,21 +775,76 @@ def kaplan_meier_by_group(
         if mask.sum() < 5:  # Skip groups with too few observations
             continue
 
+        group_df = df_survival.loc[mask, ["duration", "event"]]
+
         kmf = KaplanMeierFitter()
         kmf.fit(
-            durations=df_survival.loc[mask, "duration"],
-            event_observed=df_survival.loc[mask, "event"],
+            durations=group_df["duration"],
+            event_observed=group_df["event"],
             label=str(group),
         )
         km_fitters[group] = kmf
 
         median = kmf.median_survival_time_
 
+        max_duration = int(group_df["duration"].max())
+        life_table = []
+        ci_lower_col = None
+        ci_upper_col = None
+        if hasattr(kmf, "confidence_interval_"):
+            ci_lower_col = next(
+                (c for c in kmf.confidence_interval_.columns if "lower" in c),
+                None,
+            )
+            ci_upper_col = next(
+                (c for c in kmf.confidence_interval_.columns if "upper" in c),
+                None,
+            )
+
+        for t in range(1, max_duration + 1):
+            n_at_risk = int((group_df["duration"] >= t).sum())
+            n_events = int(
+                ((group_df["duration"] == t) & (group_df["event"] == 1)).sum()
+            )
+            n_censored = int(
+                ((group_df["duration"] == t) & (group_df["event"] == 0)).sum()
+            )
+
+            if t in kmf.survival_function_.index:
+                surv_prob = float(kmf.survival_function_.loc[t].values[0])
+            else:
+                surv_prob = float(kmf.predict(t))
+
+            ci_lower = None
+            ci_upper = None
+            if (
+                hasattr(kmf, "confidence_interval_")
+                and ci_lower_col
+                and ci_upper_col
+                and t in kmf.confidence_interval_.index
+            ):
+                ci_lower = float(kmf.confidence_interval_.loc[t, ci_lower_col])
+                ci_upper = float(kmf.confidence_interval_.loc[t, ci_upper_col])
+
+            life_table.append(
+                {
+                    "time_years": t,
+                    "n_at_risk": n_at_risk,
+                    "n_events": n_events,
+                    "n_censored": n_censored,
+                    "survival_probability": surv_prob,
+                    "ci_95_lower": ci_lower,
+                    "ci_95_upper": ci_upper,
+                }
+            )
+
         km_by_group[str(group)] = {
             "n_subjects": int(mask.sum()),
-            "n_events": int(df_survival.loc[mask, "event"].sum()),
+            "n_events": int(group_df["event"].sum()),
+            "n_censored": int((group_df["event"] == 0).sum()),
             "median_survival": float(median) if not np.isnan(median) else None,
-            "mean_duration": float(df_survival.loc[mask, "duration"].mean()),
+            "mean_duration": float(group_df["duration"].mean()),
+            "life_table": life_table,
         }
 
         print(

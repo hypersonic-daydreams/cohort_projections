@@ -2,7 +2,7 @@
 """
 Create Publication-Quality Figures for Journal Article
 
-This script generates 8 publication-quality figures for an academic journal article
+This script generates 9 publication-quality figures for an academic journal article
 on forecasting international migration to North Dakota.
 
 Figures:
@@ -13,7 +13,8 @@ Figures:
 5. Gravity Model Results (fig_05_gravity.pdf)
 6. Event Study (fig_06_event_study.pdf)
 7. Survival Curves (fig_07_survival.pdf)
-8. Forecast Scenarios (fig_08_scenarios.pdf)
+8. Cox Model Hazard Ratios (fig_08_cox.pdf)
+9. Forecast Scenarios (fig_08_scenarios.pdf)
 
 Author: Generated with Claude Code
 Date: 2025-12-29
@@ -30,7 +31,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
-from matplotlib.ticker import FuncFormatter
+from matplotlib.ticker import FuncFormatter, NullFormatter, ScalarFormatter
 import numpy as np
 import pandas as pd
 
@@ -630,61 +631,82 @@ def create_figure_05_gravity() -> None:
         capsize=4,
         capthick=1.5,
     )
-    ax1.axvline(x=0, color="black", linestyle="-", linewidth=0.5)
     ax1.set_yticks(y_pos)
     ax1.set_yticklabels(var_names)
     ax1.set_xlabel("Coefficient (95% CI)")
     ax1.set_title("(A) Gravity Model Coefficients", fontsize=10, fontweight="bold")
-    ax1.set_xlim(-0.1, 0.9)
-
-    # Add significance stars
-    for i, (est, lower, upper) in enumerate(zip(estimates, ci_lower, ci_upper)):
-        if lower > 0 or upper < 0:
-            ax1.text(upper + 0.02, i, "***", fontsize=9, va="center")
+    x_min = min(min(ci_lower), 0)
+    x_max = max(max(ci_upper), 0)
+    x_pad = 0.05 * (x_max - x_min) if x_max > x_min else 0.1
+    ax1.set_xlim(x_min - x_pad, x_max + x_pad)
+    ax1.axvline(x=0, color=COLORS["gray"], linestyle="--", linewidth=1, alpha=0.9)
 
     # Panel B: Network elasticity comparison across models
-    models = ["Simple", "Full Gravity", "State FE"]
+    models = ["Simple", "Full\nGravity", "State\nFE"]
+    model_1_diaspora = gravity_data["model_1_simple_network"]["coefficients"][
+        "log_diaspora"
+    ]
+    model_2_diaspora = gravity_data["model_2_full_gravity"]["coefficients"][
+        "log_diaspora"
+    ]
+    model_3_diaspora = gravity_data["model_3_state_fixed_effects"]["network_elasticity"]
+
     elasticities = [
-        gravity_data["model_1_simple_network"]["coefficients"]["log_diaspora"][
-            "estimate"
-        ],
-        gravity_data["model_2_full_gravity"]["coefficients"]["log_diaspora"][
-            "estimate"
-        ],
-        gravity_data["model_3_state_fixed_effects"]["network_elasticity"]["estimate"],
+        model_1_diaspora["estimate"],
+        model_2_diaspora["estimate"],
+        model_3_diaspora["estimate"],
+    ]
+    ci_lower_b = [
+        model_1_diaspora["ci_95_lower"],
+        model_2_diaspora["ci_95_lower"],
+        model_3_diaspora["ci_95_lower"],
+    ]
+    ci_upper_b = [
+        model_1_diaspora["ci_95_upper"],
+        model_2_diaspora["ci_95_upper"],
+        model_3_diaspora["ci_95_upper"],
     ]
 
     colors = [COLORS["gray"], COLORS["blue"], COLORS["green"]]
-    bars = ax2.bar(models, elasticities, color=colors, alpha=0.8, width=0.6)
+    x_pos = np.arange(len(models))
+    ax2.errorbar(
+        x_pos,
+        elasticities,
+        yerr=[
+            np.array(elasticities) - np.array(ci_lower_b),
+            np.array(ci_upper_b) - np.array(elasticities),
+        ],
+        fmt="none",
+        ecolor="black",
+        elinewidth=1.5,
+        capsize=4,
+        capthick=1.5,
+        zorder=2,
+    )
+    ax2.scatter(x_pos, elasticities, color=colors, s=80, alpha=0.9, zorder=3)
 
+    ax2.set_xticks(x_pos)
+    ax2.set_xticklabels(models)
     ax2.set_ylabel("Network elasticity")
     ax2.set_title(
         "(B) Diaspora Effect by Specification", fontsize=10, fontweight="bold"
     )
-    ax2.set_ylim(0, 0.45)
+    y_min = min(min(ci_lower_b), 0)
+    y_max = max(max(ci_upper_b), 0)
+    y_pad = 0.05 * (y_max - y_min) if y_max > y_min else 0.05
+    ax2.set_ylim(y_min - y_pad, y_max + y_pad)
+    ax2.axhline(y=0, color=COLORS["gray"], linestyle="--", linewidth=1, alpha=0.9)
 
-    # Add value labels on bars
-    for bar, val in zip(bars, elasticities):
+    # Add value labels
+    for x, val in zip(x_pos, elasticities):
         ax2.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + 0.01,
+            x,
+            val + 0.03 * (y_max - y_min),
             f"{val:.3f}",
             ha="center",
             va="bottom",
             fontsize=8,
         )
-
-    # Add interpretation text
-    ax2.text(
-        0.5,
-        -0.25,
-        "Note: A 1% increase in diaspora stock is associated\n"
-        f"with a {elasticities[1]:.2f}% increase in new admissions (full model)",
-        transform=ax2.transAxes,
-        fontsize=8,
-        ha="center",
-        style="italic",
-    )
 
     plt.tight_layout()
     save_figure(fig, "fig_05_gravity")
@@ -761,10 +783,20 @@ def create_figure_06_event_study() -> None:
     ax.axvspan(-0.5, max(rel_times) + 0.5, alpha=0.1, color=COLORS["red"])
 
     # Labels
-    ax.set_xlabel("Years relative to Travel Ban implementation (t = 0 is 2018)")
-    ax.set_ylabel("Coefficient (log refugee arrivals)")
+    min_rel = int(min(rel_times))
+    max_rel = int(max(rel_times))
+    tick_step = 2 if (max_rel - min_rel) >= 12 else 1
+    x_ticks = list(range(min_rel, max_rel + 1, tick_step))
+    if max_rel not in x_ticks:
+        x_ticks.append(max_rel)
+    if 0 not in x_ticks:
+        x_ticks.append(0)
+    ax.set_xticks(sorted(set(x_ticks)))
+
+    ax.set_xlabel("Years relative to Travel Ban (t = 0 is FY2018, first full post year)")
+    ax.set_ylabel("Difference in log refugee arrivals (treated − control)")
     ax.set_title(
-        "Event Study: Travel Ban Effect on Refugee Arrivals",
+        "Event Study: Treated–Control Divergence in Refugee Arrivals",
         fontsize=11,
         fontweight="bold",
     )
@@ -797,7 +829,7 @@ def create_figure_06_event_study() -> None:
             markerfacecolor="white",
             markersize=8,
             markeredgewidth=2,
-            label="Reference period",
+            label="Reference (FY2017)",
         ),
     ]
     ax.legend(handles=legend_elements, loc="lower left", framealpha=0.9)
@@ -805,58 +837,22 @@ def create_figure_06_event_study() -> None:
     # Add pre-trend test annotation
     pre_trend = event_study["pre_trend_test"]
     pre_trend_p = pre_trend.get("p_value")
-    pre_trend_p_label = (
-        "<0.001"
-        if pre_trend_p is not None and pre_trend_p < 0.001
-        else f"{pre_trend_p:.3f}"
-        if pre_trend_p is not None
-        else "NA"
-    )
+    if pre_trend_p is None:
+        pre_trend_p_label = "p = NA"
+    elif pre_trend_p < 0.001:
+        pre_trend_p_label = "p < 0.001"
+    else:
+        pre_trend_p_label = f"p = {pre_trend_p:.3f}"
     ax.text(
         0.95,
         0.95,
-        f"Pre-trend test: F = {pre_trend['f_statistic']:.2f}\np = {pre_trend_p_label}",
+        f"Pre-treatment test: F = {pre_trend['f_statistic']:.2f}\n{pre_trend_p_label}",
         transform=ax.transAxes,
         fontsize=8,
         verticalalignment="top",
         horizontalalignment="right",
         bbox=dict(
             boxstyle="round", facecolor="white", edgecolor=COLORS["gray"], alpha=0.9
-        ),
-    )
-
-    # Add ATT annotation
-    did_data = causal_data["results"]["did_travel_ban"]
-    att = did_data["att_estimate"]
-    att_p = att.get("p_value")
-    if att_p is None:
-        att_sig = ""
-        att_p_label = "NA"
-    else:
-        att_sig = (
-            "***"
-            if att_p < 0.001
-            else "**"
-            if att_p < 0.01
-            else "*"
-            if att_p < 0.05
-            else ""
-        )
-        att_p_label = f"{att_p:.3f}"
-    ax.text(
-        0.95,
-        0.05,
-        f"ATT = {att['coefficient']:.2f} (p = {att_p_label}{att_sig})\n"
-        f"Effect: {did_data['percentage_effect']['estimate']:.1f}% reduction",
-        transform=ax.transAxes,
-        fontsize=8,
-        verticalalignment="bottom",
-        horizontalalignment="right",
-        bbox=dict(
-            boxstyle="round",
-            facecolor="lightyellow",
-            edgecolor=COLORS["orange"],
-            alpha=0.9,
         ),
     )
 
@@ -1000,9 +996,6 @@ def create_figure_07_survival() -> None:
     fig, ax = plt.subplots(figsize=(6.5, 4.5))
 
     # Plot survival curves for each quartile
-    # We need to reconstruct the survival curves from the data
-    # Using median survival times and overall pattern
-
     quartile_colors = {
         "Q1 (Low)": COLORS["red"],
         "Q2": COLORS["orange"],
@@ -1028,24 +1021,32 @@ def create_figure_07_survival() -> None:
         alpha=0.5,
     )
 
-    # Create approximate curves for each quartile based on median survival
-    # This is a simplification - in production, we'd have the actual KM curves
-    for quartile, info in groups.items():
+    quartile_order = ["Q1 (Low)", "Q2", "Q3", "Q4 (High)"]
+    for quartile in quartile_order:
+        info = groups.get(quartile)
+        if not info:
+            continue
+
         median = info["median_survival"]
-        # Generate approximate curve using exponential decay scaled to median
-        t_plot = np.linspace(1, 13, 50)
-        # Use hazard rate implied by median
-        if median > 0:
-            hazard = np.log(2) / median
-            surv = np.exp(-hazard * (t_plot - 1))
-            surv = np.clip(surv, 0, 1)
-            ax.plot(
-                t_plot,
-                surv,
-                linewidth=1.5,
-                color=quartile_colors[quartile],
-                label=f"{quartile} (n={info['n_subjects']}, med={median:.1f}yr)",
+        life_table_q = info.get("life_table")
+        if not life_table_q:
+            raise KeyError(
+                "Missing per-group Kaplan-Meier life table for "
+                f"{quartile!r} in {duration_filename}. "
+                "Regenerate duration results using module_8_duration_analysis.py."
             )
+
+        times_q = [row["time_years"] for row in life_table_q]
+        surv_q = [row["survival_probability"] for row in life_table_q]
+
+        ax.step(
+            times_q,
+            surv_q,
+            where="post",
+            linewidth=1.8,
+            color=quartile_colors[quartile],
+            label=f"{quartile} (n={info['n_subjects']}, med={median:.1f}yr)",
+        )
 
     ax.set_xlabel("Duration (years)")
     ax.set_ylabel("Survival probability")
@@ -1054,7 +1055,8 @@ def create_figure_07_survival() -> None:
         fontsize=11,
         fontweight="bold",
     )
-    ax.set_xlim(1, 13)
+    max_time = max(times) if times else 1
+    ax.set_xlim(1, max_time)
     ax.set_ylim(0, 1.05)
     ax.legend(loc="upper right", fontsize=8, framealpha=0.9)
 
@@ -1086,19 +1088,114 @@ def create_figure_07_survival() -> None:
 
     # Add median survival line
     ax.axhline(y=0.5, color="black", linestyle=":", linewidth=0.8, alpha=0.5)
-    ax.text(12.5, 0.52, "Median", fontsize=7, color="black", ha="right")
+    ax.text(max_time - 0.5, 0.52, "Median", fontsize=7, color="black", ha="right")
 
     plt.tight_layout()
     save_figure(fig, "fig_07_survival")
 
 
 # =============================================================================
-# Figure 8: Forecast Scenarios
+# Figure 8: Cox Model Hazard Ratios
+# =============================================================================
+
+
+def create_figure_08_cox() -> None:
+    """Create Figure 8: Cox proportional hazards model hazard ratios."""
+    duration_filename = _resolve_duration_results_filename()
+    duration_data = load_json(duration_filename)
+
+    cox_results = duration_data["results"]["cox_proportional_hazards"]
+    coef_table = cox_results["coefficient_table"]
+
+    variables = [
+        "log_intensity",
+        "high_intensity",
+        "early_wave",
+        "peak_arrivals",
+        "nationality_region_Americas",
+        "nationality_region_Asia",
+        "nationality_region_Europe",
+        "nationality_region_Middle East",
+        "nationality_region_Other",
+    ]
+    variables = [v for v in variables if v in coef_table]
+    if not variables:
+        raise KeyError(
+            f"No expected Cox coefficient_table entries found in {duration_filename}."
+        )
+
+    label_map = {
+        "log_intensity": "Log intensity",
+        "high_intensity": "High intensity (ratio > 5)",
+        "early_wave": "Early wave (start ≤ 2010)",
+        "peak_arrivals": "Peak arrivals (per 1,000)",
+        "nationality_region_Americas": "Origin: Americas (vs Africa)",
+        "nationality_region_Asia": "Origin: Asia (vs Africa)",
+        "nationality_region_Europe": "Origin: Europe (vs Africa)",
+        "nationality_region_Middle East": "Origin: Middle East (vs Africa)",
+        "nationality_region_Other": "Origin: Other (vs Africa)",
+    }
+
+    fig_height = max(4.0, 0.45 * len(variables) + 1.5)
+    fig, ax = plt.subplots(figsize=(6.75, fig_height))
+
+    y_positions = np.arange(len(variables))
+    for idx, var in enumerate(variables):
+        entry = coef_table[var]
+        hr = float(entry["hazard_ratio"])
+        ci_lower = float(entry["hr_ci_95_lower"])
+        ci_upper = float(entry["hr_ci_95_upper"])
+        p_value = float(entry["p_value"])
+
+        color = COLORS["blue"] if p_value < 0.05 else COLORS["gray"]
+        ax.errorbar(
+            hr,
+            idx,
+            xerr=[[hr - ci_lower], [ci_upper - hr]],
+            fmt="o",
+            color=color,
+            ecolor=color,
+            elinewidth=2,
+            capsize=3,
+            markersize=6,
+        )
+
+    ax.axvline(1.0, color="black", linestyle="--", linewidth=1.0, alpha=0.8)
+    ax.set_yticks(y_positions)
+    ax.set_yticklabels([label_map.get(v, v.replace("_", " ")) for v in variables])
+    ax.invert_yaxis()
+
+    ax.set_xscale("log")
+    ax.set_xticks([0.5, 1.0, 2.0])
+    ax.xaxis.set_major_formatter(ScalarFormatter())
+    ax.xaxis.set_minor_formatter(NullFormatter())
+
+    ci_bounds = [
+        float(coef_table[v]["hr_ci_95_lower"]) for v in variables
+    ] + [float(coef_table[v]["hr_ci_95_upper"]) for v in variables]
+    x_min = max(0.05, min(ci_bounds) * 0.85)
+    x_max = max(ci_bounds) * 1.15
+    ax.set_xlim(x_min, x_max)
+
+    ax.set_xlabel("Hazard ratio for wave termination (95% CI)")
+    ax.set_title(
+        "Cox Proportional Hazards Model: Predictors of Wave Persistence",
+        fontsize=11,
+        fontweight="bold",
+    )
+    ax.grid(True, which="major", axis="x", alpha=0.25)
+
+    plt.tight_layout()
+    save_figure(fig, "fig_08_cox")
+
+
+# =============================================================================
+# Figure 9: Forecast Scenarios
 # =============================================================================
 
 
 def create_figure_08_scenarios() -> None:
-    """Create Figure 8: Forecast scenarios with uncertainty bands."""
+    """Create Figure 9: Forecast scenarios with uncertainty bands."""
     # Load data
     scenario_data = load_json("module_9_scenario_modeling.json")
     scenario_projections = pd.read_parquet(
@@ -1419,14 +1516,14 @@ def create_figure_captions() -> None:
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_05_gravity.pdf}
-\caption{Gravity model estimation results. Panel~(A) shows coefficient estimates with 95\% confidence intervals for the full gravity specification: diaspora association (log diaspora stock), origin mass (log origin stock in U.S.), and destination mass (log state foreign-born total). Panel~(B) compares diaspora association estimates across model specifications, showing that controlling for mass variables reduces the diaspora coefficient from 0.45 to approximately 0.14.}
+\caption{Gravity model estimation results. Panel~(A) shows coefficient estimates with 95\% confidence intervals from the full gravity specification: diaspora stock (log size of an origin's existing community in the destination state), origin mass (log origin stock in the U.S.), and destination mass (log total foreign-born population in the destination state). Panel~(B) compares the estimated diaspora elasticity across model specifications (95\% confidence intervals). Adding mass controls reduces the diaspora point estimate from roughly 0.45 in the diaspora-only model to about 0.14 in the full model; in the full model, a 1\% increase in diaspora stock is associated with an estimated 0.14\% increase in new admissions, but the estimate is imprecise (the 95\% confidence interval includes zero).}
 \label{fig:gravity}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_06_event_study.pdf}
-\caption{Event study estimates for treated--control divergence around the Travel Ban in refugee arrivals. Coefficients represent the difference in log arrivals between treated countries (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) and control countries relative to the reference period ($t = -1$, 2017). Blue circles show pre-treatment estimates; red squares show post-treatment estimates. The joint pre-trend test rejects parallel trends over the full pre-period ($F = 4.22$, $p < 0.001$). The average treatment effect on the treated (ATT) is $-1.39$ (conventional $p = 0.031$), corresponding to a 75.2\% lower level of arrivals for treated relative to control in the post period; because parallel trends are not supported in the full pre-period, estimates are interpreted as policy-associated divergence rather than definitive causal effects.}
+\caption{Event study estimates of treated--control divergence around the Travel Ban in refugee arrivals. Coefficients represent the difference in $\log(\mathrm{arrivals} + 1)$ between treated countries (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) and control countries in each year, relative to the reference period ($t = -1$, FY2017); $t = 0$ corresponds to FY2018 (first full post year). Blue circles show pre-treatment estimates; red squares show post-treatment estimates; vertical bars indicate 95\% confidence intervals. The joint pre-treatment test rejects parallel trends over the full pre-period ($F = 4.22$, $p < 0.001$), so post-treatment deviations are interpreted as policy-associated divergence rather than definitive causal effects. A post-period difference-in-differences estimate implies treated-country arrivals were about 75\% lower than controls in the first full post years (ATT $= -1.39$, conventional $p = 0.031$), but this estimate should be interpreted cautiously given the pre-trend violation.}
 \label{fig:eventstudy}
 \end{figure}
 
@@ -1435,6 +1532,13 @@ def create_figure_captions() -> None:
 \includegraphics[width=\textwidth]{figures/fig_07_survival.pdf}
 \caption{Kaplan--Meier survival curves for immigration wave duration by initial intensity quartile. Waves are defined as periods where arrivals exceed 50\% above baseline for at least two consecutive years. Q1 (lowest intensity) waves have median duration of 2 years, while Q4 (highest intensity) waves persist for a median of 6 years. The log-rank test strongly rejects equality across groups ($\chi^2 = 633.0$, $p < 10^{-136}$), indicating that higher-intensity immigration flows are significantly more persistent.}
 \label{fig:survival}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_08_cox.pdf}
+\caption{Cox proportional hazards model estimates of wave termination risk. Points show hazard ratios and bars show 95\% confidence intervals. Values below 1 indicate lower hazard of termination (more persistent waves), while values above 1 indicate faster termination. Covariates include wave intensity measures, timing, peak arrivals, and origin-region indicators (reference: Africa). State-region controls are included in estimation but omitted from the figure for readability.}
+\label{fig:cox}
 \end{figure}
 
 \begin{figure}[htbp]
@@ -1500,7 +1604,10 @@ def main() -> None:
     print("\nFigure 7: Survival Curves")
     create_figure_07_survival()
 
-    print("\nFigure 8: Forecast Scenarios")
+    print("\nFigure 8: Cox Model Hazard Ratios")
+    create_figure_08_cox()
+
+    print("\nFigure 9: Forecast Scenarios")
     create_figure_08_scenarios()
 
     print("\nLaTeX Captions")

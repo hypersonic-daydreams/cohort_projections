@@ -153,6 +153,9 @@ journal_article_pdfs/
 journal_article_output
 journal_article_versions
 
+# Ad-hoc data directories (synced via rclone, not git)
+2025_popest_data/
+
 # Generated audit/review documents in project root
 formula_audit_article-*.md
 chatgpt_feedback_on_v0.9.md

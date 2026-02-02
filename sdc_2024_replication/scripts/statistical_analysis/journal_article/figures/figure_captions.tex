@@ -33,14 +33,14 @@
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_05_gravity.pdf}
-\caption{Gravity model estimation results. Panel~(A) shows coefficient estimates with 95\% confidence intervals for the full gravity specification: diaspora association (log diaspora stock), origin mass (log origin stock in U.S.), and destination mass (log state foreign-born total). Panel~(B) compares diaspora association estimates across model specifications, showing that controlling for mass variables reduces the diaspora coefficient from 0.45 to approximately 0.14.}
+\caption{Gravity model estimation results. Panel~(A) shows coefficient estimates with 95\% confidence intervals from the full gravity specification: diaspora stock (log size of an origin's existing community in the destination state), origin mass (log origin stock in the U.S.), and destination mass (log total foreign-born population in the destination state). Panel~(B) compares the estimated diaspora elasticity across model specifications (95\% confidence intervals). Adding mass controls reduces the diaspora point estimate from roughly 0.45 in the diaspora-only model to about 0.14 in the full model; in the full model, a 1\% increase in diaspora stock is associated with an estimated 0.14\% increase in new admissions, but the estimate is imprecise (the 95\% confidence interval includes zero).}
 \label{fig:gravity}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\textwidth]{figures/fig_06_event_study.pdf}
-\caption{Event study estimates for treated--control divergence around the Travel Ban in refugee arrivals. Coefficients represent the difference in log arrivals between treated countries (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) and control countries relative to the reference period ($t = -1$, 2017). Blue circles show pre-treatment estimates; red squares show post-treatment estimates. The joint pre-trend test rejects parallel trends over the full pre-period ($F = 4.22$, $p < 0.001$). The average treatment effect on the treated (ATT) is $-1.39$ (conventional $p = 0.031$), corresponding to a 75.2\% lower level of arrivals for treated relative to control in the post period; because parallel trends are not supported in the full pre-period, estimates are interpreted as policy-associated divergence rather than definitive causal effects.}
+\caption{Event study estimates of treated--control divergence around the Travel Ban in refugee arrivals. Coefficients represent the difference in $\log(\mathrm{arrivals} + 1)$ between treated countries (Iran, Iraq, Libya, Somalia, Sudan, Syria, Yemen) and control countries in each year, relative to the reference period ($t = -1$, FY2017); $t = 0$ corresponds to FY2018 (first full post year). Blue circles show pre-treatment estimates; red squares show post-treatment estimates; vertical bars indicate 95\% confidence intervals. The joint pre-treatment test rejects parallel trends over the full pre-period ($F = 4.22$, $p < 0.001$), so post-treatment deviations are interpreted as policy-associated divergence rather than definitive causal effects. A post-period difference-in-differences estimate implies treated-country arrivals were about 75\% lower than controls in the first full post years (ATT $= -1.39$, conventional $p = 0.031$), but this estimate should be interpreted cautiously given the pre-trend violation.}
 \label{fig:eventstudy}
 \end{figure}
 
@@ -49,6 +49,13 @@
 \includegraphics[width=\textwidth]{figures/fig_07_survival.pdf}
 \caption{Kaplan--Meier survival curves for immigration wave duration by initial intensity quartile. Waves are defined as periods where arrivals exceed 50\% above baseline for at least two consecutive years. Q1 (lowest intensity) waves have median duration of 2 years, while Q4 (highest intensity) waves persist for a median of 6 years. The log-rank test strongly rejects equality across groups ($\chi^2 = 633.0$, $p < 10^{-136}$), indicating that higher-intensity immigration flows are significantly more persistent.}
 \label{fig:survival}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{figures/fig_08_cox.pdf}
+\caption{Cox proportional hazards model estimates of wave termination risk. Points show hazard ratios and bars show 95\% confidence intervals. Values below 1 indicate lower hazard of termination (more persistent waves), while values above 1 indicate faster termination. Covariates include wave intensity measures, timing, peak arrivals, and origin-region indicators (reference: Africa). State-region controls are included in estimation but omitted from the figure for readability.}
+\label{fig:cox}
 \end{figure}
 
 \begin{figure}[htbp]

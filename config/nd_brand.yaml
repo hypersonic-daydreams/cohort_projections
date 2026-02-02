@@ -1,0 +1,85 @@
+# North Dakota Department of Commerce Brand Colors
+# Centralized config for use across plots/maps
+# Source: ND Dept. of Commerce brand guidelines
+
+brand:
+  colors:
+    primary:
+      horizon_blue: "#0e406a"
+      harvest_orange: "#faa21b"
+      freshwater_blue: "#049fda"
+      summer_green: "#709749"
+      earthy_teal: "#087482"
+
+    secondary:
+      rustic_brown: "#a8353a"
+      springtime_green: "#b3bd35"
+      warm_gray: "#796e66"
+      warm_gray_light: "#b6b0a2"
+
+  # Transparency/opacity rules:
+  # - All colors may be used with transparency (alpha) values
+  # - Transparency must be in 10% increments: 100%, 90%, 80%, 70%, 60%, 50%, 40%, 30%, 20%, 10%
+  # - In matplotlib: use alpha parameter (1.0, 0.9, 0.8, etc.)
+  # - In hex with alpha: append two digits (FF=100%, E6=90%, CC=80%, B3=70%, 99=60%, 80=50%, 66=40%, 4D=30%, 33=20%, 1A=10%)
+  transparency:
+    allowed_values: [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
+    hex_suffixes:
+      100: "FF"
+      90: "E6"
+      80: "CC"
+      70: "B3"
+      60: "99"
+      50: "80"
+      40: "66"
+      30: "4D"
+      20: "33"
+      10: "1A"
+
+  # Thresholds for growth-rate based color selection
+  growth_color_rules:
+    strong_positive:
+      operator: ">"
+      threshold: 2.0
+      color_name: summer_green
+    positive:
+      operator: ">"
+      threshold: 0.0
+      color_name: springtime_green
+    zero:
+      operator: "=="
+      threshold: 0.0
+      color_name: earthy_teal
+    negative:
+      operator: "else"
+      color_name: rustic_brown
+
+  # Plotly theme settings
+  plotly:
+    colorway_names:
+      - horizon_blue
+      - harvest_orange
+      - freshwater_blue
+      - summer_green
+      - earthy_teal
+    font:
+      family: "Segoe UI, Arial, sans-serif"
+      color_name: warm_gray
+    paper_bgcolor: "white"
+    plot_bgcolor: "white"
+    title:
+      color_name: horizon_blue
+      size: 20
+
+  # Matplotlib theme settings
+  matplotlib:
+    colorway_names:
+      - horizon_blue
+      - harvest_orange
+      - freshwater_blue
+      - summer_green
+      - earthy_teal
+    font_family: "sans-serif"
+    title_color: horizon_blue
+    axis_color: warm_gray
+    grid_alpha: 0.3
