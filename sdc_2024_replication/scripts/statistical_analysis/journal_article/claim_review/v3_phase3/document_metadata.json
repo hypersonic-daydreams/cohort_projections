@@ -1,9 +1,0 @@
-{
-  "document_label": "article_draft_v5_p305_complete",
-  "source_path_original": "sdc_2024_replication/scripts/statistical_analysis/journal_article/output/article_draft_v5_p305_complete.pdf",
-  "source_path_copy": "sdc_2024_replication/scripts/statistical_analysis/journal_article/claim_review/v3_phase3/source/article_draft_v5_p305_complete.pdf",
-  "sha256": "bd26cd246690f8b6d5524d2d41246f934270f1088cfd6d2f6e3af3bbf617055e",
-  "file_size_bytes": 757129,
-  "copied_at": "2025-12-31T12:31:51-06:00",
-  "notes": "Claim review target updated to v5_p305_complete."
-}

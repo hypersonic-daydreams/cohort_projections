@@ -1,8 +1,0 @@
-digraph G040 {
-  rankdir=TB;
-  node [fontname="Helvetica", fontsize=10];
-  edge [fontname="Helvetica", fontsize=8];
-
-  A0087 [label="A0087\nclaim\nThis study offers three principal contributions: multi-me...", shape=box, style=filled, fillcolor="#4CAF50"];
-
-}

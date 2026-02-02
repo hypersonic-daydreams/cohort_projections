@@ -1,8 +1,0 @@
-digraph G017 {
-  rankdir=TB;
-  node [fontname="Helvetica", fontsize=10];
-  edge [fontname="Helvetica", fontsize=8];
-
-  A0069 [label="A0069\nclaim\nGravity-inspired allocation models using PPML estimation ...", shape=box, style=filled, fillcolor="#4CAF50"];
-
-}

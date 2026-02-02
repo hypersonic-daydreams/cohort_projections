@@ -1,8 +1,0 @@
-digraph G016 {
-  rankdir=TB;
-  node [fontname="Helvetica", fontsize=10];
-  edge [fontname="Helvetica", fontsize=8];
-
-  A0068 [label="A0068\nclaim\nTime series analysis employs a four-stage procedure combi...", shape=box, style=filled, fillcolor="#4CAF50"];
-
-}

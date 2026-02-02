@@ -64,6 +64,7 @@ data/processed/**/*.md
 data/projections/**/*.csv
 data/projections/**/*.parquet
 data/projections/**/*.xlsx
+data/projections/**/*.png
 
 # Interim data files (synced via rclone, not git)
 data/interim/**
@@ -72,7 +73,7 @@ data/interim/**
 data/metadata/**/*.sql
 
 # Export files (synced via rclone, not git)
-data/exports/
+data/exports/**
 data/output/
 
 # Keep directory structure
@@ -104,7 +105,7 @@ data/projections/**/*.pdf
 !data/projections/.gitkeep
 
 # Local scratch work (not synced anywhere)
-scratch/
+scratch/**
 
 # SDC Replication raw Census data (synced via rclone, not git)
 # B05006 Place of Birth for Foreign-Born Population
@@ -114,7 +115,8 @@ sdc_2024_replication/data_immigration_policy/scripts/b05006_*.json
 # SDC 2024 Replication Outputs
 sdc_2024_replication/output/
 sdc_2024_replication/scripts/statistical_analysis/journal_article/output/
-sdc_2024_replication/scripts/statistical_analysis/journal_article/*.pdf
+sdc_2024_replication/scripts/statistical_analysis/journal_article/**/*.pdf
+sdc_2024_replication/scripts/statistical_analysis/journal_article/**/*.png
 sdc_2024_replication/scripts/statistical_analysis/journal_article/*.aux
 sdc_2024_replication/scripts/statistical_analysis/journal_article/*.bbl
 sdc_2024_replication/scripts/statistical_analysis/journal_article/*.blg
@@ -125,7 +127,7 @@ sdc_2024_replication/scripts/statistical_analysis/journal_article/.texmf-var/
 sdc_2024_replication/scripts/statistical_analysis/journal_article/.texmf-config/
 
 # Claim review generated outputs (synced via rclone, not git)
-sdc_2024_replication/scripts/statistical_analysis/journal_article/claim_review/v*/
+sdc_2024_replication/scripts/statistical_analysis/journal_article/claim_review/**/
 
 # SDC Revisions folder (versioned artifacts, synced via rclone)
 sdc_2024_replication/revisions/
@@ -134,13 +136,13 @@ sdc_2024_replication/revisions/
 sdc_2024_replication/scripts/statistical_analysis/*.pdf
 
 # SDC 2024 Generated Figures and Results (synced via rclone, not git)
-sdc_2024_replication/scripts/statistical_analysis/figures/*.pdf
-sdc_2024_replication/scripts/statistical_analysis/figures/*.png
-sdc_2024_replication/scripts/statistical_analysis/journal_article/figures/*.pdf
-sdc_2024_replication/scripts/statistical_analysis/journal_article/figures/*.png
-sdc_2024_replication/scripts/statistical_analysis/results/*.json
-sdc_2024_replication/scripts/statistical_analysis/results/*.parquet
-sdc_2024_replication/scripts/statistical_analysis/results/*.csv
+sdc_2024_replication/scripts/statistical_analysis/figures/**/*.pdf
+sdc_2024_replication/scripts/statistical_analysis/figures/**/*.png
+sdc_2024_replication/scripts/statistical_analysis/journal_article/figures/**/*.pdf
+sdc_2024_replication/scripts/statistical_analysis/journal_article/figures/**/*.png
+sdc_2024_replication/scripts/statistical_analysis/results/**/*.json
+sdc_2024_replication/scripts/statistical_analysis/results/**/*.parquet
+sdc_2024_replication/scripts/statistical_analysis/results/**/*.csv
 
 # Claude Code config (ephemeral, not tracked)
 .claude/
@@ -162,3 +164,7 @@ chatgpt_feedback_on_v0.9.md
 
 # Seed sweep results (synced via rclone, not git)
 sdc_2024_replication/scripts/statistical_analysis/results/seed_sweeps/
+
+# ADR report generated outputs (synced via rclone, not git)
+docs/governance/adrs/020-reports/
+docs/governance/adrs/021-reports/

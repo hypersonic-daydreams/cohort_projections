@@ -1,8 +1,0 @@
-digraph G041 {
-  rankdir=TB;
-  node [fontname="Helvetica", fontsize=10];
-  edge [fontname="Helvetica", fontsize=8];
-
-  A0088 [label="A0088\nclaim\nNovel applications of causal inference methods to state-l...", shape=box, style=filled, fillcolor="#4CAF50"];
-
-}

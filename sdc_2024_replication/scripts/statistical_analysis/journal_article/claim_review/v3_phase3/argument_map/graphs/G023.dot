@@ -1,8 +1,0 @@
-digraph G023 {
-  rankdir=TB;
-  node [fontname="Helvetica", fontsize=10];
-  edge [fontname="Helvetica", fontsize=8];
-
-  A0077 [label="A0077\nclaim\nThe COVID-19 pandemic represents a highly significant str...", shape=box, style=filled, fillcolor="#4CAF50"];
-
-}

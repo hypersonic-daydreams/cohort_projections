@@ -1,8 +1,0 @@
-digraph G053 {
-  rankdir=TB;
-  node [fontname="Helvetica", fontsize=10];
-  edge [fontname="Helvetica", fontsize=8];
-
-  A0096 [label="A0096\nclaim\nVAR analysis reveals weak Granger causality from national...", shape=box, style=filled, fillcolor="#4CAF50"];
-
-}

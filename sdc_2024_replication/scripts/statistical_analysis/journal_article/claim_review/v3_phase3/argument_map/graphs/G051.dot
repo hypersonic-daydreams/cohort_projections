@@ -1,8 +1,0 @@
-digraph G051 {
-  rankdir=TB;
-  node [fontname="Helvetica", fontsize=10];
-  edge [fontname="Helvetica", fontsize=8];
-
-  A0094 [label="A0094\nclaim\nPanel regression analysis across specifications confirms ...", shape=box, style=filled, fillcolor="#4CAF50"];
-
-}

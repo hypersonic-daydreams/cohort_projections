@@ -1,8 +1,0 @@
-digraph G033 {
-  rankdir=TB;
-  node [fontname="Helvetica", fontsize=10];
-  edge [fontname="Helvetica", fontsize=8];
-
-  A0085 [label="A0085\nclaim\nNorth Dakota's diaspora networks have not yet generated s...", shape=box, style=filled, fillcolor="#4CAF50"];
-
-}

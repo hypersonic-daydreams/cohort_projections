@@ -1,8 +1,0 @@
-digraph G012 {
-  rankdir=TB;
-  node [fontname="Helvetica", fontsize=10];
-  edge [fontname="Helvetica", fontsize=8];
-
-  A0064 [label="A0064\nclaim\nThe forecast target is North Dakota's annual net internat...", shape=box, style=filled, fillcolor="#4CAF50"];
-
-}

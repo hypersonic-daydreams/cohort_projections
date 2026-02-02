@@ -1,8 +1,0 @@
-digraph G030 {
-  rankdir=TB;
-  node [fontname="Helvetica", fontsize=10];
-  edge [fontname="Helvetica", fontsize=8];
-
-  A0082 [label="A0082\nclaim\nThe multi-method analysis yielded convergent findings rev...", shape=box, style=filled, fillcolor="#4CAF50"];
-
-}

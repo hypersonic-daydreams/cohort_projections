@@ -1,8 +1,0 @@
-digraph G055 {
-  rankdir=TB;
-  node [fontname="Helvetica", fontsize=10];
-  edge [fontname="Helvetica", fontsize=8];
-
-  A0098 [label="A0098\nclaim\nThe analysis integrates multiple authoritative data sourc...", shape=box, style=filled, fillcolor="#4CAF50"];
-
-}

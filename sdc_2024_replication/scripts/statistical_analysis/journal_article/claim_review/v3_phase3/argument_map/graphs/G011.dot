@@ -1,8 +1,0 @@
-digraph G011 {
-  rankdir=TB;
-  node [fontname="Helvetica", fontsize=10];
-  edge [fontname="Helvetica", fontsize=8];
-
-  A0063 [label="A0063\nclaim\nThe analysis is organized into a nine-module analytical p...", shape=box, style=filled, fillcolor="#4CAF50"];
-
-}

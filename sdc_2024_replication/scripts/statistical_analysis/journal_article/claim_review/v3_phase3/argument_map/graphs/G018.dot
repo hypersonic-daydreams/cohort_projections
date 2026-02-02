@@ -1,8 +1,0 @@
-digraph G018 {
-  rankdir=TB;
-  node [fontname="Helvetica", fontsize=10];
-  edge [fontname="Helvetica", fontsize=8];
-
-  A0070 [label="A0070\nclaim\nMachine learning methods provide flexible functional form...", shape=box, style=filled, fillcolor="#4CAF50"];
-
-}
