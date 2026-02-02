@@ -23,23 +23,21 @@ from cohort_projections.utils.demographic_utils import (
 class TestCreateAgeGroups:
     """Tests for create_age_groups function."""
 
-    def test_single_year_age_groups(self) -> None:
-        """Test creating single-year age groups."""
-        result = create_age_groups(min_age=0, max_age=5, group_size=1)
-
-        assert result == ["0", "1", "2", "3", "4", "5+"]
-
-    def test_quinquennial_age_groups(self) -> None:
-        """Test creating 5-year age groups."""
-        result = create_age_groups(min_age=0, max_age=20, group_size=5)
-
-        assert result == ["0-4", "5-9", "10-14", "15-19", "20+"]
-
-    def test_ten_year_age_groups(self) -> None:
-        """Test creating 10-year age groups."""
-        result = create_age_groups(min_age=0, max_age=50, group_size=10)
-
-        assert result == ["0-9", "10-19", "20-29", "30-39", "40-49", "50+"]
+    @pytest.mark.parametrize(
+        "min_age,max_age,group_size,expected",
+        [
+            (0, 5, 1, ["0", "1", "2", "3", "4", "5+"]),
+            (0, 20, 5, ["0-4", "5-9", "10-14", "15-19", "20+"]),
+            (0, 50, 10, ["0-9", "10-19", "20-29", "30-39", "40-49", "50+"]),
+        ],
+        ids=["single-year", "quinquennial", "decennial"],
+    )
+    def test_age_groups_parametrized(
+        self, min_age: int, max_age: int, group_size: int, expected: list[str]
+    ) -> None:
+        """Parametrized test for different age group configurations."""
+        result = create_age_groups(min_age=min_age, max_age=max_age, group_size=group_size)
+        assert result == expected
 
     def test_default_parameters(self) -> None:
         """Test with default parameters (0 to 90, single year)."""
@@ -67,44 +65,29 @@ class TestCreateAgeGroups:
 class TestCalculateSexRatio:
     """Tests for calculate_sex_ratio function."""
 
-    def test_equal_populations(self) -> None:
-        """Test sex ratio with equal male and female populations."""
+    @pytest.mark.parametrize(
+        "male_pop,female_pop,expected_ratio",
+        [
+            (1000, 1000, 100.0),
+            (1200, 1000, 120.0),
+            (950, 1000, 95.0),
+            (500, 500, 100.0),
+            (150, 100, 150.0),
+        ],
+        ids=["equal", "more-males", "more-females", "equal-small", "high-ratio"],
+    )
+    def test_sex_ratio_parametrized(
+        self, male_pop: int, female_pop: int, expected_ratio: float
+    ) -> None:
+        """Parametrized test for sex ratio calculations."""
         pop = pd.DataFrame(
             {
                 "sex": ["Male", "Female"],
-                "population": [1000, 1000],
+                "population": [male_pop, female_pop],
             }
         )
-
         result = calculate_sex_ratio(pop)
-
-        assert result == 100.0
-
-    def test_more_males(self) -> None:
-        """Test sex ratio with more males than females."""
-        pop = pd.DataFrame(
-            {
-                "sex": ["Male", "Female"],
-                "population": [1200, 1000],
-            }
-        )
-
-        result = calculate_sex_ratio(pop)
-
-        assert result == 120.0
-
-    def test_more_females(self) -> None:
-        """Test sex ratio with more females than males."""
-        pop = pd.DataFrame(
-            {
-                "sex": ["Male", "Female"],
-                "population": [950, 1000],
-            }
-        )
-
-        result = calculate_sex_ratio(pop)
-
-        assert result == 95.0
+        assert result == expected_ratio
 
     def test_zero_female_population(self) -> None:
         """Test sex ratio with zero female population returns NaN."""
@@ -427,33 +410,22 @@ class TestAggregateRaceCategories:
 class TestCalculateGrowthRate:
     """Tests for calculate_growth_rate function."""
 
-    def test_positive_growth(self) -> None:
-        """Test positive growth rate calculation."""
-        result = calculate_growth_rate(pop_start=1000, pop_end=1100, years=1)
-
-        # 10% growth
-        assert abs(result - 0.10) < 0.001
-
-    def test_negative_growth(self) -> None:
-        """Test negative growth rate calculation."""
-        result = calculate_growth_rate(pop_start=1000, pop_end=900, years=1)
-
-        # -10% growth
-        assert abs(result - (-0.10)) < 0.001
-
-    def test_multi_year_growth(self) -> None:
-        """Test compound annual growth rate over multiple years."""
-        # 10% compound annual growth for 5 years
-        pop_end = 1000 * (1.10**5)
-        result = calculate_growth_rate(pop_start=1000, pop_end=pop_end, years=5)
-
-        assert abs(result - 0.10) < 0.001
-
-    def test_zero_growth(self) -> None:
-        """Test zero growth rate."""
-        result = calculate_growth_rate(pop_start=1000, pop_end=1000, years=10)
-
-        assert result == 0.0
+    @pytest.mark.parametrize(
+        "pop_start,pop_end,years,expected_rate",
+        [
+            (1000, 1100, 1, 0.10),  # 10% growth in 1 year
+            (1000, 900, 1, -0.10),  # -10% growth in 1 year
+            (1000, 1000 * (1.10**5), 5, 0.10),  # 10% compound over 5 years
+            (1000, 1000, 10, 0.0),  # Zero growth
+        ],
+        ids=["positive-1yr", "negative-1yr", "compound-5yr", "zero-growth"],
+    )
+    def test_growth_rate_parametrized(
+        self, pop_start: float, pop_end: float, years: int, expected_rate: float
+    ) -> None:
+        """Parametrized test for growth rate calculations."""
+        result = calculate_growth_rate(pop_start=pop_start, pop_end=pop_end, years=years)
+        assert abs(result - expected_rate) < 0.001
 
     def test_zero_start_population(self) -> None:
         """Test growth rate with zero starting population."""

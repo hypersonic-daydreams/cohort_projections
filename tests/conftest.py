@@ -11,12 +11,21 @@ import pytest
 
 
 @pytest.fixture
-def sample_nd_migration_n25():
+def sample_nd_migration_n25() -> pd.DataFrame:
     """
     Sample North Dakota international migration data with 25 observations.
 
     Simulates data spanning 2000-2024 with vintage labels and realistic
     variation across different methodological regimes.
+
+    Synthetic Data Characteristics
+    ------------------------------
+    - Years: 2000-2024 (n=25 observations)
+    - Regime 1 (2000-2009): Baseline ~300, low noise (std=50)
+    - Regime 2 (2010-2019): Bakken boom ~800, medium noise (std=100)
+    - Regime 3 (2020-2024): Post-COVID ~1200, high noise (std=200)
+    - 2020 is a COVID outlier with value ~30
+    - Random seed: 42 for reproducibility
 
     Returns
     -------
@@ -64,11 +73,21 @@ def sample_nd_migration_n25():
 
 
 @pytest.fixture
-def sample_state_panel():
+def sample_state_panel() -> pd.DataFrame:
     """
     Sample 50-state x 15-year panel data for multi-state analysis.
 
     Creates synthetic data for testing cross-state comparison functions.
+
+    Synthetic Data Characteristics
+    ------------------------------
+    - States: All 50 US states with FIPS codes 1-50
+    - Years: 2010-2024 (15 years per state, n=750 total observations)
+    - Base migration: Uniform random 100-10,000 per state
+    - Oil state effect: +30% for ND, TX, OK, CO, NM, WY, LA, MT, AK, CA, KS
+    - COVID effect (2020): 10% of base migration for all states
+    - Post-2020 revision: +50% for oil states, +20% for non-oil states
+    - Random seed: 42 for reproducibility
 
     Returns
     -------
@@ -191,11 +210,20 @@ def sample_state_panel():
 
 
 @pytest.fixture
-def synthetic_regime_data():
+def synthetic_regime_data() -> pd.DataFrame:
     """
     Synthetic data with known structural breaks for testing regime detection.
 
     Creates data with clear level shifts at 2010 and 2020.
+
+    Synthetic Data Characteristics
+    ------------------------------
+    - Years: 2000-2024 (n=25 observations)
+    - Regime 1 (2000s): Level=100, trend=+5/year, noise std=10
+    - Regime 2 (2010s): Level=200, trend=+10/year, noise std=15
+    - Regime 3 (2020s): Level=400, trend=-5/year, noise std=20
+    - Known breakpoints at 2010 and 2020 for validation testing
+    - Random seed: 42 for reproducibility
 
     Returns
     -------
@@ -231,11 +259,21 @@ def synthetic_regime_data():
 
 
 @pytest.fixture
-def sample_var_data():
+def sample_var_data() -> pd.DataFrame:
     """
     Sample multivariate time series data for VAR testing.
 
     Creates two correlated time series with known structure.
+
+    Synthetic Data Characteristics
+    ------------------------------
+    - Length: 50 observations (years 2000-2049)
+    - VAR(1) process with known coefficients:
+      - y1_t = 0.8*y1_{t-1} + 0.1*y2_{t-1} + e1 (e1 ~ N(0, 10))
+      - y2_t = 0.2*y1_{t-1} + 0.6*y2_{t-1} + e2 (e2 ~ N(0, 5))
+    - Initial values: var1[0]=100, var2[0]=50
+    - Cross-correlation structure for testing impulse response functions
+    - Random seed: 42 for reproducibility
 
     Returns
     -------

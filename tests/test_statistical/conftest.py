@@ -24,11 +24,19 @@ if str(MODULE_PATH) not in sys.path:
 
 
 @pytest.fixture
-def nd_migration_with_covid():
+def nd_migration_with_covid() -> pd.DataFrame:
     """
     North Dakota migration data with explicit COVID year (2020).
 
     Used for testing COVID intervention modeling.
+
+    Synthetic Data Characteristics
+    ------------------------------
+    - Years: 2015-2024 (n=10 observations)
+    - Pre-COVID (2015-2019): ~800, noise std=100
+    - COVID year (2020): Fixed value 30 (outlier)
+    - Post-COVID (2021-2024): ~1200, noise std=150
+    - Random seed: 42 for reproducibility
 
     Returns
     -------
@@ -52,9 +60,16 @@ def nd_migration_with_covid():
 
 
 @pytest.fixture
-def small_regime_data():
+def small_regime_data() -> pd.DataFrame:
     """
     Small dataset for testing edge cases with regime analysis.
+
+    Synthetic Data Characteristics
+    ------------------------------
+    - n=9 observations (small sample for edge case testing)
+    - Three regimes: 2005-2007 (~100), 2015-2017 (~200), 2021-2023 (~400)
+    - Clear level shifts for testing with minimal data
+    - Deterministic values (no random noise)
 
     Returns
     -------
@@ -70,9 +85,18 @@ def small_regime_data():
 
 
 @pytest.fixture
-def homogeneous_variance_data():
+def homogeneous_variance_data() -> pd.DataFrame:
     """
     Data with equal variance across regimes (for testing variance tests).
+
+    Synthetic Data Characteristics
+    ------------------------------
+    - Years: 2000-2024 (n=25 observations)
+    - Regime 1 (2000-2009, vintage 2009): Level=100, noise std=10
+    - Regime 2 (2010-2019, vintage 2020): Level=150, noise std=10
+    - Regime 3 (2020-2024, vintage 2024): Level=200, noise std=10
+    - Equal variance (std=10) across all regimes for Levene test validation
+    - Random seed: 42 for reproducibility
 
     Returns
     -------
@@ -99,11 +123,20 @@ def homogeneous_variance_data():
 
 
 @pytest.fixture
-def high_variance_ratio_data():
+def high_variance_ratio_data() -> pd.DataFrame:
     """
     Data with highly heterogeneous variance across regimes.
 
     Mimics the 29:1 variance ratio observed in actual ND data.
+
+    Synthetic Data Characteristics
+    ------------------------------
+    - Years: 2000-2024 (n=25 observations)
+    - Regime 1 (2000-2009, vintage 2009): Level=100, noise std=20 (low)
+    - Regime 2 (2010-2019, vintage 2020): Level=500, noise std=50 (medium)
+    - Regime 3 (2020-2024, vintage 2024): Level=800, noise std=200 (high)
+    - Variance ratio: ~100:1 (200^2/20^2) for heteroscedasticity testing
+    - Random seed: 42 for reproducibility
 
     Returns
     -------
@@ -130,17 +163,25 @@ def high_variance_ratio_data():
 
 
 @pytest.fixture
-def shift_df_50_states(sample_state_panel):
+def shift_df_50_states(sample_state_panel: pd.DataFrame) -> pd.DataFrame:
     """
     Pre-calculated shift statistics for 50 states.
 
     This fixture computes shift statistics from the sample_state_panel
     for use in hypothesis testing functions.
 
+    Synthetic Data Characteristics
+    ------------------------------
+    - Derived from sample_state_panel fixture (50 states)
+    - Calculates pre-2020 (2010-2019) vs post-2020 (2021-2024) comparisons
+    - Includes Cohen's d effect size for each state
+    - Relative shift percentages for magnitude comparison
+
     Returns
     -------
     pd.DataFrame
-        DataFrame with shift statistics per state
+        DataFrame with columns: state, state_fips, mean_2010s, mean_2020s,
+        shift_magnitude, relative_shift, cohens_d, n_2010s, n_2020s
     """
     # Calculate shift statistics for each state
     results = []

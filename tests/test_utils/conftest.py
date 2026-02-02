@@ -14,7 +14,19 @@ import pytest
 
 @pytest.fixture
 def temp_config_dir(tmp_path: Path) -> Path:
-    """Create a temporary config directory with sample config files."""
+    """
+    Create a temporary config directory with sample config files.
+
+    Parameters
+    ----------
+    tmp_path : Path
+        Pytest built-in fixture providing a temporary directory
+
+    Returns
+    -------
+    Path
+        Path to the created config directory
+    """
     config_dir = tmp_path / "config"
     config_dir.mkdir()
     return config_dir
@@ -22,7 +34,18 @@ def temp_config_dir(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def sample_projection_config() -> dict[str, Any]:
-    """Sample projection configuration dictionary."""
+    """
+    Sample projection configuration dictionary.
+
+    Provides a complete configuration structure for testing ConfigLoader
+    and related utilities.
+
+    Returns
+    -------
+    dict[str, Any]
+        Configuration dictionary with projection, demographics, bigquery,
+        and logging sections
+    """
     return {
         "projection": {
             "base_year": 2020,
@@ -48,7 +71,21 @@ def sample_projection_config() -> dict[str, Any]:
 def sample_projection_config_file(
     temp_config_dir: Path, sample_projection_config: dict[str, Any]
 ) -> Path:
-    """Create a sample projection_config.yaml file."""
+    """
+    Create a sample projection_config.yaml file.
+
+    Parameters
+    ----------
+    temp_config_dir : Path
+        Temporary config directory fixture
+    sample_projection_config : dict[str, Any]
+        Sample configuration dictionary fixture
+
+    Returns
+    -------
+    Path
+        Path to the created YAML config file
+    """
     import yaml
 
     config_path = temp_config_dir / "projection_config.yaml"
@@ -59,7 +96,17 @@ def sample_projection_config_file(
 
 @pytest.fixture
 def mock_bigquery_client() -> MagicMock:
-    """Mock BigQuery client for testing."""
+    """
+    Mock BigQuery client for testing.
+
+    Provides a MagicMock configured to return sample query results
+    without requiring actual BigQuery credentials.
+
+    Returns
+    -------
+    MagicMock
+        Mock client with query() method returning sample DataFrame
+    """
     mock_client = MagicMock()
 
     # Mock query result
@@ -74,7 +121,14 @@ def mock_bigquery_client() -> MagicMock:
 
 @pytest.fixture
 def mock_credentials() -> MagicMock:
-    """Mock GCP service account credentials."""
+    """
+    Mock GCP service account credentials.
+
+    Returns
+    -------
+    MagicMock
+        Mock credentials with project_id attribute set to "test-project"
+    """
     mock_creds = MagicMock()
     mock_creds.project_id = "test-project"
     return mock_creds
@@ -82,7 +136,24 @@ def mock_credentials() -> MagicMock:
 
 @pytest.fixture
 def sample_population_df() -> pd.DataFrame:
-    """Sample population DataFrame for demographic utils testing."""
+    """
+    Sample population DataFrame for demographic utils testing.
+
+    Synthetic Data Characteristics
+    ------------------------------
+    - Ages: 0-90 (91 single-year age groups)
+    - Sexes: Male, Female (n=182 total rows)
+    - Population distribution: Peaks around age 30-50
+      - Ages 0-19: Declining from 1000 to ~800
+      - Ages 20-49: Rising from 800 to ~950
+      - Ages 50-90: Declining from 950 to minimum 50
+    - Minimum population: 50 per cohort
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns: age, sex, population
+    """
     data = []
     for sex in ["Male", "Female"]:
         for age in range(91):
@@ -100,7 +171,18 @@ def sample_population_df() -> pd.DataFrame:
 
 @pytest.fixture
 def mock_db_connection() -> MagicMock:
-    """Mock psycopg2 database connection."""
+    """
+    Mock psycopg2 database connection.
+
+    Provides a mock database connection for testing reproducibility
+    logging without requiring an actual PostgreSQL database.
+
+    Returns
+    -------
+    MagicMock
+        Mock connection with cursor() method returning a mock cursor
+        configured to return (1,) as script ID from fetchone()
+    """
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_conn.cursor.return_value = mock_cursor

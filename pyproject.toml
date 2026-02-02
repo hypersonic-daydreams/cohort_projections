@@ -56,6 +56,7 @@ dependencies = [
 dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
+    "pytest-timeout>=2.2.0",
     "ruff>=0.1.0",
     "mypy>=1.5.0",
     "ipython>=8.14.0",
@@ -282,6 +283,7 @@ addopts = [
     "--cov=cohort_projections",
     "--cov-report=term-missing",
     "--cov-report=html:htmlcov",
+    "--timeout=300",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
