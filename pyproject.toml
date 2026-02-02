@@ -128,6 +128,9 @@ select = [
     "SIM",    # flake8-simplify
     "PIE",    # flake8-pie
     "DTZ",    # flake8-datetimez
+    "PERF",   # Performance anti-patterns
+    "FURB",   # refurb suggestions
+    "LOG",    # logging best practices
 ]
 ignore = [
     "E501",      # Line too long - Ruff formatter handles this
@@ -221,6 +224,11 @@ line-ending = "auto"
 # =============================================================================
 # Note: Using relaxed settings initially. Strict mode can be enabled
 # incrementally as type annotations are added to the codebase.
+#
+# MyPy Strictness Roadmap:
+# Phase 1 (current): Relaxed mode
+# Phase 2: Enable warn_return_any
+# Phase 3: Enable disallow_untyped_defs for core/
 [tool.mypy]
 python_version = "3.11"
 # Relaxed settings for initial adoption

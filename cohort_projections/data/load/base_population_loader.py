@@ -112,7 +112,7 @@ def load_state_age_sex_race_distribution(
     logger.info(f"Loaded {len(raw_dist)} records from {distribution_path}")
 
     # Expand age groups to single-year ages
-    expanded_rows = []
+    expanded_rows: list[dict[str, str | int | float]] = []
     for _, row in raw_dist.iterrows():
         age_group = row["age_group"]
         sex = row["sex"].title()  # Capitalize: "male" -> "Male"
@@ -127,15 +127,15 @@ def load_state_age_sex_race_distribution(
             # Distribute proportion evenly across single years in group
             proportion_per_year = row["proportion"] / len(ages)
 
-            for age in ages:
-                expanded_rows.append(
-                    {
-                        "age": age,
-                        "sex": sex,
-                        "race": race,
-                        "proportion": proportion_per_year,
-                    }
-                )
+            expanded_rows.extend(
+                {
+                    "age": age,
+                    "sex": sex,
+                    "race": race,
+                    "proportion": proportion_per_year,
+                }
+                for age in ages
+            )
         else:
             logger.warning(f"Unknown age group: {age_group}")
 
@@ -176,11 +176,12 @@ def load_state_age_sex_race_distribution(
     max_age = demographics.get("age_groups", {}).get("max_age", 90)
 
     # Ensure all expected cohorts exist (fill missing with 0)
-    all_cohorts = []
-    for age in range(min_age, max_age + 1):
-        for sex in expected_sexes:
-            for race in expected_races:
-                all_cohorts.append({"age": age, "sex": sex, "race": race})
+    all_cohorts = [
+        {"age": age, "sex": sex, "race": race}
+        for age in range(min_age, max_age + 1)
+        for sex in expected_sexes
+        for race in expected_races
+    ]
 
     complete_index = pd.DataFrame(all_cohorts)
 

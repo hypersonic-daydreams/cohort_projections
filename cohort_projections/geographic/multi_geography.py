@@ -399,23 +399,20 @@ def run_multi_geography_projections(
                 failed_geographies.append(fips)
 
     # Create summary DataFrame
-    summary_data = []
-    for result in results:
-        if not result["projection"].empty:
-            summary_data.append(
-                {
-                    "fips": result["geography"]["fips"],
-                    "name": result["geography"]["name"],
-                    "level": result["geography"]["level"],
-                    "base_population": result["metadata"]["summary_statistics"]["base_population"],
-                    "final_population": result["metadata"]["summary_statistics"][
-                        "final_population"
-                    ],
-                    "absolute_growth": result["metadata"]["summary_statistics"]["absolute_growth"],
-                    "growth_rate": result["metadata"]["summary_statistics"]["growth_rate"],
-                    "processing_time": result["processing_time"],
-                }
-            )
+    summary_data = [
+        {
+            "fips": result["geography"]["fips"],
+            "name": result["geography"]["name"],
+            "level": result["geography"]["level"],
+            "base_population": result["metadata"]["summary_statistics"]["base_population"],
+            "final_population": result["metadata"]["summary_statistics"]["final_population"],
+            "absolute_growth": result["metadata"]["summary_statistics"]["absolute_growth"],
+            "growth_rate": result["metadata"]["summary_statistics"]["growth_rate"],
+            "processing_time": result["processing_time"],
+        }
+        for result in results
+        if not result["projection"].empty
+    ]
 
     summary_df = pd.DataFrame(summary_data)
 
@@ -558,11 +555,11 @@ def aggregate_to_state(
     logger.info("Aggregating county projections to state level")
 
     # Combine all county projections
-    all_counties = []
-
-    for county_result in county_projections:
-        if not county_result["projection"].empty:
-            all_counties.append(county_result["projection"])
+    all_counties = [
+        county_result["projection"]
+        for county_result in county_projections
+        if not county_result["projection"].empty
+    ]
 
     if not all_counties:
         logger.warning("No county projections to aggregate")
