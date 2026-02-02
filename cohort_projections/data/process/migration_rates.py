@@ -17,54 +17,16 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from cohort_projections.config import (
+    MIGRATION_RACE_MAP,  # Re-exported for backward compatibility
+)
 from cohort_projections.utils import get_logger_from_config, load_projection_config
 
 logger = get_logger_from_config(__name__)
 
-
-# SEER/Census race/ethnicity code mappings (consistent with fertility/survival processors)
-MIGRATION_RACE_MAP = {
-    # White alone, Non-Hispanic
-    "White Non-Hispanic": "White alone, Non-Hispanic",
-    "White NH": "White alone, Non-Hispanic",
-    "NH White": "White alone, Non-Hispanic",
-    "Non-Hispanic White": "White alone, Non-Hispanic",
-    "WNH": "White alone, Non-Hispanic",
-    "1": "White alone, Non-Hispanic",
-    # Black alone, Non-Hispanic
-    "Black Non-Hispanic": "Black alone, Non-Hispanic",
-    "Black NH": "Black alone, Non-Hispanic",
-    "NH Black": "Black alone, Non-Hispanic",
-    "Non-Hispanic Black": "Black alone, Non-Hispanic",
-    "BNH": "Black alone, Non-Hispanic",
-    "2": "Black alone, Non-Hispanic",
-    # AIAN alone, Non-Hispanic
-    "AIAN Non-Hispanic": "AIAN alone, Non-Hispanic",
-    "AIAN NH": "AIAN alone, Non-Hispanic",
-    "NH AIAN": "AIAN alone, Non-Hispanic",
-    "American Indian/Alaska Native Non-Hispanic": "AIAN alone, Non-Hispanic",
-    "AI/AN Non-Hispanic": "AIAN alone, Non-Hispanic",
-    "3": "AIAN alone, Non-Hispanic",
-    # Asian/PI alone, Non-Hispanic
-    "Asian/PI Non-Hispanic": "Asian/PI alone, Non-Hispanic",
-    "Asian/Pacific Islander Non-Hispanic": "Asian/PI alone, Non-Hispanic",
-    "Asian NH": "Asian/PI alone, Non-Hispanic",
-    "NH Asian": "Asian/PI alone, Non-Hispanic",
-    "API Non-Hispanic": "Asian/PI alone, Non-Hispanic",
-    "4": "Asian/PI alone, Non-Hispanic",
-    # Two or more races, Non-Hispanic
-    "Two or More Races Non-Hispanic": "Two or more races, Non-Hispanic",
-    "Two+ Races NH": "Two or more races, Non-Hispanic",
-    "NH Two or More Races": "Two or more races, Non-Hispanic",
-    "Multiracial Non-Hispanic": "Two or more races, Non-Hispanic",
-    "5": "Two or more races, Non-Hispanic",
-    # Hispanic (any race)
-    "Hispanic": "Hispanic (any race)",
-    "Hispanic (any race)": "Hispanic (any race)",
-    "All Hispanic": "Hispanic (any race)",
-    "Hisp": "Hispanic (any race)",
-    "6": "Hispanic (any race)",
-}
+# Re-export MIGRATION_RACE_MAP for backward compatibility
+# The canonical definition is in cohort_projections/config/race_mappings.py
+__all__ = ["MIGRATION_RACE_MAP"]
 
 
 def load_irs_migration_data(

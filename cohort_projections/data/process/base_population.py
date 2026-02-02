@@ -11,40 +11,15 @@ from typing import Any
 
 import pandas as pd
 
+from cohort_projections.config import CENSUS_RACE_MAP
 from cohort_projections.utils import ConfigLoader, get_logger_from_config
 
 logger = get_logger_from_config(__name__)
 
 
-# Census race/ethnicity code mappings to 6-category system
-RACE_ETHNICITY_MAP = {
-    # White alone, Non-Hispanic
-    "WA_NH": "White alone, Non-Hispanic",
-    "NH_WHITE": "White alone, Non-Hispanic",
-    "NHWA": "White alone, Non-Hispanic",
-    # Black alone, Non-Hispanic
-    "BA_NH": "Black alone, Non-Hispanic",
-    "NH_BLACK": "Black alone, Non-Hispanic",
-    "NHBA": "Black alone, Non-Hispanic",
-    # AIAN alone, Non-Hispanic
-    "IA_NH": "AIAN alone, Non-Hispanic",
-    "NH_AIAN": "AIAN alone, Non-Hispanic",
-    "NHIA": "AIAN alone, Non-Hispanic",
-    # Asian/PI alone, Non-Hispanic
-    "AA_NH": "Asian/PI alone, Non-Hispanic",
-    "NH_ASIAN": "Asian/PI alone, Non-Hispanic",
-    "NHAA": "Asian/PI alone, Non-Hispanic",
-    "NH_API": "Asian/PI alone, Non-Hispanic",
-    # Two or more races, Non-Hispanic
-    "TOM_NH": "Two or more races, Non-Hispanic",
-    "NH_TOM": "Two or more races, Non-Hispanic",
-    "NHTOM": "Two or more races, Non-Hispanic",
-    "NH_TWO_OR_MORE": "Two or more races, Non-Hispanic",
-    # Hispanic (any race)
-    "H": "Hispanic (any race)",
-    "HISP": "Hispanic (any race)",
-    "HISPANIC": "Hispanic (any race)",
-}
+# Use centralized Census race/ethnicity mappings
+# See cohort_projections/config/race_mappings.py for the canonical definitions
+RACE_ETHNICITY_MAP = CENSUS_RACE_MAP
 
 
 def harmonize_race_categories(df: pd.DataFrame) -> pd.DataFrame:
