@@ -32,12 +32,6 @@ python scripts/fetch_data.py    # Fetch from sibling repos
 python scripts/projections/run_all_projections.py
 ```
 
-### Journal Article (SDC 2024 Replication)
-```bash
-cat sdc_2024_replication/scripts/statistical_analysis/journal_article/output/CURRENT_VERSION.txt
-ls -lt journal_article_pdfs/*.pdf | head   # if `journal_article_pdfs/` exists locally
-```
-
 ---
 
 ## Session Workflow
@@ -88,6 +82,6 @@ git add . && git commit -m "..."
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-01-13 |
-| **Version** | 2.1.1 |
+| **Last Updated** | 2026-02-02 |
+| **Version** | 2.2.0 |
 | **Note** | Quick-reference wrapper for Claude Code. See AGENTS.md for complete guidance. |

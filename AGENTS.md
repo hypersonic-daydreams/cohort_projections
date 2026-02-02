@@ -2,13 +2,17 @@
 
 Canonical instruction set for all AI agents working on this codebase.
 
-**Last Updated:** 2026-01-13 | **Version:** 1.3.1 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
+**Last Updated:** 2026-02-02 | **Version:** 1.4.0 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
 
 ---
 
 ## 1. Project Identity
 
-**North Dakota Population Projection System** — Cohort-component population projections for North Dakota at state, county, and place levels (2025-2045).
+**North Dakota Population Projection System** — Official cohort-component population projections for North Dakota at state, county, and place levels.
+
+### Current Focus: 2026 Cohort Projections
+
+The primary work is developing the **2026 official population projections** for North Dakota. This includes refining methodology, validating against Census Bureau benchmarks, and producing publication-ready outputs.
 
 | Attribute | Value |
 |-----------|-------|
@@ -18,6 +22,10 @@ Canonical instruction set for all AI agents working on this codebase.
 | Projection Horizon | 2025 to 2045 (annual) |
 
 **Philosophy:** Rigor over cleverness. Reproducibility. Linear pipeline design. Every assumption in ADRs.
+
+### Related Work
+
+- **SDC 2024 Replication** (`sdc_2024_replication/`): Journal article analyzing immigration methodology. See Section 4 for file locations if needed.
 
 ---
 
@@ -60,22 +68,14 @@ Data deletion, security changes, breaking output formats, **methodology changes 
 
 ### Workflow Scripts
 **ALWAYS check `scripts/` before inventing new commands.**
+- **Projections**: Use `scripts/projections/run_all_projections.py` for full pipeline runs.
 - **Backups**: Use `scripts/bisync.sh`. NEVER run raw `rclone` commands for syncing.
 - **Maintenance**: Use provided scripts in `scripts/maintenance/`.
 
-### Journal Article (SDC 2024 Replication)
-When asked to “work with the latest journal article PDF”, treat these as the canonical locations:
-
-1. **Fastest to browse (flat PDFs, repo root)**: `journal_article_pdfs/` (if present)
-   - Contains only PDFs named `article-{version}_{timestamp}.pdf` (no `draft/production` folders).
-   - These are created by the versioned builder via `--publish-pdf-dir journal_article_pdfs`.
-2. **Canonical version pointer (tracked)**: `sdc_2024_replication/scripts/statistical_analysis/journal_article/output/CURRENT_VERSION.txt`
-   - Contains the latest versioned bundle PDF filename (includes status + timestamp).
-   - Resolve it under `sdc_2024_replication/scripts/statistical_analysis/journal_article/output/versions/` (or the root symlink `journal_article_versions` if present).
-
-Notes:
-- `sdc_2024_replication/scripts/statistical_analysis/journal_article/main.pdf` is a local compile output and can drift; prefer the versioned build + `CURRENT_VERSION.txt` when “latest” matters.
-- Root-level symlinks `journal_article_output` and `journal_article_versions` may exist for easier navigation.
+### SDC 2024 Journal Article (Reference Only)
+If asked to work with the SDC 2024 journal article:
+- **Latest PDF**: Check `journal_article_pdfs/` or `sdc_2024_replication/scripts/statistical_analysis/journal_article/output/CURRENT_VERSION.txt`
+- **Source files**: `sdc_2024_replication/scripts/statistical_analysis/journal_article/`
 
 ---
 
@@ -98,7 +98,7 @@ Notes:
 
 ---
 
-## 5. Data Conventions
+## 6. Data Conventions
 
 ### Directory Structure
 ```
@@ -122,7 +122,7 @@ data/
 
 ---
 
-## 6. Demographic Guidelines
+## 7. Demographic Guidelines
 
 ### Race/Ethnicity Categories (Mandatory)
 Use exactly these 6 categories from `projection_config.yaml`:
@@ -151,7 +151,7 @@ Validate: County sums must equal state total (within 1% tolerance).
 
 ---
 
-## 7. Session Workflow
+## 8. Session Workflow
 
 ### At Session Start
 1. Check `DEVELOPMENT_TRACKER.md` for current status
@@ -165,7 +165,7 @@ Validate: County sums must equal state total (within 1% tolerance).
 
 ---
 
-## 8. Environment Setup
+## 9. Environment Setup
 
 See [docs/guides/environment-setup.md](./docs/guides/environment-setup.md) for detailed setup.
 
@@ -179,13 +179,16 @@ uv sync               # Install dependencies
 
 ---
 
-## 9. Documentation Index
+## 10. Documentation Index
 
 ### Guides (How-To)
 | Guide | Purpose |
 |-------|---------|
 | [docs/guides/testing-workflow.md](./docs/guides/testing-workflow.md) | Test commands and patterns |
 | [docs/guides/environment-setup.md](./docs/guides/environment-setup.md) | Environment and tooling setup |
+| [docs/guides/configuration-reference.md](./docs/guides/configuration-reference.md) | Configuration options |
+| [docs/guides/data-sources-workflow.md](./docs/guides/data-sources-workflow.md) | Data acquisition and processing |
+| [docs/guides/troubleshooting.md](./docs/guides/troubleshooting.md) | Common issues and solutions |
 
 ### SOPs (Complex Workflows)
 | SOP | Purpose |
@@ -208,11 +211,9 @@ uv sync               # Install dependencies
 | [DEVELOPMENT_TRACKER.md](./DEVELOPMENT_TRACKER.md) | Current project status |
 | [docs/methodology_comparison_sdc_2024.md](./docs/methodology_comparison_sdc_2024.md) | SDC 2024 comparison |
 
-| [docs/methodology_comparison_sdc_2024.md](./docs/methodology_comparison_sdc_2024.md) | SDC 2024 comparison |
-
 ---
 
-## 10. Repository Intelligence (Day 2 Operations)
+## 11. Repository Intelligence (Day 2 Operations)
 
 This repository uses a PostgreSQL-backed intelligence system to track code status, documentation links, and execution history.
 
@@ -232,10 +233,11 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 ---
 
-## 10. Version History
+## 12. Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.4.0 | 2026-02-02 | Refocused on 2026 cohort projections; de-emphasized SDC 2024; fixed section numbering; updated guides index |
 | 1.3.0 | 2026-01-01 | Refactored to ~200 lines; extracted guides and added SOP references |
 | 1.2.0 | 2025-12-31 | Consolidated test workflow and BigQuery content |
 | 1.1.0 | 2025-12-29 | Updated for uv package management |
@@ -245,7 +247,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-01-13 |
-| **Version** | 1.3.1 |
+| **Last Updated** | 2026-02-02 |
+| **Version** | 1.4.0 |
 | **Status** | Current |
 | **Applies To** | All AI Agents |
