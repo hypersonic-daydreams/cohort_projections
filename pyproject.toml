@@ -40,16 +40,15 @@ dependencies = [
     "psycopg2-binary>=2.9.11",
     "pathspec>=0.12.1",
     "sqlalchemy>=2.0.45",
-    "matplotlib>=3.10.8",
-    "scipy>=1.16.3",
+    # Core analysis (canonical versions - also in optional stats group)
+    "matplotlib>=3.10.0",
+    "scipy>=1.13.0",
     "statsmodels>=0.14.6",
-    "markdown>=3.10",
-    "weasyprint>=67.0",
+    # Internal packages
     "project-utils",
     "evidence-review",
     "codebase-catalog",
     "pdfplumber>=0.11.8",
-    "xlrd>=2.0.2",
     "ocrmypdf>=16.13.0",
 ]
 
@@ -59,12 +58,11 @@ dev = [
     "pytest-cov>=4.1.0",
     "ruff>=0.1.0",
     "mypy>=1.5.0",
-    "black>=23.0.0",
     "ipython>=8.14.0",
     "jupyter>=1.0.0",
 ]
 viz = [
-    "matplotlib>=3.7.0",
+    "matplotlib>=3.10.0",
     "seaborn>=0.12.0",
     "plotly>=5.14.0",
 ]
@@ -73,9 +71,9 @@ geo = [
     "shapely>=2.0.0",
 ]
 stats = [
-    # Statistical analysis packages
-    "statsmodels>=0.14.0",
-    "scipy>=1.10.0",
+    # Statistical analysis packages (versions match main dependencies)
+    "statsmodels>=0.14.6",
+    "scipy>=1.13.0",
     "arch>=6.0",
     "ruptures>=1.1",
     "pmdarima>=2.0",
@@ -89,8 +87,17 @@ bayesian = [
     "pymc>=5.10",
     "arviz>=0.17",
 ]
+pdf_export = [
+    # PDF generation utilities
+    "weasyprint>=67.0",
+    "markdown>=3.10",
+]
+excel_io = [
+    # Legacy Excel file support (.xls format)
+    "xlrd>=2.0.2",
+]
 all = [
-    "cohort_projections[dev,viz,geo,stats,bayesian]",
+    "cohort_projections[dev,viz,geo,stats,bayesian,pdf_export,excel_io]",
 ]
 
 [project.urls]
@@ -315,29 +322,6 @@ precision = 2
 
 [tool.coverage.html]
 directory = "htmlcov"
-
-# =============================================================================
-# Black Configuration (for compatibility, though Ruff can handle formatting)
-# =============================================================================
-[tool.black]
-line-length = 100
-target-version = ["py311"]
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | venv
-  | _build
-  | buck-out
-  | build
-  | dist
-)/
-'''
 
 # =============================================================================
 # Setuptools Configuration
