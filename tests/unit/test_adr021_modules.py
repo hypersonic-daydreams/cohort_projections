@@ -518,7 +518,7 @@ class TestExportRegimeFrameworkSummary:
     def test_regime_contains_boundaries_and_parameters(self):
         """Each regime should have boundaries, parameters, and events."""
         summary = export_regime_framework_summary()
-        for _regime_name, regime_data in summary["regimes"].items():
+        for regime_data in summary["regimes"].values():
             assert "boundaries" in regime_data
             assert "parameters" in regime_data
             assert "events" in regime_data
@@ -536,6 +536,7 @@ class TestStatusDurabilityDataClasses:
 
     def test_legal_status_enum_import(self):
         """LegalStatus enum should be importable."""
+        pytest.importorskip("lifelines", reason="lifelines not installed")
         from statistical_analysis.module_8b_status_durability import LegalStatus
 
         assert LegalStatus.REFUGEE.value == "refugee"
@@ -544,6 +545,7 @@ class TestStatusDurabilityDataClasses:
 
     def test_status_characteristics_structure(self):
         """StatusCharacteristics should have expected structure."""
+        pytest.importorskip("lifelines", reason="lifelines not installed")
         from statistical_analysis.module_8b_status_durability import (
             STATUS_CHARACTERISTICS,
             LegalStatus,
@@ -557,6 +559,7 @@ class TestStatusDurabilityDataClasses:
 
     def test_refugee_characteristics(self):
         """Refugee should have high durability."""
+        pytest.importorskip("lifelines", reason="lifelines not installed")
         from statistical_analysis.module_8b_status_durability import (
             STATUS_CHARACTERISTICS,
             LegalStatus,
@@ -570,6 +573,7 @@ class TestStatusDurabilityDataClasses:
 
     def test_parole_characteristics(self):
         """Parole should have cliff hazard."""
+        pytest.importorskip("lifelines", reason="lifelines not installed")
         from statistical_analysis.module_8b_status_durability import (
             STATUS_CHARACTERISTICS,
             LegalStatus,
@@ -587,6 +591,7 @@ class TestModuleResult:
 
     def test_module_result_creation(self):
         """ModuleResult should be creatable with required fields."""
+        pytest.importorskip("lifelines", reason="lifelines not installed")
         from statistical_analysis.module_8b_status_durability import ModuleResult
 
         result = ModuleResult(module_id="test", analysis_name="test_analysis")
@@ -597,6 +602,7 @@ class TestModuleResult:
 
     def test_add_decision(self):
         """add_decision should append to decisions list."""
+        pytest.importorskip("lifelines", reason="lifelines not installed")
         from statistical_analysis.module_8b_status_durability import ModuleResult
 
         result = ModuleResult(module_id="test", analysis_name="test")
@@ -613,6 +619,7 @@ class TestModuleResult:
 
     def test_to_dict(self):
         """to_dict should return serializable dictionary."""
+        pytest.importorskip("lifelines", reason="lifelines not installed")
         from statistical_analysis.module_8b_status_durability import ModuleResult
 
         result = ModuleResult(module_id="test", analysis_name="test")
@@ -1036,6 +1043,7 @@ class TestDatabaseMocking:
     @patch("database.db_config.get_db_connection")
     def test_status_durability_load_functions_call_db(self, mock_conn):
         """Status durability load functions should use db_config."""
+        pytest.importorskip("lifelines", reason="lifelines not installed")
         from statistical_analysis.module_8b_status_durability import load_pep_migration
 
         # Setup mock

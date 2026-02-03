@@ -9,6 +9,9 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+import pytest
+
+pytest.importorskip("lifelines", reason="lifelines not installed")
 
 os.environ.setdefault("MPLBACKEND", "Agg")
 
