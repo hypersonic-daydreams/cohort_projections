@@ -26,7 +26,7 @@ logger = get_logger_from_config(__name__)
 
 # Re-export MIGRATION_RACE_MAP for backward compatibility
 # The canonical definition is in cohort_projections/config/race_mappings.py
-__all__ = ["MIGRATION_RACE_MAP"]
+__all__ = ["MIGRATION_RACE_MAP", "process_pep_migration_rates"]
 
 
 def load_irs_migration_data(
@@ -1341,6 +1341,268 @@ def process_migration_rates(
     logger.info("=" * 70)
 
     return migration_table
+
+
+def process_pep_migration_rates(
+    pep_path: str | Path,
+    population_path: str | Path,
+    output_dir: Path | None = None,
+    config: dict | None = None,
+    regime_weights: dict[str, float] | None = None,
+    dampening: dict[str, float] | None = None,
+    as_rates: bool = False,
+    scenarios: list[str] | None = None,
+) -> dict[str, pd.DataFrame]:
+    """Process PEP county migration data into age/sex/race-specific rates.
+
+    Complete pipeline for all 53 ND counties:
+    1. Load PEP county components (preferred estimates)
+    2. Classify counties and calculate regime-weighted averages
+    3. For each county:
+       a. Get county-specific net migration total
+       b. Load county base population for race distribution
+       c. Distribute to ages using Rogers-Castro pattern
+       d. Distribute to sex (50/50)
+       e. Distribute to race (proportional to county population)
+       f. Create complete 1,092-row migration table
+    4. Combine all counties with county_fips column
+    5. Save to output files
+
+    Args:
+        pep_path: Path to pep_county_components_2000_2024.parquet
+        population_path: Path to base population parquet (needs columns:
+            [county_fips, age, sex, race_ethnicity, population])
+        output_dir: Output directory (default: data/processed/migration/)
+        config: Configuration dictionary (optional)
+        regime_weights: Custom regime weights (default: recovery-weighted)
+        dampening: Custom dampening factors (default: boom=0.60)
+        as_rates: Express as rates instead of absolute numbers
+        scenarios: Scenario names to generate (default: ["baseline"])
+
+    Returns:
+        Dictionary mapping scenario name to DataFrame.
+        Each DataFrame has columns:
+        [county_fips, age, sex, race_ethnicity, net_migration, processing_date]
+        With 57,876 rows (53 counties x 1,092 cohorts).
+    """
+    from cohort_projections.data.process.pep_regime_analysis import (
+        DEFAULT_DAMPENING,
+        DEFAULT_REGIME_WEIGHTS,
+        calculate_regime_averages,
+        calculate_regime_weighted_average,
+        classify_counties,
+        load_pep_preferred_estimates,
+    )
+
+    logger.info("=" * 70)
+    logger.info("Starting PEP migration rates processing pipeline")
+    logger.info("=" * 70)
+
+    # Load config if not provided
+    if config is None:
+        config = load_projection_config()
+
+    # Set default output directory
+    if output_dir is None:
+        project_root = Path(__file__).parent.parent.parent.parent
+        output_dir = project_root / "data" / "processed" / "migration"
+
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Default scenarios
+    if scenarios is None:
+        scenarios = ["baseline"]
+
+    # Define scenario configurations
+    scenario_configs: dict[str, dict[str, Any]] = {
+        "baseline": {
+            "weights": regime_weights if regime_weights is not None else DEFAULT_REGIME_WEIGHTS,
+            "dampening": dampening if dampening is not None else DEFAULT_DAMPENING,
+            "multiplier": 1.0,
+        },
+        "low": {
+            "weights": {
+                "pre_bakken": 0.10,
+                "boom": 0.05,
+                "bust_covid": 0.50,
+                "recovery": 0.35,
+            },
+            "dampening": {"boom": 0.60},
+            "multiplier": 0.75,
+        },
+        "high": {
+            "weights": {
+                "pre_bakken": 0.10,
+                "boom": 0.25,
+                "bust_covid": 0.15,
+                "recovery": 0.50,
+            },
+            "dampening": {},
+            "multiplier": 1.0,
+        },
+    }
+
+    # Step 1: Load PEP data
+    logger.info("Step 1: Loading PEP county components (preferred estimates)")
+    pep_df = load_pep_preferred_estimates(pep_path)
+    logger.info(f"Loaded PEP data with {len(pep_df)} records")
+
+    # Get county list from unique geoid values (5-digit FIPS like "38017")
+    county_geoids = sorted(pep_df["geoid"].unique())
+    logger.info(f"Found {len(county_geoids)} counties")
+
+    # Step 2: Load base population
+    logger.info("Step 2: Loading base population")
+    population_path = Path(population_path)
+    if not population_path.exists():
+        raise FileNotFoundError(f"Population file not found: {population_path}")
+
+    if population_path.suffix == ".parquet":
+        population_df = pd.read_parquet(population_path)
+    elif population_path.suffix == ".csv":
+        population_df = pd.read_csv(population_path)
+    else:
+        raise ValueError(f"Unsupported population file format: {population_path.suffix}")
+
+    logger.info(f"Loaded population with {len(population_df)} records")
+
+    # Step 3: Classify counties and calculate regime averages
+    logger.info("Step 3: Classifying counties and calculating regime averages")
+    county_fips_list = pep_df["county_fips"].unique().tolist()
+    classify_counties(county_fips_list)  # validates county classification
+    regime_averages = calculate_regime_averages(pep_df)
+
+    # Get standard age pattern (Rogers-Castro)
+    age_pattern = get_standard_age_migration_pattern(peak_age=25, method="rogers_castro")
+
+    # Step 4: Process each scenario
+    results: dict[str, pd.DataFrame] = {}
+
+    for scenario in scenarios:
+        if scenario not in scenario_configs:
+            logger.warning(f"Unknown scenario '{scenario}', skipping")
+            continue
+
+        logger.info(f"\n{'=' * 50}")
+        logger.info(f"Processing scenario: {scenario}")
+        logger.info(f"{'=' * 50}")
+
+        sc = scenario_configs[scenario]
+        sc_weights = sc["weights"]
+        sc_dampening = sc["dampening"]
+        sc_multiplier = sc["multiplier"]
+
+        # Calculate regime-weighted averages for this scenario
+        weighted_averages = calculate_regime_weighted_average(
+            regime_averages,
+            weights=sc_weights,
+            dampening=sc_dampening,
+        )
+
+        # Step 4a: Process each county
+        county_dfs = []
+
+        for geoid in county_geoids:
+            logger.debug(f"Processing county {geoid}")
+
+            # Get this county's weighted average net migration
+            county_weighted = weighted_averages[weighted_averages["geoid"] == geoid]
+            if county_weighted.empty:
+                logger.warning(f"No weighted average found for county {geoid}, using 0")
+                weighted_avg_netmig = 0.0
+            else:
+                weighted_avg_netmig = float(county_weighted["weighted_avg_netmig"].iloc[0])
+
+            # Apply scenario multiplier
+            weighted_avg_netmig *= sc_multiplier
+
+            # Get county population
+            county_population = population_df[population_df["county_fips"] == geoid].copy()
+
+            if county_population.empty:
+                logger.warning(
+                    f"No population data for county {geoid}, skipping demographic distribution"
+                )
+                continue
+
+            # Distribute to ages using Rogers-Castro pattern
+            age_migration = distribute_migration_by_age(weighted_avg_netmig, age_pattern)
+
+            # Distribute to sex (50/50)
+            age_sex_migration = distribute_migration_by_sex(age_migration, sex_ratio=0.5)
+
+            # Distribute to race (proportional to county population)
+            age_sex_race_migration = distribute_migration_by_race(
+                age_sex_migration, county_population
+            )
+
+            # Rename 'migrants' to 'net_migration' for consistency
+            age_sex_race_migration = age_sex_race_migration.rename(
+                columns={"migrants": "net_migration"}
+            )
+
+            # Create complete 1,092-row migration table
+            county_table = create_migration_rate_table(
+                age_sex_race_migration,
+                population_df=county_population if as_rates else None,
+                as_rates=as_rates,
+                validate=True,
+                config=config,
+            )
+
+            # Add county_fips column
+            county_table["county_fips"] = geoid
+
+            county_dfs.append(county_table)
+
+        # Concatenate all counties
+        if not county_dfs:
+            logger.error(f"No counties processed for scenario '{scenario}'")
+            continue
+
+        scenario_df = pd.concat(county_dfs, ignore_index=True)
+
+        # Add processing_date column
+        scenario_df["processing_date"] = datetime.now(UTC).strftime("%Y-%m-%d")
+
+        results[scenario] = scenario_df
+
+        # Log summary statistics
+        migration_col = "migration_rate" if as_rates else "net_migration"
+        total_net = scenario_df[migration_col].sum()
+        n_counties = scenario_df["county_fips"].nunique()
+
+        # Count counties with positive/negative net migration
+        county_totals = scenario_df.groupby("county_fips")[migration_col].sum()
+        positive_counties = (county_totals > 0).sum()
+        negative_counties = (county_totals < 0).sum()
+        zero_counties = (county_totals == 0).sum()
+
+        logger.info(f"\nScenario '{scenario}' summary:")
+        logger.info(f"  Total rows: {len(scenario_df)}")
+        logger.info(f"  Counties: {n_counties}")
+        logger.info(f"  Total net migration: {total_net:+,.0f}")
+        logger.info(f"  Counties with positive migration: {positive_counties}")
+        logger.info(f"  Counties with negative migration: {negative_counties}")
+        logger.info(f"  Counties with zero migration: {zero_counties}")
+
+        # Save to output files if output_dir provided
+        parquet_file = output_dir / f"migration_rates_pep_{scenario}.parquet"
+        compression = config.get("output", {}).get("compression", "gzip")
+        scenario_df.to_parquet(parquet_file, compression=compression, index=False)
+        logger.info(f"  Saved: {parquet_file}")
+
+        csv_file = output_dir / f"migration_rates_pep_{scenario}.csv"
+        scenario_df.to_csv(csv_file, index=False)
+        logger.info(f"  Saved: {csv_file}")
+
+    logger.info("=" * 70)
+    logger.info("PEP migration rates processing complete")
+    logger.info(f"Scenarios processed: {list(results.keys())}")
+    logger.info("=" * 70)
+
+    return results
 
 
 if __name__ == "__main__":

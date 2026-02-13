@@ -28,7 +28,59 @@ This project implements cohort component population projections for North Dakota
 
 **When asked to "work on the next task", do this:**
 
-### Task: Documentation Polish and Optional Enhancements
+### Task: Implement Census PEP Migration Data Pipeline (ADR-035)
+
+**Priority:** HIGH
+**Type:** Data Pipeline Implementation
+**Status:** ALL PHASES COMPLETE (Phases 1-5)
+
+**Overview:**
+Decision made (ADR-035) to replace IRS county-to-county migration flows with Census Population Estimates Program (PEP) components of change data. This addresses the projection divergence issue (~74,000-80,000 people by 2045) by using comprehensive migration data (domestic + international, 2000-2024).
+
+**Decision Document:** [docs/governance/adrs/035-migration-data-source-census-pep.md](docs/governance/adrs/035-migration-data-source-census-pep.md)
+
+**Implementation Plan (5 Phases):**
+
+**Phase 1: Data Extraction** - COMPLETE
+- [x] Extract county-level net migration from PEP components (2000-2024)
+- [x] Validate county sums = state totals (hierarchical consistency)
+- [x] Document vintage differences and methodology changes
+- [x] Create: `data/processed/pep_county_components_2000_2024.parquet`
+- [x] Generate validation report
+
+**Phase 2: Regime Analysis** - COMPLETE
+- [x] County-level regime classification (oil vs. non-oil; metro vs. rural)
+- [x] Calculate period-specific averages (pre-Bakken, boom, bust, recovery)
+- [x] Visualization of migration patterns
+- [x] Module: `cohort_projections/data/process/pep_regime_analysis.py`
+
+**Phase 3: Rate Calculation** - COMPLETE
+- [x] Age/sex-specific migration rate methodology (Rogers-Castro pattern)
+- [x] ACS age/sex pattern extraction for allocation
+- [x] Multi-period smoothing and outlier handling
+- [x] Create scenario-specific rate sets (baseline, low, high)
+- [x] Output: `data/processed/migration/migration_rates_pep_{baseline,low,high}.parquet` (57,876 rows each)
+- [x] `process_pep_migration_rates()` added to `migration_rates.py`
+
+**Phase 4: Pipeline Integration** - COMPLETE
+- [x] Update pipeline to use PEP migration rates (`02_run_projections.py`)
+- [x] Per-county migration rate dicts when `method: "PEP_components"`
+- [x] Config updated: `rates.migration.domestic.method: PEP_components`
+- [x] Zero-migration fallback for counties without PEP data
+
+**Phase 5: Production Deployment** - COMPLETE
+- [x] Production script: `scripts/projections/run_pep_projections.py`
+- [x] Full 53-county projections with PEP data (CLI with --scenarios, --dry-run)
+- [x] PEP vs IRS baseline comparison reporting
+- [x] County growth summary (top 5 growing/declining)
+
+**Focus:** Rigor and granular analysis (regime-aware, multi-period averaging, comprehensive validation)
+
+**Deferred:** IRS directional flow blending (post-validation)
+
+---
+
+### Secondary Task: Documentation Polish and Optional Enhancements
 
 **Priority:** LOW
 **Type:** Documentation & Polish
@@ -93,6 +145,25 @@ See: [ADR-021](docs/governance/adrs/021-immigration-status-durability-methodolog
 - Planning complete (Agents B0a-B6), implementation in progress
 
 ## Completed Phases
+
+- **ADR-035: Census PEP Migration Data Pipeline** (2026-02-12) - ALL 5 PHASES COMPLETE
+  - Decision to replace IRS county-to-county flows with Census PEP components of change
+  - Addresses projection divergence: IRS data misses ~74K-80K people by 2045
+  - Phase 1: PEP county components extracted (2000-2024), hierarchical validation passed
+  - Phase 2: Regime analysis module (`pep_regime_analysis.py`) - oil/metro/rural classification, 4-period regime averages
+  - Phase 3: PEP rate processing pipeline - 57,876 rows per scenario (53 counties x 1,092 cohorts), Rogers-Castro age patterns
+  - Phase 4: Pipeline integration - `02_run_projections.py` handles per-county migration rate dicts, config switched to PEP_components
+  - Phase 5: Production script `scripts/projections/run_pep_projections.py` with CLI (--scenarios, --dry-run, --output-dir)
+  - Migration method switched from IRS to PEP in `config/projection_config.yaml`
+  - 982 tests passing, coverage at 74.12%
+  - See: [docs/governance/adrs/035-migration-data-source-census-pep.md](docs/governance/adrs/035-migration-data-source-census-pep.md)
+
+- **ADR-034: Census PEP Data Archive** (2026-02-03) - COMPLETE
+  - Built shared data archive for Census Population Estimates Program (PEP)
+  - Completed all 5 phases: download (23 files, 8 vintages 1970s-2024), parquet conversion (15 datasets), raw archiving by vintage (~86 MB compressed), documentation extraction (3 PDFs), PostgreSQL analytics layer (4M rows harmonized)
+  - Location: `~/workspace/shared-data/census/popest/`
+  - Database: `census_popest` schema `popest_analytics` (place_totals, county_totals)
+  - See: [docs/governance/adrs/034-census-pep-data-archive.md](docs/governance/adrs/034-census-pep-data-archive.md)
 
 - **Refactoring & Hygiene** (2026-01-04) - COMPLETE
   - Consolidated analysis modules to use `data_loader.py` (SQL-based).
@@ -238,6 +309,116 @@ Tasks for current phase. States: `[ ]` pending | `[x]` complete
 ---
 
 ## Session Log
+
+### 2026-02-12 - ADR-035 Phase 5: Production PEP Projection Script
+
+**Duration:** Single session
+**Focus:** Production deployment of PEP-based projections (ADR-035 Phase 5)
+
+**Context:** Phases 2-4 completed previously:
+- Phase 2: `cohort_projections/data/process/pep_regime_analysis.py` - county classification (oil/metro/rural), regime-weighted migration averages
+- Phase 3: `process_pep_migration_rates()` in `migration_rates.py` - multi-county rate tables (57,876 rows per scenario)
+- Phase 4: `02_run_projections.py` updated for per-county migration rate dicts with PEP_components method
+
+**Accomplishments:**
+
+**Production Script Created:**
+- `scripts/projections/run_pep_projections.py` - CLI tool for running PEP-based projections
+  - argparse interface: --scenarios, --output-dir, --dry-run, --config
+  - Verifies PEP rate files exist before running
+  - Verifies config uses PEP_components method
+  - Delegates to existing pipeline orchestration (`02_run_projections.py`)
+  - PEP vs IRS baseline comparison table (state-level totals at 2025, 2035, 2045)
+  - County growth summary: top 5 growing, top 5 declining counties
+  - Dynamic pipeline module loading via importlib (handles numeric-prefix filenames)
+
+**Development Tracker Updated:**
+- All 5 ADR-035 phases marked complete with checkboxes
+- Completed Phases section updated with implementation details
+- 982 tests passing, coverage at 74.12%
+
+**Key Files:**
+- `scripts/projections/run_pep_projections.py` (new)
+- `DEVELOPMENT_TRACKER.md` (updated)
+
+**Status:** ADR-035 implementation complete. Migration method fully switched from IRS to PEP.
+
+### 2026-02-03 - Migration Data Source Decision (ADR-035)
+
+**Duration:** Full session (investigation → decision → documentation)
+**Focus:** Resolve projection divergence through migration data source change
+
+**Part 1: Projection Divergence Investigation**
+
+**Divergence Identified:**
+- Current baseline: 754,882 by 2045 (−5.2% decline)
+- Expected (2024 SDC): 950,000+ by 2050 (growth)
+- Difference: ~170,000-190,000 people
+
+**Root Cause Analysis:**
+- Our baseline uses 2019-2022 IRS county flow data → net OUT-migration (−84/county/year)
+- SDC 2024 uses 2000-2020 Census residual with 60% dampening → net IN-migration (+0.003 rate)
+- Migration assumptions alone account for ~170,000 people difference by 2045
+
+**Documentation Created:**
+- [docs/reports/PROJECTION_DIVERGENCE_ANALYSIS.md](docs/reports/PROJECTION_DIVERGENCE_ANALYSIS.md)
+  - Comprehensive analysis with 4 resolution options
+  - Quantified impact breakdown
+  - Data source comparisons
+  - Technical details and next steps
+
+**Part 2: Data Source Comparison**
+
+**IRS Data Limitations Identified:**
+1. Missing international migration (~1,100-1,200/year for ND) → 22K people by 2045
+2. Temporal bias: 2019-2022 captures COVID + Bakken bust (−987/year vs. +1,624/year long-term) → 52K people by 2045
+3. Misses 2022-2024 recovery (+3,545/year average, +4,227/year international)
+4. Short historical window (4 years vs. 24 years available)
+
+**Census PEP Analysis:**
+- State-level data analyzed: 2000-2024 (24 years)
+- Historical regimes identified:
+  - Pre-Bakken (2000-2010): −1,267/year
+  - Bakken Boom (2011-2015): +11,650/year
+  - Bust + COVID (2016-2021): −2,391/year
+  - Recent Recovery (2022-2024): +3,545/year
+  - Full Period (2000-2024): +1,624/year average
+
+**Quantified Impact:** IRS vs. PEP data source choice = **~74,000-80,000 people difference by 2045**
+
+**Part 3: Decision and Architecture**
+
+**Decision:** Replace IRS with Census PEP components of change (ADR-035)
+
+**Rationale:**
+- Comprehensive (domestic + international)
+- Temporal depth (24 years vs. 4 years)
+- Current data (includes 2022-2024 recovery)
+- Methodological alignment (matches SDC 2024 approach)
+- Infrastructure ready (ADR-034 PEP archive)
+
+**Implementation Plan (5 Phases):**
+1. Data Extraction: County-level PEP components with hierarchical validation
+2. Regime Analysis: Oil vs. non-oil counties, boom/bust/recovery periods
+3. Rate Calculation: Age/sex-specific rates with multi-period smoothing
+4. Pipeline Integration: Update pipeline, test, validate against benchmarks
+5. Production Deployment: Full 53-county projections with scenarios
+
+**Focus:** Rigor and granular analysis (regime-aware, multi-period averaging, comprehensive validation)
+
+**Deferred:** IRS directional flow blending (post-validation)
+
+**Documentation Created:**
+- [docs/governance/adrs/035-migration-data-source-census-pep.md](docs/governance/adrs/035-migration-data-source-census-pep.md)
+  - 363 lines of comprehensive decision documentation
+  - Detailed context, decision, rationale, alternatives, consequences
+  - 5-phase implementation plan with checkboxes
+  - Validation criteria and success metrics
+  - Data locations and configuration updates
+
+**Status:** Decision accepted, ready to begin Phase 1 (Data Extraction)
+
+**Next Session:** Extract county-level PEP net migration (2000-2024) with rigorous validation
 
 ### 2025-12-28 - Full State Projection Complete
 
@@ -467,5 +648,5 @@ python scripts/projections/run_all_projections.py
 - Drafted ADR-024 for immigration data extension and fusion strategy.
 - Location: `docs/governance/adrs/024-immigration-data-extension-fusion.md`.
 
-**Last Updated:** 2026-02-02
-**Tracker Status:** Production complete, documentation polish in progress
+**Last Updated:** 2026-02-12
+**Tracker Status:** ADR-035 PEP migration pipeline complete, documentation polish in progress

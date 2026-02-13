@@ -9,6 +9,7 @@ Modules:
     - fertility_rates: Process SEER/NVSS fertility rates
     - survival_rates: Process SEER/CDC life tables into survival rates
     - migration_rates: Process IRS/ACS migration data into net migration by cohort
+    - pep_regime_analysis: Regime-aware migration analysis from Census PEP data
 """
 
 # Base population processing
@@ -47,7 +48,22 @@ from .migration_rates import (
     load_international_migration_data,
     load_irs_migration_data,
     process_migration_rates,
+    process_pep_migration_rates,
     validate_migration_data,
+)
+
+# PEP regime analysis
+from .pep_regime_analysis import (
+    DEFAULT_DAMPENING,
+    DEFAULT_REGIME_WEIGHTS,
+    METRO_COUNTIES,
+    MIGRATION_REGIMES,
+    OIL_COUNTIES,
+    calculate_regime_averages,
+    calculate_regime_weighted_average,
+    classify_counties,
+    generate_regime_analysis_report,
+    load_pep_preferred_estimates,
 )
 
 # Survival rates processing
@@ -103,5 +119,17 @@ __all__ = [
     "create_migration_rate_table",
     "validate_migration_data",
     "process_migration_rates",
+    "process_pep_migration_rates",
     "MIGRATION_RACE_MAP",
+    # PEP regime analysis
+    "OIL_COUNTIES",
+    "METRO_COUNTIES",
+    "MIGRATION_REGIMES",
+    "DEFAULT_REGIME_WEIGHTS",
+    "DEFAULT_DAMPENING",
+    "classify_counties",
+    "calculate_regime_averages",
+    "calculate_regime_weighted_average",
+    "load_pep_preferred_estimates",
+    "generate_regime_analysis_report",
 ]

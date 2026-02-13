@@ -265,34 +265,34 @@ and humans, while remaining reproducible.
 - [x] Download key technical documentation PDFs (2020–2024)
 - [x] Populate `catalog.yaml` with MD5 + file sizes
 
-### Phase 2: Extract (Parquet 1:1, No Transforms)
-- [ ] Convert each CSV to parquet (1:1, no transforms)
-- [ ] Record parquet row counts + schema fingerprints in `catalog.yaml`
-- [ ] Validate conversions (row counts, basic sanity checks)
+### Phase 2: Extract (Parquet 1:1, No Transforms) (Complete ✅)
+- [x] Convert each CSV to parquet (1:1, no transforms)
+- [x] Record parquet row counts + schema fingerprints in `catalog.yaml`
+- [x] Validate conversions (row counts, basic sanity checks)
 
-### Phase 3: Archive Raw by Vintage (Google Drive via bisync)
-- [ ] For each vintage, create a single archive containing:
+### Phase 3: Archive Raw by Vintage (Google Drive via bisync) (Complete ✅)
+- [x] For each vintage, create a single archive containing:
   - the raw source files (CSV/ZIP/TXT) exactly as downloaded
   - the relevant technical documentation for that vintage (PDFs, readmes, layouts)
   - a machine-readable manifest (`manifest.json`) with checksums and original source URLs
-- [ ] Verify archive integrity (manifest checksums, unzip test)
-- [ ] Delete `raw/` staging files after verification (keep only `raw-archives/`)
-- [ ] Update `catalog.yaml` with archive location + manifest checksum
+- [x] Verify archive integrity (manifest checksums, unzip test)
+- [x] Delete `raw/` staging files after verification (keep only `raw-archives/`)
+- [x] Update `catalog.yaml` with archive location + manifest checksum
 
-### Phase 4: Documentation Extraction (Careful, Verifiable)
-- [ ] Extract text and tables from PDFs into a “derived docs” folder with page references
-- [ ] Keep originals unchanged; extracted text is explicitly labeled as derived
-- [ ] Create an index mapping extracted artifacts back to the source PDF + page ranges
-- [ ] Generate rich per-dataset metadata files (JSON) and link them from `catalog.yaml`
+### Phase 4: Documentation Extraction (Careful, Verifiable) (Complete ✅)
+- [x] Extract text and tables from PDFs into a "derived docs" folder with page references
+- [x] Keep originals unchanged; extracted text is explicitly labeled as derived
+- [x] Create an index mapping extracted artifacts back to the source PDF + page ranges
+- [x] Generate rich per-dataset metadata files (JSON) and link them from `catalog.yaml`
 
-### Phase 5: Query Layer (PostgreSQL Analytics Layer)
-- [ ] Define database connection configuration (`CENSUS_POPEST_PG_DSN`) for a local Postgres service
-- [ ] Create schemas for:
+### Phase 5: Query Layer (PostgreSQL Analytics Layer) (Complete ✅)
+- [x] Define database connection configuration (`CENSUS_POPEST_PG_DSN`) for a local Postgres service
+- [x] Create schemas for:
   - raw/staging representations (optional; may remain parquet-only)
   - harmonized cross-vintage tables (primary interface for analysis/agents)
-- [ ] Implement ETL/refresh scripts to (re)build harmonized tables from parquet + documented crosswalk logic
-- [ ] Add indexes/materialized views aligned to common query patterns (e.g., time series by `geoid` + `year`)
-- [ ] Document concurrency-safe usage patterns and refresh cadence
+- [x] Implement ETL/refresh scripts to (re)build harmonized tables from parquet + documented crosswalk logic
+- [x] Add indexes/materialized views aligned to common query patterns (e.g., time series by `geoid` + `year`)
+- [x] Document concurrency-safe usage patterns and refresh cadence
 
 ## Consequences
 
@@ -359,7 +359,7 @@ will be recorded after archiving.
 ## Revision History
 
 - **2026-02-02**: Initial version (ADR-034)
-- **2026-02-03**: Updated plan after full national downloads; added per-vintage raw archiving + operational decisions
+- **2026-02-03**: Updated plan after full national downloads; added per-vintage raw archiving + operational decisions; **All 5 phases completed** (parquet conversion, archiving, documentation extraction, PostgreSQL analytics layer)
 
 ## Related ADRs
 

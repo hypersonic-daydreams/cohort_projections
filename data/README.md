@@ -2,6 +2,8 @@
 
 This directory contains the input data, processed rates, and projection outputs for the North Dakota Population Projection System. **Raw data files are NOT included in the GitHub repository** due to size and licensing considerations.
 
+**Note**: Census Population Estimates (PEP) data is stored in a **shared workspace directory** (`~/workspace/shared-data/census/popest/`) to avoid duplication across projects. This shared archive is referenced via the `CENSUS_POPEST_DIR` environment variable. See [ADR-034](../docs/governance/adrs/034-census-pep-data-archive.md) for details.
+
 ---
 
 ## Directory Structure

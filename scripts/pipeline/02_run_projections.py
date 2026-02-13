@@ -307,7 +307,9 @@ def _get_age_migration_pattern() -> dict[int, float]:
     return {age: rate / total for age, rate in pattern.items()}
 
 
-def _transform_migration_rates(df: pd.DataFrame, config: dict | None = None) -> pd.DataFrame:
+def _transform_migration_rates(
+    df: pd.DataFrame | dict[str, pd.DataFrame], config: dict | None = None
+) -> pd.DataFrame | dict[str, pd.DataFrame]:
     """
     Transform migration rates to engine-expected format.
 
@@ -315,7 +317,15 @@ def _transform_migration_rates(df: pd.DataFrame, config: dict | None = None) -> 
 
     The input data is county-level net migration. We need to create an
     age-sex-race breakdown using standard migration patterns.
+
+    Accepts either a single DataFrame or a dict of DataFrames keyed by
+    county FIPS. When given a dict, transforms each county's rates
+    individually and returns a dict.
     """
+    # Handle dict case (PEP per-county rates)
+    if isinstance(df, dict):
+        return {fips: _transform_migration_rates(r) for fips, r in df.items()}  # type: ignore[misc]
+
     # Check if already in correct format (has age, sex, race columns)
     if all(col in df.columns for col in ["age", "sex", "race"]):
         # Already in correct format, just apply race/sex transformations
@@ -352,19 +362,12 @@ def _transform_migration_rates(df: pd.DataFrame, config: dict | None = None) -> 
     # Use a small default net migration rate (as proportion of population)
     # Actual county-level adjustments should happen at projection time
     # Note: age_pattern and sex weights reserved for future county-specific migration
-    rows = []
-    for age in ages:
-        for sex in sexes:
-            for race in races:
-                rows.append(
-                    {
-                        "age": age,
-                        "sex": sex,
-                        "race": race,
-                        # Small baseline rate - actual migration is applied per-county
-                        "migration_rate": 0.0,  # Net zero by default
-                    }
-                )
+    rows = [
+        {"age": age, "sex": sex, "race": race, "migration_rate": 0.0}
+        for age in ages
+        for sex in sexes
+        for race in races
+    ]
 
     result = pd.DataFrame(rows)
 
@@ -373,20 +376,22 @@ def _transform_migration_rates(df: pd.DataFrame, config: dict | None = None) -> 
 
 def load_demographic_rates(
     config: dict[str, Any],
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame | dict[str, pd.DataFrame]]:
     """
     Load processed demographic rates from data/processed/ directory.
 
     Transforms the rates to match the format expected by the projection engine:
     - fertility_rates: [age (int), race, fertility_rate]
     - survival_rates: [age (int), sex, race, survival_rate]
-    - migration_rates: [age (int), sex, race, migration_rate]
+    - migration_rates: [age (int), sex, race, migration_rate] (single DataFrame)
+      OR dict[county_fips, DataFrame] when method is PEP_components
 
     Args:
         config: Project configuration
 
     Returns:
         Tuple of (fertility_rates, survival_rates, migration_rates)
+        migration_rates is a dict keyed by county FIPS when using PEP_components method
 
     Raises:
         FileNotFoundError: If required rate files not found
@@ -398,33 +403,69 @@ def load_demographic_rates(
 
     fertility_file = processed_dir / "fertility_rates.parquet"
     survival_file = processed_dir / "survival_rates.parquet"
-    migration_file = processed_dir / "migration_rates.parquet"
 
     if not fertility_file.exists():
         raise FileNotFoundError(f"Fertility rates not found: {fertility_file}")
     if not survival_file.exists():
         raise FileNotFoundError(f"Survival rates not found: {survival_file}")
-    if not migration_file.exists():
-        raise FileNotFoundError(f"Migration rates not found: {migration_file}")
 
-    # Load raw data
+    # Load raw data for fertility and survival
     fertility_rates_raw = pd.read_parquet(fertility_file)
     survival_rates_raw = pd.read_parquet(survival_file)
-    migration_rates_raw = pd.read_parquet(migration_file)
 
     logger.info(f"Loaded fertility rates: {len(fertility_rates_raw):,} records")
     logger.info(f"Loaded survival rates: {len(survival_rates_raw):,} records")
-    logger.info(f"Loaded migration rates: {len(migration_rates_raw):,} records")
+
+    # Determine migration method from config
+    migration_method = (
+        config.get("rates", {})
+        .get("migration", {})
+        .get("domestic", {})
+        .get("method", "IRS_county_flows")
+    )
+
+    migration_rates: pd.DataFrame | dict[str, pd.DataFrame]
+
+    if migration_method == "PEP_components":
+        # Load multi-county PEP rates
+        pep_path = project_root / Path(
+            config.get("pipeline", {})
+            .get("data_processing", {})
+            .get("migration", {})
+            .get("pep_output", "data/processed/migration/migration_rates_pep_baseline.parquet")
+        )
+        if not pep_path.exists():
+            raise FileNotFoundError(f"PEP migration rates not found: {pep_path}")
+
+        migration_rates_raw = pd.read_parquet(pep_path)
+        logger.info(f"Loaded PEP migration rates: {len(migration_rates_raw):,} records")
+
+        # Split into per-county dict and transform each county's rates
+        migration_rates = {
+            str(county_fips): _transform_migration_rates(  # type: ignore[misc]
+                group.drop(columns=["county_fips"]).reset_index(drop=True)
+            )
+            for county_fips, group in migration_rates_raw.groupby("county_fips")
+        }
+        logger.info(f"Loaded PEP migration rates for {len(migration_rates)} counties")
+    else:
+        # Existing IRS behavior - load single rate set
+        migration_file = processed_dir / "migration_rates.parquet"
+        if not migration_file.exists():
+            raise FileNotFoundError(f"Migration rates not found: {migration_file}")
+
+        migration_rates_raw = pd.read_parquet(migration_file)
+        logger.info(f"Loaded migration rates: {len(migration_rates_raw):,} records")
+        migration_rates = _transform_migration_rates(migration_rates_raw)
+        logger.info(f"Transformed migration rates: {len(migration_rates):,} records")
 
     # Transform to engine-expected format
     logger.info("Transforming rates to engine format...")
     fertility_rates = _transform_fertility_rates(fertility_rates_raw)
     survival_rates = _transform_survival_rates(survival_rates_raw)
-    migration_rates = _transform_migration_rates(migration_rates_raw)
 
     logger.info(f"Transformed fertility rates: {len(fertility_rates):,} records")
     logger.info(f"Transformed survival rates: {len(survival_rates):,} records")
-    logger.info(f"Transformed migration rates: {len(migration_rates):,} records")
 
     return fertility_rates, survival_rates, migration_rates
 
@@ -548,13 +589,36 @@ def setup_projection_run(
     return geographies, resolved_scenarios
 
 
+def _apply_migration_scenario_to_df(df: pd.DataFrame, migration_setting: str) -> pd.DataFrame:
+    """
+    Apply a scenario migration adjustment to a single DataFrame.
+
+    Args:
+        df: Migration rates DataFrame (must already be a copy)
+        migration_setting: Scenario migration setting string
+
+    Returns:
+        Adjusted DataFrame
+    """
+    migration_col = "migration_rate" if "migration_rate" in df.columns else "net_migration"
+
+    if migration_setting == "+25_percent" and migration_col in df.columns:
+        df[migration_col] = df[migration_col] * 1.25
+    elif migration_setting == "-25_percent" and migration_col in df.columns:
+        df[migration_col] = df[migration_col] * 0.75
+    elif migration_setting == "zero" and migration_col in df.columns:
+        df[migration_col] = 0.0
+
+    return df
+
+
 def apply_scenario_rate_adjustments(
     scenario: str,
     config: dict[str, Any],
     fertility_rates: pd.DataFrame,
     survival_rates: pd.DataFrame,
-    migration_rates: pd.DataFrame,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    migration_rates: pd.DataFrame | dict[str, pd.DataFrame],
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame | dict[str, pd.DataFrame]]:
     """
     Apply scenario-specific rate adjustments to demographic rates.
 
@@ -568,7 +632,7 @@ def apply_scenario_rate_adjustments(
         config: Project configuration
         fertility_rates: Base fertility rates
         survival_rates: Base survival rates
-        migration_rates: Base migration rates
+        migration_rates: Base migration rates (DataFrame or dict of DataFrames)
 
     Returns:
         Tuple of (adjusted_fertility, adjusted_survival, adjusted_migration)
@@ -582,7 +646,13 @@ def apply_scenario_rate_adjustments(
     # Copy rates to avoid modifying originals
     adj_fertility = fertility_rates.copy()
     adj_survival = survival_rates.copy()
-    adj_migration = migration_rates.copy()
+
+    # Copy migration rates (handle both DataFrame and dict)
+    adj_migration: pd.DataFrame | dict[str, pd.DataFrame]
+    if isinstance(migration_rates, dict):
+        adj_migration = {fips: df.copy() for fips, df in migration_rates.items()}
+    else:
+        adj_migration = migration_rates.copy()
 
     # Apply fertility adjustment
     fertility_setting = scenario_config.get("fertility", "constant")
@@ -604,24 +674,65 @@ def apply_scenario_rate_adjustments(
 
     # Apply migration adjustment
     migration_setting = scenario_config.get("migration", "recent_average")
-    migration_col = (
-        "migration_rate" if "migration_rate" in adj_migration.columns else "net_migration"
-    )
 
-    if migration_setting == "+25_percent":
-        logger.info(f"Scenario {scenario}: Applying +25% migration adjustment")
-        if migration_col in adj_migration.columns:
-            adj_migration[migration_col] = adj_migration[migration_col] * 1.25
-    elif migration_setting == "-25_percent":
-        logger.info(f"Scenario {scenario}: Applying -25% migration adjustment")
-        if migration_col in adj_migration.columns:
-            adj_migration[migration_col] = adj_migration[migration_col] * 0.75
-    elif migration_setting == "zero":
-        logger.info(f"Scenario {scenario}: Setting migration to zero")
-        if migration_col in adj_migration.columns:
-            adj_migration[migration_col] = 0.0
+    if migration_setting not in ("recent_average", "constant", "sdc_2024_dampened"):
+        if isinstance(adj_migration, dict):
+            logger.info(
+                f"Scenario {scenario}: Applying '{migration_setting}' migration adjustment "
+                f"to {len(adj_migration)} counties"
+            )
+            for fips in adj_migration:
+                adj_migration[fips] = _apply_migration_scenario_to_df(
+                    adj_migration[fips], migration_setting
+                )
+        else:
+            migration_col = (
+                "migration_rate" if "migration_rate" in adj_migration.columns else "net_migration"
+            )
+
+            if migration_setting == "+25_percent":
+                logger.info(f"Scenario {scenario}: Applying +25% migration adjustment")
+                if migration_col in adj_migration.columns:
+                    adj_migration[migration_col] = adj_migration[migration_col] * 1.25
+            elif migration_setting == "-25_percent":
+                logger.info(f"Scenario {scenario}: Applying -25% migration adjustment")
+                if migration_col in adj_migration.columns:
+                    adj_migration[migration_col] = adj_migration[migration_col] * 0.75
+            elif migration_setting == "zero":
+                logger.info(f"Scenario {scenario}: Setting migration to zero")
+                if migration_col in adj_migration.columns:
+                    adj_migration[migration_col] = 0.0
 
     return adj_fertility, adj_survival, adj_migration
+
+
+def _create_zero_migration_rates() -> pd.DataFrame:
+    """
+    Create a zero-migration DataFrame for counties without PEP data.
+
+    Returns a 1,092-row DataFrame (91 ages x 2 sexes x 6 races) with
+    zero migration_rate for all age/sex/race combinations, matching the
+    structure produced by _transform_migration_rates().
+    """
+    ages = list(range(91))
+    sexes = ["Male", "Female"]
+    races = [
+        "White alone, Non-Hispanic",
+        "Black alone, Non-Hispanic",
+        "AIAN alone, Non-Hispanic",
+        "Asian/PI alone, Non-Hispanic",
+        "Two or more races, Non-Hispanic",
+        "Hispanic (any race)",
+    ]
+
+    rows = [
+        {"age": age, "sex": sex, "race": race, "migration_rate": 0.0}
+        for age in ages
+        for sex in sexes
+        for race in races
+    ]
+
+    return pd.DataFrame(rows)
 
 
 def run_geographic_projections(
@@ -630,7 +741,7 @@ def run_geographic_projections(
     config: dict[str, Any],
     fertility_rates: pd.DataFrame,
     survival_rates: pd.DataFrame,
-    migration_rates: pd.DataFrame,
+    migration_rates: pd.DataFrame | dict[str, pd.DataFrame],
     dry_run: bool = False,
     resume: bool = False,
 ) -> ProjectionRunMetadata:
@@ -643,7 +754,7 @@ def run_geographic_projections(
         config: Project configuration
         fertility_rates: Processed fertility rates
         survival_rates: Processed survival rates
-        migration_rates: Processed migration rates
+        migration_rates: Processed migration rates (DataFrame or dict of per-county DataFrames)
         dry_run: If True, only show what would be processed
         resume: If True, skip already-completed geographies
 
@@ -716,7 +827,19 @@ def run_geographic_projections(
 
             # Build migration rates dictionary per geography
             # Use adjusted migration rates for this scenario
-            migration_rates_by_geography = dict.fromkeys(fips_to_process, adj_migration)
+            if isinstance(adj_migration, dict):
+                # PEP method: use per-county rates, zero migration for missing counties
+                default_migration = _create_zero_migration_rates()
+                migration_rates_by_geography = {
+                    fips: adj_migration.get(fips, default_migration) for fips in fips_to_process
+                }
+                logger.info(
+                    f"Using PEP per-county migration rates "
+                    f"({len(adj_migration)} counties with data)"
+                )
+            else:
+                # IRS method: same rates for all counties (existing behavior)
+                migration_rates_by_geography = dict.fromkeys(fips_to_process, adj_migration)
 
             results_dict = run_multi_geography_projections(
                 level=level,

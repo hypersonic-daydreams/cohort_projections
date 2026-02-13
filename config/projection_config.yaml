@@ -116,13 +116,19 @@ rates:
 
   migration:
     domestic:
-      method: "IRS_county_flows"  # or "ACS_mobility", "constant_rate"
-      averaging_period: 5  # 2018-2022
+      method: "PEP_components"  # "PEP_components" or "IRS_county_flows"
+      source: "Census_PEP"
+      averaging_period: "regime_aware"
       smooth_extreme_outliers: true
+      dampening_factor: 0.60
+      regime_weights:
+        pre_bakken: 0.15
+        boom: 0.10
+        bust_covid: 0.25
+        recovery: 0.50
     international:
-      method: "ACS_foreign_born"
+      method: "PEP_included"
       allocation: "proportional"  # distribute to counties proportionally
-      state_total_source: "Census_PEP"
 
 scenarios:
   baseline:
@@ -263,6 +269,9 @@ pipeline:
 
     migration:
       enabled: true
+      method: "PEP_components"
+      pep_input: "data/processed/pep_county_components_2000_2024.parquet"
+      pep_output: "data/processed/migration/migration_rates_pep_baseline.parquet"
       domestic_input: "data/raw/migration/irs_county_flows_2018_2022.csv"
       international_input: "data/raw/migration/acs_international_migration.csv"
       output_file: "data/processed/migration_rates.parquet"
