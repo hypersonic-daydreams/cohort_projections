@@ -118,17 +118,65 @@ rates:
     domestic:
       method: "PEP_components"  # "PEP_components" or "IRS_county_flows"
       source: "Census_PEP"
-      averaging_period: "regime_aware"
+      averaging_method: "BEBR_multiperiod"
+      base_periods:
+        short: [2019, 2024]
+        medium: [2014, 2024]
+        long: [2005, 2024]
+        full: [2000, 2024]
+      combination: "trimmed_average"
       smooth_extreme_outliers: true
-      dampening_factor: 0.60
-      regime_weights:
-        pre_bakken: 0.15
-        boom: 0.10
-        bust_covid: 0.25
-        recovery: 0.50
+      dampening:
+        enabled: true
+        factor: 0.60  # Matches SDC 2024 methodology
+        description: "Reduces oil boom migration influence; boom conditions unlikely to repeat"
+        counties:
+          - "38105"  # Williams
+          - "38053"  # McKenzie
+          - "38061"  # Mountrail
+          - "38025"  # Dunn
+          - "38089"  # Stark
+        boom_periods:
+          - [2005, 2010]
+          - [2010, 2015]
+      residual:
+        periods:
+          - [2000, 2005]
+          - [2005, 2010]
+          - [2010, 2015]
+          - [2015, 2020]
+          - [2020, 2024]
+        survival_source: "CDC_ND_2020"
+        averaging: "simple_average"
+      adjustments:
+        college_age:
+          enabled: true
+          method: "smooth"
+          counties:
+            - "38035"  # Grand Forks
+            - "38017"  # Cass
+            - "38101"  # Ward
+            - "38015"  # Burleigh
+          age_groups: ["15-19", "20-24"]
+          blend_factor: 0.5
+        male_dampening:
+          enabled: true
+          factor: 0.80
+          boom_periods:
+            - [2005, 2010]
+            - [2010, 2015]
     international:
       method: "PEP_included"
       allocation: "proportional"  # distribute to counties proportionally
+    interpolation:
+      method: "census_bureau_convergence"
+      recent_period: [2022, 2024]
+      medium_period: [2014, 2024]
+      longterm_period: [2000, 2024]
+      convergence_schedule:
+        recent_to_medium_years: 5
+        medium_hold_years: 10
+        medium_to_longterm_years: 5
 
 scenarios:
   baseline:

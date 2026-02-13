@@ -115,6 +115,51 @@ data/
 - Re-fetch data rather than modifying raw files
 - All transformations output to `data/processed/` or `data/interim/`
 
+### Shared Census Data Archive
+
+Census Bureau population estimates are stored in a shared archive at
+`~/workspace/shared-data/census/` (outside this repo, not in git). This is
+the canonical source for Census PEP data used across projects.
+
+**Structure:**
+```
+shared-data/census/popest/
+├── catalog.yaml           # Master registry — check here FIRST
+├── metadata/              # JSON per dataset (schema, MD5, row counts)
+├── parquet/{vintage}/{level}/{file}.parquet   # Processed data
+├── raw-archives/{vintage}-raw.zip            # Original CSV downloads
+├── derived/docs/          # Extracted PDF documentation
+└── docs/
+    ├── census-ftp-structure.md      # FTP directory guide
+    ├── vintage_differences.md       # Vintage comparison
+    ├── ftp-key-reference.md         # Comprehensive FTP site reference
+    ├── ftp-key-datasets.csv         # Full dataset index (8,700+ entries)
+    └── ftp-key-index.json           # Filtered JSON index for projections
+```
+
+**How to find data:**
+1. Read `catalog.yaml` for the dataset inventory (IDs, vintages, paths)
+2. Read `metadata/{dataset-id}.json` for column schemas and row counts
+3. Load parquet from `parquet/{vintage}/{level}/{file}.parquet`
+
+**Key datasets for projections:**
+
+| Dataset ID | Vintage | Content | Format Note |
+|------------|---------|---------|-------------|
+| `cc-est2024-agesex-all` | 2020-2024 | County age/sex (wide format) | Age cols: `AGE04_TOT`...`AGE85PLUS_FEM` |
+| `cc-est2020int-alldata` | 2010-2020 | County age/sex/race (long format) | `AGEGRP` column, filter >0 |
+| `co-est2024-alldata` | 2020-2024 | County totals + components | No age/sex detail |
+| `co-est2009-alldata` | 2000-2009 | County totals + components | No age/sex detail |
+
+**Important notes:**
+- The 2024 age-sex file uses **wide format** (age columns), while the 2020
+  intercensal file uses **long format** (AGEGRP rows). Data loaders must
+  handle both.
+- Some CSV files require `latin1` encoding (noted in catalog.yaml as
+  `csv_read_encoding`).
+- Census naming: `co-` = county totals, `cc-` = county characteristics
+  (with age/sex detail), `sc-` = state characteristics, `sub-` = places.
+
 ### Data Sync
 - Data syncs via rclone bisync (not git)
 - Use `./scripts/bisync.sh` (never run rclone directly)

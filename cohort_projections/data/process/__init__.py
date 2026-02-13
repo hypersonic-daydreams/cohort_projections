@@ -9,6 +9,7 @@ Modules:
     - fertility_rates: Process SEER/NVSS fertility rates
     - survival_rates: Process SEER/CDC life tables into survival rates
     - migration_rates: Process IRS/ACS migration data into net migration by cohort
+    - mortality_improvement: Census Bureau NP2023 ND-adjusted survival projections
     - pep_regime_analysis: Regime-aware migration analysis from Census PEP data
 """
 
@@ -50,6 +51,15 @@ from .migration_rates import (
     process_migration_rates,
     process_pep_migration_rates,
     validate_migration_data,
+)
+
+# Mortality improvement (Census Bureau NP2023 ND-adjusted)
+from .mortality_improvement import (
+    build_nd_adjusted_survival_projections,
+    compute_nd_adjustment_factors,
+    load_census_survival_projections,
+    load_nd_baseline_survival,
+    run_mortality_improvement_pipeline,
 )
 
 # PEP regime analysis
@@ -121,6 +131,12 @@ __all__ = [
     "process_migration_rates",
     "process_pep_migration_rates",
     "MIGRATION_RACE_MAP",
+    # Mortality improvement
+    "load_census_survival_projections",
+    "load_nd_baseline_survival",
+    "compute_nd_adjustment_factors",
+    "build_nd_adjusted_survival_projections",
+    "run_mortality_improvement_pipeline",
     # PEP regime analysis
     "OIL_COUNTIES",
     "METRO_COUNTIES",

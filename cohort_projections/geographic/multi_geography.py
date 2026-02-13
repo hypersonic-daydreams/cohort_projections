@@ -62,6 +62,8 @@ def run_single_geography_projection(
     output_dir: Path | None = None,
     save_results: bool = True,
     scenario: str = "baseline",
+    migration_rates_by_year: dict[int, pd.DataFrame] | None = None,
+    survival_rates_by_year: dict[int, pd.DataFrame] | None = None,
 ) -> dict[str, Any]:
     """
     Run projection for a single geography.
@@ -76,6 +78,10 @@ def run_single_geography_projection(
         config: Optional configuration dictionary
         output_dir: Optional output directory (default: data/output/projections/{level})
         save_results: Whether to save results to files
+        migration_rates_by_year: Optional dict mapping year_offset -> migration rates
+                                DataFrame for time-varying migration (Phase 4)
+        survival_rates_by_year: Optional dict mapping calendar year -> survival rates
+                               DataFrame for time-varying mortality (Phase 4)
 
     Returns:
         Dictionary with projection results and metadata:
@@ -143,6 +149,8 @@ def run_single_geography_projection(
             survival_rates=survival_rates,
             migration_rates=migration_rates,
             config=config,
+            migration_rates_by_year=migration_rates_by_year,
+            survival_rates_by_year=survival_rates_by_year,
         )
 
         # Run projection with the specified scenario
@@ -243,6 +251,8 @@ def run_multi_geography_projections(
     max_workers: int | None = None,
     output_dir: Path | None = None,
     scenario: str = "baseline",
+    migration_rates_by_year_by_geography: dict[str, dict[int, pd.DataFrame]] | None = None,
+    survival_rates_by_year: dict[int, pd.DataFrame] | None = None,
 ) -> dict[str, Any]:
     """
     Run projections for multiple geographies.
@@ -259,6 +269,12 @@ def run_multi_geography_projections(
         parallel: Whether to use parallel processing
         max_workers: Max parallel workers (default: cpu_count)
         output_dir: Output directory (default: data/output/projections/{level})
+        migration_rates_by_year_by_geography: Optional dict mapping
+            FIPS -> dict[year_offset, DataFrame] for per-county time-varying
+            migration rates (Phase 4). Looked up per geography.
+        survival_rates_by_year: Optional dict mapping calendar year -> survival
+            rates DataFrame for time-varying mortality (Phase 4). Shared across
+            all geographies (state-level rates).
 
     Returns:
         Dictionary with results for all geographies:
@@ -323,6 +339,11 @@ def run_multi_geography_projections(
             base_pop = base_population_by_geography.get(fips, pd.DataFrame())
             migration_rates = migration_rates_by_geography.get(fips, pd.DataFrame())
 
+            # Look up per-geography time-varying migration rates
+            geo_migration_by_year = None
+            if migration_rates_by_year_by_geography is not None:
+                geo_migration_by_year = migration_rates_by_year_by_geography.get(fips)
+
             return run_single_geography_projection(
                 fips=fips,
                 level=level,
@@ -334,6 +355,8 @@ def run_multi_geography_projections(
                 output_dir=output_dir,
                 save_results=True,
                 scenario=scenario,
+                migration_rates_by_year=geo_migration_by_year,
+                survival_rates_by_year=survival_rates_by_year,
             )
 
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
@@ -374,6 +397,11 @@ def run_multi_geography_projections(
             base_pop = base_population_by_geography.get(fips, pd.DataFrame())
             migration_rates = migration_rates_by_geography.get(fips, pd.DataFrame())
 
+            # Look up per-geography time-varying migration rates
+            geo_migration_by_year = None
+            if migration_rates_by_year_by_geography is not None:
+                geo_migration_by_year = migration_rates_by_year_by_geography.get(fips)
+
             try:
                 result = run_single_geography_projection(
                     fips=fips,
@@ -386,6 +414,8 @@ def run_multi_geography_projections(
                     output_dir=output_dir,
                     save_results=True,
                     scenario=scenario,
+                    migration_rates_by_year=geo_migration_by_year,
+                    survival_rates_by_year=survival_rates_by_year,
                 )
 
                 results.append(result)

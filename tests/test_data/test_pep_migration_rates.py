@@ -1,18 +1,14 @@
 """
 Unit tests for PEP migration rate processing (process_pep_migration_rates).
 
-Tests the Phase 3 ADR-035 pipeline that converts Census PEP county-level
-net migration data into age/sex/race-specific migration tables using
-regime-weighted averaging and Rogers-Castro age distribution.
+Tests the BEBR-based multi-period averaging pipeline that converts Census PEP
+county-level net migration data into age/sex/race-specific migration tables
+using multi-period averaging and Rogers-Castro age distribution.
 
 Uses synthetic data fixtures -- does not depend on actual PEP data files.
-The pep_regime_analysis module may not exist yet (being built concurrently),
-so we inject a mock module into sys.modules before importing.
 """
 
-import sys
-import types
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -37,46 +33,8 @@ METRO_COUNTY = "38017"  # Cass County (Fargo metro)
 RURAL_COUNTY = "38073"  # Ransom County (rural)
 TEST_COUNTIES = [OIL_COUNTY, METRO_COUNTY, RURAL_COUNTY]
 
+_PEP_MODULE = "cohort_projections.data.process.pep_regime_analysis"
 
-# ---- Module-level setup: inject a stub pep_regime_analysis module ----
-# This ensures the lazy import inside process_pep_migration_rates can resolve
-# even when the real pep_regime_analysis.py has not been created yet.
-
-_MODULE_NAME = "cohort_projections.data.process.pep_regime_analysis"
-
-
-def _ensure_stub_module():
-    """Inject a stub pep_regime_analysis module if the real one is not available."""
-    try:
-        # Try importing the real module first
-        import importlib
-
-        importlib.import_module(_MODULE_NAME)
-    except (ImportError, ModuleNotFoundError):
-        # Real module not available; inject stub
-        stub = types.ModuleType(_MODULE_NAME)
-        stub.DEFAULT_REGIME_WEIGHTS = {
-            "pre_bakken": 0.15,
-            "boom": 0.10,
-            "bust_covid": 0.25,
-            "recovery": 0.50,
-        }
-        stub.DEFAULT_DAMPENING = {"boom": 0.60}
-        stub.load_pep_preferred_estimates = MagicMock()
-        stub.classify_counties = MagicMock()
-        stub.calculate_regime_averages = MagicMock()
-        stub.calculate_regime_weighted_average = MagicMock()
-        stub.generate_regime_analysis_report = MagicMock()
-        # Constants expected by __init__.py imports
-        stub.OIL_COUNTIES = []
-        stub.METRO_COUNTIES = []
-        stub.MIGRATION_REGIMES = {}
-        sys.modules[_MODULE_NAME] = stub
-
-
-_ensure_stub_module()
-
-# Now safe to import from migration_rates
 from cohort_projections.data.process.migration_rates import (
     process_pep_migration_rates,
 )
@@ -95,6 +53,22 @@ def mock_config():
         },
         "output": {
             "compression": "gzip",
+        },
+        "rates": {
+            "migration": {
+                "domestic": {
+                    "averaging_method": "BEBR_multiperiod",
+                    "base_periods": {
+                        "short": [2019, 2024],
+                        "medium": [2014, 2024],
+                        "long": [2005, 2024],
+                        "full": [2000, 2024],
+                    },
+                    "dampening": {
+                        "enabled": False,  # Disabled in tests to not affect existing assertions
+                    },
+                },
+            },
         },
     }
 
@@ -228,109 +202,6 @@ def synthetic_population():
     return pd.DataFrame(records)
 
 
-@pytest.fixture
-def mock_regime_averages(synthetic_pep_data):
-    """Create mock regime averages matching the expected output of calculate_regime_averages."""
-    records = []
-    for geoid in TEST_COUNTIES:
-        county_data = synthetic_pep_data[synthetic_pep_data["geoid"] == geoid]
-        for regime_name, (start, end) in [
-            ("pre_bakken", (2000, 2010)),
-            ("boom", (2011, 2015)),
-            ("bust_covid", (2016, 2021)),
-            ("recovery", (2022, 2024)),
-        ]:
-            regime_data = county_data[(county_data["year"] >= start) & (county_data["year"] <= end)]
-            if not regime_data.empty:
-                records.append(
-                    {
-                        "geoid": geoid,
-                        "regime": regime_name,
-                        "avg_netmig": regime_data["netmig"].mean(),
-                        "n_years": len(regime_data),
-                    }
-                )
-    return pd.DataFrame(records)
-
-
-@pytest.fixture
-def mock_weighted_averages(mock_regime_averages):
-    """Create mock weighted averages matching expected output of calculate_regime_weighted_average."""
-    records = []
-    for geoid in TEST_COUNTIES:
-        county_regimes = mock_regime_averages[mock_regime_averages["geoid"] == geoid]
-        weighted_avg = county_regimes["avg_netmig"].mean()
-        records.append(
-            {
-                "geoid": geoid,
-                "weighted_avg_netmig": weighted_avg,
-            }
-        )
-    return pd.DataFrame(records)
-
-
-@pytest.fixture
-def mock_county_classifications():
-    """Create mock county classifications."""
-    return pd.DataFrame(
-        {
-            "geoid": TEST_COUNTIES,
-            "classification": ["oil", "metro", "rural"],
-        }
-    )
-
-
-def _patch_pep_module(
-    synthetic_pep_data,
-    mock_county_classifications,
-    mock_regime_averages,
-    mock_weighted_averages,
-):
-    """Configure the stub pep_regime_analysis module with test-specific mock functions.
-
-    Returns a context manager that patches the stub module's functions.
-    """
-
-    def mock_load(path):
-        return synthetic_pep_data
-
-    def mock_classify(pep_df):
-        return mock_county_classifications
-
-    def mock_ravg(pep_df):
-        return mock_regime_averages
-
-    def mock_wavg(regime_avgs, weights=None, dampening=None):
-        return mock_weighted_averages
-
-    # Patch the four functions on the stub module
-    return _MultiPatch(
-        (f"{_MODULE_NAME}.load_pep_preferred_estimates", mock_load),
-        (f"{_MODULE_NAME}.classify_counties", mock_classify),
-        (f"{_MODULE_NAME}.calculate_regime_averages", mock_ravg),
-        (f"{_MODULE_NAME}.calculate_regime_weighted_average", mock_wavg),
-    )
-
-
-class _MultiPatch:  # noqa: N801
-    """Context manager to apply multiple unittest.mock.patch calls at once."""
-
-    def __init__(self, *patch_specs):
-        """patch_specs: tuples of (target, side_effect)"""
-        self._patches = []
-        for target, side_effect in patch_specs:
-            self._patches.append(patch(target, side_effect=side_effect))
-
-    def __enter__(self):
-        for p in self._patches:
-            p.__enter__()
-        return self
-
-    def __exit__(self, *args):
-        for p in reversed(self._patches):
-            p.__exit__(*args)
-
-
 def _write_fixtures(tmp_path, synthetic_pep_data, synthetic_population):
     """Write synthetic data to parquet files and return paths."""
     pop_file = tmp_path / "population.parquet"
@@ -351,18 +222,13 @@ class TestProcessPepMigrationRates:
         synthetic_pep_data,
         synthetic_population,
         mock_config,
-        mock_county_classifications,
-        mock_regime_averages,
-        mock_weighted_averages,
     ):
         """Output has correct total number of rows (n_counties * 1,092)."""
         pep_file, pop_file = _write_fixtures(tmp_path, synthetic_pep_data, synthetic_population)
 
-        with _patch_pep_module(
-            synthetic_pep_data,
-            mock_county_classifications,
-            mock_regime_averages,
-            mock_weighted_averages,
+        with patch(
+            f"{_PEP_MODULE}.load_pep_preferred_estimates",
+            side_effect=lambda p: synthetic_pep_data,
         ):
             results = process_pep_migration_rates(
                 pep_path=pep_file,
@@ -382,18 +248,13 @@ class TestProcessPepMigrationRates:
         synthetic_pep_data,
         synthetic_population,
         mock_config,
-        mock_county_classifications,
-        mock_regime_averages,
-        mock_weighted_averages,
     ):
         """Each county has exactly 1,092 rows (91 ages x 2 sexes x 6 races)."""
         pep_file, pop_file = _write_fixtures(tmp_path, synthetic_pep_data, synthetic_population)
 
-        with _patch_pep_module(
-            synthetic_pep_data,
-            mock_county_classifications,
-            mock_regime_averages,
-            mock_weighted_averages,
+        with patch(
+            f"{_PEP_MODULE}.load_pep_preferred_estimates",
+            side_effect=lambda p: synthetic_pep_data,
         ):
             results = process_pep_migration_rates(
                 pep_path=pep_file,
@@ -415,18 +276,13 @@ class TestProcessPepMigrationRates:
         synthetic_pep_data,
         synthetic_population,
         mock_config,
-        mock_county_classifications,
-        mock_regime_averages,
-        mock_weighted_averages,
     ):
         """Required columns are present in output."""
         pep_file, pop_file = _write_fixtures(tmp_path, synthetic_pep_data, synthetic_population)
 
-        with _patch_pep_module(
-            synthetic_pep_data,
-            mock_county_classifications,
-            mock_regime_averages,
-            mock_weighted_averages,
+        with patch(
+            f"{_PEP_MODULE}.load_pep_preferred_estimates",
+            side_effect=lambda p: synthetic_pep_data,
         ):
             results = process_pep_migration_rates(
                 pep_path=pep_file,
@@ -453,18 +309,13 @@ class TestProcessPepMigrationRates:
         synthetic_pep_data,
         synthetic_population,
         mock_config,
-        mock_county_classifications,
-        mock_regime_averages,
-        mock_weighted_averages,
     ):
         """Age distribution peaks around age 25 (Rogers-Castro pattern)."""
         pep_file, pop_file = _write_fixtures(tmp_path, synthetic_pep_data, synthetic_population)
 
-        with _patch_pep_module(
-            synthetic_pep_data,
-            mock_county_classifications,
-            mock_regime_averages,
-            mock_weighted_averages,
+        with patch(
+            f"{_PEP_MODULE}.load_pep_preferred_estimates",
+            side_effect=lambda p: synthetic_pep_data,
         ):
             results = process_pep_migration_rates(
                 pep_path=pep_file,
@@ -492,18 +343,13 @@ class TestProcessPepMigrationRates:
         synthetic_pep_data,
         synthetic_population,
         mock_config,
-        mock_county_classifications,
-        mock_regime_averages,
-        mock_weighted_averages,
     ):
         """Both sexes present in roughly equal proportions."""
         pep_file, pop_file = _write_fixtures(tmp_path, synthetic_pep_data, synthetic_population)
 
-        with _patch_pep_module(
-            synthetic_pep_data,
-            mock_county_classifications,
-            mock_regime_averages,
-            mock_weighted_averages,
+        with patch(
+            f"{_PEP_MODULE}.load_pep_preferred_estimates",
+            side_effect=lambda p: synthetic_pep_data,
         ):
             results = process_pep_migration_rates(
                 pep_path=pep_file,
@@ -525,18 +371,13 @@ class TestProcessPepMigrationRates:
         synthetic_pep_data,
         synthetic_population,
         mock_config,
-        mock_county_classifications,
-        mock_regime_averages,
-        mock_weighted_averages,
     ):
         """All 6 race/ethnicity categories are present in the output."""
         pep_file, pop_file = _write_fixtures(tmp_path, synthetic_pep_data, synthetic_population)
 
-        with _patch_pep_module(
-            synthetic_pep_data,
-            mock_county_classifications,
-            mock_regime_averages,
-            mock_weighted_averages,
+        with patch(
+            f"{_PEP_MODULE}.load_pep_preferred_estimates",
+            side_effect=lambda p: synthetic_pep_data,
         ):
             results = process_pep_migration_rates(
                 pep_path=pep_file,
@@ -558,19 +399,14 @@ class TestProcessPepMigrationRates:
         synthetic_pep_data,
         synthetic_population,
         mock_config,
-        mock_county_classifications,
-        mock_regime_averages,
-        mock_weighted_averages,
     ):
         """Output files (parquet and CSV) are created for each scenario."""
         pep_file, pop_file = _write_fixtures(tmp_path, synthetic_pep_data, synthetic_population)
         output_dir = tmp_path / "output"
 
-        with _patch_pep_module(
-            synthetic_pep_data,
-            mock_county_classifications,
-            mock_regime_averages,
-            mock_weighted_averages,
+        with patch(
+            f"{_PEP_MODULE}.load_pep_preferred_estimates",
+            side_effect=lambda p: synthetic_pep_data,
         ):
             process_pep_migration_rates(
                 pep_path=pep_file,
@@ -594,60 +430,13 @@ class TestScenarioGeneration:
         synthetic_pep_data,
         synthetic_population,
         mock_config,
-        mock_county_classifications,
-        mock_regime_averages,
     ):
-        """Run process_pep_migration_rates with all three scenarios.
-
-        Returns results dict keyed by scenario name.
-        """
-
-        def dynamic_weighted_avg(regime_avgs, weights=None, dampening=None):
-            """Produce different weighted averages depending on scenario weights."""
-            records = []
-            for geoid in TEST_COUNTIES:
-                county_regimes = regime_avgs[regime_avgs["geoid"] == geoid]
-                if county_regimes.empty:
-                    records.append({"geoid": geoid, "weighted_avg_netmig": 0.0})
-                    continue
-
-                total = 0.0
-                total_weight = 0.0
-                for _, row in county_regimes.iterrows():
-                    regime = row["regime"]
-                    avg = row["avg_netmig"]
-                    w = weights.get(regime, 0.0) if weights else 0.25
-                    damp = dampening.get(regime, 1.0) if dampening else 1.0
-                    total += avg * w * damp
-                    total_weight += w
-
-                if total_weight > 0:
-                    weighted = total / total_weight
-                else:
-                    weighted = 0.0
-
-                records.append({"geoid": geoid, "weighted_avg_netmig": weighted})
-            return pd.DataFrame(records)
-
+        """Run process_pep_migration_rates with all three scenarios."""
         pep_file, pop_file = _write_fixtures(tmp_path, synthetic_pep_data, synthetic_population)
 
-        with (
-            patch(
-                f"{_MODULE_NAME}.load_pep_preferred_estimates",
-                side_effect=lambda p: synthetic_pep_data,
-            ),
-            patch(
-                f"{_MODULE_NAME}.classify_counties",
-                side_effect=lambda df: mock_county_classifications,
-            ),
-            patch(
-                f"{_MODULE_NAME}.calculate_regime_averages",
-                side_effect=lambda df: mock_regime_averages,
-            ),
-            patch(
-                f"{_MODULE_NAME}.calculate_regime_weighted_average",
-                side_effect=dynamic_weighted_avg,
-            ),
+        with patch(
+            f"{_PEP_MODULE}.load_pep_preferred_estimates",
+            side_effect=lambda p: synthetic_pep_data,
         ):
             results = process_pep_migration_rates(
                 pep_path=pep_file,
@@ -665,18 +454,13 @@ class TestScenarioGeneration:
         synthetic_pep_data,
         synthetic_population,
         mock_config,
-        mock_county_classifications,
-        mock_regime_averages,
-        mock_weighted_averages,
     ):
         """Baseline scenario is generated by default when no scenarios specified."""
         pep_file, pop_file = _write_fixtures(tmp_path, synthetic_pep_data, synthetic_population)
 
-        with _patch_pep_module(
-            synthetic_pep_data,
-            mock_county_classifications,
-            mock_regime_averages,
-            mock_weighted_averages,
+        with patch(
+            f"{_PEP_MODULE}.load_pep_preferred_estimates",
+            side_effect=lambda p: synthetic_pep_data,
         ):
             # No scenarios argument -- should default to ["baseline"]
             results = process_pep_migration_rates(
@@ -708,15 +492,15 @@ class TestScenarioGeneration:
     def test_low_scenario_lower_than_baseline(self, _run_all_scenarios):
         """Low scenario has lower total migration than baseline.
 
-        The low scenario applies a 0.75 multiplier to all net_migration values,
-        so it should produce lower absolute totals.
+        The low scenario uses the minimum period mean (most pessimistic),
+        so its algebraic sum should be lower than the trimmed baseline.
         """
         results = _run_all_scenarios
 
-        baseline_total = results["baseline"]["net_migration"].abs().sum()
-        low_total = results["low"]["net_migration"].abs().sum()
+        baseline_total = results["baseline"]["net_migration"].sum()
+        low_total = results["low"]["net_migration"].sum()
 
-        # Low should have smaller absolute values due to 0.75 multiplier
+        # Low should have a lower algebraic sum (more negative / less positive)
         assert low_total < baseline_total
 
     def test_each_scenario_has_output_files(
@@ -725,19 +509,14 @@ class TestScenarioGeneration:
         synthetic_pep_data,
         synthetic_population,
         mock_config,
-        mock_county_classifications,
-        mock_regime_averages,
-        mock_weighted_averages,
     ):
         """Each scenario produces parquet and CSV output files."""
         pep_file, pop_file = _write_fixtures(tmp_path, synthetic_pep_data, synthetic_population)
         output_dir = tmp_path / "output"
 
-        with _patch_pep_module(
-            synthetic_pep_data,
-            mock_county_classifications,
-            mock_regime_averages,
-            mock_weighted_averages,
+        with patch(
+            f"{_PEP_MODULE}.load_pep_preferred_estimates",
+            side_effect=lambda p: synthetic_pep_data,
         ):
             process_pep_migration_rates(
                 pep_path=pep_file,
@@ -795,31 +574,14 @@ class TestEdgeCases:
         ]
         zero_pop = pd.DataFrame(pop_records)
 
-        mock_weighted = pd.DataFrame([{"geoid": zero_county, "weighted_avg_netmig": 0.0}])
-
         pep_file = tmp_path / "pep_data.parquet"
         zero_pep.to_parquet(pep_file, index=False)
         pop_file = tmp_path / "population.parquet"
         zero_pop.to_parquet(pop_file, index=False)
 
-        with (
-            patch(f"{_MODULE_NAME}.load_pep_preferred_estimates", side_effect=lambda p: zero_pep),
-            patch(
-                f"{_MODULE_NAME}.classify_counties",
-                side_effect=lambda df: pd.DataFrame(
-                    [{"geoid": zero_county, "classification": "rural"}]
-                ),
-            ),
-            patch(
-                f"{_MODULE_NAME}.calculate_regime_averages",
-                side_effect=lambda df: pd.DataFrame(
-                    [{"geoid": zero_county, "regime": "recovery", "avg_netmig": 0.0, "n_years": 3}]
-                ),
-            ),
-            patch(
-                f"{_MODULE_NAME}.calculate_regime_weighted_average",
-                side_effect=lambda ravg, weights=None, dampening=None: mock_weighted,
-            ),
+        with patch(
+            f"{_PEP_MODULE}.load_pep_preferred_estimates",
+            side_effect=lambda p: zero_pep,
         ):
             results = process_pep_migration_rates(
                 pep_path=pep_file,
@@ -873,38 +635,14 @@ class TestEdgeCases:
         ]
         small_pop = pd.DataFrame(pop_records)
 
-        mock_weighted = pd.DataFrame([{"geoid": small_county, "weighted_avg_netmig": -5.0}])
-
         pep_file = tmp_path / "pep_data.parquet"
         small_pep.to_parquet(pep_file, index=False)
         pop_file = tmp_path / "population.parquet"
         small_pop.to_parquet(pop_file, index=False)
 
-        with (
-            patch(f"{_MODULE_NAME}.load_pep_preferred_estimates", side_effect=lambda p: small_pep),
-            patch(
-                f"{_MODULE_NAME}.classify_counties",
-                side_effect=lambda df: pd.DataFrame(
-                    [{"geoid": small_county, "classification": "rural"}]
-                ),
-            ),
-            patch(
-                f"{_MODULE_NAME}.calculate_regime_averages",
-                side_effect=lambda df: pd.DataFrame(
-                    [
-                        {
-                            "geoid": small_county,
-                            "regime": "recovery",
-                            "avg_netmig": -5.0,
-                            "n_years": 3,
-                        }
-                    ]
-                ),
-            ),
-            patch(
-                f"{_MODULE_NAME}.calculate_regime_weighted_average",
-                side_effect=lambda ravg, weights=None, dampening=None: mock_weighted,
-            ),
+        with patch(
+            f"{_PEP_MODULE}.load_pep_preferred_estimates",
+            side_effect=lambda p: small_pep,
         ):
             results = process_pep_migration_rates(
                 pep_path=pep_file,
@@ -960,38 +698,14 @@ class TestEdgeCases:
         ]
         single_pop = pd.DataFrame(pop_records)
 
-        mock_weighted = pd.DataFrame([{"geoid": single_county, "weighted_avg_netmig": 500.0}])
-
         pep_file = tmp_path / "pep_data.parquet"
         single_pep.to_parquet(pep_file, index=False)
         pop_file = tmp_path / "population.parquet"
         single_pop.to_parquet(pop_file, index=False)
 
-        with (
-            patch(f"{_MODULE_NAME}.load_pep_preferred_estimates", side_effect=lambda p: single_pep),
-            patch(
-                f"{_MODULE_NAME}.classify_counties",
-                side_effect=lambda df: pd.DataFrame(
-                    [{"geoid": single_county, "classification": "metro"}]
-                ),
-            ),
-            patch(
-                f"{_MODULE_NAME}.calculate_regime_averages",
-                side_effect=lambda df: pd.DataFrame(
-                    [
-                        {
-                            "geoid": single_county,
-                            "regime": "recovery",
-                            "avg_netmig": 500.0,
-                            "n_years": 3,
-                        }
-                    ]
-                ),
-            ),
-            patch(
-                f"{_MODULE_NAME}.calculate_regime_weighted_average",
-                side_effect=lambda ravg, weights=None, dampening=None: mock_weighted,
-            ),
+        with patch(
+            f"{_PEP_MODULE}.load_pep_preferred_estimates",
+            side_effect=lambda p: single_pep,
         ):
             results = process_pep_migration_rates(
                 pep_path=pep_file,
@@ -1015,10 +729,15 @@ class TestEdgeCases:
         """FileNotFoundError raised when population file does not exist."""
         pep_file = tmp_path / "pep_data.parquet"
         synthetic_pep_data.to_parquet(pep_file, index=False)
-
         nonexistent_pop = tmp_path / "nonexistent.parquet"
 
-        with pytest.raises(FileNotFoundError):
+        with (
+            patch(
+                f"{_PEP_MODULE}.load_pep_preferred_estimates",
+                side_effect=lambda p: synthetic_pep_data,
+            ),
+            pytest.raises(FileNotFoundError),
+        ):
             process_pep_migration_rates(
                 pep_path=pep_file,
                 population_path=nonexistent_pop,
@@ -1032,18 +751,13 @@ class TestEdgeCases:
         synthetic_pep_data,
         synthetic_population,
         mock_config,
-        mock_county_classifications,
-        mock_regime_averages,
-        mock_weighted_averages,
     ):
         """processing_date column is present in output."""
         pep_file, pop_file = _write_fixtures(tmp_path, synthetic_pep_data, synthetic_population)
 
-        with _patch_pep_module(
-            synthetic_pep_data,
-            mock_county_classifications,
-            mock_regime_averages,
-            mock_weighted_averages,
+        with patch(
+            f"{_PEP_MODULE}.load_pep_preferred_estimates",
+            side_effect=lambda p: synthetic_pep_data,
         ):
             results = process_pep_migration_rates(
                 pep_path=pep_file,

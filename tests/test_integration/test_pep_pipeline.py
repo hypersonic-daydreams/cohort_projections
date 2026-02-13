@@ -225,7 +225,7 @@ class TestLoadDemographicRatesPep:
         _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
         monkeypatch.setattr(_mod, "project_root", tmp_path)
 
-        _fert, _surv, migration = load_demographic_rates(pep_config)
+        _fert, _surv, migration, _mig_by_yr, _surv_by_yr = load_demographic_rates(pep_config)
 
         assert isinstance(migration, dict), "PEP method should return a dict"
 
@@ -236,7 +236,7 @@ class TestLoadDemographicRatesPep:
         _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
         monkeypatch.setattr(_mod, "project_root", tmp_path)
 
-        _fert, _surv, migration = load_demographic_rates(pep_config)
+        _fert, _surv, migration, _mig_by_yr, _surv_by_yr = load_demographic_rates(pep_config)
 
         assert set(migration.keys()) == set(TEST_COUNTIES)
 
@@ -247,7 +247,7 @@ class TestLoadDemographicRatesPep:
         _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
         monkeypatch.setattr(_mod, "project_root", tmp_path)
 
-        _fert, _surv, migration = load_demographic_rates(pep_config)
+        _fert, _surv, migration, _mig_by_yr, _surv_by_yr = load_demographic_rates(pep_config)
 
         for fips, df in migration.items():
             assert len(df) == ROWS_PER_COUNTY, (
@@ -261,7 +261,7 @@ class TestLoadDemographicRatesPep:
         _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
         monkeypatch.setattr(_mod, "project_root", tmp_path)
 
-        _fert, _surv, migration = load_demographic_rates(pep_config)
+        _fert, _surv, migration, _mig_by_yr, _surv_by_yr = load_demographic_rates(pep_config)
 
         sample_df = next(iter(migration.values()))
         assert "race" in sample_df.columns
@@ -357,7 +357,7 @@ class TestScenarioAdjustmentsDict:
                 }
             }
         }
-        _, _, adj = apply_scenario_rate_adjustments("high", config, fert, surv, mig)
+        _, _, adj, _, _ = apply_scenario_rate_adjustments("high", config, fert, surv, mig)
         assert isinstance(adj, dict)
         for fips in adj:
             original = mig[fips]["migration_rate"].values
@@ -377,7 +377,7 @@ class TestScenarioAdjustmentsDict:
                 }
             }
         }
-        _, _, adj = apply_scenario_rate_adjustments("low", config, fert, surv, mig)
+        _, _, adj, _, _ = apply_scenario_rate_adjustments("low", config, fert, surv, mig)
         assert isinstance(adj, dict)
         for fips in adj:
             original = mig[fips]["migration_rate"].values
@@ -397,7 +397,7 @@ class TestScenarioAdjustmentsDict:
                 }
             }
         }
-        _, _, adj = apply_scenario_rate_adjustments("zero", config, fert, surv, mig)
+        _, _, adj, _, _ = apply_scenario_rate_adjustments("zero", config, fert, surv, mig)
         assert isinstance(adj, dict)
         for fips in adj:
             assert (adj[fips]["migration_rate"] == 0.0).all()
@@ -414,7 +414,7 @@ class TestScenarioAdjustmentsDict:
                 }
             }
         }
-        _, _, adj = apply_scenario_rate_adjustments("baseline", config, fert, surv, mig)
+        _, _, adj, _, _ = apply_scenario_rate_adjustments("baseline", config, fert, surv, mig)
         assert isinstance(adj, dict)
         for fips in adj:
             pd.testing.assert_frame_equal(adj[fips], mig[fips])

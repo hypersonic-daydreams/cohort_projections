@@ -326,8 +326,9 @@ def _transform_migration_rates(
     if isinstance(df, dict):
         return {fips: _transform_migration_rates(r) for fips, r in df.items()}  # type: ignore[misc]
 
-    # Check if already in correct format (has age, sex, race columns)
-    if all(col in df.columns for col in ["age", "sex", "race"]):
+    # Check if already in correct format (has age, sex, race/race_ethnicity columns)
+    has_race = "race" in df.columns or "race_ethnicity" in df.columns
+    if all(col in df.columns for col in ["age", "sex"]) and has_race:
         # Already in correct format, just apply race/sex transformations
         df = df.copy()
         if "race_ethnicity" in df.columns and "race" not in df.columns:
@@ -376,7 +377,13 @@ def _transform_migration_rates(
 
 def load_demographic_rates(
     config: dict[str, Any],
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame | dict[str, pd.DataFrame]]:
+) -> tuple[
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.DataFrame | dict[str, pd.DataFrame],
+    dict[str, dict[int, pd.DataFrame]] | None,
+    dict[int, pd.DataFrame] | None,
+]:
     """
     Load processed demographic rates from data/processed/ directory.
 
@@ -385,13 +392,17 @@ def load_demographic_rates(
     - survival_rates: [age (int), sex, race, survival_rate]
     - migration_rates: [age (int), sex, race, migration_rate] (single DataFrame)
       OR dict[county_fips, DataFrame] when method is PEP_components
+    - migration_rates_by_year_by_county: per-county time-varying migration
+      (Phase 2 convergence output), or None if not available
+    - survival_rates_by_year: time-varying survival rates
+      (Phase 3 mortality improvement output), or None if not available
 
     Args:
         config: Project configuration
 
     Returns:
-        Tuple of (fertility_rates, survival_rates, migration_rates)
-        migration_rates is a dict keyed by county FIPS when using PEP_components method
+        Tuple of (fertility_rates, survival_rates, migration_rates,
+                  migration_rates_by_year_by_county, survival_rates_by_year)
 
     Raises:
         FileNotFoundError: If required rate files not found
@@ -467,7 +478,39 @@ def load_demographic_rates(
     logger.info(f"Transformed fertility rates: {len(fertility_rates):,} records")
     logger.info(f"Transformed survival rates: {len(survival_rates):,} records")
 
-    return fertility_rates, survival_rates, migration_rates
+    # -----------------------------------------------------------------------
+    # Phase 4: Load time-varying rates (convergence + mortality improvement)
+    # -----------------------------------------------------------------------
+
+    # Load convergence rates (Phase 2 output)
+    migration_rates_by_year_by_county: dict[str, dict[int, pd.DataFrame]] | None = None
+    convergence_path = processed_dir / "migration" / "convergence_rates_by_year.parquet"
+    if convergence_path.exists():
+        convergence_df = pd.read_parquet(convergence_path)
+        migration_rates_by_year_by_county = _build_convergence_rate_dicts(convergence_df)
+        logger.info(
+            f"Loaded convergence rates for {len(migration_rates_by_year_by_county)} counties"
+        )
+    else:
+        logger.info("No convergence rates found — using constant migration rates")
+
+    # Load ND-adjusted survival projections (Phase 3 output)
+    survival_rates_by_year: dict[int, pd.DataFrame] | None = None
+    survival_proj_path = processed_dir / "mortality" / "nd_adjusted_survival_projections.parquet"
+    if survival_proj_path.exists():
+        survival_df = pd.read_parquet(survival_proj_path)
+        survival_rates_by_year = _build_survival_rates_by_year(survival_df)
+        logger.info(f"Loaded mortality improvement for {len(survival_rates_by_year)} years")
+    else:
+        logger.info("No mortality improvement data found — using constant survival rates")
+
+    return (
+        fertility_rates,
+        survival_rates,
+        migration_rates,
+        migration_rates_by_year_by_county,
+        survival_rates_by_year,
+    )
 
 
 def load_base_population(config: dict[str, Any], fips: str) -> pd.DataFrame:
@@ -618,7 +661,15 @@ def apply_scenario_rate_adjustments(
     fertility_rates: pd.DataFrame,
     survival_rates: pd.DataFrame,
     migration_rates: pd.DataFrame | dict[str, pd.DataFrame],
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame | dict[str, pd.DataFrame]]:
+    migration_rates_by_year_by_county: dict[str, dict[int, pd.DataFrame]] | None = None,
+    survival_rates_by_year: dict[int, pd.DataFrame] | None = None,
+) -> tuple[
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.DataFrame | dict[str, pd.DataFrame],
+    dict[str, dict[int, pd.DataFrame]] | None,
+    dict[int, pd.DataFrame] | None,
+]:
     """
     Apply scenario-specific rate adjustments to demographic rates.
 
@@ -627,21 +678,34 @@ def apply_scenario_rate_adjustments(
     - Migration: +25% multiplier
     - Mortality: constant (no change)
 
+    Time-varying rate dicts (migration_rates_by_year_by_county and
+    survival_rates_by_year) are passed through unchanged for now.
+    Scenario adjustments to time-varying rates are a future enhancement.
+
     Args:
         scenario: Scenario name (e.g., 'baseline', 'high_growth', 'low_growth')
         config: Project configuration
         fertility_rates: Base fertility rates
         survival_rates: Base survival rates
         migration_rates: Base migration rates (DataFrame or dict of DataFrames)
+        migration_rates_by_year_by_county: Optional time-varying migration (Phase 4)
+        survival_rates_by_year: Optional time-varying survival (Phase 4)
 
     Returns:
-        Tuple of (adjusted_fertility, adjusted_survival, adjusted_migration)
+        Tuple of (adjusted_fertility, adjusted_survival, adjusted_migration,
+                  migration_rates_by_year_by_county, survival_rates_by_year)
     """
     scenario_config = config.get("scenarios", {}).get(scenario, {})
 
     if not scenario_config:
         logger.warning(f"Scenario '{scenario}' not found in config, using base rates")
-        return fertility_rates, survival_rates, migration_rates
+        return (
+            fertility_rates,
+            survival_rates,
+            migration_rates,
+            migration_rates_by_year_by_county,
+            survival_rates_by_year,
+        )
 
     # Copy rates to avoid modifying originals
     adj_fertility = fertility_rates.copy()
@@ -703,7 +767,13 @@ def apply_scenario_rate_adjustments(
                 if migration_col in adj_migration.columns:
                     adj_migration[migration_col] = 0.0
 
-    return adj_fertility, adj_survival, adj_migration
+    return (
+        adj_fertility,
+        adj_survival,
+        adj_migration,
+        migration_rates_by_year_by_county,
+        survival_rates_by_year,
+    )
 
 
 def _create_zero_migration_rates() -> pd.DataFrame:
@@ -735,6 +805,153 @@ def _create_zero_migration_rates() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+# ---------------------------------------------------------------------------
+# Phase 4: Bridge functions for time-varying rates
+# ---------------------------------------------------------------------------
+
+# Standard 6 race/ethnicity categories used by the projection engine
+_ENGINE_RACES = [
+    "White alone, Non-Hispanic",
+    "Black alone, Non-Hispanic",
+    "AIAN alone, Non-Hispanic",
+    "Asian/PI alone, Non-Hispanic",
+    "Two or more races, Non-Hispanic",
+    "Hispanic (any race)",
+]
+
+# Mapping from 5-year age group labels to single-year age ranges
+_AGE_GROUP_RANGES: dict[str, tuple[int, int]] = {
+    "0-4": (0, 4),
+    "5-9": (5, 9),
+    "10-14": (10, 14),
+    "15-19": (15, 19),
+    "20-24": (20, 24),
+    "25-29": (25, 29),
+    "30-34": (30, 34),
+    "35-39": (35, 39),
+    "40-44": (40, 44),
+    "45-49": (45, 49),
+    "50-54": (50, 54),
+    "55-59": (55, 59),
+    "60-64": (60, 64),
+    "65-69": (65, 69),
+    "70-74": (70, 74),
+    "75-79": (75, 79),
+    "80-84": (80, 84),
+    "85+": (85, 90),
+}
+
+
+def expand_5yr_migration_to_engine_format(df: pd.DataFrame) -> pd.DataFrame:
+    """Expand 5-year age-group migration rates to engine format.
+
+    Phase 1/2 produce 36 rows per county (18 age groups x 2 sexes).
+    The engine expects 1,092 rows per county (91 ages x 2 sexes x 6 races).
+
+    Steps:
+    1. Expand each 5-year rate to constituent single-year ages (same rate).
+       For "85+", expand to ages 85-90.
+    2. Distribute across all 6 race/ethnicity categories (uniform rate).
+    3. Ensure column names match engine expectations.
+
+    Args:
+        df: DataFrame with columns [age_group, sex, migration_rate].
+            Expected shape: 36 rows (18 age groups x 2 sexes).
+
+    Returns:
+        DataFrame with columns [age, sex, race, migration_rate].
+        Shape: 1,092 rows (91 ages x 2 sexes x 6 races).
+    """
+    expanded_rows: list[dict[str, object]] = []
+
+    for _, row in df.iterrows():
+        age_group = str(row["age_group"])
+        sex = row["sex"]
+        rate = row["migration_rate"]
+
+        # Determine single-year age range
+        if age_group in _AGE_GROUP_RANGES:
+            start_age, end_age = _AGE_GROUP_RANGES[age_group]
+        else:
+            logger.warning(f"Unknown age group '{age_group}', skipping")
+            continue
+
+        # Expand to single-year ages and all races
+        expanded_rows.extend(
+            {"age": age, "sex": sex, "race": race, "migration_rate": rate}
+            for age in range(start_age, end_age + 1)
+            for race in _ENGINE_RACES
+        )
+
+    result = pd.DataFrame(expanded_rows)
+    return result
+
+
+def _build_convergence_rate_dicts(
+    convergence_df: pd.DataFrame,
+) -> dict[str, dict[int, pd.DataFrame]]:
+    """Restructure convergence output into per-county, per-year-offset dicts.
+
+    Args:
+        convergence_df: DataFrame with columns
+            [year_offset, county_fips, age_group, sex, migration_rate].
+
+    Returns:
+        Dict mapping county_fips -> dict[year_offset -> engine-format DataFrame].
+        Each inner DataFrame has 1,092 rows (91 ages x 2 sexes x 6 races).
+    """
+    result: dict[str, dict[int, pd.DataFrame]] = {}
+
+    for (county_fips, year_offset), group in convergence_df.groupby(["county_fips", "year_offset"]):
+        county_key = str(county_fips)
+        offset_key = int(year_offset)  # type: ignore[call-overload]
+
+        # Expand 5-year groups to engine format
+        engine_df = expand_5yr_migration_to_engine_format(
+            group[["age_group", "sex", "migration_rate"]].reset_index(drop=True)
+        )
+
+        if county_key not in result:
+            result[county_key] = {}
+        result[county_key][offset_key] = engine_df
+
+    return result
+
+
+def _build_survival_rates_by_year(
+    survival_df: pd.DataFrame,
+) -> dict[int, pd.DataFrame]:
+    """Build per-year survival rate DataFrames from Phase 3 output.
+
+    The Phase 3 output has no race column — survival rates are sex/age only.
+    The engine expects [age, sex, race, survival_rate], so we expand each
+    year's rates across the 6 standard race categories.
+
+    Args:
+        survival_df: DataFrame with columns [year, age, sex, survival_rate, source].
+
+    Returns:
+        Dict mapping calendar year -> engine-format survival DataFrame.
+    """
+    result: dict[int, pd.DataFrame] = {}
+
+    for year, group in survival_df.groupby("year"):
+        year_key = int(year)  # type: ignore[arg-type]
+        base = group[["age", "sex", "survival_rate"]].reset_index(drop=True)
+
+        # Expand across all races (same rate for each race)
+        race_expanded_rows: list[pd.DataFrame] = []
+        for race in _ENGINE_RACES:
+            race_df = base.copy()
+            race_df["race"] = race
+            race_expanded_rows.append(race_df)
+
+        expanded = pd.concat(race_expanded_rows, ignore_index=True)
+        result[year_key] = expanded[["age", "sex", "race", "survival_rate"]]
+
+    return result
+
+
 def run_geographic_projections(
     geographies: dict[str, list[str]],
     scenario: str,
@@ -744,6 +961,8 @@ def run_geographic_projections(
     migration_rates: pd.DataFrame | dict[str, pd.DataFrame],
     dry_run: bool = False,
     resume: bool = False,
+    migration_rates_by_year_by_county: dict[str, dict[int, pd.DataFrame]] | None = None,
+    survival_rates_by_year: dict[int, pd.DataFrame] | None = None,
 ) -> ProjectionRunMetadata:
     """
     Execute projections for all geographies in a scenario.
@@ -757,6 +976,8 @@ def run_geographic_projections(
         migration_rates: Processed migration rates (DataFrame or dict of per-county DataFrames)
         dry_run: If True, only show what would be processed
         resume: If True, skip already-completed geographies
+        migration_rates_by_year_by_county: Optional per-county time-varying migration (Phase 4)
+        survival_rates_by_year: Optional time-varying survival rates (Phase 4)
 
     Returns:
         ProjectionRunMetadata with results
@@ -774,12 +995,20 @@ def run_geographic_projections(
 
     # Apply scenario-specific rate adjustments
     logger.info(f"Applying scenario rate adjustments for: {scenario}")
-    adj_fertility, adj_survival, adj_migration = apply_scenario_rate_adjustments(
+    (
+        adj_fertility,
+        adj_survival,
+        adj_migration,
+        adj_migration_by_year_by_county,
+        adj_survival_by_year,
+    ) = apply_scenario_rate_adjustments(
         scenario=scenario,
         config=config,
         fertility_rates=fertility_rates,
         survival_rates=survival_rates,
         migration_rates=migration_rates,
+        migration_rates_by_year_by_county=migration_rates_by_year_by_county,
+        survival_rates_by_year=survival_rates_by_year,
     )
 
     # Get output directory
@@ -857,6 +1086,8 @@ def run_geographic_projections(
                 .get("max_workers"),
                 output_dir=output_dir / level,
                 scenario=scenario,
+                migration_rates_by_year_by_geography=adj_migration_by_year_by_county,
+                survival_rates_by_year=adj_survival_by_year,
             )
 
             # Extract results list from the returned dictionary
@@ -1026,8 +1257,14 @@ def run_all_projections(
     logger.info("")
 
     try:
-        # Load demographic rates
-        fertility_rates, survival_rates, migration_rates = load_demographic_rates(config)
+        # Load demographic rates (including Phase 4 time-varying rates if available)
+        (
+            fertility_rates,
+            survival_rates,
+            migration_rates,
+            migration_rates_by_year_by_county,
+            survival_rates_by_year,
+        ) = load_demographic_rates(config)
 
         # Setup projection run
         geographies, scenario_list = setup_projection_run(config, levels, fips_filter, scenarios)
@@ -1048,6 +1285,8 @@ def run_all_projections(
                 migration_rates=migration_rates,
                 dry_run=dry_run,
                 resume=resume,
+                migration_rates_by_year_by_county=migration_rates_by_year_by_county,
+                survival_rates_by_year=survival_rates_by_year,
             )
 
             # Validate results

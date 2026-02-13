@@ -42,6 +42,8 @@ class CohortComponentProjection:
         survival_rates: pd.DataFrame,
         migration_rates: pd.DataFrame,
         config: dict[str, Any] | None = None,
+        migration_rates_by_year: dict[int, pd.DataFrame] | None = None,
+        survival_rates_by_year: dict[int, pd.DataFrame] | None = None,
     ):
         """
         Initialize cohort component projection.
@@ -56,6 +58,14 @@ class CohortComponentProjection:
             migration_rates: Net migration by cohort
                            Columns: [age, sex, race, net_migration] or migration_rate
             config: Configuration dictionary (optional)
+            migration_rates_by_year: Optional dict mapping year_offset -> migration rates
+                                    DataFrame for time-varying migration (Phase 4).
+                                    Keys are year offsets (1-20). Falls back to constant
+                                    migration_rates when None or year not found.
+            survival_rates_by_year: Optional dict mapping calendar year -> survival rates
+                                   DataFrame for time-varying mortality (Phase 4).
+                                   Keys are calendar years (e.g. 2025-2045). Falls back
+                                   to constant survival_rates when None or year not found.
 
         Raises:
             ValueError: If input data validation fails
@@ -80,6 +90,21 @@ class CohortComponentProjection:
         self.fertility_rates = fertility_rates.copy()
         self.survival_rates = survival_rates.copy()
         self.migration_rates = migration_rates.copy()
+
+        # Store time-varying rates (Phase 4: engine wiring)
+        self.migration_rates_by_year = migration_rates_by_year
+        self.survival_rates_by_year = survival_rates_by_year
+
+        if migration_rates_by_year is not None:
+            logger.info(
+                f"Time-varying migration rates provided for "
+                f"{len(migration_rates_by_year)} year offsets"
+            )
+        if survival_rates_by_year is not None:
+            logger.info(
+                f"Time-varying survival rates provided for "
+                f"{len(survival_rates_by_year)} calendar years"
+            )
 
         # Validate inputs
         self._validate_inputs()
@@ -128,6 +153,46 @@ class CohortComponentProjection:
 
         logger.info("Input validation complete")
 
+    def _get_migration_rates(self, year: int) -> pd.DataFrame:
+        """Get migration rates for a specific projection year.
+
+        If time-varying rates are available, looks up by year_offset
+        (year - base_year + 1). Falls back to constant rates if the year
+        is not found or time-varying rates were not provided.
+
+        Args:
+            year: Calendar year of projection step.
+
+        Returns:
+            Migration rates DataFrame for the given year.
+        """
+        if self.migration_rates_by_year is not None:
+            year_offset = year - self.base_year + 1
+            if year_offset in self.migration_rates_by_year:
+                logger.debug(
+                    f"Using time-varying migration rates for year {year} (offset {year_offset})"
+                )
+                return self.migration_rates_by_year[year_offset]
+        return self.migration_rates
+
+    def _get_survival_rates(self, year: int) -> pd.DataFrame:
+        """Get survival rates for a specific projection year.
+
+        If time-varying rates are available, looks up by calendar year.
+        Falls back to constant rates if the year is not found or
+        time-varying rates were not provided.
+
+        Args:
+            year: Calendar year of projection step.
+
+        Returns:
+            Survival rates DataFrame for the given year.
+        """
+        if self.survival_rates_by_year is not None and year in self.survival_rates_by_year:
+            logger.debug(f"Using time-varying survival rates for year {year}")
+            return self.survival_rates_by_year[year]
+        return self.survival_rates
+
     def project_single_year(
         self, population: pd.DataFrame, year: int, scenario: str | None = None
     ) -> pd.DataFrame:
@@ -151,10 +216,10 @@ class CohortComponentProjection:
         """
         logger.info(f"Projecting year {year} -> {year + 1}")
 
-        # Prepare scenario-adjusted rates if needed
-        survival_rates = self.survival_rates.copy()
+        # Prepare rates — use time-varying lookup, then apply scenario adjustments
+        survival_rates = self._get_survival_rates(year).copy()
         fertility_rates = self.fertility_rates.copy()
-        migration_rates = self.migration_rates.copy()
+        migration_rates = self._get_migration_rates(year).copy()
 
         if scenario:
             logger.debug(f"Applying scenario: {scenario}")

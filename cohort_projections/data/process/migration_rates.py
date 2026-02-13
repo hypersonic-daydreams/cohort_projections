@@ -26,7 +26,15 @@ logger = get_logger_from_config(__name__)
 
 # Re-export MIGRATION_RACE_MAP for backward compatibility
 # The canonical definition is in cohort_projections/config/race_mappings.py
-__all__ = ["MIGRATION_RACE_MAP", "process_pep_migration_rates"]
+__all__ = [
+    "MIGRATION_RACE_MAP",
+    "process_pep_migration_rates",
+    "calculate_period_average",
+    "calculate_multiperiod_averages",
+    "calculate_bebr_scenarios",
+    "apply_county_dampening",
+    "calculate_interpolated_rates",
+]
 
 
 def load_irs_migration_data(
@@ -913,6 +921,319 @@ def create_migration_rate_table(
     return df_complete
 
 
+def calculate_period_average(
+    pep_data: pd.DataFrame,
+    start_year: int,
+    end_year: int,
+) -> pd.DataFrame:
+    """Calculate mean net migration for each county over a year range.
+
+    Filters PEP data to [start_year, end_year] inclusive, then computes
+    the arithmetic mean of `netmig` per county (geoid).
+
+    Args:
+        pep_data: PEP county components DataFrame with columns [geoid, year, netmig].
+        start_year: First year of the period (inclusive).
+        end_year: Last year of the period (inclusive).
+
+    Returns:
+        DataFrame with columns [geoid, mean_netmig, n_years].
+    """
+    filtered = pep_data[(pep_data["year"] >= start_year) & (pep_data["year"] <= end_year)]
+    if filtered.empty:
+        return pd.DataFrame(columns=["geoid", "mean_netmig", "n_years"])
+
+    result = filtered.groupby("geoid", as_index=False).agg(
+        mean_netmig=("netmig", "mean"), n_years=("netmig", "count")
+    )
+    return result
+
+
+DEFAULT_BASE_PERIODS: dict[str, tuple[int, int]] = {
+    "short": (2019, 2024),
+    "medium": (2014, 2024),
+    "long": (2005, 2024),
+    "full": (2000, 2024),
+}
+
+
+def calculate_multiperiod_averages(
+    pep_data: pd.DataFrame,
+    base_periods: dict[str, tuple[int, int]] | None = None,
+) -> dict[str, pd.DataFrame]:
+    """Calculate period averages for multiple overlapping base periods.
+
+    Implements the BEBR-style multi-period averaging approach: compute
+    equal-weighted averages from several overlapping base periods of
+    different lengths.
+
+    Args:
+        pep_data: PEP county components DataFrame with [geoid, year, netmig].
+        base_periods: Dict mapping period name to (start_year, end_year).
+            Defaults to DEFAULT_BASE_PERIODS.
+
+    Returns:
+        Dict mapping period name to DataFrame with [geoid, mean_netmig, n_years].
+    """
+    if base_periods is None:
+        base_periods = DEFAULT_BASE_PERIODS
+
+    results: dict[str, pd.DataFrame] = {}
+    for name, (start, end) in base_periods.items():
+        avg = calculate_period_average(pep_data, start, end)
+        results[name] = avg
+        logger.info(
+            f"Period '{name}' ({start}-{end}): {len(avg)} counties, "
+            f"mean net migration {avg['mean_netmig'].mean():+,.0f}"
+        )
+
+    return results
+
+
+def calculate_bebr_scenarios(
+    period_averages: dict[str, pd.DataFrame],
+) -> dict[str, pd.DataFrame]:
+    """Derive baseline/low/high scenarios from multi-period averages.
+
+    Uses trimmed averaging following BEBR methodology:
+    - baseline: drop highest and lowest period means, average the rest
+    - low: minimum period mean (most pessimistic period)
+    - high: maximum period mean (most optimistic period)
+
+    Edge cases for fewer than 4 periods:
+    - 3 periods: drop min and max, use the middle value
+    - 2 periods: average both (no trimming possible)
+    - 1 period: use directly for all scenarios
+
+    Args:
+        period_averages: Dict from calculate_multiperiod_averages().
+
+    Returns:
+        Dict with keys "baseline", "low", "high", each mapping to a
+        DataFrame with columns [geoid, net_migration].
+    """
+    period_names = list(period_averages.keys())
+    n_periods = len(period_names)
+
+    if n_periods == 0:
+        empty = pd.DataFrame(columns=["geoid", "net_migration"])
+        return {"baseline": empty, "low": empty, "high": empty}
+
+    # Collect all geoids across periods
+    all_geoids: set[str] = set()
+    for df in period_averages.values():
+        all_geoids.update(df["geoid"].tolist())
+
+    records_baseline = []
+    records_low = []
+    records_high = []
+
+    for geoid in sorted(all_geoids):
+        # Gather this county's mean_netmig from each period
+        values = []
+        for name in period_names:
+            df = period_averages[name]
+            row = df[df["geoid"] == geoid]
+            if not row.empty:
+                values.append(float(row["mean_netmig"].iloc[0]))
+
+        if not values:
+            records_baseline.append({"geoid": geoid, "net_migration": 0.0})
+            records_low.append({"geoid": geoid, "net_migration": 0.0})
+            records_high.append({"geoid": geoid, "net_migration": 0.0})
+            continue
+
+        sorted_vals = sorted(values)
+        low_val = sorted_vals[0]
+        high_val = sorted_vals[-1]
+
+        if len(sorted_vals) >= 4:
+            # Trim min and max, average the rest
+            trimmed = sorted_vals[1:-1]
+            baseline_val = float(np.mean(trimmed))
+        elif len(sorted_vals) == 3:
+            # Drop min and max, use middle
+            baseline_val = sorted_vals[1]
+        elif len(sorted_vals) == 2:
+            # Average both
+            baseline_val = float(np.mean(sorted_vals))
+        else:
+            # Single value
+            baseline_val = sorted_vals[0]
+
+        records_baseline.append({"geoid": geoid, "net_migration": baseline_val})
+        records_low.append({"geoid": geoid, "net_migration": low_val})
+        records_high.append({"geoid": geoid, "net_migration": high_val})
+
+    logger.info(f"BEBR scenarios computed for {len(all_geoids)} counties from {n_periods} periods")
+
+    return {
+        "baseline": pd.DataFrame(records_baseline),
+        "low": pd.DataFrame(records_low),
+        "high": pd.DataFrame(records_high),
+    }
+
+
+def apply_county_dampening(
+    bebr_scenarios: dict[str, pd.DataFrame],
+    dampening_config: dict | None = None,
+) -> dict[str, pd.DataFrame]:
+    """Apply dampening factor to designated counties' net migration.
+
+    Reduces projected migration for counties with historically extreme
+    migration patterns (e.g., Bakken oil boom counties) that are not
+    expected to repeat.
+
+    The dampening multiplier is applied to the net_migration values
+    AFTER BEBR scenario calculation but BEFORE Rogers-Castro distribution.
+
+    Args:
+        bebr_scenarios: Dict with keys "baseline", "low", "high", each
+            mapping to DataFrame with [geoid, net_migration].
+        dampening_config: Dict with keys:
+            - enabled: bool (default True)
+            - factor: float multiplier (e.g. 0.60)
+            - counties: list of 5-digit FIPS codes to dampen
+
+    Returns:
+        New dict with same structure, dampened counties modified.
+        Non-dampened counties and scenarios where dampening is disabled
+        are returned unchanged (but as copies).
+    """
+    # If no config or disabled, return deep copies unchanged
+    if dampening_config is None or not dampening_config.get("enabled", True):
+        return {name: df.copy() for name, df in bebr_scenarios.items()}
+
+    factor = dampening_config.get("factor", 1.0)
+    counties = dampening_config.get("counties", [])
+
+    if not counties:
+        logger.info("Dampening enabled but county list is empty; no changes applied")
+        return {name: df.copy() for name, df in bebr_scenarios.items()}
+
+    logger.info(
+        f"Applying dampening factor {factor:.2f} to {len(counties)} counties: {', '.join(counties)}"
+    )
+
+    result: dict[str, pd.DataFrame] = {}
+    for scenario_name, df in bebr_scenarios.items():
+        df_copy = df.copy()
+        mask = df_copy["geoid"].isin(counties)
+        if mask.any():
+            original_values = df_copy.loc[mask, "net_migration"].copy()
+            df_copy.loc[mask, "net_migration"] = df_copy.loc[mask, "net_migration"] * factor
+            dampened_values = df_copy.loc[mask, "net_migration"]
+            for geoid, orig, dampened in zip(
+                df_copy.loc[mask, "geoid"],
+                original_values,
+                dampened_values,
+                strict=True,
+            ):
+                logger.debug(
+                    f"  {scenario_name} county {geoid}: "
+                    f"{orig:+,.0f} -> {dampened:+,.0f} (x{factor:.2f})"
+                )
+        result[scenario_name] = df_copy
+
+    dampened_count = sum(result[s]["geoid"].isin(counties).sum() for s in result)
+    logger.info(
+        f"Dampening applied to {dampened_count} county-scenario combinations "
+        f"across {len(result)} scenarios"
+    )
+
+    return result
+
+
+def calculate_interpolated_rates(
+    recent_avg: pd.DataFrame,
+    medium_avg: pd.DataFrame,
+    longterm_avg: pd.DataFrame,
+    projection_years: int = 20,
+    convergence_schedule: dict[str, int] | None = None,
+) -> dict[int, pd.DataFrame]:
+    """Calculate year-varying migration rates using Census Bureau convergence.
+
+    Interpolates between recent, medium-term, and long-term averages over
+    the projection horizon. NOT wired into the pipeline (which expects
+    constant rates); produced for analysis/comparison output.
+
+    Default convergence schedule:
+    - Years 1-5: linear interpolation from recent to medium
+    - Years 6-15: hold at medium-term average
+    - Years 16-20: linear interpolation from medium to long-term
+
+    Args:
+        recent_avg: DataFrame with [geoid, mean_netmig] for recent period.
+        medium_avg: DataFrame with [geoid, mean_netmig] for medium period.
+        longterm_avg: DataFrame with [geoid, mean_netmig] for long-term period.
+        projection_years: Total projection horizon (default 20).
+        convergence_schedule: Dict with keys:
+            - recent_to_medium_years: years to converge recent -> medium (default 5)
+            - medium_hold_years: years to hold at medium (default 10)
+            - medium_to_longterm_years: years to converge medium -> long-term (default 5)
+
+    Returns:
+        Dict mapping year offset (1-based) to DataFrame with [geoid, net_migration].
+    """
+    if convergence_schedule is None:
+        convergence_schedule = {
+            "recent_to_medium_years": 5,
+            "medium_hold_years": 10,
+            "medium_to_longterm_years": 5,
+        }
+
+    phase1 = convergence_schedule["recent_to_medium_years"]
+    phase2 = convergence_schedule["medium_hold_years"]
+    phase3 = convergence_schedule["medium_to_longterm_years"]
+
+    # Merge all three averages on geoid
+    merged = recent_avg[["geoid", "mean_netmig"]].rename(columns={"mean_netmig": "recent"})
+    merged = merged.merge(
+        medium_avg[["geoid", "mean_netmig"]].rename(columns={"mean_netmig": "medium"}),
+        on="geoid",
+        how="outer",
+    )
+    merged = merged.merge(
+        longterm_avg[["geoid", "mean_netmig"]].rename(columns={"mean_netmig": "longterm"}),
+        on="geoid",
+        how="outer",
+    )
+    merged = merged.fillna(0.0)
+
+    results: dict[int, pd.DataFrame] = {}
+
+    for year in range(1, projection_years + 1):
+        if year <= phase1:
+            # Linear interpolation: recent -> medium
+            t = year / phase1
+            net_mig = merged["recent"] * (1 - t) + merged["medium"] * t
+        elif year <= phase1 + phase2:
+            # Hold at medium
+            net_mig = merged["medium"]
+        else:
+            # Linear interpolation: medium -> long-term
+            years_into_phase3 = year - phase1 - phase2
+            t = years_into_phase3 / phase3
+            t = min(t, 1.0)
+            net_mig = merged["medium"] * (1 - t) + merged["longterm"] * t
+
+        year_df = pd.DataFrame(
+            {
+                "geoid": merged["geoid"],
+                "net_migration": net_mig,
+            }
+        )
+        results[year] = year_df
+
+    logger.info(
+        f"Interpolated rates calculated for {len(merged)} counties "
+        f"over {projection_years} years "
+        f"(phases: {phase1}+{phase2}+{phase3})"
+    )
+
+    return results
+
+
 def validate_migration_data(
     df: pd.DataFrame, population_df: pd.DataFrame | None = None, config: dict | None = None
 ) -> dict[str, Any]:
@@ -1348,25 +1669,26 @@ def process_pep_migration_rates(
     population_path: str | Path,
     output_dir: Path | None = None,
     config: dict | None = None,
-    regime_weights: dict[str, float] | None = None,
-    dampening: dict[str, float] | None = None,
     as_rates: bool = False,
     scenarios: list[str] | None = None,
+    averaging_method: str | None = None,
+    base_periods: dict[str, tuple[int, int]] | None = None,
 ) -> dict[str, pd.DataFrame]:
     """Process PEP county migration data into age/sex/race-specific rates.
 
-    Complete pipeline for all 53 ND counties:
+    Complete pipeline for all 53 ND counties using BEBR multi-period averaging:
     1. Load PEP county components (preferred estimates)
-    2. Classify counties and calculate regime-weighted averages
-    3. For each county:
-       a. Get county-specific net migration total
+    2. Calculate multi-period averages (BEBR methodology)
+    3. Derive baseline/low/high scenarios via trimmed averaging
+    4. For each county and scenario:
+       a. Get county-specific net migration from BEBR results
        b. Load county base population for race distribution
        c. Distribute to ages using Rogers-Castro pattern
        d. Distribute to sex (50/50)
        e. Distribute to race (proportional to county population)
        f. Create complete 1,092-row migration table
-    4. Combine all counties with county_fips column
-    5. Save to output files
+    5. Combine all counties with county_fips column
+    6. Save to output files
 
     Args:
         pep_path: Path to pep_county_components_2000_2024.parquet
@@ -1374,10 +1696,11 @@ def process_pep_migration_rates(
             [county_fips, age, sex, race_ethnicity, population])
         output_dir: Output directory (default: data/processed/migration/)
         config: Configuration dictionary (optional)
-        regime_weights: Custom regime weights (default: recovery-weighted)
-        dampening: Custom dampening factors (default: boom=0.60)
         as_rates: Express as rates instead of absolute numbers
         scenarios: Scenario names to generate (default: ["baseline"])
+        averaging_method: Averaging method (default: "BEBR_multiperiod" from config)
+        base_periods: Custom base periods dict mapping name to (start, end) tuple.
+            Defaults to config value or DEFAULT_BASE_PERIODS.
 
     Returns:
         Dictionary mapping scenario name to DataFrame.
@@ -1386,16 +1709,11 @@ def process_pep_migration_rates(
         With 57,876 rows (53 counties x 1,092 cohorts).
     """
     from cohort_projections.data.process.pep_regime_analysis import (
-        DEFAULT_DAMPENING,
-        DEFAULT_REGIME_WEIGHTS,
-        calculate_regime_averages,
-        calculate_regime_weighted_average,
-        classify_counties,
         load_pep_preferred_estimates,
     )
 
     logger.info("=" * 70)
-    logger.info("Starting PEP migration rates processing pipeline")
+    logger.info("Starting PEP migration rates processing pipeline (BEBR)")
     logger.info("=" * 70)
 
     # Load config if not provided
@@ -1414,34 +1732,18 @@ def process_pep_migration_rates(
     if scenarios is None:
         scenarios = ["baseline"]
 
-    # Define scenario configurations
-    scenario_configs: dict[str, dict[str, Any]] = {
-        "baseline": {
-            "weights": regime_weights if regime_weights is not None else DEFAULT_REGIME_WEIGHTS,
-            "dampening": dampening if dampening is not None else DEFAULT_DAMPENING,
-            "multiplier": 1.0,
-        },
-        "low": {
-            "weights": {
-                "pre_bakken": 0.10,
-                "boom": 0.05,
-                "bust_covid": 0.50,
-                "recovery": 0.35,
-            },
-            "dampening": {"boom": 0.60},
-            "multiplier": 0.75,
-        },
-        "high": {
-            "weights": {
-                "pre_bakken": 0.10,
-                "boom": 0.25,
-                "bust_covid": 0.15,
-                "recovery": 0.50,
-            },
-            "dampening": {},
-            "multiplier": 1.0,
-        },
-    }
+    # Read averaging config
+    migration_config = config.get("rates", {}).get("migration", {}).get("domestic", {})
+
+    if averaging_method is None:
+        averaging_method = migration_config.get("averaging_method", "BEBR_multiperiod")
+
+    if base_periods is None:
+        config_periods = migration_config.get("base_periods")
+        if config_periods:
+            base_periods = {name: tuple(years) for name, years in config_periods.items()}
+
+    logger.info(f"Averaging method: {averaging_method}")
 
     # Step 1: Load PEP data
     logger.info("Step 1: Loading PEP county components (preferred estimates)")
@@ -1467,11 +1769,20 @@ def process_pep_migration_rates(
 
     logger.info(f"Loaded population with {len(population_df)} records")
 
-    # Step 3: Classify counties and calculate regime averages
-    logger.info("Step 3: Classifying counties and calculating regime averages")
-    county_fips_list = pep_df["county_fips"].unique().tolist()
-    classify_counties(county_fips_list)  # validates county classification
-    regime_averages = calculate_regime_averages(pep_df)
+    # Step 3: Calculate BEBR multi-period averages
+    logger.info("Step 3: Calculating BEBR multi-period averages")
+    period_averages = calculate_multiperiod_averages(pep_df, base_periods)
+    bebr_scenarios = calculate_bebr_scenarios(period_averages)
+
+    # Step 3b: Apply county dampening (oil boom counties)
+    dampening_config = migration_config.get("dampening")
+    bebr_scenarios = apply_county_dampening(bebr_scenarios, dampening_config)
+
+    logger.info(
+        f"BEBR scenarios: baseline mean={bebr_scenarios['baseline']['net_migration'].mean():+,.0f}, "
+        f"low mean={bebr_scenarios['low']['net_migration'].mean():+,.0f}, "
+        f"high mean={bebr_scenarios['high']['net_migration'].mean():+,.0f}"
+    )
 
     # Get standard age pattern (Rogers-Castro)
     age_pattern = get_standard_age_migration_pattern(peak_age=25, method="rogers_castro")
@@ -1480,7 +1791,7 @@ def process_pep_migration_rates(
     results: dict[str, pd.DataFrame] = {}
 
     for scenario in scenarios:
-        if scenario not in scenario_configs:
+        if scenario not in bebr_scenarios:
             logger.warning(f"Unknown scenario '{scenario}', skipping")
             continue
 
@@ -1488,17 +1799,7 @@ def process_pep_migration_rates(
         logger.info(f"Processing scenario: {scenario}")
         logger.info(f"{'=' * 50}")
 
-        sc = scenario_configs[scenario]
-        sc_weights = sc["weights"]
-        sc_dampening = sc["dampening"]
-        sc_multiplier = sc["multiplier"]
-
-        # Calculate regime-weighted averages for this scenario
-        weighted_averages = calculate_regime_weighted_average(
-            regime_averages,
-            weights=sc_weights,
-            dampening=sc_dampening,
-        )
+        scenario_netmig = bebr_scenarios[scenario]
 
         # Step 4a: Process each county
         county_dfs = []
@@ -1506,16 +1807,13 @@ def process_pep_migration_rates(
         for geoid in county_geoids:
             logger.debug(f"Processing county {geoid}")
 
-            # Get this county's weighted average net migration
-            county_weighted = weighted_averages[weighted_averages["geoid"] == geoid]
-            if county_weighted.empty:
-                logger.warning(f"No weighted average found for county {geoid}, using 0")
-                weighted_avg_netmig = 0.0
+            # Get this county's net migration from BEBR results
+            county_row = scenario_netmig[scenario_netmig["geoid"] == geoid]
+            if county_row.empty:
+                logger.warning(f"No BEBR result for county {geoid}, using 0")
+                net_mig = 0.0
             else:
-                weighted_avg_netmig = float(county_weighted["weighted_avg_netmig"].iloc[0])
-
-            # Apply scenario multiplier
-            weighted_avg_netmig *= sc_multiplier
+                net_mig = float(county_row["net_migration"].iloc[0])
 
             # Get county population
             county_population = population_df[population_df["county_fips"] == geoid].copy()
@@ -1527,7 +1825,7 @@ def process_pep_migration_rates(
                 continue
 
             # Distribute to ages using Rogers-Castro pattern
-            age_migration = distribute_migration_by_age(weighted_avg_netmig, age_pattern)
+            age_migration = distribute_migration_by_age(net_mig, age_pattern)
 
             # Distribute to sex (50/50)
             age_sex_migration = distribute_migration_by_sex(age_migration, sex_ratio=0.5)
