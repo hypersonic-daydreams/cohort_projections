@@ -487,6 +487,14 @@ def load_demographic_rates(
     convergence_path = processed_dir / "migration" / "convergence_rates_by_year.parquet"
     if convergence_path.exists():
         convergence_df = pd.read_parquet(convergence_path)
+        convergence_meta_path = processed_dir / "migration" / "convergence_metadata.json"
+        if _convergence_rates_need_annualization(convergence_meta_path):
+            period_years = _estimate_legacy_residual_period_years(config)
+            logger.warning(
+                "Convergence rates are missing annual-rate metadata; "
+                f"annualizing legacy rates using period_years={period_years:.2f}"
+            )
+            convergence_df = _annualize_legacy_convergence_rates(convergence_df, period_years)
         migration_rates_by_year_by_county = _build_convergence_rate_dicts(convergence_df)
         logger.info(
             f"Loaded convergence rates for {len(migration_rates_by_year_by_county)} counties"
@@ -808,6 +816,70 @@ def _create_zero_migration_rates() -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 # Phase 4: Bridge functions for time-varying rates
 # ---------------------------------------------------------------------------
+
+
+def _convergence_rates_need_annualization(metadata_path: Path) -> bool:
+    """Return True when convergence rates should be annualized at load time.
+
+    Convergence files produced before the migration-rate unit fix do not carry
+    rate-unit metadata and store multi-year period rates. New files set
+    ``rate_unit = "annual_rate"`` in convergence metadata.
+    """
+    if not metadata_path.exists():
+        return True
+
+    try:
+        with open(metadata_path) as f:
+            metadata = json.load(f)
+        return metadata.get("rate_unit") != "annual_rate"
+    except Exception as e:
+        logger.warning(f"Could not read convergence metadata at {metadata_path}: {e}")
+        return True
+
+
+def _estimate_legacy_residual_period_years(config: dict[str, Any]) -> float:
+    """Estimate period length for legacy residual migration rates.
+
+    Legacy convergence files are based on residual periods configured in
+    ``rates.migration.domestic.residual.periods``. We use the mean period
+    length from config as the annualization exponent denominator.
+    """
+    periods = (
+        config.get("rates", {})
+        .get("migration", {})
+        .get("domestic", {})
+        .get("residual", {})
+        .get("periods", [])
+    )
+
+    lengths: list[float] = []
+    for p in periods:
+        if isinstance(p, (list, tuple)) and len(p) == 2:
+            start, end = p
+            lengths.append(float(end) - float(start))
+
+    if lengths:
+        return sum(lengths) / len(lengths)
+
+    return 5.0
+
+
+def _annualize_legacy_convergence_rates(
+    convergence_df: pd.DataFrame, period_years: float
+) -> pd.DataFrame:
+    """Convert legacy multi-year migration rates to annual rates."""
+    if period_years <= 0:
+        raise ValueError(f"period_years must be positive, got {period_years}")
+
+    result = convergence_df.copy()
+    if "migration_rate" not in result.columns:
+        raise ValueError("convergence_df must contain 'migration_rate'")
+
+    clipped = result["migration_rate"].clip(lower=-1.0)
+    annualized = (1.0 + clipped) ** (1.0 / period_years) - 1.0
+    result["migration_rate"] = annualized.where(clipped > -1.0, -1.0)
+    return result
+
 
 # Standard 6 race/ethnicity categories used by the projection engine
 _ENGINE_RACES = [

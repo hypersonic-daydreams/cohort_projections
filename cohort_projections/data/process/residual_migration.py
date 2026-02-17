@@ -6,7 +6,8 @@ residual method:
 
     expected_pop[age+5] = pop_start[age] * survival_rate_5yr[age, sex]
     migration[age+5]    = pop_end[age+5] - expected_pop[age+5]
-    migration_rate      = migration / expected_pop
+    migration_rate_period = migration / expected_pop
+    migration_rate        = annualize(migration_rate_period, period_length)
 
 This module implements the full pipeline:
     1. Load population snapshots for 6 time points (2000-2024)
@@ -47,6 +48,31 @@ def _age_group_index(label: str) -> int:
     return AGE_GROUP_LABELS.index(label)
 
 
+def _annualize_period_migration_rate(period_rate: float, period_length: int) -> float:
+    """Convert a multi-year net migration rate into an annual rate.
+
+    Residual migration is computed over the full period length (typically
+    5 years, with one 4-year period for 2020-2024). The projection engine
+    applies migration annually, so rates must be converted:
+
+        annual = (1 + period_rate) ** (1 / period_length) - 1
+
+    Args:
+        period_rate: Net migration rate over the full period.
+        period_length: Period length in years.
+
+    Returns:
+        Annualized migration rate.
+    """
+    if period_length <= 0:
+        raise ValueError(f"period_length must be positive, got {period_length}")
+
+    if period_rate <= -1.0:
+        return -1.0
+
+    return (1.0 + period_rate) ** (1.0 / period_length) - 1.0
+
+
 def compute_residual_migration_rates(
     pop_start: pd.DataFrame,
     pop_end: pd.DataFrame,
@@ -59,7 +85,8 @@ def compute_residual_migration_rates(
 
         expected = pop_start[age_group] * survival_rate_5yr[age_group, sex]
         migration = pop_end[next_age_group] - expected
-        migration_rate = migration / expected   (if expected > 0)
+        migration_rate_period = migration / expected   (if expected > 0)
+        migration_rate = annualize(migration_rate_period, period_length)
 
     Age shifting: 0-4 -> 5-9, 5-9 -> 10-14, ..., 75-79 -> 80-84.
 
@@ -136,7 +163,12 @@ def compute_residual_migration_rates(
 
                 expected = p_start * s_rate
                 migration = p_end - expected
-                rate = migration / expected if expected > 0 else 0.0
+                rate_period = migration / expected if expected > 0 else 0.0
+                rate = (
+                    _annualize_period_migration_rate(rate_period, period_length)
+                    if expected > 0
+                    else 0.0
+                )
 
                 records.append(
                     {
@@ -162,7 +194,12 @@ def compute_residual_migration_rates(
             expected_85plus = (p_80_84 * s_80_84) + (p_85plus * s_85plus)
             p_end_85plus = pop_e.get((county, "85+", sex), 0.0)
             migration_85plus = p_end_85plus - expected_85plus
-            rate_85plus = migration_85plus / expected_85plus if expected_85plus > 0 else 0.0
+            rate_85plus_period = migration_85plus / expected_85plus if expected_85plus > 0 else 0.0
+            rate_85plus = (
+                _annualize_period_migration_rate(rate_85plus_period, period_length)
+                if expected_85plus > 0
+                else 0.0
+            )
 
             records.append(
                 {

@@ -303,6 +303,65 @@ class TestTimeVaryingEngine:
         pop_const = result_constant[result_constant["year"] == 2027]["population"].sum()
         assert pop_tv != pop_const
 
+    def test_time_varying_survival_is_not_double_improved(self):
+        """Per-year survival tables should not get config improvement applied again."""
+        config = {
+            "project": {
+                "base_year": 2025,
+                "projection_horizon": 20,
+            },
+            "demographics": {
+                "age_groups": {
+                    "max_age": 90,
+                }
+            },
+            "rates": {
+                "fertility": {
+                    "apply_to_ages": [15, 49],
+                    "sex_ratio_male": 0.51,
+                },
+                "mortality": {
+                    "improvement_factor": 0.05,
+                },
+            },
+            "scenarios": {
+                "baseline": {
+                    "fertility": "constant",
+                    "mortality": "constant",
+                    "migration": "recent_average",
+                },
+            },
+        }
+
+        base_population = pd.DataFrame(
+            [{"year": 2025, "age": 10, "sex": "Male", "race": "White", "population": 100.0}]
+        )
+        fertility_rates = pd.DataFrame(columns=["age", "race", "fertility_rate"])
+        survival_rates = pd.DataFrame(
+            [{"age": 10, "sex": "Male", "race": "White", "survival_rate": 0.90}]
+        )
+        migration_rates = pd.DataFrame(
+            [{"age": 11, "sex": "Male", "race": "White", "migration_rate": 0.0}]
+        )
+        survival_by_year = {
+            2026: pd.DataFrame([{"age": 10, "sex": "Male", "race": "White", "survival_rate": 0.90}])
+        }
+
+        engine = CohortComponentProjection(
+            base_population=base_population,
+            fertility_rates=fertility_rates,
+            survival_rates=survival_rates,
+            migration_rates=migration_rates,
+            config=config,
+            survival_rates_by_year=survival_by_year,
+        )
+
+        projected = engine.project_single_year(base_population, year=2026, scenario="baseline")
+        survived = projected[(projected["age"] == 11) & (projected["sex"] == "Male")].iloc[0]
+
+        # If improvement were incorrectly applied again, this would be 90.5.
+        assert survived["population"] == pytest.approx(90.0)
+
 
 # ---------------------------------------------------------------------------
 # TestFormatBridge

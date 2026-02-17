@@ -252,6 +252,26 @@ class TestComputeResidualMigrationRates:
         assert (birth_rows["migration_rate"] == 0.0).all()
         assert (birth_rows["net_migration"] == 0.0).all()
 
+    def test_migration_rate_is_annualized_from_period_rate(self, survival_rates):
+        """Migration rates are converted from period rates to annual rates."""
+        pop_s = pd.DataFrame(
+            [
+                {"county_fips": "38001", "age_group": "0-4", "sex": "Male", "population": 100.0},
+            ]
+        )
+        pop_e = pd.DataFrame(
+            [
+                {"county_fips": "38001", "age_group": "5-9", "sex": "Male", "population": 150.0},
+            ]
+        )
+
+        result = compute_residual_migration_rates(pop_s, pop_e, survival_rates, period=(2000, 2005))
+
+        row_5_9 = result[(result["age_group"] == "5-9") & (result["sex"] == "Male")].iloc[0]
+        period_rate = row_5_9["net_migration"] / row_5_9["expected_pop"]
+        expected_annual = (1.0 + period_rate) ** (1.0 / 5.0) - 1.0
+        np.testing.assert_allclose(row_5_9["migration_rate"], expected_annual, rtol=1e-6)
+
 
 # ---------------------------------------------------------------------------
 # TestPeriodDampening

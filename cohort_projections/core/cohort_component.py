@@ -12,6 +12,7 @@ The method projects population forward by:
 5. Sum: Total population at t+1
 """
 
+import copy
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -151,6 +152,27 @@ class CohortComponentProjection:
         if not is_valid:
             logger.warning(f"Migration validation issues: {issues}")
 
+        # Validate time-varying migration data (if provided)
+        if self.migration_rates_by_year is not None:
+            for year_offset, migration_df in self.migration_rates_by_year.items():
+                is_valid, issues = validate_migration_data(
+                    migration_df, self.base_population, self.config
+                )
+                if not is_valid:
+                    logger.warning(
+                        "Time-varying migration validation issues "
+                        f"(year_offset={year_offset}): {issues}"
+                    )
+
+        # Validate time-varying survival data (if provided)
+        if self.survival_rates_by_year is not None:
+            for calendar_year, survival_df in self.survival_rates_by_year.items():
+                is_valid, issues = validate_survival_rates(survival_df, self.config)
+                if not is_valid:
+                    logger.warning(
+                        f"Time-varying survival validation issues (year={calendar_year}): {issues}"
+                    )
+
         logger.info("Input validation complete")
 
     def _get_migration_rates(self, year: int) -> pd.DataFrame:
@@ -240,7 +262,17 @@ class CohortComponentProjection:
 
         # Step 1: Apply survival (aging + mortality)
         logger.debug(f"Year {year}: Applying survival rates")
-        survived_population = apply_survival_rates(population, survival_rates, year, self.config)
+        survival_config = self.config
+        if self.survival_rates_by_year is not None and year in self.survival_rates_by_year:
+            # Time-varying survival tables already encode mortality improvement.
+            survival_config = copy.deepcopy(self.config)
+            survival_config.setdefault("rates", {}).setdefault("mortality", {})[
+                "improvement_factor"
+            ] = 0.0
+
+        survived_population = apply_survival_rates(
+            population, survival_rates, year, survival_config
+        )
 
         # Step 2: Calculate births
         logger.debug(f"Year {year}: Calculating births")

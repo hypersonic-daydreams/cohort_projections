@@ -339,6 +339,7 @@ def run_convergence_pipeline(
         "phase": "Phase 2 - Age-Specific Convergence Interpolation",
         "input_file": str(input_path),
         "output_file": str(output_path),
+        "rate_unit": "annual_rate",
         "total_rows": len(output_df),
         "projection_years": projection_years,
         "convergence_schedule": convergence_schedule,
