@@ -180,28 +180,36 @@ rates:
 
 scenarios:
   baseline:
-    name: "Baseline Projection"
-    description: "Recent trends continuation"
+    name: "Baseline (Trend Continuation)"
+    description: "Historical PEP trends with convergence interpolation; no policy adjustment"
     fertility: "constant"
     mortality: "improving"
     migration: "recent_average"
     active: true
 
-  high_growth:
-    name: "High Growth Scenario"
-    description: "Optimistic population growth"
-    fertility: "+10_percent"
-    mortality: "constant"
-    migration: "+25_percent"
-    active: false
+  restricted_growth:
+    name: "Restricted Growth (CBO Policy-Adjusted)"
+    description: "CBO-derived immigration enforcement impact with time-varying migration factors (ADR-037)"
+    fertility: "-5_percent"
+    mortality: "improving"
+    migration:
+      type: "time_varying"
+      schedule:
+        2025: 0.20
+        2026: 0.37
+        2027: 0.55
+        2028: 0.78
+        2029: 0.91
+      default_factor: 1.00
+    active: true
 
-  low_growth:
-    name: "Low Growth Scenario"
-    description: "Conservative population growth"
-    fertility: "-10_percent"
-    mortality: "constant"
-    migration: "-25_percent"
-    active: false
+  high_growth:
+    name: "High Growth (Pre-Policy Elevated Immigration)"
+    description: "Counterfactual continuation of elevated post-2020 immigration trends (ADR-037)"
+    fertility: "+5_percent"
+    mortality: "improving"
+    migration: "+15_percent"
+    active: true
 
   zero_migration:
     name: "Zero Net Migration"
@@ -214,15 +222,10 @@ scenarios:
   sdc_2024:
     name: "SDC 2024 Methodology"
     description: "Replicates ND State Data Center 2024 projections methodology"
-    # Uses SDC's extracted rates from data/processed/sdc_2024/
-    fertility: "sdc_2024_blended"  # SDC blended rates (ND + national)
-    mortality: "constant"  # SDC uses constant mortality (no improvement)
-    migration: "sdc_2024_dampened"  # SDC 60% Bakken-dampened rates (net in-migration)
-    # Key methodology differences from our baseline:
-    # - Migration: SDC uses 2000-2020 Census residual with 60% dampening → net IN-migration
-    # - Our baseline uses 2019-2022 IRS data → net OUT-migration
-    # - This difference accounts for ~170,000 people by 2045
-    active: false  # Set to true to include in projection runs
+    fertility: "sdc_2024_blended"
+    mortality: "constant"
+    migration: "sdc_2024_dampened"
+    active: false
 
 output:
   # Basic output settings

@@ -1,7 +1,9 @@
 # ADR-018: Immigration Policy Scenario Methodology
 
+> **Note:** This ADR has been superseded by [ADR-037: CBO-Grounded Scenario Methodology](037-cbo-grounded-scenario-methodology.md), which replaces arbitrary scenario multipliers with CBO-grounded assumptions for all projection scenarios.
+
 ## Status
-Proposed
+Superseded by ADR-037
 
 ## Date
 2025-12-28

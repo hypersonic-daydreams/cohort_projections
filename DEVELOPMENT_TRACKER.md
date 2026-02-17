@@ -18,7 +18,7 @@ This project implements cohort component population projections for North Dakota
 | **Key Milestone** | All Scenarios Complete with Reports & Visualizations |
 | **Blocking Issue** | None |
 
-**What's Done:** Core projection engine (~1,600 lines), data processing pipeline (~4,500 lines), geographic module (~1,400 lines), output/reporting (~2,300 lines), pipeline scripts (~2,400 lines), 15 ADRs, documentation, comprehensive test suite (464 tests), complete data pipeline with validated data, **full state projection for all 53 counties (2025-2045)**, **all 3 scenarios (baseline, high_growth, low_growth)**, **exports to CSV/Excel**, **population pyramids and trend visualizations**, **summary statistics reports**.
+**What's Done:** Core projection engine (~1,600 lines), data processing pipeline (~4,500 lines), geographic module (~1,400 lines), output/reporting (~2,300 lines), pipeline scripts (~2,400 lines), 15 ADRs, documentation, comprehensive test suite (464 tests), complete data pipeline with validated data, **full state projection for all 53 counties (2025-2045)**, **all 3 scenarios (baseline, restricted_growth, high_growth) per ADR-037**, **exports to CSV/Excel**, **population pyramids and trend visualizations**, **summary statistics reports**.
 
 **What's Missing:** Optional enhancements only (place-level projections, TIGER data integration).
 
@@ -58,8 +58,8 @@ Decision made (ADR-035) to replace IRS county-to-county migration flows with Cen
 - [x] Age/sex-specific migration rate methodology (Rogers-Castro pattern)
 - [x] ACS age/sex pattern extraction for allocation
 - [x] Multi-period smoothing and outlier handling
-- [x] Create scenario-specific rate sets (baseline, low, high)
-- [x] Output: `data/processed/migration/migration_rates_pep_{baseline,low,high}.parquet` (57,876 rows each)
+- [x] Create scenario-specific rate sets (baseline, restricted_growth, high_growth)
+- [x] Output: `data/processed/migration/migration_rates_pep_{baseline,restricted_growth,high_growth}.parquet` (57,876 rows each)
 - [x] `process_pep_migration_rates()` added to `migration_rates.py`
 
 **Phase 4: Pipeline Integration** - COMPLETE
@@ -146,6 +146,13 @@ See: [ADR-021](docs/governance/adrs/021-immigration-status-durability-methodolog
 
 ## Completed Phases
 
+- **ADR-037: CBO-Grounded Scenario Methodology** (2026-02-17) - COMPLETE
+  - Replaced arbitrary scenario multipliers with CBO-grounded assumptions
+  - OLD scenarios: baseline, high_growth (+25% migration, +10% fertility), low_growth (-25% migration, -10% fertility)
+  - NEW scenarios: baseline (unchanged), restricted_growth (CBO time-varying migration, -5% fertility), high_growth (+15% migration, +5% fertility)
+  - Supersedes ADR-018 immigration policy scenario methodology
+  - See: [docs/governance/adrs/037-cbo-grounded-scenario-methodology.md](docs/governance/adrs/037-cbo-grounded-scenario-methodology.md)
+
 - **ADR-035: Census PEP Migration Data Pipeline** (2026-02-12) - ALL 5 PHASES COMPLETE
   - Decision to replace IRS county-to-county flows with Census PEP components of change
   - Addresses projection divergence: IRS data misses ~74K-80K people by 2045
@@ -187,7 +194,7 @@ Tasks for current phase. States: `[ ]` pending | `[x]` complete
 
 - [x] Run projections for all 53 North Dakota counties
 - [x] Generate baseline scenario (2025-2045)
-- [x] Generate high/low growth scenarios
+- [x] Generate restricted_growth/high_growth scenarios (ADR-037: CBO-grounded)
 - [x] Export results to all formats (Excel, CSV, Parquet)
 - [x] Generate summary reports and visualizations
 - [x] Validate county totals sum to state
@@ -519,7 +526,7 @@ Tasks for current phase. States: `[ ]` pending | `[x]` complete
 
 **Next:**
 - Run full state projection for all 53 counties
-- Generate multiple scenarios (baseline, high, low growth)
+- Generate multiple scenarios (baseline, restricted_growth, high_growth)
 - Create final reports and visualizations
 
 ---
@@ -648,5 +655,5 @@ python scripts/projections/run_all_projections.py
 - Drafted ADR-024 for immigration data extension and fusion strategy.
 - Location: `docs/governance/adrs/024-immigration-data-extension-fusion.md`.
 
-**Last Updated:** 2026-02-12
-**Tracker Status:** ADR-035 PEP migration pipeline complete, documentation polish in progress
+**Last Updated:** 2026-02-17
+**Tracker Status:** ADR-037 CBO-grounded scenarios adopted, ADR-035 PEP migration pipeline complete, documentation polish in progress

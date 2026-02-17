@@ -126,7 +126,7 @@ def apply_migration(
 
 
 def apply_migration_scenario(
-    migration_rates: pd.DataFrame, scenario: str, year: int, base_year: int
+    migration_rates: pd.DataFrame, scenario: str | dict, year: int, base_year: int
 ) -> pd.DataFrame:
     """
     Apply migration scenario adjustments to base migration data.
@@ -134,6 +134,7 @@ def apply_migration_scenario(
     Args:
         migration_rates: Base migration rates or amounts
         scenario: Scenario name ('recent_average', '+25_percent', '-25_percent', 'zero')
+                  or dict with type='time_varying' and schedule/default_factor (ADR-037)
         year: Current projection year
         base_year: Base year for projection
 
@@ -151,6 +152,16 @@ def apply_migration_scenario(
         logger.warning("No migration column found, returning unchanged")
         return adjusted_rates
 
+    # Handle time-varying scenario (dict config from ADR-037)
+    if isinstance(scenario, dict) and scenario.get("type") == "time_varying":
+        schedule = scenario.get("schedule", {})
+        default_factor = scenario.get("default_factor", 1.0)
+        factor = schedule.get(year, default_factor)
+        if factor != 1.0:
+            adjusted_rates[migration_col] = adjusted_rates[migration_col] * factor
+            logger.info(f"Year {year}: Time-varying migration factor = {factor:.2f}")
+        return adjusted_rates
+
     if scenario == "recent_average" or scenario == "constant":
         # No change - use base migration
         pass
@@ -160,6 +171,18 @@ def apply_migration_scenario(
 
     elif scenario == "-25_percent":
         adjusted_rates[migration_col] = adjusted_rates[migration_col] * 0.75
+
+    elif scenario == "+15_percent":
+        adjusted_rates[migration_col] = adjusted_rates[migration_col] * 1.15
+
+    elif scenario == "-15_percent":
+        adjusted_rates[migration_col] = adjusted_rates[migration_col] * 0.85
+
+    elif scenario == "+5_percent":
+        adjusted_rates[migration_col] = adjusted_rates[migration_col] * 1.05
+
+    elif scenario == "-5_percent":
+        adjusted_rates[migration_col] = adjusted_rates[migration_col] * 0.95
 
     elif scenario == "zero":
         adjusted_rates[migration_col] = 0.0

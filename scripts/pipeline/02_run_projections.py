@@ -657,6 +657,14 @@ def _apply_migration_scenario_to_df(df: pd.DataFrame, migration_setting: str) ->
         df[migration_col] = df[migration_col] * 1.25
     elif migration_setting == "-25_percent" and migration_col in df.columns:
         df[migration_col] = df[migration_col] * 0.75
+    elif migration_setting == "+15_percent" and migration_col in df.columns:
+        df[migration_col] = df[migration_col] * 1.15
+    elif migration_setting == "-15_percent" and migration_col in df.columns:
+        df[migration_col] = df[migration_col] * 0.85
+    elif migration_setting == "+5_percent" and migration_col in df.columns:
+        df[migration_col] = df[migration_col] * 1.05
+    elif migration_setting == "-5_percent" and migration_col in df.columns:
+        df[migration_col] = df[migration_col] * 0.95
     elif migration_setting == "zero" and migration_col in df.columns:
         df[migration_col] = 0.0
 
@@ -734,6 +742,12 @@ def apply_scenario_rate_adjustments(
     elif fertility_setting == "-10_percent":
         logger.info(f"Scenario {scenario}: Applying -10% fertility adjustment")
         adj_fertility["fertility_rate"] = adj_fertility["fertility_rate"] * 0.90
+    elif fertility_setting == "+5_percent":
+        logger.info(f"Scenario {scenario}: Applying +5% fertility adjustment")
+        adj_fertility["fertility_rate"] = adj_fertility["fertility_rate"] * 1.05
+    elif fertility_setting == "-5_percent":
+        logger.info(f"Scenario {scenario}: Applying -5% fertility adjustment")
+        adj_fertility["fertility_rate"] = adj_fertility["fertility_rate"] * 0.95
 
     # Apply mortality adjustment (survival rates)
     mortality_setting = scenario_config.get("mortality", "constant")
@@ -747,7 +761,11 @@ def apply_scenario_rate_adjustments(
     # Apply migration adjustment
     migration_setting = scenario_config.get("migration", "recent_average")
 
-    if migration_setting not in ("recent_average", "constant", "sdc_2024_dampened"):
+    # Time-varying migration is handled per-year by the engine (ADR-037)
+    if isinstance(migration_setting, dict):
+        logger.info(f"Scenario {scenario}: Time-varying migration (handled per-year by engine)")
+        # No upfront adjustment needed
+    elif migration_setting not in ("recent_average", "constant", "sdc_2024_dampened"):
         if isinstance(adj_migration, dict):
             logger.info(
                 f"Scenario {scenario}: Applying '{migration_setting}' migration adjustment "
@@ -770,6 +788,22 @@ def apply_scenario_rate_adjustments(
                 logger.info(f"Scenario {scenario}: Applying -25% migration adjustment")
                 if migration_col in adj_migration.columns:
                     adj_migration[migration_col] = adj_migration[migration_col] * 0.75
+            elif migration_setting == "+15_percent":
+                logger.info(f"Scenario {scenario}: Applying +15% migration adjustment")
+                if migration_col in adj_migration.columns:
+                    adj_migration[migration_col] = adj_migration[migration_col] * 1.15
+            elif migration_setting == "-15_percent":
+                logger.info(f"Scenario {scenario}: Applying -15% migration adjustment")
+                if migration_col in adj_migration.columns:
+                    adj_migration[migration_col] = adj_migration[migration_col] * 0.85
+            elif migration_setting == "+5_percent":
+                logger.info(f"Scenario {scenario}: Applying +5% migration adjustment")
+                if migration_col in adj_migration.columns:
+                    adj_migration[migration_col] = adj_migration[migration_col] * 1.05
+            elif migration_setting == "-5_percent":
+                logger.info(f"Scenario {scenario}: Applying -5% migration adjustment")
+                if migration_col in adj_migration.columns:
+                    adj_migration[migration_col] = adj_migration[migration_col] * 0.95
             elif migration_setting == "zero":
                 logger.info(f"Scenario {scenario}: Setting migration to zero")
                 if migration_col in adj_migration.columns:

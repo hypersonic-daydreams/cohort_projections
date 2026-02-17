@@ -15,7 +15,7 @@ Usage:
     python scripts/projections/run_pep_projections.py
 
     # Run multiple scenarios
-    python scripts/projections/run_pep_projections.py --scenarios baseline high_growth low_growth
+    python scripts/projections/run_pep_projections.py --scenarios baseline high_growth restricted_growth
 
     # Dry run (show what would be processed)
     python scripts/projections/run_pep_projections.py --dry-run
@@ -47,7 +47,7 @@ logger = setup_logger(__name__, log_level="INFO")
 PEP_SCENARIO_FILE_MAP = {
     "baseline": "baseline",
     "high_growth": "high",
-    "low_growth": "low",
+    "restricted_growth": "baseline",  # Uses baseline rates; CBO time-varying factors applied by engine
 }
 
 # Key years for comparison reporting
@@ -88,7 +88,7 @@ Examples:
   python scripts/projections/run_pep_projections.py
 
   # Multiple scenarios
-  python scripts/projections/run_pep_projections.py --scenarios baseline high_growth low_growth
+  python scripts/projections/run_pep_projections.py --scenarios baseline high_growth restricted_growth
 
   # Dry run
   python scripts/projections/run_pep_projections.py --dry-run
@@ -99,7 +99,7 @@ Examples:
         "--scenarios",
         nargs="+",
         default=["baseline"],
-        help="Scenarios to run (default: baseline). Options: baseline, high_growth, low_growth",
+        help="Scenarios to run (default: baseline). Options: baseline, high_growth, restricted_growth",
     )
     parser.add_argument(
         "--output-dir",

@@ -162,18 +162,18 @@ def pep_config(tmp_path: Path, pep_parquet: Path):
                 "migration": "recent_average",
                 "active": True,
             },
-            "high_growth": {
-                "name": "High Growth",
-                "fertility": "+10_percent",
+            "restricted_growth": {
+                "name": "Restricted Growth",
+                "fertility": "-5_percent",
                 "mortality": "constant",
-                "migration": "+25_percent",
+                "migration": "cbo_time_varying",
                 "active": False,
             },
-            "low_growth": {
-                "name": "Low Growth",
-                "fertility": "-10_percent",
+            "high_growth": {
+                "name": "High Growth",
+                "fertility": "+5_percent",
                 "mortality": "constant",
-                "migration": "-25_percent",
+                "migration": "+15_percent",
                 "active": False,
             },
             "zero_migration": {

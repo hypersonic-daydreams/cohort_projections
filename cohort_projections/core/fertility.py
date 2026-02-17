@@ -232,6 +232,12 @@ def apply_fertility_scenario(
     elif scenario == "-10_percent":
         adjusted_rates["fertility_rate"] = adjusted_rates["fertility_rate"] * 0.90
 
+    elif scenario == "+5_percent":
+        adjusted_rates["fertility_rate"] = adjusted_rates["fertility_rate"] * 1.05
+
+    elif scenario == "-5_percent":
+        adjusted_rates["fertility_rate"] = adjusted_rates["fertility_rate"] * 0.95
+
     elif scenario == "trending":
         # Linear trend: assume 0.5% annual decline (common in developed countries)
         years_elapsed = year - base_year

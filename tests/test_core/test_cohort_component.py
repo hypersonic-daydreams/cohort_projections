@@ -144,9 +144,9 @@ class TestCohortComponentProjectionFixtures:
                     "migration": "recent_average",
                 },
                 "high_growth": {
-                    "fertility": "+10_percent",
+                    "fertility": "+5_percent",
                     "mortality": "constant",
-                    "migration": "+25_percent",
+                    "migration": "+15_percent",
                 },
             },
         }
