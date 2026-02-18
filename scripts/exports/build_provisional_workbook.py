@@ -19,19 +19,23 @@ from openpyxl.styles import Border, Font, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
+sys.path.insert(0, str(Path(__file__).parent))
+from _methodology import (
+    CONDITIONAL_CAVEAT,
+    DATA_AVAILABILITY_NOTE,
+    METHODOLOGY_LINES,
+    ORGANIZATION_ATTRIBUTION,
+    PROVISIONAL_LABEL,
+    SCENARIO_SHORT_NAMES,
+    SCENARIOS,
+)
+
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 TODAY = datetime.now(tz=UTC).date()
 DATE_STAMP = TODAY.strftime("%Y%m%d")
-PROVISIONAL_LABEL = "PROVISIONAL — Pending Review — Subject to Change"
 BASE_YEAR = 2025
-FINAL_YEAR = 2045
-KEY_YEARS = [2025, 2030, 2035, 2040, 2045]
-
-SCENARIOS = {
-    "baseline": "Baseline",
-    "restricted_growth": "Restricted Growth",
-    "high_growth": "High Growth",
-}
+FINAL_YEAR = 2055
+KEY_YEARS = [2025, 2030, 2035, 2040, 2045, 2050, 2055]
 
 # Style constants
 HEADER_FONT = Font(name="Aptos", size=14, bold=True, color="1F3864")
@@ -49,7 +53,7 @@ THIN_BORDER = Border(
 def load_scenario_summaries() -> dict[str, pd.DataFrame]:
     """Load the county summary CSVs for each scenario."""
     summaries = {}
-    for key, label in SCENARIOS.items():
+    for key, label in SCENARIO_SHORT_NAMES.items():
         path = PROJECT_ROOT / "data" / "projections" / key / "county" / "countys_summary.csv"
         if path.exists():
             df = pd.read_csv(path)
@@ -180,23 +184,16 @@ def build_toc(wb: Workbook, sheet_defs: list[dict]) -> None:
         name="Aptos", size=12, bold=True, color="1F3864"
     )
     row += 1
-    notes = [
-        "Model: Cohort-component population projection (single-year age, sex, race/ethnicity).",
-        "Base year: 2025 (Census Population Estimates Program, 2024 vintage).",
-        "Horizon: 20 years (2025–2045), annual steps.",
-        "Fertility: CDC/NCHS age-specific fertility rates (2024 for major groups, 2022 national rates for AIAN/Asian), held constant.",
-        "Mortality: CDC/NCHS life tables (2023) with 0.5% annual improvement.",
-        (
-            "Migration: Census PEP components of change (2000–2024), regime-weighted "
-            "multi-period averaging (BEBR method), Rogers-Castro age allocation, "
-            "convergence interpolation toward long-term rates."
-        ),
-        "Baseline: Recent trend continuation. Restricted Growth: CBO time-varying migration, −5% fertility. High Growth: +15% migration, +5% fertility. See ADR-037.",
-        "Geography: All 53 North Dakota counties; state totals are county sums.",
-    ]
-    for note in notes:
-        ws.cell(row=row, column=1, value=note).font = NORMAL_FONT
+    for line in METHODOLOGY_LINES:
+        formatted = line.format(base_year=BASE_YEAR, final_year=FINAL_YEAR)
+        ws.cell(row=row, column=1, value=formatted).font = NORMAL_FONT
         row += 1
+    ws.cell(row=row, column=1, value=ORGANIZATION_ATTRIBUTION).font = NORMAL_FONT
+    row += 1
+    ws.cell(row=row, column=1, value=CONDITIONAL_CAVEAT).font = NORMAL_FONT
+    row += 1
+    ws.cell(row=row, column=1, value=DATA_AVAILABILITY_NOTE).font = NORMAL_FONT
+    row += 1
 
     row += 1
 
@@ -212,7 +209,7 @@ def build_state_summary_wide(wb: Workbook, yearly: dict[str, pd.DataFrame]) -> N
 
     # Compute state totals per scenario per year
     scenario_totals: dict[str, dict[int, float]] = {}
-    for key, label in SCENARIOS.items():
+    for key, label in SCENARIO_SHORT_NAMES.items():
         if key not in yearly:
             continue
         df = yearly[key]
@@ -223,9 +220,9 @@ def build_state_summary_wide(wb: Workbook, yearly: dict[str, pd.DataFrame]) -> N
     base_pops = {label: yt.get(BASE_YEAR, 0) for label, yt in scenario_totals.items()}
 
     headers = ["Year"]
-    for label in SCENARIOS.values():
+    for label in SCENARIO_SHORT_NAMES.values():
         headers.append(f"{label}")
-        headers.append(f"{label} % Chg")
+        headers.append(f"{label} % Chg from {BASE_YEAR}")
     for c, h in enumerate(headers, 1):
         ws.cell(row=row, column=c, value=h)
     data_start = row
@@ -234,7 +231,7 @@ def build_state_summary_wide(wb: Workbook, yearly: dict[str, pd.DataFrame]) -> N
     for yr in all_years:
         ws.cell(row=row, column=1, value=yr)
         col = 2
-        for label in SCENARIOS.values():
+        for label in SCENARIO_SHORT_NAMES.values():
             pop = scenario_totals.get(label, {}).get(yr)
             if pop is not None:
                 ws.cell(row=row, column=col, value=fmt_pop(pop)).number_format = "#,##0"
@@ -261,7 +258,7 @@ def build_state_detail(wb: Workbook, yearly: dict[str, pd.DataFrame]) -> None:
 
     # Build state-level yearly totals
     rows_data = []
-    for key, label in SCENARIOS.items():
+    for key, label in SCENARIO_SHORT_NAMES.items():
         if key not in yearly:
             continue
         df = yearly[key]
@@ -312,8 +309,14 @@ def build_scenario_comparison(wb: Workbook, yearly: dict[str, pd.DataFrame]) -> 
 
     row = add_provisional_header(ws, "Scenario Comparison — State Totals at Key Years")
 
-    # Build wide format: Year | Baseline | Restricted Growth | High Growth | Range
-    headers = ["Year", "Baseline", "Restricted Growth", "High Growth", "Range (High − Restricted)"]
+    # Build wide format: Year | Baseline | Restricted Growth | High Growth | Spread
+    headers = [
+        "Year",
+        "Baseline",
+        "Restricted Growth",
+        "High Growth",
+        "Spread (High \u2212 Restricted)",
+    ]
     for c, h in enumerate(headers, 1):
         ws.cell(row=row, column=c, value=h)
     data_start = row
@@ -321,7 +324,7 @@ def build_scenario_comparison(wb: Workbook, yearly: dict[str, pd.DataFrame]) -> 
 
     for yr in KEY_YEARS:
         vals = {}
-        for key, label in SCENARIOS.items():
+        for key, label in SCENARIO_SHORT_NAMES.items():
             if key in yearly:
                 df = yearly[key]
                 state = df.groupby("year")["population"].sum()
@@ -348,18 +351,19 @@ def build_scenario_comparison(wb: Workbook, yearly: dict[str, pd.DataFrame]) -> 
 def build_county_detail(
     wb: Workbook,
     scenario_key: str,
-    scenario_label: str,
+    scenario_short: str,
+    scenario_full: str,
     yearly: dict[str, pd.DataFrame],
     county_names: dict[int, str],
 ) -> None:
     """Build a county detail sheet for one scenario with population at key years."""
-    sheet_name = f"Counties — {scenario_label}"
+    sheet_name = f"Counties \u2014 {scenario_short}"
     ws = wb.create_sheet(sheet_name)
 
     colors = {"Baseline": "548235", "Restricted Growth": "C55A11", "High Growth": "BF8F00"}
-    ws.sheet_properties.tabColor = colors.get(scenario_label, "808080")
+    ws.sheet_properties.tabColor = colors.get(scenario_short, "808080")
 
-    row = add_provisional_header(ws, f"County Projections — {scenario_label} Scenario")
+    row = add_provisional_header(ws, f"County Projections \u2014 {scenario_full} Scenario")
 
     if scenario_key not in yearly:
         ws.cell(row=row, column=1, value="No data available for this scenario.")
@@ -375,8 +379,8 @@ def build_county_detail(
         ["FIPS", "County"]
         + [str(yr) for yr in KEY_YEARS]
         + [
-            "Change (2025–2045)",
-            "% Change",
+            f"Change ({BASE_YEAR}\u2013{FINAL_YEAR})",
+            f"% Change ({BASE_YEAR}\u2013{FINAL_YEAR})",
         ]
     )
     for c, h in enumerate(headers, 1):
@@ -425,7 +429,7 @@ def build_county_detail(
     row += 1
 
     table_ref = f"A{data_start}:{get_column_letter(len(headers))}{row - 1}"
-    safe_name = scenario_label.replace(" ", "")
+    safe_name = scenario_short.replace(" ", "")
     create_excel_table(ws, table_ref, f"Counties{safe_name}")
 
     row += 1
@@ -456,10 +460,10 @@ def build_growth_rankings(
         "Rank",
         "FIPS",
         "County",
-        "Population 2025",
-        "Population 2045",
-        "Change",
-        "% Change",
+        f"Population {BASE_YEAR}",
+        f"Population {FINAL_YEAR}",
+        f"Change ({BASE_YEAR}-{FINAL_YEAR})",
+        f"% Change ({BASE_YEAR}-{FINAL_YEAR})",
     ]
     for c, h in enumerate(headers, 1):
         ws.cell(row=row, column=c, value=h)
@@ -543,7 +547,7 @@ def build_age_structure(wb: Workbook) -> None:
         row += 1
 
     # Total row
-    ws.cell(row=row, column=1, value="TOTAL").font = BOLD_FONT
+    ws.cell(row=row, column=1, value="Total").font = BOLD_FONT
     for i, yr in enumerate(KEY_YEARS):
         val = fmt_pop(float(pivot[yr].sum())) if yr in pivot.columns else ""
         cell = ws.cell(row=row, column=2 + i, value=val)
@@ -580,31 +584,31 @@ def main() -> int:
     sheet_defs = [
         {
             "name": "State Summary",
-            "description": "State-level population by scenario and year — wide format for easy comparison",
+            "description": "State-level population by scenario and year \u2014 side-by-side comparison",
         },
         {
             "name": "State Detail",
-            "description": "State-level population in long format (scenario × year) for pivoting and charting",
+            "description": "State-level population \u2014 one row per scenario-year combination (for charts and pivot tables)",
         },
         {
             "name": "Scenario Comparison",
             "description": "Side-by-side comparison of all three scenarios at key milestone years",
         },
         {
-            "name": "Counties — Baseline",
-            "description": "All 53 counties: projected population at key years under baseline assumptions",
+            "name": "Counties \u2014 Baseline",
+            "description": f"All 53 counties: projected population at key years under {SCENARIOS['baseline']} assumptions",
         },
         {
-            "name": "Counties — Restricted Growth",
-            "description": "All 53 counties: projected population under restricted growth scenario (CBO time-varying migration, −5% fertility)",
+            "name": "Counties \u2014 Restricted Growth",
+            "description": f"All 53 counties: projected population under {SCENARIOS['restricted_growth']} scenario (CBO time-varying migration, \u22125% fertility)",
         },
         {
-            "name": "Counties — High Growth",
-            "description": "All 53 counties: projected population under high growth scenario (+15% migration, +5% fertility)",
+            "name": "Counties \u2014 High Growth",
+            "description": f"All 53 counties: projected population under {SCENARIOS['high_growth']} scenario (+15% migration, +5% fertility)",
         },
         {
             "name": "Growth Rankings",
-            "description": "Counties ranked by projected growth rate (baseline scenario, 2025–2045)",
+            "description": f"Counties ranked by projected growth rate (baseline scenario, {BASE_YEAR}\u2013{FINAL_YEAR})",
         },
         {
             "name": "Age Structure",
@@ -624,9 +628,11 @@ def main() -> int:
     print("Building Scenario Comparison...")
     build_scenario_comparison(wb, yearly)
 
-    for key, label in SCENARIOS.items():
-        print(f"Building Counties — {label}...")
-        build_county_detail(wb, key, label, yearly, county_names)
+    for key in SCENARIOS:
+        short = SCENARIO_SHORT_NAMES[key]
+        full = SCENARIOS[key]
+        print(f"Building Counties \u2014 {short}...")
+        build_county_detail(wb, key, short, full, yearly, county_names)
 
     print("Building Growth Rankings...")
     build_growth_rankings(wb, summaries)

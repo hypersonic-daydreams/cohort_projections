@@ -5,7 +5,7 @@
 > **Note:** This is the canonical project status tracker. Historical session notes have been
 > archived to [docs/archive/](./docs/archive/) for reference.
 
-This project implements cohort component population projections for North Dakota state, counties, and places (2025-2045).
+This project implements cohort component population projections for North Dakota state, counties, and places (2025-2055).
 
 ---
 
@@ -18,7 +18,7 @@ This project implements cohort component population projections for North Dakota
 | **Key Milestone** | All Scenarios Complete with Reports & Visualizations |
 | **Blocking Issue** | None |
 
-**What's Done:** Core projection engine (~1,600 lines), data processing pipeline (~4,500 lines), geographic module (~1,400 lines), output/reporting (~2,300 lines), pipeline scripts (~2,400 lines), 15 ADRs, documentation, comprehensive test suite (464 tests), complete data pipeline with validated data, **full state projection for all 53 counties (2025-2045)**, **all 3 scenarios (baseline, restricted_growth, high_growth) per ADR-037**, **exports to CSV/Excel**, **population pyramids and trend visualizations**, **summary statistics reports**.
+**What's Done:** Core projection engine (~1,600 lines), data processing pipeline (~4,500 lines), geographic module (~1,400 lines), output/reporting (~2,300 lines), pipeline scripts (~2,400 lines), 40 ADRs, documentation, comprehensive test suite (464 tests), complete data pipeline with validated data, **full state projection for all 53 counties (2025-2055)**, **all 3 scenarios (baseline, restricted_growth, high_growth) per ADR-037**, **exports to CSV/Excel**, **population pyramids and trend visualizations**, **summary statistics reports**.
 
 **What's Missing:** Optional enhancements only (place-level projections, TIGER data integration).
 
@@ -28,55 +28,23 @@ This project implements cohort component population projections for North Dakota
 
 **When asked to "work on the next task", do this:**
 
-### Task: Implement Census PEP Migration Data Pipeline (ADR-035)
+### Task: Documentation and Publication Preparation
 
-**Priority:** HIGH
-**Type:** Data Pipeline Implementation
-**Status:** ALL PHASES COMPLETE (Phases 1-5)
+**Priority:** MEDIUM
+**Type:** Documentation & Quality
+**Status:** In Progress
 
 **Overview:**
-Decision made (ADR-035) to replace IRS county-to-county migration flows with Census Population Estimates Program (PEP) components of change data. This addresses the projection divergence issue (~74,000-80,000 people by 2045) by using comprehensive migration data (domestic + international, 2000-2024).
+Core projection system complete with 30-year horizon (2025-2055), Census V2025 data, and baseline scenario validated. Current focus is documentation completeness, methodology traceability, and preparing outputs for stakeholder review.
 
-**Decision Document:** [docs/governance/adrs/035-migration-data-source-census-pep.md](docs/governance/adrs/035-migration-data-source-census-pep.md)
-
-**Implementation Plan (5 Phases):**
-
-**Phase 1: Data Extraction** - COMPLETE
-- [x] Extract county-level net migration from PEP components (2000-2024)
-- [x] Validate county sums = state totals (hierarchical consistency)
-- [x] Document vintage differences and methodology changes
-- [x] Create: `data/processed/pep_county_components_2000_2024.parquet`
-- [x] Generate validation report
-
-**Phase 2: Regime Analysis** - COMPLETE
-- [x] County-level regime classification (oil vs. non-oil; metro vs. rural)
-- [x] Calculate period-specific averages (pre-Bakken, boom, bust, recovery)
-- [x] Visualization of migration patterns
-- [x] Module: `cohort_projections/data/process/pep_regime_analysis.py`
-
-**Phase 3: Rate Calculation** - COMPLETE
-- [x] Age/sex-specific migration rate methodology (Rogers-Castro pattern)
-- [x] ACS age/sex pattern extraction for allocation
-- [x] Multi-period smoothing and outlier handling
-- [x] Create scenario-specific rate sets (baseline, restricted_growth, high_growth)
-- [x] Output: `data/processed/migration/migration_rates_pep_{baseline,restricted_growth,high_growth}.parquet` (57,876 rows each)
-- [x] `process_pep_migration_rates()` added to `migration_rates.py`
-
-**Phase 4: Pipeline Integration** - COMPLETE
-- [x] Update pipeline to use PEP migration rates (`02_run_projections.py`)
-- [x] Per-county migration rate dicts when `method: "PEP_components"`
-- [x] Config updated: `rates.migration.domestic.method: PEP_components`
-- [x] Zero-migration fallback for counties without PEP data
-
-**Phase 5: Production Deployment** - COMPLETE
-- [x] Production script: `scripts/projections/run_pep_projections.py`
-- [x] Full 53-county projections with PEP data (CLI with --scenarios, --dry-run)
-- [x] PEP vs IRS baseline comparison reporting
-- [x] County growth summary (top 5 growing/declining)
-
-**Focus:** Rigor and granular analysis (regime-aware, multi-period averaging, comprehensive validation)
-
-**Deferred:** IRS directional flow blending (post-validation)
+**Recent Changes (2026-02-17):**
+- Extended projection horizon from 20 to 30 years (2025-2055)
+- Incorporated Census PEP Vintage 2025 data
+- Fixed base population sex ratio (ADR-041: Census+PUMS hybrid)
+- Extended Bakken boom dampening to 2015-2020 (ADR-040)
+- Applied CBO migration factor to international migration only (ADR-039)
+- Created shared methodology constants module (`scripts/exports/_methodology.py`)
+- Generated baseline detail workbook with 63 sheets (state + 8 regions + 53 counties)
 
 ---
 
@@ -316,6 +284,61 @@ Tasks for current phase. States: `[ ]` pending | `[x]` complete
 ---
 
 ## Session Log
+
+### 2026-02-17/18 - Census V2025, 30-Year Horizon, and Data Quality Fixes
+
+**Duration:** Extended session (two days)
+**Focus:** Data vintage update, horizon extension, methodology corrections
+
+**Accomplishments:**
+
+**Census V2025 Data Incorporation:**
+- Ingested Census PEP Vintage 2025 pre-release data via stcoreview
+- Updated convergence windows from [2014, 2024] to [2014, 2025]
+- Updated all pipeline data references
+
+**30-Year Projection Horizon:**
+- Extended from 20 years (2025-2045) to 30 years (2025-2055)
+- Convergence schedule (5-10-5) handles extended years via t=min(t,1.0) clamp
+- Updated export scripts: FINAL_YEAR=2055, KEY_YEARS extended
+
+**Base Population Fix (ADR-041):**
+- Discovered PUMS-derived age-sex distribution had sex ratio of 119.1 (should be 105.5)
+- Root cause: ACS PUMS sample only 12,277 records for ND
+- Fix: Census cc-est2024 for age-sex proportions + PUMS for race allocation only
+- Corrected sex ratio to 105.5 matching Census
+
+**Bakken Boom Dampening (ADR-040):**
+- Discovered oil counties projected unrealistic growth (McKenzie +114%, Williams +74%)
+- Root cause: 2015-2020 period undampened but still boom-elevated
+- Fix: Added [2015, 2020] to boom_periods in config (0.60x dampening)
+- McKenzie reduced to +84%, Williams to +51%
+
+**CBO International-Only Factor (ADR-039):**
+- CBO migration factor now applies to international migration only (intl_share=0.91)
+- Domestic migration passes through unchanged
+
+**Export and Methodology:**
+- Created shared `_methodology.py` constants module
+- Fixed stale "2024 Vintage" reference in workbook builder
+- Generated baseline detail workbook: 63 sheets, 320.5 KB
+
+**Documentation:**
+- Created ADR-039, ADR-040, ADR-041
+- Created 4 review documents in docs/reviews/
+- Documentation cross-referencing audit and fixes
+
+**Key Files Created/Modified:**
+- `config/projection_config.yaml` (horizon, V2025, dampening, intl_share)
+- `cohort_projections/core/migration.py` (intl_share decomposition)
+- `scripts/exports/_methodology.py` (new shared constants)
+- `scripts/exports/build_detail_workbooks.py` (horizon, methodology imports)
+- `scripts/exports/build_provisional_workbook.py` (horizon, methodology imports)
+- `data/raw/population/nd_age_sex_race_distribution.csv` (rebuilt)
+- `docs/governance/adrs/039-*.md`, `040-*.md`, `041-*.md` (new)
+- `docs/reviews/2026-02-17-*.md` (4 review documents)
+
+**Status:** Baseline workbook generated and validated. State total: 799,358 (2025) -> 1,005,281 (2055), +25.8%.
 
 ### 2026-02-12 - ADR-035 Phase 5: Production PEP Projection Script
 
@@ -655,5 +678,5 @@ python scripts/projections/run_all_projections.py
 - Drafted ADR-024 for immigration data extension and fusion strategy.
 - Location: `docs/governance/adrs/024-immigration-data-extension-fusion.md`.
 
-**Last Updated:** 2026-02-17
-**Tracker Status:** ADR-037 CBO-grounded scenarios adopted, ADR-035 PEP migration pipeline complete, documentation polish in progress
+**Last Updated:** 2026-02-18
+**Tracker Status:** 30-year horizon (2025-2055), Census V2025 data, ADR-037 CBO-grounded scenarios, ADR-039/040/041 methodology fixes, baseline workbook validated

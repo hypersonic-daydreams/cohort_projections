@@ -9,6 +9,11 @@ time-varying migration rates for each projection year (2025-2045) using
 Each county x age_group x sex cell converges independently from its recent
 value toward its long-term mean.
 
+Key ADRs and config:
+    ADR-036: Convergence interpolation methodology (5-10-5 schedule)
+    Config: rates.migration.interpolation.convergence_schedule
+    Config: rates.migration.interpolation.{recent,medium,longterm}_period
+
 Usage:
     python scripts/pipeline/01b_compute_convergence.py
     python scripts/pipeline/01b_compute_convergence.py --config config/projection_config.yaml

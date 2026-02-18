@@ -74,6 +74,11 @@ def load_state_age_sex_race_distribution(
     This distribution is used to allocate county total populations into
     detailed cohorts when county-specific detailed data is not available.
 
+    Note: The distribution file uses a Census+PUMS hybrid approach (ADR-041):
+    Census cc-est2024 provides accurate age-sex proportions, while PUMS provides
+    race allocation within each age-sex cell. This replaced a pure-PUMS approach
+    that had a badly skewed sex ratio (119.1 vs actual 105.5).
+
     Args:
         distribution_path: Path to distribution CSV file
                           (default: data/raw/population/nd_age_sex_race_distribution.csv)
@@ -247,8 +252,8 @@ def load_county_populations(
     raw_data["county_fips"] = raw_data["county_fips"].str.zfill(5)
 
     # Get the most recent population column
-    # The file has population_2024 as the most recent
-    pop_col = "population_2024"
+    # The file has population_2025 as the most recent (Vintage 2025)
+    pop_col = "population_2025"
     if pop_col not in raw_data.columns:
         # Fall back to any column containing 'population' or just 'pop'
         pop_cols = [c for c in raw_data.columns if "pop" in c.lower()]

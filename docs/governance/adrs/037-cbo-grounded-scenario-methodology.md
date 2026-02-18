@@ -3,6 +3,10 @@
 ## Status
 Accepted
 
+**Amended by**:
+- [ADR-039](039-international-only-migration-factor.md): International-only migration factor (CBO factor applies to international migration only, not total)
+- [ADR-040](040-extend-boom-dampening-2015-2020.md): Extended Bakken boom dampening to 2015-2020 period
+
 ## Date
 2026-02-17
 
@@ -415,3 +419,5 @@ When `migration` is a string (e.g., `"+15_percent"`), existing parsing applies. 
 - **ADR-034: Census PEP Data Archive** -- Infrastructure for PEP data access
 - **ADR-005: Configuration Management Strategy** -- Configuration schema that must accommodate the new `time_varying` type
 - **ADR-010: Geographic Scope and Granularity** -- County-level projection scope to which these scenarios apply
+- **ADR-039: International-Only Migration Factor** -- Refines CBO migration factor to apply to international migration only; amends this ADR
+- **ADR-040: Extend Bakken Boom Dampening to 2015-2020** -- Extends boom dampening period for oil counties; amends this ADR

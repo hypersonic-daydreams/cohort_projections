@@ -131,10 +131,22 @@ def apply_migration_scenario(
     """
     Apply migration scenario adjustments to base migration data.
 
+    For time-varying scenarios (type='time_varying'), the CBO-derived factor
+    is applied to the **international** component of migration only (ADR-040).
+    Domestic migration is unaffected.  The decomposition uses ``intl_share``
+    (proportion of net migration that is international, from PEP components):
+
+        effective_factor = 1 - intl_share * (1 - factor)
+        adjusted_rate = base_rate * effective_factor
+
+    When ``intl_share`` is not provided, it defaults to 1.0 (entire rate
+    treated as international), preserving backward compatibility.
+
     Args:
         migration_rates: Base migration rates or amounts
         scenario: Scenario name ('recent_average', '+25_percent', '-25_percent', 'zero')
-                  or dict with type='time_varying' and schedule/default_factor (ADR-037)
+                  or dict with type='time_varying', schedule, default_factor,
+                  and intl_share (ADR-037, ADR-040)
         year: Current projection year
         base_year: Base year for projection
 
@@ -152,14 +164,27 @@ def apply_migration_scenario(
         logger.warning("No migration column found, returning unchanged")
         return adjusted_rates
 
-    # Handle time-varying scenario (dict config from ADR-037)
+    # Handle time-varying scenario (dict config from ADR-037, updated ADR-040)
     if isinstance(scenario, dict) and scenario.get("type") == "time_varying":
         schedule = scenario.get("schedule", {})
         default_factor = scenario.get("default_factor", 1.0)
         factor = schedule.get(year, default_factor)
         if factor != 1.0:
-            adjusted_rates[migration_col] = adjusted_rates[migration_col] * factor
-            logger.info(f"Year {year}: Time-varying migration factor = {factor:.2f}")
+            # Apply factor to international migration only (ADR-040).
+            # intl_share is the proportion of total net migration that is
+            # international, derived from PEP components data.  When the
+            # share is available the effective multiplier is:
+            #   adjusted = rate * (1 - intl_share * (1 - factor))
+            # This leaves the domestic component unchanged and scales only
+            # the international component by ``factor``.
+            intl_share = scenario.get("intl_share", 1.0)
+            effective_factor = 1.0 - intl_share * (1.0 - factor)
+            adjusted_rates[migration_col] = adjusted_rates[migration_col] * effective_factor
+            logger.info(
+                f"Year {year}: Time-varying migration factor = {factor:.2f}, "
+                f"intl_share = {intl_share:.3f}, "
+                f"effective_factor = {effective_factor:.4f}"
+            )
         return adjusted_rates
 
     if scenario == "recent_average" or scenario == "constant":

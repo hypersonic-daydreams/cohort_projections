@@ -31,6 +31,10 @@ Usage:
 
     # Dry run mode
     python 03_export_results.py --all --dry-run
+
+Key ADRs and config:
+    ADR-012: Output and export format strategy
+    Config: output.formats, output.directory
 """
 
 import argparse

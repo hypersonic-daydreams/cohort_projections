@@ -1,14 +1,15 @@
 # North Dakota Cohort Component Projection Configuration
 
 project:
-  name: "ND Population Projections 2025-2045"
+  name: "ND Population Projections 2025-2055"
   base_year: 2025
-  projection_horizon: 20  # years
+  projection_horizon: 30  # years
   projection_interval: 1  # 1-year intervals
 
 geography:
   state: "38"  # North Dakota FIPS
 
+  # Geographic scope: ADR-010 (geographic scope and granularity)
   # County-level projections
   counties:
     mode: "all"  # "all", "list", or "threshold"
@@ -101,19 +102,23 @@ data_sources:
   dhs_refugees_asylees:
     raw_dir: "data/raw/immigration/dhs_refugees_asylees"
 
+# === DEMOGRAPHIC RATES ===
+# Fertility: ADR-001 | Mortality: ADR-002 | Migration: ADR-003, ADR-035, ADR-036
 rates:
   fertility:
-    source: "SEER"  # or "NVSS", "custom"
-    averaging_period: 5  # years to average (2018-2022)
+    source: "CDC_NCHS"
+    # 2024 rates used directly (no multi-year averaging)
     assumption: "constant"  # "constant", "trending", "scenario"
     apply_to_ages: [15, 49]  # reproductive age range
 
   mortality:
-    source: "SEER"  # or "CDC_life_tables"
-    life_table_year: 2020
+    source: "CDC_life_tables"
+    life_table_year: 2023
     improvement_factor: 0.005  # annual mortality improvement (0.5%)
     cap_survival_at: 1.0  # no survival rate > 100%
 
+  # Migration methodology: ADR-035 (PEP data), ADR-036 (BEBR averaging),
+  # ADR-039 (intl-only factor), ADR-040 (boom dampening 2015-2020)
   migration:
     domestic:
       method: "PEP_components"  # "PEP_components" or "IRS_county_flows"
@@ -139,6 +144,7 @@ rates:
         boom_periods:
           - [2005, 2010]
           - [2010, 2015]
+          - [2015, 2020]  # ADR-040: boom-adjacent period, undampened rates exceeded dampened boom
       residual:
         periods:
           - [2000, 2005]
@@ -170,14 +176,16 @@ rates:
       allocation: "proportional"  # distribute to counties proportionally
     interpolation:
       method: "census_bureau_convergence"
-      recent_period: [2022, 2024]
-      medium_period: [2014, 2024]
-      longterm_period: [2000, 2024]
+      recent_period: [2023, 2025]
+      medium_period: [2014, 2025]
+      longterm_period: [2000, 2025]
       convergence_schedule:
         recent_to_medium_years: 5
         medium_hold_years: 10
         medium_to_longterm_years: 5
 
+# === SCENARIOS ===
+# ADR-037 (CBO-grounded methodology), amended by ADR-039, ADR-040
 scenarios:
   baseline:
     name: "Baseline (Trend Continuation)"
@@ -189,7 +197,7 @@ scenarios:
 
   restricted_growth:
     name: "Restricted Growth (CBO Policy-Adjusted)"
-    description: "CBO-derived immigration enforcement impact with time-varying migration factors (ADR-037)"
+    description: "CBO-derived immigration enforcement impact on international migration only (ADR-037, ADR-040)"
     fertility: "-5_percent"
     mortality: "improving"
     migration:
@@ -201,6 +209,14 @@ scenarios:
         2028: 0.78
         2029: 0.91
       default_factor: 1.00
+      # International share of total net migration (ADR-040).
+      # The CBO time-varying factor models federal immigration policy and
+      # applies ONLY to international migration. Domestic migration is
+      # unaffected by immigration enforcement.
+      # Computed from PEP components 2023-2025 state totals:
+      #   intl_mig=+10,051, netmig=+11,070 => intl_share=0.91
+      # The engine uses: adjusted = rate * (1 - intl_share * (1 - factor))
+      intl_share: 0.91
     active: true
 
   high_growth:
@@ -283,7 +299,7 @@ output:
 
 validation:
   compare_to_census: true
-  census_benchmark_years: [2020, 2021, 2022, 2023, 2024]
+  census_benchmark_years: [2020, 2021, 2022, 2023, 2024, 2025]
   plausibility_checks:
     - "negative_population"
     - "sex_ratio"
@@ -310,18 +326,18 @@ pipeline:
     # Component-specific settings
     fertility:
       enabled: true
-      input_file: "data/raw/fertility/seer_asfr_2018_2022.csv"
+      input_file: "data/raw/fertility/asfr_processed.csv"
       output_file: "data/processed/fertility_rates.parquet"
 
     survival:
       enabled: true
-      input_file: "data/raw/mortality/seer_lifetables_2020.csv"
+      input_file: "data/raw/mortality/survival_rates_processed.csv"
       output_file: "data/processed/survival_rates.parquet"
 
     migration:
       enabled: true
       method: "PEP_components"
-      pep_input: "data/processed/pep_county_components_2000_2024.parquet"
+      pep_input: "data/processed/pep_county_components_2000_2025.parquet"
       pep_output: "data/processed/migration/migration_rates_pep_baseline.parquet"
       domestic_input: "data/raw/migration/irs_county_flows_2018_2022.csv"
       international_input: "data/raw/migration/acs_international_migration.csv"

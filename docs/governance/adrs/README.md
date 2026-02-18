@@ -134,6 +134,7 @@ Where:
 | ADR | Title | Status | Date | Summary |
 |-----|-------|--------|------|---------|
 | [016](016-raw-data-management-strategy.md) | Raw Data Management | Accepted | 2025-12-28 | Hybrid git/rclone strategy, data manifest, fetch script |
+| [034](034-census-pep-data-archive.md) | Census PEP Data Archive | Accepted | 2026-02-02 | Shared data archive for Census PEP across 8 vintages; parquet conversion and PostgreSQL analytics |
 
 ### Scenario and Replication
 
@@ -153,6 +154,9 @@ Where:
 | ADR | Title | Status | Date | Summary |
 |-----|-------|--------|------|---------|
 | [020](020-extended-time-series-methodology-analysis.md) | Extended Time Series Methodology Analysis | Accepted | 2026-01-01 | Option C (Hybrid) for 2000-2024 vintage series; primary inference on 2010-2024 |
+| [020a](020a-vintage-methodology-investigation-plan.md) | Vintage Methodology Investigation Plan | Accepted | 2026-01-01 | Sub-agent investigation plan for PEP vintage methodology transitions |
+| [021](021-immigration-status-durability-methodology.md) | Immigration Status Durability and Policy-Regime Methodology | Accepted | 2026-01-02 | Parole cohort durability, two-component estimand, policy-lever scenarios |
+| [022](022-unified-documentation-strategy.md) | Unified Documentation and Reproducibility Strategy | Proposed | 2026-01-01 | Auto-generated documentation index backed by PostgreSQL metadata |
 | [024](024-immigration-data-extension-fusion.md) | Immigration Data Extension and Fusion Strategy | Proposed | 2026-01-04 | Extend refugee/LPR series, align time bases, and incorporate regime-aware modeling |
 | [025](025-refugee-coverage-missing-state-handling.md) | Post-2020 Refugee Coverage and Missing-State Handling | Accepted | 2026-01-04 | Missing states left unknown; drop missing post-2020 in state panels; official national totals |
 | [026](026-amerasian-siv-handling-forecasting.md) | Amerasian/SIV Handling in Status Decomposition and Scenario Forecasts | Accepted | 2026-01-06 | Keep USRAP exposure strict; treat SIV as separate durable series linked to capacity with default sunset |
@@ -172,18 +176,41 @@ Where:
 | [023b](023b-project-utils-package.md) | Project Utils Package | Accepted | 2026-01-02 | Configuration loading and logging setup utilities |
 | [023c](023c-codebase-catalog-package.md) | Codebase Catalog Package | Accepted | 2026-01-02 | Codebase scanning, code inventory, and pre-commit hooks |
 
+### Projection Methodology
+
+| ADR | Title | Status | Date | Summary |
+|-----|-------|--------|------|---------|
+| [033](033-city-level-projection-methodology.md) | City-Level Projection Methodology | Proposed | 2026-02-02 | Methodology for place-level projections using county share-down approach |
+
+### Migration and Scenario Methodology
+
+| ADR | Title | Status | Date | Summary |
+|-----|-------|--------|------|---------|
+| [035](035-migration-data-source-census-pep.md) | Census PEP Components of Change for Migration Inputs | Accepted | 2026-02-03 | Replace IRS flows with Census PEP components; addresses 74K-80K projection divergence |
+| [036](036-migration-averaging-methodology.md) | Migration Averaging Methodology | Proposed | 2026-02-12 | Multi-period and interpolation approaches for PEP migration averaging |
+| [037](037-cbo-grounded-scenario-methodology.md) | CBO-Grounded Scenario Methodology | Accepted | 2026-02-17 | CBO time-varying migration factor replaces arbitrary scenario multipliers |
+| [039](039-international-only-migration-factor.md) | International-Only Migration Factor | Accepted | 2026-02-17 | CBO migration factor applies to international migration only (intl_share decomposition) |
+| [040](040-extend-boom-dampening-2015-2020.md) | Extend Bakken Boom Dampening to 2015-2020 | Accepted | 2026-02-17 | Adds 2015-2020 to boom dampening periods for oil-impacted counties |
+| [041](041-census-pums-hybrid-base-population.md) | Census+PUMS Hybrid Base Population | Accepted | 2026-02-17 | Census age-sex + PUMS race allocation; replaces pure-PUMS distribution |
+
+### Export Format
+
+| ADR | Title | Status | Date | Summary |
+|-----|-------|--------|------|---------|
+| [038](038-multi-workbook-export-format.md) | Multi-Workbook Export Format | Accepted | 2026-02-17 | Multi-workbook Excel export with state, region, and county sheets |
+
 ---
 
 ## ADR Status Summary
 
 | Status | Count |
 |--------|-------|
-| Accepted | 29 |
-| Proposed | 2 |
+| Accepted | 40 |
+| Proposed | 5 |
 | Deprecated | 0 |
 | Superseded | 0 |
 
-**Naming Convention Compliance**: All 31 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `023a`).
+**Naming Convention Compliance**: All 45 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `020a`, `023a`).
 
 ---
 
@@ -205,7 +232,13 @@ Start with these ADRs to understand the system:
 
 **Quality and Operations**: ADR-009, ADR-011, ADR-012
 
-**Data Management**: ADR-016
+**Data Management**: ADR-016, ADR-034
+
+**Migration Methodology**: ADR-003, ADR-035, ADR-036, ADR-039, ADR-040
+
+**Scenarios**: ADR-017, ADR-018, ADR-037
+
+**Base Population**: ADR-041
 
 ---
 
@@ -242,8 +275,8 @@ Across all ADRs, these principles guided decisions:
 
 ---
 
-**Last Updated**: 2026-01-04
+**Last Updated**: 2026-02-18
 
-**Total ADRs**: 26 (24 accepted, 2 proposed)
+**Total ADRs**: 45 (40 accepted, 5 proposed)
 
 **Template**: See [TEMPLATE.md](TEMPLATE.md) for creating new ADRs

@@ -23,19 +23,22 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
+sys.path.insert(0, str(Path(__file__).parent))
+from _methodology import (
+    CONDITIONAL_CAVEAT,
+    DATA_AVAILABILITY_NOTE,
+    METHODOLOGY_LINES,
+    ORGANIZATION_ATTRIBUTION,
+    PROVISIONAL_LABEL,
+    SCENARIOS,
+)
+
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 TODAY = datetime.now(tz=UTC).date()
 DATE_STAMP = TODAY.strftime("%Y%m%d")
 BASE_YEAR = 2025
-FINAL_YEAR = 2045
-KEY_YEARS = [2025, 2030, 2035, 2040, 2045]
-PROVISIONAL_LABEL = "PROVISIONAL \u2014 Pending Review \u2014 Subject to Change"
-
-SCENARIOS = {
-    "baseline": "Baseline (Trend Continuation)",
-    "restricted_growth": "Restricted Growth (CBO Policy-Adjusted)",
-    "high_growth": "High Growth (Pre-Policy Elevated Immigration)",
-}
+FINAL_YEAR = 2055
+KEY_YEARS = [2025, 2030, 2035, 2040, 2045, 2050, 2055]
 
 AGE_GROUP_BINS = list(range(0, 90, 5)) + [91]  # [0,5,...,85,91]
 AGE_GROUP_LABELS = [
@@ -299,7 +302,11 @@ def _write_sex_section(ws, start_row: int, section_label: str, table: pd.DataFra
     row += 1
 
     # Column headers
-    headers = ["Age Group"] + [str(y) for y in KEY_YEARS] + ["Change", "% Change"]
+    headers = (
+        ["Age Group"]
+        + [str(y) for y in KEY_YEARS]
+        + [f"Change ({BASE_YEAR}-{FINAL_YEAR})", f"% Change ({BASE_YEAR}-{FINAL_YEAR})"]
+    )
     for col_idx, hdr in enumerate(headers, 1):
         cell = ws.cell(row=row, column=col_idx, value=hdr)
         cell.font = COL_HEADER_FONT
@@ -359,7 +366,7 @@ def _write_dependency_ratios(ws, start_row: int, both_table: pd.DataFrame) -> in
     """Write dependency ratio section. Returns next available row."""
     row = start_row
 
-    ws.cell(row=row, column=1, value="Key Indicators").font = SECTION_FONT
+    ws.cell(row=row, column=1, value="Dependency Ratios").font = SECTION_FONT
     row += 1
 
     # Headers
@@ -374,7 +381,7 @@ def _write_dependency_ratios(ws, start_row: int, both_table: pd.DataFrame) -> in
     indicators = [
         ("Youth Dependency (0-14 / 15-64)", YOUTH_GROUPS, []),
         ("Aged Dependency (65+ / 15-64)", [], AGED_GROUPS),
-        ("Total Dependency", YOUTH_GROUPS, AGED_GROUPS),
+        ("Total Dependency ((0-14 + 65+) / 15-64)", YOUTH_GROUPS, AGED_GROUPS),
     ]
     for label, youth_groups, aged_groups in indicators:
         ws.cell(row=row, column=1, value=label).font = NORMAL_FONT
@@ -445,7 +452,11 @@ def build_toc(ws, geo_registry: list[dict], scenario_label: str) -> None:
 
     # Title block
     ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=6)
-    ws.cell(row=row, column=1, value="North Dakota Population Projections").font = HEADER_FONT
+    ws.cell(
+        row=row,
+        column=1,
+        value=f"North Dakota Population Projections {BASE_YEAR}\u2013{FINAL_YEAR}",
+    ).font = HEADER_FONT
     row += 1
 
     ws.cell(row=row, column=1, value=f"Scenario: {scenario_label}").font = SUBTITLE_FONT
@@ -457,13 +468,20 @@ def build_toc(ws, geo_registry: list[dict], scenario_label: str) -> None:
     ws.cell(
         row=row,
         column=1,
-        value=f"Generated: {TODAY.strftime('%B %d, %Y')}  |  Base: Census PEP 2000-2024",
+        value=f"Generated: {TODAY.strftime('%B %d, %Y')}  |  Base Year: {BASE_YEAR} (Census PEP 2025 Vintage)",
     ).font = METHODOLOGY_FONT
     row += 1
     row += 1  # blank
 
     # Column headers
-    headers = ["Geography", "Region", "2025 Pop", "2045 Pop", "Change", "% Change"]
+    headers = [
+        "Geography",
+        "Region",
+        f"{BASE_YEAR} Pop",
+        f"{FINAL_YEAR} Pop",
+        f"Change ({BASE_YEAR}-{FINAL_YEAR})",
+        f"% Change ({BASE_YEAR}-{FINAL_YEAR})",
+    ]
     for ci, hdr in enumerate(headers, 1):
         cell = ws.cell(row=row, column=ci, value=hdr)
         cell.font = COL_HEADER_FONT
@@ -541,19 +559,18 @@ def build_toc(ws, geo_registry: list[dict], scenario_label: str) -> None:
     row += 1  # blank
 
     # Methodology footer
-    methodology_lines = [
-        "Methodology:",
-        "  Cohort-component model (single-year age, sex, 6 race/ethnicity categories)",
-        f"  Base year: {BASE_YEAR} (Census PEP estimates)",
-        f"  Projection horizon: {BASE_YEAR}\u2013{FINAL_YEAR} (annual steps; 5-year intervals shown)",
-        "  Fertility: SEER age-specific rates (2018\u20132022 average)",
-        "  Mortality: CDC life tables with 0.5% annual improvement",
-        "  Migration: Census PEP components (2000\u20132024), convergence interpolation",
-        "  Scenario adjustments grounded in CBO Demographic Outlook (ADR-037)",
-    ]
-    for line in methodology_lines:
-        ws.cell(row=row, column=1, value=line).font = METHODOLOGY_FONT
+    ws.cell(row=row, column=1, value="Methodology:").font = METHODOLOGY_FONT
+    row += 1
+    for line in METHODOLOGY_LINES:
+        formatted = line.format(base_year=BASE_YEAR, final_year=FINAL_YEAR)
+        ws.cell(row=row, column=1, value=f"  {formatted}").font = METHODOLOGY_FONT
         row += 1
+    ws.cell(row=row, column=1, value=f"  {ORGANIZATION_ATTRIBUTION}").font = METHODOLOGY_FONT
+    row += 1
+    ws.cell(row=row, column=1, value=f"  {CONDITIONAL_CAVEAT}").font = METHODOLOGY_FONT
+    row += 1
+    ws.cell(row=row, column=1, value=f"  {DATA_AVAILABILITY_NOTE}").font = METHODOLOGY_FONT
+    row += 1
 
     # Column widths
     ws.column_dimensions["A"].width = 28

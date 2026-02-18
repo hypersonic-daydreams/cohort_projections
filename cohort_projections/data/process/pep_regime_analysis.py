@@ -60,7 +60,7 @@ MIGRATION_REGIMES: dict[str, dict[str, int | str]] = {
     "pre_bakken": {"start": 2000, "end": 2010, "label": "Pre-Bakken"},
     "boom": {"start": 2011, "end": 2015, "label": "Bakken Boom"},
     "bust_covid": {"start": 2016, "end": 2021, "label": "Bust + COVID"},
-    "recovery": {"start": 2022, "end": 2024, "label": "Recovery"},
+    "recovery": {"start": 2022, "end": 2025, "label": "Recovery"},
 }
 
 # Default regime weights (must sum to 1.0)

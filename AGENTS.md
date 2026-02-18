@@ -2,7 +2,7 @@
 
 Canonical instruction set for all AI agents working on this codebase.
 
-**Last Updated:** 2026-02-02 | **Version:** 1.4.0 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
+**Last Updated:** 2026-02-18 | **Version:** 1.5.0 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
 
 ---
 
@@ -19,7 +19,7 @@ The primary work is developing the **2026 official population projections** for 
 | Stack | Python 3.12, uv, pandas, polars, YAML configs, pytest, Ruff, MyPy |
 | Methodology | Cohort-component (age × sex × race/ethnicity cohorts) |
 | Geographic Scope | State (1), Counties (53), Places (~400) |
-| Projection Horizon | 2025 to 2045 (annual) |
+| Projection Horizon | 2025 to 2055 (annual) |
 
 **Philosophy:** Rigor over cleverness. Reproducibility. Linear pipeline design. Every assumption in ADRs.
 
@@ -57,6 +57,12 @@ Bug fixes, code style, test additions, documentation clarifications, logging imp
 ### Tier 2: Autonomous with Documentation (Do + Document)
 New dependencies, config changes, algorithm modifications, data source changes, new validation rules.
 → Implement + create/update ADR
+
+**ADR Process:**
+- Registry: See [docs/governance/adrs/README.md](./docs/governance/adrs/README.md) for index, template, and naming conventions
+- Before creating a new ADR, search existing ADRs to check if the topic is already covered
+- If your ADR amends or extends an existing ADR, add an "Amended by" back-reference to the original
+- Cross-reference related review documents in `docs/reviews/` when applicable
 
 ### Tier 3: Stop and Ask
 Data deletion, security changes, breaking output formats, **methodology changes affecting results**, race/ethnicity category changes, geographic hierarchy modifications.
@@ -244,7 +250,7 @@ uv sync               # Install dependencies
 ### ADRs (Why Decisions)
 | ADR | Topic |
 |-----|-------|
-| [docs/governance/adrs/](./docs/governance/adrs/) | All Architecture Decision Records |
+| [docs/governance/adrs/README.md](./docs/governance/adrs/README.md) | ADR index, template, and naming conventions |
 | ADR-001 through ADR-003 | Fertility, survival, migration processing |
 | ADR-007 | Race/ethnicity categorization |
 | ADR-016 | Raw data management strategy |
@@ -255,6 +261,7 @@ uv sync               # Install dependencies
 | [CLAUDE.md](./CLAUDE.md) | Quick commands for Claude Code |
 | [DEVELOPMENT_TRACKER.md](./DEVELOPMENT_TRACKER.md) | Current project status |
 | [docs/methodology_comparison_sdc_2024.md](./docs/methodology_comparison_sdc_2024.md) | SDC 2024 comparison |
+| [docs/reviews/](./docs/reviews/) | Review and QA documents |
 
 ---
 
@@ -282,6 +289,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.5.0 | 2026-02-18 | Added ADR process guidance; updated horizon to 2055; added reviews reference |
 | 1.4.0 | 2026-02-02 | Refocused on 2026 cohort projections; de-emphasized SDC 2024; fixed section numbering; updated guides index |
 | 1.3.0 | 2026-01-01 | Refactored to ~200 lines; extracted guides and added SOP references |
 | 1.2.0 | 2025-12-31 | Consolidated test workflow and BigQuery content |
@@ -292,7 +300,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-02-02 |
-| **Version** | 1.4.0 |
+| **Last Updated** | 2026-02-18 |
+| **Version** | 1.5.0 |
 | **Status** | Current |
 | **Applies To** | All AI Agents |

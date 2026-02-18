@@ -34,6 +34,12 @@ Usage:
 
     # Dry run mode
     python 02_run_projections.py --all --dry-run
+
+Key ADRs and config:
+    ADR-004: Core projection engine architecture
+    ADR-037: CBO-grounded scenario methodology (amended by ADR-039, ADR-040)
+    ADR-041: Census+PUMS hybrid base population distribution
+    Config: scenarios.{baseline,restricted_growth,high_growth}
 """
 
 import argparse

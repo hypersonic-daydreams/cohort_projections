@@ -9,6 +9,12 @@ This script runs the residual migration pipeline, which:
 4. Averages rates across all periods
 5. Saves results to data/processed/migration/
 
+Key ADRs and config:
+    ADR-035: Census PEP data source
+    ADR-036: BEBR multi-period averaging and convergence methodology
+    ADR-040: Bakken boom dampening (config: rates.migration.domestic.dampening)
+    Config: rates.migration.domestic.residual.periods, dampening.boom_periods
+
 Usage:
     python scripts/pipeline/01_compute_residual_migration.py
     python scripts/pipeline/01_compute_residual_migration.py --config config/projection_config.yaml
