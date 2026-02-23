@@ -11,12 +11,20 @@ residual method:
 
 This module implements the full pipeline:
     1. Load population snapshots for 6 time points (2000-2024)
-    2. Compute residual migration for each 5-year period
-    3. Apply oil-boom dampening to Bakken counties
-    4. Apply college-age smoothing
-    5. Apply male migration dampening for boom periods
+    2. Load survival rates
+    3. Compute residual migration for each 5-year period, applying:
+       - Oil-boom dampening to Bakken counties (ADR-040, ADR-051)
+       - Male migration dampening for boom periods
+    4. PEP recalibration for reservation counties (ADR-045)
+    5. Apply college-age smoothing to period-level rates (ADR-049)
     6. Average rates across all periods
-    7. Save output files
+    7. Save output files (period-level and averaged)
+
+ADR-049 note: College-age smoothing is applied to period-level rates
+BEFORE averaging and saving. This ensures the convergence pipeline
+(which reads residual_migration_rates.parquet) operates on smoothed
+rates. Smoothing is NOT re-applied to averaged rates to avoid
+double-smoothing.
 
 Output files are written to data/processed/migration/.
 """
@@ -933,12 +941,16 @@ def run_residual_migration_pipeline(
     Orchestrates the full computation:
     1. Load population snapshots for all time points
     2. Load survival rates
-    3. Compute residual migration for each period
-    4. Apply period dampening (oil counties, boom periods)
-    5. Apply male migration dampening (boom periods)
+    3. Compute residual migration for each period with dampening
+       (oil-boom dampening + male migration dampening)
+    4. PEP recalibration for reservation counties (ADR-045)
+    5. Apply college-age smoothing to period-level rates (ADR-049)
+       -- smoothing is applied BEFORE combining/saving so that the
+       convergence pipeline reads smoothed rates
     6. Average rates across periods
-    7. Apply college-age adjustment to averaged rates
-    8. Save output files
+       -- averaged rates inherit smoothing from Step 5;
+       no second smoothing pass is applied (avoids double-smoothing)
+    7. Save output files
 
     Args:
         config: Project configuration dictionary.  If None, loads from
@@ -998,7 +1010,7 @@ def run_residual_migration_pipeline(
     college_age_groups = college_cfg.get("age_groups", ["15-19", "20-24"])
     college_blend = college_cfg.get("blend_factor", 0.5)
 
-    # --- Step 4: Compute residual migration for each period ---
+    # --- Step 3: Compute residual migration for each period ---
     logger.info("Step 3: Computing residual migration for each period")
     period_results: dict[tuple[int, int], pd.DataFrame] = {}
 
@@ -1040,12 +1052,12 @@ def run_residual_migration_pipeline(
             f"mean rate {rates['migration_rate'].mean():.4f}"
         )
 
-    # --- Step 4b: PEP recalibration for reservation counties (ADR-045) ---
+    # --- Step 4: PEP recalibration for reservation counties (ADR-045) ---
     pep_recal_cfg = residual_cfg.get("pep_recalibration", {})
     pep_recal_metadata: dict[str, dict[str, dict[str, Any]]] = {}
 
     if pep_recal_cfg.get("enabled", False):
-        logger.info("Step 4b: Applying PEP recalibration for reservation counties")
+        logger.info("Step 4: Applying PEP recalibration for reservation counties")
         recal_counties = pep_recal_cfg.get("counties", [])
         pep_path = pep_recal_cfg.get(
             "pep_data_path",
@@ -1075,8 +1087,11 @@ def run_residual_migration_pipeline(
                 pep_recal_metadata.setdefault(county, {})[period_label] = meta
 
     # --- Step 5: Apply college-age smoothing to period-level rates (ADR-049) ---
+    # ADR-049: Smoothing must happen BEFORE period rates are combined and saved
+    # so that the convergence pipeline (which reads residual_migration_rates.parquet)
+    # operates on smoothed rates rather than raw unsmoothed spikes.
     if college_enabled:
-        logger.info("Step 4a: Applying college-age smoothing to period-level rates")
+        logger.info("Step 5: Applying college-age smoothing to period-level rates (ADR-049)")
         for period_key in period_results:
             period_results[period_key] = apply_college_age_adjustment(
                 period_results[period_key],
@@ -1087,24 +1102,24 @@ def run_residual_migration_pipeline(
             )
 
     # --- Step 5b: Combine all periods ---
-    logger.info("Step 4b: Combining all period rates")
+    logger.info("Step 5b: Combining all period rates")
     all_periods = pd.concat(list(period_results.values()), ignore_index=True)
 
     # --- Step 6: Average across periods ---
-    logger.info("Step 5: Averaging rates across periods")
+    logger.info("Step 6: Averaging rates across periods")
     averaged = average_period_rates(period_results, method=averaging_method)
 
-    # --- Step 7: College-age smoothing on averaged rates SKIPPED (ADR-049) ---
+    # --- Step 6b: College-age smoothing on averaged rates SKIPPED (ADR-049) ---
     # Period-level smoothing in Step 5 already handles college-age adjustment.
     # Applying it again here would double-smooth, over-correcting college
     # counties (e.g. Cass County drops from +63% to +19% instead of ~+48%).
     if college_enabled:
         logger.info(
-            "Step 6: Skipping college-age smoothing on averaged rates — "
-            "already applied at period level in Step 4a (ADR-049)"
+            "Step 6b: Skipping college-age smoothing on averaged rates — "
+            "already applied at period level in Step 5 (ADR-049)"
         )
 
-    # --- Step 8: Save output files ---
+    # --- Step 7: Save output files ---
     logger.info("Step 7: Saving output files")
 
     # All periods

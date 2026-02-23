@@ -67,6 +67,7 @@ bigquery:
 base_population:
   age_resolution: "single_year"  # "single_year" (ADR-048) or "five_year_uniform" (legacy)
   single_year_distribution: "data/raw/population/nd_age_sex_race_distribution_single_year.csv"
+  county_race_interpolation: "sprague"  # "sprague" (ADR-048) or "statewide_weights" for county 5-year -> single-year
   county_distributions:
     enabled: true
     path: "data/processed/county_age_sex_race_distributions.parquet"

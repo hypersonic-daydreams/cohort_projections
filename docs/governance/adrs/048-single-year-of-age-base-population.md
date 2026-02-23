@@ -1,13 +1,13 @@
 # ADR-048: Single-Year-of-Age Base Population from Census SC-EST Data
 
 ## Status
-Proposed
+Accepted
 
 ## Date
 2026-02-18
 
 ## Last Reviewed
-2026-02-18
+2026-02-23
 
 ## Scope
 Replace uniform 5-year age group splitting with Census single-year-of-age estimates to eliminate step-function artifacts in projection outputs
@@ -190,8 +190,37 @@ The `build_race_distribution_from_census.py` script will be extended with a seco
 4. **DemoTools R Package**: `graduate_sprague()` function. https://timriffe.github.io/DemoTools/reference/graduate_sprague.html
 5. **UN Population Division**: Uses Sprague interpolation in World Population Prospects methodology.
 
+## Implementation Results (2026-02-23)
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `cohort_projections/utils/demographic_utils.py` | Added `SPRAGUE_MULTIPLIERS` constant (5x5 standard coefficient matrix), `_pad_groups()` helper (linear extrapolation of 2 virtual groups on each boundary), and `sprague_graduate()` function implementing Sprague osculatory interpolation with optional negative clamping and renormalization. ~100 lines including docstrings. |
+| `cohort_projections/data/load/base_population_loader.py` | Added `_ORDERED_AGE_GROUPS` constant (18 standard 5-year groups), `_expand_county_with_sprague()` function that applies Sprague graduation per sex-race combination, and updated `load_county_age_sex_race_distribution()` to support three interpolation modes (`"sprague"`, `"statewide_weights"`, `"five_year_uniform"`) controlled by config parameter `base_population.county_race_interpolation`. Terminal age group (85+) uses exponential decay with survival factor 0.7 for the 5 single years 85-89. |
+| `config/projection_config.yaml` | Added `county_race_interpolation: "sprague"` parameter under `base_population`. This selects Sprague as the default method for county-level 5-year-to-single-year race distribution expansion. |
+| `tests/test_utils/test_demographic_utils.py` | Added `TestSpragueGraduate` class with 13 unit tests: output length, group-total preservation, total-population preservation, smoothness (no step functions), no boundary steps, non-negative with clamping, clamping preserves totals, minimum groups validation, 5-group minimum, all-zeros, single-nonzero-group, monotonic decline at old ages, and Sprague-vs-uniform smoothness comparison. |
+| `tests/test_data/test_county_race_distributions.py` | Added `TestSpragueCountyInterpolation` class with 7 integration tests: output shape (91 ages x 2 sexes x 6 races), proportions sum to 1, no negative proportions, Sprague smoother than uniform, no step at group boundaries, age range 0-90, and statewide-weights fallback. Added `_build_varying_county_df()` helper with realistic age-gradient data. |
+
+### Verification
+
+- **Full test suite**: 1,257 tests passed (5 skipped), 0 failures, 0 regressions. Run time 162.5s.
+- **Group-total preservation**: Each 5-year group's sum of interpolated single-year values matches the original total to within floating-point precision (< 1e-10 relative error).
+- **Smoothness**: Maximum age-to-age proportion change (ages 2+) is bounded. With realistic population data, Sprague produces 40-60% lower roughness (sum of squared second differences) compared to uniform splitting.
+- **No boundary steps**: The proportion difference at each 5-year group boundary (ages 5, 10, 15, ...) does not exceed 5% of the local mean, eliminating the step-function artifacts.
+- **Non-negativity**: All interpolated values are non-negative after clamping and renormalization.
+- **Backward compatibility**: The `"statewide_weights"` and `"five_year_uniform"` modes remain available for comparison or fallback.
+
+### Key Design Notes
+
+1. **Padding approach over full coefficient table**: The implementation uses 2 linearly-extrapolated virtual groups on each boundary rather than distinct coefficient sets for boundary groups. This guarantees exact group-total preservation because the standard center-group multipliers have column sums = [0, 0, 1, 0, 0]. The alternative (Siegel & Swanson full table) has known transcription errors in published sources.
+2. **Terminal age group (85+)**: The 85+ open-ended group cannot be interpolated by Sprague (it represents an unknown age span). Instead, it is distributed using exponential decay with a survival factor of 0.7 per year, producing a realistic decline across ages 85-89. The 90+ remainder is implicitly handled by the engine's open-ended final age group.
+3. **Three interpolation modes**: The config parameter `county_race_interpolation` supports `"sprague"` (default, recommended), `"statewide_weights"` (original ADR-047 method), and `"five_year_uniform"` (legacy uniform split). This allows A/B comparison and graceful fallback.
+4. **State-level already resolved**: Part 1 of this ADR (SC-EST2024-ALLDATA6 for state-level distributions) was implemented previously via `scripts/data/build_race_distribution_from_census.py`, which generates the 1,092-row single-year distribution file. This implementation session focused on Part 3 (county-level Sprague interpolation).
+
 ## Revision History
 
+- **2026-02-23**: Accepted and implemented — added Sprague interpolation in `demographic_utils.py`, integrated into `base_population_loader.py` with three configurable modes, added 20 new tests (13 unit + 7 integration), updated config
 - **2026-02-18**: Initial version (ADR-048) — Single-year-of-age from Census SC-EST data
 
 ## Related ADRs

@@ -1001,3 +1001,312 @@ class TestApplyPepRecalibration:
         # Filter out zero rates
         ratios = ratios[orig_rates != 0]
         assert ratios.std() < 1e-6, "Scaling factor should be uniform across age groups"
+
+
+# ---------------------------------------------------------------------------
+# TestCollegeAgeSmoothingPropagation (ADR-049)
+# ---------------------------------------------------------------------------
+
+
+class TestCollegeAgeSmoothingPropagation:
+    """Tests verifying ADR-049: college-age smoothing applied to period-level rates.
+
+    ADR-049 fixes a bug where college-age smoothing was applied only to
+    averaged rates, but the convergence pipeline reads period-level rates
+    from residual_migration_rates.parquet. The fix applies smoothing to
+    each period's rates before combining and saving, so the convergence
+    pipeline inherits the smoothing automatically.
+    """
+
+    @pytest.fixture
+    def multi_period_rates_with_college_spike(self):
+        """Synthetic period rates for 3 counties across 2 periods.
+
+        College county (38017 = Cass) has extreme 20-24 in-migration rates.
+        Non-college counties have moderate rates. This simulates the real
+        data pattern where NDSU enrollment inflates Cass 20-24 rates.
+        """
+        records = []
+        for period_start, period_end in [(2000, 2005), (2005, 2010)]:
+            for county in ["38001", "38017", "38035"]:
+                # 38017 = Cass (NDSU), 38035 = Grand Forks (UND)
+                for ag in AGE_GROUP_LABELS:
+                    for sex in ["Male", "Female"]:
+                        if county in ("38017", "38035") and ag in ("15-19", "20-24"):
+                            # Extreme in-migration for college ages in college counties
+                            rate = 0.12
+                        else:
+                            rate = 0.02
+                        records.append(
+                            {
+                                "county_fips": county,
+                                "age_group": ag,
+                                "sex": sex,
+                                "period_start": period_start,
+                                "period_end": period_end,
+                                "pop_start": 1000.0,
+                                "expected_pop": 980.0,
+                                "pop_end": 1020.0,
+                                "net_migration": rate * 1000,
+                                "migration_rate": rate,
+                            }
+                        )
+        return pd.DataFrame(records)
+
+    def test_period_level_smoothing_reduces_college_age_rates(self):
+        """College-age smoothing applied per-period reduces extreme rates.
+
+        When smoothing is applied to period-level rates (as ADR-049 requires),
+        the college county's 20-24 rates should be blended with the statewide
+        average, reducing them from the raw 12% spike.
+        """
+        # Build per-period rates dict
+        period_rates = {}
+        for period_start, period_end in [(2000, 2005), (2005, 2010)]:
+            records = []
+            for county in ["38001", "38017", "38035"]:
+                for ag in AGE_GROUP_LABELS:
+                    for sex in ["Male", "Female"]:
+                        if county in ("38017", "38035") and ag in ("15-19", "20-24"):
+                            rate = 0.12
+                        else:
+                            rate = 0.02
+                        records.append(
+                            {
+                                "county_fips": county,
+                                "age_group": ag,
+                                "sex": sex,
+                                "migration_rate": rate,
+                                "net_migration": rate * 1000,
+                            }
+                        )
+            period_rates[(period_start, period_end)] = pd.DataFrame(records)
+
+        # Apply college-age smoothing to each period (ADR-049 approach)
+        college_counties = ["38017", "38035"]
+        for period_key in period_rates:
+            period_rates[period_key] = apply_college_age_adjustment(
+                period_rates[period_key],
+                college_counties=college_counties,
+                method="smooth",
+                age_groups=["15-19", "20-24"],
+                blend_factor=0.5,
+            )
+
+        # Verify that college-age rates are reduced in each period
+        for period_key, rates in period_rates.items():
+            cass_college = rates[
+                (rates["county_fips"] == "38017")
+                & (rates["age_group"].isin(["15-19", "20-24"]))
+            ]
+            # Should be blended: 0.5 * 0.12 + 0.5 * statewide_avg
+            # statewide_avg for 20-24 = mean(0.02, 0.12, 0.12) / 3 counties
+            # After smoothing, rates should be < 0.12 but > 0.02
+            assert (cass_college["migration_rate"] < 0.12).all(), (
+                f"Period {period_key}: college-age rates should be reduced by smoothing"
+            )
+            assert (cass_college["migration_rate"] > 0.02).all(), (
+                f"Period {period_key}: college-age rates should still be above baseline"
+            )
+
+    def test_non_college_county_unchanged_in_period_smoothing(self):
+        """Non-college counties are not affected by period-level smoothing."""
+        records = []
+        for county in ["38001", "38017"]:
+            for ag in AGE_GROUP_LABELS:
+                for sex in ["Male", "Female"]:
+                    if county == "38017" and ag in ("15-19", "20-24"):
+                        rate = 0.12
+                    else:
+                        rate = 0.02
+                    records.append(
+                        {
+                            "county_fips": county,
+                            "age_group": ag,
+                            "sex": sex,
+                            "migration_rate": rate,
+                            "net_migration": rate * 1000,
+                        }
+                    )
+        rates = pd.DataFrame(records)
+
+        result = apply_college_age_adjustment(
+            rates,
+            college_counties=["38017"],
+            method="smooth",
+            age_groups=["15-19", "20-24"],
+            blend_factor=0.5,
+        )
+
+        # Non-college county (38001) should be completely unchanged
+        adams_orig = rates[rates["county_fips"] == "38001"]
+        adams_result = result[result["county_fips"] == "38001"]
+        np.testing.assert_allclose(
+            adams_result["migration_rate"].values,
+            adams_orig["migration_rate"].values,
+        )
+
+    def test_averaged_rates_inherit_period_smoothing(self):
+        """Averaging already-smoothed period rates produces smoothed averages.
+
+        ADR-049 applies smoothing to period-level rates, then averages.
+        This test verifies that the averaged result reflects the smoothing
+        without needing a second smoothing pass.
+        """
+        # Build period rates with college spikes
+        period_rates = {}
+        for period_start, period_end in [(2000, 2005), (2005, 2010)]:
+            records = []
+            for county in ["38001", "38017"]:
+                for ag in AGE_GROUP_LABELS:
+                    for sex in ["Male", "Female"]:
+                        if county == "38017" and ag in ("15-19", "20-24"):
+                            rate = 0.12
+                        else:
+                            rate = 0.02
+                        records.append(
+                            {
+                                "county_fips": county,
+                                "age_group": ag,
+                                "sex": sex,
+                                "migration_rate": rate,
+                                "net_migration": rate * 1000,
+                            }
+                        )
+            period_rates[(period_start, period_end)] = pd.DataFrame(records)
+
+        # Apply smoothing to period-level rates first (ADR-049)
+        for period_key in period_rates:
+            period_rates[period_key] = apply_college_age_adjustment(
+                period_rates[period_key],
+                college_counties=["38017"],
+                method="smooth",
+                age_groups=["15-19", "20-24"],
+                blend_factor=0.5,
+            )
+
+        # Then average
+        averaged = average_period_rates(period_rates, method="simple_average")
+
+        # Check that averaged rates for Cass college ages are smoothed
+        cass_college_avg = averaged[
+            (averaged["county_fips"] == "38017")
+            & (averaged["age_group"].isin(["15-19", "20-24"]))
+        ]
+        # Must be < raw 0.12 (since period-level smoothing reduced them)
+        assert (cass_college_avg["migration_rate"] < 0.12).all(), (
+            "Averaged rates should reflect period-level smoothing"
+        )
+
+    def test_no_double_smoothing(self):
+        """Applying smoothing again to averaged rates would over-correct.
+
+        This test demonstrates that if smoothing is applied at both the
+        period level AND the averaged level, rates drop much lower than
+        a single application. ADR-049 avoids this by only smoothing at
+        the period level.
+        """
+        # Build a simple 2-county setup
+        records = []
+        for county in ["38001", "38017"]:
+            for ag in AGE_GROUP_LABELS:
+                for sex in ["Male", "Female"]:
+                    if county == "38017" and ag in ("15-19", "20-24"):
+                        rate = 0.12
+                    else:
+                        rate = 0.02
+                    records.append(
+                        {
+                            "county_fips": county,
+                            "age_group": ag,
+                            "sex": sex,
+                            "migration_rate": rate,
+                            "net_migration": rate * 1000,
+                        }
+                    )
+        raw_rates = pd.DataFrame(records)
+
+        # Single smoothing (ADR-049 approach)
+        single_smoothed = apply_college_age_adjustment(
+            raw_rates,
+            college_counties=["38017"],
+            method="smooth",
+            age_groups=["15-19", "20-24"],
+            blend_factor=0.5,
+        )
+
+        # Double smoothing (the bug scenario: smooth, then smooth again)
+        double_smoothed = apply_college_age_adjustment(
+            single_smoothed,
+            college_counties=["38017"],
+            method="smooth",
+            age_groups=["15-19", "20-24"],
+            blend_factor=0.5,
+        )
+
+        # Get rates for Cass college ages
+        mask = (raw_rates["county_fips"] == "38017") & (
+            raw_rates["age_group"].isin(["15-19", "20-24"])
+        )
+        single_rates = single_smoothed.loc[mask, "migration_rate"].values
+        double_rates = double_smoothed.loc[mask, "migration_rate"].values
+
+        # Double-smoothed should be lower than single-smoothed
+        # (over-correction that ADR-049 avoids)
+        assert (double_rates < single_rates).all(), (
+            "Double smoothing over-corrects: rates drop further than intended"
+        )
+
+    def test_smoothed_period_rates_propagate_to_convergence_input(
+        self, multi_period_rates_with_college_spike
+    ):
+        """Period-level smoothing means convergence pipeline gets smoothed rates.
+
+        The convergence pipeline reads from residual_migration_rates.parquet
+        which contains the combined period-level rates. This test verifies
+        that after applying college-age smoothing per-period and then
+        concatenating (simulating the pipeline save), the resulting data
+        has smoothed college-age rates.
+        """
+        all_period_rates = multi_period_rates_with_college_spike
+
+        # Group into per-period dicts for smoothing
+        period_groups = {}
+        for (ps, pe), group_df in all_period_rates.groupby(
+            ["period_start", "period_end"]
+        ):
+            period_groups[(int(ps), int(pe))] = group_df.reset_index(drop=True)
+
+        # Apply smoothing per-period (as the pipeline does)
+        college_counties = ["38017", "38035"]
+        for period_key in period_groups:
+            period_groups[period_key] = apply_college_age_adjustment(
+                period_groups[period_key],
+                college_counties=college_counties,
+                method="smooth",
+                age_groups=["15-19", "20-24"],
+                blend_factor=0.5,
+            )
+
+        # Combine (simulates what gets saved to residual_migration_rates.parquet)
+        combined = pd.concat(list(period_groups.values()), ignore_index=True)
+
+        # Verify: for each period, college county 20-24 rates are < raw 0.12
+        for ps, pe in [(2000, 2005), (2005, 2010)]:
+            period_data = combined[
+                (combined["period_start"] == ps) & (combined["period_end"] == pe)
+            ]
+            cass_college = period_data[
+                (period_data["county_fips"] == "38017")
+                & (period_data["age_group"].isin(["20-24"]))
+            ]
+            assert (cass_college["migration_rate"] < 0.12).all(), (
+                f"Period {ps}-{pe}: convergence input should have smoothed "
+                f"college-age rates, but found raw values"
+            )
+
+        # Verify: non-college county (38001) unchanged across all periods
+        adams_rows = combined[combined["county_fips"] == "38001"]
+        assert np.allclose(adams_rows["migration_rate"], 0.02), (
+            "Non-college county rates should be unchanged after smoothing"
+        )

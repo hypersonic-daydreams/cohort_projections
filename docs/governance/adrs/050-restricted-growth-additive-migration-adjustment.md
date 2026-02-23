@@ -1,13 +1,13 @@
 # ADR-050: Restricted Growth Additive Migration Adjustment
 
 ## Status
-Proposed
+Accepted
 
 ## Date
 2026-02-18
 
 ## Last Reviewed
-2026-02-18
+2026-02-23
 
 ## Scope
 Replace multiplicative CBO migration factor with additive adjustment for the restricted growth scenario to fix scenario ordering violations
@@ -128,13 +128,12 @@ if scenario.get("type") == "additive_reduction":
     if factor < 1.0:
         ref_intl = scenario.get("reference_intl_migration", 0)
         ref_pop = scenario.get("reference_population", 1)
-        reduction = ref_intl * (1 - factor) / ref_pop
-        n_cells = len(adjusted_rates)
-        per_cell_reduction = reduction / n_cells * ref_pop / county_pop
-        adjusted_rates[migration_col] -= per_cell_reduction
+        annual_reduction = ref_intl * (1.0 - factor)      # persons/year not arriving
+        reduction_rate = annual_reduction / ref_pop         # per-capita rate decrement
+        adjusted_rates[migration_col] -= reduction_rate     # subtract from all cells
 ```
 
-The per-cell reduction is scaled by the ratio of state population to county population to convert the statewide per-capita rate to a county-level per-cell rate.
+Since migration rates are already per-capita, the same `reduction_rate` applies uniformly to every cell. The total person-reduction for a county is proportional to its population (`reduction_rate * county_pop`), which correctly distributes the statewide reduction by population share without any explicit per-county scaling.
 
 ### Why Additive, Not "Only Apply to Positive Rates" (Option D)
 
@@ -222,8 +221,35 @@ The restricted growth fix is independent of the high growth fix. High growth use
 5. **CBO January 2026 Demographic Outlook** (Publication 61879): Source of time-varying migration factors
 6. **Sanity Check Finding**: 39 of 53 counties have restricted > baseline in early years
 
+## Implementation Results (2026-02-23)
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `cohort_projections/core/migration.py` | Added `additive_reduction` handler in `apply_migration_scenario()` (lines 215-235). Computes `reduction_rate = ref_intl * (1 - factor) / ref_pop` and subtracts uniformly from all cells. Comprehensive docstring added explaining formula and ordering guarantee. |
+| `config/projection_config.yaml` | Changed restricted_growth `migration.type` from `time_varying` to `additive_reduction`. Added `reference_intl_migration: 10051` and `reference_population: 799358`. Removed `intl_share` parameter. |
+| `tests/test_core/test_migration.py` | Added `TestAdditiveReductionScenario` class with 11 tests covering: positive rates, negative rates (the critical bug case), mixed-sign rates, correct magnitude, factor=1.0 convergence, schedule variation by year, net_migration column support, column preservation, zero-reference edge case, and uniform reduction across cells. Also added `TestTimeVaryingMigrationScenario` class (2 tests) to ensure backward compatibility of the old multiplicative path. |
+
+### Verification
+
+- **Ordering guarantee**: The additive decrement always subtracts from the base rate, so `restricted <= baseline` holds for all signs:
+  - Positive rate 0.05 -> 0.05 - 0.01006 = 0.0399 (less positive, correct)
+  - Negative rate -0.05 -> -0.05 - 0.01006 = -0.0601 (more negative, correct)
+  - Zero rate 0.00 -> 0.00 - 0.01006 = -0.01006 (becomes negative, correct)
+- **Convergence**: When `factor = 1.0` (year 2030+), `reduction_rate = 0`, so restricted rates exactly equal baseline rates.
+- **Old code preserved**: The `time_varying` (multiplicative) code path in `apply_migration_scenario()` is retained for backward compatibility but is no longer used by the restricted_growth scenario.
+- **Pipeline integration**: `apply_scenario_rate_adjustments()` in `02_run_projections.py` correctly detects dict-based migration configs (including `additive_reduction`) and defers per-year adjustment to the engine.
+
+### Key Design Notes
+
+1. **Per-capita uniformity**: The reduction rate is applied identically to every age-sex-race cell. This is a deliberate simplification; international migration has a distinct age pattern (concentrated in ages 20-40). A future enhancement could use age-weighted distribution.
+2. **No per-county scaling needed**: Because migration rates are already per-capita, applying the same `reduction_rate` to every cell automatically distributes the total person-reduction proportionally to each county's population. A county with 10x the population loses 10x the people.
+3. **Static reference values**: `reference_intl_migration` (10,051) and `reference_population` (799,358) are derived from PEP 2023-2025 data and should be updated when new PEP vintages are released.
+
 ## Revision History
 
+- **2026-02-23**: Accepted and implemented — added `additive_reduction` handler, 13 new unit tests, updated config; corrected pseudocode in Implementation section to match actual per-capita approach
 - **2026-02-18**: Initial version (ADR-050) — Additive migration reduction for restricted growth
 
 ## Related ADRs

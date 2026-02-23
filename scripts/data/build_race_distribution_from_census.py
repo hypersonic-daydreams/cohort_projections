@@ -1,34 +1,143 @@
 #!/usr/bin/env python3
 """
-Build age-sex-race distributions from Census cc-est2024-alldata.
+Build age-sex-race distributions from Census full-count population estimates.
 
-Produces two outputs:
-1. State-level distribution (CSV) -- statewide proportions used for state
-   projections and as the blending anchor for small counties.
-2. County-specific distributions (Parquet) -- per-county proportions for
-   all 53 ND counties, with population-weighted blending toward the
-   statewide distribution for counties below a population threshold.
+Created: 2026-02-23
+ADR: 044 (Census Full-Count Race Distribution),
+     047 (County-Specific Age-Sex-Race Distributions),
+     048 (Single-Year-of-Age Base Population)
+Author: Claude Code
 
-Replaces the PUMS-based race allocation with Census Bureau full-count
-population estimates by county x age group x sex x race/Hispanic origin.
-The PUMS 1% sample (~12,277 records for ND) is catastrophically insufficient
-for small race groups -- zero Black females at reproductive ages, 45% of
-Hispanics concentrated in a single cell.
+Purpose
+-------
+Replace the PUMS-based race allocation with Census Bureau full-count population
+estimates by county x age group x sex x race/Hispanic origin. The PUMS 1% sample
+(~12,277 records for ND) was catastrophically insufficient for small race groups:
+zero Black females at reproductive ages, 45% of Hispanics concentrated in a single
+cell, and only 115 of 216 possible age-sex-race cells populated. This script
+produces three distribution artifacts that the projection engine uses for base
+population construction.
 
-Input:  data/raw/population/cc-est2024-alldata-38.csv
-Output: data/raw/population/nd_age_sex_race_distribution.csv
-        data/processed/county_age_sex_race_distributions.parquet
+Method
+------
+1. Read Census cc-est2024-alldata-38.csv (county characteristics file for ND).
+2. Filter to YEAR=6 (July 1, 2024 estimate, most recent in Vintage 2024) and
+   AGEGRP > 0 (exclude total rows).
+3. Map Census race/ethnicity columns to the project's 6-category scheme:
+   NHWA -> white_nonhispanic, NHBA -> black_nonhispanic, NHIA -> aian_nonhispanic,
+   NHAA + NHNA -> asian_nonhispanic (Asian + NHPI combined), NHTOM ->
+   multiracial_nonhispanic, H -> hispanic. Each column has _MALE/_FEMALE suffixes.
+4. Sum across all 53 ND counties to produce a statewide distribution of 216 rows
+   (18 five-year age groups x 2 sexes x 6 races). Compute proportions as
+   cell_count / state_total.
+5. Build county-specific distributions (ADR-047): for each county, compute
+   per-county proportions. For counties below the blend threshold (default 5,000),
+   blend with the statewide distribution using alpha = min(county_pop / threshold,
+   1.0). Re-normalize after blending. Output as Parquet (11,448 rows = 53 counties
+   x 216 cells).
+6. Build single-year-of-age statewide distribution (ADR-048): read
+   sc-est2024-alldata6.csv (state-level single-year-of-age data), filter to
+   ND (STATE=38), map race/sex to the same 6-category scheme. Distribute
+   the 85+ terminal age group across ages 85-90 using exponential decay
+   (survival factor 0.7 per year, geometric tail at 90+). Output as CSV
+   (1,092 rows = 91 ages x 2 sexes x 6 races).
+7. Run validation checks on all three outputs (see Validation results below).
 
-See: ADR-044 (Census Full-Count Race Distribution)
-     ADR-047 (County-Specific Age-Sex-Race Distributions)
-     Design doc: docs/reviews/2026-02-18-sanity-check-investigations/
-                 design-race-data-replacement.md
+Key design decisions
+--------------------
+- **Census full-count data instead of PUMS**: The cc-est2024-alldata file provides
+  demographic analysis-based estimates (not sample-based) for every county x age x
+  sex x race cell. This eliminates the catastrophic sampling noise from the PUMS 1%
+  sample, which left 101 of 216 cells empty and produced physically impossible
+  projections (e.g., Black population unable to produce births). Alternative rejected:
+  5-year ACS PUMS has a larger sample but is still insufficient for county-level
+  race x age x sex cross-tabulation in a small state.
+- **Population-weighted blending for small counties**: Counties below 5,000
+  population have >30% zero cells in their race distributions. Pure county
+  distributions would leave these cells at zero, which can cause unexpected behavior
+  when the projection engine assigns migration inflows to zero-population cells.
+  Blending with the statewide distribution using alpha = county_pop / 5000 provides
+  a small floor (like a Bayesian prior) while preserving the county's dominant
+  patterns. Alternative rejected: no blending would be simpler but risks
+  zero-population artifacts; a fixed floor (e.g., 0.001) would be arbitrary and
+  not scale with county size.
+- **Exponential decay for terminal age groups**: The sc-est2024-alldata6.csv file
+  tops out at age 85+. The projection engine operates to age 90 (open-ended 90+).
+  Distributing the 85+ population using exponential decay with a survival factor of
+  0.7 per year is standard demographic practice for terminal age groups. The
+  geometric tail at 90+ (s^5 / (1-s)) correctly captures the open-ended interval.
+  Alternative rejected: uniform splitting across 85-90 would overestimate the 90+
+  population.
+- **6-category race mapping**: Follows the project standard (ADR-007). Asian and
+  NHPI are combined because NHPI is <0.1% of ND population, and separating them
+  would create suppression issues. Hispanic is ethnicity-based (anyone of Hispanic
+  origin regardless of race). All non-Hispanic groups are mutually exclusive single-
+  race categories except multiracial_nonhispanic (two or more races).
 
-Usage:
+Validation results (2026-02-23)
+-------------------------------
+Statewide (5-year age groups):
+- Row count: 216 (18 age groups x 2 sexes x 6 races) -- PASS
+- Proportions sum: 1.00000000 -- PASS
+- All 216 cells populated (was 115 with PUMS) -- PASS
+- Sex ratio: 105.5 males per 100 females (expected 95-115) -- PASS
+- All 6 race categories present -- PASS
+- Black females at reproductive ages (15-49): ~7,600 across all 7 age groups,
+  zero groups with zero population (was zero across all groups with PUMS) -- PASS
+- Hispanic largest cell: ~7.0% of Hispanic total (was 45% with PUMS) -- PASS
+
+County distributions:
+- Total rows: 11,448 (53 counties x 216 cells) -- PASS
+- All 53 counties have exactly 216 rows -- PASS
+- Proportions sum to 1.0 per county (within 1e-6) -- PASS
+- No NaN or negative proportions -- PASS
+- Reservation county AIAN proportions: Sioux ~59% (>70% raw, blended below 5k
+  threshold), Rolette >60%, Benson >30% -- PASS
+- Median MAD from average distribution > 0 (distributions are non-identical) -- PASS
+
+Single-year-of-age statewide:
+- Row count: 1,092 (91 ages x 2 sexes x 6 races) -- PASS
+- Proportions sum: 1.00000000 -- PASS
+- Age range: 0-90 -- PASS
+- All 6 race categories and both sexes present -- PASS
+- Max adjacent-age ratio (ages 1-84): < 2.0 (smooth) -- PASS
+
+Inputs
+------
+- data/raw/population/cc-est2024-alldata-38.csv
+    Census Bureau County Characteristics Resident Population Estimates (Vintage
+    2024), FIPS 38 (North Dakota). 6,042 rows, county x age group x sex x race x
+    Hispanic origin. Full-count demographic analysis-based estimates, April 2020
+    through July 2024. Downloaded 2026-02-18 from Census FTP:
+    https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/counties/asrh/
+- data/raw/population/sc-est2024-alldata6.csv
+    Census Bureau Annual State Resident Population Estimates for 6 Race Groups by
+    Age, Sex, and Hispanic Origin (Vintage 2024). 236,844 rows, all states, single
+    year of age (0-85+). Downloaded 2026-02-18 from Census FTP:
+    https://www2.census.gov/programs-surveys/popest/datasets/2020-2024/state/asrh/
+
+Output
+------
+- data/raw/population/nd_age_sex_race_distribution.csv
+    Statewide age-sex-race proportional distribution. 216 rows (18 age groups x 2
+    sexes x 6 races). Columns: age_group, sex, race_ethnicity, estimated_count,
+    proportion.
+- data/processed/county_age_sex_race_distributions.parquet
+    County-specific distributions with population-weighted blending for small
+    counties. 11,448 rows (53 counties x 216 cells). Columns: fips, age_group, sex,
+    race, proportion.
+- data/raw/population/nd_age_sex_race_distribution_single_year.csv
+    Statewide single-year-of-age distribution. 1,092 rows (91 ages x 2 sexes x 6
+    races). Columns: age, sex, race_ethnicity, estimated_count, proportion.
+
+Usage
+-----
     python scripts/data/build_race_distribution_from_census.py
     python scripts/data/build_race_distribution_from_census.py --input path/to/file.csv
     python scripts/data/build_race_distribution_from_census.py --output path/to/output.csv
     python scripts/data/build_race_distribution_from_census.py --blend-threshold 5000
+    python scripts/data/build_race_distribution_from_census.py --skip-county
+    python scripts/data/build_race_distribution_from_census.py --skip-single-year
 """
 
 import argparse

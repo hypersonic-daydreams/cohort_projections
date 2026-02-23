@@ -320,6 +320,343 @@ class TestApplyMigrationScenario:
         assert list(result["race"]) == list(base_migration_rates["race"])
 
 
+class TestAdditiveReductionScenario:
+    """Tests for the additive_reduction migration scenario (ADR-050).
+
+    The additive_reduction scenario subtracts a per-capita rate decrement from
+    all migration rate cells, computed from a CBO schedule and state-level
+    international migration volume. This guarantees that restricted <= baseline
+    for all counties regardless of the sign of the base migration rate.
+
+    Formula:
+        annual_reduction = reference_intl_migration * (1 - factor)
+        reduction_rate = annual_reduction / reference_population
+        adjusted_rate = base_rate - reduction_rate
+    """
+
+    @pytest.fixture
+    def additive_scenario_config(self):
+        """Additive reduction scenario config matching production config."""
+        return {
+            "type": "additive_reduction",
+            "schedule": {
+                2025: 0.20,
+                2026: 0.37,
+                2027: 0.55,
+                2028: 0.78,
+                2029: 0.91,
+            },
+            "default_factor": 1.00,
+            "reference_intl_migration": 10051,
+            "reference_population": 799358,
+        }
+
+    @pytest.fixture
+    def positive_migration_rates(self):
+        """Migration rates with all positive values (net in-migration county)."""
+        return pd.DataFrame(
+            {
+                "age": [20, 30, 40, 70],
+                "sex": ["Male"] * 4,
+                "race": ["White"] * 4,
+                "migration_rate": [0.05, 0.03, 0.02, 0.01],
+            }
+        )
+
+    @pytest.fixture
+    def negative_migration_rates(self):
+        """Migration rates with all negative values (net out-migration county)."""
+        return pd.DataFrame(
+            {
+                "age": [20, 30, 40, 70],
+                "sex": ["Male"] * 4,
+                "race": ["White"] * 4,
+                "migration_rate": [-0.02, -0.05, -0.03, -0.08],
+            }
+        )
+
+    @pytest.fixture
+    def mixed_migration_rates(self):
+        """Migration rates with both positive and negative values."""
+        return pd.DataFrame(
+            {
+                "age": [20, 30, 40, 70],
+                "sex": ["Male"] * 4,
+                "race": ["White"] * 4,
+                "migration_rate": [0.03, -0.02, 0.01, -0.05],
+            }
+        )
+
+    def test_additive_reduction_positive_rates_always_decreases(
+        self, positive_migration_rates, additive_scenario_config
+    ):
+        """Additive reduction on positive rates should produce lower (but still less) rates."""
+        result = apply_migration_scenario(
+            positive_migration_rates,
+            additive_scenario_config,
+            year=2025,
+            base_year=2025,
+        )
+
+        # Every adjusted rate should be less than the original baseline rate
+        assert (result["migration_rate"] < positive_migration_rates["migration_rate"]).all(), (
+            "Restricted growth must produce rates <= baseline for positive migration rates"
+        )
+
+    def test_additive_reduction_negative_rates_becomes_more_negative(
+        self, negative_migration_rates, additive_scenario_config
+    ):
+        """Additive reduction on negative rates should make them more negative (fewer people).
+
+        This is the critical bug fix: the old multiplicative approach made negative
+        rates *less* negative (higher population), which is the wrong direction.
+        """
+        result = apply_migration_scenario(
+            negative_migration_rates,
+            additive_scenario_config,
+            year=2025,
+            base_year=2025,
+        )
+
+        # Every adjusted rate should be more negative than the original
+        assert (result["migration_rate"] < negative_migration_rates["migration_rate"]).all(), (
+            "Restricted growth must produce rates <= baseline for negative migration rates. "
+            "This was the multiplicative bug: multiplying negative rates by <1.0 made them "
+            "less negative (higher population)."
+        )
+
+    def test_additive_reduction_mixed_rates_ordering(
+        self, mixed_migration_rates, additive_scenario_config
+    ):
+        """Additive reduction guarantees restricted <= baseline for mixed-sign rates."""
+        result = apply_migration_scenario(
+            mixed_migration_rates,
+            additive_scenario_config,
+            year=2025,
+            base_year=2025,
+        )
+
+        assert (result["migration_rate"] <= mixed_migration_rates["migration_rate"]).all(), (
+            "Restricted growth must produce rates <= baseline regardless of sign"
+        )
+
+    def test_additive_reduction_correct_magnitude(
+        self, positive_migration_rates, additive_scenario_config
+    ):
+        """Verify the reduction magnitude matches the ADR-050 formula.
+
+        For 2025 (factor=0.20):
+            annual_reduction = 10051 * (1 - 0.20) = 8040.8
+            reduction_rate = 8040.8 / 799358 = 0.010059...
+        """
+        result = apply_migration_scenario(
+            positive_migration_rates,
+            additive_scenario_config,
+            year=2025,
+            base_year=2025,
+        )
+
+        expected_reduction = 10051 * (1 - 0.20) / 799358
+        actual_reduction = (
+            positive_migration_rates["migration_rate"] - result["migration_rate"]
+        )
+
+        # All cells should have the same per-capita reduction
+        for reduction_val in actual_reduction:
+            assert abs(reduction_val - expected_reduction) < 1e-10, (
+                f"Expected reduction {expected_reduction:.8f}, got {reduction_val:.8f}"
+            )
+
+    def test_additive_reduction_factor_1_no_change(
+        self, positive_migration_rates, additive_scenario_config
+    ):
+        """When factor=1.0 (post-2029), no adjustment should be applied.
+
+        After the CBO schedule ends, factor defaults to 1.0, meaning zero reduction.
+        Restricted rates should exactly equal baseline rates.
+        """
+        result = apply_migration_scenario(
+            positive_migration_rates,
+            additive_scenario_config,
+            year=2035,  # After schedule, default_factor=1.0
+            base_year=2025,
+        )
+
+        pd.testing.assert_frame_equal(result, positive_migration_rates)
+
+    def test_additive_reduction_schedule_varies_by_year(
+        self, positive_migration_rates, additive_scenario_config
+    ):
+        """Verify that different years produce different reduction magnitudes."""
+        result_2025 = apply_migration_scenario(
+            positive_migration_rates.copy(),
+            additive_scenario_config,
+            year=2025,
+            base_year=2025,
+        )
+        result_2028 = apply_migration_scenario(
+            positive_migration_rates.copy(),
+            additive_scenario_config,
+            year=2028,
+            base_year=2025,
+        )
+
+        # 2025 has factor=0.20 (more reduction), 2028 has factor=0.78 (less reduction)
+        reduction_2025 = (
+            positive_migration_rates["migration_rate"] - result_2025["migration_rate"]
+        ).mean()
+        reduction_2028 = (
+            positive_migration_rates["migration_rate"] - result_2028["migration_rate"]
+        ).mean()
+
+        assert reduction_2025 > reduction_2028, (
+            "2025 (factor=0.20) should have larger reduction than 2028 (factor=0.78)"
+        )
+
+    def test_additive_reduction_with_net_migration_column(self, additive_scenario_config):
+        """Additive reduction should also work with net_migration (absolute) column."""
+        rates = pd.DataFrame(
+            {
+                "age": [25, 40],
+                "sex": ["Male", "Female"],
+                "race": ["White", "White"],
+                "net_migration": [100.0, -50.0],
+            }
+        )
+
+        result = apply_migration_scenario(
+            rates,
+            additive_scenario_config,
+            year=2025,
+            base_year=2025,
+        )
+
+        # Both cells should have reduced values
+        assert (result["net_migration"] < rates["net_migration"]).all()
+
+    def test_additive_reduction_preserves_other_columns(
+        self, mixed_migration_rates, additive_scenario_config
+    ):
+        """Additive reduction should not alter age, sex, race columns."""
+        result = apply_migration_scenario(
+            mixed_migration_rates,
+            additive_scenario_config,
+            year=2025,
+            base_year=2025,
+        )
+
+        pd.testing.assert_series_equal(result["age"], mixed_migration_rates["age"])
+        pd.testing.assert_series_equal(result["sex"], mixed_migration_rates["sex"])
+        pd.testing.assert_series_equal(result["race"], mixed_migration_rates["race"])
+
+    def test_additive_reduction_zero_reference_intl(self, positive_migration_rates):
+        """When reference_intl_migration is 0, no reduction should occur."""
+        scenario = {
+            "type": "additive_reduction",
+            "schedule": {2025: 0.20},
+            "default_factor": 1.00,
+            "reference_intl_migration": 0,
+            "reference_population": 799358,
+        }
+
+        result = apply_migration_scenario(
+            positive_migration_rates,
+            scenario,
+            year=2025,
+            base_year=2025,
+        )
+
+        # reduction_rate = 0 * (1-0.20) / 799358 = 0.0, so no change
+        pd.testing.assert_frame_equal(result, positive_migration_rates)
+
+    def test_additive_reduction_uniform_across_cells(
+        self, additive_scenario_config
+    ):
+        """Per-capita reduction rate should be the same for every cell.
+
+        Since migration rates are already per-capita, the additive decrement
+        applies uniformly. Total person-reduction scales with county population.
+        """
+        rates = pd.DataFrame(
+            {
+                "age": [20, 25, 30, 40, 50, 60, 70, 80],
+                "sex": ["Male", "Female"] * 4,
+                "race": ["White"] * 8,
+                "migration_rate": [0.08, 0.05, 0.02, 0.01, -0.01, -0.03, -0.05, -0.08],
+            }
+        )
+
+        result = apply_migration_scenario(
+            rates,
+            additive_scenario_config,
+            year=2025,
+            base_year=2025,
+        )
+
+        reductions = rates["migration_rate"] - result["migration_rate"]
+        # All reductions should be identical (uniform per-capita decrement)
+        assert reductions.std() < 1e-15, (
+            f"Reductions should be uniform but have std={reductions.std():.2e}"
+        )
+
+
+class TestTimeVaryingMigrationScenario:
+    """Tests for the time_varying (multiplicative) migration scenario.
+
+    Retained for backward compatibility. The time_varying type applies a
+    multiplicative effective_factor to migration rates, using intl_share
+    to isolate the international component (ADR-039).
+    """
+
+    @pytest.fixture
+    def time_varying_scenario(self):
+        """Time-varying scenario config with intl_share."""
+        return {
+            "type": "time_varying",
+            "schedule": {2025: 0.20, 2026: 0.50},
+            "default_factor": 1.0,
+            "intl_share": 0.91,
+        }
+
+    def test_time_varying_applies_multiplicative_factor(self, time_varying_scenario):
+        """Time-varying scenario multiplies rates by effective_factor."""
+        rates = pd.DataFrame(
+            {
+                "age": [25],
+                "sex": ["Male"],
+                "race": ["White"],
+                "migration_rate": [0.05],
+            }
+        )
+
+        result = apply_migration_scenario(
+            rates, time_varying_scenario, year=2025, base_year=2025
+        )
+
+        # effective_factor = 1 - 0.91 * (1 - 0.20) = 1 - 0.728 = 0.272
+        expected_factor = 1.0 - 0.91 * (1.0 - 0.20)
+        expected_rate = 0.05 * expected_factor
+
+        assert abs(result["migration_rate"].iloc[0] - expected_rate) < 1e-10
+
+    def test_time_varying_no_change_when_factor_1(self, time_varying_scenario):
+        """Time-varying with factor=1.0 should not change rates."""
+        rates = pd.DataFrame(
+            {
+                "age": [25],
+                "sex": ["Male"],
+                "race": ["White"],
+                "migration_rate": [0.05],
+            }
+        )
+
+        result = apply_migration_scenario(
+            rates, time_varying_scenario, year=2030, base_year=2025  # default_factor=1.0
+        )
+
+        pd.testing.assert_frame_equal(result, rates)
+
+
 class TestValidateMigrationData:
     """Tests for validate_migration_data function."""
 

@@ -12,6 +12,8 @@ Modules:
 from .base_population_loader import (
     load_base_population_for_all_counties,
     load_base_population_for_county,
+    load_county_age_sex_race_distribution,
+    load_county_distributions_file,
     load_state_age_sex_race_distribution,
 )
 from .census_age_sex_population import (
@@ -27,6 +29,9 @@ __all__ = [
     "load_base_population_for_county",
     "load_base_population_for_all_counties",
     "load_state_age_sex_race_distribution",
+    # County-specific distributions (ADR-047)
+    "load_county_age_sex_race_distribution",
+    "load_county_distributions_file",
     # Census/PEP population loaders
     "AGE_GROUP_LABELS",
     "load_census_2000_county_age_sex",

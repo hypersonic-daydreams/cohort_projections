@@ -1,13 +1,13 @@
 # ADR-049: College-Age Smoothing Propagation to Convergence Pipeline
 
 ## Status
-Proposed
+Accepted
 
 ## Date
 2026-02-18
 
 ## Last Reviewed
-2026-02-18
+2026-02-23
 
 ## Scope
 Ensure college-age migration rate smoothing is applied to convergence pipeline inputs, not only to averaged rates
@@ -148,15 +148,55 @@ Note: Ward County may benefit slightly because the smoothing also applies to out
 3. **Step 02**: Projections
 4. **Step 03**: Exports
 
+## Implementation Results (2026-02-23)
+
+### Changes Made
+
+| File | Change |
+|------|--------|
+| `cohort_projections/data/process/residual_migration.py` | Moved college-age smoothing to Step 5 of the pipeline, applied to each period's rates individually before combining and saving. Step 6b explicitly skips re-smoothing averaged rates to prevent double-smoothing. Updated module docstring and function docstring to document the corrected pipeline order. Fixed step numbering in all log messages and comments for consistency (Steps 1-7). Added ADR-049 explanatory comments at the smoothing step. |
+| `tests/test_data/test_residual_migration.py` | Added `TestCollegeAgeSmoothingPropagation` class with 5 tests: (1) period-level smoothing reduces extreme college-age rates, (2) non-college counties are unchanged, (3) averaged rates inherit period-level smoothing without a second pass, (4) double-smoothing over-corrects (verifies ADR-049 avoidance), (5) smoothed period rates propagate correctly to convergence input (the combined DataFrame that gets saved as `residual_migration_rates.parquet`). |
+
+### Verification
+
+- **Pipeline order confirmed**: College-age smoothing now executes at Step 5, before period rates are concatenated (Step 5b), averaged (Step 6), and saved (Step 7). The convergence pipeline reads `residual_migration_rates.parquet` which contains smoothed period-level rates.
+- **No double-smoothing**: Step 6b logs a skip message and does NOT re-apply smoothing to averaged rates. The `test_no_double_smoothing` test verifies that applying smoothing twice produces over-corrected rates that are strictly lower than single-application rates.
+- **Non-college counties unaffected**: Tests confirm that counties not in the college county list (`38017`, `38035`, `38101`, `38015`) have identical rates before and after smoothing.
+- **Convergence pipeline unchanged**: No changes were made to `convergence_interpolation.py`. It continues to read `residual_migration_rates.parquet` and now automatically receives smoothed rates.
+- **All 1,195 tests pass** (5 skipped for missing data files).
+
+### Revised Pipeline Order
+
+The `run_residual_migration_pipeline()` function now follows this step sequence:
+
+```
+Step 1:  Load population snapshots
+Step 2:  Load survival rates
+Step 3:  Compute residual migration per period (with oil-boom + male dampening)
+Step 4:  PEP recalibration for reservation counties (ADR-045)
+Step 5:  College-age smoothing on period-level rates (ADR-049)
+Step 5b: Combine all period rates into single DataFrame
+Step 6:  Average rates across periods
+Step 6b: Skip re-smoothing averaged rates (ADR-049: avoids double-smoothing)
+Step 7:  Save output files (period-level + averaged)
+```
+
+### Key Design Notes
+
+1. **Smoothing is per-period, per-county**: The `apply_college_age_adjustment()` function is called once per period, computing a fresh statewide average for that period and blending. This means each period's statewide average reflects only that period's data, which is the correct behavior (statewide averages vary across periods).
+2. **No config changes needed**: The existing `rates.migration.domestic.adjustments.college_age` config section already specifies the college counties, age groups, method, and blend factor. The fix only changes *when* in the pipeline this config is applied, not *what* is applied.
+3. **Averaged rates are implicitly smoothed**: Since averaging operates on already-smoothed period rates, the resulting averaged rates are also smoothed. This matches the pre-ADR-049 behavior for the averaged file, but now also extends to the period-level file.
+
 ## References
 
 1. **Sanity Check Finding**: Cass County +63% vs SDC +48%, identified as college-age smoothing gap
-2. **Residual Pipeline**: `cohort_projections/data/process/residual_migration.py`, lines 1077-1092
-3. **Convergence Pipeline**: `cohort_projections/data/process/convergence_interpolation.py`, line 447
+2. **Residual Pipeline**: `cohort_projections/data/process/residual_migration.py`, Step 5 (college-age smoothing)
+3. **Convergence Pipeline**: `cohort_projections/data/process/convergence_interpolation.py`, line 447 (reads `residual_migration_rates.parquet`)
 4. **SDC 2024 Projections**: `data/raw/nd_sdc_2024_projections/` — reference for expected growth ranges
 
 ## Revision History
 
+- **2026-02-23**: Accepted and implemented — moved college-age smoothing to period-level rates (Step 5), added 5 unit tests, updated docstrings and step numbering
 - **2026-02-18**: Initial version (ADR-049) — Fix college-age smoothing propagation to convergence pipeline
 
 ## Related ADRs

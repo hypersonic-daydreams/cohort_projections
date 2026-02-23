@@ -13,14 +13,14 @@ This project implements cohort component population projections for North Dakota
 
 | Metric | Status |
 |--------|--------|
-| **Overall Progress** | Production — post-QA fixes applied |
-| **Current Phase** | Post-QA Data Quality Improvements |
-| **Key Milestone** | Sanity check findings investigated and fixed (ADR-042 through ADR-046) |
+| **Overall Progress** | Production — all P0/P1/P2 fixes implemented |
+| **Current Phase** | Documentation & Calibration Refinements |
+| **Key Milestone** | All sanity check fixes complete (ADR-042 through ADR-050), documentation compliance achieved |
 | **Blocking Issue** | None |
 
-**What's Done:** Core projection engine (~1,600 lines), data processing pipeline (~4,500 lines), geographic module (~1,400 lines), output/reporting (~2,300 lines), pipeline scripts (~2,400 lines), 50 ADRs, documentation, comprehensive test suite (1,165 tests), complete data pipeline with validated data, **full state projection for all 53 counties (2025-2055)**, **all 3 scenarios (baseline, restricted_growth, high_growth) per ADR-037**, **exports to CSV/Excel**, **population pyramids and trend visualizations**, **summary statistics reports**, **sanity check review with 7 findings investigated and fixed**, **Census full-count race data replacing PUMS (ADR-044)**, **PEP-anchored reservation county migration (ADR-045)**, **BEBR-based high_growth scenario (ADR-046)**, **migration rate cap (ADR-043)**.
+**What's Done:** Core projection engine (~1,600 lines), data processing pipeline (~4,500 lines), geographic module (~1,400 lines), output/reporting (~2,300 lines), pipeline scripts (~2,400 lines), 50 ADRs, documentation, comprehensive test suite (1,257 tests), complete data pipeline with validated data, **full state projection for all 53 counties (2025-2055)**, **all 3 scenarios (baseline, restricted_growth, high_growth) per ADR-037**, **exports to CSV/Excel**, **population pyramids and trend visualizations**, **summary statistics reports**, **sanity check review with 7 findings investigated and fixed**, **Census full-count race data replacing PUMS (ADR-044)**, **PEP-anchored reservation county migration (ADR-045)**, **BEBR-based high_growth scenario (ADR-046)**, **migration rate cap (ADR-043)**, **additive restricted growth migration (ADR-050)**, **college-age smoothing propagation (ADR-049)**, **county-specific age-sex-race distributions (ADR-047)**, **Sprague single-year-of-age base population (ADR-048)**.
 
-**What's Missing:** Optional enhancements only (place-level projections, TIGER data integration).
+**What's Remaining:** 4 proposed ADRs (033, 036, 051, 052) are calibration refinements. Optional enhancements (place-level projections, TIGER data integration).
 
 ---
 
@@ -284,6 +284,30 @@ Tasks for current phase. States: `[ ]` pending | `[x]` complete
 ---
 
 ## Session Log
+
+### 2026-02-23 - Demographic Data Quality & Documentation Compliance
+
+**Duration:** Extended session
+**Focus:** ADR implementation (047-050), data pipeline fixes, documentation compliance
+
+**Accomplishments:**
+
+**ADRs Implemented:**
+
+- **ADR-050: Restricted Growth Additive Migration** — Fixed scenario ordering violation where 39/53 counties had restricted > baseline. Switched from multiplicative to additive per-capita reduction. 13 new tests.
+- **ADR-049: College-Age Smoothing Propagation** — Fixed pipeline ordering so convergence reads smoothed rates. Updated docstrings and step numbering. 5 new tests.
+- **ADR-047: County-Specific Age-Sex-Race Distributions** — Exported loader functions, validated county distributions with reservation county spot checks. 42 new tests.
+- **ADR-048: Single-Year-of-Age Base Population** — Implemented Sprague osculatory interpolation (UN standard) replacing uniform 5-year splitting. 20 new tests.
+
+**Documentation Compliance:**
+- Created `data/raw/population/DATA_SOURCE_NOTES.md` (8 files documented)
+- Updated `build_race_distribution_from_census.py` with full SOP-002 9-element docstring
+- Updated migration `DATA_SOURCE_NOTES.md` for PEP primary source
+- All 4 ADRs updated: status set to Accepted, Implementation Results added
+
+**Test Suite:** 1,257 tests passing (up from 1,184), 80 new tests added
+
+**Status:** All P0/P1/P2 fixes implemented. 4 remaining proposed ADRs (033, 036, 051, 052) are calibration refinements.
 
 ### 2026-02-18 - Projection Sanity Check, Investigation, and Fixes
 
@@ -630,7 +654,7 @@ Tasks for current phase. States: `[ ]` pending | `[x]` complete
 - All 53 counties have population data
 - Fertility, mortality, and migration rates processed
 - 34 validation checks passing
-- 1,165 unit tests passing
+- 1,257 unit tests passing
 - Integration test successful (Cass County)
 
 **Phase 3: Projections** - COMPLETE (100%)
@@ -684,7 +708,7 @@ python scripts/projections/run_all_projections.py
 | `data/raw/` | Input data files |
 | `data/processed/` | Processed data |
 | `data/output/` | Projection results |
-| `tests/` | Test suite (1,165 tests) |
+| `tests/` | Test suite (1,257 tests) |
 
 ### Key Documentation
 
@@ -730,5 +754,5 @@ python scripts/projections/run_all_projections.py
 - Drafted ADR-024 for immigration data extension and fusion strategy.
 - Location: `docs/governance/adrs/024-immigration-data-extension-fusion.md`.
 
-**Last Updated:** 2026-02-18
-**Tracker Status:** 30-year horizon (2025-2055), Census V2025 data, ADR-037 CBO-grounded scenarios, ADR-039 through ADR-046 methodology and data quality fixes, sanity check findings investigated and fixed, 1,165 tests passing
+**Last Updated:** 2026-02-23
+**Tracker Status:** 30-year horizon (2025-2055), Census V2025 data, ADR-037 CBO-grounded scenarios, ADR-039 through ADR-050 methodology and data quality fixes, all P0/P1/P2 sanity check fixes complete, 1,257 tests passing

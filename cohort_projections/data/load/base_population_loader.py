@@ -19,12 +19,14 @@ Where:
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from cohort_projections.utils import (
     ConfigLoader,
     get_logger_from_config,
 )
+from cohort_projections.utils.demographic_utils import sprague_graduate
 
 logger = get_logger_from_config(__name__)
 
@@ -356,6 +358,145 @@ def _build_statewide_single_year_weights(
     return weights_by_group
 
 
+# Ordered list of 5-year age group labels matching AGE_GROUP_RANGES order
+_ORDERED_AGE_GROUPS: list[str] = [
+    "0-4", "5-9", "10-14", "15-19", "20-24", "25-29",
+    "30-34", "35-39", "40-44", "45-49", "50-54", "55-59",
+    "60-64", "65-69", "70-74", "75-79", "80-84", "85+",
+]
+
+
+def _expand_county_with_sprague(
+    county_data: pd.DataFrame,
+) -> list[dict[str, str | int | float]]:
+    """
+    Expand county 5-year age group proportions to single-year ages using
+    Sprague osculatory interpolation (ADR-048).
+
+    For each sex-race combination, the 18 five-year group proportions are
+    passed through the Sprague graduate function to produce smooth single-
+    year values. The 85+ terminal group is expanded to ages 85-90 (where
+    90 is the open-ended 90+ group), producing 6 single-year values from
+    the Sprague output for the last group.
+
+    Sprague interpolation preserves each 5-year group's total proportion
+    while producing smooth transitions between groups. Negative values
+    (possible at extreme ages for very small populations) are clamped to
+    zero and the group total is renormalized.
+
+    Args:
+        county_data: DataFrame with columns [age_group, sex, race,
+            proportion] for a single county. Must contain all 18 standard
+            age groups for each sex-race combination.
+
+    Returns:
+        List of dicts with keys [age, sex, race, proportion], one per
+        single-year-of-age cohort.
+    """
+    expanded_rows: list[dict[str, str | int | float]] = []
+
+    # Get unique sex-race combinations
+    for sex in county_data["sex"].unique():
+        for race in county_data["race"].unique():
+            mask = (county_data["sex"] == sex) & (county_data["race"] == race)
+            subset = county_data[mask]
+
+            if subset.empty:
+                continue
+
+            # Build ordered vector of 5-year group proportions
+            group_props: dict[str, float] = {}
+            for _, row in subset.iterrows():
+                group_props[row["age_group"]] = float(row["proportion"])
+
+            # Create ordered array (18 groups: 0-4 through 85+)
+            # The first 17 groups have 5 years each; the last (85+)
+            # has 6 years (85-90) in the engine's age scheme.
+            prop_vector = np.array(
+                [group_props.get(g, 0.0) for g in _ORDERED_AGE_GROUPS]
+            )
+
+            total_prop = prop_vector.sum()
+            if total_prop == 0:
+                # All zeros for this sex-race: create zero single-year entries
+                for age in range(91):
+                    expanded_rows.append({
+                        "age": age,
+                        "sex": sex.title(),
+                        "race": race,
+                        "proportion": 0.0,
+                    })
+                continue
+
+            # Apply Sprague interpolation to all 18 groups
+            # This produces 90 single-year values (18 groups x 5 years)
+            single_year_values = sprague_graduate(prop_vector, clamp_negatives=True)
+
+            # Map the 90 Sprague outputs to ages 0-89
+            # Ages 0-84: first 17 groups x 5 years = 85 values (indices 0-84)
+            # Age 85-89: group 18 (85+) gives 5 values from Sprague
+            # Age 90: need to account for the open-ended 90+ group
+            #
+            # The 85+ group in the Sprague output gives 5 values for ages
+            # 85-89. Age 90 (open-ended) is not directly produced. We
+            # redistribute the 85+ total among ages 85-90 using the Sprague
+            # shape for 85-89 plus an exponential tail for 90.
+            terminal_total = prop_vector[17]  # 85+ group total
+            sprague_85_89 = single_year_values[85:90]  # 5 values from Sprague
+            sprague_85_89_sum = sprague_85_89.sum()
+
+            # Compute the 90+ residual using exponential decay
+            # Assume the ratio of 90+ to 85-89 follows the pattern from
+            # the statewide terminal age distribution (survival ~0.7/year)
+            survival_factor = 0.7
+            # Weight for 90+: geometric tail s^5 / (1-s) relative to s^0..s^4
+            tail_weight = survival_factor ** 5 / (1.0 - survival_factor)
+            base_weights = np.array([survival_factor ** i for i in range(5)])
+            total_weight = base_weights.sum() + tail_weight
+
+            # Fraction of 85+ that should go to 90+
+            frac_90_plus = tail_weight / total_weight
+
+            if sprague_85_89_sum > 0 and terminal_total > 0:
+                # Use Sprague shape for 85-89, reserve fraction for 90+
+                age_90_prop = terminal_total * frac_90_plus
+                ages_85_89_prop = terminal_total - age_90_prop
+
+                # Scale Sprague 85-89 values to match the 85-89 portion
+                scale = ages_85_89_prop / sprague_85_89_sum
+                adjusted_85_89 = sprague_85_89 * scale
+            else:
+                # Fallback: uniform across 85-90
+                adjusted_85_89 = np.full(5, terminal_total / 6.0)
+                age_90_prop = terminal_total / 6.0
+
+            # Build output: ages 0-84 from Sprague, 85-89 adjusted, 90 from tail
+            for age in range(85):
+                expanded_rows.append({
+                    "age": age,
+                    "sex": sex.title(),
+                    "race": race,
+                    "proportion": float(single_year_values[age]),
+                })
+
+            for i, age in enumerate(range(85, 90)):
+                expanded_rows.append({
+                    "age": age,
+                    "sex": sex.title(),
+                    "race": race,
+                    "proportion": float(adjusted_85_89[i]),
+                })
+
+            expanded_rows.append({
+                "age": 90,
+                "sex": sex.title(),
+                "race": race,
+                "proportion": float(age_90_prop),
+            })
+
+    return expanded_rows
+
+
 def load_county_age_sex_race_distribution(
     fips: str,
     county_distributions_df: pd.DataFrame | None = None,
@@ -363,19 +504,28 @@ def load_county_age_sex_race_distribution(
     state_distribution: pd.DataFrame | None = None,
 ) -> pd.DataFrame | None:
     """
-    Load county-specific age-sex-race distribution (ADR-047).
+    Load county-specific age-sex-race distribution (ADR-047, ADR-048).
 
     Reads the county-specific distribution from the pre-built Parquet file
     and expands 5-year age groups to single-year ages, matching the format
     returned by ``load_state_age_sex_race_distribution()``.
 
-    When ``base_population.age_resolution`` is ``"single_year"`` (ADR-048),
-    the 5-year county groups are expanded using the statewide single-year
-    pattern as interpolation weights (Sprague-like). This produces smooth
-    within-group age profiles instead of uniform staircases.
+    Three interpolation modes are available (controlled by config):
 
-    When ``age_resolution`` is ``"five_year_uniform"`` (legacy), each 5-year
-    group proportion is divided equally across single years.
+    - ``"sprague"`` (ADR-048 default): Sprague osculatory interpolation,
+      the UN Population Division / Census Bureau standard. Produces the
+      smoothest results with guaranteed group-total preservation.
+    - ``"statewide_weights"``: Uses the statewide SC-EST single-year
+      pattern as within-group weights. Produces smooth results that
+      mirror the state-level age profile within each group.
+    - ``"five_year_uniform"`` (legacy): Divides each 5-year group evenly
+      across single years, creating staircase artifacts.
+
+    The interpolation method is selected by
+    ``base_population.county_race_interpolation`` when ``age_resolution``
+    is ``"single_year"``. When ``age_resolution`` is
+    ``"five_year_uniform"``, uniform splitting is always used regardless
+    of the interpolation setting.
 
     Args:
         fips: 5-digit county FIPS code (e.g., "38017" for Cass County)
@@ -384,7 +534,7 @@ def load_county_age_sex_race_distribution(
             If None, the file is read from disk.
         config: Optional configuration dictionary
         state_distribution: Optional pre-loaded statewide distribution (for
-            single-year interpolation weights). If None and needed, it is
+            statewide_weights interpolation). If None and needed, it is
             loaded from disk.
 
     Returns:
@@ -405,6 +555,7 @@ def load_county_age_sex_race_distribution(
         return None
 
     age_resolution = base_pop_config.get("age_resolution", "single_year")
+    county_interp = base_pop_config.get("county_race_interpolation", "sprague")
 
     fips = str(fips).zfill(5)
 
@@ -438,39 +589,48 @@ def load_county_age_sex_race_distribution(
 
     logger.debug(f"Found {len(county_data)} distribution rows for FIPS {fips}")
 
-    # Build statewide single-year weights if using single_year resolution
-    sy_weights: dict[tuple[str, str, str], dict[int, float]] | None = None
-    if age_resolution == "single_year":
+    # Map race codes before expansion so Sprague sees standard names
+    county_data = county_data.copy()
+    county_data["race"] = county_data["race"].map(
+        lambda r: RACE_CODE_MAP.get(r, r)
+    )
+
+    # Determine expansion method
+    use_sprague = (
+        age_resolution == "single_year" and county_interp == "sprague"
+    )
+    use_statewide_weights = (
+        age_resolution == "single_year" and county_interp == "statewide_weights"
+    )
+
+    if use_sprague:
+        # ADR-048: Sprague osculatory interpolation
+        logger.debug(f"Expanding county {fips} with Sprague interpolation")
+        expanded_rows = _expand_county_with_sprague(county_data)
+        expanded_df = pd.DataFrame(expanded_rows)
+    elif use_statewide_weights:
+        # ADR-048 fallback: statewide single-year weights
+        logger.debug(f"Expanding county {fips} with statewide weights")
+        sy_weights: dict[tuple[str, str, str], dict[int, float]] | None = None
         if state_distribution is not None:
             sy_weights = _build_statewide_single_year_weights(state_distribution)
         else:
-            # Load statewide distribution to get weights
             loaded_state = load_state_age_sex_race_distribution(config=config)
             sy_weights = _build_statewide_single_year_weights(loaded_state)
 
-    # Expand age groups to single-year ages
-    expanded_rows: list[dict[str, str | int | float]] = []
-    for _, row in county_data.iterrows():
-        age_group = row["age_group"]
-        sex = row["sex"].title()  # Capitalize: "male" -> "Male"
+        expanded_rows_list: list[dict[str, str | int | float]] = []
+        for _, row in county_data.iterrows():
+            age_group = row["age_group"]
+            sex = row["sex"].title()
+            race = row["race"]
 
-        # Map race code to standard category
-        race_code = row["race"]
-        race = RACE_CODE_MAP.get(race_code, race_code)
-
-        # Get single-year ages for this group
-        if age_group in AGE_GROUP_RANGES:
-            ages = AGE_GROUP_RANGES[age_group]
-
-            if sy_weights is not None:
-                # ADR-048: Use statewide single-year pattern as weights
+            if age_group in AGE_GROUP_RANGES:
+                ages = AGE_GROUP_RANGES[age_group]
                 weight_key = (age_group, sex, race)
-                group_weights = sy_weights.get(weight_key)
+                group_weights = sy_weights.get(weight_key) if sy_weights else None
 
                 if group_weights is not None and sum(group_weights.values()) > 0:
-                    # Distribute county 5-year proportion using statewide
-                    # single-year pattern within this group
-                    expanded_rows.extend(
+                    expanded_rows_list.extend(
                         {
                             "age": age,
                             "sex": sex,
@@ -480,9 +640,8 @@ def load_county_age_sex_race_distribution(
                         for age in ages
                     )
                 else:
-                    # Fallback: uniform if no statewide weights available
                     proportion_per_year = row["proportion"] / len(ages)
-                    expanded_rows.extend(
+                    expanded_rows_list.extend(
                         {
                             "age": age,
                             "sex": sex,
@@ -492,9 +651,22 @@ def load_county_age_sex_race_distribution(
                         for age in ages
                     )
             else:
-                # Legacy: uniform distribution across single years
+                logger.warning(f"Unknown age group: {age_group}")
+
+        expanded_df = pd.DataFrame(expanded_rows_list)
+    else:
+        # Legacy: uniform distribution across single years
+        logger.debug(f"Expanding county {fips} with uniform splitting")
+        expanded_rows_list = []
+        for _, row in county_data.iterrows():
+            age_group = row["age_group"]
+            sex = row["sex"].title()
+            race = row["race"]
+
+            if age_group in AGE_GROUP_RANGES:
+                ages = AGE_GROUP_RANGES[age_group]
                 proportion_per_year = row["proportion"] / len(ages)
-                expanded_rows.extend(
+                expanded_rows_list.extend(
                     {
                         "age": age,
                         "sex": sex,
@@ -503,10 +675,10 @@ def load_county_age_sex_race_distribution(
                     }
                     for age in ages
                 )
-        else:
-            logger.warning(f"Unknown age group: {age_group}")
+            else:
+                logger.warning(f"Unknown age group: {age_group}")
 
-    expanded_df = pd.DataFrame(expanded_rows)
+        expanded_df = pd.DataFrame(expanded_rows_list)
 
     # Aggregate duplicate cohorts (e.g., NHPI + Asian -> Asian/PI)
     distribution = expanded_df.groupby(["age", "sex", "race"], as_index=False).agg(

@@ -1,13 +1,13 @@
 # ADR-047: County-Specific Age-Sex-Race Distributions
 
 ## Status
-Proposed
+Accepted
 
 ## Date
 2026-02-18
 
 ## Last Reviewed
-2026-02-18
+2026-02-23
 
 ## Scope
 Replace statewide age-sex-race distribution with county-specific distributions for base population construction
@@ -59,7 +59,7 @@ However, this is not worse than the current situation. Small counties currently 
 
 ### Build County-Specific Distributions from cc-est2024-alldata with Population-Weighted Blending
 
-**1. New data artifact**: A file `data/processed/county_age_sex_race_distributions.parquet` with columns `[county_fips, age_group, sex, race_ethnicity, estimated_count, proportion]` — one distribution per county (53 counties × 216 cells = 11,448 rows).
+**1. New data artifact**: A file `data/processed/county_age_sex_race_distributions.parquet` with columns `[fips, age_group, sex, race, proportion]` — one distribution per county (53 counties x 216 cells = 11,448 rows).
 
 **2. Blending for small counties**: For counties below a population threshold (5,000), blend the county-specific distribution with the statewide distribution using a population-proportional weight:
 
@@ -90,10 +90,10 @@ base_population:
   county_distributions:
     enabled: true
     path: "data/processed/county_age_sex_race_distributions.parquet"
-    blending:
-      enabled: true
-      threshold: 5000  # population below which blending is applied
+    blend_threshold: 5000  # counties below this pop blend with statewide
 ```
+
+Note: Blending is applied during data generation (in `build_race_distribution_from_census.py`), not at load time. The `blend_threshold` parameter controls the ingestion script's blending behavior. The generated Parquet file already contains blended proportions for small counties.
 
 ### Why Not Per-County Without Blending?
 
@@ -151,6 +151,54 @@ The most significant improvements will be in:
 4. **Step 02**: Projections (loads new county-specific base populations)
 5. **Step 03**: Exports
 
+## Implementation Results
+
+### Summary
+
+All components specified in the Decision section have been implemented and tested. The county-specific age-sex-race distribution system is fully operational, with `county_distributions.enabled: true` in the production config.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `scripts/data/build_race_distribution_from_census.py` | Added `build_county_distributions()` function (lines 603-726) that processes cc-est2024-alldata per-county, applies population-weighted blending for counties below the threshold, and outputs a Parquet file. Added `validate_county_distributions()` (lines 729-821) with structural checks, proportion-sum validation, reservation county spot checks, and distribution divergence analysis. Updated `main()` to call county generation by default (skippable with `--skip-county`). |
+| `cohort_projections/data/load/base_population_loader.py` | Added `load_county_age_sex_race_distribution()` (lines 359-568) that reads a county's distribution from the Parquet file, expands 5-year age groups to single-year ages (using statewide single-year pattern as interpolation weights when `age_resolution=single_year`), maps race codes to standard categories, and fills missing cohorts. Added `load_county_distributions_file()` (lines 571-606) for efficient batch loading. Added `_build_statewide_single_year_weights()` (lines 295-356) for single-year interpolation within 5-year county groups. Modified `load_base_population_for_county()` to try county-specific distribution first, falling back to statewide. Modified `load_base_population_for_all_counties()` to load the county Parquet once and pass it to each per-county call. |
+| `cohort_projections/data/load/__init__.py` | Added exports for `load_county_age_sex_race_distribution` and `load_county_distributions_file`. |
+| `config/projection_config.yaml` | Added `base_population.county_distributions` block with `enabled: true`, `path`, and `blend_threshold: 5000`. |
+| `data/processed/county_age_sex_race_distributions.parquet` | New generated artifact: 11,448 rows (53 counties x 216 cells). |
+| `tests/test_data/test_county_race_distributions.py` | New test file with 42 tests covering ingestion, validation, loader, integration, and blending behavior. |
+
+### Test Results
+
+42 new tests added across 5 test classes, all passing:
+
+- **TestBuildCountyDistributions** (12 tests): Output shape, proportion sums, no negatives/NaNs, FIPS format, columns, blending behavior (large vs small counties), zero-threshold bypass, completeness of age groups/races/sexes.
+- **TestValidateCountyDistributions** (3 tests): Valid distribution passes, missing rows detected, NaN proportions detected.
+- **TestLoadCountyDistribution** (10 tests): Returns None when disabled/missing, correct output format (columns, proportion sums, age range 0-90, Title case sex, mapped race codes, complete cohort grid).
+- **TestCountyDistributionsIntegration** (10 tests): 53 counties present, 11,448 total rows, 216 rows per county, proportions sum to 1.0, no negatives/NaNs, reservation county AIAN proportions (Sioux >50%, Rolette >60%, Benson >30%), Cass white >75%, distributions differ between counties, reservation-vs-urban divergence >40pp.
+- **TestBlendingBehavior** (3 tests): Alpha formula correctness, blending moves small counties toward statewide, large counties unaffected by blending.
+
+Full test suite (1,237 tests) passes with no regressions.
+
+### Observed Data Quality
+
+From the generated `county_age_sex_race_distributions.parquet`:
+
+| County | AIAN Proportion | White Proportion | Notes |
+|--------|:--------------:|:---------------:|-------|
+| Sioux (38085) | 59.3% | blended | Pop 3,713 < 5,000 threshold; blended with statewide |
+| Rolette (38079) | >60% | — | Pop 11,692 > threshold; unblended |
+| Benson (38005) | >30% | — | Pop 5,756 near threshold; minimal blending |
+| Cass (38017) | ~2% | 80.8% | Pop ~200k; unblended urban distribution |
+
+All 53 counties have proportions summing to exactly 1.0 (within 1e-6 tolerance). No negative or NaN proportions. Median mean-absolute-deviation from the average distribution is 0.000856, confirming distributions are non-identical across counties.
+
+### Backward Compatibility
+
+- The statewide distribution file (`nd_age_sex_race_distribution.csv`) and `load_state_age_sex_race_distribution()` function are preserved and unchanged.
+- Setting `county_distributions.enabled: false` in config causes the loader to fall back to statewide distribution for all counties (tested).
+- The output schema (`year, age, sex, race, population`) from `load_base_population_for_county()` is unchanged; all downstream code works unmodified.
+
 ## References
 
 1. **Census Bureau CC-EST2024-ALLDATA**: County Characteristics Resident Population Estimates by Age, Sex, Race, and Hispanic Origin. Vintage 2024.
@@ -161,6 +209,7 @@ The most significant improvements will be in:
 
 ## Revision History
 
+- **2026-02-23**: Status changed to Accepted; added Implementation Results section with test coverage (42 tests), data quality observations, and backward compatibility notes
 - **2026-02-18**: Initial version (ADR-047) — County-specific distributions from cc-est2024-alldata
 
 ## Related ADRs
