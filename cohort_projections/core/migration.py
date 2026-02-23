@@ -126,7 +126,11 @@ def apply_migration(
 
 
 def apply_migration_scenario(
-    migration_rates: pd.DataFrame, scenario: str | dict, year: int, base_year: int
+    migration_rates: pd.DataFrame,
+    scenario: str | dict,
+    year: int,
+    base_year: int,
+    county_population: float | None = None,
 ) -> pd.DataFrame:
     """
     Apply migration scenario adjustments to base migration data.
@@ -142,13 +146,31 @@ def apply_migration_scenario(
     When ``intl_share`` is not provided, it defaults to 1.0 (entire rate
     treated as international), preserving backward compatibility.
 
+    For additive reduction scenarios (type='additive_reduction', ADR-050),
+    a per-capita rate decrement is subtracted from all cells. This avoids
+    the sign-interaction bug where a multiplicative factor on net-negative
+    migration rates produces ordering violations (restricted > baseline).
+    The formula:
+
+        reduction_rate = ref_intl * (1 - factor) / ref_pop
+        adjusted_rate = base_rate - reduction_rate
+
+    Since migration rates are already per-capita, the same reduction_rate
+    applies uniformly to every cell. The total person-reduction for a county
+    is proportional to its population (reduction_rate * county_pop).
+    This guarantees ``restricted <= baseline`` for all counties regardless
+    of the sign of the base migration rate.
+
     Args:
         migration_rates: Base migration rates or amounts
         scenario: Scenario name ('recent_average', '+25_percent', '-25_percent', 'zero')
-                  or dict with type='time_varying', schedule, default_factor,
-                  and intl_share (ADR-037, ADR-040)
+                  or dict with type='time_varying'/'additive_reduction', schedule,
+                  default_factor, and type-specific parameters (ADR-037, ADR-040, ADR-050)
         year: Current projection year
         base_year: Base year for projection
+        county_population: Total population for the county being projected.
+                          Retained for backward compatibility but not used by
+                          the additive_reduction type (rates are per-capita).
 
     Returns:
         Adjusted migration rates
@@ -187,6 +209,31 @@ def apply_migration_scenario(
             )
         return adjusted_rates
 
+    # Handle additive reduction scenario (ADR-050)
+    # Subtracts a per-capita rate decrement from all cells, guaranteeing
+    # restricted <= baseline regardless of the sign of the base rate.
+    if isinstance(scenario, dict) and scenario.get("type") == "additive_reduction":
+        schedule = scenario.get("schedule", {})
+        default_factor = scenario.get("default_factor", 1.0)
+        factor = schedule.get(year, default_factor)
+        if factor < 1.0:
+            ref_intl = scenario.get("reference_intl_migration", 0)
+            ref_pop = scenario.get("reference_population", 1)
+            annual_reduction = ref_intl * (1.0 - factor)  # persons/year not arriving
+            reduction_rate = annual_reduction / ref_pop  # per-capita rate decrement
+
+            # Since rates are already per-capita, apply the same decrement to
+            # every cell. Total person-reduction scales with county population.
+            adjusted_rates[migration_col] = (
+                adjusted_rates[migration_col] - reduction_rate
+            )
+            logger.info(
+                f"Year {year}: Additive migration reduction — factor={factor:.2f}, "
+                f"annual_reduction={annual_reduction:,.0f} persons, "
+                f"reduction_rate={reduction_rate:.6f}"
+            )
+        return adjusted_rates
+
     if scenario == "recent_average" or scenario == "constant":
         # No change - use base migration
         pass
@@ -196,9 +243,6 @@ def apply_migration_scenario(
 
     elif scenario == "-25_percent":
         adjusted_rates[migration_col] = adjusted_rates[migration_col] * 0.75
-
-    elif scenario == "+15_percent":
-        adjusted_rates[migration_col] = adjusted_rates[migration_col] * 1.15
 
     elif scenario == "-15_percent":
         adjusted_rates[migration_col] = adjusted_rates[migration_col] * 0.85

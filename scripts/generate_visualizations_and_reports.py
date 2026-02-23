@@ -5,7 +5,7 @@ Generate population visualizations and summary reports from projection data.
 This script:
 1. Aggregates county projections to state level
 2. Generates population pyramids for key years (2025, 2035, 2045)
-3. Generates trend charts comparing all three scenarios
+3. Generates trend charts comparing active scenarios
 4. Generates summary statistics reports (HTML and Markdown)
 
 Usage:
@@ -41,7 +41,7 @@ def load_scenario_data(scenario_name: str, base_path: Path) -> pd.DataFrame:
     Load and aggregate all county projection files for a scenario to state level.
 
     Args:
-        scenario_name: Name of the scenario (baseline, high_growth, low_growth)
+        scenario_name: Name of the scenario (baseline, restricted_growth)
         base_path: Base path to projections directory
 
     Returns:
@@ -97,11 +97,10 @@ def main() -> None:
     viz_output_path.mkdir(parents=True, exist_ok=True)
     reports_output_path.mkdir(parents=True, exist_ok=True)
 
-    scenarios = ["baseline", "high_growth", "low_growth"]
+    scenarios = ["baseline", "restricted_growth"]
     scenario_display_names = {
         "baseline": "Baseline",
-        "high_growth": "High Growth",
-        "low_growth": "Low Growth",
+        "restricted_growth": "Restricted Growth",
     }
 
     # Load all scenario data

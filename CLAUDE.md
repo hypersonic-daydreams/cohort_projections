@@ -63,6 +63,9 @@ git add . && git commit -m "..."
 - **ALWAYS** activate virtual environment
 - **ALWAYS** run tests before committing
 - **ALWAYS** run bisync before switching computers
+- **ALWAYS** include full metadata docstrings in data processing scripts ([SOP-002](./docs/governance/sops/SOP-002-data-processing-documentation.md))
+- **ALWAYS** update `DATA_SOURCE_NOTES.md` when adding files to `data/raw/`
+- **ALWAYS** update ADR status and add Implementation Results when work is complete
 
 **Complete rules and workflow:** [AGENTS.md](./AGENTS.md)
 
@@ -82,6 +85,6 @@ git add . && git commit -m "..."
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-02-02 |
-| **Version** | 2.2.0 |
+| **Last Updated** | 2026-02-23 |
+| **Version** | 2.3.0 |
 | **Note** | Quick-reference wrapper for Claude Code. See AGENTS.md for complete guidance. |

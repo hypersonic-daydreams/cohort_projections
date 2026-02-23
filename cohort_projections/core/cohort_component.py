@@ -256,8 +256,14 @@ class CohortComponentProjection:
 
                 # Apply migration scenario
                 migration_scenario = scenario_config.get("migration", "recent_average")
+                # Pass county population for additive_reduction scaling (ADR-050)
+                county_pop = population["population"].sum()
                 migration_rates = apply_migration_scenario(
-                    migration_rates, migration_scenario, year, self.base_year
+                    migration_rates,
+                    migration_scenario,
+                    year,
+                    self.base_year,
+                    county_population=county_pop,
                 )
 
         # Step 1: Apply survival (aging + mortality)

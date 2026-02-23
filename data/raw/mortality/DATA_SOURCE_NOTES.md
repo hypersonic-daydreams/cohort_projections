@@ -3,8 +3,11 @@
 ## Overview
 
 This directory contains life table data from the CDC National Center for Health Statistics (NCHS)
-for use in the cohort projections mortality module. National U.S. life tables are used as proxies
-for North Dakota, as state-specific life tables by race/ethnicity are not available.
+for use in the cohort projections mortality module. As of ADR-053 (implemented 2026-02-23),
+the project uses an **ND/national ratio method**: national race-specific life tables (NVSR 74-06,
+2023 data) are adjusted by the ratio of ND-to-national qx from state life tables (NVSR 74-12,
+2022 data). This preserves race differentials from national data while calibrating overall
+mortality to ND's actual level.
 
 ## Data Source
 
@@ -47,6 +50,60 @@ for North Dakota, as state-specific life tables by race/ethnicity are not availa
 ### Combined Processed File
 
 **cdc_lifetables_2023_combined.csv** - Unified CSV combining all 2023 sex-specific life tables
+
+### 2022 ND State Life Tables (NVSR 74-12) — Added 2026-02-23
+
+Downloaded from: https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/NVSR/74-12/
+
+| File | Description | Published e0 |
+|------|-------------|-------------|
+| nd_lifetable_2022_ND1.xlsx | ND total (both sexes) | 77.93 |
+| nd_lifetable_2022_ND2.xlsx | ND males | 75.37 |
+| nd_lifetable_2022_ND3.xlsx | ND females | 80.76 |
+| nd_lifetable_2022_ND4.xlsx | ND standard errors | — |
+
+**Format:** 3 header rows (title + column names), then data rows for ages
+"0–1", "1–2", ..., "99–100", "100 and over". Columns: age_label, qx, lx, dx, Lx, Tx, ex.
+
+**Important note on ND mortality level:** ND life expectancy is approximately
+0.5 years **above** the national average, not below as initially assumed in the
+ADR-053 proposal. This reflects ND's predominantly rural, White population
+composition. The AIAN population (~5.3%) has dramatically lower life expectancy
+(~55-62 years), but this is not visible in the aggregate ND tables.
+
+### 2022 National Life Tables (for ND Ratio Computation)
+
+Used as the denominator when computing the ND/national qx ratio:
+
+| File | Description |
+|------|-------------|
+| us_lifetable_male_2022.xlsx | National males, 2022 |
+| us_lifetable_female_2022.xlsx | National females, 2022 |
+| us_lifetable_total_2022.xlsx | National total, 2022 |
+
+These are from NVSR 74-02. Same Excel format as the ND tables.
+
+### ND Adjustment Processing
+
+**Script:** `scripts/data/build_nd_survival_rates.py`
+
+**Method:**
+```
+ratio[age, sex] = ND_qx_2022[age, sex] / National_qx_2022[age, sex]
+ND_qx[age, sex, race] = National_qx_2023[age, sex, race] × ratio[age, sex]
+survival_rate = 1 - ND_qx
+```
+
+**Ratio statistics (2026-02-23):**
+- Male: mean=0.9370 (ND mortality ~6% lower than national on average)
+- Female: mean=0.9372
+- Ratio capped at [0.5, 2.0] to prevent extreme adjustments at volatile ages
+
+**Output:** Overwrites `data/processed/survival_rates.parquet` with ND-adjusted values.
+
+**Known limitation:** The aggregate ratio is dominated by the White majority.
+AIAN-specific mortality adjustment is minimal with this method. A future enhancement
+would compute an AIAN-specific ratio from CDC WONDER ND AIAN death counts.
 
 ## Column Definitions
 
@@ -137,8 +194,12 @@ survival_rates = pd.DataFrame({
 
 ### State-Level Life Tables
 - CDC publishes state life tables periodically
-- 2020 and 2022 state tables available but limited race/ethnicity detail
-- URL: https://www.cdc.gov/nchs/data/nvsr/nvsr71/nvsr71-02.pdf (2020)
+- **2022 ND state tables now in use** (see NVSR 74-12 section above) — provides ND-specific
+  mortality by age×sex, used for the ND/national ratio adjustment per ADR-053
+- 2020 state tables also available (NVSR 71-02) but rejected in favor of 2022 because
+  2020 data is distorted by COVID-19 pandemic mortality
+- URL (2020): https://www.cdc.gov/nchs/data/nvsr/nvsr71/nvsr71-02.pdf
+- URL (2022): https://www.cdc.gov/nchs/data/nvsr/nvsr74/nvsr74-12.pdf
 
 ## Preprocessing Requirements
 
@@ -150,18 +211,27 @@ For use in the projection engine, the combined CSV should be processed to:
 4. Handle ages 90+ as open-ended group per ADR-002
 5. Create missing race categories (NHPI, Two or More) using proxies
 
-## Citation
+## Citations
 
 National Center for Health Statistics. United States Life Tables, 2023.
 National Vital Statistics Reports; vol 74 no 6. Hyattsville, MD:
 National Center for Health Statistics. 2025. Available from:
 https://www.cdc.gov/nchs/data/nvsr/nvsr74/nvsr74-06.pdf
 
-## Download Date
+National Center for Health Statistics. United States State Life Tables, 2022.
+National Vital Statistics Reports; vol 74 no 12. Hyattsville, MD:
+National Center for Health Statistics. 2025. Available from:
+https://www.cdc.gov/nchs/data/nvsr/nvsr74/nvsr74-12.pdf
 
-2025-12-28
+## Download Dates
+
+- National 2023 life tables (NVSR 74-06): 2025-12-28
+- National 2022 life tables (NVSR 74-02): 2026-02-23
+- ND 2022 state life tables (NVSR 74-12): 2026-02-23
 
 ## Related Documentation
 
 - ADR-002: Survival Rate Processing Methodology (`/docs/adr/002-survival-rate-processing.md`)
+- ADR-053: ND-Specific Fertility and Mortality Rates (`/docs/governance/adrs/053-nd-specific-vital-rates.md`)
 - Mortality Module: `/cohort_projections/core/mortality.py`
+- ND Adjustment Script: `/scripts/data/build_nd_survival_rates.py`

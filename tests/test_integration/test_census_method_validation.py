@@ -108,17 +108,17 @@ class TestConvergenceCorrectness:
             return json.load(f)
 
     def test_convergence_has_expected_shape(self, convergence_df: pd.DataFrame):
-        """Convergence output has 38,160 rows (53 counties x 20 years x 36 cells)."""
-        assert len(convergence_df) == 38_160
+        """Convergence output has 57,240 rows (53 counties x 30 years x 36 cells)."""
+        assert len(convergence_df) == 57_240
 
     def test_convergence_has_expected_columns(self, convergence_df: pd.DataFrame):
         """Columns match the documented schema."""
         expected = {"year_offset", "county_fips", "age_group", "sex", "migration_rate"}
         assert set(convergence_df.columns) == expected
 
-    def test_year_offsets_1_to_20(self, convergence_df: pd.DataFrame):
-        """All 20 projection year offsets are present."""
-        assert sorted(convergence_df["year_offset"].unique()) == list(range(1, 21))
+    def test_year_offsets_1_to_30(self, convergence_df: pd.DataFrame):
+        """All 30 projection year offsets are present."""
+        assert sorted(convergence_df["year_offset"].unique()) == list(range(1, 31))
 
     def test_medium_hold_years_equal(self, convergence_df: pd.DataFrame):
         """Years 5-15 (medium hold) should all have identical rates per county."""
@@ -521,10 +521,10 @@ class TestPipelineDataFlow:
         assert set(result.keys()) == expected_counties
 
     def test_convergence_dicts_inner_keys_are_offsets(self, convergence_df: pd.DataFrame):
-        """Inner dict keys should be year offset integers 1-20."""
+        """Inner dict keys should be year offset integers 1-30."""
         result = _build_convergence_rate_dicts(convergence_df)
         sample_county = next(iter(result))
-        assert set(result[sample_county].keys()) == set(range(1, 21))
+        assert set(result[sample_county].keys()) == set(range(1, 31))
 
     def test_convergence_dicts_inner_df_shape(self, convergence_df: pd.DataFrame):
         """Each inner DataFrame should have 1,092 rows (91 ages x 2 sexes x 6 races)."""

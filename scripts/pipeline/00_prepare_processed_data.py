@@ -122,7 +122,7 @@ def get_file_mappings(data_dir: Path) -> list[FileMapping]:
 
     return [
         FileMapping(
-            source=raw_dir / "fertility" / "asfr_processed.csv",
+            source=raw_dir / "fertility" / "nd_asfr_processed.csv",
             destination=processed_dir / "fertility_rates.parquet",
             description="Age-specific fertility rates",
         ),

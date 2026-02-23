@@ -7,6 +7,7 @@ This directory contains standard operating procedures for the cohort_projections
 | ID | Title | Status | Last Updated |
 |----|-------|--------|--------------|
 | [SOP-001](./SOP-001-external-ai-analysis-integration.md) | External AI Analysis Integration | Active | 2026-01-01 |
+| [SOP-002](./SOP-002-data-processing-documentation.md) | Data Processing Script & Data Source Documentation | Active | 2026-02-23 |
 
 ---
 
@@ -54,4 +55,4 @@ docs/sops/
 
 ---
 
-*Last Updated: 2026-01-01*
+*Last Updated: 2026-02-23*

@@ -46,6 +46,9 @@ The primary work is developing the **2026 official population projections** for 
 3. Use type hints for public functions
 4. Document methodology changes in ADRs
 5. Follow race/ethnicity categories from config
+6. Include full metadata headers in data processing scripts (see Section 5)
+7. Update `DATA_SOURCE_NOTES.md` when adding data files to `data/raw/`
+8. Update ADR status and add Implementation Results when work is complete
 
 ---
 
@@ -101,6 +104,35 @@ If asked to work with the SDC 2024 journal article:
 - Annual growth rate: Warning if < -5% or > 5%
 
 **Testing:** See [docs/guides/testing-workflow.md](./docs/guides/testing-workflow.md)
+
+### Data Processing Script Documentation
+
+Data processing scripts (`scripts/data/build_*.py`, `scripts/data/ingest_*.py`) are the primary artifacts for future methodology writeups. Their docstrings must support reproducibility and traceability. See [SOP-002](./docs/governance/sops/SOP-002-data-processing-documentation.md) for the full standard.
+
+**Module docstring requirements** for data processing scripts:
+
+| Element | Required | Example |
+|---------|----------|---------|
+| Created date | Yes | `Created: 2026-02-23` |
+| ADR reference | Yes, if applicable | `ADR: 053 (Part A)` |
+| Author | Yes | `Author: Claude Code / N. Haarstad` |
+| Purpose | Yes | Why the script exists, what problem it solves |
+| Method | Yes | Numbered steps describing the processing logic |
+| Key design decisions | Yes | Rationale for non-obvious choices (with trade-offs) |
+| Validation results | Yes | Actual computed values, targets, and pass/fail status |
+| Inputs | Yes | Full file paths, provenance, download dates |
+| Outputs | Yes | File paths, schema description, row counts |
+
+**Data directory documentation:**
+- Every `data/raw/{category}/` directory must have a `DATA_SOURCE_NOTES.md`
+- When adding new data files, update the relevant `DATA_SOURCE_NOTES.md` with: file description, source URL, download date, column definitions, and any processing notes
+- When an existing data pipeline is replaced (e.g., national → ND-specific rates), add a "Historical Notes" section explaining what changed and when
+
+**ADR lifecycle:**
+- Update ADR status from "Proposed" to "Accepted" when implementation begins
+- Add an "Implemented" date field when work is complete
+- Add an "Implementation Results" section with actual validation metrics
+- If implementation reveals factual errors in the ADR proposal, correct them with a clear annotation
 
 ---
 
@@ -246,6 +278,7 @@ uv sync               # Install dependencies
 |-----|---------|
 | [docs/governance/sops/](./docs/governance/sops/) | Standard Operating Procedures index |
 | [SOP-001](./docs/governance/sops/SOP-001-external-ai-analysis-integration.md) | External AI analysis integration workflow |
+| [SOP-002](./docs/governance/sops/SOP-002-data-processing-documentation.md) | Data processing script and data source documentation |
 
 ### ADRs (Why Decisions)
 | ADR | Topic |
@@ -289,6 +322,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.6.0 | 2026-02-23 | Added data processing documentation standards (Section 5); added ALWAYS items 6-8; references SOP-002 |
 | 1.5.0 | 2026-02-18 | Added ADR process guidance; updated horizon to 2055; added reviews reference |
 | 1.4.0 | 2026-02-02 | Refocused on 2026 cohort projections; de-emphasized SDC 2024; fixed section numbering; updated guides index |
 | 1.3.0 | 2026-01-01 | Refactored to ~200 lines; extracted guides and added SOP references |
@@ -300,7 +334,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-02-18 |
-| **Version** | 1.5.0 |
+| **Last Updated** | 2026-02-23 |
+| **Version** | 1.6.0 |
 | **Status** | Current |
 | **Applies To** | All AI Agents |

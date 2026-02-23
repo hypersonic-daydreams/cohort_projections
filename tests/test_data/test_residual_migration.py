@@ -13,8 +13,11 @@ import pytest
 
 from cohort_projections.data.load.census_age_sex_population import AGE_GROUP_LABELS
 from cohort_projections.data.process.residual_migration import (
+    _get_rogers_castro_age_group_weights,
+    _rogers_castro_to_age_group_rates,
     apply_college_age_adjustment,
     apply_male_migration_dampening,
+    apply_pep_recalibration,
     apply_period_dampening,
     average_period_rates,
     compute_residual_migration_rates,
@@ -709,3 +712,292 @@ class TestEndToEnd:
         # Net migration should be reasonable (not all zero)
         non_birth = result[result["age_group"] != "0-4"]
         assert non_birth["net_migration"].abs().sum() > 0
+
+
+# ---------------------------------------------------------------------------
+# TestRogersCastroAgeGroupWeights
+# ---------------------------------------------------------------------------
+
+
+class TestRogersCastroAgeGroupWeights:
+    """Tests for _get_rogers_castro_age_group_weights."""
+
+    def test_weights_sum_to_one(self):
+        """Rogers-Castro weights across 18 age groups should sum to 1.0."""
+        weights = _get_rogers_castro_age_group_weights()
+        total = sum(weights.values())
+        np.testing.assert_allclose(total, 1.0, atol=1e-6)
+
+    def test_all_age_groups_present(self):
+        """All 18 standard age groups should have a weight."""
+        weights = _get_rogers_castro_age_group_weights()
+        for ag in AGE_GROUP_LABELS:
+            assert ag in weights, f"Missing age group: {ag}"
+
+    def test_young_adult_peak_is_prominent(self):
+        """The 20-24 or 25-29 group should be among the top-3 weights.
+
+        The Rogers-Castro model has a childhood component (ages 0-4) that
+        can rival the young-adult peak when aggregated to 5-year groups.
+        We verify that the young-adult peak is prominent, not necessarily
+        the single highest.
+        """
+        weights = _get_rogers_castro_age_group_weights()
+        sorted_ags = sorted(weights, key=weights.get, reverse=True)
+        top_3 = set(sorted_ags[:3])
+        assert top_3 & {"20-24", "25-29"}, (
+            f"Expected 20-24 or 25-29 in top-3 weights, got {sorted_ags[:3]}"
+        )
+
+    def test_all_weights_nonnegative(self):
+        """All weights must be non-negative."""
+        weights = _get_rogers_castro_age_group_weights()
+        for ag, w in weights.items():
+            assert w >= 0, f"Negative weight for {ag}: {w}"
+
+
+# ---------------------------------------------------------------------------
+# TestRogersCastroToAgeGroupRates
+# ---------------------------------------------------------------------------
+
+
+class TestRogersCastroToAgeGroupRates:
+    """Tests for _rogers_castro_to_age_group_rates."""
+
+    @pytest.fixture
+    def expected_pop(self):
+        """Synthetic expected population for one county: uniform 500 per cell."""
+        records = [
+            {"age_group": ag, "sex": sex, "expected_pop": 500.0}
+            for ag in AGE_GROUP_LABELS
+            for sex in ["Male", "Female"]
+        ]
+        return pd.DataFrame(records)
+
+    def test_total_migration_preserved(self, expected_pop):
+        """Sum of distributed migration counts should equal the input total."""
+        total = -1000.0
+        result = _rogers_castro_to_age_group_rates(total, expected_pop, sex_ratio=0.5)
+        actual_sum = result["rc_migration"].sum()
+        np.testing.assert_allclose(actual_sum, total, rtol=1e-6)
+
+    def test_sex_split(self, expected_pop):
+        """Male and female migration should respect the sex_ratio."""
+        total = 2000.0
+        result = _rogers_castro_to_age_group_rates(total, expected_pop, sex_ratio=0.6)
+        male_total = result.loc[result["sex"] == "Male", "rc_migration"].sum()
+        female_total = result.loc[result["sex"] == "Female", "rc_migration"].sum()
+        np.testing.assert_allclose(male_total, 1200.0, rtol=1e-6)
+        np.testing.assert_allclose(female_total, 800.0, rtol=1e-6)
+
+    def test_negative_total_produces_negative_rates(self, expected_pop):
+        """Negative total migration produces negative rates."""
+        result = _rogers_castro_to_age_group_rates(-500.0, expected_pop, sex_ratio=0.5)
+        # All rates should be <= 0 (out-migration)
+        assert (result["rc_rate"] <= 0).all()
+
+    def test_zero_total_produces_zero(self, expected_pop):
+        """Zero total migration produces all-zero rates."""
+        result = _rogers_castro_to_age_group_rates(0.0, expected_pop, sex_ratio=0.5)
+        assert (result["rc_rate"] == 0.0).all()
+        assert (result["rc_migration"] == 0.0).all()
+
+    def test_correct_shape(self, expected_pop):
+        """Result should have 36 rows (18 age groups x 2 sexes)."""
+        result = _rogers_castro_to_age_group_rates(-500.0, expected_pop, sex_ratio=0.5)
+        assert len(result) == 18 * 2
+
+
+# ---------------------------------------------------------------------------
+# TestApplyPepRecalibration
+# ---------------------------------------------------------------------------
+
+
+class TestApplyPepRecalibration:
+    """Tests for apply_pep_recalibration."""
+
+    @pytest.fixture
+    def pep_data(self):
+        """Synthetic PEP data for two counties across 5 years."""
+        records = []
+        # Benson (38005): net out-migration each year
+        for year in range(2001, 2006):
+            records.append({"geoid": "38005", "year": year, "netmig": -60})
+        # Sioux (38085): sign reversal period (positive PEP)
+        for year in range(2001, 2006):
+            records.append({"geoid": "38085", "year": year, "netmig": 20})
+        # A non-target county
+        for year in range(2001, 2006):
+            records.append({"geoid": "38017", "year": year, "netmig": 100})
+        return pd.DataFrame(records)
+
+    @pytest.fixture
+    def period_rates(self):
+        """Synthetic residual migration rates for 3 counties."""
+        records = []
+        for county in ["38005", "38085", "38017"]:
+            for ag in AGE_GROUP_LABELS:
+                for sex in ["Male", "Female"]:
+                    records.append(
+                        {
+                            "county_fips": county,
+                            "age_group": ag,
+                            "sex": sex,
+                            "period_start": 2000,
+                            "period_end": 2005,
+                            "pop_start": 200.0,
+                            "expected_pop": 190.0,
+                            "pop_end": 170.0,
+                            "net_migration": -20.0,
+                            "migration_rate": -0.02,
+                        }
+                    )
+        return pd.DataFrame(records)
+
+    def test_same_sign_scaling(self, period_rates, pep_data):
+        """When PEP and residual have the same sign, rates are scaled by k."""
+        result, meta = apply_pep_recalibration(
+            period_rates=period_rates,
+            period=(2000, 2005),
+            pep_data=pep_data,
+            counties=["38005"],
+            near_zero_threshold=10.0,
+        )
+
+        # Benson PEP total = -60 * 5 = -300
+        # Benson residual total = -20.0 * 18 * 2 = -720
+        # k = -300 / -720 = 0.41667
+        expected_k = 300.0 / 720.0
+
+        benson = result[result["county_fips"] == "38005"]
+        expected_rate = -0.02 * expected_k
+        np.testing.assert_allclose(
+            benson["migration_rate"].values[0], expected_rate, rtol=1e-4
+        )
+
+        assert meta["38005"]["method"] == "scaled"
+        np.testing.assert_allclose(meta["38005"]["k"], expected_k, rtol=1e-3)
+
+    def test_sign_reversal_uses_rogers_castro(self, period_rates, pep_data):
+        """When PEP is positive and residual is negative, Rogers-Castro is used."""
+        result, meta = apply_pep_recalibration(
+            period_rates=period_rates,
+            period=(2000, 2005),
+            pep_data=pep_data,
+            counties=["38085"],
+            near_zero_threshold=10.0,
+        )
+
+        assert meta["38085"]["method"] == "rogers_castro"
+        assert meta["38085"]["reason"] == "sign_reversal"
+
+        # The recalibrated rates for Sioux should reflect PEP total = +100
+        # (positive in-migration), so some rates should be positive
+        sioux = result[result["county_fips"] == "38085"]
+        # At least the peak young-adult ages should have positive rates
+        young_adult = sioux[sioux["age_group"].isin(["20-24", "25-29"])]
+        assert (young_adult["migration_rate"] > 0).any()
+
+    def test_non_target_county_unchanged(self, period_rates, pep_data):
+        """Non-target counties are passed through unchanged."""
+        result, meta = apply_pep_recalibration(
+            period_rates=period_rates,
+            period=(2000, 2005),
+            pep_data=pep_data,
+            counties=["38005", "38085"],
+            near_zero_threshold=10.0,
+        )
+
+        cass = result[result["county_fips"] == "38017"]
+        original_cass = period_rates[period_rates["county_fips"] == "38017"]
+
+        np.testing.assert_allclose(
+            cass["migration_rate"].values,
+            original_cass["migration_rate"].values,
+        )
+        np.testing.assert_allclose(
+            cass["net_migration"].values,
+            original_cass["net_migration"].values,
+        )
+
+    def test_near_zero_residual_uses_rogers_castro(self, pep_data):
+        """When residual total is near zero, Rogers-Castro is used."""
+        # Create rates with very small net_migration for Benson
+        records = []
+        for ag in AGE_GROUP_LABELS:
+            for sex in ["Male", "Female"]:
+                records.append(
+                    {
+                        "county_fips": "38005",
+                        "age_group": ag,
+                        "sex": sex,
+                        "period_start": 2000,
+                        "period_end": 2005,
+                        "pop_start": 200.0,
+                        "expected_pop": 200.0,
+                        "pop_end": 200.0,
+                        "net_migration": 0.1,  # Very small: 0.1 * 36 = 3.6 total
+                        "migration_rate": 0.0005,
+                    }
+                )
+        near_zero_rates = pd.DataFrame(records)
+
+        result, meta = apply_pep_recalibration(
+            period_rates=near_zero_rates,
+            period=(2000, 2005),
+            pep_data=pep_data,
+            counties=["38005"],
+            near_zero_threshold=10.0,
+        )
+
+        assert meta["38005"]["method"] == "rogers_castro"
+        assert meta["38005"]["reason"] == "near_zero"
+
+    def test_metadata_records_pep_and_residual_totals(self, period_rates, pep_data):
+        """Metadata should record both PEP and residual totals."""
+        _, meta = apply_pep_recalibration(
+            period_rates=period_rates,
+            period=(2000, 2005),
+            pep_data=pep_data,
+            counties=["38005"],
+            near_zero_threshold=10.0,
+        )
+
+        assert "pep_total" in meta["38005"]
+        assert "residual_total" in meta["38005"]
+        np.testing.assert_allclose(meta["38005"]["pep_total"], -300.0)
+        np.testing.assert_allclose(meta["38005"]["residual_total"], -720.0)
+
+    def test_scaling_preserves_rate_proportions(self, period_rates, pep_data):
+        """After scaling, relative rate differences across age groups are preserved."""
+        # Give different rates to different age groups for Benson
+        modified = period_rates.copy()
+        benson_mask = modified["county_fips"] == "38005"
+        ages = modified.loc[benson_mask, "age_group"].values
+        # Assign rates proportional to age group index
+        for i, ag in enumerate(AGE_GROUP_LABELS):
+            ag_mask = benson_mask & (modified["age_group"] == ag)
+            rate = -0.01 * (i + 1)
+            modified.loc[ag_mask, "migration_rate"] = rate
+            modified.loc[ag_mask, "net_migration"] = rate * 190.0
+
+        result, _ = apply_pep_recalibration(
+            period_rates=modified,
+            period=(2000, 2005),
+            pep_data=pep_data,
+            counties=["38005"],
+            near_zero_threshold=10.0,
+        )
+
+        benson_orig = modified[modified["county_fips"] == "38005"]
+        benson_new = result[result["county_fips"] == "38005"]
+
+        # Ratios of rates between age groups should be preserved
+        orig_rates = benson_orig.groupby("age_group")["migration_rate"].first()
+        new_rates = benson_new.groupby("age_group")["migration_rate"].first()
+
+        # All should be scaled by the same k
+        ratios = new_rates / orig_rates
+        # Filter out zero rates
+        ratios = ratios[orig_rates != 0]
+        assert ratios.std() < 1e-6, "Scaling factor should be uniform across age groups"

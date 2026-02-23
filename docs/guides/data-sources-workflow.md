@@ -140,63 +140,87 @@ Some data must be downloaded manually from external sources.
 
 ### Fertility Data
 
-#### SEER Age-Specific Fertility Rates
+#### Current: ND-Specific ASFR from CDC WONDER (ADR-053)
 
-**Source**: SEER*Stat (Surveillance, Epidemiology, and End Results Program)
-**URL**: https://seer.cancer.gov/seerstat/
-**Local Path**: `data/raw/fertility/seer_asfr_2018_2022.csv`
+As of 2026-02-23, the project uses **North Dakota-specific** fertility rates
+computed from CDC WONDER birth counts divided by Census PEP population denominators.
+This replaced national SEER-derived rates which understated ND fertility by ~15%.
 
-**Required columns**:
-- `age` - Single year of age (15-49)
-- `race_ethnicity` - Race/ethnicity category
-- `asfr` - Age-specific fertility rate
-- `year` - Year
+**Primary files:**
 
-**Manual download instructions**:
-1. Install SEER*Stat software from https://seer.cancer.gov/seerstat/
-2. Request access to SEER*Stat Database
-3. Query: Natality > U.S. > Age of Mother, Race/Ethnicity
-4. Export as CSV with single-year age groups (15-49)
+| File | Description |
+|------|-------------|
+| `data/raw/fertility/cdc_wonder_nd_births_2020_2023.txt` | ND births by race × age × Hispanic, 2020-2023 pooled |
+| `data/raw/fertility/cdc_wonder_national_births_2020_2023.txt` | National births (fallback for suppressed cells) |
+| `data/raw/fertility/nd_asfr_processed.csv` | **Output**: ND ASFR, 49 rows (7 ages × 7 races) |
 
-#### Alternative: CDC WONDER Natality
+**Processing script**: `scripts/data/build_nd_fertility_rates.py`
 
-**Source**: CDC WONDER
-**URL**: https://wonder.cdc.gov/natality.html
-**Local Path**: `data/raw/fertility/cdc_nvss_fertility.csv`
+**Population denominators**: `data/raw/population/cc-est2024-alldata-38.csv` (Census County Characteristics, FIPS 38)
 
-**Download procedure**:
-1. Go to https://wonder.cdc.gov/natality.html
-2. Select years 2018-2022
-3. Group by: Age of Mother (single years), Race/Ethnicity
-4. Request births and population to calculate rates
-5. Export and calculate: `asfr = births / (female_population * 1000)`
+**Update procedure (when new data years become available):**
+1. Go to https://wonder.cdc.gov/natality-expanded-current.html
+2. Select: Database=Natality 2016-20XX (Expanded), State=North Dakota
+3. Group By: Mother's Single Race 6, Mother's Hispanic Origin, Mother's Age 9
+4. Years: most recent 4-year window (e.g., 2021-2024), combined (not grouped by year)
+5. Export tab-delimited file → `data/raw/fertility/cdc_wonder_nd_births_YYYY_YYYY.txt`
+6. Repeat without state filter for national fallback file
+7. Update file paths in `scripts/data/build_nd_fertility_rates.py`
+8. Run `python scripts/data/build_nd_fertility_rates.py`
+9. Verify TFR is in plausible range (~1.80-1.95 for ND)
+10. Update `DATA_SOURCE_NOTES.md`
+
+**Config reference**: `pipeline.fertility.input_file: "data/raw/fertility/nd_asfr_processed.csv"`
+
+#### Historical: National SEER-Derived ASFR
+
+**File**: `data/raw/fertility/asfr_processed.csv`
+**Status**: Retained as fallback reference; no longer primary input
+
+Previously used national rates from SEER*Stat (2024 vintage). Replaced by ADR-053.
+
+**Detailed source notes**: See `data/raw/fertility/DATA_SOURCE_NOTES.md`
 
 ---
 
 ### Mortality Data
 
-#### Life Tables (Survival Rates)
+#### Current: ND-Adjusted Survival Rates (ADR-053)
 
-**Source**: CDC National Center for Health Statistics
-**URL**: https://www.cdc.gov/nchs/products/life_tables.htm
-**Local Path**: `data/raw/mortality/seer_lifetables_2020.csv`
+As of 2026-02-23, the project uses survival rates from national CDC 2023 life tables
+(NVSR 74-06), **adjusted** by the ND/national qx ratio from NCHS State Life Tables
+2022 (NVSR 74-12). This calibrates mortality to ND's actual level while preserving
+race differentials from national data.
 
-**Required columns**:
-- `age` - Age at start of interval
-- `sex` - Sex
-- `race_ethnicity` - Race/ethnicity category
-- `qx` - Probability of death between age x and x+1
-- `lx` - Number surviving to exact age x (radix of 100,000)
+**Primary files:**
 
-**Key formulas**:
-- `survival_rate = 1 - qx`
-- Or: `survival_rate = lx[x+1] / lx[x]`
+| File | Description |
+|------|-------------|
+| `data/raw/mortality/cdc_lifetable_2023_table*.xlsx` | National 2023 life tables by race × sex (18 files) |
+| `data/raw/mortality/nd_lifetable_2022_ND2.xlsx` | ND male life table 2022 (NVSR 74-12) |
+| `data/raw/mortality/nd_lifetable_2022_ND3.xlsx` | ND female life table 2022 |
+| `data/raw/mortality/us_lifetable_male_2022.xlsx` | National male 2022 (ratio denominator) |
+| `data/raw/mortality/us_lifetable_female_2022.xlsx` | National female 2022 (ratio denominator) |
+| `data/processed/survival_rates.parquet` | **Output**: ND-adjusted survival rates (1,212 rows) |
 
-**Download procedure**:
-1. Go to https://www.cdc.gov/nchs/products/life_tables.htm
-2. Download "United States Life Tables" for desired year
-3. Extract life table values from PDF/Excel
-4. Calculate survival rates
+**Processing pipeline** (two steps):
+
+1. **Build national race-specific rates**: `cohort_projections/data/process/survival_rates.py`
+   - Parses the 18 NVSR 74-06 Excel files → `data/processed/survival_rates.parquet`
+2. **Apply ND adjustment**: `scripts/data/build_nd_survival_rates.py`
+   - Computes ND/national ratio, applies to race-specific rates, overwrites parquet
+
+**Update procedure (when new state life tables are released):**
+1. Check https://www.cdc.gov/nchs/products/life_tables.htm for new NVSR state tables
+2. Download ND files (ND1-ND4) and matching national year files from FTP
+3. Update file paths in `scripts/data/build_nd_survival_rates.py`
+4. Run `python scripts/data/build_nd_survival_rates.py`
+5. Verify computed e0 is within 0.5 years of published ND values
+6. Update `DATA_SOURCE_NOTES.md`
+
+**Key note**: ND life expectancy is ~0.5 years **above** national (77.93 vs 77.46 in 2022).
+
+**Detailed source notes**: See `data/raw/mortality/DATA_SOURCE_NOTES.md`
 
 ---
 
@@ -257,13 +281,13 @@ python scripts/pipeline/03_export_results.py
 
 ### Processed Data Outputs
 
-| Raw Input | Processed Output |
-|-----------|------------------|
-| Population estimates | `data/processed/nd_county_population.csv` |
-| ACS PUMS | `data/processed/nd_age_sex_race_distribution.csv` |
-| SEER fertility | `data/processed/asfr_processed.csv` |
-| CDC life tables | `data/processed/survival_rates_processed.csv` |
-| IRS migration | `data/processed/nd_migration_processed.csv` |
+| Raw Input | Processed Output | Processing Script |
+|-----------|------------------|-------------------|
+| Population estimates | `data/processed/nd_county_population.csv` | Pipeline step 01 |
+| Census cc-est2024 | `data/processed/nd_age_sex_race_distribution.csv` | `scripts/data/build_race_distribution_from_census.py` |
+| CDC WONDER ND births | `data/processed/fertility_rates.parquet` | `scripts/data/build_nd_fertility_rates.py` → pipeline step 00 |
+| CDC life tables + ND state tables | `data/processed/survival_rates.parquet` | `survival_rates.py` → `scripts/data/build_nd_survival_rates.py` |
+| IRS migration | `data/processed/nd_migration_processed.csv` | Pipeline step 01 |
 
 ---
 
@@ -291,8 +315,8 @@ The validation script checks:
 |-----------|--------|-----------------|-------------------|
 | Population Estimates | Census Bureau | May (prior year) | Annually |
 | ACS PUMS | Census Bureau | December | Every 5 years |
-| Fertility Rates | SEER/CDC | Varies | Every 3-5 years |
-| Life Tables | CDC NCHS | Annually | Every 3-5 years |
+| ND Fertility Rates | CDC WONDER + Census PEP | Annually (births), May (PEP) | Every 3-5 years or when new WONDER years available |
+| ND-Adjusted Survival Rates | NVSR state life tables | Periodically (~2 years) | When new state life tables published |
 | IRS Migration | IRS SOI | Fall (2 years prior) | Annually |
 
 ---
@@ -336,4 +360,4 @@ The validation script checks:
 
 ---
 
-*Last Updated: 2026-02-02*
+*Last Updated: 2026-02-23*

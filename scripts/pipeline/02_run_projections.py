@@ -60,6 +60,7 @@ from project_utils import setup_logger  # noqa: E402
 
 from cohort_projections.data.load.base_population_loader import (  # noqa: E402
     load_base_population_for_county,
+    load_county_populations,
 )
 from cohort_projections.geographic.geography_loader import (  # noqa: E402
     load_geography_list,
@@ -527,17 +528,105 @@ def load_demographic_rates(
     )
 
 
+def _load_scenario_convergence_rates(
+    config: dict[str, Any],
+    scenario: str,
+) -> dict[str, dict[int, pd.DataFrame]] | None:
+    """Load scenario-specific convergence rates if a convergence_variant is configured.
+
+    When a scenario has ``convergence_variant`` set (e.g., ``"high"``), this
+    function loads the corresponding convergence file (e.g.,
+    ``convergence_rates_by_year_high.parquet``) and returns the per-county,
+    per-year-offset rate dicts.
+
+    If no ``convergence_variant`` is set, returns ``None`` to signal that the
+    caller should use the default (baseline) convergence rates.
+
+    Args:
+        config: Project configuration.
+        scenario: Scenario name (e.g., ``"high_growth"``).
+
+    Returns:
+        Per-county convergence rate dicts, or ``None`` if no variant override.
+    """
+    scenario_config = config.get("scenarios", {}).get(scenario, {})
+    convergence_variant = scenario_config.get("convergence_variant")
+
+    if not convergence_variant:
+        return None
+
+    processed_dir = project_root / "data" / "processed"
+    variant_path = (
+        processed_dir / "migration" / f"convergence_rates_by_year_{convergence_variant}.parquet"
+    )
+
+    if not variant_path.exists():
+        logger.warning(
+            f"Scenario '{scenario}' requests convergence_variant='{convergence_variant}' "
+            f"but file not found: {variant_path}. Falling back to baseline convergence rates."
+        )
+        return None
+
+    logger.info(
+        f"Loading scenario-specific convergence rates for '{scenario}' "
+        f"(variant={convergence_variant}) from {variant_path.name}"
+    )
+    convergence_df = pd.read_parquet(variant_path)
+    variant_meta_path = (
+        processed_dir / "migration" / f"convergence_metadata_{convergence_variant}.json"
+    )
+    if _convergence_rates_need_annualization(variant_meta_path):
+        period_years = _estimate_legacy_residual_period_years(config)
+        logger.warning(
+            f"Variant convergence rates missing annual-rate metadata; "
+            f"annualizing legacy rates using period_years={period_years:.2f}"
+        )
+        convergence_df = _annualize_legacy_convergence_rates(convergence_df, period_years)
+    result = _build_convergence_rate_dicts(convergence_df)
+    logger.info(
+        f"Loaded {convergence_variant} convergence rates for {len(result)} counties"
+    )
+    return result
+
+
 def load_base_population(config: dict[str, Any], fips: str) -> pd.DataFrame:
     """
     Load base year population for a geography.
 
+    For state-level FIPS (2 digits), sums all county populations and applies
+    the statewide age-sex-race distribution. For county-level FIPS (5 digits),
+    delegates to load_base_population_for_county.
+
     Args:
         config: Project configuration
-        fips: FIPS code
+        fips: FIPS code (2-digit state or 5-digit county)
 
     Returns:
         Base population DataFrame with columns [year, age, sex, race, population]
     """
+    if len(str(fips).strip()) <= 2:
+        # State-level: sum all county populations
+        from cohort_projections.data.load.base_population_loader import (
+            load_state_age_sex_race_distribution,
+        )
+
+        base_year = config.get("project", {}).get("base_year", 2025)
+        county_pops = load_county_populations()
+        total_population = county_pops["population"].sum()
+        distribution = load_state_age_sex_race_distribution(config=config)
+
+        base_pop = distribution.copy()
+        base_pop["population"] = base_pop["proportion"] * total_population
+        base_pop["year"] = base_year
+        base_pop = base_pop[["year", "age", "sex", "race", "population"]]
+        base_pop = base_pop.sort_values(["age", "sex", "race"]).reset_index(drop=True)
+
+        logger.info(
+            f"State FIPS {fips}: total population {total_population:,.0f}, "
+            f"{len(base_pop)} cohorts"
+        )
+        return base_pop
+
     return load_base_population_for_county(fips, config)
 
 
@@ -663,8 +752,6 @@ def _apply_migration_scenario_to_df(df: pd.DataFrame, migration_setting: str) ->
         df[migration_col] = df[migration_col] * 1.25
     elif migration_setting == "-25_percent" and migration_col in df.columns:
         df[migration_col] = df[migration_col] * 0.75
-    elif migration_setting == "+15_percent" and migration_col in df.columns:
-        df[migration_col] = df[migration_col] * 1.15
     elif migration_setting == "-15_percent" and migration_col in df.columns:
         df[migration_col] = df[migration_col] * 0.85
     elif migration_setting == "+5_percent" and migration_col in df.columns:
@@ -705,7 +792,7 @@ def apply_scenario_rate_adjustments(
     Scenario adjustments to time-varying rates are a future enhancement.
 
     Args:
-        scenario: Scenario name (e.g., 'baseline', 'high_growth', 'low_growth')
+        scenario: Scenario name (e.g., 'baseline', 'restricted_growth', 'high_growth')
         config: Project configuration
         fertility_rates: Base fertility rates
         survival_rates: Base survival rates
@@ -767,9 +854,13 @@ def apply_scenario_rate_adjustments(
     # Apply migration adjustment
     migration_setting = scenario_config.get("migration", "recent_average")
 
-    # Time-varying migration is handled per-year by the engine (ADR-037)
+    # Dict-based migration scenarios are handled per-year by the engine
+    # (ADR-037 time_varying, ADR-050 additive_reduction)
     if isinstance(migration_setting, dict):
-        logger.info(f"Scenario {scenario}: Time-varying migration (handled per-year by engine)")
+        mig_type = migration_setting.get("type", "unknown")
+        logger.info(
+            f"Scenario {scenario}: {mig_type} migration (handled per-year by engine)"
+        )
         # No upfront adjustment needed
     elif migration_setting not in ("recent_average", "constant", "sdc_2024_dampened"):
         if isinstance(adj_migration, dict):
@@ -794,10 +885,6 @@ def apply_scenario_rate_adjustments(
                 logger.info(f"Scenario {scenario}: Applying -25% migration adjustment")
                 if migration_col in adj_migration.columns:
                     adj_migration[migration_col] = adj_migration[migration_col] * 0.75
-            elif migration_setting == "+15_percent":
-                logger.info(f"Scenario {scenario}: Applying +15% migration adjustment")
-                if migration_col in adj_migration.columns:
-                    adj_migration[migration_col] = adj_migration[migration_col] * 1.15
             elif migration_setting == "-15_percent":
                 logger.info(f"Scenario {scenario}: Applying -15% migration adjustment")
                 if migration_col in adj_migration.columns:
@@ -1171,9 +1258,52 @@ def run_geographic_projections(
             if isinstance(adj_migration, dict):
                 # PEP method: use per-county rates, zero migration for missing counties
                 default_migration = _create_zero_migration_rates()
-                migration_rates_by_geography = {
-                    fips: adj_migration.get(fips, default_migration) for fips in fips_to_process
-                }
+                migration_rates_by_geography = {}
+                for fips in fips_to_process:
+                    if fips in adj_migration:
+                        migration_rates_by_geography[fips] = adj_migration[fips]
+                    elif len(str(fips).strip()) <= 2:
+                        # State-level: compute population-weighted average of county rates
+                        county_pops = load_county_populations()
+                        pop_map = dict(
+                            zip(county_pops["county_fips"], county_pops["population"])
+                        )
+                        total_pop = county_pops["population"].sum()
+                        # Detect the rate column name (net_migration or migration_rate)
+                        sample_df = next(iter(adj_migration.values()))
+                        rate_col = (
+                            "net_migration"
+                            if "net_migration" in sample_df.columns
+                            else "migration_rate"
+                        )
+                        weighted_parts = []
+                        for cfips, rates_df in adj_migration.items():
+                            w = pop_map.get(cfips, 0) / total_pop
+                            part = rates_df.copy()
+                            part[rate_col] = part[rate_col] * w
+                            weighted_parts.append(part)
+                        if weighted_parts:
+                            state_rates = pd.concat(weighted_parts)
+                            group_cols = [
+                                c for c in state_rates.columns if c != rate_col
+                            ]
+                            # Drop non-groupable columns (e.g. processing_date)
+                            group_cols = [
+                                c
+                                for c in group_cols
+                                if c in ("age", "sex", "race", "age_group")
+                            ]
+                            state_rates = (
+                                state_rates.groupby(group_cols, as_index=False)[
+                                    rate_col
+                                ].sum()
+                            )
+                            migration_rates_by_geography[fips] = state_rates
+                        else:
+                            migration_rates_by_geography[fips] = default_migration
+                        logger.info("Computed population-weighted state migration rates")
+                    else:
+                        migration_rates_by_geography[fips] = default_migration
                 logger.info(
                     f"Using PEP per-county migration rates "
                     f"({len(adj_migration)} counties with data)"
@@ -1181,6 +1311,58 @@ def run_geographic_projections(
             else:
                 # IRS method: same rates for all counties (existing behavior)
                 migration_rates_by_geography = dict.fromkeys(fips_to_process, adj_migration)
+
+            # For state-level, compute population-weighted year-by-year convergence rates
+            effective_migration_by_year = adj_migration_by_year_by_county
+            if (
+                level == "state"
+                and adj_migration_by_year_by_county
+                and any(len(str(f).strip()) <= 2 for f in fips_to_process)
+            ):
+                from cohort_projections.data.load.base_population_loader import (
+                    load_county_populations as _load_county_pops,
+                )
+
+                _county_pops = _load_county_pops()
+                _pop_map = dict(
+                    zip(_county_pops["county_fips"], _county_pops["population"])
+                )
+                _total_pop = _county_pops["population"].sum()
+
+                for state_fips in [f for f in fips_to_process if len(str(f).strip()) <= 2]:
+                    # Collect all year offsets
+                    all_offsets: set[int] = set()
+                    for yr_dict in adj_migration_by_year_by_county.values():
+                        all_offsets.update(yr_dict.keys())
+
+                    state_yr_dict: dict[int, pd.DataFrame] = {}
+                    for offset in sorted(all_offsets):
+                        weighted_parts = []
+                        for cfips, yr_dict in adj_migration_by_year_by_county.items():
+                            if offset not in yr_dict:
+                                continue
+                            w = _pop_map.get(cfips, 0) / _total_pop
+                            part = yr_dict[offset].copy()
+                            part["migration_rate"] = part["migration_rate"] * w
+                            weighted_parts.append(part)
+                        if weighted_parts:
+                            merged = pd.concat(weighted_parts)
+                            merged = (
+                                merged.groupby(
+                                    [c for c in merged.columns if c != "migration_rate"],
+                                    as_index=False,
+                                )["migration_rate"]
+                                .sum()
+                            )
+                            state_yr_dict[offset] = merged
+
+                    if effective_migration_by_year is None:
+                        effective_migration_by_year = {}
+                    effective_migration_by_year[state_fips] = state_yr_dict
+                    logger.info(
+                        f"Computed state-level year-by-year convergence rates "
+                        f"({len(state_yr_dict)} year offsets)"
+                    )
 
             results_dict = run_multi_geography_projections(
                 level=level,
@@ -1198,7 +1380,7 @@ def run_geographic_projections(
                 .get("max_workers"),
                 output_dir=output_dir / level,
                 scenario=scenario,
-                migration_rates_by_year_by_geography=adj_migration_by_year_by_county,
+                migration_rates_by_year_by_geography=effective_migration_by_year,
                 survival_rates_by_year=adj_survival_by_year,
             )
 
@@ -1387,6 +1569,14 @@ def run_all_projections(
             logger.info(f"Running scenario: {scenario}")
             logger.info(f"{'=' * 80}\n")
 
+            # Check for scenario-specific convergence rates (ADR-046)
+            scenario_convergence = _load_scenario_convergence_rates(config, scenario)
+            effective_convergence = (
+                scenario_convergence
+                if scenario_convergence is not None
+                else migration_rates_by_year_by_county
+            )
+
             # Run projections
             metadata = run_geographic_projections(
                 geographies=geographies,
@@ -1397,7 +1587,7 @@ def run_all_projections(
                 migration_rates=migration_rates,
                 dry_run=dry_run,
                 resume=resume,
-                migration_rates_by_year_by_county=migration_rates_by_year_by_county,
+                migration_rates_by_year_by_county=effective_convergence,
                 survival_rates_by_year=survival_rates_by_year,
             )
 

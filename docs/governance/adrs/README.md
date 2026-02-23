@@ -191,7 +191,15 @@ Where:
 | [037](037-cbo-grounded-scenario-methodology.md) | CBO-Grounded Scenario Methodology | Accepted | 2026-02-17 | CBO time-varying migration factor replaces arbitrary scenario multipliers |
 | [039](039-international-only-migration-factor.md) | International-Only Migration Factor | Accepted | 2026-02-17 | CBO migration factor applies to international migration only (intl_share decomposition) |
 | [040](040-extend-boom-dampening-2015-2020.md) | Extend Bakken Boom Dampening to 2015-2020 | Accepted | 2026-02-17 | Adds 2015-2020 to boom dampening periods for oil-impacted counties |
-| [041](041-census-pums-hybrid-base-population.md) | Census+PUMS Hybrid Base Population | Accepted | 2026-02-17 | Census age-sex + PUMS race allocation; replaces pure-PUMS distribution |
+| [041](041-census-pums-hybrid-base-population.md) | Census+PUMS Hybrid Base Population | Superseded by ADR-044 | 2026-02-17 | Census age-sex + PUMS race allocation; replaced by full-count Census data |
+| [044](044-census-full-count-race-distribution.md) | Census Full-Count Race Distribution | Accepted | 2026-02-18 | Replace PUMS race allocation with Census cc-est2024-alldata full-count estimates; fixes zero Black females and Hispanic concentration |
+| [047](047-county-specific-age-sex-race-distributions.md) | County-Specific Age-Sex-Race Distributions | Proposed | 2026-02-18 | Replace statewide distribution with county-specific distributions from cc-est2024-alldata; fixes 18-76% misallocation |
+| [048](048-single-year-of-age-base-population.md) | Single-Year-of-Age Base Population | Proposed | 2026-02-18 | Use Census SC-EST single-year data instead of uniform 5-year splitting; eliminates step-function artifacts |
+| [045](045-reservation-county-pep-recalibration.md) | Reservation County PEP-Anchored Migration Recalibration | Accepted | 2026-02-18 | Hybrid PEP scaling + Rogers-Castro fallback for reservation counties where residual method overestimates out-migration 2-3x |
+| [046](046-high-growth-bebr-convergence.md) | High Growth Scenario via BEBR Convergence Rates | Accepted | 2026-02-18 | Replace broken multiplicative +15% with BEBR-derived additive convergence rates; guarantees high > baseline for all counties |
+| [050](050-restricted-growth-additive-migration-adjustment.md) | Restricted Growth Additive Migration Adjustment | Proposed | 2026-02-18 | Replace multiplicative CBO factor with additive per-capita reduction; fixes restricted > baseline ordering violation for 39 counties |
+| [051](051-oil-county-dampening-recalibration.md) | Oil County Dampening Recalibration | Proposed | 2026-02-18 | Reduce boom-period dampening from 0.60 to 0.40; brings McKenzie from +84% toward +55% (SDC: +47%) |
+| [052](052-ward-county-high-growth-floor.md) | Ward County High-Growth Scenario Floor | Proposed | 2026-02-18 | High-growth migration floor at zero for counties with negative BEBR rates; prevents Ward from declining in all scenarios |
 
 ### Export Format
 
@@ -199,18 +207,32 @@ Where:
 |-----|-------|--------|------|---------|
 | [038](038-multi-workbook-export-format.md) | Multi-Workbook Export Format | Accepted | 2026-02-17 | Multi-workbook Excel export with state, region, and county sheets |
 
+### Presentation and Quality Assurance
+
+| ADR | Title | Status | Date | Summary |
+|-----|-------|--------|------|---------|
+| [042](042-baseline-projection-presentation-requirements.md) | Baseline Projection Presentation Requirements | Accepted | 2026-02-18 | Mandatory caveats and pairing with restricted_growth; baseline is trend-continuation, not forecast |
+| [043](043-migration-rate-cap.md) | Age-Aware Migration Rate Cap | Accepted | 2026-02-18 | Age-aware asymmetric cap (+/-15% for ages 15-24, +/-8% for others) clips statistical noise in convergence rates |
+| [049](049-college-age-smoothing-convergence-pipeline.md) | College-Age Smoothing in Convergence Pipeline | Proposed | 2026-02-18 | Fix bug: propagate college-age migration smoothing to convergence pipeline input; fixes Cass +63% → ~+48% |
+
+### Vital Rates Calibration
+
+| ADR | Title | Status | Date | Summary |
+|-----|-------|--------|------|---------|
+| [053](053-nd-specific-vital-rates.md) | ND-Specific Fertility and Mortality Rates | Proposed | 2026-02-20 | Replace national ASFR/survival rates with ND-adjusted rates via CDC WONDER and NVSR 74-12 state life tables; fixes 14-20% fertility undercount |
+
 ---
 
 ## ADR Status Summary
 
 | Status | Count |
 |--------|-------|
-| Accepted | 40 |
-| Proposed | 5 |
+| Accepted | 44 |
+| Proposed | 12 |
 | Deprecated | 0 |
-| Superseded | 0 |
+| Superseded | 1 |
 
-**Naming Convention Compliance**: All 45 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `020a`, `023a`).
+**Naming Convention Compliance**: All 55 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `020a`, `023a`).
 
 ---
 
@@ -226,7 +248,7 @@ Start with these ADRs to understand the system:
 
 ### By Topic
 
-**Demographic Methodology**: ADR-001, ADR-002, ADR-003, ADR-007
+**Demographic Methodology**: ADR-001, ADR-002, ADR-003, ADR-007, ADR-053
 
 **System Design**: ADR-004, ADR-005, ADR-006, ADR-008
 
@@ -234,11 +256,11 @@ Start with these ADRs to understand the system:
 
 **Data Management**: ADR-016, ADR-034
 
-**Migration Methodology**: ADR-003, ADR-035, ADR-036, ADR-039, ADR-040
+**Migration Methodology**: ADR-003, ADR-035, ADR-036, ADR-039, ADR-040, ADR-043, ADR-045, ADR-049, ADR-050, ADR-051
 
-**Scenarios**: ADR-017, ADR-018, ADR-037
+**Scenarios**: ADR-017, ADR-018, ADR-037, ADR-042, ADR-046, ADR-050, ADR-052
 
-**Base Population**: ADR-041
+**Base Population**: ADR-041, ADR-044, ADR-047, ADR-048
 
 ---
 
@@ -277,6 +299,6 @@ Across all ADRs, these principles guided decisions:
 
 **Last Updated**: 2026-02-18
 
-**Total ADRs**: 45 (40 accepted, 5 proposed)
+**Total ADRs**: 57 (44 accepted, 12 proposed, 1 superseded)
 
 **Template**: See [TEMPLATE.md](TEMPLATE.md) for creating new ADRs

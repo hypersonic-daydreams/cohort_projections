@@ -1,13 +1,13 @@
 # ADR-041: Census+PUMS Hybrid Base Population Age-Sex-Race Distribution
 
 ## Status
-Accepted
+Superseded by ADR-044
 
 ## Date
 2026-02-17
 
 ## Last Reviewed
-2026-02-17
+2026-02-18
 
 ## Scope
 Base population age-sex-race distribution methodology for county projections

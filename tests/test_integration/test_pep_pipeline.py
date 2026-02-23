@@ -173,7 +173,7 @@ def pep_config(tmp_path: Path, pep_parquet: Path):
                 "name": "High Growth",
                 "fertility": "+5_percent",
                 "mortality": "constant",
-                "migration": "+15_percent",
+                "migration": "recent_average",
                 "active": False,
             },
             "zero_migration": {

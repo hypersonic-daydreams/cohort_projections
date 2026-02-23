@@ -47,19 +47,40 @@ def main() -> int:
         default=None,
         help="Path to projection config YAML (default: config/projection_config.yaml)",
     )
+    parser.add_argument(
+        "--variant",
+        type=str,
+        default=None,
+        choices=["high"],
+        help="Scenario variant to generate (default: baseline only; 'high' for BEBR high rates)",
+    )
+    parser.add_argument(
+        "--all-variants",
+        action="store_true",
+        help="Generate convergence rates for all variants (baseline + high)",
+    )
     args = parser.parse_args()
 
     try:
         logger.info("Loading configuration")
         config = load_projection_config(args.config)
 
-        logger.info("Starting convergence interpolation pipeline (Phase 2)")
-        results = run_convergence_pipeline(config)
+        # Determine which variants to run
+        variants: list[str | None] = [None]  # Always run baseline
+        if args.all_variants:
+            variants.append("high")
+        elif args.variant:
+            variants = [args.variant]
 
-        logger.info("Pipeline completed successfully")
-        logger.info(f"  Total rows: {results['total_rows']}")
-        logger.info(f"  Output: {results['output_path']}")
-        logger.info(f"  Metadata: {results['metadata_path']}")
+        for variant in variants:
+            variant_label = f" (variant={variant})" if variant else " (baseline)"
+            logger.info(f"Starting convergence interpolation pipeline{variant_label}")
+            results = run_convergence_pipeline(config, variant=variant)
+
+            logger.info(f"Pipeline completed successfully{variant_label}")
+            logger.info(f"  Total rows: {results['total_rows']}")
+            logger.info(f"  Output: {results['output_path']}")
+            logger.info(f"  Metadata: {results['metadata_path']}")
 
         return 0
 

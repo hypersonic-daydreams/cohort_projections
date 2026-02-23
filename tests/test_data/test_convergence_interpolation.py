@@ -13,6 +13,8 @@ import pandas as pd
 import pytest
 
 from cohort_projections.data.process.convergence_interpolation import (
+    _apply_rate_cap,
+    _lift_window_averages,
     _map_config_window_to_periods,
     calculate_age_specific_convergence,
     compute_period_window_averages,
@@ -497,6 +499,237 @@ class TestConvergenceSchedule:
 
 
 # ---------------------------------------------------------------------------
+# Tests: Rate cap (ADR-043)
+# ---------------------------------------------------------------------------
+
+
+class TestRateCap:
+    """Tests for _apply_rate_cap and rate cap integration."""
+
+    def test_apply_rate_cap_clips_extreme_positive(self) -> None:
+        """General cap clips rates above +8% for non-college ages."""
+        rate = pd.Series([0.12, 0.05, -0.03, 0.09])
+        age_groups = pd.Series(["25-29", "30-34", "35-39", "40-44"])
+        config = {
+            "college_ages": ["15-19", "20-24"],
+            "college_cap": 0.15,
+            "general_cap": 0.08,
+        }
+
+        capped, n_clipped = _apply_rate_cap(rate, age_groups, config)
+
+        assert capped.iloc[0] == pytest.approx(0.08)
+        assert capped.iloc[1] == pytest.approx(0.05)
+        assert capped.iloc[2] == pytest.approx(-0.03)
+        assert capped.iloc[3] == pytest.approx(0.08)
+        assert n_clipped == 2
+
+    def test_apply_rate_cap_clips_extreme_negative(self) -> None:
+        """General cap clips rates below -8% for non-college ages."""
+        rate = pd.Series([-0.12, -0.05, 0.03, -0.15])
+        age_groups = pd.Series(["85+", "70-74", "65-69", "80-84"])
+        config = {
+            "college_ages": ["15-19", "20-24"],
+            "college_cap": 0.15,
+            "general_cap": 0.08,
+        }
+
+        capped, n_clipped = _apply_rate_cap(rate, age_groups, config)
+
+        assert capped.iloc[0] == pytest.approx(-0.08)
+        assert capped.iloc[1] == pytest.approx(-0.05)
+        assert capped.iloc[2] == pytest.approx(0.03)
+        assert capped.iloc[3] == pytest.approx(-0.08)
+        assert n_clipped == 2
+
+    def test_apply_rate_cap_college_ages_use_wider_cap(self) -> None:
+        """College-age cells use +/-15% cap instead of +/-8%."""
+        rate = pd.Series([0.12, 0.14, -0.10, -0.16])
+        age_groups = pd.Series(["15-19", "20-24", "15-19", "20-24"])
+        config = {
+            "college_ages": ["15-19", "20-24"],
+            "college_cap": 0.15,
+            "general_cap": 0.08,
+        }
+
+        capped, n_clipped = _apply_rate_cap(rate, age_groups, config)
+
+        # 12% and 14% are within +/-15%, should be unchanged
+        assert capped.iloc[0] == pytest.approx(0.12)
+        assert capped.iloc[1] == pytest.approx(0.14)
+        # -10% is within +/-15%, should be unchanged
+        assert capped.iloc[2] == pytest.approx(-0.10)
+        # -16% exceeds -15%, should be clipped
+        assert capped.iloc[3] == pytest.approx(-0.15)
+        assert n_clipped == 1
+
+    def test_apply_rate_cap_mixed_ages(self) -> None:
+        """Mixed college and non-college ages apply different caps."""
+        rate = pd.Series([0.12, 0.12, -0.10, -0.10])
+        age_groups = pd.Series(["20-24", "25-29", "15-19", "85+"])
+        config = {
+            "college_ages": ["15-19", "20-24"],
+            "college_cap": 0.15,
+            "general_cap": 0.08,
+        }
+
+        capped, n_clipped = _apply_rate_cap(rate, age_groups, config)
+
+        # 20-24 at +12%: within +/-15% college cap, unchanged
+        assert capped.iloc[0] == pytest.approx(0.12)
+        # 25-29 at +12%: exceeds +8% general cap, clipped to 8%
+        assert capped.iloc[1] == pytest.approx(0.08)
+        # 15-19 at -10%: within +/-15% college cap, unchanged
+        assert capped.iloc[2] == pytest.approx(-0.10)
+        # 85+ at -10%: exceeds -8% general cap, clipped to -8%
+        assert capped.iloc[3] == pytest.approx(-0.08)
+        assert n_clipped == 2
+
+    def test_apply_rate_cap_no_clipping_when_within_bounds(self) -> None:
+        """No cells clipped when all rates are within bounds."""
+        rate = pd.Series([0.05, -0.03, 0.07, -0.06])
+        age_groups = pd.Series(["0-4", "5-9", "10-14", "25-29"])
+        config = {
+            "college_ages": ["15-19", "20-24"],
+            "college_cap": 0.15,
+            "general_cap": 0.08,
+        }
+
+        capped, n_clipped = _apply_rate_cap(rate, age_groups, config)
+
+        pd.testing.assert_series_equal(capped, rate)
+        assert n_clipped == 0
+
+    def test_convergence_with_rate_cap_enabled(self) -> None:
+        """Rate cap is applied when config has enabled=True."""
+        cells = [
+            {"county_fips": "38001", "age_group": "25-29", "sex": "Male"},
+            {"county_fips": "38001", "age_group": "20-24", "sex": "Female"},
+        ]
+        # Set all windows to high rates so cap is exercised
+        recent = pd.DataFrame(cells)
+        recent["migration_rate"] = [0.20, 0.20]
+        medium = pd.DataFrame(cells)
+        medium["migration_rate"] = [0.20, 0.20]
+        longterm = pd.DataFrame(cells)
+        longterm["migration_rate"] = [0.20, 0.20]
+
+        rate_cap_config = {
+            "enabled": True,
+            "college_ages": ["15-19", "20-24"],
+            "college_cap": 0.15,
+            "general_cap": 0.08,
+        }
+
+        results = calculate_age_specific_convergence(
+            recent, medium, longterm,
+            rate_cap_config=rate_cap_config,
+        )
+
+        # Check year 10 (medium hold at 20%)
+        year10 = results[10]
+        rate_25_29 = float(
+            year10.loc[year10["age_group"] == "25-29", "migration_rate"].iloc[0]
+        )
+        rate_20_24 = float(
+            year10.loc[year10["age_group"] == "20-24", "migration_rate"].iloc[0]
+        )
+
+        # 25-29 at 20% should be clipped to general_cap=8%
+        assert rate_25_29 == pytest.approx(0.08)
+        # 20-24 at 20% should be clipped to college_cap=15%
+        assert rate_20_24 == pytest.approx(0.15)
+
+    def test_convergence_without_rate_cap(self) -> None:
+        """Rate cap does not apply when config is None."""
+        cells = [
+            {"county_fips": "38001", "age_group": "25-29", "sex": "Male"},
+        ]
+        recent = pd.DataFrame(cells)
+        recent["migration_rate"] = [0.20]
+        medium = pd.DataFrame(cells)
+        medium["migration_rate"] = [0.20]
+        longterm = pd.DataFrame(cells)
+        longterm["migration_rate"] = [0.20]
+
+        results = calculate_age_specific_convergence(
+            recent, medium, longterm,
+            rate_cap_config=None,
+        )
+
+        year10 = results[10]
+        rate_val = float(year10["migration_rate"].iloc[0])
+        # Without cap, rate should remain at 20%
+        assert rate_val == pytest.approx(0.20)
+
+    def test_convergence_with_rate_cap_disabled(self) -> None:
+        """Rate cap does not apply when enabled=False."""
+        cells = [
+            {"county_fips": "38001", "age_group": "25-29", "sex": "Male"},
+        ]
+        recent = pd.DataFrame(cells)
+        recent["migration_rate"] = [0.20]
+        medium = pd.DataFrame(cells)
+        medium["migration_rate"] = [0.20]
+        longterm = pd.DataFrame(cells)
+        longterm["migration_rate"] = [0.20]
+
+        rate_cap_config = {
+            "enabled": False,
+            "college_ages": ["15-19", "20-24"],
+            "college_cap": 0.15,
+            "general_cap": 0.08,
+        }
+
+        results = calculate_age_specific_convergence(
+            recent, medium, longterm,
+            rate_cap_config=rate_cap_config,
+        )
+
+        year10 = results[10]
+        rate_val = float(year10["migration_rate"].iloc[0])
+        # With cap disabled, rate should remain at 20%
+        assert rate_val == pytest.approx(0.20)
+
+    def test_rate_cap_preserves_convergence_schedule(self) -> None:
+        """Convergence schedule still works correctly with cap enabled.
+
+        Moderate rates (within cap bounds) should still follow the
+        5-10-5 interpolation schedule exactly.
+        """
+        cells = [
+            {"county_fips": "38001", "age_group": "0-4", "sex": "Male"},
+        ]
+        recent = pd.DataFrame(cells)
+        recent["migration_rate"] = [0.06]  # within 8% cap
+        medium = pd.DataFrame(cells)
+        medium["migration_rate"] = [0.03]  # within 8% cap
+        longterm = pd.DataFrame(cells)
+        longterm["migration_rate"] = [0.01]  # within 8% cap
+
+        rate_cap_config = {
+            "enabled": True,
+            "college_ages": ["15-19", "20-24"],
+            "college_cap": 0.15,
+            "general_cap": 0.08,
+        }
+
+        results = calculate_age_specific_convergence(
+            recent, medium, longterm,
+            rate_cap_config=rate_cap_config,
+        )
+
+        # Year 1: t=1/5, rate = 0.06*0.8 + 0.03*0.2 = 0.054
+        assert float(results[1]["migration_rate"].iloc[0]) == pytest.approx(0.054, abs=1e-10)
+        # Year 5: medium = 0.03
+        assert float(results[5]["migration_rate"].iloc[0]) == pytest.approx(0.03, abs=1e-10)
+        # Year 10: medium hold = 0.03
+        assert float(results[10]["migration_rate"].iloc[0]) == pytest.approx(0.03, abs=1e-10)
+        # Year 20: longterm = 0.01
+        assert float(results[20]["migration_rate"].iloc[0]) == pytest.approx(0.01, abs=1e-10)
+
+
+# ---------------------------------------------------------------------------
 # Integration test: end-to-end with real data
 # ---------------------------------------------------------------------------
 
@@ -658,3 +891,228 @@ class TestEndToEndWithRealData:
             longterm_sorted["migration_rate"].values,
             atol=1e-10,
         )
+
+
+# ---------------------------------------------------------------------------
+# Tests: _lift_window_averages (ADR-046)
+# ---------------------------------------------------------------------------
+
+
+class TestLiftWindowAverages:
+    """Tests for _lift_window_averages helper function."""
+
+    def test_lift_adds_increment_to_all_cells(self) -> None:
+        """Additive increment is applied to every cell."""
+        cells = [
+            {"county_fips": "38001", "age_group": "0-4", "sex": "Male"},
+            {"county_fips": "38001", "age_group": "0-4", "sex": "Female"},
+            {"county_fips": "38017", "age_group": "0-4", "sex": "Male"},
+            {"county_fips": "38017", "age_group": "0-4", "sex": "Female"},
+        ]
+        rates = pd.DataFrame(cells)
+        rates["migration_rate"] = [-0.02, -0.01, 0.03, 0.01]
+
+        increment = pd.DataFrame(cells)
+        increment["rate_increment"] = [0.005, 0.005, 0.003, 0.003]
+
+        result = _lift_window_averages(rates, increment)
+
+        expected = [-0.015, -0.005, 0.033, 0.013]
+        np.testing.assert_allclose(
+            result["migration_rate"].values,
+            expected,
+            atol=1e-10,
+        )
+
+    def test_lift_with_zero_increment_is_identity(self) -> None:
+        """Zero increment leaves rates unchanged."""
+        cells = [
+            {"county_fips": "38001", "age_group": "0-4", "sex": "Male"},
+        ]
+        rates = pd.DataFrame(cells)
+        rates["migration_rate"] = [-0.02]
+
+        increment = pd.DataFrame(cells)
+        increment["rate_increment"] = [0.0]
+
+        result = _lift_window_averages(rates, increment)
+        assert result["migration_rate"].iloc[0] == pytest.approx(-0.02)
+
+    def test_lift_with_missing_county_uses_zero(self) -> None:
+        """Counties not in the increment DataFrame get zero increment."""
+        rates = pd.DataFrame(
+            [
+                {"county_fips": "38001", "age_group": "0-4", "sex": "Male", "migration_rate": -0.02},
+                {"county_fips": "38099", "age_group": "0-4", "sex": "Male", "migration_rate": 0.01},
+            ]
+        )
+        increment = pd.DataFrame(
+            [
+                {"county_fips": "38001", "age_group": "0-4", "sex": "Male", "rate_increment": 0.01},
+            ]
+        )
+
+        result = _lift_window_averages(rates, increment)
+        # 38001 should be lifted
+        assert result.iloc[0]["migration_rate"] == pytest.approx(-0.01)
+        # 38099 should be unchanged (no increment row)
+        assert result.iloc[1]["migration_rate"] == pytest.approx(0.01)
+
+    def test_lift_guarantees_higher_rates_with_positive_increment(self) -> None:
+        """A positive increment always produces rates >= original."""
+        np.random.seed(42)
+        n_cells = 100
+        rates = pd.DataFrame({
+            "county_fips": [f"38{i:03d}" for i in range(n_cells)],
+            "age_group": ["0-4"] * n_cells,
+            "sex": ["Male"] * n_cells,
+            "migration_rate": np.random.uniform(-0.10, 0.10, n_cells),
+        })
+        increment = pd.DataFrame({
+            "county_fips": rates["county_fips"],
+            "age_group": rates["age_group"],
+            "sex": rates["sex"],
+            "rate_increment": np.abs(np.random.uniform(0.001, 0.01, n_cells)),
+        })
+
+        result = _lift_window_averages(rates, increment)
+        assert (result["migration_rate"].values >= rates["migration_rate"].values).all()
+
+
+# ---------------------------------------------------------------------------
+# Integration tests: High-scenario convergence rates (ADR-046)
+# ---------------------------------------------------------------------------
+
+_HIGH_CONVERGENCE_PATH = Path(__file__).parent.parent.parent / (
+    "data/processed/migration/convergence_rates_by_year_high.parquet"
+)
+_BASELINE_CONVERGENCE_PATH = Path(__file__).parent.parent.parent / (
+    "data/processed/migration/convergence_rates_by_year.parquet"
+)
+
+
+@pytest.mark.skipif(
+    not _HIGH_CONVERGENCE_PATH.exists() or not _BASELINE_CONVERGENCE_PATH.exists(),
+    reason="Convergence rate files not available",
+)
+class TestHighScenarioConvergenceRates:
+    """Integration tests for high-scenario convergence rates (ADR-046)."""
+
+    def test_high_and_baseline_same_shape(self) -> None:
+        """High and baseline convergence files have identical structure."""
+        baseline = pd.read_parquet(_BASELINE_CONVERGENCE_PATH)
+        high = pd.read_parquet(_HIGH_CONVERGENCE_PATH)
+
+        assert baseline.shape == high.shape, (
+            f"Shape mismatch: baseline {baseline.shape} vs high {high.shape}"
+        )
+        assert list(baseline.columns) == list(high.columns)
+
+    def test_high_and_baseline_same_counties(self) -> None:
+        """Both files cover the same 53 counties."""
+        baseline = pd.read_parquet(_BASELINE_CONVERGENCE_PATH)
+        high = pd.read_parquet(_HIGH_CONVERGENCE_PATH)
+
+        bl_counties = sorted(baseline["county_fips"].unique())
+        hi_counties = sorted(high["county_fips"].unique())
+
+        assert bl_counties == hi_counties
+        assert len(bl_counties) == 53
+
+    def test_high_greater_equal_baseline_all_cells(self) -> None:
+        """High-scenario rates >= baseline for every cell (ADR-046 guarantee)."""
+        baseline = pd.read_parquet(_BASELINE_CONVERGENCE_PATH)
+        high = pd.read_parquet(_HIGH_CONVERGENCE_PATH)
+
+        # Sort both identically to align rows
+        sort_cols = ["county_fips", "year_offset", "age_group", "sex"]
+        baseline_sorted = baseline.sort_values(sort_cols).reset_index(drop=True)
+        high_sorted = high.sort_values(sort_cols).reset_index(drop=True)
+
+        violations = (
+            high_sorted["migration_rate"].values
+            < baseline_sorted["migration_rate"].values - 1e-12
+        )
+        n_violations = violations.sum()
+        assert n_violations == 0, (
+            f"{n_violations} cells where high < baseline"
+        )
+
+    def test_high_strictly_greater_for_most_cells(self) -> None:
+        """Most cells should be strictly greater (not just equal at cap)."""
+        baseline = pd.read_parquet(_BASELINE_CONVERGENCE_PATH)
+        high = pd.read_parquet(_HIGH_CONVERGENCE_PATH)
+
+        sort_cols = ["county_fips", "year_offset", "age_group", "sex"]
+        baseline_sorted = baseline.sort_values(sort_cols).reset_index(drop=True)
+        high_sorted = high.sort_values(sort_cols).reset_index(drop=True)
+
+        strictly_greater = (
+            high_sorted["migration_rate"].values
+            > baseline_sorted["migration_rate"].values + 1e-12
+        )
+        pct_strictly_greater = strictly_greater.sum() / len(high_sorted) * 100
+
+        # At least 90% of cells should be strictly greater
+        assert pct_strictly_greater > 90.0, (
+            f"Only {pct_strictly_greater:.1f}% strictly greater (expected >90%)"
+        )
+
+    def test_every_county_higher_at_every_year(self) -> None:
+        """For each county at each year offset, high mean rate >= baseline mean rate."""
+        baseline = pd.read_parquet(_BASELINE_CONVERGENCE_PATH)
+        high = pd.read_parquet(_HIGH_CONVERGENCE_PATH)
+
+        bl_means = baseline.groupby(
+            ["county_fips", "year_offset"]
+        )["migration_rate"].mean()
+        hi_means = high.groupby(
+            ["county_fips", "year_offset"]
+        )["migration_rate"].mean()
+
+        # Align on same multi-index
+        comparison = pd.DataFrame({
+            "baseline": bl_means,
+            "high": hi_means,
+        }).dropna()
+
+        violations = comparison[comparison["high"] < comparison["baseline"] - 1e-12]
+        assert violations.empty, (
+            f"{len(violations)} county-year combinations where high mean < baseline mean:\n"
+            f"{violations.head(10)}"
+        )
+
+    def test_expected_row_count(self) -> None:
+        """Both files should have 57,240 rows (30 years x 53 counties x 36 cells)."""
+        baseline = pd.read_parquet(_BASELINE_CONVERGENCE_PATH)
+        high = pd.read_parquet(_HIGH_CONVERGENCE_PATH)
+
+        expected = 30 * 53 * 36  # 57,240
+        assert len(baseline) == expected, f"Baseline has {len(baseline)} rows, expected {expected}"
+        assert len(high) == expected, f"High has {len(high)} rows, expected {expected}"
+
+
+# ---------------------------------------------------------------------------
+# Tests: +15_percent scenario removed (ADR-046)
+# ---------------------------------------------------------------------------
+
+
+class TestPlusPercentRemoved:
+    """Verify that the +15_percent migration scenario handler is removed."""
+
+    def test_plus_15_percent_not_in_migration_module(self) -> None:
+        """The +15_percent string should not appear as a scenario handler."""
+        from cohort_projections.core.migration import apply_migration_scenario
+
+        # Create test migration rates
+        rates = pd.DataFrame({
+            "age": [20, 30],
+            "sex": ["Male", "Male"],
+            "race": ["White", "White"],
+            "net_migration": [100.0, -50.0],
+        })
+
+        # Applying "+15_percent" should trigger the unknown scenario path
+        # and return unchanged rates (like "constant" / "recent_average")
+        result = apply_migration_scenario(rates, "+15_percent", year=2030, base_year=2025)
+        pd.testing.assert_frame_equal(result, rates)

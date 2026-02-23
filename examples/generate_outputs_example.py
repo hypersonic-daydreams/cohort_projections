@@ -239,13 +239,13 @@ def main():
         migration_multiplier=1.5,
     )
 
-    # Run low growth scenario
-    low_growth_results, low_growth_summary = run_projection_with_scenario(
+    # Run restricted growth scenario
+    restricted_growth_results, restricted_growth_summary = run_projection_with_scenario(
         base_population,
         fertility_rates,
         survival_rates,
         migration_rates,
-        scenario_name="low_growth",
+        scenario_name="restricted_growth",
         migration_multiplier=0.5,
     )
 
@@ -494,7 +494,7 @@ def main():
     scenarios = {
         "Baseline": baseline_results,
         "High Growth": high_growth_results,
-        "Low Growth": low_growth_results,
+        "Restricted Growth": restricted_growth_results,
     }
 
     scenario_chart = plot_scenario_comparison(

@@ -61,6 +61,17 @@ bigquery:
   use_public_data: true  # Use bigquery-public-data for Census/demographic data
   cache_queries: true  # Cache query results locally
 
+# === BASE POPULATION ===
+# ADR-047: County-specific age-sex-race distributions
+# ADR-048: Single-year-of-age base population from SC-EST data
+base_population:
+  age_resolution: "single_year"  # "single_year" (ADR-048) or "five_year_uniform" (legacy)
+  single_year_distribution: "data/raw/population/nd_age_sex_race_distribution_single_year.csv"
+  county_distributions:
+    enabled: true
+    path: "data/processed/county_age_sex_race_distributions.parquet"
+    blend_threshold: 5000  # Counties below this pop blend with statewide
+
 demographics:
   age_groups:
     type: "single_year"  # or "5_year"
@@ -133,14 +144,21 @@ rates:
       smooth_extreme_outliers: true
       dampening:
         enabled: true
-        factor: 0.60  # Matches SDC 2024 methodology
-        description: "Reduces oil boom migration influence; boom conditions unlikely to repeat"
+        # ADR-051: Period-specific dampening factors (was 0.60 uniform)
+        # Reduced to reflect 2020-2025 evidence that boom migration was largely transient
+        factor:
+          "2005-2010": 0.50  # was 0.60
+          "2010-2015": 0.40  # was 0.60 — peak boom, most transient
+          "2015-2020": 0.50  # was 0.60
+          default: 0.60
+        description: "Reduces oil boom migration influence; ADR-051 recalibration with 2020-2025 evidence"
         counties:
           - "38105"  # Williams
           - "38053"  # McKenzie
           - "38061"  # Mountrail
           - "38025"  # Dunn
           - "38089"  # Stark
+          - "38007"  # Billings (Finding 2-B: Bakken oil patch, +3%/yr 2010-2015, +88% undampened)
         boom_periods:
           - [2005, 2010]
           - [2010, 2015]
@@ -154,6 +172,13 @@ rates:
           - [2020, 2024]
         survival_source: "CDC_ND_2020"
         averaging: "simple_average"
+        # PEP-anchored recalibration for reservation counties (ADR-045)
+        pep_recalibration:
+          enabled: true
+          counties: ["38005", "38085", "38079"]  # Benson, Sioux, Rolette
+          pep_data_path: "data/processed/pep_county_components_2000_2025.parquet"
+          fallback_method: "rogers_castro"
+          near_zero_threshold: 10
       adjustments:
         college_age:
           enabled: true
@@ -183,6 +208,11 @@ rates:
         recent_to_medium_years: 5
         medium_hold_years: 10
         medium_to_longterm_years: 5
+      rate_cap:
+        enabled: true
+        college_ages: ["15-19", "20-24"]
+        college_cap: 0.15        # +/-15% for ages 15-24 (preserves university enrollment dynamics)
+        general_cap: 0.08        # +/-8% for all other ages (clips small-county statistical noise)
 
 # === SCENARIOS ===
 # ADR-037 (CBO-grounded methodology), amended by ADR-039, ADR-040
@@ -197,11 +227,11 @@ scenarios:
 
   restricted_growth:
     name: "Restricted Growth (CBO Policy-Adjusted)"
-    description: "CBO-derived immigration enforcement impact on international migration only (ADR-037, ADR-040)"
+    description: "CBO-derived immigration enforcement impact via additive migration reduction (ADR-037, ADR-050)"
     fertility: "-5_percent"
     mortality: "improving"
     migration:
-      type: "time_varying"
+      type: "additive_reduction"
       schedule:
         2025: 0.20
         2026: 0.37
@@ -209,22 +239,32 @@ scenarios:
         2028: 0.78
         2029: 0.91
       default_factor: 1.00
-      # International share of total net migration (ADR-040).
-      # The CBO time-varying factor models federal immigration policy and
-      # applies ONLY to international migration. Domestic migration is
-      # unaffected by immigration enforcement.
-      # Computed from PEP components 2023-2025 state totals:
-      #   intl_mig=+10,051, netmig=+11,070 => intl_share=0.91
-      # The engine uses: adjusted = rate * (1 - intl_share * (1 - factor))
-      intl_share: 0.91
+      # Additive migration reduction parameters (ADR-050).
+      # The CBO time-varying factor models federal immigration enforcement.
+      # Instead of multiplicative scaling (which fails for net-negative
+      # migration counties), we subtract a per-capita rate decrement
+      # computed from the state-level international migration volume.
+      # Formula: reduction_rate = ref_intl * (1 - factor) / ref_pop
+      #          adjusted_rate  = base_rate - per_cell_reduction
+      # This guarantees restricted <= baseline for all counties.
+      reference_intl_migration: 10051  # Annual international migration (PEP 2023-2025 avg)
+      reference_population: 799358     # State population at base year
     active: true
 
   high_growth:
-    name: "High Growth (Pre-Policy Elevated Immigration)"
-    description: "Counterfactual continuation of elevated post-2020 immigration trends (ADR-037)"
+    name: "High Growth (Elevated Immigration)"
+    description: "Counterfactual: BEBR-optimistic migration rates representing sustained elevated immigration (ADR-046)"
     fertility: "+5_percent"
     mortality: "improving"
-    migration: "+15_percent"
+    migration: "recent_average"  # No in-engine adjustment; scenario baked into convergence rates
+    convergence_variant: "high"  # Load convergence_rates_by_year_high.parquet (ADR-046)
+    # ADR-052: Migration floor — prevent any county's mean convergence rate
+    # from being negative in the high-growth scenario. A high-growth scenario
+    # showing decline for major counties with institutional anchors (MAFB,
+    # universities, regional centers) is not a useful planning scenario.
+    migration_floor:
+      enabled: true
+      floor_value: 0.0  # Minimum average convergence rate at medium hold
     active: true
 
   zero_migration:
@@ -326,7 +366,7 @@ pipeline:
     # Component-specific settings
     fertility:
       enabled: true
-      input_file: "data/raw/fertility/asfr_processed.csv"
+      input_file: "data/raw/fertility/nd_asfr_processed.csv"
       output_file: "data/processed/fertility_rates.parquet"
 
     survival:

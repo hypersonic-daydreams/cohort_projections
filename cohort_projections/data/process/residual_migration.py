@@ -404,7 +404,8 @@ def apply_period_dampening(
         period: Tuple (start_year, end_year) for the current period.
         dampening_config: Dict with keys:
             - enabled: bool
-            - factor: float multiplier (e.g., 0.60)
+            - factor: float multiplier (e.g., 0.60), or dict of period-specific
+              factors (e.g., {"2005-2010": 0.50, "2010-2015": 0.40})
             - counties: list of 5-digit FIPS to dampen
             - boom_periods: list of [start, end] period tuples
 
@@ -414,7 +415,7 @@ def apply_period_dampening(
     if not dampening_config.get("enabled", True):
         return period_rates.copy()
 
-    factor = dampening_config.get("factor", 0.60)
+    factor_cfg = dampening_config.get("factor", 0.60)
     counties = dampening_config.get("counties", OIL_COUNTIES)
     boom_periods = dampening_config.get("boom_periods", [[2005, 2010], [2010, 2015]])
 
@@ -424,6 +425,13 @@ def apply_period_dampening(
     if not is_boom:
         logger.debug(f"Period {period[0]}-{period[1]} is not a boom period; no dampening applied")
         return period_rates.copy()
+
+    # Resolve period-specific factor (ADR-051: supports dict or scalar)
+    period_key_str = f"{period[0]}-{period[1]}"
+    if isinstance(factor_cfg, dict):
+        factor = factor_cfg.get(period_key_str, factor_cfg.get("default", 0.60))
+    else:
+        factor = float(factor_cfg)
 
     result = period_rates.copy()
     mask = result["county_fips"].isin(counties)
@@ -553,6 +561,282 @@ def apply_male_migration_dampening(
         )
 
     return result
+
+
+def _get_rogers_castro_age_group_weights() -> dict[str, float]:
+    """Return Rogers-Castro migration propensity weights for 18 five-year age groups.
+
+    Uses the same Rogers-Castro model as
+    ``get_standard_age_migration_pattern(method='rogers_castro')`` from
+    ``migration_rates.py``, aggregated to five-year groups and normalised
+    so they sum to 1.0.
+
+    Returns:
+        Dictionary mapping age_group label (e.g. "0-4") to its share of
+        total migration propensity.
+    """
+    from cohort_projections.data.process.migration_rates import (
+        get_standard_age_migration_pattern,
+    )
+
+    rc = get_standard_age_migration_pattern(peak_age=25, method="rogers_castro")
+
+    # Map single-year ages to five-year age groups
+    def _age_to_group(age: int) -> str:
+        if age >= 85:
+            return "85+"
+        lower = (age // 5) * 5
+        upper = lower + 4
+        return f"{lower}-{upper}"
+
+    rc["age_group"] = rc["age"].apply(_age_to_group)
+    group_sums = rc.groupby("age_group")["migration_propensity"].sum()
+
+    # Normalise
+    total = group_sums.sum()
+    weights: dict[str, float] = {}
+    for ag in AGE_GROUP_LABELS:
+        weights[ag] = float(group_sums.get(ag, 0.0) / total)
+
+    return weights
+
+
+def _rogers_castro_to_age_group_rates(
+    total_migration: float,
+    expected_pop: pd.DataFrame,
+    sex_ratio: float = 0.5,
+) -> pd.DataFrame:
+    """Distribute *total_migration* to age-group x sex rates using Rogers-Castro.
+
+    Steps:
+        1. Split total to Male/Female using *sex_ratio*.
+        2. Allocate each sex's total across 18 age groups using the
+           Rogers-Castro propensity weights.
+        3. Convert counts to annual rates by dividing by the county's
+           expected population for each cell.
+
+    Args:
+        total_migration: Net migration person-count to distribute (can be
+            negative for net out-migration).
+        expected_pop: DataFrame with columns ``[age_group, sex, expected_pop]``
+            for the county-period being recalibrated.  Used as the
+            denominator when converting counts to rates.
+        sex_ratio: Proportion allocated to males (default 0.5).
+
+    Returns:
+        DataFrame with columns ``[age_group, sex, rc_migration, rc_rate]``
+        where *rc_rate* is the annualised rate to substitute into the
+        residual rates frame.
+    """
+    rc_weights = _get_rogers_castro_age_group_weights()
+
+    records: list[dict[str, Any]] = []
+    for sex in ["Male", "Female"]:
+        sex_share = sex_ratio if sex == "Male" else (1.0 - sex_ratio)
+        sex_total = total_migration * sex_share
+
+        for ag in AGE_GROUP_LABELS:
+            mig_count = sex_total * rc_weights.get(ag, 0.0)
+            exp = expected_pop.loc[
+                (expected_pop["age_group"] == ag) & (expected_pop["sex"] == sex),
+                "expected_pop",
+            ]
+            exp_val = float(exp.iloc[0]) if not exp.empty else 0.0
+            rate = mig_count / exp_val if exp_val > 0 else 0.0
+            records.append(
+                {
+                    "age_group": ag,
+                    "sex": sex,
+                    "rc_migration": mig_count,
+                    "rc_rate": rate,
+                }
+            )
+
+    return pd.DataFrame(records)
+
+
+def _load_pep_for_recalibration(pep_path: str | Path) -> pd.DataFrame:
+    """Load PEP county components for recalibration, filtering to preferred estimates.
+
+    Returns a DataFrame with columns ``[geoid, year, netmig]`` where
+    ``geoid`` is the 5-digit FIPS (e.g. ``"38005"``).
+    """
+    pep_path = Path(pep_path)
+    if not pep_path.exists():
+        raise FileNotFoundError(f"PEP data file not found: {pep_path}")
+
+    df = pd.read_parquet(pep_path)
+
+    if "is_preferred_estimate" in df.columns:
+        df = df[df["is_preferred_estimate"]].copy()
+
+    # Ensure geoid column exists
+    if "geoid" not in df.columns:
+        # Build from state + county FIPS
+        df["geoid"] = df["state_fips"].astype(str) + df["county_fips"].astype(str).str.zfill(3)
+
+    return df[["geoid", "year", "netmig"]].copy()
+
+
+def apply_pep_recalibration(
+    period_rates: pd.DataFrame,
+    period: tuple[int, int],
+    pep_data: pd.DataFrame,
+    counties: list[str],
+    near_zero_threshold: float = 10.0,
+    sex_ratio: float = 0.5,
+) -> tuple[pd.DataFrame, dict[str, dict[str, Any]]]:
+    """Recalibrate residual rates for specified counties using PEP totals.
+
+    For each target county and period:
+
+    1. Compute PEP total net migration for the period (sum of annual
+       ``netmig`` for years within the period boundaries).
+    2. Compute residual total net migration for that county-period.
+    3. **Same sign and |residual| > threshold**: scale all rates by
+       ``k = PEP_total / residual_total`` (preserves age-sex shape).
+    4. **Sign reversal or near-zero residual**: redistribute PEP total
+       using Rogers-Castro age pattern with 50/50 sex split.
+
+    Non-target counties are passed through unchanged.
+
+    Args:
+        period_rates: DataFrame produced by ``compute_residual_migration_rates``
+            with columns including ``county_fips``, ``age_group``, ``sex``,
+            ``migration_rate``, ``net_migration``, ``expected_pop``.
+        period: ``(start_year, end_year)`` tuple.
+        pep_data: DataFrame with columns ``[geoid, year, netmig]`` where
+            ``geoid`` is 5-digit FIPS (e.g. ``"38005"``).
+        counties: List of 5-digit FIPS codes to recalibrate.
+        near_zero_threshold: Absolute person-count below which the residual
+            total is considered near-zero and the Rogers-Castro fallback is
+            used (default 10).
+        sex_ratio: Male share for Rogers-Castro fallback (default 0.5).
+
+    Returns:
+        Tuple of ``(recalibrated_rates, metadata_dict)`` where
+        *metadata_dict* maps county FIPS to a dict describing the method
+        used (``"scaled"`` or ``"rogers_castro"``) and relevant parameters.
+    """
+    start_year, end_year = period
+    period_length = end_year - start_year
+    result = period_rates.copy()
+    metadata: dict[str, dict[str, Any]] = {}
+
+    for county in counties:
+        # --- PEP total for the period ---
+        # Period convention: for period (2000, 2005), sum PEP years
+        # 2001-2005 (the years *within* the intercensal period).
+        # For (2020, 2024), sum years 2021-2024.
+        pep_years = pep_data[
+            (pep_data["geoid"] == county)
+            & (pep_data["year"] > start_year)
+            & (pep_data["year"] <= end_year)
+        ]
+
+        if pep_years.empty:
+            logger.warning(
+                f"PEP recalibration: no PEP data for county {county} "
+                f"in period {start_year}-{end_year}; skipping"
+            )
+            continue
+
+        pep_total = float(pep_years["netmig"].sum())
+
+        # --- Residual total for the county-period ---
+        county_mask = result["county_fips"] == county
+        county_rows = result.loc[county_mask]
+
+        if county_rows.empty:
+            logger.warning(
+                f"PEP recalibration: no residual data for county {county} "
+                f"in period {start_year}-{end_year}; skipping"
+            )
+            continue
+
+        residual_total = float(county_rows["net_migration"].sum())
+
+        # --- Decide method ---
+        if abs(residual_total) < near_zero_threshold:
+            # Near-zero residual: use Rogers-Castro fallback
+            method = "rogers_castro"
+            reason = "near_zero"
+            logger.info(
+                f"PEP recalibration {county} {start_year}-{end_year}: "
+                f"Rogers-Castro fallback (|residual|={abs(residual_total):.0f} < "
+                f"threshold={near_zero_threshold}). PEP total={pep_total:+,.0f}"
+            )
+        elif (pep_total >= 0 and residual_total >= 0) or (pep_total <= 0 and residual_total <= 0):
+            # Same sign: scale
+            method = "scaled"
+            reason = "same_sign"
+        else:
+            # Sign reversal: use Rogers-Castro fallback
+            method = "rogers_castro"
+            reason = "sign_reversal"
+            logger.info(
+                f"PEP recalibration {county} {start_year}-{end_year}: "
+                f"Rogers-Castro fallback (sign reversal: PEP={pep_total:+,.0f}, "
+                f"residual={residual_total:+,.0f})"
+            )
+
+        if method == "scaled":
+            k = pep_total / residual_total
+            result.loc[county_mask, "migration_rate"] *= k
+            result.loc[county_mask, "net_migration"] *= k
+            logger.info(
+                f"PEP recalibration {county} {start_year}-{end_year}: "
+                f"scaled by k={k:.3f} (PEP={pep_total:+,.0f}, "
+                f"residual={residual_total:+,.0f})"
+            )
+            metadata[county] = {
+                "method": "scaled",
+                "k": round(k, 4),
+                "pep_total": pep_total,
+                "residual_total": residual_total,
+            }
+        else:
+            # Rogers-Castro fallback: distribute PEP total using RC pattern
+            # Build expected_pop for this county from the residual data
+            exp_pop = county_rows[["age_group", "sex", "expected_pop"]].copy()
+
+            rc_rates = _rogers_castro_to_age_group_rates(
+                total_migration=pep_total,
+                expected_pop=exp_pop,
+                sex_ratio=sex_ratio,
+            )
+
+            # Annualise: the RC rates are already per-period-length since we
+            # divided count by expected_pop (which is the denominator for
+            # the period rate).  Convert to annual rate the same way the
+            # residual pipeline does.
+            for idx, row in rc_rates.iterrows():
+                rate_period = row["rc_rate"]
+                if abs(rate_period) > 0 and rate_period > -1.0:
+                    annual = _annualize_period_migration_rate(rate_period, period_length)
+                else:
+                    annual = rate_period
+                rc_rates.at[idx, "rc_rate"] = annual
+
+            # Apply to result
+            for _, rc_row in rc_rates.iterrows():
+                mask = (
+                    county_mask
+                    & (result["age_group"] == rc_row["age_group"])
+                    & (result["sex"] == rc_row["sex"])
+                )
+                if mask.any():
+                    result.loc[mask, "migration_rate"] = rc_row["rc_rate"]
+                    result.loc[mask, "net_migration"] = rc_row["rc_migration"]
+
+            metadata[county] = {
+                "method": "rogers_castro",
+                "reason": reason,
+                "pep_total": pep_total,
+                "residual_total": residual_total,
+            }
+
+    return result, metadata
 
 
 def average_period_rates(
@@ -756,23 +1040,68 @@ def run_residual_migration_pipeline(
             f"mean rate {rates['migration_rate'].mean():.4f}"
         )
 
-    # --- Step 5: Combine all periods ---
-    logger.info("Step 4: Combining all period rates")
+    # --- Step 4b: PEP recalibration for reservation counties (ADR-045) ---
+    pep_recal_cfg = residual_cfg.get("pep_recalibration", {})
+    pep_recal_metadata: dict[str, dict[str, dict[str, Any]]] = {}
+
+    if pep_recal_cfg.get("enabled", False):
+        logger.info("Step 4b: Applying PEP recalibration for reservation counties")
+        recal_counties = pep_recal_cfg.get("counties", [])
+        pep_path = pep_recal_cfg.get(
+            "pep_data_path",
+            "data/processed/pep_county_components_2000_2025.parquet",
+        )
+        near_zero_thresh = pep_recal_cfg.get("near_zero_threshold", 10.0)
+
+        pep_data = _load_pep_for_recalibration(project_root / pep_path)
+        logger.info(
+            f"Loaded PEP data for recalibration: {len(pep_data)} rows, "
+            f"target counties: {recal_counties}"
+        )
+
+        for period_key, rates in period_results.items():
+            recalibrated, period_meta = apply_pep_recalibration(
+                period_rates=rates,
+                period=period_key,
+                pep_data=pep_data,
+                counties=recal_counties,
+                near_zero_threshold=near_zero_thresh,
+            )
+            period_results[period_key] = recalibrated
+
+            # Collect metadata per county
+            period_label = f"{period_key[0]}-{period_key[1]}"
+            for county, meta in period_meta.items():
+                pep_recal_metadata.setdefault(county, {})[period_label] = meta
+
+    # --- Step 5: Apply college-age smoothing to period-level rates (ADR-049) ---
+    if college_enabled:
+        logger.info("Step 4a: Applying college-age smoothing to period-level rates")
+        for period_key in period_results:
+            period_results[period_key] = apply_college_age_adjustment(
+                period_results[period_key],
+                college_counties=college_counties,
+                method=college_method,
+                age_groups=college_age_groups,
+                blend_factor=college_blend,
+            )
+
+    # --- Step 5b: Combine all periods ---
+    logger.info("Step 4b: Combining all period rates")
     all_periods = pd.concat(list(period_results.values()), ignore_index=True)
 
     # --- Step 6: Average across periods ---
     logger.info("Step 5: Averaging rates across periods")
     averaged = average_period_rates(period_results, method=averaging_method)
 
-    # --- Step 7: Apply college-age adjustment to averaged rates ---
+    # --- Step 7: College-age smoothing on averaged rates SKIPPED (ADR-049) ---
+    # Period-level smoothing in Step 5 already handles college-age adjustment.
+    # Applying it again here would double-smooth, over-correcting college
+    # counties (e.g. Cass County drops from +63% to +19% instead of ~+48%).
     if college_enabled:
-        logger.info("Step 6: Applying college-age adjustment")
-        averaged = apply_college_age_adjustment(
-            averaged,
-            college_counties=college_counties,
-            method=college_method,
-            age_groups=college_age_groups,
-            blend_factor=college_blend,
+        logger.info(
+            "Step 6: Skipping college-age smoothing on averaged rates — "
+            "already applied at period level in Step 4a (ADR-049)"
         )
 
     # --- Step 8: Save output files ---
@@ -813,6 +1142,12 @@ def run_residual_migration_pipeline(
             "counties": college_counties,
             "age_groups": college_age_groups,
             "blend_factor": college_blend,
+        },
+        "pep_recalibration": {
+            "enabled": pep_recal_cfg.get("enabled", False),
+            "counties": pep_recal_cfg.get("counties", []),
+            "near_zero_threshold": pep_recal_cfg.get("near_zero_threshold", 10),
+            "per_county_period": pep_recal_metadata,
         },
         "survival_source": residual_cfg.get("survival_source", "CDC_ND_2020"),
         "summary": {

@@ -252,21 +252,78 @@ For missing race categories, these national 2022 rates can be used as proxies:
 
 ---
 
-## North Dakota-Specific Considerations
+## North Dakota-Specific Data (ADR-053, Implemented 2026-02-23)
 
-1. **State rates vs. National rates:**
-   - ND-specific rates are ideal but rarely available by race
-   - National rates are acceptable per ADR-001
-   - Consider adjustment factors based on ND teen birth rate data
+### ND CDC WONDER Birth Files
 
-2. **AIAN Population:**
-   - AIAN is 5% of ND population (significant)
-   - May have different fertility patterns than national AIAN
-   - Consider using Northern Plains AIAN rates if available from IHS data
+| File | Description | Rows | Download Date |
+|------|-------------|------|---------------|
+| cdc_wonder_nd_births_2020_2023.txt | ND births by race×age×Hispanic, 2020-2023 pooled | 74 | 2026-02-23 |
+| cdc_wonder_national_births_2020_2023.txt | National births, same dimensions (fallback) | 151 | 2026-02-23 |
 
-3. **Small Population Adjustment:**
-   - Per ADR-001, use 5-year averaging for stability
-   - Population-weighted averaging preferred
+**CDC WONDER Query Parameters:**
+- Database: Natality, 2016-2024 (Expanded)
+- Group By: Mother's Single Race 6, Mother's Hispanic Origin, Mother's Age 9
+- State: North Dakota (ND file) / All states (national file)
+- Years: 2020-2023 combined (not grouped by year — pooled for stability)
+- Format: Tab-delimited text export
+
+**Race Mapping (CDC WONDER → Project):**
+| Single Race 6 | Hispanic Origin | Project Code |
+|----------------|-----------------|-------------|
+| White | Not Hispanic or Latino | white_nh |
+| Black or African American | Not Hispanic or Latino | black_nh |
+| American Indian or Alaska Native | Not Hispanic or Latino | aian_nh |
+| Asian | Not Hispanic or Latino | asian_nh |
+| Native Hawaiian or Other Pacific Islander | Not Hispanic or Latino | asian_nh (combined) |
+| More than one race | Not Hispanic or Latino | two_or_more_nh |
+| Any race | Hispanic or Latino | hispanic |
+
+**Handling "Unknown or Not Stated" Hispanic Origin:**
+CDC WONDER reports births where Hispanic origin is unknown. These are distributed
+proportionally to the known Hispanic/Non-Hispanic split within each race × age cell.
+This avoids undercount bias (dropping them) or overcount bias (assigning all to one group).
+
+### ND ASFR Output File
+
+**nd_asfr_processed.csv** — ND-specific age-specific fertility rates
+
+| Column | Type | Description |
+|--------|------|-------------|
+| age | string | 5-year age group (15-19, 20-24, ..., 45-49) |
+| race_ethnicity | string | Race code (total, white_nh, black_nh, hispanic, aian_nh, asian_nh, two_or_more_nh) |
+| asfr | float | Births per 1,000 women per year |
+| year | int | Reference year (2023) |
+
+- 49 rows (7 age groups × 7 race categories)
+- Format matches asfr_processed.csv schema for pipeline compatibility
+- Referenced in config: `pipeline.fertility.input_file: "data/raw/fertility/nd_asfr_processed.csv"`
+
+**Population Denominators:**
+Female population by age × race from `data/raw/population/cc-est2024-alldata-38.csv`
+(Census County Characteristics, FIPS 38). Summed across all 53 ND counties and
+years 2-5 (July 2020 through July 2023) to match birth pooling window.
+
+**Suppressed Cells:**
+5 of 49 cells had <10 births across the 4-year window and use national ASFR
+as fallback: Asian NH 15-19, and several 45-49 age group cells.
+
+**Processing Script:** `scripts/data/build_nd_fertility_rates.py`
+
+### Validation
+
+| Metric | Value | Target | Status |
+|--------|-------|--------|--------|
+| ND TFR (total) | 1.863 | 1.85-1.90 | Within 1% |
+| Average annual births | 9,804 | ~9,647 (actual 2023) | Within 1.6% |
+| ND/National TFR ratio | 1.15 | ~1.14-1.17 per GFR data | Consistent |
+
+## Historical Notes
+
+Prior to ADR-053 (2026-02-23), the project used national ASFR from
+`asfr_processed.csv` (SEER-derived, 2024 vintage). That file remains in the
+repository as a reference and fallback source. The switch to ND-specific rates
+increased projected births by ~15%, correcting a systematic undercount.
 
 ---
 

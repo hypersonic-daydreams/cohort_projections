@@ -16,6 +16,7 @@ Sources and traceability:
     ADR-039: International-only migration factor
     ADR-040: Bakken boom dampening extension (2015-2020)
     ADR-041: Census+PUMS hybrid base population distribution
+    ADR-046: High growth scenario via BEBR convergence rates
 """
 
 # ---------------------------------------------------------------------------
@@ -31,7 +32,7 @@ PROVISIONAL_LABEL = "PROVISIONAL \u2014 Pending Review \u2014 Subject to Change"
 SCENARIOS = {
     "baseline": "Baseline (Trend Continuation)",
     "restricted_growth": "Restricted Growth (CBO Policy-Adjusted)",
-    "high_growth": "High Growth (Pre-Policy Elevated Immigration)",
+    "high_growth": "High Growth (Elevated Immigration)",
 }
 
 # Short names (for tab / sheet-name labels where length matters)
@@ -69,12 +70,13 @@ METHODOLOGY_LINES = [
         "multi-period averaging (BEBR method), Rogers-Castro age allocation, "
         "convergence interpolation toward long-term rates."
     ),
-    # ADR-037, ADR-039: CBO-grounded scenarios; intl-only factor
+    # ADR-037, ADR-039, ADR-046: CBO-grounded scenarios; intl-only factor; BEBR high convergence
     (
         "Baseline: Recent trend continuation. "
         "Restricted Growth: CBO time-varying factor on international migration only "
         "(domestic migration unchanged), \u22125% fertility. "
-        "High Growth: +15% migration, +5% fertility. "
+        "High Growth: BEBR-optimistic migration rates (most favorable historical period "
+        "per county, ~+1,300 additional net migrants/year vs baseline), +5% fertility. "
         "CBO Demographic Outlook (Pub. 60875, Jan 2025; Pub. 61879, Jan 2026)."
     ),
     "Geography: All 53 North Dakota counties; state totals are county sums.",

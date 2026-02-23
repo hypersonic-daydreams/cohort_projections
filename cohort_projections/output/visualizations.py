@@ -625,7 +625,7 @@ def plot_scenario_comparison(
         >>> scenarios = {
         ...     'Baseline': baseline_df,
         ...     'High Growth': high_growth_df,
-        ...     'Low Growth': low_growth_df
+        ...     'Restricted Growth': restricted_growth_df
         ... }
         >>> plot_scenario_comparison(
         ...     scenario_projections=scenarios,

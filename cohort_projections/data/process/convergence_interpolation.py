@@ -127,12 +127,51 @@ def compute_period_window_averages(
 # ---------------------------------------------------------------------------
 
 
+def _apply_rate_cap(
+    rate: pd.Series,
+    age_groups: pd.Series,
+    rate_cap_config: dict[str, Any],
+) -> tuple[pd.Series, int]:
+    """Apply age-aware asymmetric migration rate cap.
+
+    College-age cells (default 15-19, 20-24) are capped at a wider threshold
+    to preserve legitimate university enrollment dynamics. All other age cells
+    are capped at a tighter threshold to clip small-county statistical noise.
+
+    Args:
+        rate: Series of interpolated migration rates for a single year.
+        age_groups: Series of age group labels aligned with *rate*.
+        rate_cap_config: Dict with keys:
+            - college_ages: list of age group labels for the wider cap
+            - college_cap: float, symmetric cap for college ages (e.g. 0.15)
+            - general_cap: float, symmetric cap for other ages (e.g. 0.08)
+
+    Returns:
+        Tuple of (capped_rate, n_clipped) where *n_clipped* is the number
+        of cells that were modified by the cap.
+    """
+    college_ages = rate_cap_config.get("college_ages", ["15-19", "20-24"])
+    college_cap = rate_cap_config.get("college_cap", 0.15)
+    general_cap = rate_cap_config.get("general_cap", 0.08)
+
+    college_mask = age_groups.isin(college_ages)
+
+    # Apply general cap to all cells first, then overwrite college-age cells
+    capped = rate.copy()
+    capped = capped.clip(lower=-general_cap, upper=general_cap)
+    capped[college_mask] = rate[college_mask].clip(lower=-college_cap, upper=college_cap)
+
+    n_clipped = int((capped != rate).sum())
+    return capped, n_clipped
+
+
 def calculate_age_specific_convergence(
     recent_rates: pd.DataFrame,
     medium_rates: pd.DataFrame,
     longterm_rates: pd.DataFrame,
     projection_years: int = 20,
     convergence_schedule: dict[str, int] | None = None,
+    rate_cap_config: dict[str, Any] | None = None,
 ) -> dict[int, pd.DataFrame]:
     """Calculate year-varying migration rates with age-specific convergence.
 
@@ -144,6 +183,10 @@ def calculate_age_specific_convergence(
     - Years *phase1+phase2+1* through *total*: linear from medium to
       long-term
 
+    After interpolation, an optional age-aware rate cap clips extreme
+    values to guard against small-county statistical noise while
+    preserving legitimate university enrollment dynamics.
+
     Args:
         recent_rates: DataFrame with [county_fips, age_group, sex,
             migration_rate] for the recent window.
@@ -154,6 +197,11 @@ def calculate_age_specific_convergence(
             - recent_to_medium_years (default 5)
             - medium_hold_years (default 10)
             - medium_to_longterm_years (default 5)
+        rate_cap_config: Optional dict with keys:
+            - enabled: bool (default False)
+            - college_ages: list of age group labels (default ["15-19", "20-24"])
+            - college_cap: float (default 0.15)
+            - general_cap: float (default 0.08)
 
     Returns:
         Dict mapping year_offset (1-based, 1 through *projection_years*)
@@ -170,6 +218,11 @@ def calculate_age_specific_convergence(
     phase1 = convergence_schedule["recent_to_medium_years"]
     phase2 = convergence_schedule["medium_hold_years"]
     phase3 = convergence_schedule["medium_to_longterm_years"]
+
+    # Determine whether rate capping is enabled
+    cap_enabled = (
+        rate_cap_config is not None and rate_cap_config.get("enabled", False)
+    )
 
     group_cols = ["county_fips", "age_group", "sex"]
 
@@ -192,6 +245,7 @@ def calculate_age_specific_convergence(
     merged = merged.fillna(0.0)
 
     results: dict[int, pd.DataFrame] = {}
+    total_clipped = 0
 
     for year in range(1, projection_years + 1):
         if year <= phase1:
@@ -208,6 +262,14 @@ def calculate_age_specific_convergence(
             t = min(t, 1.0)
             rate = merged["medium"] * (1 - t) + merged["longterm"] * t
 
+        # Apply age-aware rate cap (after interpolation, before storing)
+        if cap_enabled:
+            assert rate_cap_config is not None  # for type checker
+            rate, n_clipped = _apply_rate_cap(
+                rate, merged["age_group"], rate_cap_config
+            )
+            total_clipped += n_clipped
+
         year_df = merged[group_cols].copy()
         year_df["migration_rate"] = rate.values
         results[year] = year_df
@@ -216,6 +278,12 @@ def calculate_age_specific_convergence(
         f"Age-specific convergence computed for {len(merged)} cells "
         f"over {projection_years} years (phases: {phase1}+{phase2}+{phase3})"
     )
+    if cap_enabled:
+        logger.info(
+            f"Rate cap applied: {total_clipped} cells clipped across "
+            f"{projection_years} year offsets "
+            f"({total_clipped / (len(merged) * projection_years) * 100:.1f}% of all cells)"
+        )
 
     return results
 
@@ -225,8 +293,115 @@ def calculate_age_specific_convergence(
 # ---------------------------------------------------------------------------
 
 
+def _compute_high_scenario_rate_increment(
+    baseline_window: pd.DataFrame,
+    project_root: Path,
+) -> pd.DataFrame:
+    """Compute per-county rate increment for the high scenario.
+
+    Loads the BEBR baseline and high migration rate files, computes the
+    per-county absolute difference (high - baseline), then converts that
+    to a per-cell rate increment distributed uniformly across the 36
+    age-group x sex cells in each county.
+
+    The increment is expressed as a migration rate (proportion of
+    cell-level population) and is added to the baseline window averages
+    to produce high-scenario window averages.
+
+    Args:
+        baseline_window: Any window-average DataFrame used to identify
+            the county x age_group x sex cell structure.
+        project_root: Path to project root for locating data files.
+
+    Returns:
+        DataFrame with columns [county_fips, age_group, sex,
+        rate_increment] containing the per-cell additive rate increment.
+    """
+    migration_dir = project_root / "data" / "processed" / "migration"
+    baseline_pep = pd.read_parquet(migration_dir / "migration_rates_pep_baseline.parquet")
+    high_pep = pd.read_parquet(migration_dir / "migration_rates_pep_high.parquet")
+
+    # County-level absolute net migration totals
+    bl_county = (
+        baseline_pep.groupby("county_fips")["net_migration"]
+        .sum()
+        .reset_index()
+        .rename(columns={"net_migration": "baseline_net"})
+    )
+    hi_county = (
+        high_pep.groupby("county_fips")["net_migration"]
+        .sum()
+        .reset_index()
+        .rename(columns={"net_migration": "high_net"})
+    )
+    diff_county = bl_county.merge(hi_county, on="county_fips")
+    diff_county["abs_diff"] = diff_county["high_net"] - diff_county["baseline_net"]
+
+    # Load population reference from residual rates (most recent period)
+    residual_path = migration_dir / "residual_migration_rates.parquet"
+    residual_df = pd.read_parquet(residual_path)
+    max_period = residual_df["period_start"].max()
+    recent_period = residual_df[residual_df["period_start"] == max_period]
+    county_pop = (
+        recent_period.groupby("county_fips")["pop_start"]
+        .sum()
+        .reset_index()
+        .rename(columns={"pop_start": "county_population"})
+    )
+
+    # Merge diff with population to convert absolute diff to a rate
+    diff_county = diff_county.merge(county_pop, on="county_fips", how="left")
+    # Cells per county = 18 age groups x 2 sexes = 36
+    cells_per_county = baseline_window.groupby("county_fips").size().iloc[0]
+    diff_county["rate_increment_per_cell"] = diff_county["abs_diff"] / (
+        diff_county["county_population"].clip(lower=1.0)
+    ) / cells_per_county
+
+    # Distribute the per-cell increment to all cells in the window
+    group_cols = ["county_fips", "age_group", "sex"]
+    cell_structure = baseline_window[group_cols].copy()
+    increment_df = cell_structure.merge(
+        diff_county[["county_fips", "rate_increment_per_cell"]],
+        on="county_fips",
+        how="left",
+    )
+    increment_df["rate_increment"] = increment_df["rate_increment_per_cell"].fillna(0.0)
+
+    total_increment = diff_county["abs_diff"].sum()
+    logger.info(
+        f"High scenario rate increment computed: "
+        f"+{total_increment:,.0f} additional migrants/year "
+        f"across {len(diff_county)} counties, "
+        f"distributed to {len(increment_df)} cells"
+    )
+
+    return increment_df[group_cols + ["rate_increment"]]
+
+
+def _lift_window_averages(
+    rates: pd.DataFrame,
+    increment: pd.DataFrame,
+) -> pd.DataFrame:
+    """Add per-cell rate increment to a window-average DataFrame.
+
+    Args:
+        rates: Window-average DataFrame with columns
+            [county_fips, age_group, sex, migration_rate].
+        increment: DataFrame with columns
+            [county_fips, age_group, sex, rate_increment].
+
+    Returns:
+        New DataFrame with lifted migration_rate values.
+    """
+    group_cols = ["county_fips", "age_group", "sex"]
+    merged = rates.merge(increment, on=group_cols, how="left")
+    merged["migration_rate"] = merged["migration_rate"] + merged["rate_increment"].fillna(0.0)
+    return merged[group_cols + ["migration_rate"]]
+
+
 def run_convergence_pipeline(
     config: dict[str, Any] | None = None,
+    variant: str | None = None,
 ) -> dict[str, Any]:
     """Main pipeline orchestrator for convergence interpolation.
 
@@ -234,12 +409,19 @@ def run_convergence_pipeline(
         1. Load Phase 1 period rates from parquet
         2. Determine which periods map to recent/medium/long-term
         3. Compute window averages
+        3b. (If variant="high") Lift window averages by BEBR high-vs-baseline increment
         4. Apply convergence interpolation
         5. Save output parquet and metadata
 
     Args:
         config: Optional configuration dict.  If ``None``, loads from
             ``config/projection_config.yaml``.
+        variant: Optional scenario variant.  When ``"high"``, the BEBR
+            high-vs-baseline migration difference is added to all three
+            window averages before convergence interpolation, producing
+            scenario-specific convergence rates saved as
+            ``convergence_rates_by_year_high.parquet``.  When ``None``
+            (default), produces the baseline convergence rates.
 
     Returns:
         Dict with keys:
@@ -253,6 +435,9 @@ def run_convergence_pipeline(
 
     project_root = Path(__file__).parent.parent.parent.parent
     migration_config = config.get("rates", {}).get("migration", {})
+
+    variant_label = f" (variant={variant})" if variant else ""
+    logger.info(f"Starting convergence interpolation pipeline{variant_label}")
 
     # --- 1. Load Phase 1 period rates ---
     input_path = (
@@ -304,13 +489,50 @@ def run_convergence_pipeline(
         all_period_rates, recent_periods, medium_periods, longterm_periods
     )
 
+    # --- 3b. Lift window averages for high variant (ADR-046) ---
+    if variant == "high":
+        logger.info("Computing high-scenario rate increment from BEBR files")
+        increment = _compute_high_scenario_rate_increment(recent_rates, project_root)
+        recent_rates = _lift_window_averages(recent_rates, increment)
+        medium_rates = _lift_window_averages(medium_rates, increment)
+        longterm_rates = _lift_window_averages(longterm_rates, increment)
+        logger.info("Window averages lifted for high scenario")
+
+        # --- 3c. Apply migration floor for high variant (ADR-052) ---
+        # For counties where BEBR-boosted rates are still net-negative at
+        # the medium hold, lift all cells so the county mean reaches zero.
+        high_growth_cfg = config.get("scenarios", {}).get("high_growth", {})
+        floor_cfg = high_growth_cfg.get("migration_floor", {})
+        floor_enabled = floor_cfg.get("enabled", False)
+        floor_value = floor_cfg.get("floor_value", 0.0)
+
+        if floor_enabled:
+            n_floored = 0
+            for window_rates in (recent_rates, medium_rates, longterm_rates):
+                for fips in window_rates["county_fips"].unique():
+                    mask = window_rates["county_fips"] == fips
+                    county_mean = window_rates.loc[mask, "migration_rate"].mean()
+                    if county_mean < floor_value:
+                        lift = floor_value - county_mean
+                        window_rates.loc[mask, "migration_rate"] += lift
+                        n_floored += 1
+            # n_floored counts across 3 windows, so divide by 3 for counties
+            n_counties_floored = n_floored // 3
+            if n_counties_floored > 0:
+                logger.info(
+                    f"Migration floor applied: {n_counties_floored} counties "
+                    f"lifted to floor={floor_value:.3f} in high variant"
+                )
+
     # --- 4. Apply convergence interpolation ---
+    rate_cap_config = interp_config.get("rate_cap", None)
     rates_by_year = calculate_age_specific_convergence(
         recent_rates,
         medium_rates,
         longterm_rates,
         projection_years=projection_years,
         convergence_schedule=convergence_schedule,
+        rate_cap_config=rate_cap_config,
     )
 
     # --- 5. Build output DataFrame and save ---
@@ -328,21 +550,25 @@ def run_convergence_pipeline(
     # Reorder columns to match spec
     output_df = output_df[["year_offset", "county_fips", "age_group", "sex", "migration_rate"]]
 
-    output_path = output_dir / "convergence_rates_by_year.parquet"
+    # Variant-specific output file name
+    suffix = f"_{variant}" if variant else ""
+    output_path = output_dir / f"convergence_rates_by_year{suffix}.parquet"
     compression = config.get("output", {}).get("compression", "gzip")
     output_df.to_parquet(output_path, compression=compression, index=False)
     logger.info(f"Saved convergence rates to {output_path} ({len(output_df)} rows)")
 
     # --- 6. Save metadata ---
-    metadata = {
+    metadata: dict[str, Any] = {
         "processing_date": datetime.now(UTC).isoformat(),
         "phase": "Phase 2 - Age-Specific Convergence Interpolation",
+        "variant": variant,
         "input_file": str(input_path),
         "output_file": str(output_path),
         "rate_unit": "annual_rate",
         "total_rows": len(output_df),
         "projection_years": projection_years,
         "convergence_schedule": convergence_schedule,
+        "rate_cap": rate_cap_config if rate_cap_config else {"enabled": False},
         "window_mapping": {
             "recent_config": recent_range,
             "recent_periods": [list(p) for p in recent_periods],
@@ -376,13 +602,13 @@ def run_convergence_pipeline(
         },
     }
 
-    metadata_path = output_dir / "convergence_metadata.json"
+    metadata_path = output_dir / f"convergence_metadata{suffix}.json"
     with open(metadata_path, "w") as f:
         json.dump(metadata, f, indent=2)
     logger.info(f"Saved metadata to {metadata_path}")
 
     logger.info("=" * 70)
-    logger.info("Convergence interpolation pipeline complete")
+    logger.info(f"Convergence interpolation pipeline complete{variant_label}")
     logger.info(f"  Output rows: {len(output_df)}")
     logger.info(f"  Counties: {output_df['county_fips'].nunique()}")
     logger.info(f"  Years: 1-{projection_years}")

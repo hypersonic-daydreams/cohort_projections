@@ -64,72 +64,76 @@ AGE_GROUP_RANGES = {
 }
 
 
-def load_state_age_sex_race_distribution(
-    distribution_path: Path | None = None,
-    config: dict[str, Any] | None = None,
+def _load_single_year_distribution(
+    distribution_path: Path,
+    config: dict[str, Any],
 ) -> pd.DataFrame:
     """
-    Load state-level age-sex-race distribution.
+    Load single-year-of-age distribution from SC-EST-derived CSV (ADR-048).
 
-    This distribution is used to allocate county total populations into
-    detailed cohorts when county-specific detailed data is not available.
-
-    Note: The distribution file uses a Census+PUMS hybrid approach (ADR-041):
-    Census cc-est2024 provides accurate age-sex proportions, while PUMS provides
-    race allocation within each age-sex cell. This replaced a pure-PUMS approach
-    that had a badly skewed sex ratio (119.1 vs actual 105.5).
+    The single-year file has columns [age, sex, race_ethnicity, estimated_count,
+    proportion] with 1,092 rows (91 ages x 2 sexes x 6 races). No age-group
+    expansion is needed -- ages are already single years 0-90.
 
     Args:
-        distribution_path: Path to distribution CSV file
-                          (default: data/raw/population/nd_age_sex_race_distribution.csv)
-        config: Optional configuration dictionary
+        distribution_path: Path to single-year distribution CSV
+        config: Configuration dictionary
 
     Returns:
-        DataFrame with columns:
-        - age: Single year of age (0-90)
-        - sex: "Male" or "Female"
-        - race: Standard race category
-        - proportion: Proportion of total population in this cohort
-
-    Example:
-        >>> dist = load_state_age_sex_race_distribution()
-        >>> dist[dist['age'] == 25].head()
-              age     sex                        race  proportion
-        ...    25    Male  White alone, Non-Hispanic    0.00523
+        DataFrame with columns [age, sex, race, proportion]
     """
-    logger.info("Loading state-level age-sex-race distribution")
-
-    # Set default path
-    if distribution_path is None:
-        project_root = Path(__file__).parent.parent.parent.parent
-        distribution_path = (
-            project_root / "data" / "raw" / "population" / "nd_age_sex_race_distribution.csv"
-        )
-
-    distribution_path = Path(distribution_path)
-
-    if not distribution_path.exists():
-        raise FileNotFoundError(f"Distribution file not found: {distribution_path}")
-
-    # Load raw distribution data
     raw_dist = pd.read_csv(distribution_path)
+    logger.info(
+        f"Loaded single-year distribution: {len(raw_dist)} records "
+        f"from {distribution_path}"
+    )
 
-    logger.info(f"Loaded {len(raw_dist)} records from {distribution_path}")
+    # Map race codes and capitalize sex
+    raw_dist["race"] = raw_dist["race_ethnicity"].map(RACE_CODE_MAP).fillna(
+        raw_dist["race_ethnicity"]
+    )
+    raw_dist["sex"] = raw_dist["sex"].str.title()
+    raw_dist["age"] = raw_dist["age"].astype(int)
 
-    # Expand age groups to single-year ages
+    # Aggregate any duplicates (e.g., NHPI + Asian mapped to same category)
+    distribution = raw_dist.groupby(["age", "sex", "race"], as_index=False).agg(
+        {"proportion": "sum"}
+    )
+
+    return distribution
+
+
+def _load_five_year_uniform_distribution(
+    distribution_path: Path,
+) -> pd.DataFrame:
+    """
+    Load 5-year age group distribution and expand to single years uniformly.
+
+    This is the legacy approach (pre-ADR-048) that splits each 5-year group
+    proportion evenly across single years, creating staircase artifacts.
+
+    Args:
+        distribution_path: Path to 5-year group distribution CSV
+
+    Returns:
+        DataFrame with columns [age, sex, race, proportion]
+    """
+    raw_dist = pd.read_csv(distribution_path)
+    logger.info(
+        f"Loaded 5-year group distribution: {len(raw_dist)} records "
+        f"from {distribution_path}"
+    )
+
     expanded_rows: list[dict[str, str | int | float]] = []
     for _, row in raw_dist.iterrows():
         age_group = row["age_group"]
-        sex = row["sex"].title()  # Capitalize: "male" -> "Male"
+        sex = row["sex"].title()
 
-        # Map race code to standard category
         race_code = row["race_ethnicity"]
         race = RACE_CODE_MAP.get(race_code, race_code)
 
-        # Get single-year ages for this group
         if age_group in AGE_GROUP_RANGES:
             ages = AGE_GROUP_RANGES[age_group]
-            # Distribute proportion evenly across single years in group
             proportion_per_year = row["proportion"] / len(ages)
 
             expanded_rows.extend(
@@ -151,6 +155,88 @@ def load_state_age_sex_race_distribution(
         {"proportion": "sum"}
     )
 
+    return distribution
+
+
+def load_state_age_sex_race_distribution(
+    distribution_path: Path | None = None,
+    config: dict[str, Any] | None = None,
+) -> pd.DataFrame:
+    """
+    Load state-level age-sex-race distribution.
+
+    This distribution is used to allocate county total populations into
+    detailed cohorts when county-specific detailed data is not available.
+
+    Supports two resolution modes controlled by config
+    ``base_population.age_resolution``:
+
+    - ``"single_year"`` (default): Uses SC-EST2024 single-year-of-age data
+      (ADR-048). No uniform splitting; smooth age profile that eliminates
+      staircase artifacts in projections.
+    - ``"five_year_uniform"``: Legacy mode using cc-est2024-alldata 5-year
+      groups, uniformly split to single years. Retained for backward
+      compatibility.
+
+    Args:
+        distribution_path: Path to distribution CSV file. If None, the
+            appropriate default is selected based on the age_resolution config.
+        config: Optional configuration dictionary
+
+    Returns:
+        DataFrame with columns:
+        - age: Single year of age (0-90)
+        - sex: "Male" or "Female"
+        - race: Standard race category
+        - proportion: Proportion of total population in this cohort
+
+    Example:
+        >>> dist = load_state_age_sex_race_distribution()
+        >>> dist[dist['age'] == 25].head()
+              age     sex                        race  proportion
+        ...    25    Male  White alone, Non-Hispanic    0.00523
+    """
+    logger.info("Loading state-level age-sex-race distribution")
+
+    # Load config to get expected categories and age resolution
+    if config is None:
+        config_loader = ConfigLoader()
+        config = config_loader.get_projection_config()
+
+    base_pop_config = config.get("base_population", {})
+    age_resolution = base_pop_config.get("age_resolution", "single_year")
+
+    logger.info(f"Age resolution mode: {age_resolution}")
+
+    # Determine distribution path based on resolution mode
+    project_root = Path(__file__).parent.parent.parent.parent
+
+    if distribution_path is None:
+        if age_resolution == "single_year":
+            # ADR-048: single-year-of-age from SC-EST data
+            single_year_path_str = base_pop_config.get(
+                "single_year_distribution",
+                "data/raw/population/nd_age_sex_race_distribution_single_year.csv",
+            )
+            distribution_path = project_root / single_year_path_str
+        else:
+            # Legacy 5-year uniform distribution
+            distribution_path = (
+                project_root / "data" / "raw" / "population"
+                / "nd_age_sex_race_distribution.csv"
+            )
+
+    distribution_path = Path(distribution_path)
+
+    if not distribution_path.exists():
+        raise FileNotFoundError(f"Distribution file not found: {distribution_path}")
+
+    # Load distribution based on resolution mode
+    if age_resolution == "single_year":
+        distribution = _load_single_year_distribution(distribution_path, config)
+    else:
+        distribution = _load_five_year_uniform_distribution(distribution_path)
+
     # Normalize to ensure proportions sum to 1.0
     total_proportion = distribution["proportion"].sum()
     if abs(total_proportion - 1.0) > 0.01:
@@ -158,11 +244,6 @@ def load_state_age_sex_race_distribution(
             f"Distribution proportions sum to {total_proportion:.4f}, normalizing to 1.0"
         )
         distribution["proportion"] = distribution["proportion"] / total_proportion
-
-    # Load config to get expected categories
-    if config is None:
-        config_loader = ConfigLoader()
-        config = config_loader.get_projection_config()
 
     demographics = config.get("demographics", {})
     expected_sexes = demographics.get("sex", ["Male", "Female"])
@@ -205,10 +286,324 @@ def load_state_age_sex_race_distribution(
     logger.info(
         f"Created distribution with {len(distribution)} cohorts "
         f"(ages {min_age}-{max_age}, {len(expected_sexes)} sexes, "
-        f"{len(expected_races)} races)"
+        f"{len(expected_races)} races, resolution={age_resolution})"
     )
 
     return distribution
+
+
+def _build_statewide_single_year_weights(
+    state_distribution: pd.DataFrame,
+) -> dict[tuple[str, str, str], float]:
+    """
+    Build a lookup of statewide single-year proportions keyed by
+    (age_group, sex, race) for use as interpolation weights when
+    expanding county 5-year groups to single years.
+
+    For each 5-year age group, the statewide single-year proportions
+    within that group are normalized to sum to 1.0, so they serve as
+    within-group weights.
+
+    Args:
+        state_distribution: Statewide distribution with columns
+            [age, sex, race, proportion]
+
+    Returns:
+        Dict mapping (age_group_str, sex, race) tuples to
+        per-single-year-age weight. For example:
+        {("0-4", "Male", "White alone, Non-Hispanic", 0): 0.22, ...}
+        Actually returns a nested structure: keys are
+        (age_group, sex, race) -> dict[int_age -> weight]
+    """
+    # Build reverse mapping: single age -> age group string
+    age_to_group: dict[int, str] = {}
+    for group_str, ages in AGE_GROUP_RANGES.items():
+        for age in ages:
+            age_to_group[age] = group_str
+
+    # Index statewide distribution
+    weights_by_group: dict[tuple[str, str, str], dict[int, float]] = {}
+
+    for _, row in state_distribution.iterrows():
+        age = int(row["age"])
+        sex = row["sex"]
+        race = row["race"]
+        proportion = float(row["proportion"])
+
+        group = age_to_group.get(age)
+        if group is None:
+            continue
+
+        key = (group, sex, race)
+        if key not in weights_by_group:
+            weights_by_group[key] = {}
+        weights_by_group[key][age] = proportion
+
+    # Normalize within each group so weights sum to 1.0
+    for key in weights_by_group:
+        group_total = sum(weights_by_group[key].values())
+        if group_total > 0:
+            weights_by_group[key] = {
+                age: w / group_total for age, w in weights_by_group[key].items()
+            }
+        else:
+            # Fallback: uniform if statewide has zero for this group
+            n = len(weights_by_group[key])
+            weights_by_group[key] = {
+                age: 1.0 / n for age in weights_by_group[key]
+            }
+
+    return weights_by_group
+
+
+def load_county_age_sex_race_distribution(
+    fips: str,
+    county_distributions_df: pd.DataFrame | None = None,
+    config: dict[str, Any] | None = None,
+    state_distribution: pd.DataFrame | None = None,
+) -> pd.DataFrame | None:
+    """
+    Load county-specific age-sex-race distribution (ADR-047).
+
+    Reads the county-specific distribution from the pre-built Parquet file
+    and expands 5-year age groups to single-year ages, matching the format
+    returned by ``load_state_age_sex_race_distribution()``.
+
+    When ``base_population.age_resolution`` is ``"single_year"`` (ADR-048),
+    the 5-year county groups are expanded using the statewide single-year
+    pattern as interpolation weights (Sprague-like). This produces smooth
+    within-group age profiles instead of uniform staircases.
+
+    When ``age_resolution`` is ``"five_year_uniform"`` (legacy), each 5-year
+    group proportion is divided equally across single years.
+
+    Args:
+        fips: 5-digit county FIPS code (e.g., "38017" for Cass County)
+        county_distributions_df: Optional pre-loaded DataFrame of all county
+            distributions (for efficiency when loading multiple counties).
+            If None, the file is read from disk.
+        config: Optional configuration dictionary
+        state_distribution: Optional pre-loaded statewide distribution (for
+            single-year interpolation weights). If None and needed, it is
+            loaded from disk.
+
+    Returns:
+        DataFrame with columns [age, sex, race, proportion] matching the
+        format of ``load_state_age_sex_race_distribution()``, or None if
+        county-specific distributions are disabled or unavailable.
+    """
+    # Load config if not provided
+    if config is None:
+        config_loader = ConfigLoader()
+        config = config_loader.get_projection_config()
+
+    # Check if county distributions are enabled
+    base_pop_config = config.get("base_population", {})
+    county_dist_config = base_pop_config.get("county_distributions", {})
+    if not county_dist_config.get("enabled", False):
+        logger.debug("County-specific distributions disabled in config")
+        return None
+
+    age_resolution = base_pop_config.get("age_resolution", "single_year")
+
+    fips = str(fips).zfill(5)
+
+    # Load from pre-loaded DataFrame or from disk
+    if county_distributions_df is None:
+        dist_path_str = county_dist_config.get(
+            "path", "data/processed/county_age_sex_race_distributions.parquet"
+        )
+        project_root = Path(__file__).parent.parent.parent.parent
+        dist_path = project_root / dist_path_str
+
+        if not dist_path.exists():
+            logger.warning(
+                f"County distribution file not found: {dist_path}. "
+                "Falling back to statewide distribution."
+            )
+            return None
+
+        logger.debug(f"Loading county distributions from: {dist_path}")
+        county_distributions_df = pd.read_parquet(dist_path)
+
+    # Filter to this county
+    county_data = county_distributions_df[county_distributions_df["fips"] == fips]
+
+    if county_data.empty:
+        logger.warning(
+            f"No county-specific distribution for FIPS {fips}. "
+            "Falling back to statewide distribution."
+        )
+        return None
+
+    logger.debug(f"Found {len(county_data)} distribution rows for FIPS {fips}")
+
+    # Build statewide single-year weights if using single_year resolution
+    sy_weights: dict[tuple[str, str, str], dict[int, float]] | None = None
+    if age_resolution == "single_year":
+        if state_distribution is not None:
+            sy_weights = _build_statewide_single_year_weights(state_distribution)
+        else:
+            # Load statewide distribution to get weights
+            loaded_state = load_state_age_sex_race_distribution(config=config)
+            sy_weights = _build_statewide_single_year_weights(loaded_state)
+
+    # Expand age groups to single-year ages
+    expanded_rows: list[dict[str, str | int | float]] = []
+    for _, row in county_data.iterrows():
+        age_group = row["age_group"]
+        sex = row["sex"].title()  # Capitalize: "male" -> "Male"
+
+        # Map race code to standard category
+        race_code = row["race"]
+        race = RACE_CODE_MAP.get(race_code, race_code)
+
+        # Get single-year ages for this group
+        if age_group in AGE_GROUP_RANGES:
+            ages = AGE_GROUP_RANGES[age_group]
+
+            if sy_weights is not None:
+                # ADR-048: Use statewide single-year pattern as weights
+                weight_key = (age_group, sex, race)
+                group_weights = sy_weights.get(weight_key)
+
+                if group_weights is not None and sum(group_weights.values()) > 0:
+                    # Distribute county 5-year proportion using statewide
+                    # single-year pattern within this group
+                    expanded_rows.extend(
+                        {
+                            "age": age,
+                            "sex": sex,
+                            "race": race,
+                            "proportion": row["proportion"] * group_weights.get(age, 0.0),
+                        }
+                        for age in ages
+                    )
+                else:
+                    # Fallback: uniform if no statewide weights available
+                    proportion_per_year = row["proportion"] / len(ages)
+                    expanded_rows.extend(
+                        {
+                            "age": age,
+                            "sex": sex,
+                            "race": race,
+                            "proportion": proportion_per_year,
+                        }
+                        for age in ages
+                    )
+            else:
+                # Legacy: uniform distribution across single years
+                proportion_per_year = row["proportion"] / len(ages)
+                expanded_rows.extend(
+                    {
+                        "age": age,
+                        "sex": sex,
+                        "race": race,
+                        "proportion": proportion_per_year,
+                    }
+                    for age in ages
+                )
+        else:
+            logger.warning(f"Unknown age group: {age_group}")
+
+    expanded_df = pd.DataFrame(expanded_rows)
+
+    # Aggregate duplicate cohorts (e.g., NHPI + Asian -> Asian/PI)
+    distribution = expanded_df.groupby(["age", "sex", "race"], as_index=False).agg(
+        {"proportion": "sum"}
+    )
+
+    # Normalize to ensure proportions sum to 1.0
+    total_proportion = distribution["proportion"].sum()
+    if abs(total_proportion - 1.0) > 0.01:
+        logger.warning(
+            f"County {fips} distribution proportions sum to "
+            f"{total_proportion:.4f}, normalizing to 1.0"
+        )
+        distribution["proportion"] = distribution["proportion"] / total_proportion
+
+    # Ensure all expected cohorts exist (fill missing with 0)
+    demographics = config.get("demographics", {})
+    expected_sexes = demographics.get("sex", ["Male", "Female"])
+    expected_races = demographics.get("race_ethnicity", {}).get(
+        "categories",
+        [
+            "White alone, Non-Hispanic",
+            "Black alone, Non-Hispanic",
+            "AIAN alone, Non-Hispanic",
+            "Asian/PI alone, Non-Hispanic",
+            "Two or more races, Non-Hispanic",
+            "Hispanic (any race)",
+        ],
+    )
+    min_age = demographics.get("age_groups", {}).get("min_age", 0)
+    max_age = demographics.get("age_groups", {}).get("max_age", 90)
+
+    all_cohorts = [
+        {"age": age, "sex": sex, "race": race}
+        for age in range(min_age, max_age + 1)
+        for sex in expected_sexes
+        for race in expected_races
+    ]
+
+    complete_index = pd.DataFrame(all_cohorts)
+
+    distribution = complete_index.merge(
+        distribution,
+        on=["age", "sex", "race"],
+        how="left",
+    )
+    distribution["proportion"] = distribution["proportion"].fillna(0.0)
+
+    # Re-normalize after adding zero-proportion cohorts
+    total_proportion = distribution["proportion"].sum()
+    if total_proportion > 0:
+        distribution["proportion"] = distribution["proportion"] / total_proportion
+
+    logger.info(
+        f"Loaded county-specific distribution for FIPS {fips}: "
+        f"{len(distribution)} cohorts (resolution={age_resolution})"
+    )
+
+    return distribution
+
+
+def load_county_distributions_file(
+    config: dict[str, Any] | None = None,
+) -> pd.DataFrame | None:
+    """
+    Load the county distributions Parquet file once for batch operations.
+
+    Returns the raw DataFrame from the Parquet file, or None if the file
+    does not exist or county distributions are disabled.
+
+    Args:
+        config: Optional configuration dictionary
+
+    Returns:
+        Raw county distributions DataFrame, or None
+    """
+    if config is None:
+        config_loader = ConfigLoader()
+        config = config_loader.get_projection_config()
+
+    base_pop_config = config.get("base_population", {})
+    county_dist_config = base_pop_config.get("county_distributions", {})
+    if not county_dist_config.get("enabled", False):
+        return None
+
+    dist_path_str = county_dist_config.get(
+        "path", "data/processed/county_age_sex_race_distributions.parquet"
+    )
+    project_root = Path(__file__).parent.parent.parent.parent
+    dist_path = project_root / dist_path_str
+
+    if not dist_path.exists():
+        logger.warning(f"County distribution file not found: {dist_path}")
+        return None
+
+    logger.info(f"Loading county distributions from: {dist_path}")
+    return pd.read_parquet(dist_path)
 
 
 def load_county_populations(
@@ -282,20 +677,23 @@ def load_base_population_for_county(
     config: dict[str, Any] | None = None,
     distribution: pd.DataFrame | None = None,
     county_populations: pd.DataFrame | None = None,
+    county_distributions_df: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """
     Load base population for a single county.
 
     Creates the age x sex x race cohort matrix required by the projection
-    engine. Uses the state-level distribution to allocate county total
-    population to detailed cohorts.
+    engine. Uses county-specific distribution (ADR-047) when available,
+    falling back to the statewide distribution.
 
     Args:
         fips: 5-digit county FIPS code (e.g., "38017" for Cass County)
         config: Optional configuration dictionary
-        distribution: Optional pre-loaded state distribution (for efficiency
-                     when loading multiple counties)
+        distribution: Optional pre-loaded state distribution (fallback when
+                     county-specific data is unavailable)
         county_populations: Optional pre-loaded county populations DataFrame
+        county_distributions_df: Optional pre-loaded county distributions
+            Parquet DataFrame (for efficiency when loading multiple counties)
 
     Returns:
         DataFrame with columns [year, age, sex, race, population] suitable
@@ -323,16 +721,31 @@ def load_base_population_for_county(
 
     base_year = config.get("project", {}).get("base_year", 2025)
 
-    # Load distribution if not provided
+    # Ensure FIPS is 5 digits
+    fips = str(fips).zfill(5)
+
+    # Load statewide distribution (needed as fallback and for single-year weights)
     if distribution is None:
         distribution = load_state_age_sex_race_distribution(config=config)
+
+    # Try to load county-specific distribution (ADR-047)
+    county_distribution = load_county_age_sex_race_distribution(
+        fips=fips,
+        county_distributions_df=county_distributions_df,
+        config=config,
+        state_distribution=distribution,
+    )
+
+    if county_distribution is not None:
+        logger.info(f"Using county-specific distribution for FIPS {fips}")
+        effective_distribution = county_distribution
+    else:
+        # Fall back to statewide distribution
+        effective_distribution = distribution
 
     # Load county populations if not provided
     if county_populations is None:
         county_populations = load_county_populations()
-
-    # Ensure FIPS is 5 digits
-    fips = str(fips).zfill(5)
 
     # Find this county's population
     county_row = county_populations[county_populations["county_fips"] == fips]
@@ -346,7 +759,7 @@ def load_base_population_for_county(
     logger.info(f"County: {county_name} ({fips}), Total population: {total_population:,.0f}")
 
     # Apply distribution to total population
-    base_pop = distribution.copy()
+    base_pop = effective_distribution.copy()
     base_pop["population"] = base_pop["proportion"] * total_population
     base_pop["year"] = base_year
 
@@ -406,6 +819,15 @@ def load_base_population_for_all_counties(
     distribution = load_state_age_sex_race_distribution(config=config)
     county_populations = load_county_populations()
 
+    # Load county-specific distributions file once (ADR-047)
+    county_distributions_df = load_county_distributions_file(config=config)
+    if county_distributions_df is not None:
+        logger.info(
+            f"Loaded county distributions: {county_distributions_df['fips'].nunique()} counties"
+        )
+    else:
+        logger.info("County-specific distributions not available; using statewide for all")
+
     # Get list of counties to process
     if fips_list is None:
         fips_list = county_populations["county_fips"].tolist()
@@ -423,6 +845,7 @@ def load_base_population_for_all_counties(
                 config=config,
                 distribution=distribution,
                 county_populations=county_populations,
+                county_distributions_df=county_distributions_df,
             )
             base_population_by_geography[fips] = base_pop
 
