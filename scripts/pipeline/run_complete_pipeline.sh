@@ -5,31 +5,29 @@
 # dissemination-ready outputs.
 #
 # Usage:
-#   ./run_complete_pipeline.sh [--dry-run] [--resume]
+#   ./run_complete_pipeline.sh [--dry-run] [--resume] [--fail-fast]
 
-set -e  # Exit immediately if a command exits with a non-zero status
+set -euo pipefail
 
-# Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
-# Parse arguments
-DRY_RUN=""
-RESUME=""
-FAIL_FAST=""
+DRY_RUN=false
+RESUME=false
+FAIL_FAST=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --dry-run)
-      DRY_RUN="--dry-run"
+      DRY_RUN=true
       shift
       ;;
     --resume)
-      RESUME="--resume"
+      RESUME=true
       shift
       ;;
     --fail-fast)
-      FAIL_FAST="--fail-fast"
+      FAIL_FAST=true
       shift
       ;;
     --help)
@@ -50,85 +48,117 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Display banner
-echo "╔════════════════════════════════════════════════════════════════════════════╗"
-echo "║     North Dakota Population Projection System - Complete Pipeline         ║"
-echo "╚════════════════════════════════════════════════════════════════════════════╝"
+print_step_banner() {
+  local step="$1"
+  local total="$2"
+  local title="$3"
+  echo "============================================================================="
+  echo "STEP ${step}/${total}: ${title}"
+  echo "============================================================================="
+  echo ""
+}
+
+run_step() {
+  local step="$1"
+  local total="$2"
+  local title="$3"
+  shift 3
+
+  print_step_banner "$step" "$total" "$title"
+
+  if ! "$@"; then
+    echo ""
+    echo "ERROR: ${title} failed"
+    exit 1
+  fi
+
+  echo ""
+  echo "OK: ${title} completed successfully"
+  echo ""
+}
+
+run_step_no_dryrun_support() {
+  local step="$1"
+  local total="$2"
+  local title="$3"
+  shift 3
+
+  print_step_banner "$step" "$total" "$title"
+
+  if $DRY_RUN; then
+    echo "[DRY RUN] Skipping ${title} (script does not implement --dry-run)."
+    echo ""
+    return
+  fi
+
+  if ! "$@"; then
+    echo ""
+    echo "ERROR: ${title} failed"
+    exit 1
+  fi
+
+  echo ""
+  echo "OK: ${title} completed successfully"
+  echo ""
+}
+
+DRY_RUN_ARGS=()
+RESUME_ARGS=()
+FAIL_FAST_ARGS=()
+
+if $DRY_RUN; then
+  DRY_RUN_ARGS+=("--dry-run")
+fi
+if $RESUME; then
+  RESUME_ARGS+=("--resume")
+fi
+if $FAIL_FAST; then
+  FAIL_FAST_ARGS+=("--fail-fast")
+fi
+
+echo "============================================================================="
+echo "North Dakota Population Projection System - Complete Pipeline"
+echo "============================================================================="
 echo ""
 echo "Project Root: $PROJECT_ROOT"
 echo "Start Time: $(date '+%Y-%m-%d %H:%M:%S')"
-if [ -n "$DRY_RUN" ]; then
-  echo "Mode: DRY RUN (no files will be modified)"
+if $DRY_RUN; then
+  echo "Mode: DRY RUN (no files should be modified)"
 fi
-if [ -n "$RESUME" ]; then
+if $RESUME; then
   echo "Mode: RESUME (skip already-completed geographies)"
 fi
-if [ -n "$FAIL_FAST" ]; then
+if $FAIL_FAST; then
   echo "Mode: FAIL-FAST (stop on first error)"
 fi
 echo ""
 
-# Change to project root
 cd "$PROJECT_ROOT"
 
-# Step 1: Process Demographic Data
-echo "╔════════════════════════════════════════════════════════════════════════════╗"
-echo "║ STEP 1/3: Processing Demographic Data                                     ║"
-echo "╚════════════════════════════════════════════════════════════════════════════╝"
-echo ""
+run_step 1 7 "Preparing Processed Inputs" \
+  python scripts/pipeline/00_prepare_processed_data.py "${DRY_RUN_ARGS[@]}"
 
-python scripts/pipeline/01_process_demographic_data.py --all $DRY_RUN $FAIL_FAST
+run_step 2 7 "Processing Demographic Data" \
+  python scripts/pipeline/01_process_demographic_data.py --all "${DRY_RUN_ARGS[@]}" "${FAIL_FAST_ARGS[@]}"
 
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "ERROR: Data processing failed"
-  exit 1
-fi
+run_step_no_dryrun_support 3 7 "Computing Residual Migration Rates" \
+  python scripts/pipeline/01a_compute_residual_migration.py
 
-echo ""
-echo "✓ Data processing completed successfully"
-echo ""
+run_step_no_dryrun_support 4 7 "Computing Convergence Interpolation Rates" \
+  python scripts/pipeline/01b_compute_convergence.py --all-variants
 
-# Step 2: Run Projections
-echo "╔════════════════════════════════════════════════════════════════════════════╗"
-echo "║ STEP 2/3: Running Population Projections                                  ║"
-echo "╚════════════════════════════════════════════════════════════════════════════╝"
-echo ""
+run_step_no_dryrun_support 5 7 "Computing Mortality Improvement Rates" \
+  python scripts/pipeline/01c_compute_mortality_improvement.py
 
-python scripts/pipeline/02_run_projections.py --all $DRY_RUN $RESUME
+run_step 6 7 "Running Population Projections" \
+  python scripts/pipeline/02_run_projections.py --all "${DRY_RUN_ARGS[@]}" "${RESUME_ARGS[@]}"
 
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "ERROR: Projection run failed"
-  exit 1
-fi
+run_step 7 7 "Exporting Results" \
+  python scripts/pipeline/03_export_results.py --all "${DRY_RUN_ARGS[@]}"
 
-echo ""
-echo "✓ Projections completed successfully"
-echo ""
-
-# Step 3: Export Results
-echo "╔════════════════════════════════════════════════════════════════════════════╗"
-echo "║ STEP 3/3: Exporting Results                                               ║"
-echo "╚════════════════════════════════════════════════════════════════════════════╝"
-echo ""
-
-python scripts/pipeline/03_export_results.py --all $DRY_RUN
-
-if [ $? -ne 0 ]; then
-  echo ""
-  echo "ERROR: Export failed"
-  exit 1
-fi
-
-echo ""
-echo "✓ Export completed successfully"
-echo ""
-
-# Final summary
-echo "╔════════════════════════════════════════════════════════════════════════════╗"
-echo "║                           Pipeline Complete!                               ║"
-echo "╚════════════════════════════════════════════════════════════════════════════╝"
+echo "============================================================================="
+echo "Pipeline Complete"
+echo "============================================================================="
 echo ""
 echo "End Time: $(date '+%Y-%m-%d %H:%M:%S')"
 echo ""
@@ -139,14 +169,14 @@ echo "  Exports:         data/exports/"
 echo "  Logs:            logs/"
 echo ""
 
-if [ -z "$DRY_RUN" ]; then
+if $DRY_RUN; then
+  echo "Dry run completed."
+  echo "Note: steps 3-5 were skipped because those scripts do not yet support --dry-run."
+else
   echo "Next steps:"
   echo "  1. Review processing reports in data/processed/reports/"
   echo "  2. Check projection summaries in data/projections/*/metadata/"
   echo "  3. Find distribution packages in data/exports/packages/"
-else
-  echo "This was a dry run. No files were modified."
-  echo "Run without --dry-run to execute the pipeline."
 fi
 
 echo ""

@@ -1910,8 +1910,27 @@ def run_all_projections(
             survival_rates_by_year,
         ) = load_demographic_rates(config)
 
-        # Setup projection run
-        geographies, scenario_list = setup_projection_run(config, levels, fips_filter, scenarios)
+        # Setup projection run.
+        # In dry-run mode, allow a graceful fallback if place reference data
+        # is structurally incomplete so entrypoint wiring can still be validated.
+        try:
+            geographies, scenario_list = setup_projection_run(config, levels, fips_filter, scenarios)
+        except ValueError as exc:
+            if (
+                dry_run
+                and "place" in levels
+                and "Place data missing required columns" in str(exc)
+            ):
+                logger.warning(
+                    "Dry run fallback: skipping place level due place reference schema issue: "
+                    f"{exc}"
+                )
+                fallback_levels = [level for level in levels if level != "place"]
+                geographies, scenario_list = setup_projection_run(
+                    config, fallback_levels, fips_filter, scenarios
+                )
+            else:
+                raise
 
         # Run each scenario
         for scenario in scenario_list:

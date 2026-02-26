@@ -13,6 +13,7 @@ pytest tests/ -v                    # All tests, verbose
 pytest tests/ -q                    # Quick/quiet mode
 pytest tests/ -x                    # Stop on first failure
 pytest tests/ --tb=long             # Detailed tracebacks
+scripts/testing/run_relevant_tests.sh      # Relevant tests for current changes (fast)
 ```
 
 ---
@@ -39,6 +40,36 @@ pytest tests/ --tb=long             # Detailed tracebacks
 ---
 
 ## Test Commands
+
+### Fast Relevant Runner (Recommended for Edit Loops)
+
+Use the helper script to run only test targets related to current changes.
+It defaults to `--no-cov` for speed and falls back to the safe fast gate when
+relevant mapping is ambiguous.
+
+```bash
+# Infer relevant tests from working tree changes
+scripts/testing/run_relevant_tests.sh
+
+# Infer from staged files only
+scripts/testing/run_relevant_tests.sh --staged
+
+# Run relevant tests, then run fast safety gate
+scripts/testing/run_relevant_tests.sh --gate
+
+# Provide files explicitly
+scripts/testing/run_relevant_tests.sh cohort_projections/core/migration.py
+
+# Show command/targets without running
+scripts/testing/run_relevant_tests.sh --list-only
+```
+
+Other modes:
+
+```bash
+scripts/testing/run_relevant_tests.sh --fast   # pytest tests/ -x -q --ignore=tests/test_integration/ -m "not slow"
+scripts/testing/run_relevant_tests.sh --full   # full suite (no-cov by default)
+```
 
 ### Basic Usage
 

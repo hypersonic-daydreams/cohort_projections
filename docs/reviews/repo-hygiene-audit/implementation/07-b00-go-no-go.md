@@ -40,8 +40,9 @@ Evidence:
 - [x] Any failed dry-run has a documented mitigation plan.
 
 Execution notes:
-- Completed: `DRY-BASELINE` at `2026-02-26T17:50:28Z -> 2026-02-26T17:50:29Z` (pass).
-- Completed: `DRY-CHECK-REPLAY` at `2026-02-26T17:55:48Z -> 2026-02-26T17:55:51Z` (pass, 27/27 claim checks passing).
+- Completed: `DRY-BASELINE` at `2026-02-26T18:16:15Z -> 2026-02-26T18:16:15Z` (pass, claims=27, adjudicated=27).
+- Completed: `DRY-CHECK-REPLAY` at `2026-02-26T18:16:21Z -> 2026-02-26T18:16:25Z` (pass, 27/27 claim checks passing).
+- Post-change claim replay: `RHA-013` and `RHA-023` rerun at `2026-02-26T18:18:33Z -> 2026-02-26T18:18:34Z` (pass).
 - Failures: none observed in `DRY-BASELINE`; mitigation path is to rerun profile and halt `B00` closeout until pass.
 
 ## 4. Quality Gates
@@ -73,7 +74,6 @@ Rollback plan:
 
 ## 6. Decision
 
-- [ ] **GO**: batch approved for implementation.
 - [x] **GO**: batch approved for implementation.
 - [ ] **NO-GO**: batch blocked pending actions below.
 

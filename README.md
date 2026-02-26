@@ -1,6 +1,6 @@
 # North Dakota Population Projections
 
-Cohort component population projections for North Dakota state, counties, and places (2025-2045).
+Cohort component population projections for North Dakota state, counties, and places (2025-2055).
 
 ## Overview
 
@@ -9,7 +9,7 @@ This project implements the standard demographic cohort component method to proj
 - **County level**: All 53 counties
 - **Place level**: Incorporated cities and Census-Designated Places
 
-**Projection horizon**: 2025-2045 (20 years)
+**Projection horizon**: 2025-2055 (30 years)
 
 **Demographic detail**: Age × Sex × Race/Ethnicity cohorts
 

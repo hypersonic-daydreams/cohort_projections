@@ -1,22 +1,18 @@
 """
 Pipeline orchestration scripts for North Dakota Population Projection System.
 
-This package contains three main pipeline scripts that automate the end-to-end
-workflow from raw data to dissemination-ready outputs:
+This package contains the stage scripts used by
+`scripts/pipeline/run_complete_pipeline.sh`:
 
-1. 01_process_demographic_data.py - Data processing pipeline
-   - Processes fertility, survival, and migration rates
-   - Validates outputs and generates processing reports
+1. `00_prepare_processed_data.py`
+2. `01_process_demographic_data.py`
+3. `01a_compute_residual_migration.py`
+4. `01b_compute_convergence.py`
+5. `01c_compute_mortality_improvement.py`
+6. `02_run_projections.py`
+7. `03_export_results.py`
 
-2. 02_run_projections.py - Projection execution pipeline
-   - Runs cohort-component projections for all geographies
-   - Supports multiple scenarios and parallel processing
-
-3. 03_export_results.py - Export and dissemination pipeline
-   - Converts outputs to various formats
-   - Packages results for distribution
-
-Each script can be run independently or as part of a complete pipeline.
+Stages can be run independently or orchestrated via the shell runner.
 """
 
 __version__ = "0.1.0"

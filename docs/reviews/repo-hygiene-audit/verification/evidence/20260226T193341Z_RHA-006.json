@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T19:33:41Z",
+  "claim_id": "RHA-006",
+  "claim_title": "Duplicate ConfigLoader implementations coexist",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-006-C1",
+      "description": "Verify two ConfigLoader classes and shim imports are present.",
+      "required": true,
+      "command": "class_count=$(rg -n \"^class ConfigLoader\" cohort_projections/utils/config_loader.py libs/project_utils/project_utils/config.py | wc -l); shim_count=$(rg -n \"ConfigLoader as _LocalConfigLoader|from project_utils import ConfigLoader as _ConfigLoader\" cohort_projections/utils/__init__.py | wc -l); echo \"CONFIGLOADER_CLASS_COUNT=$class_count\"; echo \"CONFIGLOADER_SHIM_IMPORTS=$shim_count\"; if [ \"$class_count\" -eq 2 ] && [ \"$shim_count\" -ge 2 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "CONFIGLOADER_CLASS_COUNT=2"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T19:33:41Z",
+      "duration_seconds": 0.215,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "CONFIGLOADER_CLASS_COUNT=2\nCONFIGLOADER_SHIM_IMPORTS=2\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

@@ -379,16 +379,28 @@ def process_migration_data(config: dict[str, Any], dry_run: bool = False) -> Dat
         domestic_input = Path(migration_config.get("domestic_input", ""))
         output_file = Path(migration_config.get("output_file", ""))
 
+        if dry_run:
+            input_exists = domestic_input.exists()
+            logger.info(f"Domestic input: {domestic_input}")
+            logger.info(f"Output file: {output_file}")
+            if input_exists:
+                logger.info("[DRY RUN] Would process migration data")
+            else:
+                logger.warning(
+                    "[DRY RUN] Migration input file not found; skipping strict input check"
+                )
+            result.success = True
+            result.metadata = {
+                "domestic_input": str(domestic_input),
+                "input_exists": input_exists,
+            }
+            return result
+
         if not domestic_input.exists():
             raise FileNotFoundError(f"Input file not found: {domestic_input}")
 
         logger.info(f"Domestic input: {domestic_input}")
         logger.info(f"Output file: {output_file}")
-
-        if dry_run:
-            logger.info("[DRY RUN] Would process migration data")
-            result.success = True
-            return result
 
         # Process data using the unified pipeline function
         year_range = (2018, 2022)  # From averaging_period

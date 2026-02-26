@@ -8,13 +8,16 @@ Index of all scripts in the `scripts/` directory for the North Dakota Population
 
 Run the complete projection pipeline:
 ```bash
-./scripts/pipeline/run_complete_pipeline.sh
+python scripts/projections/run_all_projections.py
 ```
 
 Or step-by-step:
 ```bash
 python scripts/pipeline/00_prepare_processed_data.py       # CSV to Parquet
 python scripts/pipeline/01_process_demographic_data.py --all  # Process rates
+python scripts/pipeline/01a_compute_residual_migration.py      # Residual migration
+python scripts/pipeline/01b_compute_convergence.py --all-variants  # Convergence rates
+python scripts/pipeline/01c_compute_mortality_improvement.py   # Mortality improvement
 python scripts/pipeline/02_run_projections.py --all          # Run projections
 python scripts/pipeline/03_export_results.py --all           # Export results
 ```
@@ -29,6 +32,9 @@ The main projection pipeline. See [pipeline/README.md](./pipeline/README.md) for
 |--------|---------|----------|
 | `00_prepare_processed_data.py` | Convert raw CSV files to Parquet format | Yes |
 | `01_process_demographic_data.py` | Process fertility, survival, and migration rates | Yes |
+| `01a_compute_residual_migration.py` | Compute residual migration rates from PEP populations | Yes |
+| `01b_compute_convergence.py` | Build time-varying convergence migration rates | Yes |
+| `01c_compute_mortality_improvement.py` | Build ND-adjusted mortality improvement rates | Yes |
 | `02_run_projections.py` | Run cohort-component projections for all geographies | Yes |
 | `03_export_results.py` | Export results to CSV/Excel and create distribution packages | Yes |
 | `run_complete_pipeline.sh` | Run all pipeline steps in sequence | N/A |
@@ -59,6 +65,8 @@ The main projection pipeline. See [pipeline/README.md](./pipeline/README.md) for
 
 | Script | Purpose | `--help` |
 |--------|---------|----------|
+| `projections/run_all_projections.py` | Canonical wrapper for full pipeline execution | Yes |
+| `projections/run_pep_projections.py` | Run county projections directly from PEP-aligned workflow | Yes |
 | `projections/run_sdc_2024_comparison.py` | Compare our projections with SDC 2024 methodology | No |
 
 ---
@@ -77,6 +85,7 @@ The main projection pipeline. See [pipeline/README.md](./pipeline/README.md) for
 
 | Script | Purpose | `--help` |
 |--------|---------|----------|
+| `testing/run_relevant_tests.sh` | Run relevant or fast-gate tests for current changes | Yes |
 | `run_integration_test.py` | Run end-to-end integration test with Cass County data | No |
 | `check_test_coverage.py` | Find orphaned tests and untested production modules | No |
 
@@ -141,7 +150,8 @@ Scripts for deterministic verification of audit findings.
 
 ## `--help` Support Audit
 
-Scripts with **Yes** in the `--help` column support `--help` and `--dry-run` flags. Scripts marked **No** should be updated to add argparse support for better discoverability.
+Scripts with **Yes** in the `--help` column support `--help`. Dry-run support is script-specific.
+Scripts marked **No** should be updated to add argparse support for better discoverability.
 
 **Well-documented scripts (argparse with --help):**
 - `fetch_data.py`
@@ -174,5 +184,5 @@ Scripts with **Yes** in the `--help` column support `--help` and `--dry-run` fla
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-02-02 |
+| **Last Updated** | 2026-02-26 |
 | **Maintainer** | Project Team |

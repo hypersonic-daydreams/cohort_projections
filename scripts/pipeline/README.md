@@ -1,27 +1,49 @@
 # Pipeline Orchestration Scripts
 
-This directory contains the three main pipeline scripts that automate the end-to-end workflow for the North Dakota Population Projection System.
+This directory contains the pipeline scripts that automate the end-to-end workflow for the North Dakota Population Projection System.
 
 ## Overview
 
-The pipeline is divided into three sequential stages:
+The full pipeline is executed in seven ordered stages:
 
-1. **Data Processing** (`01_process_demographic_data.py`) - Process raw demographic data
-2. **Projection Execution** (`02_run_projections.py`) - Run cohort-component projections
-3. **Export/Dissemination** (`03_export_results.py`) - Export results in various formats
+1. **Prepare processed inputs** (`00_prepare_processed_data.py`)
+2. **Process demographic data** (`01_process_demographic_data.py`)
+3. **Compute residual migration** (`01a_compute_residual_migration.py`)
+4. **Compute convergence interpolation** (`01b_compute_convergence.py`)
+5. **Compute mortality improvement** (`01c_compute_mortality_improvement.py`)
+6. **Run projections** (`02_run_projections.py`)
+7. **Export/dissemination** (`03_export_results.py`)
 
 Each script can be run independently or as part of a complete pipeline workflow.
 
 ## Pipeline Architecture
 
 ```
-Raw Data → [01] Process Data → [02] Run Projections → [03] Export Results → Distribution
-           └─ Fertility        └─ State             └─ CSV
-           └─ Survival         └─ Counties          └─ Excel
-           └─ Migration        └─ Places            └─ Packages
+Raw Data
+  -> [00] Prepare Inputs
+  -> [01] Process Demographic Data
+  -> [01a] Residual Migration
+  -> [01b] Convergence Interpolation
+  -> [01c] Mortality Improvement
+  -> [02] Run Projections
+  -> [03] Export Results
+  -> Distribution
 ```
 
 ## Scripts
+
+### Additional Full-Runner Stages
+
+These scripts are executed by `run_complete_pipeline.sh` to keep migration and
+survival inputs aligned with current methodology before projections run.
+
+- `00_prepare_processed_data.py`: converts required CSV inputs to parquet
+- `01a_compute_residual_migration.py`: generates period-level/averaged residual migration rates
+- `01b_compute_convergence.py --all-variants`: generates baseline and high-variant convergence rates
+- `01c_compute_mortality_improvement.py`: generates ND-adjusted survival improvement rates
+
+Compatibility note: `01_compute_residual_migration.py` is retained as a symlink
+to `01a_compute_residual_migration.py` for legacy command compatibility.
 
 ### 01_process_demographic_data.py
 
@@ -175,40 +197,45 @@ python 03_export_results.py --all --config /path/to/config.yaml
 
 ## Complete Pipeline Workflow
 
-To run the complete end-to-end pipeline:
+Canonical full-pipeline entrypoint:
 
 ```bash
-# Step 1: Process demographic data
+python scripts/projections/run_all_projections.py
+```
+
+Shell entrypoint (same pipeline, useful for direct stage debugging):
+
+```bash
+./scripts/pipeline/run_complete_pipeline.sh
+```
+
+Step-by-step equivalent:
+
+# Step 00: Prepare processed input parquet files
+python scripts/pipeline/00_prepare_processed_data.py
+
+# Step 01: Process fertility/survival/migration rate tables
 python scripts/pipeline/01_process_demographic_data.py --all
 
-# Step 2: Run projections (baseline scenario)
+# Step 01a: Compute residual migration rates
+python scripts/pipeline/01a_compute_residual_migration.py
+
+# Step 01b: Compute convergence rates (baseline + high variant)
+python scripts/pipeline/01b_compute_convergence.py --all-variants
+
+# Step 01c: Compute ND-adjusted mortality improvement rates
+python scripts/pipeline/01c_compute_mortality_improvement.py
+
+# Step 02: Run projections
 python scripts/pipeline/02_run_projections.py --all
 
-# Step 3: Export results
+# Step 03: Export results
 python scripts/pipeline/03_export_results.py --all
 ```
 
-Or create a shell script to run all three:
-
-```bash
-#!/bin/bash
-# run_complete_pipeline.sh
-
-set -e  # Exit on error
-
-echo "Starting complete projection pipeline..."
-
-echo "Step 1/3: Processing demographic data..."
-python scripts/pipeline/01_process_demographic_data.py --all
-
-echo "Step 2/3: Running projections..."
-python scripts/pipeline/02_run_projections.py --all
-
-echo "Step 3/3: Exporting results..."
-python scripts/pipeline/03_export_results.py --all
-
-echo "Pipeline complete!"
-```
+Dry-run note: `run_complete_pipeline.sh --dry-run` executes stages that support
+`--dry-run` and explicitly skips stages 01a/01b/01c (those scripts currently do
+not implement dry-run mode).
 
 ## Configuration
 

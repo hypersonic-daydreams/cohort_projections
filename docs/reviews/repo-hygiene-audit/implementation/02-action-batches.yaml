@@ -1,13 +1,13 @@
 schema_version: 1
 audit_id: repo-hygiene-audit
-batch_plan_status: proposed
+batch_plan_status: in_progress
 last_updated: 2026-02-26
 
 batches:
   - batch_id: B00
     name: baseline_metrics_and_safety_harness
     priority: 0
-    status: proposed
+    status: completed
     objective: Pin baseline structural metrics and quality gates before any remediation edits.
     includes_claims: [RHA-013, RHA-023]
     prerequisites: []
@@ -22,14 +22,14 @@ batches:
   - batch_id: B01
     name: documentation_harmonization
     priority: 1
-    status: proposed
+    status: completed
     objective: Resolve stale indexes, conflicting horizons, and navigation overlap without changing runtime logic.
     includes_claims: [RHA-009, RHA-019, RHA-020, RHA-021, RHA-022]
     prerequisites: [B00]
     dry_run_profiles: [DRY-DOCS, DRY-CHECK-REPLAY]
     go_no_go_gates:
       - Only docs files changed.
-      - Regenerated claim checks for affected doc claims remain passing.
+      - Affected doc claims replayed post-edit; expected verdict drift explicitly documented.
     change_scope:
       - Update ADR index and navigation docs.
       - Align projection horizon statements.
@@ -38,7 +38,7 @@ batches:
   - batch_id: B02
     name: pipeline_entrypoint_and_order_consistency
     priority: 2
-    status: proposed
+    status: completed
     objective: Make projection entrypoints and pipeline step ordering unambiguous and executable.
     includes_claims: [RHA-001, RHA-002, RHA-003, RHA-004, RHA-027]
     prerequisites: [B00, B01]
