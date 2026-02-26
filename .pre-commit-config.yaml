@@ -51,6 +51,15 @@ repos:
         always_run: true
         pass_filenames: false
         verbose: true
+      - id: methodology-doc-check
+        name: methodology doc check
+        entry: ./scripts/hooks/methodology_doc_check.sh
+        language: script
+        always_run: false
+        pass_filenames: false
+        verbose: true
+        files: ^cohort_projections/(core|data/process|data/load)/.*\.py$
+        stages: [pre-commit]
       - id: pytest-check
         name: pytest (fast tests only)
         entry: .venv/bin/python -m pytest tests/ -x -q --ignore=tests/test_integration/ -m "not slow"

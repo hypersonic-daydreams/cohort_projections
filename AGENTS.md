@@ -49,6 +49,7 @@ The primary work is developing the **2026 official population projections** for 
 6. Include full metadata headers in data processing scripts (see Section 5)
 7. Update `DATA_SOURCE_NOTES.md` when adding data files to `data/raw/`
 8. Update ADR status and add Implementation Results when work is complete
+9. Update `docs/methodology.md` when changing formulas, rates, data sources, or projection logic
 
 ---
 

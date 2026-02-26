@@ -66,6 +66,7 @@ git add . && git commit -m "..."
 - **ALWAYS** include full metadata docstrings in data processing scripts ([SOP-002](./docs/governance/sops/SOP-002-data-processing-documentation.md))
 - **ALWAYS** update `DATA_SOURCE_NOTES.md` when adding files to `data/raw/`
 - **ALWAYS** update ADR status and add Implementation Results when work is complete
+- **ALWAYS** update `docs/methodology.md` when changing formulas, rates, data sources, or projection logic
 
 **Complete rules and workflow:** [AGENTS.md](./AGENTS.md)
 

@@ -88,6 +88,9 @@ How this integrates with `projection_config.yaml` or other configuration.
 ### Testing Strategy
 How this decision should be tested.
 
+### Documentation
+- [ ] Update `docs/methodology.md` if this ADR changes formulas, rates, data sources, or projection logic
+
 ## References
 
 1. **Source 1**: Description and link
