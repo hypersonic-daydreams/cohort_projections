@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T20:14:55Z",
+  "claim_id": "RHA-017",
+  "claim_title": "Stale low_growth exports remain without matching projections",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-017-C1",
+      "description": "Check low_growth directory presence mismatch between exports and projections.",
+      "required": true,
+      "command": "exports=0; projections=0; [ -d data/exports/low_growth ] && exports=1; [ -d data/projections/low_growth ] && projections=1; echo \"LOW_GROWTH_EXPORTS_EXISTS=$exports\"; echo \"LOW_GROWTH_PROJECTIONS_EXISTS=$projections\"; if [ \"$exports\" -eq 1 ] && [ \"$projections\" -eq 0 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "LOW_GROWTH_EXPORTS_EXISTS=1",
+          "LOW_GROWTH_PROJECTIONS_EXISTS=0"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T20:14:55Z",
+      "duration_seconds": 0.012,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "LOW_GROWTH_EXPORTS_EXISTS=1\nLOW_GROWTH_PROJECTIONS_EXISTS=0\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

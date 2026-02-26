@@ -55,7 +55,7 @@ batches:
   - batch_id: B03
     name: config_path_and_version_hygiene
     priority: 3
-    status: proposed
+    status: completed
     objective: Normalize configuration loading behavior, remove hardcoded paths, and establish one version authority.
     includes_claims: [RHA-005, RHA-006, RHA-007, RHA-016]
     prerequisites: [B00]

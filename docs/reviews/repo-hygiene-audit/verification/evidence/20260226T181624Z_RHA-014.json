@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T18:16:24Z",
+  "claim_id": "RHA-014",
+  "claim_title": "Three oversized modules exceed 1,300 lines",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-014-C1",
+      "description": "Measure line counts for the three cited modules.",
+      "required": true,
+      "command": "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\nfiles = {\n    \"migration_rates\": Path(\"cohort_projections/data/process/migration_rates.py\"),\n    \"base_population_loader\": Path(\"cohort_projections/data/load/base_population_loader.py\"),\n    \"residual_migration\": Path(\"cohort_projections/data/process/residual_migration.py\"),\n}\ncounts = {k: sum(1 for _ in p.open(\"r\", encoding=\"utf-8\", errors=\"ignore\")) for k, p in files.items()}\nfor k, v in counts.items():\n    print(f\"{k.upper()}_LINES={v}\")\nif counts[\"migration_rates\"] >= 1900 and counts[\"base_population_loader\"] >= 1400 and counts[\"residual_migration\"] >= 1300:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY",
+      "timeout_seconds": 120,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "MIGRATION_RATES_LINES=[0-9]+",
+          "BASE_POPULATION_LOADER_LINES=[0-9]+",
+          "RESIDUAL_MIGRATION_LINES=[0-9]+"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T18:16:24Z",
+      "duration_seconds": 0.033,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "MIGRATION_RATES_LINES=1963\nBASE_POPULATION_LOADER_LINES=1465\nRESIDUAL_MIGRATION_LINES=1309\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

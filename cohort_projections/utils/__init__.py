@@ -8,11 +8,9 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from .config_loader import ConfigLoader as _LocalConfigLoader
-from .config_loader import load_projection_config
+from .config_loader import ConfigLoader, load_projection_config
 
 try:
-    from project_utils import ConfigLoader as _ConfigLoader
     from project_utils import get_logger_from_config as _get_logger_from_config
     from project_utils import setup_logger as setup_logger
 
@@ -66,57 +64,6 @@ except ModuleNotFoundError:
 
 # Project root for default paths
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
-
-
-if _HAS_PROJECT_UTILS:
-
-    class ConfigLoader(_ConfigLoader):  # type: ignore[misc]
-        """
-        Configuration loader with project-specific defaults.
-
-        This is a wrapper around project_utils.ConfigLoader that provides
-        the cohort_projections default config directory.
-        """
-
-        def __init__(self, config_dir: Path | None = None):
-            """
-            Initialize config loader.
-
-            Args:
-                config_dir: Path to configuration directory. If None, uses
-                           the project default (config/).
-            """
-            if config_dir is None:
-                config_dir = _PROJECT_ROOT / "config"
-            super().__init__(config_dir)
-
-        def get_projection_config(self) -> dict[str, Any]:
-            """Load main projection configuration."""
-            return self.load_config("projection_config")
-
-        def get_fertility_schedules(self) -> dict[str, Any]:
-            """Load fertility schedules (when available)."""
-            try:
-                return self.load_config("fertility_schedules")
-            except FileNotFoundError:
-                return {}
-
-        def get_mortality_schedules(self) -> dict[str, Any]:
-            """Load mortality schedules (when available)."""
-            try:
-                return self.load_config("mortality_schedules")
-            except FileNotFoundError:
-                return {}
-
-        def get_migration_assumptions(self) -> dict[str, Any]:
-            """Load migration assumptions (when available)."""
-            try:
-                return self.load_config("migration_assumptions")
-            except FileNotFoundError:
-                return {}
-
-else:
-    ConfigLoader = _LocalConfigLoader  # type: ignore[misc,assignment]
 
 
 def get_logger_from_config(name: str, config_path: Path | None = None) -> logging.Logger:

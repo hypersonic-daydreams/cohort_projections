@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T19:24:20Z",
+  "claim_id": "RHA-009",
+  "claim_title": "ADR README index is stale for late-series ADRs",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-009-C1",
+      "description": "Compare README status rows against ADR file statuses for 047-053 and check missing 054/055.",
+      "required": true,
+      "command": "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\nimport re\nreadme = Path(\"docs/governance/adrs/README.md\").read_text(encoding=\"utf-8\")\nids = [\"047\",\"048\",\"049\",\"050\",\"051\",\"052\",\"053\"]\nmismatch = 0\nfor adr in ids:\n    line = next((ln for ln in readme.splitlines() if f\"[{adr}]\" in ln), \"\")\n    if \"| Proposed |\" not in line:\n        continue\n    f = next(Path(\"docs/governance/adrs\").glob(f\"{adr}-*.md\"))\n    text = f.read_text(encoding=\"utf-8\")\n    status_match = re.search(r\"^## Status\\n(.+)$\", text, flags=re.MULTILINE)\n    status = status_match.group(1).strip() if status_match else \"<missing>\"\n    if not status.startswith(\"Proposed\"):\n        mismatch += 1\nmissing = [adr for adr in [\"054\", \"055\"] if f\"[{adr}]\" not in readme]\nprint(f\"MISMATCH_COUNT={mismatch}\")\nprint(f\"MISSING_COUNT={len(missing)}\")\nprint(\"MISSING_IDS=\" + \",\".join(missing))\nif mismatch >= 7 and len(missing) == 2:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY",
+      "timeout_seconds": 120,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "MISMATCH_COUNT=[7-9]",
+          "MISSING_COUNT=2"
+        ]
+      },
+      "executed": true,
+      "passed": false,
+      "failure_reasons": [
+        "Expected exit code 0, got 1.",
+        "stdout missing required token: ASSERTION=PASS",
+        "stdout does not match regex: MISMATCH_COUNT=[7-9]",
+        "stdout does not match regex: MISSING_COUNT=2"
+      ],
+      "started_at_utc": "2026-02-26T19:24:20Z",
+      "duration_seconds": 0.05,
+      "return_code": 1,
+      "timed_out": false,
+      "stdout": "MISMATCH_COUNT=0\nMISSING_COUNT=0\nMISSING_IDS=\nASSERTION=FAIL\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 0,
+    "required_total": 1,
+    "required_passed": 0,
+    "claim_passed": false,
+    "dry_run": false
+  }
+}

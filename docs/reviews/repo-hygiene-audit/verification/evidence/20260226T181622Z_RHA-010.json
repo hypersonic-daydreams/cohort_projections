@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T18:16:22Z",
+  "claim_id": "RHA-010",
+  "claim_title": "Tests include substantial sibling-repo-focused suites",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "partially_confirmed",
+  "results": [
+    {
+      "check_id": "RHA-010-C1",
+      "description": "Count Python lines in tests/test_statistical and tests/unit.",
+      "required": true,
+      "command": "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\nline_total = 0\nfile_total = 0\nfor d in [Path(\"tests/test_statistical\"), Path(\"tests/unit\")]:\n    for p in d.rglob(\"*.py\"):\n        file_total += 1\n        line_total += sum(1 for _ in p.open(\"r\", encoding=\"utf-8\", errors=\"ignore\"))\nprint(f\"SIBLING_TEST_FILES={file_total}\")\nprint(f\"SIBLING_TEST_LINES={line_total}\")\nif line_total > 3500:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY",
+      "timeout_seconds": 120,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "SIBLING_TEST_LINES=[0-9]+"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T18:16:22Z",
+      "duration_seconds": 0.051,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "SIBLING_TEST_FILES=15\nSIBLING_TEST_LINES=4137\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

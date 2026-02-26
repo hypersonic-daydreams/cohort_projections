@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T19:38:46Z",
+  "claim_id": "RHA-004",
+  "claim_title": "Pipeline numbering collision for 01-prefixed scripts",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-004-C1",
+      "description": "Count files matching 01_*.py in pipeline directory.",
+      "required": true,
+      "command": "count=$(find scripts/pipeline -maxdepth 1 -type f -name \"01_*.py\" | wc -l); echo \"PREFIX_01_COUNT=$count\"; if [ \"$count\" -eq 2 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "PREFIX_01_COUNT=2"
+        ]
+      },
+      "executed": true,
+      "passed": false,
+      "failure_reasons": [
+        "Expected exit code 0, got 1.",
+        "stdout missing required token: ASSERTION=PASS",
+        "stdout does not match regex: PREFIX_01_COUNT=2"
+      ],
+      "started_at_utc": "2026-02-26T19:38:46Z",
+      "duration_seconds": 0.011,
+      "return_code": 1,
+      "timed_out": false,
+      "stdout": "PREFIX_01_COUNT=1\nASSERTION=FAIL\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 0,
+    "required_total": 1,
+    "required_passed": 0,
+    "claim_passed": false,
+    "dry_run": false
+  }
+}

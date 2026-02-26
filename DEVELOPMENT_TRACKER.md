@@ -19,12 +19,12 @@ Use this file for active status only. Historical session detail is archived to:
 | Core projection engine | complete | County/state production path is operational for all scenarios. |
 | Data processing pipeline | complete | Inputs and transforms are in place; no active blocker. |
 | Documentation alignment | complete | B01 documentation harmonization complete with expected drift documented. |
-| Repo-hygiene program | in progress | B00/B01/B02 complete; next executable batch is B03. |
+| Repo-hygiene program | in progress | B00/B01/B02/B03 complete; B04 is next in sequence. |
 | Test health baseline | stable | Latest recorded baseline: `1258 passed, 5 skipped`. |
 
 ## Active Priorities
 
-1. Execute repo-hygiene `B03` config/path/version hygiene after B02 closeout.
+1. Start B04 preflight after B03 closeout artifacts are finalized.
 2. Keep methodology and governance docs synchronized with implemented ADR statuses.
 3. Maintain reproducible execution records for every implementation batch.
 
@@ -35,8 +35,8 @@ Use this file for active status only. Historical session detail is archived to:
 | B00 | baseline_metrics_and_safety_harness | complete | Baseline metrics and guardrails pinned. |
 | B01 | documentation_harmonization | complete | ADR index, navigation, horizon, and oversized docs were harmonized and replayed. |
 | B02 | pipeline_entrypoint_and_order_consistency | complete | Canonical runner added, full stage order wired, and post-edit claim replay captured expected remediation drift. |
-| B03 | config_path_and_version_hygiene | ready | Can run after B01 if sequencing keeps context clean. |
-| B04 | code_structure_and_test_scope_alignment | blocked | Depends on B03. |
+| B03 | config_path_and_version_hygiene | complete | Version/config/path hygiene scope implemented; expected claim drift captured post-edit. |
+| B04 | code_structure_and_test_scope_alignment | ready | B03 dependency cleared. |
 | B05 | repository_footprint_and_data_hygiene | ready | Prerequisites from B00/B01 are satisfied. |
 | B06 | final_harmonization_and_claim_revalidation | blocked | Depends on B03-B05. |
 
@@ -49,7 +49,7 @@ Use this file for active status only. Historical session detail is archived to:
 
 ## Near-Term Next Actions
 
-1. Run B03 pre-edit dry-run profiles before touching config/path/version surfaces.
+1. Run B04 required pre-edit dry-run profiles before touching structural code/test-boundary surfaces.
 2. Define resolved-state claim checks for B01 and B02 findings before final harmonization closeout.
 3. Keep claim-replay evidence refreshed after each batch closeout.
 
@@ -63,5 +63,6 @@ Use this file for active status only. Historical session detail is archived to:
 
 - `AGENTS.md`
 - `docs/reviews/repo-hygiene-audit/implementation/06-dashboard-current.md`
+- `docs/reviews/repo-hygiene-audit/implementation/17-open-risks-blockers-register.md`
 - `docs/reviews/repo-hygiene-audit/implementation/02-action-batches.yaml`
 - `docs/reviews/repo-hygiene-audit/verification/progress.md`

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T20:14:55Z",
+  "claim_id": "RHA-016",
+  "claim_title": "Five raw-data subdirectories are missing DATA_SOURCE_NOTES.md",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-016-C1",
+      "description": "Compute raw subdirectories missing DATA_SOURCE_NOTES.md and compare against expected set.",
+      "required": true,
+      "command": "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\nexpected = {\"census\", \"census_bureau_methodology\", \"geographic\", \"immigration\", \"nd_sdc_2024_projections\"}\nraw = Path(\"data/raw\")\nmissing = {d.name for d in raw.iterdir() if d.is_dir() and not (d / \"DATA_SOURCE_NOTES.md\").exists()}\nprint(f\"MISSING_NOTES_COUNT={len(missing)}\")\nprint(\"MISSING_NOTES=\" + \",\".join(sorted(missing)))\nif missing == expected:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY",
+      "timeout_seconds": 120,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "MISSING_NOTES_COUNT=5"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T20:14:55Z",
+      "duration_seconds": 0.046,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "MISSING_NOTES_COUNT=5\nMISSING_NOTES=census,census_bureau_methodology,geographic,immigration,nd_sdc_2024_projections\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

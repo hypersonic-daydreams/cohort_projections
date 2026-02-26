@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T19:10:00Z",
+  "claim_id": "RHA-001",
+  "claim_title": "Ghost projection runner is referenced but missing",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-001-C1",
+      "description": "Count documentation references and verify missing runner file.",
+      "required": true,
+      "command": "refs=$(rg -n \"scripts/projections/run_all_projections.py\" AGENTS.md CLAUDE.md README.md DEVELOPMENT_TRACKER.md docs/INDEX.md | wc -l); exists=0; [ -f scripts/projections/run_all_projections.py ] && exists=1; echo \"DOC_REF_COUNT=$refs\"; echo \"FILE_EXISTS=$exists\"; if [ \"$refs\" -ge 3 ] && [ \"$exists\" -eq 0 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "DOC_REF_COUNT=[0-9]+",
+          "FILE_EXISTS=0"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T19:10:00Z",
+      "duration_seconds": 0.116,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "DOC_REF_COUNT=3\nFILE_EXISTS=0\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T20:09:17Z",
+  "claim_id": "RHA-023",
+  "claim_title": "cohort_projections package has no circular imports",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-023-C1",
+      "description": "Run AST-based cycle detection on cohort_projections import graph.",
+      "required": true,
+      "command": "source .venv/bin/activate && python - <<'PY'\nimport ast\nfrom collections import defaultdict\nfrom pathlib import Path\nroot = Path(\"cohort_projections\")\nmodules = {\".\".join(p.with_suffix(\"\").parts): p for p in root.rglob(\"*.py\")}\ngraph = defaultdict(set)\nfor mod, p in modules.items():\n    tree = ast.parse(p.read_text(encoding=\"utf-8\", errors=\"ignore\"))\n    for node in ast.walk(tree):\n        if isinstance(node, ast.Import):\n            for alias in node.names:\n                name = alias.name\n                if name.startswith(\"cohort_projections\") and name in modules:\n                    graph[mod].add(name)\n        elif isinstance(node, ast.ImportFrom):\n            if node.level and node.module is not None:\n                parts = mod.split(\".\")[:-node.level]\n                target = \".\".join(parts + node.module.split(\".\"))\n            elif node.level and node.module is None:\n                parts = mod.split(\".\")[:-node.level]\n                target = \".\".join(parts)\n            else:\n                target = node.module or \"\"\n            if target.startswith(\"cohort_projections\") and target in modules:\n                graph[mod].add(target)\n\ncycles = []\ntemp, perm = set(), set()\ndef visit(node, stack):\n    if node in perm:\n        return\n    if node in temp:\n        idx = stack.index(node)\n        cycles.append(stack[idx:] + [node])\n        return\n    temp.add(node)\n    stack.append(node)\n    for nxt in graph.get(node, set()):\n        visit(nxt, stack)\n    stack.pop()\n    temp.remove(node)\n    perm.add(node)\n\nfor m in modules:\n    if m not in perm:\n        visit(m, [])\nprint(f\"MODULE_COUNT={len(modules)}\")\nprint(f\"CYCLE_COUNT={len(cycles)}\")\nif len(cycles) == 0:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY",
+      "timeout_seconds": 180,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "CYCLE_COUNT=0"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T20:09:16Z",
+      "duration_seconds": 0.183,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "MODULE_COUNT=39\nCYCLE_COUNT=0\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

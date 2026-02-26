@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T19:33:44Z",
+  "claim_id": "RHA-027",
+  "claim_title": "Pipeline fragmentation claim is materially supported by repository state",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "partially_confirmed",
+  "results": [
+    {
+      "check_id": "RHA-027-C1",
+      "description": "Re-check the four structural predicates that underpin the material-truth verdict.",
+      "required": true,
+      "command": "runner_missing=0; [ ! -f scripts/projections/run_all_projections.py ] && runner_missing=1; calls=$(rg -n \"^python scripts/pipeline/\" scripts/pipeline/run_complete_pipeline.sh | wc -l); extra_present=0; for s in 00_prepare_processed_data.py 01_compute_residual_migration.py 01b_compute_convergence.py 01c_compute_mortality_improvement.py; do [ -f \"scripts/pipeline/$s\" ] && extra_present=$((extra_present+1)); done; extra_called=$(rg -n \"00_prepare_processed_data.py|01_compute_residual_migration.py|01b_compute_convergence.py|01c_compute_mortality_improvement.py\" scripts/pipeline/run_complete_pipeline.sh | wc -l); collision=$(find scripts/pipeline -maxdepth 1 -type f -name \"01_*.py\" | wc -l); echo \"RUNNER_MISSING=$runner_missing\"; echo \"RUNNER_CALLS=$calls\"; echo \"EXTRA_PRESENT=$extra_present\"; echo \"EXTRA_CALLED=$extra_called\"; echo \"PREFIX_01_COUNT=$collision\"; if [ \"$runner_missing\" -eq 1 ] && [ \"$calls\" -eq 3 ] && [ \"$extra_present\" -eq 4 ] && [ \"$extra_called\" -eq 0 ] && [ \"$collision\" -eq 2 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "RUNNER_MISSING=1",
+          "RUNNER_CALLS=3",
+          "EXTRA_PRESENT=4",
+          "EXTRA_CALLED=0",
+          "PREFIX_01_COUNT=2"
+        ]
+      },
+      "executed": true,
+      "passed": false,
+      "failure_reasons": [
+        "Expected exit code 0, got 1.",
+        "stdout missing required token: ASSERTION=PASS",
+        "stdout does not match regex: RUNNER_MISSING=1",
+        "stdout does not match regex: RUNNER_CALLS=3",
+        "stdout does not match regex: EXTRA_PRESENT=4",
+        "stdout does not match regex: EXTRA_CALLED=0",
+        "stdout does not match regex: PREFIX_01_COUNT=2"
+      ],
+      "started_at_utc": "2026-02-26T19:33:44Z",
+      "duration_seconds": 0.187,
+      "return_code": 1,
+      "timed_out": false,
+      "stdout": "RUNNER_MISSING=0\nRUNNER_CALLS=0\nEXTRA_PRESENT=3\nEXTRA_CALLED=3\nPREFIX_01_COUNT=1\nASSERTION=FAIL\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 0,
+    "required_total": 1,
+    "required_passed": 0,
+    "claim_passed": false,
+    "dry_run": false
+  }
+}

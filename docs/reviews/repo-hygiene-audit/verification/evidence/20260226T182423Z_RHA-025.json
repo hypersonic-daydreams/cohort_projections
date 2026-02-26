@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T18:24:23Z",
+  "claim_id": "RHA-025",
+  "claim_title": "example_usage.py and version.py are orphaned from imports",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-025-C1",
+      "description": "Verify files exist and no external import references are found.",
+      "required": true,
+      "command": "test -f cohort_projections/data/process/example_usage.py; test -f cohort_projections/version.py; example_refs=$(rg -n \"example_usage\" cohort_projections scripts tests -g \"*.py\" | rg -v \"example_usage.py\" | wc -l || true); version_refs=$(rg -n \"cohort_projections\\.version|from \\.+version import|import version\" cohort_projections scripts tests -g \"*.py\" -g \"!cohort_projections/version.py\" | wc -l || true); echo \"EXAMPLE_USAGE_EXTERNAL_REFS=$example_refs\"; echo \"VERSION_PY_EXTERNAL_REFS=$version_refs\"; if [ \"$example_refs\" -eq 0 ] && [ \"$version_refs\" -eq 0 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "EXAMPLE_USAGE_EXTERNAL_REFS=0",
+          "VERSION_PY_EXTERNAL_REFS=0"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T18:24:23Z",
+      "duration_seconds": 0.143,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "EXAMPLE_USAGE_EXTERNAL_REFS=0\nVERSION_PY_EXTERNAL_REFS=0\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

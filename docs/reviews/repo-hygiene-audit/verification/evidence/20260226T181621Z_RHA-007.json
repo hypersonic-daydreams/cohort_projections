@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T18:16:21Z",
+  "claim_id": "RHA-007",
+  "claim_title": "Hardcoded absolute paths exist in data scripts",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-007-C1",
+      "description": "Search for the three hardcoded absolute-path patterns.",
+      "required": true,
+      "command": "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\nfiles = {\n    \"scripts/data/ingest_stcoreview.py\": 'Path(\"/mnt/c/Users/nhaarstad/Downloads/stcoreview_v2025_ND.xlsx\")',\n    \"scripts/data_processing/extract_pep_county_migration.py\": 'Path.home() / \"workspace/shared-data/census/popest/parquet\"',\n    \"scripts/data_processing/extract_pep_county_migration_with_metadata.py\": 'Path.home() / \"workspace/shared-data/census/popest/parquet\"',\n}\nmatches = 0\nfor file_path, needle in files.items():\n    text = Path(file_path).read_text(encoding=\"utf-8\")\n    if needle in text:\n        matches += 1\nprint(f\"HARDCODED_PATH_MATCHES={matches}\")\nif matches == 3:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY\n",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "HARDCODED_PATH_MATCHES=3"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T18:16:21Z",
+      "duration_seconds": 0.034,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "HARDCODED_PATH_MATCHES=3\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

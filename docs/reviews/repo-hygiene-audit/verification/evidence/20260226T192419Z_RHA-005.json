@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T19:24:19Z",
+  "claim_id": "RHA-005",
+  "claim_title": "Version declarations are inconsistent across locations",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-005-C1",
+      "description": "Extract version values from four locations and confirm inconsistency.",
+      "required": true,
+      "command": "source .venv/bin/activate && python - <<'PY'\nimport re\nfrom pathlib import Path\n\npyproject = Path(\"pyproject.toml\").read_text(encoding=\"utf-8\")\nversion_py = Path(\"cohort_projections/version.py\").read_text(encoding=\"utf-8\")\noutput_init = Path(\"cohort_projections/output/__init__.py\").read_text(encoding=\"utf-8\")\nclaude = Path(\"CLAUDE.md\").read_text(encoding=\"utf-8\")\n\npyv = re.search(r'^version\\s*=\\s*\"([^\"]+)\"', pyproject, flags=re.MULTILINE).group(1)\nvfile = re.search(r'__version__\\s*=\\s*\"([^\"]+)\"', version_py).group(1)\nov = re.search(r'__version__\\s*=\\s*\"([^\"]+)\"', output_init).group(1)\ncv = re.search(r\"\\|\\s+\\*\\*Version\\*\\*\\s+\\|\\s+([0-9.]+)\\s+\\|\", claude).group(1)\nunique = len({pyv, vfile, ov, cv})\n\nprint(f\"PYPROJECT_VERSION={pyv}\")\nprint(f\"VERSION_PY={vfile}\")\nprint(f\"OUTPUT_INIT_VERSION={ov}\")\nprint(f\"CLAUDE_VERSION={cv}\")\nprint(f\"UNIQUE_VERSION_VALUES={unique}\")\nif unique >= 3:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY\n",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "UNIQUE_VERSION_VALUES=[3-9]"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T19:24:19Z",
+      "duration_seconds": 0.05,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "PYPROJECT_VERSION=0.1.0\nVERSION_PY=0.1.0\nOUTPUT_INIT_VERSION=1.0.0\nCLAUDE_VERSION=2.3.0\nUNIQUE_VERSION_VALUES=3\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

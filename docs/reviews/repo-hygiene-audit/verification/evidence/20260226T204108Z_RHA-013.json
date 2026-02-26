@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T20:41:08Z",
+  "claim_id": "RHA-013",
+  "claim_title": "Core package size is 39 files and 17,759 lines",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-013-C1",
+      "description": "Count Python files and lines under cohort_projections package.",
+      "required": true,
+      "command": "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\nfiles = list(Path(\"cohort_projections\").rglob(\"*.py\"))\nlines = sum(sum(1 for _ in f.open(\"r\", encoding=\"utf-8\", errors=\"ignore\")) for f in files)\nprint(f\"CORE_PY_FILES={len(files)}\")\nprint(f\"CORE_PY_LINES={lines}\")\nif len(files) == 39 and lines == 17759:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY",
+      "timeout_seconds": 120,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "CORE_PY_FILES=[0-9]+",
+          "CORE_PY_LINES=[0-9]+"
+        ]
+      },
+      "executed": true,
+      "passed": false,
+      "failure_reasons": [
+        "Expected exit code 0, got 1.",
+        "stdout missing required token: ASSERTION=PASS"
+      ],
+      "started_at_utc": "2026-02-26T20:41:08Z",
+      "duration_seconds": 0.036,
+      "return_code": 1,
+      "timed_out": false,
+      "stdout": "CORE_PY_FILES=39\nCORE_PY_LINES=17620\nASSERTION=FAIL\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 0,
+    "required_total": 1,
+    "required_passed": 0,
+    "claim_passed": false,
+    "dry_run": false
+  }
+}

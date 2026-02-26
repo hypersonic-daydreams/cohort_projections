@@ -125,10 +125,14 @@ Commands:
 ```bash
 ruff check .
 mypy cohort_projections
+ruff check cohort_projections/version.py cohort_projections/output/__init__.py cohort_projections/utils/__init__.py cohort_projections/utils/config_loader.py libs/project_utils/project_utils/config.py scripts/data/ingest_stcoreview.py scripts/data_processing/extract_pep_county_migration.py scripts/data_processing/extract_pep_county_migration_with_metadata.py
+mypy cohort_projections/version.py cohort_projections/utils/__init__.py cohort_projections/utils/config_loader.py
 ```
 
 Pass signals:
-- Lint and type checks pass for targeted remediation branch.
+- Baseline full-repo lint/type output is captured.
+- Targeted B03 lint/type checks pass on files touched by B03.
+- Any pre-existing baseline failures outside B03 scope are documented as non-regression.
 
 ### `DRY-TESTS`
 

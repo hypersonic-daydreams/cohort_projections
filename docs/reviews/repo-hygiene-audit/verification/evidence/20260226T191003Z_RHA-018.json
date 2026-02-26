@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T19:10:03Z",
+  "claim_id": "RHA-018",
+  "claim_title": "Five SDC rate files are triplicated across three directories",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-018-C1",
+      "description": "Verify all five rate CSVs exist in all three cited locations.",
+      "required": true,
+      "command": "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\nfiles = [\n    \"adjustment_factors_by_county.csv\",\n    \"base_population_by_county.csv\",\n    \"fertility_rates_by_county.csv\",\n    \"migration_rates_by_county.csv\",\n    \"survival_rates_by_county.csv\",\n]\nlocations = [\n    Path(\"sdc_2024_replication/data\"),\n    Path(\"sdc_2024_replication/data_updated\"),\n    Path(\"data/processed/immigration/rates\"),\n]\ntriplicated = 0\nfor name in files:\n    flags = [int((loc / name).exists()) for loc in locations]\n    print(f\"{name}::\" + \"\".join(str(x) for x in flags))\n    if all(flags):\n        triplicated += 1\nprint(f\"TRIPLICATED_FILE_COUNT={triplicated}\")\nif triplicated == 5:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY",
+      "timeout_seconds": 120,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "TRIPLICATED_FILE_COUNT=5"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T19:10:03Z",
+      "duration_seconds": 0.051,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "adjustment_factors_by_county.csv::111\nbase_population_by_county.csv::111\nfertility_rates_by_county.csv::111\nmigration_rates_by_county.csv::111\nsurvival_rates_by_county.csv::111\nTRIPLICATED_FILE_COUNT=5\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

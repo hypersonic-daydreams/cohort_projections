@@ -72,5 +72,3 @@ __all__ = [
     "plot_scenario_comparison",
     "save_all_visualizations",
 ]
-
-__version__ = "1.0.0"

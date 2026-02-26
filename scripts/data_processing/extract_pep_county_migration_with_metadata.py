@@ -33,8 +33,8 @@ from psycopg2.extras import execute_values
 
 # Constants
 ND_FIPS = "38"  # North Dakota state FIPS code
-PEP_BASE = Path.home() / "workspace/shared-data/census/popest/parquet"
-DOCS_BASE = Path.home() / "workspace/shared-data/census/popest"
+PEP_BASE = Path.home() / "workspace" / "shared-data" / "census" / "popest" / "parquet"
+DOCS_BASE = Path.home() / "workspace" / "shared-data" / "census" / "popest"
 OUTPUT_DIR = Path("data/processed")
 STATE_FILE = Path("data/processed/immigration/state_migration_components_2000_2024.csv")
 SCRIPT_VERSION = "2.0.0-metadata"

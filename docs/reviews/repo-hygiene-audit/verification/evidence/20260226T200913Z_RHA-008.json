@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T20:09:13Z",
+  "claim_id": "RHA-008",
+  "claim_title": "run_pep_projections dynamically imports pipeline module",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-008-C1",
+      "description": "Verify importlib dynamic import and target pipeline script reference.",
+      "required": true,
+      "command": "spec_count=$(rg -n \"importlib.util.spec_from_file_location\" scripts/projections/run_pep_projections.py | wc -l); target_count=$(rg -n \"02_run_projections.py\" scripts/projections/run_pep_projections.py | wc -l); echo \"IMPORTLIB_SPEC_COUNT=$spec_count\"; echo \"PIPELINE_TARGET_REF_COUNT=$target_count\"; if [ \"$spec_count\" -ge 1 ] && [ \"$target_count\" -ge 1 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "IMPORTLIB_SPEC_COUNT=[1-9]"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T20:09:13Z",
+      "duration_seconds": 0.108,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "IMPORTLIB_SPEC_COUNT=1\nPIPELINE_TARGET_REF_COUNT=2\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

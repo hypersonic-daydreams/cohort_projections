@@ -32,8 +32,8 @@ from pathlib import Path
 import pandas as pd
 
 # Default paths
-DEFAULT_INPUT = Path("/mnt/c/Users/nhaarstad/Downloads/stcoreview_v2025_ND.xlsx")
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DEFAULT_INPUT = PROJECT_ROOT / "data" / "raw" / "population" / "stcoreview_v2025_ND.xlsx"
 DEFAULT_OUTPUT = PROJECT_ROOT / "data" / "raw" / "population" / "stcoreview_v2025_nd_parsed.parquet"
 
 # North Dakota state FIPS

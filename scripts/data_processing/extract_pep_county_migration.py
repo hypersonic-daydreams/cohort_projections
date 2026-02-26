@@ -24,7 +24,7 @@ import pandas as pd
 
 # Constants
 ND_FIPS = "38"  # North Dakota state FIPS code
-PEP_BASE = Path.home() / "workspace/shared-data/census/popest/parquet"
+PEP_BASE = Path.home() / "workspace" / "shared-data" / "census" / "popest" / "parquet"
 OUTPUT_DIR = Path("data/processed")
 STATE_FILE = Path("data/processed/immigration/state_migration_components_2000_2024.csv")
 

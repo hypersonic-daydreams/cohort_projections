@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T19:33:41Z",
+  "claim_id": "RHA-002",
+  "claim_title": "Pipeline shell runner executes only three Python stages",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-002-C1",
+      "description": "Verify shell runner has exactly three python pipeline invocations and STEP x/3 labels.",
+      "required": true,
+      "command": "calls=$(rg -n \"^python scripts/pipeline/\" scripts/pipeline/run_complete_pipeline.sh | wc -l); labels=$(rg -n \"STEP [0-9]/3\" scripts/pipeline/run_complete_pipeline.sh | wc -l); echo \"PIPELINE_CALLS=$calls\"; echo \"STEP_LABELS=$labels\"; if [ \"$calls\" -eq 3 ] && [ \"$labels\" -eq 3 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "PIPELINE_CALLS=3",
+          "STEP_LABELS=3"
+        ]
+      },
+      "executed": true,
+      "passed": false,
+      "failure_reasons": [
+        "Expected exit code 0, got 1.",
+        "stdout missing required token: ASSERTION=PASS",
+        "stdout does not match regex: PIPELINE_CALLS=3",
+        "stdout does not match regex: STEP_LABELS=3"
+      ],
+      "started_at_utc": "2026-02-26T19:33:40Z",
+      "duration_seconds": 0.179,
+      "return_code": 1,
+      "timed_out": false,
+      "stdout": "PIPELINE_CALLS=0\nSTEP_LABELS=0\nASSERTION=FAIL\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 0,
+    "required_total": 1,
+    "required_passed": 0,
+    "claim_passed": false,
+    "dry_run": false
+  }
+}

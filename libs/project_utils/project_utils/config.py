@@ -51,6 +51,47 @@ class ConfigLoader:
         """Load the `projection_config.yaml` configuration."""
         return self.load_config("projection_config")
 
+    def get_fertility_schedules(self) -> dict[str, Any]:
+        """Load fertility schedules when available; otherwise return an empty dict."""
+        try:
+            return self.load_config("fertility_schedules")
+        except FileNotFoundError:
+            return {}
+
+    def get_mortality_schedules(self) -> dict[str, Any]:
+        """Load mortality schedules when available; otherwise return an empty dict."""
+        try:
+            return self.load_config("mortality_schedules")
+        except FileNotFoundError:
+            return {}
+
+    def get_migration_assumptions(self) -> dict[str, Any]:
+        """Load migration assumptions when available; otherwise return an empty dict."""
+        try:
+            return self.load_config("migration_assumptions")
+        except FileNotFoundError:
+            return {}
+
+    def get_parameter(self, *keys: str, default: Any = None) -> Any:
+        """
+        Retrieve a nested projection-config value by explicit key path.
+
+        Args:
+            *keys: Ordered key path (e.g., `demographics`, `age_groups`, `type`).
+            default: Value returned when any key is missing.
+
+        Returns:
+            Nested value when present, otherwise `default`.
+        """
+        value: Any = self.get_projection_config()
+        for key in keys:
+            if not isinstance(value, dict):
+                return default
+            value = value.get(key)
+            if value is None:
+                return default
+        return value
+
     @property
     def config(self) -> dict[str, Any]:
         """Return the projection config if available; otherwise an empty dict."""

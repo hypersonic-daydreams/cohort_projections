@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T18:53:58Z",
+  "claim_id": "RHA-019",
+  "claim_title": "Multiple navigation documents coexist",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "partially_confirmed",
+  "results": [
+    {
+      "check_id": "RHA-019-C1",
+      "description": "Verify both docs index files exist and AGENTS references documentation indexing.",
+      "required": true,
+      "command": "idx=0; nav=0; agents=0; [ -f docs/INDEX.md ] && idx=1; [ -f docs/NAVIGATION.md ] && nav=1; refs=$(rg -n \"docs/INDEX.md|Documentation Index|scripts/intelligence/generate_docs_index.py\" AGENTS.md | wc -l); [ \"$refs\" -ge 1 ] && agents=1; echo \"INDEX_EXISTS=$idx\"; echo \"NAVIGATION_EXISTS=$nav\"; echo \"AGENTS_DOC_INDEX_REF=$agents\"; if [ \"$idx\" -eq 1 ] && [ \"$nav\" -eq 1 ] && [ \"$agents\" -eq 1 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "INDEX_EXISTS=1",
+          "NAVIGATION_EXISTS=1",
+          "AGENTS_DOC_INDEX_REF=1"
+        ]
+      },
+      "executed": true,
+      "passed": false,
+      "failure_reasons": [
+        "Expected exit code 0, got 1.",
+        "stdout missing required token: ASSERTION=PASS",
+        "stdout does not match regex: NAVIGATION_EXISTS=1"
+      ],
+      "started_at_utc": "2026-02-26T18:53:58Z",
+      "duration_seconds": 0.154,
+      "return_code": 1,
+      "timed_out": false,
+      "stdout": "INDEX_EXISTS=1\nNAVIGATION_EXISTS=0\nAGENTS_DOC_INDEX_REF=1\nASSERTION=FAIL\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 0,
+    "required_total": 1,
+    "required_passed": 0,
+    "claim_passed": false,
+    "dry_run": false
+  }
+}
