@@ -18,27 +18,28 @@ Use this file for active status only. Historical session detail is archived to:
 |------|--------|-------|
 | Core projection engine | complete | County/state production path is operational for all scenarios. |
 | Data processing pipeline | complete | Inputs and transforms are in place; no active blocker. |
-| Documentation alignment | complete | B01 documentation harmonization complete with expected drift documented. |
-| Repo-hygiene program | in progress | B00/B01/B02/B03/B04 complete; B05 is next in sequence. |
+| Documentation alignment | complete | B01 documentation harmonization complete. |
+| Repo-hygiene program | in progress | B00-B04 complete; B05 preflight complete; B05 implementation blocked pending archive/delete strategy. |
 | Test health baseline | stable | Latest recorded baseline: `1258 passed, 5 skipped`. |
+| Claim replay health | stable | `27/27` adjudicated claims passing after resolved-state check redesign. |
 
 ## Active Priorities
 
-1. Start B05 preflight (`DRY-REPO-CLEANUP` + `DRY-CHECK-REPLAY`) before any repo-footprint cleanup edits.
-2. Define resolved-state claim checks for implemented batches before B06 closeout.
-3. Maintain reproducible execution records for every implementation batch.
+1. Finalize approved B05 archive/move/delete strategy (RB-005), then execute B05 implementation.
+2. Maintain reproducible execution records for each B05 implementation step and replay affected claims.
+3. Keep RB-003 and RB-004 tracked until dedicated remediation wave or policy closeout.
 
 ## Repo-Hygiene Batch State
 
 | Batch | Name | Status | Notes |
 |------|------|--------|-------|
 | B00 | baseline_metrics_and_safety_harness | complete | Baseline metrics and guardrails pinned. |
-| B01 | documentation_harmonization | complete | ADR index, navigation, horizon, and oversized docs were harmonized and replayed. |
-| B02 | pipeline_entrypoint_and_order_consistency | complete | Canonical runner added, full stage order wired, and post-edit claim replay captured expected remediation drift. |
-| B03 | config_path_and_version_hygiene | complete | Version/config/path hygiene scope implemented; expected claim drift captured post-edit. |
-| B04 | code_structure_and_test_scope_alignment | complete | Import boundary, helper dedupe, test scope realignment, and orphan wiring updates applied with affected claim replay evidence. |
-| B05 | repository_footprint_and_data_hygiene | ready | Prerequisites from B00/B01 are satisfied. |
-| B06 | final_harmonization_and_claim_revalidation | blocked | Depends on B05 and resolved-state check redesign work. |
+| B01 | documentation_harmonization | complete | ADR index, navigation, horizon, and oversized docs harmonized. |
+| B02 | pipeline_entrypoint_and_order_consistency | complete | Canonical runner and stage wiring remediated. |
+| B03 | config_path_and_version_hygiene | complete | Version/config/path hygiene remediated. |
+| B04 | code_structure_and_test_scope_alignment | complete | Import boundary, helper dedupe, test scope realignment, orphan wiring complete. |
+| B05 | repository_footprint_and_data_hygiene | preflight complete / implementation blocked | Dry-run gates passed; implementation waiting on explicit archive/delete decisions. |
+| B06 | final_harmonization_and_claim_revalidation | blocked | Depends on B05 implementation completion. |
 
 ## Current Working Agreements
 
@@ -49,9 +50,9 @@ Use this file for active status only. Historical session detail is archived to:
 
 ## Near-Term Next Actions
 
-1. Execute B05 preflight gates and record GO/NO-GO.
-2. Implement resolved-state claim checks for already-remediated claims.
-3. Keep `verification/progress.md` and risk register synchronized after each batch.
+1. Approve B05 implementation strategy and rollback plan (RB-005).
+2. Execute B05 changes in scoped waves with claim replay for `RHA-011/012/015/017/018/026`.
+3. Run B06 final harmonization once B05 closes.
 
 ## Deferred / Later Work
 

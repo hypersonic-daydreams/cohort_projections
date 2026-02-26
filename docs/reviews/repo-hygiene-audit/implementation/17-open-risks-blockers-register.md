@@ -1,47 +1,21 @@
 # Repo Hygiene Audit Open Risks / Blockers Register
 
-**Last Updated (UTC):** 2026-02-26T21:07:09Z  
-**Scope:** Post-B04 closeout
+**Last Updated (UTC):** 2026-02-26T21:26:06Z  
+**Scope:** Post-B05 preflight + RB-001/RB-002 remediation
 
 ## Purpose
 
-Centralize unresolved risks and blockers so batch sequencing (`B05`-`B06`) does not
-lose operational context.
+Centralize unresolved risks and blockers so remaining batch sequencing does not lose
+operational context.
 
 ## Active Items
-
-### RB-001: Resolved-State Claim Check Redesign
-
-- Status: `open`
-- Severity: `high`
-- Affected claims: `RHA-001`, `RHA-002`, `RHA-003`, `RHA-004`, `RHA-005`, `RHA-006`, `RHA-007`, `RHA-008`, `RHA-009`, `RHA-010`, `RHA-014`, `RHA-016`, `RHA-019`, `RHA-020`, `RHA-021`, `RHA-022`, `RHA-024`, `RHA-025`, `RHA-027`
-- Current signal: these claims replay as `0/1` because checks still assert pre-remediation states.
-- Impact: noisy verification baseline and ambiguity for B06 final harmonization.
-- Required action:
-  1. Add replacement resolved-state checks in `verification/claims_registry.yaml`.
-  2. Run claim replay and adjudication update.
-  3. Regenerate `verification/progress.md`.
-- Exit criterion: resolved-state claims replay `1/1` with explicit evidence.
-
-### RB-002: Baseline Metric Drift (`RHA-013`)
-
-- Status: `open`
-- Severity: `medium`
-- Affected claim: `RHA-013`
-- Current signal: replay shows `0/1` after implementation drift from pinned baseline values.
-- Impact: baseline guardrail no longer reflects current repository state.
-- Required action:
-  1. Recompute current baseline metric values.
-  2. Update claim check assertion and notes to new canonical baseline.
-  3. Replay `RHA-013` and refresh progress tracker.
-- Exit criterion: `RHA-013` replays `1/1` with updated pinned metrics.
 
 ### RB-003: Pipeline Dry-Run Coverage Gap
 
 - Status: `open`
 - Severity: `medium`
 - Affected stages: `scripts/pipeline/01a_*`, `01b_*`, `01c_*`
-- Current signal: `run_complete_pipeline.sh --dry-run` skips stages `01a/01b/01c`.
+- Current signal: `run_complete_pipeline.sh --dry-run` still skips stages `01a/01b/01c`.
 - Impact: dry-run does not exercise full stage graph.
 - Required action:
   1. Add `--dry-run` handling to skipped stages, or
@@ -52,15 +26,40 @@ lose operational context.
 
 - Status: `open`
 - Severity: `medium`
-- Current signal: full baseline still fails (`ruff`, `mypy`) outside B04 scope.
-- Impact: quality gates must continue using explicit non-regression policy by batch scope.
+- Current signal: full baseline still fails (`ruff`, `mypy`) outside current batch scopes.
+- Impact: quality gates rely on explicit non-regression policy by batch scope.
 - Required action:
   1. Create dedicated debt-reduction wave (or ADR-backed policy) for baseline cleanup.
   2. Track debt trend over batches to prevent growth.
 - Exit criterion: either full-repo lint/type pass or formally accepted long-term baseline policy.
 
+### RB-005: B05 Archive/Delete Strategy Approval
+
+- Status: `open`
+- Severity: `high`
+- Affected claims/batch: `B05` (`RHA-011`, `RHA-012`, `RHA-015`, `RHA-017`, `RHA-018`, `RHA-026`)
+- Current signal: preflight gates pass, but implementation requires destructive or boundary-moving actions.
+- Impact: implementation cannot proceed safely without explicit destination/provenance strategy.
+- Required action:
+  1. Approve destination strategy for root clutter and duplicate footprint assets.
+  2. Define canonical location for triplicated SDC rate artifacts and migration path.
+  3. Approve delete/archive list before file removals.
+- Exit criterion: written approved strategy and rollback plan allowing B05 implementation GO.
+
+## Closed Items
+
+### RB-001: Resolved-State Claim Check Redesign
+
+- Status: `closed` (2026-02-26)
+- Resolution: updated claim checks to assert resolved states; full adjudicated replay now passes (`27/27`).
+
+### RB-002: Baseline Metric Drift (`RHA-013`)
+
+- Status: `closed` (2026-02-26)
+- Resolution: baseline assertion reset to current canonical metrics (`CORE_PY_FILES=39`, `CORE_PY_LINES=17604`), replay passes.
+
 ## Sequencing Guidance
 
-1. Run RB-001 and RB-002 before B06 final harmonization.
-2. Treat RB-003 as required before declaring pipeline dry-run fully representative.
-3. Keep RB-004 policy explicit in every batch gate report until retired.
+1. Resolve RB-005 before any B05 destructive cleanup actions.
+2. Keep RB-003 and RB-004 explicitly documented through B06 closeout.
+3. After B05 implementation, run final B06 harmonization and full claim revalidation.

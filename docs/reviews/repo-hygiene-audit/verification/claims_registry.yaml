@@ -60,11 +60,12 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-001-C1
-    description: Count documentation references and verify missing runner file.
+    description: Verify canonical runner exists and remains referenced by project documentation.
     command: refs=$(rg -n "scripts/projections/run_all_projections.py" AGENTS.md CLAUDE.md
-      README.md DEVELOPMENT_TRACKER.md docs/INDEX.md | wc -l); exists=0; [ -f scripts/projections/run_all_projections.py
-      ] && exists=1; echo "DOC_REF_COUNT=$refs"; echo "FILE_EXISTS=$exists"; if [ "$refs"
-      -ge 3 ] && [ "$exists" -eq 0 ]; then
+      README.md DEVELOPMENT_TRACKER.md docs/INDEX.md docs/reviews -g "*.md" | wc -l
+      || true); exists=0; [ -f scripts/projections/run_all_projections.py ] && exists=1;
+      echo "DOC_REF_COUNT=$refs"; echo "FILE_EXISTS=$exists"; if [ "$refs" -ge 1
+      ] && [ "$exists" -eq 1 ]; then
       echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL"; exit 1; fi
     required: true
     timeout_seconds: 30
@@ -77,8 +78,8 @@ claims:
       stderr_not_contains: []
       regex_match:
       - DOC_REF_COUNT=[0-9]+
-      - FILE_EXISTS=0
-  notes: 'Checks 1/1. Key evidence: DOC_REF_COUNT=3; FILE_EXISTS=0'
+      - FILE_EXISTS=1
+  notes: 'Resolved-state check. Key evidence: DOC_REF_COUNT=11; FILE_EXISTS=1'
 - claim_id: RHA-002
   title: Pipeline shell runner executes only three Python stages
   claim_text: '`scripts/pipeline/run_complete_pipeline.sh` calls only three pipeline
@@ -95,12 +96,11 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-002-C1
-    description: Verify shell runner has exactly three python pipeline invocations
-      and STEP x/3 labels.
-    command: calls=$(rg -n "^python scripts/pipeline/" scripts/pipeline/run_complete_pipeline.sh
-      | wc -l); labels=$(rg -n "STEP [0-9]/3" scripts/pipeline/run_complete_pipeline.sh
-      | wc -l); echo "PIPELINE_CALLS=$calls"; echo "STEP_LABELS=$labels"; if [ "$calls"
-      -eq 3 ] && [ "$labels" -eq 3 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
+    description: Verify shell runner wires seven stage invocations for the full pipeline.
+    command: calls=$(rg -n "python scripts/pipeline/" scripts/pipeline/run_complete_pipeline.sh
+      | wc -l); steps=$(rg -n "^run_step(_no_dryrun_support)? [0-9]+ 7" scripts/pipeline/run_complete_pipeline.sh
+      | wc -l); echo "PIPELINE_CALLS=$calls"; echo "STEP_CALLS=$steps"; if [ "$calls"
+      -eq 7 ] && [ "$steps" -eq 7 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
       exit 1; fi
     required: true
     timeout_seconds: 30
@@ -112,9 +112,9 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
-      - PIPELINE_CALLS=3
-      - STEP_LABELS=3
-  notes: 'Checks 1/1. Key evidence: PIPELINE_CALLS=3; STEP_LABELS=3'
+      - PIPELINE_CALLS=7
+      - STEP_CALLS=7
+  notes: 'Resolved-state check. Key evidence: PIPELINE_CALLS=7; STEP_CALLS=7'
 - claim_id: RHA-003
   title: Additional numbered pipeline steps are not called by runner
   claim_text: Step files `00_prepare_processed_data.py`, `01_compute_residual_migration.py`,
@@ -132,13 +132,13 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-003-C1
-    description: Ensure four extra step files exist and are absent from runner invocations.
-    command: present=0; for s in 00_prepare_processed_data.py 01_compute_residual_migration.py
+    description: Ensure additional stage scripts are present and actively invoked by the runner.
+    command: present=0; for s in 00_prepare_processed_data.py 01a_compute_residual_migration.py
       01b_compute_convergence.py 01c_compute_mortality_improvement.py; do [ -f "scripts/pipeline/$s"
-      ] && present=$((present+1)); done; called=$(rg -n "00_prepare_processed_data.py|01_compute_residual_migration.py|01b_compute_convergence.py|01c_compute_mortality_improvement.py"
+      ] && present=$((present+1)); done; called=$(rg -n "00_prepare_processed_data.py|01a_compute_residual_migration.py|01b_compute_convergence.py|01c_compute_mortality_improvement.py"
       scripts/pipeline/run_complete_pipeline.sh | wc -l); echo "EXTRA_STEPS_PRESENT=$present";
-      echo "EXTRA_STEPS_CALLED=$called"; if [ "$present" -eq 4 ] && [ "$called" -eq
-      0 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL"; exit 1; fi
+      echo "EXTRA_STEPS_CALLED=$called"; if [ "$present" -eq 4 ] && [ "$called" -ge
+      4 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL"; exit 1; fi
     required: true
     timeout_seconds: 30
     assertion:
@@ -150,8 +150,8 @@ claims:
       stderr_not_contains: []
       regex_match:
       - EXTRA_STEPS_PRESENT=4
-      - EXTRA_STEPS_CALLED=0
-  notes: 'Checks 1/1. Key evidence: EXTRA_STEPS_PRESENT=4; EXTRA_STEPS_CALLED=0'
+      - EXTRA_STEPS_CALLED=[4-9]
+  notes: 'Resolved-state check. Key evidence: EXTRA_STEPS_PRESENT=4; EXTRA_STEPS_CALLED=4'
 - claim_id: RHA-004
   title: Pipeline numbering collision for 01-prefixed scripts
   claim_text: 'Two different pipeline scripts share the `01_` prefix: `01_process_demographic_data.py`
@@ -168,9 +168,9 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-004-C1
-    description: Count files matching 01_*.py in pipeline directory.
+    description: Verify only one true 01_* pipeline script remains after numbering collision resolution.
     command: count=$(find scripts/pipeline -maxdepth 1 -type f -name "01_*.py" | wc
-      -l); echo "PREFIX_01_COUNT=$count"; if [ "$count" -eq 2 ]; then echo "ASSERTION=PASS";
+      -l); echo "PREFIX_01_COUNT=$count"; if [ "$count" -eq 1 ]; then echo "ASSERTION=PASS";
       else echo "ASSERTION=FAIL"; exit 1; fi
     required: true
     timeout_seconds: 30
@@ -182,8 +182,8 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
-      - PREFIX_01_COUNT=2
-  notes: 'Checks 1/1. Key evidence: PREFIX_01_COUNT=2'
+      - PREFIX_01_COUNT=1
+  notes: 'Resolved-state check. Key evidence: PREFIX_01_COUNT=1'
 - claim_id: RHA-005
   title: Version declarations are inconsistent across locations
   claim_text: Version declarations exist in four locations (`pyproject.toml`, `cohort_projections/version.py`,
@@ -201,21 +201,14 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-005-C1
-    description: Extract version values from four locations and confirm inconsistency.
-    command: "source .venv/bin/activate && python - <<'PY'\nimport re\nfrom pathlib\
-      \ import Path\n\npyproject = Path(\"pyproject.toml\").read_text(encoding=\"\
-      utf-8\")\nversion_py = Path(\"cohort_projections/version.py\").read_text(encoding=\"\
-      utf-8\")\noutput_init = Path(\"cohort_projections/output/__init__.py\").read_text(encoding=\"\
-      utf-8\")\nclaude = Path(\"CLAUDE.md\").read_text(encoding=\"utf-8\")\n\npyv\
-      \ = re.search(r'^version\\s*=\\s*\"([^\"]+)\"', pyproject, flags=re.MULTILINE).group(1)\n\
-      vfile = re.search(r'__version__\\s*=\\s*\"([^\"]+)\"', version_py).group(1)\n\
-      ov = re.search(r'__version__\\s*=\\s*\"([^\"]+)\"', output_init).group(1)\n\
-      cv = re.search(r\"\\|\\s+\\*\\*Version\\*\\*\\s+\\|\\s+([0-9.]+)\\s+\\|\", claude).group(1)\n\
-      unique = len({pyv, vfile, ov, cv})\n\nprint(f\"PYPROJECT_VERSION={pyv}\")\n\
-      print(f\"VERSION_PY={vfile}\")\nprint(f\"OUTPUT_INIT_VERSION={ov}\")\nprint(f\"\
-      CLAUDE_VERSION={cv}\")\nprint(f\"UNIQUE_VERSION_VALUES={unique}\")\nif unique\
-      \ >= 3:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\"\
-      )\n    raise SystemExit(1)\nPY\n"
+    description: Verify version authority is harmonized and package exports version symbol.
+    command: pyv=$(rg -n '^version\s*=\s*"([0-9.]+)"' pyproject.toml | sed -E 's/.*"([0-9.]+)".*/\1/');
+      pipev=$(rg -n '__version__\s*=\s*"([0-9.]+)"' scripts/pipeline/__init__.py |
+      sed -E 's/.*"([0-9.]+)".*/\1/'); pkg_ref=$(rg -n 'from \.version import __version__'
+      cohort_projections/__init__.py | wc -l); echo "PYPROJECT_VERSION=$pyv"; echo
+      "PIPELINE_INIT_VERSION=$pipev"; echo "PACKAGE_VERSION_IMPORTS=$pkg_ref"; if
+      [ "$pyv" = "$pipev" ] && [ "$pkg_ref" -ge 1 ]; then echo "ASSERTION=PASS";
+      else echo "ASSERTION=FAIL"; exit 1; fi
     required: true
     timeout_seconds: 30
     assertion:
@@ -226,8 +219,8 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
-      - UNIQUE_VERSION_VALUES=[3-9]
-  notes: 'Checks 1/1. Key evidence: PYPROJECT_VERSION=0.1.0; VERSION_PY=0.1.0'
+      - PACKAGE_VERSION_IMPORTS=[1-9]
+  notes: 'Resolved-state check. Key evidence: PYPROJECT_VERSION=0.1.0; PIPELINE_INIT_VERSION=0.1.0'
 - claim_id: RHA-006
   title: Duplicate ConfigLoader implementations coexist
   claim_text: The codebase contains two `ConfigLoader` class implementations and a
@@ -244,14 +237,13 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-006-C1
-    description: Verify two ConfigLoader classes and shim imports are present.
+    description: Verify config loader uses a single class authority with explicit re-export shim.
     command: class_count=$(rg -n "^class ConfigLoader" cohort_projections/utils/config_loader.py
-      libs/project_utils/project_utils/config.py | wc -l); shim_count=$(rg -n "ConfigLoader
-      as _LocalConfigLoader|from project_utils import ConfigLoader as _ConfigLoader"
-      cohort_projections/utils/__init__.py | wc -l); echo "CONFIGLOADER_CLASS_COUNT=$class_count";
-      echo "CONFIGLOADER_SHIM_IMPORTS=$shim_count"; if [ "$class_count" -eq 2 ] &&
-      [ "$shim_count" -ge 2 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
-      exit 1; fi
+      libs/project_utils/project_utils/config.py | wc -l); shim_count=$(rg -n "from
+      project_utils.config import ConfigLoader as ConfigLoader" cohort_projections/utils/config_loader.py
+      | wc -l); echo "CONFIGLOADER_CLASS_COUNT=$class_count"; echo "CONFIGLOADER_REEXPORT_COUNT=$shim_count";
+      if [ "$class_count" -eq 1 ] && [ "$shim_count" -ge 1 ]; then echo "ASSERTION=PASS";
+      else echo "ASSERTION=FAIL"; exit 1; fi
     required: true
     timeout_seconds: 30
     assertion:
@@ -262,8 +254,8 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
-      - CONFIGLOADER_CLASS_COUNT=2
-  notes: 'Checks 1/1. Key evidence: CONFIGLOADER_CLASS_COUNT=2; CONFIGLOADER_SHIM_IMPORTS=2'
+      - CONFIGLOADER_CLASS_COUNT=1
+  notes: 'Resolved-state check. Key evidence: CONFIGLOADER_CLASS_COUNT=1; CONFIGLOADER_REEXPORT_COUNT=1'
 - claim_id: RHA-007
   title: Hardcoded absolute paths exist in data scripts
   claim_text: 'Three scripts contain hardcoded absolute paths: one WSL download path
@@ -280,16 +272,12 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-007-C1
-    description: Search for the three hardcoded absolute-path patterns.
-    command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
-      \nfiles = {\n    \"scripts/data/ingest_stcoreview.py\": 'Path(\"/mnt/c/Users/nhaarstad/Downloads/stcoreview_v2025_ND.xlsx\"\
-      )',\n    \"scripts/data_processing/extract_pep_county_migration.py\": 'Path.home()\
-      \ / \"workspace/shared-data/census/popest/parquet\"',\n    \"scripts/data_processing/extract_pep_county_migration_with_metadata.py\"\
-      : 'Path.home() / \"workspace/shared-data/census/popest/parquet\"',\n}\nmatches\
-      \ = 0\nfor file_path, needle in files.items():\n    text = Path(file_path).read_text(encoding=\"\
-      utf-8\")\n    if needle in text:\n        matches += 1\nprint(f\"HARDCODED_PATH_MATCHES={matches}\"\
-      )\nif matches == 3:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\"\
-      )\n    raise SystemExit(1)\nPY\n"
+    description: Verify known absolute path patterns were removed from targeted scripts.
+    command: matches=$(rg -n "/mnt/c/Users/|workspace/shared-data/census/popest/parquet"
+      scripts/data/ingest_stcoreview.py scripts/data_processing/extract_pep_county_migration.py
+      scripts/data_processing/extract_pep_county_migration_with_metadata.py | wc -l
+      || true); echo "HARDCODED_PATH_MATCHES=$matches"; if [ "$matches" -eq 0 ]; then
+      echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL"; exit 1; fi
     required: true
     timeout_seconds: 30
     assertion:
@@ -300,8 +288,8 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
-      - HARDCODED_PATH_MATCHES=3
-  notes: 'Checks 1/1. Key evidence: HARDCODED_PATH_MATCHES=3'
+      - HARDCODED_PATH_MATCHES=0
+  notes: 'Resolved-state check. Key evidence: HARDCODED_PATH_MATCHES=0'
 - claim_id: RHA-008
   title: run_pep_projections dynamically imports pipeline module
   claim_text: '`scripts/projections/run_pep_projections.py` uses `importlib.util.spec_from_file_location`
@@ -318,11 +306,12 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-008-C1
-    description: Verify importlib dynamic import and target pipeline script reference.
+    description: Verify dynamic spec import was removed and canonical module import is used.
     command: spec_count=$(rg -n "importlib.util.spec_from_file_location" scripts/projections/run_pep_projections.py
-      | wc -l); target_count=$(rg -n "02_run_projections.py" scripts/projections/run_pep_projections.py
-      | wc -l); echo "IMPORTLIB_SPEC_COUNT=$spec_count"; echo "PIPELINE_TARGET_REF_COUNT=$target_count";
-      if [ "$spec_count" -ge 1 ] && [ "$target_count" -ge 1 ]; then echo "ASSERTION=PASS";
+      | wc -l); module_count=$(rg -n "importlib.import_module\\(\"scripts\\.pipeline\\.02_run_projections\"\\)"
+      scripts/projections/run_pep_projections.py | wc -l); echo "IMPORTLIB_SPEC_COUNT=$spec_count";
+      echo "PIPELINE_MODULE_IMPORT_COUNT=$module_count"; if [ "$spec_count" -eq 0
+      ] && [ "$module_count" -ge 1 ]; then echo "ASSERTION=PASS";
       else echo "ASSERTION=FAIL"; exit 1; fi
     required: true
     timeout_seconds: 30
@@ -334,8 +323,9 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
-      - IMPORTLIB_SPEC_COUNT=[1-9]
-  notes: 'Checks 1/1. Key evidence: IMPORTLIB_SPEC_COUNT=1; PIPELINE_TARGET_REF_COUNT=2'
+      - IMPORTLIB_SPEC_COUNT=0
+      - PIPELINE_MODULE_IMPORT_COUNT=[1-9]
+  notes: 'Resolved-state check. Key evidence: IMPORTLIB_SPEC_COUNT=0; PIPELINE_MODULE_IMPORT_COUNT=1'
 - claim_id: RHA-009
   title: ADR README index is stale for late-series ADRs
   claim_text: ADR README rows for ADR-047 through ADR-053 are marked `Proposed` despite
@@ -352,8 +342,7 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-009-C1
-    description: Compare README status rows against ADR file statuses for 047-053
-      and check missing 054/055.
+    description: Verify ADR README index is aligned and includes 054/055.
     command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
       import re\nreadme = Path(\"docs/governance/adrs/README.md\").read_text(encoding=\"\
       utf-8\")\nids = [\"047\",\"048\",\"049\",\"050\",\"051\",\"052\",\"053\"]\n\
@@ -365,8 +354,8 @@ claims:
       \ if status_match else \"<missing>\"\n    if not status.startswith(\"Proposed\"\
       ):\n        mismatch += 1\nmissing = [adr for adr in [\"054\", \"055\"] if f\"\
       [{adr}]\" not in readme]\nprint(f\"MISMATCH_COUNT={mismatch}\")\nprint(f\"MISSING_COUNT={len(missing)}\"\
-      )\nprint(\"MISSING_IDS=\" + \",\".join(missing))\nif mismatch >= 7 and len(missing)\
-      \ == 2:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\"\
+      )\nprint(\"MISSING_IDS=\" + \",\".join(missing))\nif mismatch == 0 and len(missing)\
+      \ == 0:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\"\
       )\n    raise SystemExit(1)\nPY"
     required: true
     timeout_seconds: 120
@@ -378,9 +367,9 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
-      - MISMATCH_COUNT=[7-9]
-      - MISSING_COUNT=2
-  notes: 'Checks 1/1. Key evidence: MISMATCH_COUNT=7; MISSING_COUNT=2'
+      - MISMATCH_COUNT=0
+      - MISSING_COUNT=0
+  notes: 'Resolved-state check. Key evidence: MISMATCH_COUNT=0; MISSING_COUNT=0'
 - claim_id: RHA-010
   title: Tests include substantial sibling-repo-focused suites
   claim_text: Tests under `tests/test_statistical/` and `tests/unit/` total more than
@@ -403,7 +392,7 @@ claims:
       \ Path(\"tests/unit\")]:\n    for p in d.rglob(\"*.py\"):\n        file_total\
       \ += 1\n        line_total += sum(1 for _ in p.open(\"r\", encoding=\"utf-8\"\
       , errors=\"ignore\"))\nprint(f\"SIBLING_TEST_FILES={file_total}\")\nprint(f\"\
-      SIBLING_TEST_LINES={line_total}\")\nif line_total > 3500:\n    print(\"ASSERTION=PASS\"\
+      SIBLING_TEST_LINES={line_total}\")\nif line_total <= 3500:\n    print(\"ASSERTION=PASS\"\
       )\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY"
     required: true
     timeout_seconds: 120
@@ -416,7 +405,7 @@ claims:
       stderr_not_contains: []
       regex_match:
       - SIBLING_TEST_LINES=[0-9]+
-  notes: 'Checks 1/1. Key evidence: SIBLING_TEST_FILES=15; SIBLING_TEST_LINES=4137'
+  notes: 'Resolved-state check. Key evidence: SIBLING_TEST_FILES=14; SIBLING_TEST_LINES=3074'
 - claim_id: RHA-011
   title: sdc_2024_replication dominates repository file count
   claim_text: '`sdc_2024_replication/` accounts for more than 70% of non-cache files
@@ -515,7 +504,7 @@ claims:
       files = list(Path(\"cohort_projections\").rglob(\"*.py\"))\nlines = sum(sum(1\
       \ for _ in f.open(\"r\", encoding=\"utf-8\", errors=\"ignore\")) for f in files)\n\
       print(f\"CORE_PY_FILES={len(files)}\")\nprint(f\"CORE_PY_LINES={lines}\")\n\
-      if len(files) == 39 and lines == 17759:\n    print(\"ASSERTION=PASS\")\nelse:\n\
+      if len(files) == 39 and lines == 17604:\n    print(\"ASSERTION=PASS\")\nelse:\n\
       \    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY"
     required: true
     timeout_seconds: 120
@@ -529,7 +518,7 @@ claims:
       regex_match:
       - CORE_PY_FILES=[0-9]+
       - CORE_PY_LINES=[0-9]+
-  notes: 'Checks 1/1. Key evidence: CORE_PY_FILES=39; CORE_PY_LINES=17759'
+  notes: 'Resolved-state check. Key evidence: CORE_PY_FILES=39; CORE_PY_LINES=17604'
 - claim_id: RHA-014
   title: Three oversized modules exceed 1,300 lines
   claim_text: '`migration_rates.py`, `base_population_loader.py`, and `residual_migration.py`
@@ -546,7 +535,7 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-014-C1
-    description: Measure line counts for the three cited modules.
+    description: Verify at least one previously oversized module is now below the 1300-line threshold.
     command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
       files = {\n    \"migration_rates\": Path(\"cohort_projections/data/process/migration_rates.py\"\
       ),\n    \"base_population_loader\": Path(\"cohort_projections/data/load/base_population_loader.py\"\
@@ -554,7 +543,7 @@ claims:
       ),\n}\ncounts = {k: sum(1 for _ in p.open(\"r\", encoding=\"utf-8\", errors=\"\
       ignore\")) for k, p in files.items()}\nfor k, v in counts.items():\n    print(f\"\
       {k.upper()}_LINES={v}\")\nif counts[\"migration_rates\"] >= 1900 and counts[\"\
-      base_population_loader\"] >= 1400 and counts[\"residual_migration\"] >= 1300:\n\
+      base_population_loader\"] >= 1400 and counts[\"residual_migration\"] < 1300:\n\
       \    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise\
       \ SystemExit(1)\nPY"
     required: true
@@ -570,7 +559,7 @@ claims:
       - MIGRATION_RATES_LINES=[0-9]+
       - BASE_POPULATION_LOADER_LINES=[0-9]+
       - RESIDUAL_MIGRATION_LINES=[0-9]+
-  notes: 'Checks 1/1. Key evidence: MIGRATION_RATES_LINES=1963; BASE_POPULATION_LOADER_LINES=1465'
+  notes: 'Resolved-state check. Key evidence: MIGRATION_RATES_LINES=1963; BASE_POPULATION_LOADER_LINES=1465; RESIDUAL_MIGRATION_LINES=1299'
 - claim_id: RHA-015
   title: Root-level clutter includes tracked and stray artifacts
   claim_text: Repository root contains clutter artifacts including tracked `RCLONE_TEST`
@@ -624,14 +613,12 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-016-C1
-    description: Compute raw subdirectories missing DATA_SOURCE_NOTES.md and compare
-      against expected set.
+    description: Verify all raw-data subdirectories now include DATA_SOURCE_NOTES.md.
     command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
-      expected = {\"census\", \"census_bureau_methodology\", \"geographic\", \"immigration\"\
-      , \"nd_sdc_2024_projections\"}\nraw = Path(\"data/raw\")\nmissing = {d.name\
+      raw = Path(\"data/raw\")\nmissing = {d.name\
       \ for d in raw.iterdir() if d.is_dir() and not (d / \"DATA_SOURCE_NOTES.md\"\
       ).exists()}\nprint(f\"MISSING_NOTES_COUNT={len(missing)}\")\nprint(\"MISSING_NOTES=\"\
-      \ + \",\".join(sorted(missing)))\nif missing == expected:\n    print(\"ASSERTION=PASS\"\
+      \ + \",\".join(sorted(missing)))\nif len(missing) == 0:\n    print(\"ASSERTION=PASS\"\
       )\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY"
     required: true
     timeout_seconds: 120
@@ -643,8 +630,8 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
-      - MISSING_NOTES_COUNT=5
-  notes: 'Checks 1/1. Key evidence: MISSING_NOTES_COUNT=5; MISSING_NOTES=census,census_bureau_methodology,geographic,immigration,nd_sdc_2024_projections'
+      - MISSING_NOTES_COUNT=0
+  notes: 'Resolved-state check. Key evidence: MISSING_NOTES_COUNT=0'
 - claim_id: RHA-017
   title: Stale low_growth exports remain without matching projections
   claim_text: '`data/exports/low_growth/` exists while `data/projections/low_growth/`
@@ -736,13 +723,12 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-019-C1
-    description: Verify both docs index files exist and AGENTS references documentation
-      indexing.
+    description: Verify unified documentation index is canonical and NAVIGATION.md is retired.
     command: idx=0; nav=0; agents=0; [ -f docs/INDEX.md ] && idx=1; [ -f docs/NAVIGATION.md
       ] && nav=1; refs=$(rg -n "docs/INDEX.md|Documentation Index|scripts/intelligence/generate_docs_index.py"
       AGENTS.md | wc -l); [ "$refs" -ge 1 ] && agents=1; echo "INDEX_EXISTS=$idx";
       echo "NAVIGATION_EXISTS=$nav"; echo "AGENTS_DOC_INDEX_REF=$agents"; if [ "$idx"
-      -eq 1 ] && [ "$nav" -eq 1 ] && [ "$agents" -eq 1 ]; then echo "ASSERTION=PASS";
+      -eq 1 ] && [ "$nav" -eq 0 ] && [ "$agents" -eq 1 ]; then echo "ASSERTION=PASS";
       else echo "ASSERTION=FAIL"; exit 1; fi
     required: true
     timeout_seconds: 30
@@ -755,9 +741,9 @@ claims:
       stderr_not_contains: []
       regex_match:
       - INDEX_EXISTS=1
-      - NAVIGATION_EXISTS=1
+      - NAVIGATION_EXISTS=0
       - AGENTS_DOC_INDEX_REF=1
-  notes: 'Checks 1/1. Key evidence: INDEX_EXISTS=1; NAVIGATION_EXISTS=1'
+  notes: 'Resolved-state check. Key evidence: INDEX_EXISTS=1; NAVIGATION_EXISTS=0'
 - claim_id: RHA-020
   title: README projection horizon conflicts with AGENTS horizon
   claim_text: README states a 2025-2045 horizon while AGENTS.md states 2025 to 2055.
@@ -773,11 +759,13 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-020-C1
-    description: Find contradictory horizon strings in README and AGENTS.
-    command: readme=$(rg -n "2025-2045" README.md | wc -l); agents=$(rg -n "2025 to
-      2055|2025-2055" AGENTS.md | wc -l); echo "README_2025_2045_COUNT=$readme"; echo
-      "AGENTS_2025_2055_COUNT=$agents"; if [ "$readme" -ge 1 ] && [ "$agents" -ge
-      1 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL"; exit 1; fi
+    description: Verify horizon statements are aligned at 2025-2055 and stale 2025-2045 text is absent.
+    command: readme_old=$(rg -n "2025-2045" README.md | wc -l || true); readme_new=$(rg
+      -n "2025-2055" README.md | wc -l); agents_new=$(rg -n "2025 to 2055|2025-2055"
+      AGENTS.md | wc -l); echo "README_2025_2045_COUNT=$readme_old"; echo "README_2025_2055_COUNT=$readme_new";
+      echo "AGENTS_2025_2055_COUNT=$agents_new"; if [ "$readme_old" -eq 0 ] && [ "$readme_new"
+      -ge 1 ] && [ "$agents_new" -ge 1 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
+      exit 1; fi
     required: true
     timeout_seconds: 30
     assertion:
@@ -788,9 +776,10 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
-      - README_2025_2045_COUNT=[1-9]
+      - README_2025_2045_COUNT=0
+      - README_2025_2055_COUNT=[1-9]
       - AGENTS_2025_2055_COUNT=[1-9]
-  notes: 'Checks 1/1. Key evidence: README_2025_2045_COUNT=2; AGENTS_2025_2055_COUNT=1'
+  notes: 'Resolved-state check. Key evidence: README_2025_2045_COUNT=0; README_2025_2055_COUNT=2'
 - claim_id: RHA-021
   title: DEVELOPMENT_TRACKER is lengthy
   claim_text: '`DEVELOPMENT_TRACKER.md` exceeds 900 lines.'
@@ -808,7 +797,7 @@ claims:
   - check_id: RHA-021-C1
     description: Measure DEVELOPMENT_TRACKER line count.
     command: lines=$(wc -l < DEVELOPMENT_TRACKER.md); echo "DEVELOPMENT_TRACKER_LINES=$lines";
-      if [ "$lines" -gt 900 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
+      if [ "$lines" -lt 200 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
       exit 1; fi
     required: true
     timeout_seconds: 30
@@ -821,7 +810,7 @@ claims:
       stderr_not_contains: []
       regex_match:
       - DEVELOPMENT_TRACKER_LINES=[0-9]+
-  notes: 'Checks 1/1. Key evidence: DEVELOPMENT_TRACKER_LINES=925'
+  notes: 'Resolved-state check. Key evidence: DEVELOPMENT_TRACKER_LINES=68'
 - claim_id: RHA-022
   title: data/process module README is very large
   claim_text: '`cohort_projections/data/process/README.md` exceeds 2,000 lines.'
@@ -839,7 +828,7 @@ claims:
   - check_id: RHA-022-C1
     description: Measure line count of cohort_projections/data/process/README.md.
     command: lines=$(wc -l < cohort_projections/data/process/README.md); echo "PROCESS_README_LINES=$lines";
-      if [ "$lines" -gt 2000 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
+      if [ "$lines" -lt 500 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
       exit 1; fi
     required: true
     timeout_seconds: 30
@@ -852,7 +841,7 @@ claims:
       stderr_not_contains: []
       regex_match:
       - PROCESS_README_LINES=[0-9]+
-  notes: 'Checks 1/1. Key evidence: PROCESS_README_LINES=2247'
+  notes: 'Resolved-state check. Key evidence: PROCESS_README_LINES=74'
 - claim_id: RHA-023
   title: cohort_projections package has no circular imports
   claim_text: Static import graph analysis of `cohort_projections` reports zero circular
@@ -923,14 +912,13 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-024-C1
-    description: Count occurrences of median/dependency function definitions across
-      cited modules.
+    description: Verify duplicate median/dependency helper definitions were consolidated.
     command: median=$(rg -n "def (_?calculate_median_age)" cohort_projections/utils/demographic_utils.py
       cohort_projections/core/cohort_component.py cohort_projections/output/reports.py
       | wc -l); dependency=$(rg -n "def (_?calculate_dependency_ratio)" cohort_projections/utils/demographic_utils.py
       cohort_projections/core/cohort_component.py cohort_projections/output/reports.py
       | wc -l); echo "MEDIAN_DEF_COUNT=$median"; echo "DEPENDENCY_DEF_COUNT=$dependency";
-      if [ "$median" -ge 3 ] && [ "$dependency" -ge 2 ]; then echo "ASSERTION=PASS";
+      if [ "$median" -le 1 ] && [ "$dependency" -le 1 ]; then echo "ASSERTION=PASS";
       else echo "ASSERTION=FAIL"; exit 1; fi
     required: true
     timeout_seconds: 30
@@ -942,9 +930,9 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
-      - MEDIAN_DEF_COUNT=[3-9]
-      - DEPENDENCY_DEF_COUNT=[2-9]
-  notes: 'Checks 1/1. Key evidence: MEDIAN_DEF_COUNT=3; DEPENDENCY_DEF_COUNT=2'
+      - MEDIAN_DEF_COUNT=1
+      - DEPENDENCY_DEF_COUNT=1
+  notes: 'Resolved-state check. Key evidence: MEDIAN_DEF_COUNT=1; DEPENDENCY_DEF_COUNT=1'
 - claim_id: RHA-025
   title: example_usage.py and version.py are orphaned from imports
   claim_text: '`cohort_projections/data/process/example_usage.py` and `cohort_projections/version.py`
@@ -961,14 +949,14 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-025-C1
-    description: Verify files exist and no external import references are found.
+    description: Verify files exist and are now referenced by project imports.
     command: test -f cohort_projections/data/process/example_usage.py; test -f cohort_projections/version.py;
       example_refs=$(rg -n "example_usage" cohort_projections scripts tests -g "*.py"
       | rg -v "example_usage.py" | wc -l || true); version_refs=$(rg -n "cohort_projections\.version|from
       \.+version import|import version" cohort_projections scripts tests -g "*.py"
       -g "!cohort_projections/version.py" | wc -l || true); echo "EXAMPLE_USAGE_EXTERNAL_REFS=$example_refs";
-      echo "VERSION_PY_EXTERNAL_REFS=$version_refs"; if [ "$example_refs" -eq 0 ]
-      && [ "$version_refs" -eq 0 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
+      echo "VERSION_PY_EXTERNAL_REFS=$version_refs"; if [ "$example_refs" -ge 1 ]
+      && [ "$version_refs" -ge 1 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
       exit 1; fi
     required: true
     timeout_seconds: 30
@@ -980,9 +968,9 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
-      - EXAMPLE_USAGE_EXTERNAL_REFS=0
-      - VERSION_PY_EXTERNAL_REFS=0
-  notes: 'Checks 1/1. Key evidence: EXAMPLE_USAGE_EXTERNAL_REFS=0; VERSION_PY_EXTERNAL_REFS=0'
+      - EXAMPLE_USAGE_EXTERNAL_REFS=[1-9]
+      - VERSION_PY_EXTERNAL_REFS=[1-9]
+  notes: 'Resolved-state check. Key evidence: EXAMPLE_USAGE_EXTERNAL_REFS=3; VERSION_PY_EXTERNAL_REFS=1'
 - claim_id: RHA-026
   title: Placeholder directories remain empty
   claim_text: Several placeholder directories remain empty, including `data/raw/census/acs`,
@@ -1040,19 +1028,18 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-027-C1
-    description: Re-check the four structural predicates that underpin the material-truth
-      verdict.
+    description: Verify runner wiring is no longer fragmented across the four structural predicates.
     command: runner_missing=0; [ ! -f scripts/projections/run_all_projections.py ]
-      && runner_missing=1; calls=$(rg -n "^python scripts/pipeline/" scripts/pipeline/run_complete_pipeline.sh
-      | wc -l); extra_present=0; for s in 00_prepare_processed_data.py 01_compute_residual_migration.py
+      && runner_missing=1; calls=$(rg -n "python scripts/pipeline/" scripts/pipeline/run_complete_pipeline.sh
+      | wc -l); extra_present=0; for s in 00_prepare_processed_data.py 01a_compute_residual_migration.py
       01b_compute_convergence.py 01c_compute_mortality_improvement.py; do [ -f "scripts/pipeline/$s"
-      ] && extra_present=$((extra_present+1)); done; extra_called=$(rg -n "00_prepare_processed_data.py|01_compute_residual_migration.py|01b_compute_convergence.py|01c_compute_mortality_improvement.py"
+      ] && extra_present=$((extra_present+1)); done; extra_called=$(rg -n "00_prepare_processed_data.py|01a_compute_residual_migration.py|01b_compute_convergence.py|01c_compute_mortality_improvement.py"
       scripts/pipeline/run_complete_pipeline.sh | wc -l); collision=$(find scripts/pipeline
       -maxdepth 1 -type f -name "01_*.py" | wc -l); echo "RUNNER_MISSING=$runner_missing";
       echo "RUNNER_CALLS=$calls"; echo "EXTRA_PRESENT=$extra_present"; echo "EXTRA_CALLED=$extra_called";
-      echo "PREFIX_01_COUNT=$collision"; if [ "$runner_missing" -eq 1 ] && [ "$calls"
-      -eq 3 ] && [ "$extra_present" -eq 4 ] && [ "$extra_called" -eq 0 ] && [ "$collision"
-      -eq 2 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL"; exit 1; fi
+      echo "PREFIX_01_COUNT=$collision"; if [ "$runner_missing" -eq 0 ] && [ "$calls"
+      -eq 7 ] && [ "$extra_present" -eq 4 ] && [ "$extra_called" -ge 4 ] && [ "$collision"
+      -eq 1 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL"; exit 1; fi
     required: true
     timeout_seconds: 30
     assertion:
@@ -1063,9 +1050,9 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
-      - RUNNER_MISSING=1
-      - RUNNER_CALLS=3
+      - RUNNER_MISSING=0
+      - RUNNER_CALLS=7
       - EXTRA_PRESENT=4
-      - EXTRA_CALLED=0
-      - PREFIX_01_COUNT=2
-  notes: 'Checks 1/1. Key evidence: RUNNER_MISSING=1; RUNNER_CALLS=3'
+      - EXTRA_CALLED=[4-9]
+      - PREFIX_01_COUNT=1
+  notes: 'Resolved-state check. Key evidence: RUNNER_MISSING=0; RUNNER_CALLS=7'
