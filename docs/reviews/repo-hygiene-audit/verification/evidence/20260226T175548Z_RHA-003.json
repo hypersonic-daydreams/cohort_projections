@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T17:55:48Z",
+  "claim_id": "RHA-003",
+  "claim_title": "Additional numbered pipeline steps are not called by runner",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-003-C1",
+      "description": "Ensure four extra step files exist and are absent from runner invocations.",
+      "required": true,
+      "command": "present=0; for s in 00_prepare_processed_data.py 01_compute_residual_migration.py 01b_compute_convergence.py 01c_compute_mortality_improvement.py; do [ -f \"scripts/pipeline/$s\" ] && present=$((present+1)); done; called=$(rg -n \"00_prepare_processed_data.py|01_compute_residual_migration.py|01b_compute_convergence.py|01c_compute_mortality_improvement.py\" scripts/pipeline/run_complete_pipeline.sh | wc -l); echo \"EXTRA_STEPS_PRESENT=$present\"; echo \"EXTRA_STEPS_CALLED=$called\"; if [ \"$present\" -eq 4 ] && [ \"$called\" -eq 0 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "EXTRA_STEPS_PRESENT=4",
+          "EXTRA_STEPS_CALLED=0"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T17:55:48Z",
+      "duration_seconds": 0.116,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "EXTRA_STEPS_PRESENT=4\nEXTRA_STEPS_CALLED=0\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

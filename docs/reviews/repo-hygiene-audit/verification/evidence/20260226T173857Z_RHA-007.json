@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T17:38:57Z",
+  "claim_id": "RHA-007",
+  "claim_title": "Hardcoded absolute paths exist in data scripts",
+  "claim_status_at_run": "checks_defined",
+  "claim_verdict_at_run": "unreviewed",
+  "results": [
+    {
+      "check_id": "RHA-007-C1",
+      "description": "Search for the three hardcoded absolute-path patterns.",
+      "required": true,
+      "command": "count=$(rg -n \"Path\\(\"/mnt/c/Users/nhaarstad/Downloads/stcoreview_v2025_ND.xlsx\"\\)|Path.home\\(\\) / \"workspace/shared-data/census/popest/parquet\"\" scripts/data/ingest_stcoreview.py scripts/data_processing/extract_pep_county_migration.py scripts/data_processing/extract_pep_county_migration_with_metadata.py | wc -l); echo \"HARDCODED_PATH_MATCHES=$count\"; if [ \"$count\" -eq 3 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "HARDCODED_PATH_MATCHES=3"
+        ]
+      },
+      "executed": true,
+      "passed": false,
+      "failure_reasons": [
+        "Expected exit code 0, got 1.",
+        "stdout missing required token: ASSERTION=PASS",
+        "stdout does not match regex: HARDCODED_PATH_MATCHES=3"
+      ],
+      "started_at_utc": "2026-02-26T17:38:57Z",
+      "duration_seconds": 0.091,
+      "return_code": 1,
+      "timed_out": false,
+      "stdout": "HARDCODED_PATH_MATCHES=0\nASSERTION=FAIL\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 0,
+    "required_total": 1,
+    "required_passed": 0,
+    "claim_passed": false,
+    "dry_run": false
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T17:39:49Z",
+  "claim_id": "RHA-020",
+  "claim_title": "README projection horizon conflicts with AGENTS horizon",
+  "claim_status_at_run": "checks_defined",
+  "claim_verdict_at_run": "unreviewed",
+  "results": [
+    {
+      "check_id": "RHA-020-C1",
+      "description": "Find contradictory horizon strings in README and AGENTS.",
+      "required": true,
+      "command": "readme=$(rg -n \"2025-2045\" README.md | wc -l); agents=$(rg -n \"2025 to 2055|2025-2055\" AGENTS.md | wc -l); echo \"README_2025_2045_COUNT=$readme\"; echo \"AGENTS_2025_2055_COUNT=$agents\"; if [ \"$readme\" -ge 1 ] && [ \"$agents\" -ge 1 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "README_2025_2045_COUNT=[1-9]",
+          "AGENTS_2025_2055_COUNT=[1-9]"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T17:39:49Z",
+      "duration_seconds": 0.079,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "README_2025_2045_COUNT=2\nAGENTS_2025_2055_COUNT=1\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

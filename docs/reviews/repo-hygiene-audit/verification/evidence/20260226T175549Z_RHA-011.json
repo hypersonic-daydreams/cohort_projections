@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T17:55:49Z",
+  "claim_id": "RHA-011",
+  "claim_title": "sdc_2024_replication dominates repository file count",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-011-C1",
+      "description": "Compute non-cache file share belonging to sdc_2024_replication.",
+      "required": true,
+      "command": "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\nexclude = {\".git\", \".venv\", \".pytest_cache\", \".mypy_cache\", \".ruff_cache\", \".uv_cache\", \"htmlcov\"}\nall_files = [p for p in Path(\".\").rglob(\"*\") if p.is_file() and not any(part in exclude for part in p.parts)]\nsdc_files = [p for p in all_files if p.parts and p.parts[0] == \"sdc_2024_replication\"]\nshare = len(sdc_files) / len(all_files) if all_files else 0.0\nprint(f\"TOTAL_FILES={len(all_files)}\")\nprint(f\"SDC_FILES={len(sdc_files)}\")\nprint(f\"SDC_SHARE={share:.4f}\")\nif share > 0.70:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY",
+      "timeout_seconds": 120,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "SDC_SHARE=0\\.[0-9]+"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T17:55:49Z",
+      "duration_seconds": 0.396,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "TOTAL_FILES=10705\nSDC_FILES=7842\nSDC_SHARE=0.7326\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

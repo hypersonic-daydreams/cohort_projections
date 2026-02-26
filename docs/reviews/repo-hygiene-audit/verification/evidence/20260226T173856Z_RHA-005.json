@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T17:38:56Z",
+  "claim_id": "RHA-005",
+  "claim_title": "Version declarations are inconsistent across locations",
+  "claim_status_at_run": "checks_defined",
+  "claim_verdict_at_run": "unreviewed",
+  "results": [
+    {
+      "check_id": "RHA-005-C1",
+      "description": "Extract version values from four locations and confirm inconsistency.",
+      "required": true,
+      "command": "pyv=$(rg -o \"version = \"[^\"]+\"\" pyproject.toml | sed -E \"s/.*\"([^\"]+)\"/\\1/\"); vfile=$(rg -o \"__version__ = \"[^\"]+\"\" cohort_projections/version.py | sed -E \"s/.*\"([^\"]+)\"/\\1/\"); ov=$(rg -o \"__version__ = \"[^\"]+\"\" cohort_projections/output/__init__.py | sed -E \"s/.*\"([^\"]+)\"/\\1/\"); cv=$(rg -n \"\\*\\*Version\\*\\*\" CLAUDE.md | sed -E \"s/.*\\| ([0-9.]+) \\|/\\1/\"); uniq=$(printf \"%s\n%s\n%s\n%s\n\" \"$pyv\" \"$vfile\" \"$ov\" \"$cv\" | sort -u | wc -l); echo \"PYPROJECT_VERSION=$pyv\"; echo \"VERSION_PY=$vfile\"; echo \"OUTPUT_INIT_VERSION=$ov\"; echo \"CLAUDE_VERSION=$cv\"; echo \"UNIQUE_VERSION_VALUES=$uniq\"; if [ \"$uniq\" -ge 3 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "UNIQUE_VERSION_VALUES=[3-9]"
+        ]
+      },
+      "executed": true,
+      "passed": false,
+      "failure_reasons": [
+        "Expected exit code 0, got 2.",
+        "stdout missing required token: ASSERTION=PASS",
+        "stdout does not match regex: UNIQUE_VERSION_VALUES=[3-9]"
+      ],
+      "started_at_utc": "2026-02-26T17:38:56Z",
+      "duration_seconds": 0.01,
+      "return_code": 2,
+      "timed_out": false,
+      "stdout": "",
+      "stderr": "bash: -c: line 1: syntax error near unexpected token `)'\nbash: -c: line 1: `pyv=$(rg -o \"version = \"[^\"]+\"\" pyproject.toml | sed -E \"s/.*\"([^\"]+)\"/\\1/\"); vfile=$(rg -o \"__version__ = \"[^\"]+\"\" cohort_projections/version.py | sed -E \"s/.*\"([^\"]+)\"/\\1/\"); ov=$(rg -o \"__version__ = \"[^\"]+\"\" cohort_projections/output/__init__.py | sed -E \"s/.*\"([^\"]+)\"/\\1/\"); cv=$(rg -n \"\\*\\*Version\\*\\*\" CLAUDE.md | sed -E \"s/.*\\| ([0-9.]+) \\|/\\1/\"); uniq=$(printf \"%s'\n"
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 0,
+    "required_total": 1,
+    "required_passed": 0,
+    "claim_passed": false,
+    "dry_run": false
+  }
+}

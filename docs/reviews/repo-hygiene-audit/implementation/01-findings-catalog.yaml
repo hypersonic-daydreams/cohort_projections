@@ -1,0 +1,330 @@
+schema_version: 1
+audit_id: repo-hygiene-audit
+catalog_status: planning_scaffold
+last_updated: 2026-02-26
+source_registry: docs/reviews/repo-hygiene-audit/verification/claims_registry.yaml
+source_progress: docs/reviews/repo-hygiene-audit/verification/progress.md
+program_tracks:
+- track_id: T01
+  name: documentation_harmonization
+  intent: Consolidate navigation, stale indexes, and conflicting documentation statements.
+- track_id: T02
+  name: pipeline_entrypoint_consistency
+  intent: Align runnable entrypoints, pipeline ordering, and shell runner behavior.
+- track_id: T03
+  name: config_path_version_hygiene
+  intent: Normalize version sources, config loading, and hardcoded path issues.
+- track_id: T04
+  name: code_structure_and_test_scope
+  intent: Reduce structural code debt and clarify package-vs-sibling test boundaries.
+- track_id: T05
+  name: repository_footprint_and_data_hygiene
+  intent: Reduce root clutter, stale directories, and duplicated data footprints.
+- track_id: T06
+  name: baseline_metrics_and_guardrails
+  intent: Pin key baseline metrics to detect regressions during remediation.
+findings:
+- claim_id: RHA-001
+  severity: critical
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T02
+  candidate_batch: B02
+  change_type: docs_and_runner_entrypoint
+  blast_radius: medium
+  effort_tshirt: S
+  depends_on_claims: []
+  title: Ghost projection runner is referenced but missing
+- claim_id: RHA-002
+  severity: critical
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T02
+  candidate_batch: B02
+  change_type: pipeline_orchestration
+  blast_radius: medium
+  effort_tshirt: M
+  depends_on_claims: []
+  title: Pipeline shell runner executes only three Python stages
+- claim_id: RHA-003
+  severity: critical
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T02
+  candidate_batch: B02
+  change_type: pipeline_orchestration
+  blast_radius: medium
+  effort_tshirt: M
+  depends_on_claims:
+  - RHA-002
+  title: Additional numbered pipeline steps are not called by runner
+- claim_id: RHA-004
+  severity: critical
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T02
+  candidate_batch: B02
+  change_type: naming_and_ordering
+  blast_radius: high
+  effort_tshirt: M
+  depends_on_claims:
+  - RHA-002
+  - RHA-003
+  title: Pipeline numbering collision for 01-prefixed scripts
+- claim_id: RHA-005
+  severity: high
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T03
+  candidate_batch: B03
+  change_type: version_management
+  blast_radius: low
+  effort_tshirt: S
+  depends_on_claims: []
+  title: Version declarations are inconsistent across locations
+- claim_id: RHA-006
+  severity: high
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T03
+  candidate_batch: B03
+  change_type: config_loader_unification
+  blast_radius: medium
+  effort_tshirt: M
+  depends_on_claims: []
+  title: Duplicate ConfigLoader implementations coexist
+- claim_id: RHA-007
+  severity: high
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T03
+  candidate_batch: B03
+  change_type: path_hardcoding_removal
+  blast_radius: low
+  effort_tshirt: S
+  depends_on_claims: []
+  title: Hardcoded absolute paths exist in data scripts
+- claim_id: RHA-008
+  severity: high
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T04
+  candidate_batch: B04
+  change_type: import_boundary_refactor
+  blast_radius: medium
+  effort_tshirt: M
+  depends_on_claims: []
+  title: run_pep_projections dynamically imports pipeline module
+- claim_id: RHA-009
+  severity: critical
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T01
+  candidate_batch: B01
+  change_type: adr_index_alignment
+  blast_radius: low
+  effort_tshirt: S
+  depends_on_claims: []
+  title: ADR README index is stale for late-series ADRs
+- claim_id: RHA-010
+  severity: high
+  verdict: partially_confirmed
+  confidence: 0.78
+  track_id: T04
+  candidate_batch: B04
+  change_type: test_scope_governance
+  blast_radius: high
+  effort_tshirt: L
+  depends_on_claims: []
+  title: Tests include substantial sibling-repo-focused suites
+- claim_id: RHA-011
+  severity: high
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T05
+  candidate_batch: B05
+  change_type: repo_boundary_strategy
+  blast_radius: high
+  effort_tshirt: XL
+  depends_on_claims: []
+  title: sdc_2024_replication dominates repository file count
+- claim_id: RHA-012
+  severity: high
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T05
+  candidate_batch: B05
+  change_type: documentation_surface_reduction
+  blast_radius: medium
+  effort_tshirt: L
+  depends_on_claims: []
+  title: Markdown documentation line count exceeds Python line count
+- claim_id: RHA-013
+  severity: medium
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T06
+  candidate_batch: B00
+  change_type: baseline_metric_pin
+  blast_radius: none
+  effort_tshirt: S
+  depends_on_claims: []
+  title: Core package size is 39 files and 17,759 lines
+- claim_id: RHA-014
+  severity: medium
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T04
+  candidate_batch: B04
+  change_type: module_decomposition
+  blast_radius: high
+  effort_tshirt: XL
+  depends_on_claims: []
+  title: Three oversized modules exceed 1,300 lines
+- claim_id: RHA-015
+  severity: medium
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T05
+  candidate_batch: B05
+  change_type: root_clutter_cleanup
+  blast_radius: low
+  effort_tshirt: S
+  depends_on_claims: []
+  title: Root-level clutter includes tracked and stray artifacts
+- claim_id: RHA-016
+  severity: medium
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T03
+  candidate_batch: B03
+  change_type: data_source_notes_completion
+  blast_radius: low
+  effort_tshirt: M
+  depends_on_claims: []
+  title: Five raw-data subdirectories are missing DATA_SOURCE_NOTES.md
+- claim_id: RHA-017
+  severity: low
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T05
+  candidate_batch: B05
+  change_type: stale_export_cleanup
+  blast_radius: low
+  effort_tshirt: S
+  depends_on_claims: []
+  title: Stale low_growth exports remain without matching projections
+- claim_id: RHA-018
+  severity: medium
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T05
+  candidate_batch: B05
+  change_type: data_deduplication
+  blast_radius: medium
+  effort_tshirt: L
+  depends_on_claims: []
+  title: Five SDC rate files are triplicated across three directories
+- claim_id: RHA-019
+  severity: medium
+  verdict: partially_confirmed
+  confidence: 0.78
+  track_id: T01
+  candidate_batch: B01
+  change_type: navigation_unification
+  blast_radius: low
+  effort_tshirt: M
+  depends_on_claims: []
+  title: Multiple navigation documents coexist
+- claim_id: RHA-020
+  severity: medium
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T01
+  candidate_batch: B01
+  change_type: documentation_consistency
+  blast_radius: low
+  effort_tshirt: S
+  depends_on_claims: []
+  title: README projection horizon conflicts with AGENTS horizon
+- claim_id: RHA-021
+  severity: low
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T01
+  candidate_batch: B01
+  change_type: tracker_right_sizing
+  blast_radius: low
+  effort_tshirt: M
+  depends_on_claims: []
+  title: DEVELOPMENT_TRACKER is lengthy
+- claim_id: RHA-022
+  severity: low
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T01
+  candidate_batch: B01
+  change_type: module_readme_right_sizing
+  blast_radius: low
+  effort_tshirt: M
+  depends_on_claims: []
+  title: data/process module README is very large
+- claim_id: RHA-023
+  severity: medium
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T06
+  candidate_batch: B00
+  change_type: architecture_guardrail
+  blast_radius: none
+  effort_tshirt: S
+  depends_on_claims: []
+  title: cohort_projections package has no circular imports
+- claim_id: RHA-024
+  severity: medium
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T04
+  candidate_batch: B04
+  change_type: duplicate_function_dedup
+  blast_radius: medium
+  effort_tshirt: M
+  depends_on_claims: []
+  title: Median age and dependency ratio functions are duplicated
+- claim_id: RHA-025
+  severity: medium
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T04
+  candidate_batch: B04
+  change_type: dead_code_cleanup
+  blast_radius: low
+  effort_tshirt: S
+  depends_on_claims: []
+  title: example_usage.py and version.py are orphaned from imports
+- claim_id: RHA-026
+  severity: low
+  verdict: confirmed
+  confidence: 0.95
+  track_id: T05
+  candidate_batch: B05
+  change_type: empty_placeholder_cleanup
+  blast_radius: low
+  effort_tshirt: S
+  depends_on_claims: []
+  title: Placeholder directories remain empty
+- claim_id: RHA-027
+  severity: high
+  verdict: partially_confirmed
+  confidence: 0.74
+  track_id: T02
+  candidate_batch: B02
+  change_type: synthesis_alignment
+  blast_radius: none
+  effort_tshirt: S
+  depends_on_claims:
+  - RHA-001
+  - RHA-002
+  - RHA-003
+  - RHA-004
+  title: Pipeline fragmentation claim is materially supported by repository state

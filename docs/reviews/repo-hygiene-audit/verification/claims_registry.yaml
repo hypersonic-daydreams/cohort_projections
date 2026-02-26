@@ -1,29 +1,24 @@
 schema_version: 1
 audit_id: repo-hygiene-audit
-created_at: 2026-02-26
-last_updated: 2026-02-26
-
+created_at: '2026-02-26'
+last_updated: '2026-02-26'
 allowed_statuses:
-  - queued
-  - checks_defined
-  - in_progress
-  - adjudicated
-  - closed
-
+- queued
+- checks_defined
+- in_progress
+- adjudicated
+- closed
 allowed_verdicts:
-  - unreviewed
-  - confirmed
-  - partially_confirmed
-  - refuted
-  - stale
-  - unverifiable
-
-# Copy this template into `claims:` when adding a real claim.
+- unreviewed
+- confirmed
+- partially_confirmed
+- refuted
+- stale
+- unverifiable
 claim_template:
   claim_id: RHA-000
   title: Short claim title
-  claim_text: >-
-    Atomic, testable claim statement.
+  claim_text: Atomic, testable claim statement.
   severity: medium
   claim_type: structural
   status: queued
@@ -32,22 +27,1045 @@ claim_template:
   owner_agent: null
   source:
     file: docs/reviews/repo-hygiene-audit/00-synthesis-summary.md
-    section: "Top-Level Findings"
+    section: Top-Level Findings
     line_ref: null
   checks:
-    - check_id: RHA-000-C1
-      description: Deterministic check description
-      command: test -f scripts/projections/run_all_projections.py
-      required: true
-      timeout_seconds: 30
-      assertion:
-        expect_exit_code: 0
-        stdout_contains: []
-        stdout_not_contains: []
-        stderr_contains: []
-        stderr_not_contains: []
-        regex_match: []
-  notes: ""
-
-# Intentionally empty scaffold. Add claims in a new analysis session.
-claims: []
+  - check_id: RHA-000-C1
+    description: Deterministic check description
+    command: test -f scripts/projections/run_all_projections.py
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains: []
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match: []
+  notes: ''
+claims:
+- claim_id: RHA-001
+  title: Ghost projection runner is referenced but missing
+  claim_text: The repository references `scripts/projections/run_all_projections.py`
+    in active docs, but the file does not exist.
+  severity: critical
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/00-synthesis-summary.md
+    section: The Ugly
+    line_ref: null
+  checks:
+  - check_id: RHA-001-C1
+    description: Count documentation references and verify missing runner file.
+    command: refs=$(rg -n "scripts/projections/run_all_projections.py" AGENTS.md CLAUDE.md
+      README.md DEVELOPMENT_TRACKER.md docs/NAVIGATION.md | wc -l); exists=0; [ -f
+      scripts/projections/run_all_projections.py ] && exists=1; echo "DOC_REF_COUNT=$refs";
+      echo "FILE_EXISTS=$exists"; if [ "$refs" -ge 5 ] && [ "$exists" -eq 0 ]; then
+      echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL"; exit 1; fi
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - DOC_REF_COUNT=[0-9]+
+      - FILE_EXISTS=0
+  notes: 'Checks 1/1. Key evidence: DOC_REF_COUNT=5; FILE_EXISTS=0'
+- claim_id: RHA-002
+  title: Pipeline shell runner executes only three Python stages
+  claim_text: '`scripts/pipeline/run_complete_pipeline.sh` calls only three pipeline
+    Python scripts (01, 02, 03).'
+  severity: critical
+  claim_type: behavioral
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/02-scripts-workflow.md
+    section: 2.1 Intended Pipeline Workflow
+    line_ref: null
+  checks:
+  - check_id: RHA-002-C1
+    description: Verify shell runner has exactly three python pipeline invocations
+      and STEP x/3 labels.
+    command: calls=$(rg -n "^python scripts/pipeline/" scripts/pipeline/run_complete_pipeline.sh
+      | wc -l); labels=$(rg -n "STEP [0-9]/3" scripts/pipeline/run_complete_pipeline.sh
+      | wc -l); echo "PIPELINE_CALLS=$calls"; echo "STEP_LABELS=$labels"; if [ "$calls"
+      -eq 3 ] && [ "$labels" -eq 3 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
+      exit 1; fi
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - PIPELINE_CALLS=3
+      - STEP_LABELS=3
+  notes: 'Checks 1/1. Key evidence: PIPELINE_CALLS=3; STEP_LABELS=3'
+- claim_id: RHA-003
+  title: Additional numbered pipeline steps are not called by runner
+  claim_text: Step files `00_prepare_processed_data.py`, `01_compute_residual_migration.py`,
+    `01b_compute_convergence.py`, and `01c_compute_mortality_improvement.py` exist
+    but are not invoked by `run_complete_pipeline.sh`.
+  severity: critical
+  claim_type: behavioral
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/02-scripts-workflow.md
+    section: 2.3 Missing Pipeline Steps
+    line_ref: null
+  checks:
+  - check_id: RHA-003-C1
+    description: Ensure four extra step files exist and are absent from runner invocations.
+    command: present=0; for s in 00_prepare_processed_data.py 01_compute_residual_migration.py
+      01b_compute_convergence.py 01c_compute_mortality_improvement.py; do [ -f "scripts/pipeline/$s"
+      ] && present=$((present+1)); done; called=$(rg -n "00_prepare_processed_data.py|01_compute_residual_migration.py|01b_compute_convergence.py|01c_compute_mortality_improvement.py"
+      scripts/pipeline/run_complete_pipeline.sh | wc -l); echo "EXTRA_STEPS_PRESENT=$present";
+      echo "EXTRA_STEPS_CALLED=$called"; if [ "$present" -eq 4 ] && [ "$called" -eq
+      0 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL"; exit 1; fi
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - EXTRA_STEPS_PRESENT=4
+      - EXTRA_STEPS_CALLED=0
+  notes: 'Checks 1/1. Key evidence: EXTRA_STEPS_PRESENT=4; EXTRA_STEPS_CALLED=0'
+- claim_id: RHA-004
+  title: Pipeline numbering collision for 01-prefixed scripts
+  claim_text: 'Two different pipeline scripts share the `01_` prefix: `01_process_demographic_data.py`
+    and `01_compute_residual_migration.py`.'
+  severity: critical
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/02-scripts-workflow.md
+    section: 3.1 Numbering Collision in Pipeline
+    line_ref: null
+  checks:
+  - check_id: RHA-004-C1
+    description: Count files matching 01_*.py in pipeline directory.
+    command: count=$(find scripts/pipeline -maxdepth 1 -type f -name "01_*.py" | wc
+      -l); echo "PREFIX_01_COUNT=$count"; if [ "$count" -eq 2 ]; then echo "ASSERTION=PASS";
+      else echo "ASSERTION=FAIL"; exit 1; fi
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - PREFIX_01_COUNT=2
+  notes: 'Checks 1/1. Key evidence: PREFIX_01_COUNT=2'
+- claim_id: RHA-005
+  title: Version declarations are inconsistent across locations
+  claim_text: Version declarations exist in four locations (`pyproject.toml`, `cohort_projections/version.py`,
+    `cohort_projections/output/__init__.py`, `CLAUDE.md`) with at least three distinct
+    values.
+  severity: high
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/00-synthesis-summary.md
+    section: The Ugly
+    line_ref: null
+  checks:
+  - check_id: RHA-005-C1
+    description: Extract version values from four locations and confirm inconsistency.
+    command: "source .venv/bin/activate && python - <<'PY'\nimport re\nfrom pathlib\
+      \ import Path\n\npyproject = Path(\"pyproject.toml\").read_text(encoding=\"\
+      utf-8\")\nversion_py = Path(\"cohort_projections/version.py\").read_text(encoding=\"\
+      utf-8\")\noutput_init = Path(\"cohort_projections/output/__init__.py\").read_text(encoding=\"\
+      utf-8\")\nclaude = Path(\"CLAUDE.md\").read_text(encoding=\"utf-8\")\n\npyv\
+      \ = re.search(r'^version\\s*=\\s*\"([^\"]+)\"', pyproject, flags=re.MULTILINE).group(1)\n\
+      vfile = re.search(r'__version__\\s*=\\s*\"([^\"]+)\"', version_py).group(1)\n\
+      ov = re.search(r'__version__\\s*=\\s*\"([^\"]+)\"', output_init).group(1)\n\
+      cv = re.search(r\"\\|\\s+\\*\\*Version\\*\\*\\s+\\|\\s+([0-9.]+)\\s+\\|\", claude).group(1)\n\
+      unique = len({pyv, vfile, ov, cv})\n\nprint(f\"PYPROJECT_VERSION={pyv}\")\n\
+      print(f\"VERSION_PY={vfile}\")\nprint(f\"OUTPUT_INIT_VERSION={ov}\")\nprint(f\"\
+      CLAUDE_VERSION={cv}\")\nprint(f\"UNIQUE_VERSION_VALUES={unique}\")\nif unique\
+      \ >= 3:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\"\
+      )\n    raise SystemExit(1)\nPY\n"
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - UNIQUE_VERSION_VALUES=[3-9]
+  notes: 'Checks 1/1. Key evidence: PYPROJECT_VERSION=0.1.0; VERSION_PY=0.1.0'
+- claim_id: RHA-006
+  title: Duplicate ConfigLoader implementations coexist
+  claim_text: The codebase contains two `ConfigLoader` class implementations and a
+    dual-loader import shim in `cohort_projections/utils/__init__.py`.
+  severity: high
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/05-config-data-management.md
+    section: 1.4 Config Loader Architecture
+    line_ref: null
+  checks:
+  - check_id: RHA-006-C1
+    description: Verify two ConfigLoader classes and shim imports are present.
+    command: class_count=$(rg -n "^class ConfigLoader" cohort_projections/utils/config_loader.py
+      libs/project_utils/project_utils/config.py | wc -l); shim_count=$(rg -n "ConfigLoader
+      as _LocalConfigLoader|from project_utils import ConfigLoader as _ConfigLoader"
+      cohort_projections/utils/__init__.py | wc -l); echo "CONFIGLOADER_CLASS_COUNT=$class_count";
+      echo "CONFIGLOADER_SHIM_IMPORTS=$shim_count"; if [ "$class_count" -eq 2 ] &&
+      [ "$shim_count" -ge 2 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
+      exit 1; fi
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - CONFIGLOADER_CLASS_COUNT=2
+  notes: 'Checks 1/1. Key evidence: CONFIGLOADER_CLASS_COUNT=2; CONFIGLOADER_SHIM_IMPORTS=2'
+- claim_id: RHA-007
+  title: Hardcoded absolute paths exist in data scripts
+  claim_text: 'Three scripts contain hardcoded absolute paths: one WSL download path
+    and two `Path.home()/workspace/shared-data/...` paths.'
+  severity: high
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/02-scripts-workflow.md
+    section: 3.3 Hard-Coded Paths
+    line_ref: null
+  checks:
+  - check_id: RHA-007-C1
+    description: Search for the three hardcoded absolute-path patterns.
+    command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
+      \nfiles = {\n    \"scripts/data/ingest_stcoreview.py\": 'Path(\"/mnt/c/Users/nhaarstad/Downloads/stcoreview_v2025_ND.xlsx\"\
+      )',\n    \"scripts/data_processing/extract_pep_county_migration.py\": 'Path.home()\
+      \ / \"workspace/shared-data/census/popest/parquet\"',\n    \"scripts/data_processing/extract_pep_county_migration_with_metadata.py\"\
+      : 'Path.home() / \"workspace/shared-data/census/popest/parquet\"',\n}\nmatches\
+      \ = 0\nfor file_path, needle in files.items():\n    text = Path(file_path).read_text(encoding=\"\
+      utf-8\")\n    if needle in text:\n        matches += 1\nprint(f\"HARDCODED_PATH_MATCHES={matches}\"\
+      )\nif matches == 3:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\"\
+      )\n    raise SystemExit(1)\nPY\n"
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - HARDCODED_PATH_MATCHES=3
+  notes: 'Checks 1/1. Key evidence: HARDCODED_PATH_MATCHES=3'
+- claim_id: RHA-008
+  title: run_pep_projections dynamically imports pipeline module
+  claim_text: '`scripts/projections/run_pep_projections.py` uses `importlib.util.spec_from_file_location`
+    to load `scripts/pipeline/02_run_projections.py`.'
+  severity: high
+  claim_type: behavioral
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/02-scripts-workflow.md
+    section: 3.4 scripts/projections/run_pep_projections.py Imports Pipeline via importlib
+    line_ref: null
+  checks:
+  - check_id: RHA-008-C1
+    description: Verify importlib dynamic import and target pipeline script reference.
+    command: spec_count=$(rg -n "importlib.util.spec_from_file_location" scripts/projections/run_pep_projections.py
+      | wc -l); target_count=$(rg -n "02_run_projections.py" scripts/projections/run_pep_projections.py
+      | wc -l); echo "IMPORTLIB_SPEC_COUNT=$spec_count"; echo "PIPELINE_TARGET_REF_COUNT=$target_count";
+      if [ "$spec_count" -ge 1 ] && [ "$target_count" -ge 1 ]; then echo "ASSERTION=PASS";
+      else echo "ASSERTION=FAIL"; exit 1; fi
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - IMPORTLIB_SPEC_COUNT=[1-9]
+  notes: 'Checks 1/1. Key evidence: IMPORTLIB_SPEC_COUNT=1; PIPELINE_TARGET_REF_COUNT=2'
+- claim_id: RHA-009
+  title: ADR README index is stale for late-series ADRs
+  claim_text: ADR README rows for ADR-047 through ADR-053 are marked `Proposed` despite
+    non-Proposed file statuses, and ADR-054/055 are missing from the index.
+  severity: critical
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/03-documentation.md
+    section: 2.3 ADR README Index is Stale
+    line_ref: null
+  checks:
+  - check_id: RHA-009-C1
+    description: Compare README status rows against ADR file statuses for 047-053
+      and check missing 054/055.
+    command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
+      import re\nreadme = Path(\"docs/governance/adrs/README.md\").read_text(encoding=\"\
+      utf-8\")\nids = [\"047\",\"048\",\"049\",\"050\",\"051\",\"052\",\"053\"]\n\
+      mismatch = 0\nfor adr in ids:\n    line = next((ln for ln in readme.splitlines()\
+      \ if f\"[{adr}]\" in ln), \"\")\n    if \"| Proposed |\" not in line:\n    \
+      \    continue\n    f = next(Path(\"docs/governance/adrs\").glob(f\"{adr}-*.md\"\
+      ))\n    text = f.read_text(encoding=\"utf-8\")\n    status_match = re.search(r\"\
+      ^## Status\\n(.+)$\", text, flags=re.MULTILINE)\n    status = status_match.group(1).strip()\
+      \ if status_match else \"<missing>\"\n    if not status.startswith(\"Proposed\"\
+      ):\n        mismatch += 1\nmissing = [adr for adr in [\"054\", \"055\"] if f\"\
+      [{adr}]\" not in readme]\nprint(f\"MISMATCH_COUNT={mismatch}\")\nprint(f\"MISSING_COUNT={len(missing)}\"\
+      )\nprint(\"MISSING_IDS=\" + \",\".join(missing))\nif mismatch >= 7 and len(missing)\
+      \ == 2:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\"\
+      )\n    raise SystemExit(1)\nPY"
+    required: true
+    timeout_seconds: 120
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - MISMATCH_COUNT=[7-9]
+      - MISSING_COUNT=2
+  notes: 'Checks 1/1. Key evidence: MISMATCH_COUNT=7; MISSING_COUNT=2'
+- claim_id: RHA-010
+  title: Tests include substantial sibling-repo-focused suites
+  claim_text: Tests under `tests/test_statistical/` and `tests/unit/` total more than
+    3,500 lines, supporting the claim that many tests target sibling-repo concerns.
+  severity: high
+  claim_type: structural
+  status: adjudicated
+  verdict: partially_confirmed
+  confidence: 0.78
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/00-synthesis-summary.md
+    section: The Ugly
+    line_ref: null
+  checks:
+  - check_id: RHA-010-C1
+    description: Count Python lines in tests/test_statistical and tests/unit.
+    command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
+      line_total = 0\nfile_total = 0\nfor d in [Path(\"tests/test_statistical\"),\
+      \ Path(\"tests/unit\")]:\n    for p in d.rglob(\"*.py\"):\n        file_total\
+      \ += 1\n        line_total += sum(1 for _ in p.open(\"r\", encoding=\"utf-8\"\
+      , errors=\"ignore\"))\nprint(f\"SIBLING_TEST_FILES={file_total}\")\nprint(f\"\
+      SIBLING_TEST_LINES={line_total}\")\nif line_total > 3500:\n    print(\"ASSERTION=PASS\"\
+      )\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY"
+    required: true
+    timeout_seconds: 120
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - SIBLING_TEST_LINES=[0-9]+
+  notes: 'Checks 1/1. Key evidence: SIBLING_TEST_FILES=15; SIBLING_TEST_LINES=4137'
+- claim_id: RHA-011
+  title: sdc_2024_replication dominates repository file count
+  claim_text: '`sdc_2024_replication/` accounts for more than 70% of non-cache files
+    in the repository.'
+  severity: high
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/01-directory-structure.md
+    section: 'Issue #2: sdc_2024_replication Dominates the Repository'
+    line_ref: null
+  checks:
+  - check_id: RHA-011-C1
+    description: Compute non-cache file share belonging to sdc_2024_replication.
+    command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
+      exclude = {\".git\", \".venv\", \".pytest_cache\", \".mypy_cache\", \".ruff_cache\"\
+      , \".uv_cache\", \"htmlcov\"}\nall_files = [p for p in Path(\".\").rglob(\"\
+      *\") if p.is_file() and not any(part in exclude for part in p.parts)]\nsdc_files\
+      \ = [p for p in all_files if p.parts and p.parts[0] == \"sdc_2024_replication\"\
+      ]\nshare = len(sdc_files) / len(all_files) if all_files else 0.0\nprint(f\"\
+      TOTAL_FILES={len(all_files)}\")\nprint(f\"SDC_FILES={len(sdc_files)}\")\nprint(f\"\
+      SDC_SHARE={share:.4f}\")\nif share > 0.70:\n    print(\"ASSERTION=PASS\")\n\
+      else:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY"
+    required: true
+    timeout_seconds: 120
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - SDC_SHARE=0\.[0-9]+
+  notes: 'Checks 1/1. Key evidence: TOTAL_FILES=10666; SDC_FILES=7842'
+- claim_id: RHA-012
+  title: Markdown documentation line count exceeds Python line count
+  claim_text: Repository markdown line count is greater than repository Python line
+    count (excluding cache/venv paths).
+  severity: high
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/06-ai-navigability-and-embeddings.md
+    section: '1.6 Documentation Volume: Context Window Overflow Risk'
+    line_ref: null
+  checks:
+  - check_id: RHA-012-C1
+    description: Compare markdown and python line totals across repository.
+    command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
+      exclude = {\".git\", \".venv\", \".pytest_cache\", \".mypy_cache\", \".ruff_cache\"\
+      , \".uv_cache\", \"htmlcov\"}\nmd_lines = py_lines = 0\nfor p in Path(\".\"\
+      ).rglob(\"*\"):\n    if not p.is_file() or any(part in exclude for part in p.parts):\n\
+      \        continue\n    if p.suffix == \".md\":\n        md_lines += sum(1 for\
+      \ _ in p.open(\"r\", encoding=\"utf-8\", errors=\"ignore\"))\n    elif p.suffix\
+      \ == \".py\":\n        py_lines += sum(1 for _ in p.open(\"r\", encoding=\"\
+      utf-8\", errors=\"ignore\"))\nprint(f\"MD_LINES={md_lines}\")\nprint(f\"PY_LINES={py_lines}\"\
+      )\nif md_lines > py_lines:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"\
+      ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY"
+    required: true
+    timeout_seconds: 180
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - MD_LINES=[0-9]+
+      - PY_LINES=[0-9]+
+  notes: 'Checks 1/1. Key evidence: MD_LINES=161655; PY_LINES=140844'
+- claim_id: RHA-013
+  title: Core package size is 39 files and 17,759 lines
+  claim_text: '`cohort_projections/` contains 39 Python files totaling 17,759 lines.'
+  severity: medium
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/04-code-organization.md
+    section: 1. Package Structure Map
+    line_ref: null
+  checks:
+  - check_id: RHA-013-C1
+    description: Count Python files and lines under cohort_projections package.
+    command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
+      files = list(Path(\"cohort_projections\").rglob(\"*.py\"))\nlines = sum(sum(1\
+      \ for _ in f.open(\"r\", encoding=\"utf-8\", errors=\"ignore\")) for f in files)\n\
+      print(f\"CORE_PY_FILES={len(files)}\")\nprint(f\"CORE_PY_LINES={lines}\")\n\
+      if len(files) == 39 and lines == 17759:\n    print(\"ASSERTION=PASS\")\nelse:\n\
+      \    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY"
+    required: true
+    timeout_seconds: 120
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - CORE_PY_FILES=[0-9]+
+      - CORE_PY_LINES=[0-9]+
+  notes: 'Checks 1/1. Key evidence: CORE_PY_FILES=39; CORE_PY_LINES=17759'
+- claim_id: RHA-014
+  title: Three oversized modules exceed 1,300 lines
+  claim_text: '`migration_rates.py`, `base_population_loader.py`, and `residual_migration.py`
+    are oversized modules above roughly 1,300 lines each.'
+  severity: medium
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/00-synthesis-summary.md
+    section: The Bad
+    line_ref: null
+  checks:
+  - check_id: RHA-014-C1
+    description: Measure line counts for the three cited modules.
+    command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
+      files = {\n    \"migration_rates\": Path(\"cohort_projections/data/process/migration_rates.py\"\
+      ),\n    \"base_population_loader\": Path(\"cohort_projections/data/load/base_population_loader.py\"\
+      ),\n    \"residual_migration\": Path(\"cohort_projections/data/process/residual_migration.py\"\
+      ),\n}\ncounts = {k: sum(1 for _ in p.open(\"r\", encoding=\"utf-8\", errors=\"\
+      ignore\")) for k, p in files.items()}\nfor k, v in counts.items():\n    print(f\"\
+      {k.upper()}_LINES={v}\")\nif counts[\"migration_rates\"] >= 1900 and counts[\"\
+      base_population_loader\"] >= 1400 and counts[\"residual_migration\"] >= 1300:\n\
+      \    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise\
+      \ SystemExit(1)\nPY"
+    required: true
+    timeout_seconds: 120
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - MIGRATION_RATES_LINES=[0-9]+
+      - BASE_POPULATION_LOADER_LINES=[0-9]+
+      - RESIDUAL_MIGRATION_LINES=[0-9]+
+  notes: 'Checks 1/1. Key evidence: MIGRATION_RATES_LINES=1963; BASE_POPULATION_LOADER_LINES=1465'
+- claim_id: RHA-015
+  title: Root-level clutter includes tracked and stray artifacts
+  claim_text: Repository root contains clutter artifacts including tracked `RCLONE_TEST`
+    and multiple stray analysis/data/log files.
+  severity: medium
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/01-directory-structure.md
+    section: 'Issue #1: Root-Level Clutter'
+    line_ref: null
+  checks:
+  - check_id: RHA-015-C1
+    description: Verify tracked RCLONE_TEST and presence of multiple clutter artifacts
+      at repo root.
+    command: tracked=$(git ls-files RCLONE_TEST | wc -l); exist_count=0; for item
+      in 2025_popest_data journal_article_pdfs chatgpt_feedback_on_v0.9.md formula_audit_article-0.9-production_20260112_205726.md
+      ward_county_nd_population_2008_2024.xlsx ingest.log ingest_full.log ingest_nohup.log;
+      do [ -e "$item" ] && exist_count=$((exist_count+1)); done; echo "RCLONE_TEST_TRACKED=$tracked";
+      echo "ROOT_CLUTTER_EXISTS=$exist_count"; if [ "$tracked" -eq 1 ] && [ "$exist_count"
+      -ge 6 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL"; exit 1; fi
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - RCLONE_TEST_TRACKED=1
+      - ROOT_CLUTTER_EXISTS=[0-9]+
+  notes: 'Checks 1/1. Key evidence: RCLONE_TEST_TRACKED=1; ROOT_CLUTTER_EXISTS=8'
+- claim_id: RHA-016
+  title: Five raw-data subdirectories are missing DATA_SOURCE_NOTES.md
+  claim_text: The raw-data directories `census`, `census_bureau_methodology`, `geographic`,
+    `immigration`, and `nd_sdc_2024_projections` do not contain `DATA_SOURCE_NOTES.md`.
+  severity: medium
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/05-config-data-management.md
+    section: 2.3 Data Documentation Quality
+    line_ref: null
+  checks:
+  - check_id: RHA-016-C1
+    description: Compute raw subdirectories missing DATA_SOURCE_NOTES.md and compare
+      against expected set.
+    command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
+      expected = {\"census\", \"census_bureau_methodology\", \"geographic\", \"immigration\"\
+      , \"nd_sdc_2024_projections\"}\nraw = Path(\"data/raw\")\nmissing = {d.name\
+      \ for d in raw.iterdir() if d.is_dir() and not (d / \"DATA_SOURCE_NOTES.md\"\
+      ).exists()}\nprint(f\"MISSING_NOTES_COUNT={len(missing)}\")\nprint(\"MISSING_NOTES=\"\
+      \ + \",\".join(sorted(missing)))\nif missing == expected:\n    print(\"ASSERTION=PASS\"\
+      )\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY"
+    required: true
+    timeout_seconds: 120
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - MISSING_NOTES_COUNT=5
+  notes: 'Checks 1/1. Key evidence: MISSING_NOTES_COUNT=5; MISSING_NOTES=census,census_bureau_methodology,geographic,immigration,nd_sdc_2024_projections'
+- claim_id: RHA-017
+  title: Stale low_growth exports remain without matching projections
+  claim_text: '`data/exports/low_growth/` exists while `data/projections/low_growth/`
+    does not.'
+  severity: low
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/01-directory-structure.md
+    section: 'Issue #3: Stale low_growth Scenario in Exports'
+    line_ref: null
+  checks:
+  - check_id: RHA-017-C1
+    description: Check low_growth directory presence mismatch between exports and
+      projections.
+    command: exports=0; projections=0; [ -d data/exports/low_growth ] && exports=1;
+      [ -d data/projections/low_growth ] && projections=1; echo "LOW_GROWTH_EXPORTS_EXISTS=$exports";
+      echo "LOW_GROWTH_PROJECTIONS_EXISTS=$projections"; if [ "$exports" -eq 1 ] &&
+      [ "$projections" -eq 0 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
+      exit 1; fi
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - LOW_GROWTH_EXPORTS_EXISTS=1
+      - LOW_GROWTH_PROJECTIONS_EXISTS=0
+  notes: 'Checks 1/1. Key evidence: LOW_GROWTH_EXPORTS_EXISTS=1; LOW_GROWTH_PROJECTIONS_EXISTS=0'
+- claim_id: RHA-018
+  title: Five SDC rate files are triplicated across three directories
+  claim_text: 'The five core SDC county-rate CSVs are present in all three locations:
+    `sdc_2024_replication/data/`, `sdc_2024_replication/data_updated/`, and `data/processed/immigration/rates/`.'
+  severity: medium
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/01-directory-structure.md
+    section: 'Issue #6: SDC Data Is Triplicated Across Three Locations'
+    line_ref: null
+  checks:
+  - check_id: RHA-018-C1
+    description: Verify all five rate CSVs exist in all three cited locations.
+    command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
+      files = [\n    \"adjustment_factors_by_county.csv\",\n    \"base_population_by_county.csv\"\
+      ,\n    \"fertility_rates_by_county.csv\",\n    \"migration_rates_by_county.csv\"\
+      ,\n    \"survival_rates_by_county.csv\",\n]\nlocations = [\n    Path(\"sdc_2024_replication/data\"\
+      ),\n    Path(\"sdc_2024_replication/data_updated\"),\n    Path(\"data/processed/immigration/rates\"\
+      ),\n]\ntriplicated = 0\nfor name in files:\n    flags = [int((loc / name).exists())\
+      \ for loc in locations]\n    print(f\"{name}::\" + \"\".join(str(x) for x in\
+      \ flags))\n    if all(flags):\n        triplicated += 1\nprint(f\"TRIPLICATED_FILE_COUNT={triplicated}\"\
+      )\nif triplicated == 5:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"\
+      ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY"
+    required: true
+    timeout_seconds: 120
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - TRIPLICATED_FILE_COUNT=5
+  notes: 'Checks 1/1. Key evidence: adjustment_factors_by_county.csv::111; base_population_by_county.csv::111'
+- claim_id: RHA-019
+  title: Multiple navigation documents coexist
+  claim_text: '`docs/INDEX.md`, `docs/NAVIGATION.md`, and AGENTS documentation-index
+    content all exist, creating overlapping navigation surfaces.'
+  severity: medium
+  claim_type: structural
+  status: adjudicated
+  verdict: partially_confirmed
+  confidence: 0.78
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/03-documentation.md
+    section: 2.4 Three Competing Navigation/Index Documents
+    line_ref: null
+  checks:
+  - check_id: RHA-019-C1
+    description: Verify both docs index files exist and AGENTS references documentation
+      indexing.
+    command: idx=0; nav=0; agents=0; [ -f docs/INDEX.md ] && idx=1; [ -f docs/NAVIGATION.md
+      ] && nav=1; refs=$(rg -n "docs/INDEX.md|Documentation Index|scripts/intelligence/generate_docs_index.py"
+      AGENTS.md | wc -l); [ "$refs" -ge 1 ] && agents=1; echo "INDEX_EXISTS=$idx";
+      echo "NAVIGATION_EXISTS=$nav"; echo "AGENTS_DOC_INDEX_REF=$agents"; if [ "$idx"
+      -eq 1 ] && [ "$nav" -eq 1 ] && [ "$agents" -eq 1 ]; then echo "ASSERTION=PASS";
+      else echo "ASSERTION=FAIL"; exit 1; fi
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - INDEX_EXISTS=1
+      - NAVIGATION_EXISTS=1
+      - AGENTS_DOC_INDEX_REF=1
+  notes: 'Checks 1/1. Key evidence: INDEX_EXISTS=1; NAVIGATION_EXISTS=1'
+- claim_id: RHA-020
+  title: README projection horizon conflicts with AGENTS horizon
+  claim_text: README states a 2025-2045 horizon while AGENTS.md states 2025 to 2055.
+  severity: medium
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/03-documentation.md
+    section: 2.7 README.md Has Stale Projection Horizon
+    line_ref: null
+  checks:
+  - check_id: RHA-020-C1
+    description: Find contradictory horizon strings in README and AGENTS.
+    command: readme=$(rg -n "2025-2045" README.md | wc -l); agents=$(rg -n "2025 to
+      2055|2025-2055" AGENTS.md | wc -l); echo "README_2025_2045_COUNT=$readme"; echo
+      "AGENTS_2025_2055_COUNT=$agents"; if [ "$readme" -ge 1 ] && [ "$agents" -ge
+      1 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL"; exit 1; fi
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - README_2025_2045_COUNT=[1-9]
+      - AGENTS_2025_2055_COUNT=[1-9]
+  notes: 'Checks 1/1. Key evidence: README_2025_2045_COUNT=2; AGENTS_2025_2055_COUNT=1'
+- claim_id: RHA-021
+  title: DEVELOPMENT_TRACKER is lengthy
+  claim_text: '`DEVELOPMENT_TRACKER.md` exceeds 900 lines.'
+  severity: low
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/03-documentation.md
+    section: 2.10 DEVELOPMENT_TRACKER.md Is Growing Into a Changelog
+    line_ref: null
+  checks:
+  - check_id: RHA-021-C1
+    description: Measure DEVELOPMENT_TRACKER line count.
+    command: lines=$(wc -l < DEVELOPMENT_TRACKER.md); echo "DEVELOPMENT_TRACKER_LINES=$lines";
+      if [ "$lines" -gt 900 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
+      exit 1; fi
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - DEVELOPMENT_TRACKER_LINES=[0-9]+
+  notes: 'Checks 1/1. Key evidence: DEVELOPMENT_TRACKER_LINES=925'
+- claim_id: RHA-022
+  title: data/process module README is very large
+  claim_text: '`cohort_projections/data/process/README.md` exceeds 2,000 lines.'
+  severity: low
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/03-documentation.md
+    section: 2.8 Bloated Module READMEs
+    line_ref: null
+  checks:
+  - check_id: RHA-022-C1
+    description: Measure line count of cohort_projections/data/process/README.md.
+    command: lines=$(wc -l < cohort_projections/data/process/README.md); echo "PROCESS_README_LINES=$lines";
+      if [ "$lines" -gt 2000 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
+      exit 1; fi
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - PROCESS_README_LINES=[0-9]+
+  notes: 'Checks 1/1. Key evidence: PROCESS_README_LINES=2247'
+- claim_id: RHA-023
+  title: cohort_projections package has no circular imports
+  claim_text: Static import graph analysis of `cohort_projections` reports zero circular
+    import cycles.
+  severity: medium
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/04-code-organization.md
+    section: 4.1 Circular Imports
+    line_ref: null
+  checks:
+  - check_id: RHA-023-C1
+    description: Run AST-based cycle detection on cohort_projections import graph.
+    command: "source .venv/bin/activate && python - <<'PY'\nimport ast\nfrom collections\
+      \ import defaultdict\nfrom pathlib import Path\nroot = Path(\"cohort_projections\"\
+      )\nmodules = {\".\".join(p.with_suffix(\"\").parts): p for p in root.rglob(\"\
+      *.py\")}\ngraph = defaultdict(set)\nfor mod, p in modules.items():\n    tree\
+      \ = ast.parse(p.read_text(encoding=\"utf-8\", errors=\"ignore\"))\n    for node\
+      \ in ast.walk(tree):\n        if isinstance(node, ast.Import):\n           \
+      \ for alias in node.names:\n                name = alias.name\n            \
+      \    if name.startswith(\"cohort_projections\") and name in modules:\n     \
+      \               graph[mod].add(name)\n        elif isinstance(node, ast.ImportFrom):\n\
+      \            if node.level and node.module is not None:\n                parts\
+      \ = mod.split(\".\")[:-node.level]\n                target = \".\".join(parts\
+      \ + node.module.split(\".\"))\n            elif node.level and node.module is\
+      \ None:\n                parts = mod.split(\".\")[:-node.level]\n          \
+      \      target = \".\".join(parts)\n            else:\n                target\
+      \ = node.module or \"\"\n            if target.startswith(\"cohort_projections\"\
+      ) and target in modules:\n                graph[mod].add(target)\n\ncycles =\
+      \ []\ntemp, perm = set(), set()\ndef visit(node, stack):\n    if node in perm:\n\
+      \        return\n    if node in temp:\n        idx = stack.index(node)\n   \
+      \     cycles.append(stack[idx:] + [node])\n        return\n    temp.add(node)\n\
+      \    stack.append(node)\n    for nxt in graph.get(node, set()):\n        visit(nxt,\
+      \ stack)\n    stack.pop()\n    temp.remove(node)\n    perm.add(node)\n\nfor\
+      \ m in modules:\n    if m not in perm:\n        visit(m, [])\nprint(f\"MODULE_COUNT={len(modules)}\"\
+      )\nprint(f\"CYCLE_COUNT={len(cycles)}\")\nif len(cycles) == 0:\n    print(\"\
+      ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\n\
+      PY"
+    required: true
+    timeout_seconds: 180
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - CYCLE_COUNT=0
+  notes: 'Checks 1/1. Key evidence: MODULE_COUNT=39; CYCLE_COUNT=0'
+- claim_id: RHA-024
+  title: Median age and dependency ratio functions are duplicated
+  claim_text: '`calculate_median_age` appears in three modules and `calculate_dependency_ratio`
+    appears in at least two modules.'
+  severity: medium
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/04-code-organization.md
+    section: 3.4 Duplicate Function Implementations
+    line_ref: null
+  checks:
+  - check_id: RHA-024-C1
+    description: Count occurrences of median/dependency function definitions across
+      cited modules.
+    command: median=$(rg -n "def (_?calculate_median_age)" cohort_projections/utils/demographic_utils.py
+      cohort_projections/core/cohort_component.py cohort_projections/output/reports.py
+      | wc -l); dependency=$(rg -n "def (_?calculate_dependency_ratio)" cohort_projections/utils/demographic_utils.py
+      cohort_projections/core/cohort_component.py cohort_projections/output/reports.py
+      | wc -l); echo "MEDIAN_DEF_COUNT=$median"; echo "DEPENDENCY_DEF_COUNT=$dependency";
+      if [ "$median" -ge 3 ] && [ "$dependency" -ge 2 ]; then echo "ASSERTION=PASS";
+      else echo "ASSERTION=FAIL"; exit 1; fi
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - MEDIAN_DEF_COUNT=[3-9]
+      - DEPENDENCY_DEF_COUNT=[2-9]
+  notes: 'Checks 1/1. Key evidence: MEDIAN_DEF_COUNT=3; DEPENDENCY_DEF_COUNT=2'
+- claim_id: RHA-025
+  title: example_usage.py and version.py are orphaned from imports
+  claim_text: '`cohort_projections/data/process/example_usage.py` and `cohort_projections/version.py`
+    exist but have no import references from other project Python files.'
+  severity: medium
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/04-code-organization.md
+    section: 3.2 Dead or Orphaned Code
+    line_ref: null
+  checks:
+  - check_id: RHA-025-C1
+    description: Verify files exist and no external import references are found.
+    command: test -f cohort_projections/data/process/example_usage.py; test -f cohort_projections/version.py;
+      example_refs=$(rg -n "example_usage" cohort_projections scripts tests -g "*.py"
+      | rg -v "example_usage.py" | wc -l || true); version_refs=$(rg -n "cohort_projections\.version|from
+      \.+version import|import version" cohort_projections scripts tests -g "*.py"
+      -g "!cohort_projections/version.py" | wc -l || true); echo "EXAMPLE_USAGE_EXTERNAL_REFS=$example_refs";
+      echo "VERSION_PY_EXTERNAL_REFS=$version_refs"; if [ "$example_refs" -eq 0 ]
+      && [ "$version_refs" -eq 0 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
+      exit 1; fi
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - EXAMPLE_USAGE_EXTERNAL_REFS=0
+      - VERSION_PY_EXTERNAL_REFS=0
+  notes: 'Checks 1/1. Key evidence: EXAMPLE_USAGE_EXTERNAL_REFS=0; VERSION_PY_EXTERNAL_REFS=0'
+- claim_id: RHA-026
+  title: Placeholder directories remain empty
+  claim_text: Several placeholder directories remain empty, including `data/raw/census/acs`,
+    `data/raw/census/decennial`, `data/raw/census/pep`, and `docs/governance/templates`.
+  severity: low
+  claim_type: structural
+  status: adjudicated
+  verdict: confirmed
+  confidence: 0.95
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/01-directory-structure.md
+    section: 'Issue #8: Empty Placeholder Directories'
+    line_ref: null
+  checks:
+  - check_id: RHA-026-C1
+    description: Verify selected placeholder directories have zero non-.gitkeep entries.
+    command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
+      checks = [\n    Path(\"data/raw/census/acs\"),\n    Path(\"data/raw/census/decennial\"\
+      ),\n    Path(\"data/raw/census/pep\"),\n    Path(\"docs/governance/templates\"\
+      ),\n]\nok = True\nfor d in checks:\n    entries = [p for p in d.iterdir() if\
+      \ p.name != \".gitkeep\"] if d.exists() else [\"<missing>\"]\n    print(f\"\
+      {d.as_posix()}_ENTRY_COUNT={len(entries)}\")\n    if len(entries) != 0:\n  \
+      \      ok = False\nif ok:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"\
+      ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY"
+    required: true
+    timeout_seconds: 120
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - data/raw/census/acs_ENTRY_COUNT=0
+      - data/raw/census/decennial_ENTRY_COUNT=0
+      - data/raw/census/pep_ENTRY_COUNT=0
+      - docs/governance/templates_ENTRY_COUNT=0
+  notes: 'Checks 1/1. Key evidence: data/raw/census/acs_ENTRY_COUNT=0; data/raw/census/decennial_ENTRY_COUNT=0'
+- claim_id: RHA-027
+  title: Pipeline fragmentation claim is materially supported by repository state
+  claim_text: The claim "pipeline is fragmented and incomplete" is materially supported
+    by the combined evidence of missing runner file, 3-step shell runner, skipped
+    numbered steps, and numbering collision.
+  severity: high
+  claim_type: interpretive
+  status: adjudicated
+  verdict: partially_confirmed
+  confidence: 0.74
+  owner_agent: codex
+  source:
+    file: docs/reviews/repo-hygiene-audit/07-pipeline-claim-validation.md
+    section: Executive Verdict
+    line_ref: null
+  checks:
+  - check_id: RHA-027-C1
+    description: Re-check the four structural predicates that underpin the material-truth
+      verdict.
+    command: runner_missing=0; [ ! -f scripts/projections/run_all_projections.py ]
+      && runner_missing=1; calls=$(rg -n "^python scripts/pipeline/" scripts/pipeline/run_complete_pipeline.sh
+      | wc -l); extra_present=0; for s in 00_prepare_processed_data.py 01_compute_residual_migration.py
+      01b_compute_convergence.py 01c_compute_mortality_improvement.py; do [ -f "scripts/pipeline/$s"
+      ] && extra_present=$((extra_present+1)); done; extra_called=$(rg -n "00_prepare_processed_data.py|01_compute_residual_migration.py|01b_compute_convergence.py|01c_compute_mortality_improvement.py"
+      scripts/pipeline/run_complete_pipeline.sh | wc -l); collision=$(find scripts/pipeline
+      -maxdepth 1 -type f -name "01_*.py" | wc -l); echo "RUNNER_MISSING=$runner_missing";
+      echo "RUNNER_CALLS=$calls"; echo "EXTRA_PRESENT=$extra_present"; echo "EXTRA_CALLED=$extra_called";
+      echo "PREFIX_01_COUNT=$collision"; if [ "$runner_missing" -eq 1 ] && [ "$calls"
+      -eq 3 ] && [ "$extra_present" -eq 4 ] && [ "$extra_called" -eq 0 ] && [ "$collision"
+      -eq 2 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL"; exit 1; fi
+    required: true
+    timeout_seconds: 30
+    assertion:
+      expect_exit_code: 0
+      stdout_contains:
+      - ASSERTION=PASS
+      stdout_not_contains: []
+      stderr_contains: []
+      stderr_not_contains: []
+      regex_match:
+      - RUNNER_MISSING=1
+      - RUNNER_CALLS=3
+      - EXTRA_PRESENT=4
+      - EXTRA_CALLED=0
+      - PREFIX_01_COUNT=2
+  notes: 'Checks 1/1. Key evidence: RUNNER_MISSING=1; RUNNER_CALLS=3'

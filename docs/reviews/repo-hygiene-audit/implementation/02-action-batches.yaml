@@ -1,0 +1,147 @@
+schema_version: 1
+audit_id: repo-hygiene-audit
+batch_plan_status: proposed
+last_updated: 2026-02-26
+
+batches:
+  - batch_id: B00
+    name: baseline_metrics_and_safety_harness
+    priority: 0
+    status: proposed
+    objective: Pin baseline structural metrics and quality gates before any remediation edits.
+    includes_claims: [RHA-013, RHA-023]
+    prerequisites: []
+    dry_run_profiles: [DRY-BASELINE, DRY-CHECK-REPLAY]
+    go_no_go_gates:
+      - Baseline metrics captured and committed to dashboard.
+      - Full test suite baseline known for comparison.
+    change_scope:
+      - Planning docs only.
+      - No production behavior changes.
+
+  - batch_id: B01
+    name: documentation_harmonization
+    priority: 1
+    status: proposed
+    objective: Resolve stale indexes, conflicting horizons, and navigation overlap without changing runtime logic.
+    includes_claims: [RHA-009, RHA-019, RHA-020, RHA-021, RHA-022]
+    prerequisites: [B00]
+    dry_run_profiles: [DRY-DOCS, DRY-CHECK-REPLAY]
+    go_no_go_gates:
+      - Only docs files changed.
+      - Regenerated claim checks for affected doc claims remain passing.
+    change_scope:
+      - Update ADR index and navigation docs.
+      - Align projection horizon statements.
+      - Split/archive oversized tracker/readme content where approved.
+
+  - batch_id: B02
+    name: pipeline_entrypoint_and_order_consistency
+    priority: 2
+    status: proposed
+    objective: Make projection entrypoints and pipeline step ordering unambiguous and executable.
+    includes_claims: [RHA-001, RHA-002, RHA-003, RHA-004, RHA-027]
+    prerequisites: [B00, B01]
+    dry_run_profiles: [DRY-PIPELINE, DRY-TESTS, DRY-CHECK-REPLAY]
+    go_no_go_gates:
+      - Pipeline dry-run path succeeds.
+      - Doc references point only to valid entrypoints.
+      - Regression tests and claim replay pass.
+    change_scope:
+      - Decide canonical projection runner.
+      - Update shell runner and docs in lockstep.
+      - Resolve numbering collision strategy.
+
+  - batch_id: B03
+    name: config_path_and_version_hygiene
+    priority: 3
+    status: proposed
+    objective: Normalize configuration loading behavior, remove hardcoded paths, and establish one version authority.
+    includes_claims: [RHA-005, RHA-006, RHA-007, RHA-016]
+    prerequisites: [B00]
+    dry_run_profiles: [DRY-CONFIG, DRY-TESTS, DRY-LINT-TYPE, DRY-CHECK-REPLAY]
+    go_no_go_gates:
+      - All scripted path defaults become repo-portable or explicit CLI args.
+      - Config loader behavior validated by tests.
+      - Version value appears from one canonical source.
+    change_scope:
+      - ConfigLoader unification/deprecation path.
+      - Path-hardcoding removal in scripts.
+      - Data source notes completion for required raw dirs.
+
+  - batch_id: B04
+    name: code_structure_and_test_scope_alignment
+    priority: 4
+    status: proposed
+    objective: Reduce structural code debt and clarify which tests belong to this repository.
+    includes_claims: [RHA-008, RHA-010, RHA-014, RHA-024, RHA-025]
+    prerequisites: [B00, B02, B03]
+    dry_run_profiles: [DRY-TESTS, DRY-LINT-TYPE, DRY-CHECK-REPLAY]
+    go_no_go_gates:
+      - Refactors preserve output parity for sampled geographies.
+      - Tests remain green with clear ownership boundaries.
+      - No circular import regressions.
+    change_scope:
+      - Extract reusable logic from scripts where feasible.
+      - Deduplicate utility implementations.
+      - Remove/relocate dead or orphaned code.
+
+  - batch_id: B05
+    name: repository_footprint_and_data_hygiene
+    priority: 5
+    status: proposed
+    objective: Clean root clutter, stale directories, and duplicate data footprints with explicit archival decisions.
+    includes_claims: [RHA-011, RHA-012, RHA-015, RHA-017, RHA-018, RHA-026]
+    prerequisites: [B00, B01]
+    dry_run_profiles: [DRY-REPO-CLEANUP, DRY-CHECK-REPLAY]
+    go_no_go_gates:
+      - Archive/move decisions documented before deletion.
+      - Data provenance and reproducibility unaffected.
+      - No raw-data mutation in `data/raw/`.
+    change_scope:
+      - Root-level clutter triage.
+      - Empty/stale directory cleanup.
+      - SDC boundary strategy and duplicate data policy.
+
+  - batch_id: B06
+    name: final_harmonization_and_claim_revalidation
+    priority: 6
+    status: proposed
+    objective: Re-run claim verification and publish consolidated execution dashboard.
+    includes_claims:
+      - RHA-001
+      - RHA-002
+      - RHA-003
+      - RHA-004
+      - RHA-005
+      - RHA-006
+      - RHA-007
+      - RHA-008
+      - RHA-009
+      - RHA-010
+      - RHA-011
+      - RHA-012
+      - RHA-013
+      - RHA-014
+      - RHA-015
+      - RHA-016
+      - RHA-017
+      - RHA-018
+      - RHA-019
+      - RHA-020
+      - RHA-021
+      - RHA-022
+      - RHA-023
+      - RHA-024
+      - RHA-025
+      - RHA-026
+      - RHA-027
+    prerequisites: [B01, B02, B03, B04, B05]
+    dry_run_profiles: [DRY-CHECK-REPLAY, DRY-TESTS, DRY-LINT-TYPE]
+    go_no_go_gates:
+      - All targeted claims re-run with updated evidence artifacts.
+      - Final dashboard reflects implemented state.
+      - Open items explicitly documented with owners.
+    change_scope:
+      - Verification rerun and adjudication updates.
+      - Program closeout summary.

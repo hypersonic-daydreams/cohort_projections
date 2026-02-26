@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T17:55:51Z",
+  "claim_id": "RHA-026",
+  "claim_title": "Placeholder directories remain empty",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-026-C1",
+      "description": "Verify selected placeholder directories have zero non-.gitkeep entries.",
+      "required": true,
+      "command": "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\nchecks = [\n    Path(\"data/raw/census/acs\"),\n    Path(\"data/raw/census/decennial\"),\n    Path(\"data/raw/census/pep\"),\n    Path(\"docs/governance/templates\"),\n]\nok = True\nfor d in checks:\n    entries = [p for p in d.iterdir() if p.name != \".gitkeep\"] if d.exists() else [\"<missing>\"]\n    print(f\"{d.as_posix()}_ENTRY_COUNT={len(entries)}\")\n    if len(entries) != 0:\n        ok = False\nif ok:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY",
+      "timeout_seconds": 120,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "data/raw/census/acs_ENTRY_COUNT=0",
+          "data/raw/census/decennial_ENTRY_COUNT=0",
+          "data/raw/census/pep_ENTRY_COUNT=0",
+          "docs/governance/templates_ENTRY_COUNT=0"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-26T17:55:51Z",
+      "duration_seconds": 0.03,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "data/raw/census/acs_ENTRY_COUNT=0\ndata/raw/census/decennial_ENTRY_COUNT=0\ndata/raw/census/pep_ENTRY_COUNT=0\ndocs/governance/templates_ENTRY_COUNT=0\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}
