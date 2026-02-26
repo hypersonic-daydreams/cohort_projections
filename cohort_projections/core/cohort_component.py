@@ -16,16 +16,30 @@ import copy
 from pathlib import Path
 from typing import Any, Literal, cast
 
-import numpy as np
 import pandas as pd
 
 from ..utils import get_logger_from_config
 from ..utils.config_loader import ConfigLoader
+from ..utils.demographic_utils import calculate_dependency_ratio, calculate_median_age
 from .fertility import apply_fertility_scenario, calculate_births, validate_fertility_rates
 from .migration import apply_migration, apply_migration_scenario, validate_migration_data
 from .mortality import apply_survival_rates, validate_survival_rates
 
 logger = get_logger_from_config(__name__)
+
+
+def _median_age_for_summary(population: pd.DataFrame) -> float:
+    """Compute median age with 0.0 fallback for empty/undefined inputs."""
+    median = calculate_median_age(population)
+    return 0.0 if pd.isna(median) else float(median)
+
+
+def _dependency_ratio_for_summary(population: pd.DataFrame) -> float:
+    """Compute total dependency ratio as a decimal with 0.0 fallback."""
+    total_dependency_pct = calculate_dependency_ratio(population)["total_dependency"]
+    if pd.isna(total_dependency_pct):
+        return 0.0
+    return float(total_dependency_pct) / 100.0
 
 
 class CohortComponentProjection:
@@ -35,6 +49,9 @@ class CohortComponentProjection:
     Implements the standard demographic cohort-component method for
     population projections by age, sex, and race/ethnicity.
     """
+
+    _calculate_median_age = staticmethod(_median_age_for_summary)
+    _calculate_dependency_ratio = staticmethod(_dependency_ratio_for_summary)
 
     def __init__(
         self,
@@ -443,37 +460,6 @@ class CohortComponentProjection:
         summary["population_65_plus"] = population[population["age"] >= 65]["population"].sum()
 
         return summary
-
-    def _calculate_median_age(self, population: pd.DataFrame) -> float:
-        """Calculate median age of population."""
-        # Expand population to individual ages
-        ages = []
-        for _, row in population.iterrows():
-            ages.extend([row["age"]] * int(row["population"]))
-
-        if len(ages) == 0:
-            return 0.0
-
-        return float(np.median(ages))
-
-    def _calculate_dependency_ratio(self, population: pd.DataFrame) -> float:
-        """
-        Calculate dependency ratio.
-
-        Dependency ratio = (Pop < 18 + Pop 65+) / Pop 18-64
-        """
-        dependent = population[(population["age"] < 18) | (population["age"] >= 65)][
-            "population"
-        ].sum()
-
-        working_age = population[(population["age"] >= 18) & (population["age"] < 65)][
-            "population"
-        ].sum()
-
-        if working_age == 0:
-            return 0.0
-
-        return dependent / working_age
 
     def get_projection_summary(self) -> pd.DataFrame:
         """

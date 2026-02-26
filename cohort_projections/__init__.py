@@ -18,3 +18,7 @@ Modules:
     utils: Configuration, reproducibility, and utility functions
     config: Configuration constants and mappings
 """
+
+from .version import __version__
+
+__all__ = ["__version__"]

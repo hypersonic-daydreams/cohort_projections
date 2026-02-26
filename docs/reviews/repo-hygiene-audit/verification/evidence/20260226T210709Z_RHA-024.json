@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-26T21:07:09Z",
+  "claim_id": "RHA-024",
+  "claim_title": "Median age and dependency ratio functions are duplicated",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-024-C1",
+      "description": "Count occurrences of median/dependency function definitions across cited modules.",
+      "required": true,
+      "command": "median=$(rg -n \"def (_?calculate_median_age)\" cohort_projections/utils/demographic_utils.py cohort_projections/core/cohort_component.py cohort_projections/output/reports.py | wc -l); dependency=$(rg -n \"def (_?calculate_dependency_ratio)\" cohort_projections/utils/demographic_utils.py cohort_projections/core/cohort_component.py cohort_projections/output/reports.py | wc -l); echo \"MEDIAN_DEF_COUNT=$median\"; echo \"DEPENDENCY_DEF_COUNT=$dependency\"; if [ \"$median\" -ge 3 ] && [ \"$dependency\" -ge 2 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "MEDIAN_DEF_COUNT=[3-9]",
+          "DEPENDENCY_DEF_COUNT=[2-9]"
+        ]
+      },
+      "executed": true,
+      "passed": false,
+      "failure_reasons": [
+        "Expected exit code 0, got 1.",
+        "stdout missing required token: ASSERTION=PASS",
+        "stdout does not match regex: MEDIAN_DEF_COUNT=[3-9]",
+        "stdout does not match regex: DEPENDENCY_DEF_COUNT=[2-9]"
+      ],
+      "started_at_utc": "2026-02-26T21:07:08Z",
+      "duration_seconds": 0.351,
+      "return_code": 1,
+      "timed_out": false,
+      "stdout": "MEDIAN_DEF_COUNT=1\nDEPENDENCY_DEF_COUNT=1\nASSERTION=FAIL\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 0,
+    "required_total": 1,
+    "required_passed": 0,
+    "claim_passed": false,
+    "dry_run": false
+  }
+}

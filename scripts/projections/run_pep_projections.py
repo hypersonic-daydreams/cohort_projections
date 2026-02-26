@@ -25,6 +25,7 @@ Usage:
 """
 
 import argparse
+import importlib
 import json
 import sys
 import traceback
@@ -61,17 +62,7 @@ def _resolve_pipeline_module() -> Any:
     Returns the 02_run_projections module so callers can access
     ``load_demographic_rates``, ``run_geographic_projections``, etc.
     """
-    import importlib.util
-
-    spec = importlib.util.spec_from_file_location(
-        "run_projections",
-        project_root / "scripts" / "pipeline" / "02_run_projections.py",
-    )
-    if spec is None or spec.loader is None:
-        raise ImportError("Cannot load 02_run_projections.py")
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)  # type: ignore[union-attr]
-    return mod
+    return importlib.import_module("scripts.pipeline.02_run_projections")
 
 
 def parse_args() -> argparse.Namespace:

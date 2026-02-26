@@ -13,6 +13,9 @@ Modules:
     - pep_regime_analysis: Regime-aware migration analysis from Census PEP data
 """
 
+from importlib import import_module
+from types import ModuleType
+
 # Base population processing
 from .base_population import (
     RACE_ETHNICITY_MAP,
@@ -89,6 +92,12 @@ from .survival_rates import (
     validate_survival_rates,
 )
 
+
+def load_example_usage_module() -> ModuleType:
+    """Lazily load the base population example module."""
+    return import_module("cohort_projections.data.process.example_usage")
+
+
 __all__ = [
     # Base population
     "harmonize_race_categories",
@@ -148,4 +157,6 @@ __all__ = [
     "calculate_regime_weighted_average",
     "load_pep_preferred_estimates",
     "generate_regime_analysis_report",
+    # Example entrypoint
+    "load_example_usage_module",
 ]

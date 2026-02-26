@@ -1,11 +1,11 @@
 # Repo Hygiene Audit Open Risks / Blockers Register
 
-**Last Updated (UTC):** 2026-02-26T20:42:11Z  
-**Scope:** Post-B03 closeout
+**Last Updated (UTC):** 2026-02-26T21:07:09Z  
+**Scope:** Post-B04 closeout
 
 ## Purpose
 
-Centralize unresolved risks and blockers so batch sequencing (`B04`-`B06`) does not
+Centralize unresolved risks and blockers so batch sequencing (`B05`-`B06`) does not
 lose operational context.
 
 ## Active Items
@@ -14,7 +14,7 @@ lose operational context.
 
 - Status: `open`
 - Severity: `high`
-- Affected claims: `RHA-001`, `RHA-002`, `RHA-003`, `RHA-004`, `RHA-005`, `RHA-006`, `RHA-007`, `RHA-009`, `RHA-016`, `RHA-019`, `RHA-020`, `RHA-021`, `RHA-022`, `RHA-027`
+- Affected claims: `RHA-001`, `RHA-002`, `RHA-003`, `RHA-004`, `RHA-005`, `RHA-006`, `RHA-007`, `RHA-008`, `RHA-009`, `RHA-010`, `RHA-014`, `RHA-016`, `RHA-019`, `RHA-020`, `RHA-021`, `RHA-022`, `RHA-024`, `RHA-025`, `RHA-027`
 - Current signal: these claims replay as `0/1` because checks still assert pre-remediation states.
 - Impact: noisy verification baseline and ambiguity for B06 final harmonization.
 - Required action:
@@ -45,14 +45,14 @@ lose operational context.
 - Impact: dry-run does not exercise full stage graph.
 - Required action:
   1. Add `--dry-run` handling to skipped stages, or
-  2. codify skip as accepted limitation with dedicated check and rationale.
+  2. Codify skip as accepted limitation with dedicated check and rationale.
 - Exit criterion: deterministic dry-run policy for all seven pipeline stages.
 
 ### RB-004: Full-Repo Lint/Type Debt
 
 - Status: `open`
 - Severity: `medium`
-- Current signal: full baseline still fails (`ruff`, `mypy`) outside B03 scope.
+- Current signal: full baseline still fails (`ruff`, `mypy`) outside B04 scope.
 - Impact: quality gates must continue using explicit non-regression policy by batch scope.
 - Required action:
   1. Create dedicated debt-reduction wave (or ADR-backed policy) for baseline cleanup.

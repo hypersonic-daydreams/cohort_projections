@@ -18,6 +18,7 @@ from typing import Any, Literal
 import pandas as pd
 
 from ..utils import get_logger_from_config
+from ..utils.demographic_utils import calculate_median_age
 
 logger = get_logger_from_config(__name__)
 
@@ -613,7 +614,7 @@ def generate_text_report(
     return output_path
 
 
-def _calculate_median_age(population_df: pd.DataFrame) -> float:
+def _median_age_for_report(population_df: pd.DataFrame) -> float:
     """
     Calculate median age from population data.
 
@@ -623,21 +624,13 @@ def _calculate_median_age(population_df: pd.DataFrame) -> float:
     Returns:
         Median age
     """
-    if population_df.empty:
+    if population_df.empty or "population" not in population_df.columns:
         return 0.0
+    median = calculate_median_age(population_df)
+    return 0.0 if pd.isna(median) else float(median)
 
-    # Create age distribution
-    age_dist = population_df.groupby("age")["population"].sum().sort_index()
 
-    if age_dist.sum() == 0:
-        return 0.0
-
-    # Find median (50th percentile)
-    cumsum = age_dist.cumsum()
-    total = age_dist.sum()
-    median_idx = (cumsum >= total / 2).idxmax()
-
-    return float(median_idx)
+_calculate_median_age = _median_age_for_report
 
 
 def _build_html_report(

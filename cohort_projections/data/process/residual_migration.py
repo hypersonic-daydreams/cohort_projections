@@ -13,9 +13,8 @@ This module implements the full pipeline:
     1. Load population snapshots for 6 time points (2000-2024)
     1b. (ADR-055 Phase 2) Subtract GQ from population snapshots
     2. Load survival rates
-    3. Compute residual migration for each 5-year period, applying:
-       - Oil-boom dampening to Bakken counties (ADR-040, ADR-051)
-       - Male migration dampening for boom periods
+    3. Compute residual migration for each 5-year period, applying oil-boom
+       dampening to Bakken counties (ADR-040, ADR-051) and male dampening
     4. PEP recalibration for reservation counties (ADR-045)
     5. Apply college-age smoothing to period-level rates (ADR-049)
     6. Average rates across all periods
@@ -23,16 +22,11 @@ This module implements the full pipeline:
 
 ADR-049 note: College-age smoothing is applied to period-level rates
 BEFORE averaging and saving. This ensures the convergence pipeline
-(which reads residual_migration_rates.parquet) operates on smoothed
-rates. Smoothing is NOT re-applied to averaged rates to avoid
-double-smoothing.
+(which reads residual_migration_rates.parquet) operates on smoothed rates.
+Smoothing is NOT re-applied to averaged rates to avoid double-smoothing.
 
-ADR-055 Phase 2: When GQ correction is enabled, population snapshots
-have group quarters subtracted before residual computation. This
-produces migration rates computed on household-only population, removing
-institutional rotation signals (dorm turnover, military PCS cycles).
-
-Output files are written to data/processed/migration/.
+ADR-055 Phase 2: GQ correction subtracts group quarters before residual
+computation, producing household-only migration rates and reducing institutional rotation artifacts.
 """
 
 import json
@@ -52,15 +46,12 @@ from cohort_projections.data.load.census_age_sex_population import (
 from cohort_projections.utils import get_logger_from_config, load_projection_config
 
 logger = get_logger_from_config(__name__)
-
 # Default oil-boom counties (Bakken region)
 OIL_COUNTIES: list[str] = ["38105", "38053", "38061", "38025", "38089"]
-
 
 def _age_group_index(label: str) -> int:
     """Return the positional index of an age group label in AGE_GROUP_LABELS."""
     return AGE_GROUP_LABELS.index(label)
-
 
 def _annualize_period_migration_rate(period_rate: float, period_length: int) -> float:
     """Convert a multi-year net migration rate into an annual rate.
@@ -83,7 +74,6 @@ def _annualize_period_migration_rate(period_rate: float, period_length: int) -> 
 
     if period_rate <= -1.0:
         return -1.0
-
     return (1.0 + period_rate) ** (1.0 / period_length) - 1.0
 
 
