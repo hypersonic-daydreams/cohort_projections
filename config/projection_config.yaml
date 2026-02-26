@@ -73,6 +73,16 @@ base_population:
     path: "data/processed/county_age_sex_race_distributions.parquet"
     blend_threshold: 5000  # Counties below this pop blend with statewide
 
+  # ADR-055: Group quarters population separation
+  # Separates GQ (military, college dorms, nursing facilities) from household
+  # population. The engine projects only household pop; GQ is added back as
+  # a constant at each projection year.
+  group_quarters:
+    enabled: true
+    method: "hold_constant"  # GQ held at base-year levels through projection horizon
+    gq_data_path: "data/processed/gq_county_age_sex_2025.parquet"
+    race_distribution: "county_proportional"  # Distribute GQ across races using county race shares
+
 demographics:
   age_groups:
     type: "single_year"  # or "5_year"
@@ -173,6 +183,13 @@ rates:
           - [2020, 2024]
         survival_source: "CDC_ND_2020"
         averaging: "simple_average"
+        # ADR-055 Phase 2: GQ-corrected migration rates
+        # Subtract group quarters from population snapshots before computing
+        # residual migration, removing institutional rotation signals.
+        gq_correction:
+          enabled: true
+          historical_gq_path: "data/processed/gq_county_age_sex_historical.parquet"
+          pre_2020_method: "backward_constant"  # 2020 GQ used for 2000-2015
         # PEP-anchored recalibration for reservation counties (ADR-045)
         pep_recalibration:
           enabled: true

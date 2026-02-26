@@ -11,6 +11,7 @@ residual method:
 
 This module implements the full pipeline:
     1. Load population snapshots for 6 time points (2000-2024)
+    1b. (ADR-055 Phase 2) Subtract GQ from population snapshots
     2. Load survival rates
     3. Compute residual migration for each 5-year period, applying:
        - Oil-boom dampening to Bakken counties (ADR-040, ADR-051)
@@ -25,6 +26,11 @@ BEFORE averaging and saving. This ensures the convergence pipeline
 (which reads residual_migration_rates.parquet) operates on smoothed
 rates. Smoothing is NOT re-applied to averaged rates to avoid
 double-smoothing.
+
+ADR-055 Phase 2: When GQ correction is enabled, population snapshots
+have group quarters subtracted before residual computation. This
+produces migration rates computed on household-only population, removing
+institutional rotation signals (dorm turnover, military PCS cycles).
 
 Output files are written to data/processed/migration/.
 """
@@ -933,6 +939,69 @@ def _load_survival_rates(config: dict[str, Any]) -> pd.DataFrame:
     return surv[["age_group", "sex", "survival_rate_5yr"]]
 
 
+def subtract_gq_from_populations(
+    populations: dict[int, pd.DataFrame],
+    gq_historical: pd.DataFrame,
+) -> dict[int, pd.DataFrame]:
+    """Subtract group quarters from population snapshots to get household-only.
+
+    For each time point, merges the GQ estimate by (county_fips, age_group, sex)
+    and subtracts: household_pop = max(population - gq_population, 0).
+
+    The GQ historical file has columns: county_fips, year, age_group, sex,
+    gq_population. Population snapshots have: county_fips, age_group, sex,
+    population.
+
+    Args:
+        populations: Dict mapping year to DataFrame with columns
+            [county_fips, age_group, sex, population].
+        gq_historical: DataFrame with columns
+            [county_fips, year, age_group, sex, gq_population].
+
+    Returns:
+        Dict mapping year to DataFrame with household-only population.
+        Same structure as input, but population values have GQ subtracted.
+    """
+    result: dict[int, pd.DataFrame] = {}
+
+    for year, pop_df in populations.items():
+        gq_year = gq_historical[gq_historical["year"] == year]
+
+        if gq_year.empty:
+            logger.warning(
+                f"GQ correction: no GQ data for year {year}; "
+                f"using total population unchanged"
+            )
+            result[year] = pop_df.copy()
+            continue
+
+        total_before = pop_df["population"].sum()
+
+        # Merge GQ onto population
+        merged = pop_df.merge(
+            gq_year[["county_fips", "age_group", "sex", "gq_population"]],
+            on=["county_fips", "age_group", "sex"],
+            how="left",
+        )
+        merged["gq_population"] = merged["gq_population"].fillna(0.0)
+
+        # Subtract GQ, floor at zero
+        merged["population"] = (merged["population"] - merged["gq_population"]).clip(lower=0.0)
+
+        total_after = merged["population"].sum()
+        gq_subtracted = total_before - total_after
+
+        logger.info(
+            f"GQ correction year {year}: total pop {total_before:,.0f} → "
+            f"HH pop {total_after:,.0f} (GQ removed: {gq_subtracted:,.0f})"
+        )
+
+        # Drop the gq_population column
+        result[year] = merged[["county_fips", "age_group", "sex", "population"]].copy()
+
+    return result
+
+
 def run_residual_migration_pipeline(
     config: dict[str, Any] | None = None,
 ) -> dict[str, pd.DataFrame]:
@@ -972,20 +1041,47 @@ def run_residual_migration_pipeline(
     output_dir = project_root / "data" / "processed" / "migration"
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # --- Load configuration for all steps ---
+    migration_cfg = config.get("rates", {}).get("migration", {}).get("domestic", {})
+    residual_cfg = migration_cfg.get("residual", {})
+    dampening_cfg = migration_cfg.get("dampening", {})
+    adjustments_cfg = migration_cfg.get("adjustments", {})
+
     # --- Step 1: Load all population snapshots ---
     logger.info("Step 1: Loading population snapshots")
     populations = assemble_period_populations(config)
+
+    # --- Step 1b: Subtract GQ from population snapshots (ADR-055 Phase 2) ---
+    gq_correction_cfg = residual_cfg.get("gq_correction", {})
+    gq_correction_enabled = gq_correction_cfg.get("enabled", False)
+
+    if gq_correction_enabled:
+        logger.info("Step 1b: Subtracting GQ from population snapshots (ADR-055 Phase 2)")
+        gq_path = gq_correction_cfg.get(
+            "historical_gq_path",
+            "data/processed/gq_county_age_sex_historical.parquet",
+        )
+        gq_full_path = project_root / gq_path
+        if not gq_full_path.exists():
+            raise FileNotFoundError(
+                f"GQ historical data not found: {gq_full_path}. "
+                f"Run scripts/data/fetch_census_gq_data.py first."
+            )
+        gq_historical = pd.read_parquet(gq_full_path)
+        logger.info(
+            f"Loaded historical GQ data: {len(gq_historical)} rows, "
+            f"years: {sorted(gq_historical['year'].unique())}"
+        )
+        populations = subtract_gq_from_populations(populations, gq_historical)
+    else:
+        logger.info("Step 1b: GQ correction disabled; using total population")
 
     # --- Step 2: Load survival rates ---
     logger.info("Step 2: Loading survival rates")
     survival_rates = _load_survival_rates(config)
     logger.info(f"Loaded {len(survival_rates)} survival rate records")
 
-    # --- Step 3: Get configuration for periods and adjustments ---
-    migration_cfg = config.get("rates", {}).get("migration", {}).get("domestic", {})
-    residual_cfg = migration_cfg.get("residual", {})
-    dampening_cfg = migration_cfg.get("dampening", {})
-    adjustments_cfg = migration_cfg.get("adjustments", {})
+    # --- Step 3: Get period and adjustment configuration ---
 
     periods = residual_cfg.get(
         "periods",
@@ -1163,6 +1259,15 @@ def run_residual_migration_pipeline(
             "counties": pep_recal_cfg.get("counties", []),
             "near_zero_threshold": pep_recal_cfg.get("near_zero_threshold", 10),
             "per_county_period": pep_recal_metadata,
+        },
+        "gq_correction": {
+            "enabled": gq_correction_enabled,
+            "historical_gq_path": gq_correction_cfg.get(
+                "historical_gq_path", ""
+            ),
+            "pre_2020_method": gq_correction_cfg.get(
+                "pre_2020_method", "backward_constant"
+            ),
         },
         "survival_source": residual_cfg.get("survival_source", "CDC_ND_2020"),
         "summary": {

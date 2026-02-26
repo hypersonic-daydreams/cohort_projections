@@ -1,7 +1,7 @@
 # ADR-036: Migration Averaging Methodology — Multi-Period and Interpolation Approaches
 
 ## Status
-Proposed
+Accepted
 
 ## Date
 2026-02-12
@@ -330,3 +330,35 @@ data/projections/
 - **ADR-035: Census PEP Components of Change for Migration Inputs** — Established PEP as data source; this ADR refines how the data is averaged
 - **ADR-034: Census PEP Data Archive** — Infrastructure for PEP data access
 - **ADR-010: Geographic Scope and Granularity** — County-level focus
+
+## Implementation Results (2026-02-23)
+
+BEBR multi-period averaging with trimmed average combination is fully implemented and active in `config/projection_config.yaml`:
+
+```yaml
+averaging_method: "BEBR_multiperiod"
+base_periods:
+  short: [2019, 2024]
+  medium: [2014, 2024]
+  long: [2005, 2024]
+  full: [2000, 2024]
+combination: "trimmed_average"
+```
+
+This is supplemented by Census Bureau-style convergence interpolation with rate caps (ADR-043: 15% for ages 15-24, 8% general).
+
+Fresh projection results (2026-02-23, all 53 counties):
+
+| Scenario | 2025 | 2035 | 2045 | 2055 | 30yr Change |
+|----------|------|------|------|------|-------------|
+| Baseline | 799,358 | 836,864 | 880,325 | 900,971 | +12.7% |
+| High Growth | 799,358 | 893,032 | 984,698 | 1,067,814 | +33.6% |
+| Restricted | 799,358 | 818,263 | 840,795 | 842,885 | +5.4% |
+
+Key findings:
+- Scenario ordering is clean: zero violations across all 53 counties
+- Scenario spread is asymmetric: restricted -6.4% below baseline, high +18.5% above
+- The total uncertainty envelope (high minus restricted = 224,929 persons, 25% of baseline) appropriately communicates projection uncertainty
+- Baseline annualized growth of +0.4%/yr is moderate and plausible for ND's post-boom trajectory
+
+**Known Issue**: County-level projections sum to 900,971 at 2055, but the independent state-level projection produces only 814,934 — a 10.6% discrepancy. This aggregation gap is being investigated under ADR-054.

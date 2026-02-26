@@ -5,6 +5,12 @@ Loads and transforms base population data into the format required by
 the cohort-component projection engine. Creates age x sex x race cohort
 matrices from raw Census data and pre-computed distributions.
 
+ADR-055: Group Quarters Population Separation
+When group_quarters.enabled is True in config, this module separates
+group quarters (GQ) population from total population before projection.
+The engine then projects only household population. GQ is added back
+as a constant after projection (see the pipeline module).
+
 The projection engine expects DataFrames with columns:
     [year, age, sex, race, population]
 
@@ -844,6 +850,312 @@ def load_county_populations(
     return result
 
 
+# ---------------------------------------------------------------------------
+# ADR-055: Group Quarters Population Separation
+# ---------------------------------------------------------------------------
+
+# Module-level cache for GQ data (loaded once, reused across counties)
+_gq_data_cache: pd.DataFrame | None = None
+
+# Module-level storage for per-county GQ populations (age x sex x race)
+# Used by the pipeline to add GQ back after projection.
+# Maps county_fips -> DataFrame[year, age, sex, race, gq_population]
+_county_gq_populations: dict[str, pd.DataFrame] = {}
+
+
+def get_county_gq_population(fips: str) -> pd.DataFrame | None:
+    """
+    Retrieve the stored GQ population for a county (ADR-055).
+
+    This is called by the pipeline after projection to add GQ back
+    as a constant.
+
+    Args:
+        fips: 5-digit county FIPS code
+
+    Returns:
+        DataFrame with columns [year, age, sex, race, gq_population],
+        or None if GQ separation was not performed for this county.
+    """
+    fips = str(fips).zfill(5)
+    return _county_gq_populations.get(fips)
+
+
+def get_all_county_gq_populations() -> dict[str, pd.DataFrame]:
+    """
+    Retrieve all stored county GQ populations (ADR-055).
+
+    Returns:
+        Dict mapping county_fips -> GQ population DataFrame.
+    """
+    return _county_gq_populations.copy()
+
+
+def clear_gq_cache() -> None:
+    """Clear the GQ data cache and stored county GQ populations."""
+    global _gq_data_cache
+    _gq_data_cache = None
+    _county_gq_populations.clear()
+
+
+def _load_gq_data(config: dict[str, Any]) -> pd.DataFrame | None:
+    """
+    Load the GQ data parquet file (ADR-055).
+
+    Returns DataFrame with columns [county_fips, age_group, sex, gq_population]
+    or None if GQ separation is disabled or the file is not found.
+    """
+    global _gq_data_cache
+
+    if _gq_data_cache is not None:
+        return _gq_data_cache
+
+    gq_config = config.get("base_population", {}).get("group_quarters", {})
+    if not gq_config.get("enabled", False):
+        return None
+
+    gq_path_str = gq_config.get(
+        "gq_data_path", "data/processed/gq_county_age_sex_2025.parquet"
+    )
+    project_root = Path(__file__).parent.parent.parent.parent
+    gq_path = project_root / gq_path_str
+
+    if not gq_path.exists():
+        logger.warning(
+            f"ADR-055: GQ data file not found: {gq_path}. "
+            "Skipping GQ separation. Run scripts/data/fetch_census_gq_data.py first."
+        )
+        return None
+
+    logger.info(f"ADR-055: Loading GQ data from {gq_path}")
+    _gq_data_cache = pd.read_parquet(gq_path)
+    logger.info(
+        f"ADR-055: Loaded GQ data for "
+        f"{_gq_data_cache['county_fips'].nunique()} counties"
+    )
+    return _gq_data_cache
+
+
+def _expand_gq_to_single_year_ages(
+    gq_county: pd.DataFrame,
+    max_age: int = 90,
+) -> pd.DataFrame:
+    """
+    Expand GQ data from 5-year age groups to single-year ages (ADR-055).
+
+    Uses uniform distribution within each 5-year age group (simpler than
+    Sprague for GQ since the population is small and already approximate).
+
+    Args:
+        gq_county: DataFrame with columns [age_group, sex, gq_population]
+                   for a single county.
+        max_age: Maximum single-year age (default 90).
+
+    Returns:
+        DataFrame with columns [age, sex, gq_population] with single-year ages.
+    """
+    expanded_rows: list[dict[str, int | str | float]] = []
+
+    for _, row in gq_county.iterrows():
+        age_group = row["age_group"]
+        sex = row["sex"]
+        gq_pop = float(row["gq_population"])
+
+        if age_group not in AGE_GROUP_RANGES:
+            logger.warning(f"ADR-055: Unknown age group in GQ data: {age_group}")
+            continue
+
+        ages = AGE_GROUP_RANGES[age_group]
+        pop_per_age = gq_pop / len(ages) if len(ages) > 0 else 0.0
+
+        for age in ages:
+            expanded_rows.append({
+                "age": age,
+                "sex": sex,
+                "gq_population": pop_per_age,
+            })
+
+    return pd.DataFrame(expanded_rows)
+
+
+def _distribute_gq_across_races(
+    gq_single_year: pd.DataFrame,
+    base_pop: pd.DataFrame,
+    config: dict[str, Any],
+) -> pd.DataFrame:
+    """
+    Distribute GQ population across race categories (ADR-055).
+
+    Uses county-level race proportions from the base population to distribute
+    GQ across races, since race-specific GQ data is not available at the
+    county level.
+
+    Args:
+        gq_single_year: DataFrame with [age, sex, gq_population] (no race yet)
+        base_pop: Full base population DataFrame with [year, age, sex, race, population]
+        config: Configuration dictionary
+
+    Returns:
+        DataFrame with columns [age, sex, race, gq_population]
+    """
+    demographics = config.get("demographics", {})
+    expected_races = demographics.get("race_ethnicity", {}).get(
+        "categories",
+        [
+            "White alone, Non-Hispanic",
+            "Black alone, Non-Hispanic",
+            "AIAN alone, Non-Hispanic",
+            "Asian/PI alone, Non-Hispanic",
+            "Two or more races, Non-Hispanic",
+            "Hispanic (any race)",
+        ],
+    )
+
+    # Compute county-wide race shares from the base population
+    race_totals = base_pop.groupby("race")["population"].sum()
+    county_total = race_totals.sum()
+
+    if county_total == 0:
+        # No population; distribute uniformly across races
+        race_shares = {race: 1.0 / len(expected_races) for race in expected_races}
+    else:
+        race_shares = {}
+        for race in expected_races:
+            race_shares[race] = race_totals.get(race, 0.0) / county_total
+
+    # Distribute each age-sex GQ cell across races
+    rows: list[dict[str, int | str | float]] = []
+    for _, row in gq_single_year.iterrows():
+        age = int(row["age"])
+        sex = row["sex"]
+        gq_pop = float(row["gq_population"])
+
+        for race in expected_races:
+            rows.append({
+                "age": age,
+                "sex": sex,
+                "race": race,
+                "gq_population": gq_pop * race_shares[race],
+            })
+
+    return pd.DataFrame(rows)
+
+
+def _separate_gq_from_base_population(
+    fips: str,
+    base_pop: pd.DataFrame,
+    config: dict[str, Any],
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Separate group quarters from total base population (ADR-055).
+
+    Loads the GQ data for the county, expands to single-year ages,
+    distributes across races, and subtracts from the total base population
+    to produce household-only population.
+
+    GQ is capped at total population in each cell to prevent negative
+    household populations.
+
+    Args:
+        fips: 5-digit county FIPS code
+        base_pop: Total base population DataFrame with
+                  columns [year, age, sex, race, population]
+        config: Configuration dictionary
+
+    Returns:
+        Tuple of (household_pop, gq_pop) where:
+        - household_pop: DataFrame with same columns as base_pop, population
+          reduced by GQ amounts
+        - gq_pop: DataFrame with columns [year, age, sex, race, gq_population]
+          representing the GQ component
+    """
+    fips = str(fips).zfill(5)
+
+    # Load GQ data
+    gq_data = _load_gq_data(config)
+    if gq_data is None:
+        logger.debug(f"ADR-055: No GQ data available for {fips}, returning full population")
+        # Return empty GQ DataFrame with correct columns
+        gq_empty = base_pop[["year", "age", "sex", "race"]].copy()
+        gq_empty["gq_population"] = 0.0
+        return base_pop, gq_empty
+
+    # Filter to this county
+    county_gq = gq_data[gq_data["county_fips"] == fips].copy()
+
+    if county_gq.empty:
+        logger.debug(f"ADR-055: No GQ data for county {fips}")
+        gq_empty = base_pop[["year", "age", "sex", "race"]].copy()
+        gq_empty["gq_population"] = 0.0
+        return base_pop, gq_empty
+
+    county_gq_total = county_gq["gq_population"].sum()
+    if county_gq_total == 0:
+        logger.debug(f"ADR-055: County {fips} has zero GQ population")
+        gq_empty = base_pop[["year", "age", "sex", "race"]].copy()
+        gq_empty["gq_population"] = 0.0
+        return base_pop, gq_empty
+
+    logger.info(
+        f"ADR-055: Separating GQ for county {fips}: "
+        f"GQ total = {county_gq_total:,.0f}"
+    )
+
+    # Step 1: Expand 5-year age groups to single-year ages
+    gq_single_year = _expand_gq_to_single_year_ages(
+        county_gq[["age_group", "sex", "gq_population"]]
+    )
+
+    # Step 2: Distribute across races using county race proportions
+    gq_with_race = _distribute_gq_across_races(gq_single_year, base_pop, config)
+
+    # Step 3: Add year column to match base_pop format
+    base_year = base_pop["year"].iloc[0] if not base_pop.empty else 2025
+    gq_with_race["year"] = base_year
+
+    # Step 4: Merge GQ with base_pop and subtract
+    household_pop = base_pop.copy()
+    gq_result = base_pop[["year", "age", "sex", "race"]].copy()
+    gq_result["gq_population"] = 0.0
+
+    # Build GQ lookup for fast matching
+    gq_lookup = gq_with_race.set_index(["age", "sex", "race"])["gq_population"]
+
+    for idx in household_pop.index:
+        age = household_pop.at[idx, "age"]
+        sex = household_pop.at[idx, "sex"]
+        race = household_pop.at[idx, "race"]
+        total_pop = household_pop.at[idx, "population"]
+
+        key = (age, sex, race)
+        if key in gq_lookup.index:
+            gq_val = float(gq_lookup.loc[key])
+            # Aggregate if multiple entries for same key
+            if isinstance(gq_val, pd.Series):
+                gq_val = gq_val.sum()
+        else:
+            gq_val = 0.0
+
+        # Cap GQ at total population to prevent negative household pop
+        gq_val = min(gq_val, total_pop)
+
+        household_pop.at[idx, "population"] = total_pop - gq_val
+        gq_result.at[idx, "gq_population"] = gq_val
+
+    # Store the GQ population for later retrieval by the pipeline
+    _county_gq_populations[fips] = gq_result.copy()
+
+    hh_total = household_pop["population"].sum()
+    gq_actual = gq_result["gq_population"].sum()
+    county_total = hh_total + gq_actual
+    logger.info(
+        f"ADR-055: County {fips}: Total={county_total:,.0f} -> "
+        f"Household={hh_total:,.0f} + GQ={gq_actual:,.0f}"
+    )
+
+    return household_pop, gq_result
+
+
 def load_base_population_for_county(
     fips: str,
     config: dict[str, Any] | None = None,
@@ -950,6 +1262,16 @@ def load_base_population_for_county(
         )
 
     logger.info(f"Created base population with {len(base_pop)} cohorts, total: {actual_total:,.0f}")
+
+    # ADR-055: Separate group quarters from household population
+    gq_config = config.get("base_population", {}).get("group_quarters", {})
+    if gq_config.get("enabled", False):
+        household_pop, _gq_pop = _separate_gq_from_base_population(
+            fips=fips,
+            base_pop=base_pop,
+            config=config,
+        )
+        return household_pop
 
     return base_pop
 

@@ -25,6 +25,7 @@ Usage:
 """
 
 import argparse
+import json
 import sys
 import traceback
 from datetime import UTC, datetime
@@ -278,6 +279,139 @@ def aggregate_county_results(output_dir: Path, scenario: str) -> pd.DataFrame | 
     return None
 
 
+def save_bottom_up_state_projection(
+    output_dir: Path, scenario: str, config: dict[str, Any]
+) -> Path | None:
+    """Aggregate county parquet files into a bottom-up state-level projection.
+
+    Reads all county-level projection parquet files for a given scenario,
+    sums population across counties by (year, age, sex, race), and saves
+    the result as a state-level parquet file. Also produces a summary CSV
+    with year-level totals and a metadata JSON documenting the aggregation.
+
+    This implements ADR-054 (Bottom-Up State Derivation), which resolves
+    the Jensen's inequality discrepancy between independent state projections
+    and county-sum totals.
+
+    Args:
+        output_dir: Base output directory for projections (e.g., data/projections).
+        scenario: Scenario name (e.g., "baseline", "high_growth").
+        config: Loaded projection configuration dictionary.
+
+    Returns:
+        Path to the saved state-level parquet file, or None if no county
+        files were found or aggregation failed.
+    """
+    county_dir = output_dir / scenario / "county"
+    if not county_dir.exists():
+        logger.warning("County directory not found: %s", county_dir)
+        return None
+
+    parquet_files = sorted(county_dir.glob("*.parquet"))
+    if not parquet_files:
+        logger.warning("No county parquet files found in %s", county_dir)
+        return None
+
+    # Read and concatenate all county files
+    county_dfs = []
+    for pf in parquet_files:
+        try:
+            df = pd.read_parquet(pf)
+            county_dfs.append(df)
+        except Exception as e:
+            logger.warning("Could not load %s: %s", pf.name, e)
+
+    if not county_dfs:
+        logger.warning("No county files could be loaded for scenario '%s'", scenario)
+        return None
+
+    all_counties = pd.concat(county_dfs, ignore_index=True)
+    n_counties = len(parquet_files)
+
+    # Aggregate to state level: sum population by (year, age, sex, race)
+    group_cols = ["year", "age", "sex", "race"]
+    missing_cols = [c for c in group_cols + ["population"] if c not in all_counties.columns]
+    if missing_cols:
+        logger.error(
+            "County data missing required columns %s; cannot aggregate to state", missing_cols
+        )
+        return None
+
+    state_df = (
+        all_counties.groupby(group_cols, as_index=False)["population"]
+        .sum()
+        .sort_values(["year", "age", "sex", "race"])
+        .reset_index(drop=True)
+    )
+
+    # Derive base_year and end_year from config
+    base_year = config.get("project", {}).get("base_year", 2025)
+    projection_horizon = config.get("project", {}).get("projection_horizon", 30)
+    end_year = base_year + projection_horizon
+
+    # Create state output directory
+    state_dir = output_dir / scenario / "state"
+    state_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save state-level parquet
+    parquet_name = f"nd_state_38_projection_{base_year}_{end_year}_{scenario}.parquet"
+    parquet_path = state_dir / parquet_name
+    state_df.to_parquet(parquet_path, index=False)
+    logger.info(
+        "Saved bottom-up state projection: %s (%s rows, %d counties aggregated)",
+        parquet_path,
+        f"{len(state_df):,}",
+        n_counties,
+    )
+
+    # Generate summary CSV with year-level totals
+    year_totals = (
+        state_df.groupby("year")["population"]
+        .sum()
+        .reset_index()
+        .rename(columns={"population": "total_population"})
+    )
+    csv_name = f"nd_state_38_projection_{base_year}_{end_year}_{scenario}_summary.csv"
+    csv_path = state_dir / csv_name
+    year_totals.to_csv(csv_path, index=False)
+    logger.info("Saved state summary CSV: %s", csv_path)
+
+    # Generate metadata JSON
+    base_pop = float(year_totals.loc[year_totals["year"] == base_year, "total_population"].iloc[0])
+    final_pop = float(year_totals.loc[year_totals["year"] == end_year, "total_population"].iloc[0])
+
+    metadata = {
+        "method": "bottom_up_county_aggregation",
+        "adr": "ADR-054",
+        "scenario": scenario,
+        "n_counties": n_counties,
+        "base_year": base_year,
+        "end_year": end_year,
+        "base_population": round(base_pop),
+        "final_population": round(final_pop),
+        "growth_pct": round((final_pop - base_pop) / base_pop * 100, 2) if base_pop > 0 else 0.0,
+        "processing_date": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S UTC"),
+        "source_files": [pf.name for pf in parquet_files],
+    }
+    metadata_name = f"nd_state_38_projection_{base_year}_{end_year}_{scenario}_metadata.json"
+    metadata_path = state_dir / metadata_name
+    with open(metadata_path, "w") as f:
+        json.dump(metadata, f, indent=2)
+    logger.info("Saved state metadata: %s", metadata_path)
+
+    # Log diagnostic summary at key years
+    logger.info(
+        "Bottom-up state totals for '%s' (%d counties):", scenario, n_counties
+    )
+    for year in REPORT_YEARS + [end_year]:
+        row = year_totals.loc[year_totals["year"] == year]
+        if not row.empty:
+            pop = float(row["total_population"].iloc[0])
+            logger.info("  %d: %s", year, f"{pop:,.0f}")
+
+    return parquet_path
+
+
 def print_comparison_table(
     pep_totals: pd.DataFrame | None,
     irs_totals: pd.DataFrame | None,
@@ -499,9 +633,14 @@ def run_pep_projections(
         logger.error("Projection pipeline returned non-zero exit code: %d", exit_code)
         return exit_code
 
-    # Post-processing: comparison and summary reports
+    # Post-processing: save bottom-up state files, comparison and summary reports
     for scenario in scenarios:
-        # Aggregate PEP results
+        # Save bottom-up state projection (ADR-054)
+        state_path = save_bottom_up_state_projection(output_dir, scenario, config)
+        if state_path:
+            logger.info("State projection saved: %s", state_path)
+
+        # Aggregate PEP results for summary printing
         pep_totals = aggregate_county_results(output_dir, scenario)
 
         # Load IRS baseline for comparison (only compare with baseline)

@@ -1,7 +1,7 @@
 # ADR-033: City-Level Projection Methodology
 
 ## Status
-Proposed
+Deferred
 
 ## Date
 2026-02-02
@@ -203,6 +203,18 @@ Project housing units, apply persons-per-household.
 - Requires housing development data
 - Could complement share-trending for near-term
 
+## Deferral Rationale
+
+### Deferral Rationale (2026-02-23 Analysis)
+
+City-level projections are deferred pending resolution of a prerequisite issue:
+
+1. **State-County Aggregation Discrepancy**: The sum of 53 county projections exceeds the independent state projection by ~86,000 persons (10.6%) at 2055. City-level share-trending requires consistent county totals as its constraint layer. Adding a third hierarchical level would compound the aggregation problem. This discrepancy is being investigated under ADR-054.
+
+2. **Small-County Limitations**: 18 of 53 counties (34%) project populations under 2,500 by 2055. Cities within these counties would almost universally fall into the LOWER or EXCLUDED confidence tiers, limiting the practical value of city-level detail for roughly a third of counties.
+
+3. **Current county infrastructure is stable** (all 53 counties projecting, zero scenario ordering violations, 1,257 tests passing), so city-level work can proceed once the aggregation issue is resolved.
+
 ## References
 
 1. Smith, S. K., Tayman, J., & Swanson, D. A. (2001). *State and Local Population Projections: Methodology and Analysis*. Kluwer Academic/Plenum Publishers. Chapter 8: Subcounty Population Projections.
@@ -213,6 +225,7 @@ Project housing units, apply persons-per-household.
 
 ## Revision History
 
+- **2026-02-23**: Deferred — state-county aggregation discrepancy (ADR-054) must be resolved before adding city layer
 - **2026-02-02**: Initial proposal (ADR-033)
 
 ## Related ADRs

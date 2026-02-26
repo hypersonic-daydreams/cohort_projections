@@ -41,6 +41,7 @@ except ImportError:
 
 
 from cohort_projections.core.cohort_component import CohortComponentProjection
+from cohort_projections.data.load.base_population_loader import get_county_gq_population
 from cohort_projections.geographic.geography_loader import (
     get_geography_name,
     get_place_to_county_mapping,
@@ -157,6 +158,38 @@ def run_single_geography_projection(
         scenario_name = scenario
 
         projection_results = projection_engine.run_projection(scenario=scenario_name)
+
+        # -----------------------------------------------------------
+        # ADR-055: Add group quarters back as a constant at each year
+        # -----------------------------------------------------------
+        gq_config = (config or {}).get("base_population", {}).get("group_quarters", {})
+        if gq_config.get("enabled", False) and level == "county":
+            gq_pop = get_county_gq_population(fips)
+            if gq_pop is not None and not gq_pop.empty and gq_pop["gq_population"].sum() > 0:
+                gq_total = gq_pop["gq_population"].sum()
+                logger.info(
+                    f"ADR-055: Adding GQ back for {fips}: {gq_total:,.0f} "
+                    f"at each of {projection_results['year'].nunique()} years"
+                )
+                # Build a GQ lookup keyed by (age, sex, race)
+                gq_lookup = (
+                    gq_pop.groupby(["age", "sex", "race"])["gq_population"]
+                    .sum()
+                    .to_dict()
+                )
+
+                # Add GQ population to each year's projection results
+                def _add_gq(row: pd.Series) -> float:
+                    key = (row["age"], row["sex"], row["race"])
+                    return row["population"] + gq_lookup.get(key, 0.0)
+
+                projection_results["population"] = projection_results.apply(
+                    _add_gq, axis=1
+                )
+
+                # Also update the base_year_pop to reflect total (HH + GQ)
+                # so that growth rate calculations are based on total pop
+                base_year_pop = base_year_pop + gq_total
 
         # Get summary
         summary = projection_engine.get_projection_summary()
@@ -574,9 +607,13 @@ def aggregate_to_state(
         State-level aggregated projection DataFrame
 
     Notes:
+        Per ADR-054, the state projection is derived bottom-up by summing
+        all 53 county projections. This replaces the independent state-level
+        projection which used static population-weighted migration rates
+        and diverged by ~10.6% due to Jensen's inequality.
         - All counties aggregated to state total
-        - Should equal independently-run state projection (within rounding)
         - Age-sex-race structure preserved
+        - This is the authoritative state projection method
 
     Example:
         >>> state_projection = aggregate_to_state(county_results)
@@ -647,6 +684,11 @@ def validate_aggregation(
         }
 
     Notes:
+        Per ADR-054, when aggregate_level='state', this compares the
+        bottom-up state (county sum) against an optional diagnostic
+        independent state projection. Large differences are expected
+        due to Jensen's inequality in static-weight migration rates
+        and do not indicate an error in the bottom-up result.
         - Compares sum of component populations to aggregate
         - Allows small tolerance for rounding errors
         - Checks all years separately

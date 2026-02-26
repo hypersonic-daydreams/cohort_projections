@@ -39,6 +39,8 @@ Key ADRs and config:
     ADR-004: Core projection engine architecture
     ADR-037: CBO-grounded scenario methodology (amended by ADR-039, ADR-040)
     ADR-041: Census+PUMS hybrid base population distribution
+    ADR-054: Bottom-up state derivation (aggregate counties instead of
+             independent state projection to avoid Jensen's inequality)
     Config: scenarios.{baseline,restricted_growth,high_growth}
 """
 
@@ -597,6 +599,13 @@ def load_base_population(config: dict[str, Any], fips: str) -> pd.DataFrame:
     the statewide age-sex-race distribution. For county-level FIPS (5 digits),
     delegates to load_base_population_for_county.
 
+    Note (ADR-054): As of ADR-054, state-level projections are derived
+    bottom-up by aggregating county results rather than running an independent
+    state projection through the cohort-component engine. The state-level
+    base population loading path (2-digit FIPS) is retained for diagnostic
+    purposes and for the fallback case where ``--state`` is used without
+    ``--counties``.
+
     Args:
         config: Project configuration
         fips: FIPS code (2-digit state or 5-digit county)
@@ -1151,6 +1160,234 @@ def _build_survival_rates_by_year(
     return result
 
 
+def aggregate_county_results_to_state(
+    output_dir: Path,
+    scenario: str,
+    config: dict[str, Any],
+) -> bool:
+    """
+    Derive state-level projection by summing all county projections (ADR-054).
+
+    Instead of running an independent state projection through the cohort-component
+    engine (which suffers from Jensen's inequality due to population-weighted averaging
+    of nonlinear compound growth rates), this function aggregates county results
+    bottom-up. The county projections are the canonical source; the state is simply
+    their sum.
+
+    The function reads all county parquet files from ``{output_dir}/{scenario}/county/``,
+    concatenates them, groups by ``(year, age, sex, race)`` summing ``population``,
+    and writes the result to ``{output_dir}/{scenario}/state/`` using the same file
+    naming and metadata conventions as the engine-based outputs.
+
+    Args:
+        output_dir: Root projections output directory (e.g. ``data/projections``).
+        scenario: Scenario name (e.g. ``"baseline"``).
+        config: Project configuration dict.
+
+    Returns:
+        True if aggregation succeeded, False otherwise.
+    """
+    county_dir = output_dir / scenario / "county"
+    state_dir = output_dir / scenario / "state"
+
+    if not county_dir.exists():
+        logger.error(f"County output directory not found: {county_dir}")
+        return False
+
+    # Read all county parquet files
+    county_parquets = sorted(county_dir.glob("nd_county_*_projection_*.parquet"))
+    if not county_parquets:
+        logger.error(f"No county parquet files found in {county_dir}")
+        return False
+
+    logger.info(
+        f"ADR-054: Aggregating {len(county_parquets)} county projections "
+        f"to derive state total for scenario '{scenario}'"
+    )
+
+    county_dfs = []
+    for pq_file in county_parquets:
+        try:
+            df = pd.read_parquet(pq_file)
+            county_dfs.append(df)
+        except Exception as e:
+            logger.warning(f"Failed to read {pq_file.name}: {e}")
+
+    if not county_dfs:
+        logger.error("No county parquet files could be read")
+        return False
+
+    # Concatenate and aggregate: sum population across counties
+    # for each (year, age, sex, race) combination
+    all_counties = pd.concat(county_dfs, ignore_index=True)
+    state_df = (
+        all_counties.groupby(["year", "age", "sex", "race"], as_index=False)["population"]
+        .sum()
+        .sort_values(["year", "age", "sex", "race"])
+        .reset_index(drop=True)
+    )
+
+    # Determine base and end years from the data
+    base_year = int(state_df["year"].min())
+    end_year = int(state_df["year"].max())
+    state_fips = config.get("geography", {}).get("state", "38")
+
+    # Create output directory
+    state_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save parquet
+    parquet_name = f"nd_state_{state_fips}_projection_{base_year}_{end_year}_{scenario}.parquet"
+    parquet_path = state_dir / parquet_name
+    state_df.to_parquet(parquet_path, index=False)
+    logger.info(f"Saved state parquet: {parquet_path}")
+
+    # Generate summary CSV (same format as engine outputs)
+    _write_state_summary_csv(state_df, state_dir, state_fips, base_year, end_year, scenario)
+
+    # Generate metadata JSON
+    base_pop = float(state_df.loc[state_df["year"] == base_year, "population"].sum())
+    final_pop = float(state_df.loc[state_df["year"] == end_year, "population"].sum())
+    metadata = {
+        "geography": {
+            "level": "state",
+            "fips": state_fips,
+            "name": "North Dakota",
+            "base_population": base_pop,
+        },
+        "projection": {
+            "base_year": base_year,
+            "end_year": end_year,
+            "scenario": scenario,
+            "processing_date": datetime.now(UTC).isoformat(),
+            "method": "bottom_up_county_aggregation",
+            "adr": "ADR-054",
+        },
+        "summary_statistics": {
+            "base_population": base_pop,
+            "final_population": final_pop,
+            "absolute_growth": final_pop - base_pop,
+            "growth_rate": (final_pop - base_pop) / base_pop if base_pop > 0 else 0.0,
+            "years_projected": end_year - base_year,
+        },
+        "validation": {
+            "negative_populations": int((state_df["population"] < 0).sum()),
+            "all_checks_passed": str((state_df["population"] >= 0).all()),
+        },
+        "aggregation": {
+            "county_files_read": len(county_dfs),
+            "total_county_files": len(county_parquets),
+        },
+    }
+
+    meta_name = f"nd_state_{state_fips}_projection_{base_year}_{end_year}_{scenario}_metadata.json"
+    meta_path = state_dir / meta_name
+    with open(meta_path, "w") as f:
+        json.dump(metadata, f, indent=2)
+    logger.info(f"Saved state metadata: {meta_path}")
+
+    # Write level-aggregate metadata (matches engine output format)
+    level_meta = {
+        "level": "state",
+        "num_geographies": 1,
+        "successful": 1,
+        "failed": 0,
+        "parallel": False,
+        "max_workers": 1,
+        "total_processing_time_seconds": 0.0,
+        "processing_date": datetime.now(UTC).isoformat(),
+        "method": "bottom_up_county_aggregation (ADR-054)",
+    }
+    level_meta_path = state_dir / "states_metadata.json"
+    with open(level_meta_path, "w") as f:
+        json.dump(level_meta, f, indent=2)
+
+    logger.info(
+        f"ADR-054 state aggregation complete: "
+        f"{base_pop:,.0f} ({base_year}) -> {final_pop:,.0f} ({end_year}), "
+        f"growth {(final_pop - base_pop) / base_pop * 100:.1f}%"
+    )
+
+    return True
+
+
+def _write_state_summary_csv(
+    state_df: pd.DataFrame,
+    state_dir: Path,
+    state_fips: str,
+    base_year: int,
+    end_year: int,
+    scenario: str,
+) -> None:
+    """
+    Write a summary CSV for the aggregated state projection.
+
+    Produces one row per year with total population, sex breakdown, race breakdown,
+    median age, dependency ratio, and broad age group populations. This matches the
+    format produced by the engine-based projection outputs.
+
+    Args:
+        state_df: Aggregated state projection DataFrame with columns
+            [year, age, sex, race, population].
+        state_dir: Output directory for state files.
+        state_fips: State FIPS code (e.g. "38").
+        base_year: First projection year.
+        end_year: Last projection year.
+        scenario: Scenario name.
+    """
+    summary_rows = []
+    for year, year_df in state_df.groupby("year"):
+        total_pop = year_df["population"].sum()
+        male_pop = year_df.loc[year_df["sex"] == "Male", "population"].sum()
+        female_pop = year_df.loc[year_df["sex"] == "Female", "population"].sum()
+
+        # Race breakdown
+        race_pops = year_df.groupby("race")["population"].sum()
+
+        # Age groups for dependency ratio
+        under_18 = year_df.loc[year_df["age"] < 18, "population"].sum()
+        working_age = year_df.loc[
+            (year_df["age"] >= 18) & (year_df["age"] < 65), "population"
+        ].sum()
+        over_65 = year_df.loc[year_df["age"] >= 65, "population"].sum()
+        dependency_ratio = (under_18 + over_65) / working_age if working_age > 0 else 0.0
+
+        # Approximate median age: find age where cumulative pop crosses 50%
+        age_pop = year_df.groupby("age")["population"].sum().sort_index()
+        cumulative = age_pop.cumsum()
+        half = total_pop / 2
+        median_age = int(cumulative[cumulative >= half].index[0]) if total_pop > 0 else 0
+
+        row = {
+            "year": int(year),  # type: ignore[arg-type]
+            "total_population": total_pop,
+            "male_population": male_pop,
+            "female_population": female_pop,
+        }
+        # Add race columns in a consistent order
+        for race_name in sorted(race_pops.index):
+            row[f"population_{race_name}"] = race_pops[race_name]
+
+        row["median_age"] = median_age
+        row["dependency_ratio"] = dependency_ratio
+        row["population_under_18"] = under_18
+        row["population_working_age"] = working_age
+        row["population_65_plus"] = over_65
+
+        summary_rows.append(row)
+
+    summary_csv = pd.DataFrame(summary_rows)
+    csv_name = (
+        f"nd_state_{state_fips}_projection_{base_year}_{end_year}_{scenario}_summary.csv"
+    )
+    csv_path = state_dir / csv_name
+    summary_csv.to_csv(csv_path, index=False)
+    logger.info(f"Saved state summary CSV: {csv_path}")
+
+    # Also write the level-aggregate summary (matches engine convention)
+    level_csv_path = state_dir / "states_summary.csv"
+    summary_csv.to_csv(level_csv_path, index=False)
+
+
 def run_geographic_projections(
     geographies: dict[str, list[str]],
     scenario: str,
@@ -1222,10 +1459,44 @@ def run_geographic_projections(
         completed = get_completed_geographies(output_dir.parent, scenario)
         logger.info(f"Resume mode: {len(completed)} geographies already completed")
 
+    # -------------------------------------------------------------------
+    # ADR-054: Bottom-up state derivation
+    #
+    # When both "state" and "county" are requested (the normal --all flow),
+    # skip the independent state projection and instead derive the state
+    # total by summing county results after all counties complete.
+    #
+    # This avoids Jensen's inequality: population-weighted averaging of
+    # county migration rates and running a single state projection
+    # produces a ~10.6% discrepancy vs. summing the 53 independent
+    # county projections (each of which compounds growth nonlinearly).
+    #
+    # If "state" is requested WITHOUT "county" (e.g. --state alone), the
+    # old independent state projection behavior is preserved.
+    # -------------------------------------------------------------------
+    state_requested = bool(geographies.get("state"))
+    counties_requested = bool(geographies.get("county"))
+    derive_state_from_counties = state_requested and counties_requested
+
+    if derive_state_from_counties:
+        logger.info(
+            "ADR-054: State projection will be derived bottom-up from county "
+            "aggregation (skipping independent state engine run)"
+        )
+
     # Process each level
     for level_key, fips_list in geographies.items():
         if not fips_list:
             continue
+
+        # ADR-054: Skip state in the main loop when we will derive it
+        # from county results after all counties complete.
+        if level_key == "state" and derive_state_from_counties:
+            logger.info(
+                "Skipping independent state projection (will derive from counties per ADR-054)"
+            )
+            continue
+
         # Cast to Literal for type safety
         level = cast(Literal["state", "county", "place"], level_key)
 
@@ -1407,6 +1678,46 @@ def run_geographic_projections(
             logger.debug(traceback.format_exc())
             metadata.geographies_failed += len(fips_to_process)
 
+    # -------------------------------------------------------------------
+    # ADR-054: Derive state projection from county aggregation
+    # -------------------------------------------------------------------
+    if derive_state_from_counties and metadata.geographies_completed > 0:
+        logger.info("\nADR-054: Deriving state projection from county aggregation...")
+        try:
+            success = aggregate_county_results_to_state(
+                output_dir=output_dir.parent,  # Pass root projections dir (without scenario)
+                scenario=scenario,
+                config=config,
+            )
+            if success:
+                metadata.geographies_completed += 1
+                logger.info("ADR-054: State projection derived successfully")
+            else:
+                metadata.geographies_failed += 1
+                metadata.failed_geographies.append(
+                    {
+                        "fips": config.get("geography", {}).get("state", "38"),
+                        "level": "state",
+                        "error": "Bottom-up county aggregation failed",
+                    }
+                )
+        except Exception as e:
+            logger.error(f"ADR-054: State aggregation failed: {e}")
+            logger.debug(traceback.format_exc())
+            metadata.geographies_failed += 1
+            metadata.failed_geographies.append(
+                {
+                    "fips": config.get("geography", {}).get("state", "38"),
+                    "level": "state",
+                    "error": str(e),
+                }
+            )
+    elif derive_state_from_counties and metadata.geographies_completed == 0:
+        logger.warning(
+            "ADR-054: Skipping state aggregation because no county projections succeeded"
+        )
+        metadata.geographies_failed += 1
+
     metadata.finalize()
     return metadata
 
@@ -1417,7 +1728,13 @@ def validate_projection_results(
     config: dict[str, Any],
 ) -> bool:
     """
-    Validate projection results including hierarchical aggregation.
+    Validate projection results including bottom-up aggregation diagnostics.
+
+    After ADR-054, the state projection is derived by summing county results.
+    This function logs diagnostic totals at key years (base year, and each
+    decade through the projection horizon) to support review and auditing.
+
+    Also checks for negative populations and logs growth rates.
 
     Args:
         geographies: Dictionary of geographies by level
@@ -1430,30 +1747,63 @@ def validate_projection_results(
     logger.info("Validating projection results...")
 
     try:
-        # Note: output_dir reserved for future file-based validation
-        _ = (
-            Path(
-                config.get("pipeline", {})
-                .get("projection", {})
-                .get("output_dir", "data/projections")
-            )
-            / scenario
+        output_base = Path(
+            config.get("pipeline", {})
+            .get("projection", {})
+            .get("output_dir", "data/projections")
         )
+        scenario_dir = output_base / scenario
 
-        # Validate hierarchical aggregation if configured
-        if config.get("geography", {}).get("hierarchy", {}).get("validate_aggregation", True):
-            logger.info("Validating hierarchical aggregation...")
+        # -----------------------------------------------------------
+        # ADR-054 diagnostics: Log county-sum totals at key years
+        # -----------------------------------------------------------
+        state_dir = scenario_dir / "state"
+        state_fips = config.get("geography", {}).get("state", "38")
+        state_parquets = sorted(state_dir.glob(f"nd_state_{state_fips}_projection_*.parquet"))
 
-            # TODO: Implement proper validation using validate_aggregation function
-            # The validate_aggregation function expects:
-            #   - component_projections: list of projection result dictionaries
-            #   - aggregated_projection: aggregated DataFrame
-            #   - component_level: 'place' or 'county'
-            #   - aggregate_level: 'county' or 'state'
-            #   - tolerance: float
-            # This requires storing projection results across levels for comparison.
-            # For now, skip hierarchical validation.
-            logger.info("Hierarchical validation not yet implemented - skipping")
+        if state_parquets:
+            state_df = pd.read_parquet(state_parquets[0])
+            base_year = int(state_df["year"].min())
+            end_year = int(state_df["year"].max())
+
+            # Key diagnostic years: base year + each decade + end year
+            diagnostic_years = sorted(
+                {base_year}
+                | set(range(base_year + 10, end_year + 1, 10))
+                | {end_year}
+            )
+
+            logger.info(f"  ADR-054 diagnostics for scenario '{scenario}':")
+            base_pop = None
+            for year in diagnostic_years:
+                year_pop = float(
+                    state_df.loc[state_df["year"] == year, "population"].sum()
+                )
+                if base_pop is None:
+                    base_pop = year_pop
+                    growth_str = "(base year)"
+                else:
+                    growth_pct = (year_pop - base_pop) / base_pop * 100
+                    growth_str = f"({growth_pct:+.1f}% from {base_year})"
+                logger.info(f"    {year}: {year_pop:>12,.0f}  {growth_str}")
+
+            # Check for negative populations
+            neg_count = int((state_df["population"] < 0).sum())
+            if neg_count > 0:
+                logger.warning(
+                    f"  WARNING: {neg_count} negative population values in state projection"
+                )
+        else:
+            logger.info("  No state projection file found for diagnostics")
+
+        # County-level diagnostics: log total counties and total population
+        county_dir = scenario_dir / "county"
+        if county_dir.exists() and geographies.get("county"):
+            county_parquets = sorted(county_dir.glob("nd_county_*_projection_*.parquet"))
+            if county_parquets:
+                logger.info(
+                    f"  County projections: {len(county_parquets)} files in {county_dir}"
+                )
 
         logger.info("Validation passed")
         return True

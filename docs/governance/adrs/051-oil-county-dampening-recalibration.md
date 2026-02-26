@@ -1,7 +1,7 @@
 # ADR-051: Oil County Dampening Recalibration
 
 ## Status
-Proposed
+Rejected — Calibration Adequate
 
 ## Date
 2026-02-18
@@ -170,6 +170,34 @@ The dampening is applied in `residual_migration.py` using the factors from confi
 3. **Step 02**: Projections
 4. **Step 03**: Exports
 
+## Implementation Results
+
+### Rationale for Rejection (2026-02-23 Analysis)
+
+Fresh projections run on 2026-02-23 (incorporating ADRs 047-050, 053) show that oil county growth is already well-calibrated when compared on a consistent 20-year horizon:
+
+| County | Our 20yr (2025-2045) | SDC 20yr Reference | Gap |
+|--------|---------------------|-------------------|-----|
+| McKenzie | +48.8% | +47.1% | +1.7pp |
+| Williams | +34.2% | +33.4% | +0.8pp |
+
+The original ADR-051 compared 30-year outputs (+82%, +57%) against 20-year SDC benchmarks, which inflated the apparent divergence. On an apples-to-apples basis, divergence is within 2 percentage points.
+
+Further dampening (0.60 → 0.40) risks under-projecting at the 20-year mark, pushing McKenzie below the SDC reference. Dunn County is already declining at -8.6% over 30 years; additional dampening could produce unrealistically negative projections.
+
+### Full 30-Year Results (All Scenarios)
+
+| County | FIPS | Baseline | High Growth | Restricted |
+|--------|------|----------|-------------|------------|
+| McKenzie | 38053 | +81.8% | +96.3% | +70.3% |
+| Williams | 38105 | +57.1% | +71.5% | +46.9% |
+| Billings | 38007 | +53.6% | +60.7% | +44.0% |
+| Stark | 38089 | +21.9% | +35.6% | +14.1% |
+| Mountrail | 38061 | +9.4% | +51.3% | +2.2% |
+| Dunn | 38025 | -8.6% | +18.0% | -13.6% |
+
+Scenario ordering is correct for all 6 oil counties. No further calibration needed.
+
 ## References
 
 1. **ADR-040: Extend Bakken Boom Dampening to 2015-2020** — Established the dampening framework; this ADR tunes the parameters
@@ -179,6 +207,7 @@ The dampening is applied in `residual_migration.py` using the factors from confi
 
 ## Revision History
 
+- **2026-02-23**: Rejected — 20-year comparison shows calibration is adequate (within 2pp of SDC); further dampening risks under-projection
 - **2026-02-18**: Initial version (ADR-051) — Reduce oil-county boom dampening factors
 
 ## Related ADRs

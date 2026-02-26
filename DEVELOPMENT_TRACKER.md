@@ -13,14 +13,14 @@ This project implements cohort component population projections for North Dakota
 
 | Metric | Status |
 |--------|--------|
-| **Overall Progress** | Production — all P0/P1/P2 fixes implemented |
-| **Current Phase** | Documentation & Calibration Refinements |
-| **Key Milestone** | All sanity check fixes complete (ADR-042 through ADR-050), documentation compliance achieved |
+| **Overall Progress** | Production — projections validated, GQ separation implemented |
+| **Current Phase** | Publication Preparation |
+| **Key Milestone** | ADR-055 Phase 2 complete — GQ-corrected migration rates |
 | **Blocking Issue** | None |
 
-**What's Done:** Core projection engine (~1,600 lines), data processing pipeline (~4,500 lines), geographic module (~1,400 lines), output/reporting (~2,300 lines), pipeline scripts (~2,400 lines), 50 ADRs, documentation, comprehensive test suite (1,257 tests), complete data pipeline with validated data, **full state projection for all 53 counties (2025-2055)**, **all 3 scenarios (baseline, restricted_growth, high_growth) per ADR-037**, **exports to CSV/Excel**, **population pyramids and trend visualizations**, **summary statistics reports**, **sanity check review with 7 findings investigated and fixed**, **Census full-count race data replacing PUMS (ADR-044)**, **PEP-anchored reservation county migration (ADR-045)**, **BEBR-based high_growth scenario (ADR-046)**, **migration rate cap (ADR-043)**, **additive restricted growth migration (ADR-050)**, **college-age smoothing propagation (ADR-049)**, **county-specific age-sex-race distributions (ADR-047)**, **Sprague single-year-of-age base population (ADR-048)**.
+**What's Done:** Core projection engine (~1,600 lines), data processing pipeline (~4,500 lines), geographic module (~1,400 lines), output/reporting (~2,300 lines), pipeline scripts (~2,400 lines), 55 ADRs, documentation, comprehensive test suite (1,257 tests), complete data pipeline with validated data, **full state projection for all 53 counties (2025-2055)**, **all 3 scenarios (baseline, restricted_growth, high_growth) per ADR-037**, **exports to CSV/Excel with populated summary CSVs**, **population pyramids and trend visualizations**, **summary statistics reports**, **sanity check review with 7 findings investigated and fixed**, **Census full-count race data replacing PUMS (ADR-044)**, **PEP-anchored reservation county migration (ADR-045)**, **BEBR-based high_growth scenario (ADR-046)**, **migration rate cap (ADR-043)**, **additive restricted growth migration (ADR-050)**, **college-age smoothing propagation (ADR-049)**, **county-specific age-sex-race distributions (ADR-047)**, **Sprague single-year-of-age base population (ADR-048)**, **ND-specific vital rates (ADR-053)**, **Ward County high-growth floor (ADR-052)**, **BEBR migration averaging (ADR-036)**, **bottom-up state derivation (ADR-054)**, **group quarters separation (ADR-055)**.
 
-**What's Remaining:** 4 proposed ADRs (033, 036, 051, 052) are calibration refinements. Optional enhancements (place-level projections, TIGER data integration).
+**What's Remaining:** ADR-033 (city-level projections) deferred. Documentation polish, TIGER data integration.
 
 ---
 
@@ -284,6 +284,173 @@ Tasks for current phase. States: `[ ]` pending | `[x]` complete
 ---
 
 ## Session Log
+
+### 2026-02-26 - ADR-055 Phase 2: GQ-Corrected Migration Rates
+
+**Duration:** Standard session
+**Focus:** Implement Phase 2 of GQ separation — subtract GQ from population snapshots before computing residual migration rates
+
+**Changes:**
+- Extended `scripts/data/fetch_census_gq_data.py` with `build_historical_gq()` to generate GQ estimates at 6 time points (2000-2024)
+- Added `subtract_gq_from_populations()` to `residual_migration.py` (Step 1b of pipeline)
+- Generated `data/processed/gq_county_age_sex_historical.parquet` (11,448 rows)
+- Added `gq_correction` config section under `residual`
+- Re-ran full pipeline: residual migration → convergence → projections → exports
+- Updated ADR-055 with Phase 2 results
+
+**Results:**
+- State baseline: +11.9% → +10.4% (-1.5pp more conservative)
+- Grand Forks: -9.0% → -11.9% (-2.9pp, dominated by statewide GQ growth removing inflated recent migration)
+- Cass: +27.1% → +25.2% (-1.9pp, NDSU dorm construction correctly excluded from HH migration)
+- Zero scenario ordering violations across all 53 counties
+- All 1,257 tests pass
+
+**Key finding:** Phase 2's dominant effect is removing recent GQ growth (especially NDSU's +2,929 dorm beds 2020-2024) from the household migration signal, producing more conservative projections. The 25-29 out-migration rates for Grand Forks improved modestly (Male: -0.110 → -0.105; Female: -0.128 → -0.122) but the overall projection declined because the statewide recent-period migration became less favorable.
+
+### 2026-02-23 - ADR-055 Implementation: Group Quarters Separation
+
+**Duration:** Standard session
+**Focus:** Investigate military/college population handling in Ward and Grand Forks counties; implement GQ separation
+
+**Accomplishments:**
+
+**Investigation:**
+- Deep review of Ward County (MAFB, Minot State) and Grand Forks County (GFAFB, UND) institutional populations
+- Identified root cause: GQ populations (military barracks, college dorms, nursing facilities) distort residual migration rates through institutional rotation cycles
+- Found the "asymmetric college cycle" problem: ADR-049 smooths student arrivals (ages 15-24) but not departures (ages 25-29)
+- Grand Forks net college cycle effect: -0.069 annual rate — UND enrollment is a net population drain in the model
+- Researched standard practice at other state demography offices (NC OSBM, NH OPD, WA OFM): consensus is to separate GQ from household population
+- Discovered PEP stcoreview already contains HHpop and GQpop variables (2020-2025)
+
+**ADR-055 Implementation (Group Quarters Separation, Phase 1):**
+- Created `scripts/data/fetch_census_gq_data.py`: Builds GQ by county × 5-year age group × sex from PEP stcoreview data
+- Generated `data/processed/gq_county_age_sex_2025.parquet` (1,908 rows: 53 counties × 18 age groups × 2 sexes)
+- Modified `base_population_loader.py`: Added GQ separation functions, subtraction from base population
+- Modified `multi_geography.py`: Added GQ re-addition after projection (constant at all years)
+- Updated `projection_config.yaml`: Added `base_population.group_quarters` config section
+- Updated `__init__.py`: Exported GQ access functions
+
+**Pipeline Re-Run:**
+- Re-ran all 3 scenarios with GQ separation enabled
+- State results: Baseline 894,362 (+11.9%), High 1,054,062 (+31.9%), Restricted 839,002 (+5.0%)
+- Phase 1 impact is structurally correct but modest on bottom-line projections:
+  - Growing counties (Cass, Burleigh): 2-3pp less growth (GQ held constant instead of growing)
+  - Declining counties (Ward, GF): Near-neutral (~0.2pp change) — GQ doesn't erode but HH base is smaller
+  - Phase 2 (GQ-corrected migration rates) would have larger impact on declining counties
+
+**Documentation:**
+- Created review: `docs/reviews/2026-02-23-ward-grand-forks-institutional-population-review.md`
+- Created ADR-055: `docs/governance/adrs/055-group-quarters-separation.md`
+- Updated DEVELOPMENT_TRACKER.md
+
+**Key Files Created/Modified:**
+- `scripts/data/fetch_census_gq_data.py` (new)
+- `data/processed/gq_county_age_sex_2025.parquet` (new)
+- `cohort_projections/data/load/base_population_loader.py` (GQ separation)
+- `cohort_projections/data/load/__init__.py` (exports)
+- `cohort_projections/geographic/multi_geography.py` (GQ re-addition)
+- `config/projection_config.yaml` (GQ config)
+- `docs/reviews/2026-02-23-ward-grand-forks-institutional-population-review.md` (new)
+- `docs/governance/adrs/055-group-quarters-separation.md` (new, Accepted)
+
+**Status:** ADR-055 Phase 1 complete. Phase 2 (GQ-corrected migration rates) deferred as optional improvement.
+
+---
+
+### 2026-02-23 - ADR-054 Implementation: Bottom-Up State Derivation
+
+**Duration:** Standard session
+**Focus:** Implement bottom-up state derivation to resolve the 10.6% state-county aggregation discrepancy
+
+**Accomplishments:**
+
+**ADR-054 Implementation (Bottom-Up State Derivation):**
+- Modified `02_run_projections.py`: Added `aggregate_county_results_to_state()` function (~350 lines), implemented decision logic to skip independent state engine run when counties are also requested, implemented diagnostic validation logging
+- Modified `run_pep_projections.py`: Added `save_bottom_up_state_projection()` function (~130 lines) to save state parquet/metadata/summary after county runs
+- Updated `multi_geography.py` docstrings to reflect ADR-054 (state is now derived, not independently projected)
+- Decision logic: When `--all` or `--state --counties`, state is derived by summing county results; when `--state` alone, old behavior preserved as fallback
+
+**Pipeline Re-Run:**
+- Re-ran all 3 scenarios with bottom-up state derivation
+- State totals now match county sums by construction (zero discrepancy)
+- Baseline: 799,358 → 900,971 (+12.7%), High: → 1,067,814 (+33.6%), Restricted: → 842,885 (+5.4%)
+- State metadata tagged with `method: "bottom_up_county_aggregation"` and `adr: "ADR-054"`
+
+**Testing:**
+- All 1,257 tests pass with zero regressions
+- No new ruff or mypy issues
+
+**Documentation:**
+- ADR-054 status changed from "Proposed" to "Accepted"
+- Added Implementation Results section to ADR-054
+
+**Key Files Modified:**
+- `scripts/pipeline/02_run_projections.py` (bottom-up aggregation, validation)
+- `scripts/projections/run_pep_projections.py` (state file generation)
+- `cohort_projections/geographic/multi_geography.py` (docstring updates)
+- `docs/governance/adrs/054-state-county-aggregation-reconciliation.md` (Accepted)
+- `data/projections/{scenario}/state/` (fresh bottom-up state files for all 3 scenarios)
+
+**Status:** ADR-054 resolved. Primary remaining items: ADR-033 (city-level projections, deferred), documentation polish.
+
+---
+
+### 2026-02-23 - Fresh Projections, ADR Triage, and Export Fix
+
+**Duration:** Extended session
+**Focus:** Re-run projections with all fixes, assess 4 proposed ADRs, fix export bugs, investigate aggregation
+
+**Accomplishments:**
+
+**Pipeline Re-Run:**
+- Re-ran all 3 scenarios (baseline, high_growth, restricted_growth) for 53 counties (2025-2055)
+- Incorporates all fixes from ADRs 047-050 and ADR-053 (ND-specific vital rates)
+- Generated 4 export workbooks (3 detail + 1 provisional), dated 2026-02-23
+- Zero processing failures, zero scenario ordering violations
+
+**State-Level Results (County Sum):**
+
+| Scenario | 2025 | 2035 | 2045 | 2055 | 30yr Change |
+|----------|------|------|------|------|-------------|
+| Baseline | 799,358 | 836,864 | 880,325 | 900,971 | +12.7% |
+| High Growth | 799,358 | 893,032 | 984,698 | 1,067,814 | +33.6% |
+| Restricted | 799,358 | 818,263 | 840,795 | 842,885 | +5.4% |
+
+**ADR Triage (4 Proposed ADRs Resolved):**
+- **ADR-051 (Oil County Dampening)** → **Rejected**: 20-year calibration within 2pp of SDC (McKenzie +48.8% vs +47.1%, Williams +34.2% vs +33.4%). Original comparison was 30yr vs 20yr benchmarks.
+- **ADR-052 (Ward County Floor)** → **Accepted**: Already implemented. Ward high_growth +29.0%, 20yr +21.2% matches SDC +23%.
+- **ADR-036 (Migration Averaging)** → **Accepted**: BEBR multiperiod with trimmed average already active in config.
+- **ADR-033 (City-Level Projections)** → **Deferred**: Blocked by state-county aggregation discrepancy (10.6%).
+
+**New Finding — State-County Aggregation Discrepancy:**
+- County sums exceed independent state projection by ~86,000 persons (10.6%) at 2055
+- Root cause: Jensen's inequality (static population weights in state-level migration, ~85%) + base population age distribution mismatch (~15%)
+- Validation stub found: "Hierarchical validation not yet implemented" in `02_run_projections.py`
+- **ADR-054** drafted recommending bottom-up state derivation (sum counties instead of independent state run)
+
+**Export Summary CSV Fix:**
+- Fixed 5 placeholder functions in `03_export_results.py` that returned empty DataFrames
+- Fixed FIPS extraction bug (`split("_")[0]` → `split("_")[2]`)
+- All 6 summary CSVs now populated: growth rates, age distribution, sex ratio, race composition, dependency ratios, total population
+- 97 related tests passing
+
+**Documentation:**
+- Created comprehensive review: `docs/reviews/2026-02-23-projection-output-review.md`
+- Created ADR-054: `docs/governance/adrs/054-state-county-aggregation-reconciliation.md`
+- Updated ADR-051 (Rejected), ADR-052 (Accepted), ADR-036 (Accepted), ADR-033 (Deferred)
+- Updated DEVELOPMENT_TRACKER.md
+
+**Key Files Created/Modified:**
+- `docs/reviews/2026-02-23-projection-output-review.md` (new)
+- `docs/governance/adrs/054-state-county-aggregation-reconciliation.md` (new)
+- `docs/governance/adrs/051-*.md`, `052-*.md`, `036-*.md`, `033-*.md` (status updates)
+- `scripts/pipeline/03_export_results.py` (export summary fix)
+- `data/exports/` (fresh workbooks and summary CSVs)
+- `data/projections/` (fresh projection data for all 3 scenarios)
+
+**Status:** 54 ADRs total. ADR-054 (aggregation reconciliation) is the primary remaining technical issue. All projections current as of 2026-02-23.
+
+---
 
 ### 2026-02-23 - Demographic Data Quality & Documentation Compliance
 
@@ -755,4 +922,4 @@ python scripts/projections/run_all_projections.py
 - Location: `docs/governance/adrs/024-immigration-data-extension-fusion.md`.
 
 **Last Updated:** 2026-02-23
-**Tracker Status:** 30-year horizon (2025-2055), Census V2025 data, ADR-037 CBO-grounded scenarios, ADR-039 through ADR-050 methodology and data quality fixes, all P0/P1/P2 sanity check fixes complete, 1,257 tests passing
+**Tracker Status:** 55 ADRs (ADR-055 accepted), fresh projections with GQ separation generated 2026-02-23, 1,257 tests passing

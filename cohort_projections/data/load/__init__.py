@@ -10,6 +10,9 @@ Modules:
 """
 
 from .base_population_loader import (
+    clear_gq_cache,
+    get_all_county_gq_populations,
+    get_county_gq_population,
     load_base_population_for_all_counties,
     load_base_population_for_county,
     load_county_age_sex_race_distribution,
@@ -32,6 +35,10 @@ __all__ = [
     # County-specific distributions (ADR-047)
     "load_county_age_sex_race_distribution",
     "load_county_distributions_file",
+    # ADR-055: Group quarters population separation
+    "get_county_gq_population",
+    "get_all_county_gq_populations",
+    "clear_gq_cache",
     # Census/PEP population loaders
     "AGE_GROUP_LABELS",
     "load_census_2000_county_age_sex",

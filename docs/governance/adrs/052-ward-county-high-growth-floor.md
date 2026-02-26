@@ -1,7 +1,7 @@
 # ADR-052: Ward County (Minot) Projection Review and High-Growth Scenario Floor
 
 ## Status
-Proposed
+Accepted
 
 ## Date
 2026-02-18
@@ -180,3 +180,22 @@ high_growth:
 - **ADR-049: College-Age Smoothing** — Complementary fix for college county convergence rates
 - **ADR-045: Reservation County PEP Recalibration** — Analogous county-specific adjustment, but for a different root cause (residual method bias vs. window sensitivity)
 - **ADR-040: Extend Boom Dampening** — Analogous parameter calibration for oil counties
+
+## Implementation Results (2026-02-23)
+
+The migration floor (`floor_value: 0.0`) was implemented in `cohort_projections/data/process/convergence_interpolation.py` and enabled in `config/projection_config.yaml`. Fresh projections from 2026-02-23 confirm the fix is working:
+
+| Scenario | ADR-052 Pre-fix Estimate | ADR-052 Post-fix Estimate | Actual (2026-02-23) |
+|----------|--------------------------|---------------------------|---------------------|
+| Restricted | -7.8% | -7.8% | -20.2% |
+| Baseline | -5.2% | -5.2% | -14.6% |
+| High Growth | -1.2% | ~+5% | **+29.0%** |
+
+Key findings:
+- **Scenario ordering is correct**: restricted (-20.2%) < baseline (-14.6%) < high (+29.0%)
+- **High growth 20yr (+21.2%) closely matches SDC reference (+23%)** — excellent calibration
+- Baseline and restricted are more negative than original estimates due to subsequent ADR implementations (047-050, 053: Sprague interpolation, county-specific distributions, additive restricted growth, ND-specific vital rates)
+- The migration floor combined with BEBR-optimistic rates produces strong high-growth performance (+29.0%), far exceeding the original +5% estimate
+- The known limitation remains: the floor only fixes the high scenario; baseline Ward decline (-14.6%) is acknowledged as pessimistic relative to SDC
+
+Note: Grand Forks shows a similar pattern (baseline -8.7%, high +38.4%) and may warrant monitoring for a similar floor treatment.

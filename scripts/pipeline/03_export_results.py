@@ -429,13 +429,31 @@ def create_summary_tables(
     return result
 
 
+def _extract_fips_from_filename(filepath: Path) -> str:
+    """
+    Extract FIPS code from projection filename.
+
+    Filenames follow the pattern: nd_{level}_{fips}_projection_{start}_{end}_{scenario}.parquet
+    For example: nd_county_38001_projection_2025_2055_baseline.parquet
+
+    Args:
+        filepath: Path to a projection parquet file.
+
+    Returns:
+        The FIPS code string (e.g. '38001').
+    """
+    parts = filepath.stem.split("_")
+    # FIPS is at index 2: nd=0, county=1, 38001=2
+    return parts[2]
+
+
 def create_total_population_summary(projection_files: list[Path]) -> pd.DataFrame:
     """Create total population by year summary."""
     summaries = []
 
     for pfile in projection_files:
         df = pd.read_parquet(pfile)
-        fips = pfile.stem.split("_")[0]
+        fips = _extract_fips_from_filename(pfile)
 
         # Group by year and sum population
         yearly = df.groupby("year")["population"].sum().reset_index()
@@ -454,37 +472,210 @@ def create_total_population_summary(projection_files: list[Path]) -> pd.DataFram
 
 
 def create_age_distribution_summary(projection_files: list[Path]) -> pd.DataFrame:
-    """Create age distribution summary."""
-    # Placeholder implementation
+    """
+    Create age distribution summary.
+
+    Returns a DataFrame with one row per county per year, showing population
+    counts and percentages for standard age groups.
+    """
     logger.info("Creating age distribution summary...")
+    rows = []
+
+    age_groups = {
+        "0-4": (0, 4),
+        "5-17": (5, 17),
+        "18-24": (18, 24),
+        "25-44": (25, 44),
+        "45-64": (45, 64),
+        "65-74": (65, 74),
+        "75-84": (75, 84),
+        "85+": (85, 200),
+    }
+
+    for pfile in projection_files:
+        df = pd.read_parquet(pfile)
+        fips = _extract_fips_from_filename(pfile)
+
+        for year in sorted(df["year"].unique()):
+            year_data = df[df["year"] == year]
+            total_pop = year_data["population"].sum()
+            row: dict[str, object] = {"fips": fips, "year": int(year), "total_population": total_pop}
+
+            for group_name, (min_age, max_age) in age_groups.items():
+                group_pop = year_data[
+                    (year_data["age"] >= min_age) & (year_data["age"] <= max_age)
+                ]["population"].sum()
+                row[f"pop_{group_name}"] = group_pop
+                row[f"pct_{group_name}"] = round((group_pop / total_pop * 100), 2) if total_pop > 0 else 0.0
+
+            rows.append(row)
+
+    if rows:
+        return pd.DataFrame(rows)
     return pd.DataFrame()
 
 
 def create_sex_ratio_summary(projection_files: list[Path]) -> pd.DataFrame:
-    """Create sex ratio summary."""
-    # Placeholder implementation
+    """
+    Create sex ratio summary.
+
+    Returns a DataFrame with one row per county per year, showing male population,
+    female population, total population, and sex ratio (males per 100 females).
+    """
     logger.info("Creating sex ratio summary...")
+    rows = []
+
+    for pfile in projection_files:
+        df = pd.read_parquet(pfile)
+        fips = _extract_fips_from_filename(pfile)
+
+        for year in sorted(df["year"].unique()):
+            year_data = df[df["year"] == year]
+            male_pop = year_data[year_data["sex"] == "Male"]["population"].sum()
+            female_pop = year_data[year_data["sex"] == "Female"]["population"].sum()
+            total_pop = male_pop + female_pop
+            sex_ratio = round((male_pop / female_pop * 100), 2) if female_pop > 0 else 0.0
+
+            rows.append({
+                "fips": fips,
+                "year": int(year),
+                "male_population": male_pop,
+                "female_population": female_pop,
+                "total_population": total_pop,
+                "sex_ratio": sex_ratio,
+            })
+
+    if rows:
+        return pd.DataFrame(rows)
     return pd.DataFrame()
 
 
 def create_race_composition_summary(projection_files: list[Path]) -> pd.DataFrame:
-    """Create race composition summary."""
-    # Placeholder implementation
+    """
+    Create race composition summary.
+
+    Returns a DataFrame with one row per county per year, showing population
+    counts and percentages for each race/ethnicity category.
+    """
     logger.info("Creating race composition summary...")
+    rows = []
+
+    for pfile in projection_files:
+        df = pd.read_parquet(pfile)
+        fips = _extract_fips_from_filename(pfile)
+
+        for year in sorted(df["year"].unique()):
+            year_data = df[df["year"] == year]
+            total_pop = year_data["population"].sum()
+            row: dict[str, object] = {"fips": fips, "year": int(year), "total_population": total_pop}
+
+            for race in sorted(year_data["race"].unique()):
+                race_pop = year_data[year_data["race"] == race]["population"].sum()
+                # Create safe column name from race category
+                safe_name = race.lower().replace(" ", "_").replace("/", "_").replace(",", "")
+                row[f"pop_{safe_name}"] = race_pop
+                row[f"pct_{safe_name}"] = round((race_pop / total_pop * 100), 2) if total_pop > 0 else 0.0
+
+            rows.append(row)
+
+    if rows:
+        return pd.DataFrame(rows)
     return pd.DataFrame()
 
 
 def create_growth_rates_summary(projection_files: list[Path]) -> pd.DataFrame:
-    """Create growth rates summary."""
-    # Placeholder implementation
+    """
+    Create growth rates summary.
+
+    Returns a DataFrame with one row per county containing the FIPS code,
+    county name, base year population, final year population, absolute change,
+    and percentage change over the full projection horizon.
+    """
     logger.info("Creating growth rates summary...")
+    rows = []
+
+    for pfile in projection_files:
+        df = pd.read_parquet(pfile)
+        fips = _extract_fips_from_filename(pfile)
+
+        years = sorted(df["year"].unique())
+        if len(years) < 2:
+            continue
+
+        base_year = int(years[0])
+        final_year = int(years[-1])
+
+        base_pop = df[df["year"] == years[0]]["population"].sum()
+        final_pop = df[df["year"] == years[-1]]["population"].sum()
+
+        absolute_change = final_pop - base_pop
+        pct_change = round(((final_pop / base_pop - 1) * 100), 2) if base_pop > 0 else 0.0
+
+        # Compound annual growth rate (CAGR)
+        n_years = final_year - base_year
+        cagr = (
+            round((((final_pop / base_pop) ** (1 / n_years)) - 1) * 100, 4)
+            if n_years > 0 and base_pop > 0
+            else 0.0
+        )
+
+        rows.append({
+            "fips": fips,
+            "base_year": base_year,
+            "final_year": final_year,
+            "base_population": round(base_pop, 1),
+            "final_population": round(final_pop, 1),
+            "absolute_change": round(absolute_change, 1),
+            "pct_change": pct_change,
+            "annual_growth_rate": cagr,
+        })
+
+    if rows:
+        result = pd.DataFrame(rows).sort_values("fips").reset_index(drop=True)
+        return result
     return pd.DataFrame()
 
 
 def create_dependency_ratios_summary(projection_files: list[Path]) -> pd.DataFrame:
-    """Create dependency ratios summary."""
-    # Placeholder implementation
+    """
+    Create dependency ratios summary.
+
+    Returns a DataFrame with one row per county per year containing the total
+    dependency ratio, youth dependency ratio, and elderly dependency ratio.
+    """
     logger.info("Creating dependency ratios summary...")
+    rows = []
+
+    for pfile in projection_files:
+        df = pd.read_parquet(pfile)
+        fips = _extract_fips_from_filename(pfile)
+
+        for year in sorted(df["year"].unique()):
+            year_data = df[df["year"] == year]
+
+            youth_pop = year_data[year_data["age"] < 18]["population"].sum()
+            working_pop = year_data[
+                (year_data["age"] >= 18) & (year_data["age"] < 65)
+            ]["population"].sum()
+            elderly_pop = year_data[year_data["age"] >= 65]["population"].sum()
+
+            total_dep = round(((youth_pop + elderly_pop) / working_pop), 4) if working_pop > 0 else 0.0
+            youth_dep = round((youth_pop / working_pop), 4) if working_pop > 0 else 0.0
+            elderly_dep = round((elderly_pop / working_pop), 4) if working_pop > 0 else 0.0
+
+            rows.append({
+                "fips": fips,
+                "year": int(year),
+                "youth_population": youth_pop,
+                "working_age_population": working_pop,
+                "elderly_population": elderly_pop,
+                "total_dependency_ratio": total_dep,
+                "youth_dependency_ratio": youth_dep,
+                "elderly_dependency_ratio": elderly_dep,
+            })
+
+    if rows:
+        return pd.DataFrame(rows)
     return pd.DataFrame()
 
 
