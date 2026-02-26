@@ -112,6 +112,16 @@ Scripts for documentation management and code-to-documentation linking.
 
 ---
 
+## Review Scripts (`reviews/`)
+
+Scripts for deterministic verification of audit findings.
+
+| Script | Purpose | `--help` |
+|--------|---------|----------|
+| `reviews/run_claim_checks.py` | Run deterministic checks from claim registry and generate evidence/progress artifacts | Yes |
+
+---
+
 ## Maintenance Scripts (`maintenance/`)
 
 | Script | Purpose | `--help` |

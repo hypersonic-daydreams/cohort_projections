@@ -1,0 +1,53 @@
+schema_version: 1
+audit_id: repo-hygiene-audit
+created_at: 2026-02-26
+last_updated: 2026-02-26
+
+allowed_statuses:
+  - queued
+  - checks_defined
+  - in_progress
+  - adjudicated
+  - closed
+
+allowed_verdicts:
+  - unreviewed
+  - confirmed
+  - partially_confirmed
+  - refuted
+  - stale
+  - unverifiable
+
+# Copy this template into `claims:` when adding a real claim.
+claim_template:
+  claim_id: RHA-000
+  title: Short claim title
+  claim_text: >-
+    Atomic, testable claim statement.
+  severity: medium
+  claim_type: structural
+  status: queued
+  verdict: unreviewed
+  confidence: null
+  owner_agent: null
+  source:
+    file: docs/reviews/repo-hygiene-audit/00-synthesis-summary.md
+    section: "Top-Level Findings"
+    line_ref: null
+  checks:
+    - check_id: RHA-000-C1
+      description: Deterministic check description
+      command: test -f scripts/projections/run_all_projections.py
+      required: true
+      timeout_seconds: 30
+      assertion:
+        expect_exit_code: 0
+        stdout_contains: []
+        stdout_not_contains: []
+        stderr_contains: []
+        stderr_not_contains: []
+        regex_match: []
+  notes: ""
+
+# Intentionally empty scaffold. Add claims in a new analysis session.
+claims: []
