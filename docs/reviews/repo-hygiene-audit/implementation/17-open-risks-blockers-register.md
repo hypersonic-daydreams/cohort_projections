@@ -41,10 +41,14 @@ operational context.
 - Current signal: preflight gates pass, but implementation requires destructive or boundary-moving actions.
 - Impact: implementation cannot proceed safely without explicit destination/provenance strategy.
 - Required action:
-  1. Approve destination strategy for root clutter and duplicate footprint assets.
-  2. Define canonical location for triplicated SDC rate artifacts and migration path.
-  3. Approve delete/archive list before file removals.
+  1. **Documented owner decisions** (2026-02-27) for:
+     - extracting `sdc_2024_replication/` to its own repo under the local `demography/` directory, and
+     - keeping the canonical SDC rate CSVs in that extracted repository.
+  2. Produce an implementation-ready **references inventory + migration plan** (paths, links, docs, code) for the extraction and rate-path updates.
+  3. Produce a **delete/archive list** (root clutter, stale exports, empty placeholders) with proposed destinations and retention policy.
 - Exit criterion: written approved strategy and rollback plan allowing B05 implementation GO.
+
+Owner-approved strategy decisions: `docs/reviews/repo-hygiene-audit/implementation/22-b05-strategy-decisions.md`
 
 ## Closed Items
 

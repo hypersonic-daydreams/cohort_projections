@@ -97,3 +97,6 @@ Risk register: [17-open-risks-blockers-register.md](./17-open-risks-blockers-reg
 | 2026-02-26 | Implemented RB-001 resolved-state checks | RHA-001/002/003/004/005/006/007/008/009/010/014/016/019/020/021/022/024/025/027 | Eliminated expected-drift noise by asserting remediated state directly. | codex |
 | 2026-02-26 | Implemented RB-002 baseline reset | RHA-013 | Updated baseline assertion to current canonical package metrics. | codex |
 | 2026-02-26 | Set B05 implementation NO-GO pending strategy decisions | B05 | Destructive cleanup actions require approved archive/dedup destination strategy. | codex |
+| 2026-02-27 | Approved B05 strategy decisions (extract SDC repo; canonical SDC rate CSVs live there; investigate remaining items before final placement) | B05 (`RHA-011`, `RHA-012`, `RHA-015`, `RHA-017`, `RHA-018`, `RHA-026`) | Unblocks creation of an implementation-ready migration plan while deferring non-critical placement choices to a proposal step. | nhaarstad |
+
+Decision record: `docs/reviews/repo-hygiene-audit/implementation/22-b05-strategy-decisions.md`

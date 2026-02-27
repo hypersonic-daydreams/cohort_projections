@@ -54,6 +54,8 @@ Rollback plan:
 
 ### Blocking Actions (if NO-GO)
 
-1. Archive/move/delete decisions for root clutter and duplicate footprints require explicit owner decisions before destructive changes.
-2. B05 includes high-blast-radius repository boundary actions (`sdc_2024_replication` footprint) that need approved destination strategy.
-3. Data-footprint deduplication plan must specify provenance-preserving canonical location before file removals.
+1. Produce an implementation-ready plan for extracting `sdc_2024_replication/` into its own repository under the local `demography/` directory (including reference/link updates and rollback).
+2. Update this repository to stop relying on in-repo copies of SDC rate CSVs, consistent with the decision that canonical rate CSVs live in the extracted `sdc_2024_replication` repository.
+3. Investigate remaining B05 placement candidates (root clutter, stale exports, empty placeholders) and propose destinations + retention policy for approval prior to destructive cleanup.
+
+Owner-approved strategy decisions: `docs/reviews/repo-hygiene-audit/implementation/22-b05-strategy-decisions.md`
