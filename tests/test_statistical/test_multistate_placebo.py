@@ -13,18 +13,14 @@ vintage transition patterns are unusual compared to other states.
 """
 
 import sys
-from pathlib import Path
 
 import pandas as pd
 import pytest
 
+from tests._sdc_paths import get_sdc_repo_root
+
 # Add module path for imports
-MODULE_PATH = (
-    Path(__file__).parent.parent.parent
-    / "sdc_2024_replication"
-    / "scripts"
-    / "statistical_analysis"
-)
+MODULE_PATH = get_sdc_repo_root() / "scripts" / "statistical_analysis"
 if str(MODULE_PATH) not in sys.path:
     sys.path.insert(0, str(MODULE_PATH))
 

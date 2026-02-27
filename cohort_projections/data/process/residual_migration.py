@@ -43,7 +43,11 @@ from cohort_projections.data.load.census_age_sex_population import (
     load_pep_2010_2019_county_age_sex,
     load_pep_2020_2024_county_age_sex,
 )
-from cohort_projections.utils import get_logger_from_config, load_projection_config
+from cohort_projections.utils import (
+    get_logger_from_config,
+    load_projection_config,
+    resolve_sdc_rate_file,
+)
 
 logger = get_logger_from_config(__name__)
 # Default oil-boom counties (Bakken region)
@@ -337,10 +341,10 @@ def assemble_period_populations(
         ),
     )
 
-    # SDC 2024 base population
+    # SDC 2024 base population (supports env/sibling/in-repo resolution)
     base_pop_2020_path = data_paths.get(
         "base_population_2020",
-        str(project_root / "sdc_2024_replication" / "data" / "base_population_by_county.csv"),
+        str(resolve_sdc_rate_file("base_population_by_county.csv", project_root=project_root)),
     )
 
     populations: dict[int, pd.DataFrame] = {}

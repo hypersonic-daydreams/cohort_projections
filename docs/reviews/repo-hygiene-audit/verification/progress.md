@@ -1,6 +1,6 @@
 # Repo Hygiene Audit Claim Verification Progress
 
-**Generated (UTC):** 2026-02-26T21:26:06Z
+**Generated (UTC):** 2026-02-27T17:41:42Z
 **Registry:** `docs/reviews/repo-hygiene-audit/verification/claims_registry.yaml`
 **Evidence Directory:** `docs/reviews/repo-hygiene-audit/verification/evidence`
 
@@ -27,14 +27,14 @@
 | RHA-008 | high | behavioral | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:03Z | [artifact](evidence/20260226T212603Z_RHA-008.json) |
 | RHA-009 | critical | structural | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:03Z | [artifact](evidence/20260226T212603Z_RHA-009.json) |
 | RHA-010 | high | structural | adjudicated | partially_confirmed | 1/1 | 2026-02-26T21:26:03Z | [artifact](evidence/20260226T212603Z_RHA-010.json) |
-| RHA-011 | high | structural | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:04Z | [artifact](evidence/20260226T212604Z_RHA-011.json) |
-| RHA-012 | high | structural | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:05Z | [artifact](evidence/20260226T212605Z_RHA-012.json) |
+| RHA-011 | high | structural | adjudicated | confirmed | 1/1 | 2026-02-27T17:41:41Z | [artifact](evidence/20260227T174141Z_RHA-011.json) |
+| RHA-012 | high | structural | adjudicated | confirmed | 1/1 | 2026-02-27T17:41:42Z | [artifact](evidence/20260227T174142Z_RHA-012.json) |
 | RHA-013 | medium | structural | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:05Z | [artifact](evidence/20260226T212605Z_RHA-013.json) |
 | RHA-014 | medium | structural | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:05Z | [artifact](evidence/20260226T212605Z_RHA-014.json) |
-| RHA-015 | medium | structural | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:05Z | [artifact](evidence/20260226T212605Z_RHA-015.json) |
+| RHA-015 | medium | structural | adjudicated | confirmed | 1/1 | 2026-02-27T17:41:42Z | [artifact](evidence/20260227T174142Z_RHA-015.json) |
 | RHA-016 | medium | structural | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:05Z | [artifact](evidence/20260226T212605Z_RHA-016.json) |
-| RHA-017 | low | structural | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:05Z | [artifact](evidence/20260226T212605Z_RHA-017.json) |
-| RHA-018 | medium | structural | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:05Z | [artifact](evidence/20260226T212605Z_RHA-018.json) |
+| RHA-017 | low | structural | adjudicated | confirmed | 0/1 | 2026-02-27T17:41:42Z | [artifact](evidence/20260227T174142Z_RHA-017.json) |
+| RHA-018 | medium | structural | adjudicated | confirmed | 1/1 | 2026-02-27T17:41:42Z | [artifact](evidence/20260227T174142Z_RHA-018.json) |
 | RHA-019 | medium | structural | adjudicated | partially_confirmed | 1/1 | 2026-02-26T21:26:05Z | [artifact](evidence/20260226T212605Z_RHA-019.json) |
 | RHA-020 | medium | structural | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:06Z | [artifact](evidence/20260226T212606Z_RHA-020.json) |
 | RHA-021 | low | structural | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:06Z | [artifact](evidence/20260226T212606Z_RHA-021.json) |
@@ -42,7 +42,7 @@
 | RHA-023 | medium | structural | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:06Z | [artifact](evidence/20260226T212606Z_RHA-023.json) |
 | RHA-024 | medium | structural | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:06Z | [artifact](evidence/20260226T212606Z_RHA-024.json) |
 | RHA-025 | medium | structural | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:06Z | [artifact](evidence/20260226T212606Z_RHA-025.json) |
-| RHA-026 | low | structural | adjudicated | confirmed | 1/1 | 2026-02-26T21:26:06Z | [artifact](evidence/20260226T212606Z_RHA-026.json) |
+| RHA-026 | low | structural | adjudicated | confirmed | 1/1 | 2026-02-27T17:41:42Z | [artifact](evidence/20260227T174142Z_RHA-026.json) |
 | RHA-027 | high | interpretive | adjudicated | partially_confirmed | 1/1 | 2026-02-26T21:26:06Z | [artifact](evidence/20260226T212606Z_RHA-027.json) |
 
 ## Agent Workflow

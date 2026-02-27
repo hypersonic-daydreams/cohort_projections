@@ -10,10 +10,12 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from tests._sdc_paths import get_sdc_repo_root
+
 
 @pytest.fixture()
 def sdc_scripts_dir() -> Path:
-    return Path(__file__).parent.parent.parent / "sdc_2024_replication" / "scripts"
+    return get_sdc_repo_root() / "scripts"
 
 
 def test_data_loader_files_mode_uses_local_files(

@@ -1,0 +1,14 @@
+INFO: Selected 6 claim(s) for execution.
+INFO: Claim RHA-011: required passed 1/1 -> PASS
+INFO: Evidence: /home/nhaarstad/workspace/demography/cohort_projections/docs/reviews/repo-hygiene-audit/verification/evidence/20260227T173452Z_RHA-011.json
+INFO: Claim RHA-012: required passed 1/1 -> PASS
+INFO: Evidence: /home/nhaarstad/workspace/demography/cohort_projections/docs/reviews/repo-hygiene-audit/verification/evidence/20260227T173452Z_RHA-012.json
+INFO: Claim RHA-015: required passed 1/1 -> PASS
+INFO: Evidence: /home/nhaarstad/workspace/demography/cohort_projections/docs/reviews/repo-hygiene-audit/verification/evidence/20260227T173452Z_RHA-015.json
+INFO: Claim RHA-017: required passed 1/1 -> PASS
+INFO: Evidence: /home/nhaarstad/workspace/demography/cohort_projections/docs/reviews/repo-hygiene-audit/verification/evidence/20260227T173452Z_RHA-017.json
+INFO: Claim RHA-018: required passed 1/1 -> PASS
+INFO: Evidence: /home/nhaarstad/workspace/demography/cohort_projections/docs/reviews/repo-hygiene-audit/verification/evidence/20260227T173453Z_RHA-018.json
+INFO: Claim RHA-026: required passed 1/1 -> PASS
+INFO: Evidence: /home/nhaarstad/workspace/demography/cohort_projections/docs/reviews/repo-hygiene-audit/verification/evidence/20260227T173453Z_RHA-026.json
+INFO: Wrote progress tracker: /home/nhaarstad/workspace/demography/cohort_projections/docs/reviews/repo-hygiene-audit/verification/progress.md

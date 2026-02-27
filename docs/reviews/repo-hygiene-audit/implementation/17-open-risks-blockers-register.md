@@ -1,7 +1,7 @@
 # Repo Hygiene Audit Open Risks / Blockers Register
 
-**Last Updated (UTC):** 2026-02-26T21:26:06Z  
-**Scope:** Post-B05 preflight + RB-001/RB-002 remediation
+**Last Updated (UTC):** 2026-02-27T17:42:23Z  
+**Scope:** B05 Wave 2 Step 1 complete; extraction + remaining archive placements pending
 
 ## Purpose
 
@@ -35,20 +35,26 @@ operational context.
 
 ### RB-005: B05 Archive/Delete Strategy Approval
 
-- Status: `open`
+- Status: `in_progress`
 - Severity: `high`
 - Affected claims/batch: `B05` (`RHA-011`, `RHA-012`, `RHA-015`, `RHA-017`, `RHA-018`, `RHA-026`)
-- Current signal: preflight gates pass, but implementation requires destructive or boundary-moving actions.
-- Impact: implementation cannot proceed safely without explicit destination/provenance strategy.
+- Current signal: strategy decisions and planning artifacts are complete; Wave 2 Step 1 owner decisions were executed (`archived/` created, low-growth archived, Ward file archived, placeholders retained).
+- Impact: extraction and remaining root-clutter placements still need completion before B05 closeout.
 - Required action:
-  1. **Documented owner decisions** (2026-02-27) for:
+  1. **Completed:** documented owner decisions (2026-02-27) for:
      - extracting `sdc_2024_replication/` to its own repo under the local `demography/` directory, and
      - keeping the canonical SDC rate CSVs in that extracted repository.
-  2. Produce an implementation-ready **references inventory + migration plan** (paths, links, docs, code) for the extraction and rate-path updates.
-  3. Produce a **delete/archive list** (root clutter, stale exports, empty placeholders) with proposed destinations and retention policy.
-- Exit criterion: written approved strategy and rollback plan allowing B05 implementation GO.
+  2. **Completed:** delivered implementation-ready **references inventory + migration plan** (`23-b05-references-inventory-and-migration-plan.md`).
+  3. **Completed:** delivered **delete/archive proposal** (`24-b05-delete-archive-proposal.md`).
+  4. In progress: complete remaining root-clutter placements (`2025_popest_data/`, remaining root files/logs) and execute SDC extraction step.
+  5. Re-run and reconcile B05 claim checks; `RHA-017` currently reflects expected post-remediation predicate drift.
+- Exit criterion: remaining Wave 2 actions executed and B05 claim replay reflects accepted resolved-state behavior.
 
 Owner-approved strategy decisions: `docs/reviews/repo-hygiene-audit/implementation/22-b05-strategy-decisions.md`
+Wave 1 artifacts:
+- `docs/reviews/repo-hygiene-audit/implementation/23-b05-references-inventory-and-migration-plan.md`
+- `docs/reviews/repo-hygiene-audit/implementation/24-b05-delete-archive-proposal.md`
+- `docs/reviews/repo-hygiene-audit/implementation/25-b05-wave1-implementation-results.md`
 
 ## Closed Items
 
@@ -64,6 +70,6 @@ Owner-approved strategy decisions: `docs/reviews/repo-hygiene-audit/implementati
 
 ## Sequencing Guidance
 
-1. Resolve RB-005 before any B05 destructive cleanup actions.
+1. Complete RB-005 remaining Wave 2 actions (extraction + remaining placements + claim check reconciliation).
 2. Keep RB-003 and RB-004 explicitly documented through B06 closeout.
 3. After B05 implementation, run final B06 harmonization and full claim revalidation.

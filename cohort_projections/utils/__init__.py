@@ -9,6 +9,11 @@ from pathlib import Path
 from typing import Any
 
 from .config_loader import ConfigLoader, load_projection_config
+from .sdc_paths import (
+    get_sdc_replication_candidates,
+    resolve_sdc_rate_file,
+    resolve_sdc_replication_root,
+)
 
 try:
     from project_utils import get_logger_from_config as _get_logger_from_config
@@ -99,4 +104,7 @@ __all__ = [
     "load_projection_config",
     "BigQueryClient",
     "get_bigquery_client",
+    "get_sdc_replication_candidates",
+    "resolve_sdc_rate_file",
+    "resolve_sdc_replication_root",
 ]

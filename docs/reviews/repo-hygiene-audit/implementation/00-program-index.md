@@ -1,18 +1,19 @@
 # Repo Hygiene Audit Implementation Program Index
 
-**Status:** Planning Scaffold (No implementation changes yet)  
+**Status:** Execution In Progress (B05 Wave 1 complete)  
 **Audit:** `repo-hygiene-audit`  
 **Source of truth for verified claims:** `../verification/claims_registry.yaml`
 
 ## Purpose
 
-This directory organizes verified repo-hygiene findings into an implementation-ready
-program without applying any production changes yet.
+This directory organizes verified repo-hygiene findings into a tracked implementation
+program with batch-level evidence, gate records, and execution outcomes.
 
 Goals:
 - Keep all findings discoverable from one entry point.
 - Harmonize findings into actionable batches.
 - Define dry-run and go/no-go gates before code or structure changes.
+- Preserve execution evidence as batches move from preflight to completion.
 
 ## Program Artifacts
 
@@ -42,5 +43,5 @@ Goals:
 ## Guardrails
 
 - Do not edit audit report findings text (`00-07*.md`) during planning.
-- Keep this phase documentation-only and reproducible.
+- Keep planning artifacts reproducible as implementation evolves.
 - Preserve claim IDs (`RHA-*`) as stable join keys across all planning artifacts.

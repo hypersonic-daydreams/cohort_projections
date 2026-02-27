@@ -6,16 +6,17 @@ from __future__ import annotations
 
 import os
 import sys
-from pathlib import Path
 
 import pandas as pd
 import pytest
+
+from tests._sdc_paths import get_sdc_repo_root
 
 pytest.importorskip("lifelines", reason="lifelines not installed")
 
 os.environ.setdefault("MPLBACKEND", "Agg")
 
-SCRIPTS_DIR = Path(__file__).parent.parent.parent / "sdc_2024_replication" / "scripts"
+SCRIPTS_DIR = get_sdc_repo_root() / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 from statistical_analysis.module_8_duration_analysis import (  # noqa: E402

@@ -1,0 +1,84 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.2, pluggy-1.6.0
+rootdir: /home/nhaarstad/workspace/demography/cohort_projections
+configfile: pyproject.toml
+plugins: timeout-2.4.0, cov-7.0.0, anyio-4.12.1
+timeout: 300.0s
+timeout method: signal
+timeout func_only: False
+collected 325 items
+
+tests/test_data/test_residual_migration.py ......................sss.... [  8%]
+................                                                         [ 13%]
+tests/test_statistical/test_bayesian_var.py .........................s.. [ 22%]
+..ssss.....                                                              [ 25%]
+tests/test_statistical/test_multistate_placebo.py ...................... [ 32%]
+.................................................                        [ 47%]
+tests/test_statistical/test_regime_aware.py ............................ [ 56%]
+..................................                                       [ 66%]
+tests/test_tools/test_citation_audit.py ..........                       [ 69%]
+tests/unit/test_build_dhs_lpr_panel_variants.py .                        [ 70%]
+tests/unit/test_duration_figure_table_consistency.py ..                  [ 70%]
+tests/unit/test_journal_article_derived_stats.py ..                      [ 71%]
+tests/unit/test_journal_article_versioning.py .......                    [ 73%]
+tests/unit/test_module_7_causal_inference.py ..                          [ 74%]
+tests/unit/test_module_8_duration_analysis.py .....                      [ 75%]
+tests/unit/test_sdc_data_loader.py .                                     [ 76%]
+tests/test_integration/test_adr021_modules.py .......................... [ 84%]
+....................................................                     [100%]
+
+=============================== warnings summary ===============================
+tests/unit/test_module_7_causal_inference.py::test_event_study_max_year_filters_years
+  /home/nhaarstad/workspace/demography/cohort_projections/.venv/lib/python3.12/site-packages/statsmodels/regression/linear_model.py:1884: RuntimeWarning: invalid value encountered in sqrt
+    return np.sqrt(np.diag(self.cov_params()))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.3-final-0 ________________
+
+Name                                                           Stmts   Miss Branch BrPart   Cover   Missing
+-----------------------------------------------------------------------------------------------------------
+cohort_projections/__init__.py                                     2      0      0      0 100.00%
+cohort_projections/config/__init__.py                              2      0      0      0 100.00%
+cohort_projections/config/race_mappings.py                        34     21     16      0  26.00%   194-219, 244-255
+cohort_projections/core/__init__.py                                5      5      0      0   0.00%   8-24
+cohort_projections/core/cohort_component.py                      217    217     82      0   0.00%   15-603
+cohort_projections/core/fertility.py                              88     88     42      0   0.00%   7-253
+cohort_projections/core/migration.py                             174    174     82      0   0.00%   7-471
+cohort_projections/core/mortality.py                             115    115     48      0   0.00%   7-344
+cohort_projections/data/__init__.py                                0      0      0      0 100.00%
+cohort_projections/data/fetch/__init__.py                          2      2      0      0   0.00%   9-11
+cohort_projections/data/fetch/census_api.py                      238    238     54      0   0.00%   17-642
+cohort_projections/data/fetch/vital_stats.py                      52     52     10      0   0.00%   8-130
+cohort_projections/data/load/__init__.py                           3      0      0      0 100.00%
+cohort_projections/data/load/base_population_loader.py           446    416    154      0   5.00%   93-111, 129-166, 207-300, 327-364, 402-503, 552-746, 764-784, 809-850, 880-881, 891, 897-898, 910-936, 957-978, 1001-1041, 1072-1156, 1199-1276, 1305-1362, 1385-1415
+cohort_projections/data/load/census_age_sex_population.py        133    113     36      0  13.02%   87, 103-121, 148-190, 216-244, 275-331, 358-394, 473-498
+cohort_projections/data/popest_shared.py                          48     48      8      0   0.00%   10-108
+cohort_projections/data/process/__init__.py                       11      1      0      0  90.91%   98
+cohort_projections/data/process/base_population.py               223    208     92      0   4.76%   41-75, 98-156, 173-238, 259-297, 318-390, 411-481, 494-523
+cohort_projections/data/process/convergence_interpolation.py     183    183     36      0   0.00%   20-618
+cohort_projections/data/process/example_usage.py                 138    138     14      0   0.00%   7-282
+cohort_projections/data/process/fertility_rates.py               239    223     88      0   4.89%   56-118, 148-193, 231-281, 318-388, 429-541, 577-671
+cohort_projections/data/process/migration_rates.py               648    597    238      2   6.21%   78-173, 211-289, 332-362, 394, 442-456, 493-516, 561-624, 669-700, 738-775, 826-921, 942-949, 978-990, 1015-1070, 1104-1144, 1178-1234, 1280-1424, 1474-1664, 1711-1903
+cohort_projections/data/process/mortality_improvement.py         143    131     22      0   7.27%   56-117, 138-173, 195-234, 260-308, 331-482
+cohort_projections/data/process/pep_regime_analysis.py           165    149     62      0   7.05%   103-144, 168-206, 239-285, 302-319, 347-457
+cohort_projections/data/process/residual_migration.py            387    178    112     14  53.91%   58, 77, 80, 279-393, 440, 456, 499->528, 519->528, 526, 552, 563->571, 672-686, 746-750, 759-763, 826, 836->830, 898, 917-933, 959-996, 1027-1300
+cohort_projections/data/process/survival_rates.py                364    347    164      0   3.22%   53-137, 168-213, 252-333, 371-410, 454-551, 585-608, 654-794, 837-950
+cohort_projections/geographic/__init__.py                          3      3      0      0   0.00%   51-68
+cohort_projections/geographic/geography_loader.py                188    188     70      0   0.00%   9-648
+cohort_projections/geographic/multi_geography.py                 248    248     68      0   0.00%   8-830
+cohort_projections/output/__init__.py                              4      4      0      0   0.00%   35-56
+cohort_projections/output/reports.py                             234    234     60      0   0.00%   14-851
+cohort_projections/output/visualizations.py                      288    288     88      0   0.00%   16-832
+cohort_projections/output/writers.py                             311    311    156      0   0.00%   14-687
+cohort_projections/utils/__init__.py                              35     16      6      2  51.22%   23-42, 49-64, 89->92, 95
+cohort_projections/utils/bigquery_client.py                      108     88     24      0  15.15%   61-109, 132-150, 166-180, 196-210, 226-247, 263-266, 278-291, 316-331, 335-337, 356
+cohort_projections/utils/config_loader.py                         11      5      2      0  46.15%   22-27
+cohort_projections/utils/demographic_utils.py                     94     81     34      0  10.16%   23-39, 52-58, 72-85, 103-115, 132-145, 164-178, 200-203, 220-225, 267-284, 338-380
+cohort_projections/utils/reproducibility.py                       56     42      4      0  23.33%   23-26, 30-39, 44-49, 67-132
+cohort_projections/utils/sdc_paths.py                             37      9     14      3  72.55%   33, 43, 76-77, 99-103
+cohort_projections/version.py                                     16      8      2      0  44.44%   9-14, 19-20
+-----------------------------------------------------------------------------------------------------------
+TOTAL                                                           5693   5169   1888     21   7.93%
+Coverage HTML written to dir htmlcov
+================== 317 passed, 8 skipped, 1 warning in 12.93s ==================

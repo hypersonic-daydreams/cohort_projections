@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
-from pathlib import Path
+
+from tests._sdc_paths import get_sdc_repo_root
+
+SDC_REPO_ROOT = get_sdc_repo_root()
 
 MODULE_PATH = (
-    Path(__file__).resolve().parents[2]
-    / "sdc_2024_replication"
+    SDC_REPO_ROOT
     / "scripts"
     / "statistical_analysis"
     / "journal_article"

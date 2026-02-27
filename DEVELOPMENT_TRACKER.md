@@ -2,7 +2,7 @@
 
 Canonical, current-state tracker for the North Dakota cohort projections repository.
 
-**Last Updated:** 2026-02-26  
+**Last Updated:** 2026-02-27  
 **Projection Horizon:** 2025-2055  
 **Status:** Publication preparation and repo-hygiene execution
 
@@ -19,14 +19,14 @@ Use this file for active status only. Historical session detail is archived to:
 | Core projection engine | complete | County/state production path is operational for all scenarios. |
 | Data processing pipeline | complete | Inputs and transforms are in place; no active blocker. |
 | Documentation alignment | complete | B01 documentation harmonization complete. |
-| Repo-hygiene program | in progress | B00-B04 complete; B05 preflight complete; B05 implementation blocked pending archive/delete strategy. |
+| Repo-hygiene program | in progress | B00-B04 complete; B05 Wave 1 complete; B05 Wave 2 Step 1 complete (archive dir + low_growth + Ward file); remaining Wave 2 extraction/placement actions pending. |
 | Test health baseline | stable | Latest recorded baseline: `1258 passed, 5 skipped`. |
 | Claim replay health | stable | `27/27` adjudicated claims passing after resolved-state check redesign. |
 
 ## Active Priorities
 
-1. Finalize approved B05 archive/move/delete strategy (RB-005), then execute B05 implementation.
-2. Maintain reproducible execution records for each B05 implementation step and replay affected claims.
+1. Execute remaining B05 Wave 2 extraction/cleanup actions (SDC extraction + remaining root-clutter placements).
+2. Maintain reproducible execution records for each B05 execution wave and replay affected claims.
 3. Keep RB-003 and RB-004 tracked until dedicated remediation wave or policy closeout.
 
 ## Repo-Hygiene Batch State
@@ -38,7 +38,7 @@ Use this file for active status only. Historical session detail is archived to:
 | B02 | pipeline_entrypoint_and_order_consistency | complete | Canonical runner and stage wiring remediated. |
 | B03 | config_path_and_version_hygiene | complete | Version/config/path hygiene remediated. |
 | B04 | code_structure_and_test_scope_alignment | complete | Import boundary, helper dedupe, test scope realignment, orphan wiring complete. |
-| B05 | repository_footprint_and_data_hygiene | preflight complete / implementation blocked | Dry-run gates passed; implementation waiting on explicit archive/delete decisions. |
+| B05 | repository_footprint_and_data_hygiene | in progress | Wave 1 complete; Wave 2 Step 1 complete; remaining Wave 2 actions pending. |
 | B06 | final_harmonization_and_claim_revalidation | blocked | Depends on B05 implementation completion. |
 
 ## Current Working Agreements
@@ -50,8 +50,8 @@ Use this file for active status only. Historical session detail is archived to:
 
 ## Near-Term Next Actions
 
-1. Approve B05 implementation strategy and rollback plan (RB-005).
-2. Execute B05 changes in scoped waves with claim replay for `RHA-011/012/015/017/018/026`.
+1. Execute remaining Wave 2 archive placements and SDC extraction from `24-b05-delete-archive-proposal.md`.
+2. Reconcile B05 claim checks for post-remediation state (`RHA-017` currently expected drift after archival).
 3. Run B06 final harmonization once B05 closes.
 
 ## Deferred / Later Work

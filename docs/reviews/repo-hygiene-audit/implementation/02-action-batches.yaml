@@ -1,7 +1,7 @@
 schema_version: 1
 audit_id: repo-hygiene-audit
 batch_plan_status: in_progress
-last_updated: 2026-02-26
+last_updated: 2026-02-27
 
 batches:
   - batch_id: B00
@@ -89,7 +89,7 @@ batches:
   - batch_id: B05
     name: repository_footprint_and_data_hygiene
     priority: 5
-    status: ready
+    status: in_progress
     objective: Clean root clutter, stale directories, and duplicate data footprints with explicit archival decisions.
     includes_claims: [RHA-011, RHA-012, RHA-015, RHA-017, RHA-018, RHA-026]
     prerequisites: [B00, B01]

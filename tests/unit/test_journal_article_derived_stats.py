@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pytest
 
+from tests._sdc_paths import get_sdc_repo_root
+
 
 @pytest.fixture(scope="module")
 def derived_stats_module():
-    root = Path(__file__).resolve().parents[2]
     module_path = (
-        root
-        / "sdc_2024_replication"
+        get_sdc_repo_root()
         / "scripts"
         / "statistical_analysis"
         / "journal_article"

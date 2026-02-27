@@ -5,17 +5,17 @@ import json
 import math
 import re
 import sys
-from pathlib import Path
 
 import pytest
+
+from tests._sdc_paths import get_sdc_repo_root
 
 
 @pytest.fixture(scope="module")
 def publication_figures_module():
-    root = Path(__file__).resolve().parents[2]
+    sdc_root = get_sdc_repo_root()
     module_path = (
-        root
-        / "sdc_2024_replication"
+        sdc_root
         / "scripts"
         / "statistical_analysis"
         / "journal_article"
@@ -59,11 +59,10 @@ def test_survival_figure_defaults_to_p0_duration_results(publication_figures_mod
 
 
 def test_table_14_matches_p0_duration_results():
-    root = Path(__file__).resolve().parents[2]
-    results_dir = root / "sdc_2024_replication" / "scripts" / "statistical_analysis" / "results"
+    sdc_root = get_sdc_repo_root()
+    results_dir = sdc_root / "scripts" / "statistical_analysis" / "results"
     latex_path = (
-        root
-        / "sdc_2024_replication"
+        sdc_root
         / "scripts"
         / "statistical_analysis"
         / "journal_article"

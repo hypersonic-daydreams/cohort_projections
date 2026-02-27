@@ -25,7 +25,7 @@ The primary work is developing the **2026 official population projections** for 
 
 ### Related Work
 
-- **SDC 2024 Replication** (`sdc_2024_replication/`): Journal article analyzing immigration methodology. See Section 4 for file locations if needed.
+- **SDC 2024 Replication** (`../sdc_2024_replication/` sibling repository under the `demography/` workspace): Journal article analyzing immigration methodology. See Section 4 for file locations if needed.
 
 ---
 
@@ -84,8 +84,8 @@ Data deletion, security changes, breaking output formats, **methodology changes 
 
 ### SDC 2024 Journal Article (Reference Only)
 If asked to work with the SDC 2024 journal article:
-- **Latest PDF**: Check `journal_article_pdfs/` or `sdc_2024_replication/scripts/statistical_analysis/journal_article/output/CURRENT_VERSION.txt`
-- **Source files**: `sdc_2024_replication/scripts/statistical_analysis/journal_article/`
+- **Latest PDF**: Check `../sdc_2024_replication/scripts/statistical_analysis/journal_article/output/CURRENT_VERSION.txt` (fallback local cache: `journal_article_pdfs/`)
+- **Source files**: `../sdc_2024_replication/scripts/statistical_analysis/journal_article/`
 
 ---
 

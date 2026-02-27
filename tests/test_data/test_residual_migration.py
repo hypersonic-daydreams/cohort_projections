@@ -22,6 +22,7 @@ from cohort_projections.data.process.residual_migration import (
     average_period_rates,
     compute_residual_migration_rates,
 )
+from cohort_projections.utils.sdc_paths import resolve_sdc_replication_root
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -614,6 +615,7 @@ class TestEndToEnd:
     """
 
     PROJECT_ROOT = Path(__file__).parent.parent.parent
+    SDC_REPO_ROOT = resolve_sdc_replication_root(project_root=PROJECT_ROOT, must_exist=False)
 
     @pytest.fixture
     def has_data_files(self):
@@ -631,7 +633,7 @@ class TestEndToEnd:
             / "processed"
             / "sdc_2024"
             / "survival_rates_sdc_2024_by_age_group.csv",
-            self.PROJECT_ROOT / "sdc_2024_replication" / "data" / "base_population_by_county.csv",
+            self.SDC_REPO_ROOT / "data" / "base_population_by_county.csv",
         ]
         for p in required:
             if not p.exists():
@@ -668,7 +670,7 @@ class TestEndToEnd:
             load_census_2020_base_population,
         )
 
-        path = self.PROJECT_ROOT / "sdc_2024_replication" / "data" / "base_population_by_county.csv"
+        path = self.SDC_REPO_ROOT / "data" / "base_population_by_county.csv"
         result = load_census_2020_base_population(path)
 
         assert len(result) == 1908
@@ -973,7 +975,6 @@ class TestApplyPepRecalibration:
         # Give different rates to different age groups for Benson
         modified = period_rates.copy()
         benson_mask = modified["county_fips"] == "38005"
-        ages = modified.loc[benson_mask, "age_group"].values
         # Assign rates proportional to age group index
         for i, ag in enumerate(AGE_GROUP_LABELS):
             ag_mask = benson_mask & (modified["age_group"] == ag)

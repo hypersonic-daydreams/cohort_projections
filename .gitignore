@@ -157,6 +157,8 @@ sdc_2024_replication/scripts/statistical_analysis/results/**/*.csv
 journal_article_pdfs/
 journal_article_output
 journal_article_versions
+RCLONE_TEST
+archived/
 
 # Ad-hoc data directories (synced via rclone, not git)
 2025_popest_data/

@@ -9,14 +9,11 @@ from pathlib import Path
 
 import pandas as pd
 
+from tests._sdc_paths import get_sdc_repo_root
+
 
 def test_build_lpr_panel_variants_filters_and_balances(tmp_path: Path):
-    scripts_dir = (
-        Path(__file__).parent.parent.parent
-        / "sdc_2024_replication"
-        / "data_immigration_policy"
-        / "scripts"
-    )
+    scripts_dir = get_sdc_repo_root() / "data_immigration_policy" / "scripts"
     sys.path.insert(0, str(scripts_dir))
     try:
         from build_dhs_lpr_panel_variants import (  # noqa: E402

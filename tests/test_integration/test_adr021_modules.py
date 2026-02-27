@@ -20,15 +20,16 @@ from __future__ import annotations
 
 import sys
 from datetime import date
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from tests._sdc_paths import get_sdc_repo_root
+
 # Add the scripts directory to path for imports
-SCRIPTS_DIR = Path(__file__).parent.parent.parent / "sdc_2024_replication" / "scripts"
+SCRIPTS_DIR = get_sdc_repo_root() / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 # Import modules under test
