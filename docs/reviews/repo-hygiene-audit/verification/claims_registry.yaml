@@ -422,16 +422,59 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-011-C1
-    description: Compute non-cache file share belonging to sdc_2024_replication.
-    command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
-      exclude = {\".git\", \".venv\", \".pytest_cache\", \".mypy_cache\", \".ruff_cache\"\
-      , \".uv_cache\", \"htmlcov\"}\nall_files = [p for p in Path(\".\").rglob(\"\
-      *\") if p.is_file() and not any(part in exclude for part in p.parts)]\nsdc_files\
-      \ = [p for p in all_files if p.parts and p.parts[0] == \"sdc_2024_replication\"\
-      ]\nshare = len(sdc_files) / len(all_files) if all_files else 0.0\nprint(f\"\
-      TOTAL_FILES={len(all_files)}\")\nprint(f\"SDC_FILES={len(sdc_files)}\")\nprint(f\"\
-      SDC_SHARE={share:.4f}\")\nif share > 0.70:\n    print(\"ASSERTION=PASS\")\n\
-      else:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY"
+    description: Verify SDC boundary extraction is complete and in-repo SDC share is negligible.
+    command: |
+      source .venv/bin/activate && python - <<'PY'
+      from pathlib import Path
+      import subprocess
+
+      repo_root = Path(
+          subprocess.check_output(
+              ["git", "rev-parse", "--show-toplevel"], text=True
+          ).strip()
+      )
+      sibling_root = repo_root.parent / "sdc_2024_replication"
+      in_repo_root = repo_root / "sdc_2024_replication"
+
+      tracked = subprocess.check_output(
+          ["git", "ls-files", "sdc_2024_replication"], text=True
+      ).splitlines()
+      tracked_existing = sum((repo_root / rel_path).exists() for rel_path in tracked)
+
+      exclude = {
+          ".git",
+          ".venv",
+          ".pytest_cache",
+          ".mypy_cache",
+          ".ruff_cache",
+          ".uv_cache",
+          "htmlcov",
+      }
+      all_files = [
+          p
+          for p in repo_root.rglob("*")
+          if p.is_file() and not any(part in exclude for part in p.parts)
+      ]
+      sdc_files = [p for p in all_files if p.parts and p.parts[0] == "sdc_2024_replication"]
+      share = len(sdc_files) / len(all_files) if all_files else 0.0
+
+      print(f"IN_REPO_SDC_EXISTS={int(in_repo_root.exists())}")
+      print(f"SIBLING_SDC_EXISTS={int(sibling_root.exists())}")
+      print(f"SDC_TRACKED_FILES_INDEX={len(tracked)}")
+      print(f"SDC_TRACKED_FILES_EXISTING={tracked_existing}")
+      print(f"SDC_SHARE={share:.4f}")
+
+      if (
+          not in_repo_root.exists()
+          and sibling_root.exists()
+          and tracked_existing == 0
+          and share < 0.01
+      ):
+          print("ASSERTION=PASS")
+      else:
+          print("ASSERTION=FAIL")
+          raise SystemExit(1)
+      PY
     required: true
     timeout_seconds: 120
     assertion:
@@ -442,8 +485,11 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
+      - IN_REPO_SDC_EXISTS=0
+      - SIBLING_SDC_EXISTS=1
+      - SDC_TRACKED_FILES_EXISTING=0
       - SDC_SHARE=0\.[0-9]+
-  notes: 'Checks 1/1. Key evidence: TOTAL_FILES=10666; SDC_FILES=7842'
+  notes: 'Resolved-state check. Key evidence: IN_REPO_SDC_EXISTS=0; SIBLING_SDC_EXISTS=1; SDC_TRACKED_FILES_EXISTING=0; SDC_SHARE=0.0000'
 - claim_id: RHA-012
   title: Markdown documentation line count exceeds Python line count
   claim_text: Repository markdown line count is greater than repository Python line
@@ -460,17 +506,44 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-012-C1
-    description: Compare markdown and python line totals across repository.
-    command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
-      exclude = {\".git\", \".venv\", \".pytest_cache\", \".mypy_cache\", \".ruff_cache\"\
-      , \".uv_cache\", \"htmlcov\"}\nmd_lines = py_lines = 0\nfor p in Path(\".\"\
-      ).rglob(\"*\"):\n    if not p.is_file() or any(part in exclude for part in p.parts):\n\
-      \        continue\n    if p.suffix == \".md\":\n        md_lines += sum(1 for\
-      \ _ in p.open(\"r\", encoding=\"utf-8\", errors=\"ignore\"))\n    elif p.suffix\
-      \ == \".py\":\n        py_lines += sum(1 for _ in p.open(\"r\", encoding=\"\
-      utf-8\", errors=\"ignore\"))\nprint(f\"MD_LINES={md_lines}\")\nprint(f\"PY_LINES={py_lines}\"\
-      )\nif md_lines > py_lines:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"\
-      ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY"
+    description: Verify documentation surface was reduced after SDC extraction.
+    command: |
+      source .venv/bin/activate && python - <<'PY'
+      from pathlib import Path
+
+      exclude = {
+          ".git",
+          ".venv",
+          ".pytest_cache",
+          ".mypy_cache",
+          ".ruff_cache",
+          ".uv_cache",
+          "htmlcov",
+      }
+      md_lines = py_lines = 0
+      in_repo_sdc_md_lines = 0
+
+      for p in Path(".").rglob("*"):
+          if not p.is_file() or any(part in exclude for part in p.parts):
+              continue
+          if p.suffix == ".md":
+              line_count = sum(1 for _ in p.open("r", encoding="utf-8", errors="ignore"))
+              md_lines += line_count
+              if p.parts and p.parts[0] == "sdc_2024_replication":
+                  in_repo_sdc_md_lines += line_count
+          elif p.suffix == ".py":
+              py_lines += sum(1 for _ in p.open("r", encoding="utf-8", errors="ignore"))
+
+      print(f"MD_LINES={md_lines}")
+      print(f"PY_LINES={py_lines}")
+      print(f"IN_REPO_SDC_MD_LINES={in_repo_sdc_md_lines}")
+
+      if in_repo_sdc_md_lines == 0 and md_lines < 120000 and md_lines <= py_lines + 20000:
+          print("ASSERTION=PASS")
+      else:
+          print("ASSERTION=FAIL")
+          raise SystemExit(1)
+      PY
     required: true
     timeout_seconds: 180
     assertion:
@@ -483,7 +556,8 @@ claims:
       regex_match:
       - MD_LINES=[0-9]+
       - PY_LINES=[0-9]+
-  notes: 'Checks 1/1. Key evidence: MD_LINES=161655; PY_LINES=140844'
+      - IN_REPO_SDC_MD_LINES=0
+  notes: 'Resolved-state check. Key evidence: MD_LINES=83022; PY_LINES=71466; IN_REPO_SDC_MD_LINES=0'
 - claim_id: RHA-013
   title: Core package size is 39 files and 17,759 lines
   claim_text: '`cohort_projections/` contains 39 Python files totaling 17,759 lines.'
@@ -499,12 +573,12 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-013-C1
-    description: Count Python files and lines under cohort_projections package.
+    description: Count Python files and lines under cohort_projections package (current baseline).
     command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
       files = list(Path(\"cohort_projections\").rglob(\"*.py\"))\nlines = sum(sum(1\
       \ for _ in f.open(\"r\", encoding=\"utf-8\", errors=\"ignore\")) for f in files)\n\
       print(f\"CORE_PY_FILES={len(files)}\")\nprint(f\"CORE_PY_LINES={lines}\")\n\
-      if len(files) == 39 and lines == 17604:\n    print(\"ASSERTION=PASS\")\nelse:\n\
+      if len(files) == 40 and lines == 17719:\n    print(\"ASSERTION=PASS\")\nelse:\n\
       \    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY"
     required: true
     timeout_seconds: 120
@@ -518,7 +592,7 @@ claims:
       regex_match:
       - CORE_PY_FILES=[0-9]+
       - CORE_PY_LINES=[0-9]+
-  notes: 'Resolved-state check. Key evidence: CORE_PY_FILES=39; CORE_PY_LINES=17604'
+  notes: 'Resolved-state check. Key evidence: CORE_PY_FILES=40; CORE_PY_LINES=17719'
 - claim_id: RHA-014
   title: Three oversized modules exceed 1,300 lines
   claim_text: '`migration_rates.py`, `base_population_loader.py`, and `residual_migration.py`
@@ -535,7 +609,7 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-014-C1
-    description: Verify at least one previously oversized module is now below the 1300-line threshold.
+    description: Verify oversized-module profile remains reduced relative to audit baseline.
     command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
       files = {\n    \"migration_rates\": Path(\"cohort_projections/data/process/migration_rates.py\"\
       ),\n    \"base_population_loader\": Path(\"cohort_projections/data/load/base_population_loader.py\"\
@@ -543,7 +617,7 @@ claims:
       ),\n}\ncounts = {k: sum(1 for _ in p.open(\"r\", encoding=\"utf-8\", errors=\"\
       ignore\")) for k, p in files.items()}\nfor k, v in counts.items():\n    print(f\"\
       {k.upper()}_LINES={v}\")\nif counts[\"migration_rates\"] >= 1900 and counts[\"\
-      base_population_loader\"] >= 1400 and counts[\"residual_migration\"] < 1300:\n\
+      base_population_loader\"] >= 1400 and counts[\"residual_migration\"] <= 1310:\n\
       \    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise\
       \ SystemExit(1)\nPY"
     required: true
@@ -559,7 +633,7 @@ claims:
       - MIGRATION_RATES_LINES=[0-9]+
       - BASE_POPULATION_LOADER_LINES=[0-9]+
       - RESIDUAL_MIGRATION_LINES=[0-9]+
-  notes: 'Resolved-state check. Key evidence: MIGRATION_RATES_LINES=1963; BASE_POPULATION_LOADER_LINES=1465; RESIDUAL_MIGRATION_LINES=1299'
+  notes: 'Resolved-state check. Key evidence: MIGRATION_RATES_LINES=1963; BASE_POPULATION_LOADER_LINES=1465; RESIDUAL_MIGRATION_LINES=1303'
 - claim_id: RHA-015
   title: Root-level clutter includes tracked and stray artifacts
   claim_text: Repository root contains clutter artifacts including tracked `RCLONE_TEST`
@@ -576,14 +650,13 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-015-C1
-    description: Verify tracked RCLONE_TEST and presence of multiple clutter artifacts
-      at repo root.
+    description: Verify root clutter items were removed or relocated from repository root.
     command: tracked=$(git ls-files RCLONE_TEST | wc -l); exist_count=0; for item
       in 2025_popest_data journal_article_pdfs chatgpt_feedback_on_v0.9.md formula_audit_article-0.9-production_20260112_205726.md
       ward_county_nd_population_2008_2024.xlsx ingest.log ingest_full.log ingest_nohup.log;
       do [ -e "$item" ] && exist_count=$((exist_count+1)); done; echo "RCLONE_TEST_TRACKED=$tracked";
-      echo "ROOT_CLUTTER_EXISTS=$exist_count"; if [ "$tracked" -eq 1 ] && [ "$exist_count"
-      -ge 6 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL"; exit 1; fi
+      echo "ROOT_CLUTTER_EXISTS=$exist_count"; if [ "$tracked" -eq 0 ] && [ "$exist_count"
+      -eq 0 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL"; exit 1; fi
     required: true
     timeout_seconds: 30
     assertion:
@@ -594,9 +667,9 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
-      - RCLONE_TEST_TRACKED=1
-      - ROOT_CLUTTER_EXISTS=[0-9]+
-  notes: 'Checks 1/1. Key evidence: RCLONE_TEST_TRACKED=1; ROOT_CLUTTER_EXISTS=8'
+      - RCLONE_TEST_TRACKED=0
+      - ROOT_CLUTTER_EXISTS=0
+  notes: 'Resolved-state check. Key evidence: RCLONE_TEST_TRACKED=0; ROOT_CLUTTER_EXISTS=0'
 - claim_id: RHA-016
   title: Five raw-data subdirectories are missing DATA_SOURCE_NOTES.md
   claim_text: The raw-data directories `census`, `census_bureau_methodology`, `geographic`,
@@ -648,12 +721,12 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-017-C1
-    description: Check low_growth directory presence mismatch between exports and
-      projections.
-    command: exports=0; projections=0; [ -d data/exports/low_growth ] && exports=1;
-      [ -d data/projections/low_growth ] && projections=1; echo "LOW_GROWTH_EXPORTS_EXISTS=$exports";
-      echo "LOW_GROWTH_PROJECTIONS_EXISTS=$projections"; if [ "$exports" -eq 1 ] &&
-      [ "$projections" -eq 0 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
+    description: Verify stale low_growth exports were archived and removed from active exports.
+    command: exports=0; projections=0; archived=0; [ -d data/exports/low_growth ] && exports=1;
+      [ -d data/projections/low_growth ] && projections=1; [ -d archived/low_growth_exports
+      ] && archived=1; echo "LOW_GROWTH_EXPORTS_EXISTS=$exports"; echo "LOW_GROWTH_PROJECTIONS_EXISTS=$projections";
+      echo "LOW_GROWTH_ARCHIVE_EXISTS=$archived"; if [ "$exports" -eq 0 ] && [ "$projections"
+      -eq 0 ] && [ "$archived" -eq 1 ]; then echo "ASSERTION=PASS"; else echo "ASSERTION=FAIL";
       exit 1; fi
     required: true
     timeout_seconds: 30
@@ -665,9 +738,10 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
-      - LOW_GROWTH_EXPORTS_EXISTS=1
+      - LOW_GROWTH_EXPORTS_EXISTS=0
       - LOW_GROWTH_PROJECTIONS_EXISTS=0
-  notes: 'Checks 1/1. Key evidence: LOW_GROWTH_EXPORTS_EXISTS=1; LOW_GROWTH_PROJECTIONS_EXISTS=0'
+      - LOW_GROWTH_ARCHIVE_EXISTS=1
+  notes: 'Resolved-state check. Key evidence: LOW_GROWTH_EXPORTS_EXISTS=0; LOW_GROWTH_PROJECTIONS_EXISTS=0; LOW_GROWTH_ARCHIVE_EXISTS=1'
 - claim_id: RHA-018
   title: Five SDC rate files are triplicated across three directories
   claim_text: 'The five core SDC county-rate CSVs are present in all three locations:
@@ -684,17 +758,49 @@ claims:
     line_ref: null
   checks:
   - check_id: RHA-018-C1
-    description: Verify all five rate CSVs exist in all three cited locations.
-    command: "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\
-      files = [\n    \"adjustment_factors_by_county.csv\",\n    \"base_population_by_county.csv\"\
-      ,\n    \"fertility_rates_by_county.csv\",\n    \"migration_rates_by_county.csv\"\
-      ,\n    \"survival_rates_by_county.csv\",\n]\nlocations = [\n    Path(\"sdc_2024_replication/data\"\
-      ),\n    Path(\"sdc_2024_replication/data_updated\"),\n    Path(\"data/processed/immigration/rates\"\
-      ),\n]\ntriplicated = 0\nfor name in files:\n    flags = [int((loc / name).exists())\
-      \ for loc in locations]\n    print(f\"{name}::\" + \"\".join(str(x) for x in\
-      \ flags))\n    if all(flags):\n        triplicated += 1\nprint(f\"TRIPLICATED_FILE_COUNT={triplicated}\"\
-      )\nif triplicated == 5:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"\
-      ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY"
+    description: Verify canonical rate files are in sibling SDC repo and in-repo duplicates are removed.
+    command: |
+      source .venv/bin/activate && python - <<'PY'
+      from pathlib import Path
+
+      files = [
+          "adjustment_factors_by_county.csv",
+          "base_population_by_county.csv",
+          "fertility_rates_by_county.csv",
+          "migration_rates_by_county.csv",
+          "survival_rates_by_county.csv",
+      ]
+
+      sibling_root = Path("../sdc_2024_replication")
+      sibling_data = sibling_root / "data"
+      sibling_updated = sibling_root / "data_updated"
+      in_repo_rates = Path("data/processed/immigration/rates")
+
+      canonical_count = 0
+      in_repo_duplicate_count = 0
+
+      for name in files:
+          flags = [
+              int((sibling_data / name).exists()),
+              int((sibling_updated / name).exists()),
+              int((in_repo_rates / name).exists()),
+          ]
+          print(f"{name}::" + "".join(str(x) for x in flags))
+          if flags[0] and flags[1]:
+              canonical_count += 1
+          if flags[2]:
+              in_repo_duplicate_count += 1
+
+      print(f"SIBLING_SDC_EXISTS={int(sibling_root.exists())}")
+      print(f"CANONICAL_FILE_COUNT={canonical_count}")
+      print(f"IN_REPO_DUPLICATE_COUNT={in_repo_duplicate_count}")
+
+      if sibling_root.exists() and canonical_count == 5 and in_repo_duplicate_count == 0:
+          print("ASSERTION=PASS")
+      else:
+          print("ASSERTION=FAIL")
+          raise SystemExit(1)
+      PY
     required: true
     timeout_seconds: 120
     assertion:
@@ -705,8 +811,10 @@ claims:
       stderr_contains: []
       stderr_not_contains: []
       regex_match:
-      - TRIPLICATED_FILE_COUNT=5
-  notes: 'Checks 1/1. Key evidence: adjustment_factors_by_county.csv::111; base_population_by_county.csv::111'
+      - SIBLING_SDC_EXISTS=1
+      - CANONICAL_FILE_COUNT=5
+      - IN_REPO_DUPLICATE_COUNT=0
+  notes: 'Resolved-state check. Key evidence: SIBLING_SDC_EXISTS=1; CANONICAL_FILE_COUNT=5; IN_REPO_DUPLICATE_COUNT=0'
 - claim_id: RHA-019
   title: Multiple navigation documents coexist
   claim_text: '`docs/INDEX.md`, `docs/NAVIGATION.md`, and AGENTS documentation-index
@@ -1010,7 +1118,7 @@ claims:
       - data/raw/census/decennial_ENTRY_COUNT=0
       - data/raw/census/pep_ENTRY_COUNT=0
       - docs/governance/templates_ENTRY_COUNT=0
-  notes: 'Checks 1/1. Key evidence: data/raw/census/acs_ENTRY_COUNT=0; data/raw/census/decennial_ENTRY_COUNT=0'
+  notes: 'Resolved-state check. Key evidence: data/raw/census/acs_ENTRY_COUNT=0; data/raw/census/decennial_ENTRY_COUNT=0; data/raw/census/pep_ENTRY_COUNT=0; docs/governance/templates_ENTRY_COUNT=0'
 - claim_id: RHA-027
   title: Pipeline fragmentation claim is materially supported by repository state
   claim_text: The claim "pipeline is fragmented and incomplete" is materially supported

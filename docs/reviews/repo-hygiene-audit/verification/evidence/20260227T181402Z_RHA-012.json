@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-27T18:14:02Z",
+  "claim_id": "RHA-012",
+  "claim_title": "Markdown documentation line count exceeds Python line count",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-012-C1",
+      "description": "Verify documentation surface was reduced after SDC extraction.",
+      "required": true,
+      "command": "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\n\nexclude = {\n    \".git\",\n    \".venv\",\n    \".pytest_cache\",\n    \".mypy_cache\",\n    \".ruff_cache\",\n    \".uv_cache\",\n    \"htmlcov\",\n}\nmd_lines = py_lines = 0\nin_repo_sdc_md_lines = 0\n\nfor p in Path(\".\").rglob(\"*\"):\n    if not p.is_file() or any(part in exclude for part in p.parts):\n        continue\n    if p.suffix == \".md\":\n        line_count = sum(1 for _ in p.open(\"r\", encoding=\"utf-8\", errors=\"ignore\"))\n        md_lines += line_count\n        if p.parts and p.parts[0] == \"sdc_2024_replication\":\n            in_repo_sdc_md_lines += line_count\n    elif p.suffix == \".py\":\n        py_lines += sum(1 for _ in p.open(\"r\", encoding=\"utf-8\", errors=\"ignore\"))\n\nprint(f\"MD_LINES={md_lines}\")\nprint(f\"PY_LINES={py_lines}\")\nprint(f\"IN_REPO_SDC_MD_LINES={in_repo_sdc_md_lines}\")\n\nif in_repo_sdc_md_lines == 0 and md_lines < 120000 and md_lines <= py_lines + 20000:\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY\n",
+      "timeout_seconds": 180,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "MD_LINES=[0-9]+",
+          "PY_LINES=[0-9]+",
+          "IN_REPO_SDC_MD_LINES=0"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-27T18:14:02Z",
+      "duration_seconds": 0.435,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "MD_LINES=83022\nPY_LINES=71466\nIN_REPO_SDC_MD_LINES=0\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

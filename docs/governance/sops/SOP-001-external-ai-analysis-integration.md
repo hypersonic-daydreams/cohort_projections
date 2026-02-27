@@ -247,7 +247,7 @@ This SOP defines the workflow for incorporating external AI analysis (e.g., from
 **Steps**:
 
 1. **Create Module Packages**
-   - Location: `sdc_2024_replication/scripts/statistical_analysis/module_BN_*/`
+   - Location: `../sdc_2024_replication/scripts/statistical_analysis/module_BN_*/`
    - Use template: [templates/module-package.md](./templates/module-package.md)
    - Structure:
      ```
@@ -265,12 +265,12 @@ This SOP defines the workflow for incorporating external AI analysis (e.g., from
    - Avoid `test_*` function names in source code (pytest collection conflict)
 
 3. **Create Runner Script**
-   - Location: `sdc_2024_replication/scripts/statistical_analysis/module_BN_*.py`
+   - Location: `../sdc_2024_replication/scripts/statistical_analysis/module_BN_*.py`
    - Main entry point that uses the package
    - Outputs results to `results/` directory
 
 4. **Update Journal Article (if applicable)**
-   - Location: `sdc_2024_replication/scripts/statistical_analysis/journal_article/sections/`
+   - Location: `../sdc_2024_replication/scripts/statistical_analysis/journal_article/sections/`
    - Add new section or update existing section
    - Reference B1/B2 results with specific numbers
 
@@ -354,7 +354,7 @@ This SOP defines the workflow for incorporating external AI analysis (e.g., from
 
 1. **Compile Journal Article PDF**
    ```bash
-   cd sdc_2024_replication/scripts/statistical_analysis/journal_article
+   cd ../sdc_2024_replication/scripts/statistical_analysis/journal_article
    ./compile.sh --clean
    ```
 
@@ -399,9 +399,9 @@ This SOP defines the workflow for incorporating external AI analysis (e.g., from
 | Intake Document | `docs/adr/0XX-reports/external_analysis_intake.md` | Capture and triage external AI feedback |
 | ADR | `docs/adr/0XX-*.md` | Document decision and rationale |
 | ADR Reports | `docs/adr/0XX-reports/` | Exploratory analysis and planning |
-| Production Modules | `sdc_2024_replication/scripts/statistical_analysis/module_BN_*/` | Reusable code |
+| Production Modules | `../sdc_2024_replication/scripts/statistical_analysis/module_BN_*/` | Reusable code |
 | Test Suite | `tests/test_statistical/` | Validation |
-| Journal Article | `sdc_2024_replication/.../journal_article/output/` | Publication |
+| Journal Article | `../sdc_2024_replication/.../journal_article/output/` | Publication |
 
 ### Templates Used
 

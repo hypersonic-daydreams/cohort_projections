@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-27T18:14:03Z",
+  "claim_id": "RHA-022",
+  "claim_title": "data/process module README is very large",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-022-C1",
+      "description": "Measure line count of cohort_projections/data/process/README.md.",
+      "required": true,
+      "command": "lines=$(wc -l < cohort_projections/data/process/README.md); echo \"PROCESS_README_LINES=$lines\"; if [ \"$lines\" -lt 500 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "PROCESS_README_LINES=[0-9]+"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-27T18:14:03Z",
+      "duration_seconds": 0.012,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "PROCESS_README_LINES=74\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-27T18:14:03Z",
+  "claim_id": "RHA-021",
+  "claim_title": "DEVELOPMENT_TRACKER is lengthy",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-021-C1",
+      "description": "Measure DEVELOPMENT_TRACKER line count.",
+      "required": true,
+      "command": "lines=$(wc -l < DEVELOPMENT_TRACKER.md); echo \"DEVELOPMENT_TRACKER_LINES=$lines\"; if [ \"$lines\" -lt 200 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "DEVELOPMENT_TRACKER_LINES=[0-9]+"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-27T18:14:03Z",
+      "duration_seconds": 0.017,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "DEVELOPMENT_TRACKER_LINES=69\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

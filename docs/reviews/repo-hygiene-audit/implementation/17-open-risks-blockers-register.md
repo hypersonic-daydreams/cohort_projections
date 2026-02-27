@@ -1,11 +1,11 @@
 # Repo Hygiene Audit Open Risks / Blockers Register
 
-**Last Updated (UTC):** 2026-02-27T17:42:23Z  
-**Scope:** B05 Wave 2 Step 1 complete; extraction + remaining archive placements pending
+**Last Updated (UTC):** 2026-02-27T18:21:14Z  
+**Scope:** B05 and B06 implementation complete; residual policy/quality risks tracked
 
 ## Purpose
 
-Centralize unresolved risks and blockers so remaining batch sequencing does not lose
+Centralize unresolved risks and blockers so post-implementation sequencing does not lose
 operational context.
 
 ## Active Items
@@ -33,43 +33,29 @@ operational context.
   2. Track debt trend over batches to prevent growth.
 - Exit criterion: either full-repo lint/type pass or formally accepted long-term baseline policy.
 
-### RB-005: B05 Archive/Delete Strategy Approval
-
-- Status: `in_progress`
-- Severity: `high`
-- Affected claims/batch: `B05` (`RHA-011`, `RHA-012`, `RHA-015`, `RHA-017`, `RHA-018`, `RHA-026`)
-- Current signal: strategy decisions and planning artifacts are complete; Wave 2 Step 1 owner decisions were executed (`archived/` created, low-growth archived, Ward file archived, placeholders retained).
-- Impact: extraction and remaining root-clutter placements still need completion before B05 closeout.
-- Required action:
-  1. **Completed:** documented owner decisions (2026-02-27) for:
-     - extracting `sdc_2024_replication/` to its own repo under the local `demography/` directory, and
-     - keeping the canonical SDC rate CSVs in that extracted repository.
-  2. **Completed:** delivered implementation-ready **references inventory + migration plan** (`23-b05-references-inventory-and-migration-plan.md`).
-  3. **Completed:** delivered **delete/archive proposal** (`24-b05-delete-archive-proposal.md`).
-  4. In progress: complete remaining root-clutter placements (`2025_popest_data/`, remaining root files/logs) and execute SDC extraction step.
-  5. Re-run and reconcile B05 claim checks; `RHA-017` currently reflects expected post-remediation predicate drift.
-- Exit criterion: remaining Wave 2 actions executed and B05 claim replay reflects accepted resolved-state behavior.
-
-Owner-approved strategy decisions: `docs/reviews/repo-hygiene-audit/implementation/22-b05-strategy-decisions.md`
-Wave 1 artifacts:
-- `docs/reviews/repo-hygiene-audit/implementation/23-b05-references-inventory-and-migration-plan.md`
-- `docs/reviews/repo-hygiene-audit/implementation/24-b05-delete-archive-proposal.md`
-- `docs/reviews/repo-hygiene-audit/implementation/25-b05-wave1-implementation-results.md`
-
 ## Closed Items
 
 ### RB-001: Resolved-State Claim Check Redesign
 
 - Status: `closed` (2026-02-26)
-- Resolution: updated claim checks to assert resolved states; full adjudicated replay now passes (`27/27`).
+- Resolution: updated claim checks to assert resolved states; full adjudicated replay passes (`27/27`).
 
 ### RB-002: Baseline Metric Drift (`RHA-013`)
 
-- Status: `closed` (2026-02-26)
-- Resolution: baseline assertion reset to current canonical metrics (`CORE_PY_FILES=39`, `CORE_PY_LINES=17604`), replay passes.
+- Status: `closed` (2026-02-26; refreshed baseline 2026-02-27)
+- Resolution: baseline assertion updated to current canonical package metrics (`CORE_PY_FILES=40`, `CORE_PY_LINES=17719`).
+
+### RB-005: B05 Archive/Delete Strategy Approval
+
+- Status: `closed` (2026-02-27)
+- Resolution:
+  1. Strategy decisions documented and approved (`22-b05-strategy-decisions.md`).
+  2. Wave 1 compatibility implementation completed (`25-b05-wave1-implementation-results.md`).
+  3. Wave 2 Step 1 archive actions completed (`26-b05-wave2-step1-results.md`).
+  4. Wave 2 Step 2 extraction/placement actions completed (`27-b05-wave2-step2-results.md`).
+  5. B05 claim checks replay now fully passing with resolved-state predicates.
 
 ## Sequencing Guidance
 
-1. Complete RB-005 remaining Wave 2 actions (extraction + remaining placements + claim check reconciliation).
-2. Keep RB-003 and RB-004 explicitly documented through B06 closeout.
-3. After B05 implementation, run final B06 harmonization and full claim revalidation.
+1. Execute dedicated RB-003/RB-004 remediation or policy-closeout wave.
+2. Preserve explicit non-regression evidence for lint/type until debt is resolved or policy-accepted.

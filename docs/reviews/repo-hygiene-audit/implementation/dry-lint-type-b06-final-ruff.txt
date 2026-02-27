@@ -1,0 +1,1683 @@
+C420 [*] Unnecessary dict comprehension for iterable; use `dict.fromkeys` instead
+   --> cohort_projections/data/load/base_population_loader.py:360:37
+    |
+358 |               # Fallback: uniform if statewide has zero for this group
+359 |               n = len(weights_by_group[key])
+360 |               weights_by_group[key] = {
+    |  _____________________________________^
+361 | |                 age: 1.0 / n for age in weights_by_group[key]
+362 | |             }
+    | |_____________^
+363 |
+364 |       return weights_by_group
+    |
+help: Replace with `dict.fromkeys(iterable)`)
+
+PERF401 Use `list.extend` to create a transformed list
+   --> cohort_projections/data/load/base_population_loader.py:429:21
+    |
+427 |                   # All zeros for this sex-race: create zero single-year entries
+428 |                   for age in range(91):
+429 | /                     expanded_rows.append({
+430 | |                         "age": age,
+431 | |                         "sex": sex.title(),
+432 | |                         "race": race,
+433 | |                         "proportion": 0.0,
+434 | |                     })
+    | |______________________^
+435 |                   continue
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> cohort_projections/data/load/base_population_loader.py:481:17
+    |
+479 |               # Build output: ages 0-84 from Sprague, 85-89 adjusted, 90 from tail
+480 |               for age in range(85):
+481 | /                 expanded_rows.append({
+482 | |                     "age": age,
+483 | |                     "sex": sex.title(),
+484 | |                     "race": race,
+485 | |                     "proportion": float(single_year_values[age]),
+486 | |                 })
+    | |__________________^
+487 |
+488 |               for i, age in enumerate(range(85, 90)):
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> cohort_projections/data/load/base_population_loader.py:972:13
+    |
+971 |           for age in ages:
+972 | /             expanded_rows.append({
+973 | |                 "age": age,
+974 | |                 "sex": sex,
+975 | |                 "gq_population": pop_per_age,
+976 | |             })
+    | |______________^
+977 |
+978 |       return pd.DataFrame(expanded_rows)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+    --> cohort_projections/data/load/base_population_loader.py:1034:13
+     |
+1033 |           for race in expected_races:
+1034 | /             rows.append({
+1035 | |                 "age": age,
+1036 | |                 "sex": sex,
+1037 | |                 "race": race,
+1038 | |                 "gq_population": gq_pop * race_shares[race],
+1039 | |             })
+     | |______________^
+1040 |
+1041 |       return pd.DataFrame(rows)
+     |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+  --> scripts/check_test_coverage.py:63:25
+   |
+61 |                 for alias in node.names:
+62 |                     if alias.name.startswith("cohort_projections"):
+63 |                         imports.append(alias.name)
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+64 |     except SyntaxError:
+65 |         pass
+   |
+help: Replace for loop with list.extend
+
+F541 [*] f-string without any placeholders
+   --> scripts/data/build_nd_fertility_rates.py:304:15
+    |
+302 |     suppressed = merged[(merged["births"] < 10) & (merged["race_code"] != "total")]
+303 |     if not suppressed.empty:
+304 |         print(f"\n  Suppressed cells (< 10 births, falling back to national):")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+305 |         for _, row in suppressed.iterrows():
+306 |             print(f"    {row['race_code']} × {row['age_group']}: {row['births']:.0f} births")
+    |
+help: Remove extraneous `f` prefix
+
+F841 Local variable `nat_births` is assigned to but never used
+   --> scripts/data/build_nd_fertility_rates.py:349:5
+    |
+347 |     # Step 2: Load national births for fallback
+348 |     print("\nStep 2: Loading national births from CDC WONDER (2020-2023 pooled)")
+349 |     nat_births = load_wonder_births(nat_births_file)
+    |     ^^^^^^^^^^
+350 |
+351 |     # Step 3: Load Census PEP female population (ND)
+    |
+help: Remove assignment to unused variable `nat_births`
+
+B007 Loop control variable `sex` not used within loop body
+   --> scripts/data/build_nd_survival_rates.py:239:10
+    |
+238 |     # Recompute lx from adjusted qx
+239 |     for (sex, race), group in survival_df.groupby(["sex", "race_ethnicity"]):
+    |          ^^^
+240 |         sorted_idx = group.sort_values("age").index
+241 |         lx = 100000.0
+    |
+help: Rename unused `sex` to `_sex`
+
+B007 Loop control variable `race` not used within loop body
+   --> scripts/data/build_nd_survival_rates.py:239:15
+    |
+238 |     # Recompute lx from adjusted qx
+239 |     for (sex, race), group in survival_df.groupby(["sex", "race_ethnicity"]):
+    |               ^^^^
+240 |         sorted_idx = group.sort_values("age").index
+241 |         lx = 100000.0
+    |
+help: Rename unused `race` to `_race`
+
+F401 [*] `numpy` imported but unused
+   --> scripts/data/build_race_distribution_from_census.py:147:17
+    |
+145 | from pathlib import Path
+146 |
+147 | import numpy as np
+    |                 ^^
+148 | import pandas as pd
+    |
+help: Remove unused import: `numpy`
+
+F541 [*] f-string without any placeholders
+   --> scripts/data/build_race_distribution_from_census.py:349:15
+    |
+348 |     if (df["estimated_count"] < 0).any():
+349 |         print(f"  FAIL: Negative estimated_count values found")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+350 |         ok = False
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/data/build_race_distribution_from_census.py:374:15
+    |
+372 |     actual_races = set(df["race_ethnicity"].unique())
+373 |     if actual_races == expected_races:
+374 |         print(f"  OK: All 6 race categories present")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+375 |     else:
+376 |         missing = expected_races - actual_races
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/data/build_race_distribution_from_census.py:387:15
+    |
+385 |     actual_sexes = set(df["sex"].unique())
+386 |     if actual_sexes == expected_sexes:
+387 |         print(f"  OK: Both sexes present")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+388 |     else:
+389 |         print(f"  FAIL: Expected sexes {expected_sexes}, got {actual_sexes}")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/data/build_race_distribution_from_census.py:638:15
+    |
+636 |         ok = False
+637 |     if (df["estimated_count"] < 0).any():
+638 |         print(f"  FAIL: Negative estimated_count values found")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+639 |         ok = False
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/data/build_race_distribution_from_census.py:645:15
+    |
+643 |         print(f"  NOTE: {zero_cells} cells have zero population")
+644 |     else:
+645 |         print(f"  OK: All cells have non-zero population")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+646 |
+647 |     # 4. Age range
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/data/build_race_distribution_from_census.py:662:15
+    |
+660 |     actual_races = set(df["race_ethnicity"].unique())
+661 |     if actual_races == expected_races:
+662 |         print(f"  OK: All 6 race categories present")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+663 |     else:
+664 |         missing = expected_races - actual_races
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/data/build_race_distribution_from_census.py:675:15
+    |
+673 |     actual_sexes = set(df["sex"].unique())
+674 |     if actual_sexes == expected_sexes:
+675 |         print(f"  OK: Both sexes present")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+676 |     else:
+677 |         print(f"  FAIL: Expected sexes {expected_sexes}, got {actual_sexes}")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/data/build_race_distribution_from_census.py:880:15
+    |
+878 |         ok = False
+879 |     else:
+880 |         print(f"  OK: All county proportions sum to 1.0 (within 1e-6)")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+881 |
+882 |     # 4. No NaN or negative proportions
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/data/build_race_distribution_from_census.py:892:15
+    |
+890 |         ok = False
+891 |     if nan_count == 0 and neg_count == 0:
+892 |         print(f"  OK: No NaN or negative proportions")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+893 |
+894 |     # 5. Reservation county spot checks
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/data/build_race_distribution_from_census.py:926:15
+    |
+924 |     print(f"    Median MAD from average distribution: {median_mad:.6f}")
+925 |     if median_mad > 0:
+926 |         print(f"    OK: County distributions diverge from each other")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+927 |     else:
+928 |         print(f"    WARNING: All county distributions are identical")
+    |
+help: Remove extraneous `f` prefix
+
+F541 [*] f-string without any placeholders
+   --> scripts/data/build_race_distribution_from_census.py:928:15
+    |
+926 |         print(f"    OK: County distributions diverge from each other")
+927 |     else:
+928 |         print(f"    WARNING: All county distributions are identical")
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+929 |
+930 |     return ok
+    |
+help: Remove extraneous `f` prefix
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:107:46
+    |
+105 | TITLE_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+106 |     # Census data (special format)
+107 |     (re.compile(r"resident\s+census\s+data", re.I), "census_data"),
+    |                                              ^^^^
+108 |     # Teenage pregnancies (before generic pregnancies)
+109 |     (re.compile(r"teenage\s+pregnancy\s+ratio", re.I), "teenage_pregnancy_ratios"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:109:49
+    |
+107 |     (re.compile(r"resident\s+census\s+data", re.I), "census_data"),
+108 |     # Teenage pregnancies (before generic pregnancies)
+109 |     (re.compile(r"teenage\s+pregnancy\s+ratio", re.I), "teenage_pregnancy_ratios"),
+    |                                                 ^^^^
+110 |     (re.compile(r"teenage\s+pregnancy\s+rate", re.I), "teenage_pregnancy_rates"),
+111 |     (re.compile(r"teenage\s+pregnanc", re.I), "teenage_pregnancies"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:110:48
+    |
+108 |     # Teenage pregnancies (before generic pregnancies)
+109 |     (re.compile(r"teenage\s+pregnancy\s+ratio", re.I), "teenage_pregnancy_ratios"),
+110 |     (re.compile(r"teenage\s+pregnancy\s+rate", re.I), "teenage_pregnancy_rates"),
+    |                                                ^^^^
+111 |     (re.compile(r"teenage\s+pregnanc", re.I), "teenage_pregnancies"),
+112 |     # Teenage births (before generic births)
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:111:40
+    |
+109 |     (re.compile(r"teenage\s+pregnancy\s+ratio", re.I), "teenage_pregnancy_ratios"),
+110 |     (re.compile(r"teenage\s+pregnancy\s+rate", re.I), "teenage_pregnancy_rates"),
+111 |     (re.compile(r"teenage\s+pregnanc", re.I), "teenage_pregnancies"),
+    |                                        ^^^^
+112 |     # Teenage births (before generic births)
+113 |     (re.compile(r"teenage\s+birth\s+ratio", re.I), "teenage_birth_ratios"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:113:45
+    |
+111 |     (re.compile(r"teenage\s+pregnanc", re.I), "teenage_pregnancies"),
+112 |     # Teenage births (before generic births)
+113 |     (re.compile(r"teenage\s+birth\s+ratio", re.I), "teenage_birth_ratios"),
+    |                                             ^^^^
+114 |     (re.compile(r"teenage\s+birth\s+rate", re.I), "teenage_birth_rates"),
+115 |     (re.compile(r"teenage\s+birth", re.I), "teenage_births"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:114:44
+    |
+112 |     # Teenage births (before generic births)
+113 |     (re.compile(r"teenage\s+birth\s+ratio", re.I), "teenage_birth_ratios"),
+114 |     (re.compile(r"teenage\s+birth\s+rate", re.I), "teenage_birth_rates"),
+    |                                            ^^^^
+115 |     (re.compile(r"teenage\s+birth", re.I), "teenage_births"),
+116 |     # Out-of-wedlock pregnancies (before generic)
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:115:37
+    |
+113 |     (re.compile(r"teenage\s+birth\s+ratio", re.I), "teenage_birth_ratios"),
+114 |     (re.compile(r"teenage\s+birth\s+rate", re.I), "teenage_birth_rates"),
+115 |     (re.compile(r"teenage\s+birth", re.I), "teenage_births"),
+    |                                     ^^^^
+116 |     # Out-of-wedlock pregnancies (before generic)
+117 |     (re.compile(r"wedlock\s+pregnancy\s+ratio", re.I), "out_of_wedlock_pregnancy_ratios"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:117:49
+    |
+115 |     (re.compile(r"teenage\s+birth", re.I), "teenage_births"),
+116 |     # Out-of-wedlock pregnancies (before generic)
+117 |     (re.compile(r"wedlock\s+pregnancy\s+ratio", re.I), "out_of_wedlock_pregnancy_ratios"),
+    |                                                 ^^^^
+118 |     (re.compile(r"wedlock\s+pregnanc", re.I), "out_of_wedlock_pregnancies"),
+119 |     # Out-of-wedlock births
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:118:40
+    |
+116 |     # Out-of-wedlock pregnancies (before generic)
+117 |     (re.compile(r"wedlock\s+pregnancy\s+ratio", re.I), "out_of_wedlock_pregnancy_ratios"),
+118 |     (re.compile(r"wedlock\s+pregnanc", re.I), "out_of_wedlock_pregnancies"),
+    |                                        ^^^^
+119 |     # Out-of-wedlock births
+120 |     (re.compile(r"wedlock\s+birth\s+ratio", re.I), "out_of_wedlock_birth_ratios"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:120:45
+    |
+118 |     (re.compile(r"wedlock\s+pregnanc", re.I), "out_of_wedlock_pregnancies"),
+119 |     # Out-of-wedlock births
+120 |     (re.compile(r"wedlock\s+birth\s+ratio", re.I), "out_of_wedlock_birth_ratios"),
+    |                                             ^^^^
+121 |     (re.compile(r"wedlock\s+birth", re.I), "out_of_wedlock_births"),
+122 |     # Low weight births
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:121:37
+    |
+119 |     # Out-of-wedlock births
+120 |     (re.compile(r"wedlock\s+birth\s+ratio", re.I), "out_of_wedlock_birth_ratios"),
+121 |     (re.compile(r"wedlock\s+birth", re.I), "out_of_wedlock_births"),
+    |                                     ^^^^
+122 |     # Low weight births
+123 |     (re.compile(r"low\s+weight\s+birth\s+ratio", re.I), "low_weight_birth_ratios"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:123:50
+    |
+121 |     (re.compile(r"wedlock\s+birth", re.I), "out_of_wedlock_births"),
+122 |     # Low weight births
+123 |     (re.compile(r"low\s+weight\s+birth\s+ratio", re.I), "low_weight_birth_ratios"),
+    |                                                  ^^^^
+124 |     (re.compile(r"low\s+weight\s+birth", re.I), "low_weight_births"),
+125 |     # Infant deaths
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:124:42
+    |
+122 |     # Low weight births
+123 |     (re.compile(r"low\s+weight\s+birth\s+ratio", re.I), "low_weight_birth_ratios"),
+124 |     (re.compile(r"low\s+weight\s+birth", re.I), "low_weight_births"),
+    |                                          ^^^^
+125 |     # Infant deaths
+126 |     (re.compile(r"infant\s+death\s+ratio", re.I), "infant_death_ratios"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:126:44
+    |
+124 |     (re.compile(r"low\s+weight\s+birth", re.I), "low_weight_births"),
+125 |     # Infant deaths
+126 |     (re.compile(r"infant\s+death\s+ratio", re.I), "infant_death_ratios"),
+    |                                            ^^^^
+127 |     (re.compile(r"infant\s+death", re.I), "infant_deaths"),
+128 |     # Neonatal deaths
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:127:36
+    |
+125 |     # Infant deaths
+126 |     (re.compile(r"infant\s+death\s+ratio", re.I), "infant_death_ratios"),
+127 |     (re.compile(r"infant\s+death", re.I), "infant_deaths"),
+    |                                    ^^^^
+128 |     # Neonatal deaths
+129 |     (re.compile(r"neonatal\s+death\s+ratio", re.I), "neonatal_death_ratios"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:129:46
+    |
+127 |     (re.compile(r"infant\s+death", re.I), "infant_deaths"),
+128 |     # Neonatal deaths
+129 |     (re.compile(r"neonatal\s+death\s+ratio", re.I), "neonatal_death_ratios"),
+    |                                              ^^^^
+130 |     (re.compile(r"neonatal\s+death", re.I), "neonatal_deaths"),
+131 |     # Fetal deaths
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:130:38
+    |
+128 |     # Neonatal deaths
+129 |     (re.compile(r"neonatal\s+death\s+ratio", re.I), "neonatal_death_ratios"),
+130 |     (re.compile(r"neonatal\s+death", re.I), "neonatal_deaths"),
+    |                                      ^^^^
+131 |     # Fetal deaths
+132 |     (re.compile(r"fetal\s+death\s+ratio", re.I), "fetal_death_ratios"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:132:43
+    |
+130 |     (re.compile(r"neonatal\s+death", re.I), "neonatal_deaths"),
+131 |     # Fetal deaths
+132 |     (re.compile(r"fetal\s+death\s+ratio", re.I), "fetal_death_ratios"),
+    |                                           ^^^^
+133 |     (re.compile(r"fetal\s+death", re.I), "fetal_deaths"),
+134 |     # Childhood deaths
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:133:35
+    |
+131 |     # Fetal deaths
+132 |     (re.compile(r"fetal\s+death\s+ratio", re.I), "fetal_death_ratios"),
+133 |     (re.compile(r"fetal\s+death", re.I), "fetal_deaths"),
+    |                                   ^^^^
+134 |     # Childhood deaths
+135 |     (re.compile(r"childhood.*death\s+rate", re.I), "childhood_adolescent_death_rates"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:135:45
+    |
+133 |     (re.compile(r"fetal\s+death", re.I), "fetal_deaths"),
+134 |     # Childhood deaths
+135 |     (re.compile(r"childhood.*death\s+rate", re.I), "childhood_adolescent_death_rates"),
+    |                                             ^^^^
+136 |     (re.compile(r"childhood.*death", re.I), "childhood_adolescent_deaths"),
+137 |     # Generic fertility rates (after teenage)
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:136:38
+    |
+134 |     # Childhood deaths
+135 |     (re.compile(r"childhood.*death\s+rate", re.I), "childhood_adolescent_death_rates"),
+136 |     (re.compile(r"childhood.*death", re.I), "childhood_adolescent_deaths"),
+    |                                      ^^^^
+137 |     # Generic fertility rates (after teenage)
+138 |     (re.compile(r"resident\s+fertility\s+rate", re.I), "fertility_rates"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:138:49
+    |
+136 |     (re.compile(r"childhood.*death", re.I), "childhood_adolescent_deaths"),
+137 |     # Generic fertility rates (after teenage)
+138 |     (re.compile(r"resident\s+fertility\s+rate", re.I), "fertility_rates"),
+    |                                                 ^^^^
+139 |     # Generic pregnancy rates/counts (after teenage/wedlock)
+140 |     (re.compile(r"resident\s+pregnancy\s+rate", re.I), "pregnancy_rates"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:140:49
+    |
+138 |     (re.compile(r"resident\s+fertility\s+rate", re.I), "fertility_rates"),
+139 |     # Generic pregnancy rates/counts (after teenage/wedlock)
+140 |     (re.compile(r"resident\s+pregnancy\s+rate", re.I), "pregnancy_rates"),
+    |                                                 ^^^^
+141 |     (re.compile(r"resident\s+pregnanc", re.I), "pregnancies"),
+142 |     # Generic birth rates (after teenage/wedlock/low-weight)
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:141:41
+    |
+139 |     # Generic pregnancy rates/counts (after teenage/wedlock)
+140 |     (re.compile(r"resident\s+pregnancy\s+rate", re.I), "pregnancy_rates"),
+141 |     (re.compile(r"resident\s+pregnanc", re.I), "pregnancies"),
+    |                                         ^^^^
+142 |     # Generic birth rates (after teenage/wedlock/low-weight)
+143 |     (re.compile(r"resident\s+birth\s+rate", re.I), "birth_rates"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:143:45
+    |
+141 |     (re.compile(r"resident\s+pregnanc", re.I), "pregnancies"),
+142 |     # Generic birth rates (after teenage/wedlock/low-weight)
+143 |     (re.compile(r"resident\s+birth\s+rate", re.I), "birth_rates"),
+    |                                             ^^^^
+144 |     # Generic births (after all qualified births)
+145 |     (re.compile(r"resident\s+births$", re.I), "births"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:145:40
+    |
+143 |     (re.compile(r"resident\s+birth\s+rate", re.I), "birth_rates"),
+144 |     # Generic births (after all qualified births)
+145 |     (re.compile(r"resident\s+births$", re.I), "births"),
+    |                                        ^^^^
+146 |     # Generic death rates (after childhood)
+147 |     (re.compile(r"resident\s+death\s+rate", re.I), "death_rates"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:147:45
+    |
+145 |     (re.compile(r"resident\s+births$", re.I), "births"),
+146 |     # Generic death rates (after childhood)
+147 |     (re.compile(r"resident\s+death\s+rate", re.I), "death_rates"),
+    |                                             ^^^^
+148 |     # Generic deaths (after infant/neonatal/fetal/childhood)
+149 |     (re.compile(r"resident\s+deaths$", re.I), "deaths"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:149:40
+    |
+147 |     (re.compile(r"resident\s+death\s+rate", re.I), "death_rates"),
+148 |     # Generic deaths (after infant/neonatal/fetal/childhood)
+149 |     (re.compile(r"resident\s+deaths$", re.I), "deaths"),
+    |                                        ^^^^
+150 |     # Marriage/divorce
+151 |     (re.compile(r"marriage\s+rate", re.I), "marriage_rates"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:151:37
+    |
+149 |     (re.compile(r"resident\s+deaths$", re.I), "deaths"),
+150 |     # Marriage/divorce
+151 |     (re.compile(r"marriage\s+rate", re.I), "marriage_rates"),
+    |                                     ^^^^
+152 |     (re.compile(r"marriage\s+data", re.I), "marriages"),
+153 |     (re.compile(r"divorce\s+rate", re.I), "divorce_rates"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:152:37
+    |
+150 |     # Marriage/divorce
+151 |     (re.compile(r"marriage\s+rate", re.I), "marriage_rates"),
+152 |     (re.compile(r"marriage\s+data", re.I), "marriages"),
+    |                                     ^^^^
+153 |     (re.compile(r"divorce\s+rate", re.I), "divorce_rates"),
+154 |     (re.compile(r"divorce.*data", re.I), "divorces"),
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:153:36
+    |
+151 |     (re.compile(r"marriage\s+rate", re.I), "marriage_rates"),
+152 |     (re.compile(r"marriage\s+data", re.I), "marriages"),
+153 |     (re.compile(r"divorce\s+rate", re.I), "divorce_rates"),
+    |                                    ^^^^
+154 |     (re.compile(r"divorce.*data", re.I), "divorces"),
+155 | ]
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:154:35
+    |
+152 |     (re.compile(r"marriage\s+data", re.I), "marriages"),
+153 |     (re.compile(r"divorce\s+rate", re.I), "divorce_rates"),
+154 |     (re.compile(r"divorce.*data", re.I), "divorces"),
+    |                                   ^^^^
+155 | ]
+    |
+help: Replace with `re.IGNORECASE`
+
+FURB167 [*] Use of regular expression alias `re.I`
+   --> scripts/data/ingest_ves_data.py:179:53
+    |
+177 |         line = line.strip()
+178 |         # Standard header: "County of Residence YYYY YYYY ..."
+179 |         if re.match(r"county\s+of\s+residen", line, re.I):
+    |                                                     ^^^^
+180 |             years = re.findall(r"\b((?:19|20)\d{2})\b", line)
+181 |             if len(years) >= 10:
+    |
+help: Replace with `re.IGNORECASE`
+
+PIE810 Call `startswith` once with a `tuple`
+   --> scripts/data/ingest_ves_data.py:226:21
+    |
+224 |                   rest = line[len(county):].strip()
+225 |                   if rest and (
+226 | /                     rest[0].isdigit()
+227 | |                     or rest.startswith("NR")
+228 | |                     or rest.startswith("-")
+229 | |                     or rest.startswith("0")
+    | |___________________________________________^
+230 |                   ):
+231 |                       matched_county = county
+    |
+help: Merge into a single `startswith` call
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> scripts/data/ingest_ves_data.py:242:34
+    |
+240 |                 )
+241 |                 record = {"county": county_name}
+242 |                 for year, val in zip(years, values):
+    |                                  ^^^^^^^^^^^^^^^^^^
+243 |                     record[year] = val
+244 |                 records.append(record)
+    |
+help: Add explicit value for parameter `strict=`
+
+PERF403 Use a dictionary comprehension instead of a for-loop
+   --> scripts/data/ingest_ves_data.py:243:21
+    |
+241 |                 record = {"county": county_name}
+242 |                 for year, val in zip(years, values):
+243 |                     record[year] = val
+    |                     ^^^^^^^^^^^^^^^^^^
+244 |                 records.append(record)
+    |
+help: Replace for loop with dict comprehension
+
+PERF403 Use a dictionary comprehension instead of a for-loop
+   --> scripts/data/ingest_ves_data.py:301:21
+    |
+299 |             for x, text in words:
+300 |                 if text in years:
+301 |                     col_x_positions[text] = x
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+302 |             if len(col_x_positions) >= len(years) - 1:
+303 |                 break
+    |
+help: Replace for loop with dict comprehension
+
+PIE810 Call `startswith` once with a `tuple`
+   --> scripts/data/ingest_ves_data.py:323:21
+    |
+321 |                   rest = line_text[len(county):].strip()
+322 |                   if rest and (
+323 | /                     rest[0].isdigit()
+324 | |                     or rest.startswith("NR")
+325 | |                     or rest.startswith("-")
+326 | |                     or rest.startswith("0")
+    | |___________________________________________^
+327 |                   ):
+328 |                       matched_county = county
+    |
+help: Merge into a single `startswith` call
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> scripts/data/ingest_ves_data.py:424:41
+    |
+422 |                         )
+423 |                         record = {"county": county_name}
+424 |                         for col, val in zip(columns[1:], values):
+    |                                         ^^^^^^^^^^^^^^^^^^^^^^^^
+425 |                             record[col] = val
+426 |                         records.append(record)
+    |
+help: Add explicit value for parameter `strict=`
+
+PERF403 Use a dictionary comprehension instead of a for-loop
+   --> scripts/data/ingest_ves_data.py:425:29
+    |
+423 |                         record = {"county": county_name}
+424 |                         for col, val in zip(columns[1:], values):
+425 |                             record[col] = val
+    |                             ^^^^^^^^^^^^^^^^^
+426 |                         records.append(record)
+427 |                     break
+    |
+help: Replace for loop with dict comprehension
+
+B007 Loop control variable `title` not used within loop body
+   --> scripts/data/ingest_ves_data.py:562:23
+    |
+561 |         # Step 3: Extract data from each classified page
+562 |         for page_idx, title, label in resolved_pages:
+    |                       ^^^^^
+563 |             page = pdf.pages[page_idx]
+    |
+help: Rename unused `title` to `_title`
+
+PERF401 Use a list comprehension to create a transformed list
+   --> scripts/data/ingest_ves_data.py:649:17
+    |
+647 |         for vintage in sorted(all_tables.keys()):
+648 |             if label in all_tables[vintage]:
+649 |                 dfs_by_vintage.append((vintage, all_tables[vintage][label]))
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+650 |
+651 |         if not dfs_by_vintage:
+    |
+help: Replace for loop with list comprehension
+
+B007 Loop control variable `vintage` not used within loop body
+   --> scripts/data/ingest_ves_data.py:667:13
+    |
+665 |         combined = pd.DataFrame({"county": sorted(all_counties_in_label)})
+666 |
+667 |         for vintage, df in dfs_by_vintage:
+    |             ^^^^^^^
+668 |             new_year_cols = [c for c in df.columns if c != "county"]
+669 |             county_map = df.set_index("county")
+    |
+help: Rename unused `vintage` to `_vintage`
+
+PIE810 Call `startswith` once with a `tuple`
+   --> scripts/data/test_ves_extraction.py:170:21
+    |
+168 |                   rest = line[len(county):].strip()
+169 |                   if rest and (
+170 | /                     rest[0].isdigit()
+171 | |                     or rest.startswith("NR")
+172 | |                     or rest.startswith("-")
+173 | |                     or rest.startswith("0")
+    | |___________________________________________^
+174 |                   ):
+175 |                       matched_county = county
+    |
+help: Merge into a single `startswith` call
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> scripts/data/test_ves_extraction.py:187:34
+    |
+185 |                 )
+186 |                 record = {"county": county_name}
+187 |                 for year, val in zip(years, values):
+    |                                  ^^^^^^^^^^^^^^^^^^
+188 |                     record[year] = val
+189 |                 records.append(record)
+    |
+help: Add explicit value for parameter `strict=`
+
+PERF403 Use a dictionary comprehension instead of a for-loop
+   --> scripts/data/test_ves_extraction.py:188:21
+    |
+186 |                 record = {"county": county_name}
+187 |                 for year, val in zip(years, values):
+188 |                     record[year] = val
+    |                     ^^^^^^^^^^^^^^^^^^
+189 |                 records.append(record)
+    |
+help: Replace for loop with dict comprehension
+
+PERF403 Use a dictionary comprehension instead of a for-loop
+   --> scripts/data/test_ves_extraction.py:269:21
+    |
+267 |             for x, text in words:
+268 |                 if text in years:
+269 |                     col_x_positions[text] = x
+    |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+270 |             break
+    |
+help: Replace for loop with dict comprehension
+
+PIE810 Call `startswith` once with a `tuple`
+   --> scripts/data/test_ves_extraction.py:293:21
+    |
+291 |                   rest = line_text[len(county):].strip()
+292 |                   if rest and (
+293 | /                     rest[0].isdigit()
+294 | |                     or rest.startswith("NR")
+295 | |                     or rest.startswith("-")
+296 | |                     or rest.startswith("0")
+    | |___________________________________________^
+297 |                   ):
+298 |                       matched_county = county
+    |
+help: Merge into a single `startswith` call
+
+B905 `zip()` without an explicit `strict=` parameter
+   --> scripts/data/test_ves_extraction.py:406:41
+    |
+404 |                         )
+405 |                         record = {"county": county_name}
+406 |                         for col, val in zip(columns[1:], values):
+    |                                         ^^^^^^^^^^^^^^^^^^^^^^^^
+407 |                             record[col] = val
+408 |                         records.append(record)
+    |
+help: Add explicit value for parameter `strict=`
+
+PERF403 Use a dictionary comprehension instead of a for-loop
+   --> scripts/data/test_ves_extraction.py:407:29
+    |
+405 |                         record = {"county": county_name}
+406 |                         for col, val in zip(columns[1:], values):
+407 |                             record[col] = val
+    |                             ^^^^^^^^^^^^^^^^^
+408 |                         records.append(record)
+409 |                     break
+    |
+help: Replace for loop with dict comprehension
+
+PERF401 Use `list.extend` to create a transformed list
+   --> scripts/db/generate_manifest_docs.py:272:13
+    |
+270 |         lines.append("|----------|----------|-----------------|-------------------|")
+271 |         for a in alignments:
+272 |             lines.append(f"| {a['source_a']} | {a['source_b']} | {a['issue']} | {a['strategy']} |")
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+273 |         lines.append("")
+274 |         lines.append("---")
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> scripts/db/generate_manifest_docs.py:283:9
+    |
+281 |     lines.append("|------|---------|---------|")
+282 |     for entry in changelog:
+283 |         lines.append(f"| {entry['date']} | {entry['version']} | {entry['changes']} |")
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+284 |     lines.append("")
+285 |     lines.append("---")
+    |
+help: Replace for loop with list.extend
+
+B905 `zip()` without an explicit `strict=` parameter
+    --> scripts/pipeline/02_run_projections.py:1540:29
+     |
+1538 |                         county_pops = load_county_populations()
+1539 |                         pop_map = dict(
+1540 |                             zip(county_pops["county_fips"], county_pops["population"])
+     |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1541 |                         )
+1542 |                         total_pop = county_pops["population"].sum()
+     |
+help: Add explicit value for parameter `strict=`
+
+B905 `zip()` without an explicit `strict=` parameter
+    --> scripts/pipeline/02_run_projections.py:1599:21
+     |
+1597 |                 _county_pops = _load_county_pops()
+1598 |                 _pop_map = dict(
+1599 |                     zip(_county_pops["county_fips"], _county_pops["population"])
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1600 |                 )
+1601 |                 _total_pop = _county_pops["population"].sum()
+     |
+help: Add explicit value for parameter `strict=`
+
+PERF401 Use `list.extend` to create a transformed list
+   --> scripts/projections/run_sdc_2024_comparison.py:140:17
+    |
+139 |               for age in range(age_start, age_end + 1):
+140 | /                 pop_rows.append(
+141 | |                     {
+142 | |                         "year": 2025,
+143 | |                         "age": age,
+144 | |                         "sex": sex,
+145 | |                         "race": race,
+146 | |                         "population": pop_per_age,
+147 | |                     }
+148 | |                 )
+    | |_________________^
+149 |
+150 |           pop_df = pd.DataFrame(pop_rows)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> scripts/projections/run_sdc_2024_comparison.py:241:13
+    |
+239 |       for _, row in fertility_df.iterrows():
+240 |           for race in races:
+241 | /             fertility_expanded.append(
+242 | |                 {
+243 | |                     "age": int(row["age"]),
+244 | |                     "race": race,
+245 | |                     "fertility_rate": row["fertility_rate"],
+246 | |                 }
+247 | |             )
+    | |_____________^
+248 |       fertility_out = pd.DataFrame(fertility_expanded)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> scripts/projections/run_sdc_2024_comparison.py:255:13
+    |
+253 |       for _, row in survival_df.iterrows():
+254 |           for race in races:
+255 | /             survival_expanded.append(
+256 | |                 {
+257 | |                     "age": int(row["age"]),
+258 | |                     "sex": row["sex"],
+259 | |                     "race": race,
+260 | |                     "survival_rate": row["survival_rate"],
+261 | |                 }
+262 | |             )
+    | |_____________^
+263 |       survival_out = pd.DataFrame(survival_expanded)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> scripts/projections/run_sdc_2024_comparison.py:277:13
+    |
+276 |           for race in races:
+277 | /             migration_expanded.append(
+278 | |                 {
+279 | |                     "age": int(row["age"]),
+280 | |                     "sex": row["sex"],
+281 | |                     "race": race,
+282 | |                     "migration_rate": rate_annual,
+283 | |                 }
+284 | |             )
+    | |_____________^
+285 |       migration_out = pd.DataFrame(migration_expanded)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> scripts/run_integration_test.py:121:13
+    |
+120 |           for age in ages:
+121 | /             base_pop_records.append(
+122 | |                 {
+123 | |                     "year": 2025,
+124 | |                     "age": min(age, 90),
+125 | |                     "sex": row["sex"].title(),
+126 | |                     "race": mapped_race,
+127 | |                     "population": pop_per_age,
+128 | |                 }
+129 | |             )
+    | |_____________^
+130 |
+131 |       base_pop_df = pd.DataFrame(base_pop_records)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> scripts/run_integration_test.py:185:13
+    |
+184 |           for age in ages:
+185 | /             fertility_records.append(
+186 | |                 {
+187 | |                     "age": age,
+188 | |                     "race": mapped_race,
+189 | |                     "fertility_rate": asfr,
+190 | |                 }
+191 | |             )
+    | |_____________^
+192 |
+193 |       fertility_rate_df = pd.DataFrame(fertility_records)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+  --> tests/test_core/test_fertility.py:27:17
+   |
+25 |           for race in ["White", "Black", "Hispanic"]:
+26 |               for age in range(15, 50):
+27 | /                 data.append(
+28 | |                     {
+29 | |                         "age": age,
+30 | |                         "race": race,
+31 | |                         "population": 1000.0,  # 1000 females per age-race cohort
+32 | |                     }
+33 | |                 )
+   | |_________________^
+34 |           return pd.DataFrame(data)
+   |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+  --> tests/test_core/test_migration.py:30:21
+   |
+28 |               for race in ["White", "Black"]:
+29 |                   for age in range(91):
+30 | /                     data.append(
+31 | |                         {
+32 | |                             "year": 2025,
+33 | |                             "age": age,
+34 | |                             "sex": sex,
+35 | |                             "race": race,
+36 | |                             "population": 1000.0,
+37 | |                         }
+38 | |                     )
+   | |_____________________^
+39 |           return pd.DataFrame(data)
+   |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_core/test_migration.py:804:17
+    |
+802 |           for sex in ["Male", "Female"]:
+803 |               for age in [20, 30, 40, 50]:
+804 | /                 data.append(
+805 | |                     {
+806 | |                         "age": age,
+807 | |                         "sex": sex,
+808 | |                         "race": "White",
+809 | |                         "population": 1000.0,
+810 | |                     }
+811 | |                 )
+    | |_________________^
+812 |           return pd.DataFrame(data)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+  --> tests/test_core/test_mortality.py:30:21
+   |
+28 |               for race in ["White", "Black"]:
+29 |                   for age in range(91):
+30 | /                     data.append(
+31 | |                         {
+32 | |                             "year": 2025,
+33 | |                             "age": age,
+34 | |                             "sex": sex,
+35 | |                             "race": race,
+36 | |                             "population": 1000.0,
+37 | |                         }
+38 | |                     )
+   | |_____________________^
+39 |           return pd.DataFrame(data)
+   |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_data/test_base_population.py:326:21
+    |
+324 |               for sex in sexes:
+325 |                   for race in races:
+326 | /                     records.append(
+327 | |                         {
+328 | |                             "age": age,
+329 | |                             "sex": sex,
+330 | |                             "race_ethnicity": race,
+331 | |                             "population": 100,  # Uniform population for testing
+332 | |                         }
+333 | |                     )
+    | |_____________________^
+334 |
+335 |           return pd.DataFrame(records)
+    |
+help: Replace for loop with list.extend
+
+I001 [*] Import block is un-sorted or un-formatted
+  --> tests/test_data/test_county_race_distributions.py:21:1
+   |
+19 |   """
+20 |
+21 | / from pathlib import Path
+22 | | from unittest.mock import patch
+23 | |
+24 | | import numpy as np
+25 | | import pandas as pd
+26 | | import pytest
+27 | |
+28 | | # Import ingestion script functions
+29 | | from scripts.data.build_race_distribution_from_census import (
+30 | |     AGEGRP_MAP,
+31 | |     DEFAULT_BLEND_THRESHOLD,
+32 | |     EXPECTED_ROWS,
+33 | |     RACE_COLUMN_MAP,
+34 | |     build_county_distributions,
+35 | |     validate_county_distributions,
+36 | | )
+37 | |
+38 | | # Import loader functions
+39 | | from cohort_projections.data.load.base_population_loader import (
+40 | |     AGE_GROUP_RANGES,
+41 | |     RACE_CODE_MAP,
+42 | |     load_county_age_sex_race_distribution,
+43 | |     load_county_distributions_file,
+44 | | )
+   | |_^
+   |
+help: Organize imports
+
+F401 [*] `unittest.mock.patch` imported but unused
+  --> tests/test_data/test_county_race_distributions.py:22:27
+   |
+21 | from pathlib import Path
+22 | from unittest.mock import patch
+   |                           ^^^^^
+23 |
+24 | import numpy as np
+   |
+help: Remove unused import: `unittest.mock.patch`
+
+F401 [*] `cohort_projections.data.load.base_population_loader.AGE_GROUP_RANGES` imported but unused
+  --> tests/test_data/test_county_race_distributions.py:40:5
+   |
+38 | # Import loader functions
+39 | from cohort_projections.data.load.base_population_loader import (
+40 |     AGE_GROUP_RANGES,
+   |     ^^^^^^^^^^^^^^^^
+41 |     RACE_CODE_MAP,
+42 |     load_county_age_sex_race_distribution,
+   |
+help: Remove unused import
+
+F401 [*] `cohort_projections.data.load.base_population_loader.RACE_CODE_MAP` imported but unused
+  --> tests/test_data/test_county_race_distributions.py:41:5
+   |
+39 | from cohort_projections.data.load.base_population_loader import (
+40 |     AGE_GROUP_RANGES,
+41 |     RACE_CODE_MAP,
+   |     ^^^^^^^^^^^^^
+42 |     load_county_age_sex_race_distribution,
+43 |     load_county_distributions_file,
+   |
+help: Remove unused import
+
+B007 Loop control variable `fips` not used within loop body
+   --> tests/test_data/test_county_race_distributions.py:348:13
+    |
+346 |         # Verify proportions still sum to 1
+347 |         county_sums = result.groupby("fips")["proportion"].sum()
+348 |         for fips, prop_sum in county_sums.items():
+    |             ^^^^
+349 |             assert abs(prop_sum - 1.0) < 1e-6
+    |
+help: Rename unused `fips` to `_fips`
+
+PERF102 When using only the values of a dict use the `values()` method
+   --> tests/test_data/test_county_race_distributions.py:348:31
+    |
+346 |         # Verify proportions still sum to 1
+347 |         county_sums = result.groupby("fips")["proportion"].sum()
+348 |         for fips, prop_sum in county_sums.items():
+    |                               ^^^^^^^^^^^^^^^^^
+349 |             assert abs(prop_sum - 1.0) < 1e-6
+    |
+help: Replace `.items()` with `.values()`
+
+PERF401 Use `list.extend` to create a transformed list
+    --> tests/test_data/test_county_race_distributions.py:1113:21
+     |
+1111 |                       "Hispanic (any race)",
+1112 |                   ]:
+1113 | /                     state_dist_rows.append({
+1114 | |                         "age": age,
+1115 | |                         "sex": sex,
+1116 | |                         "race": race,
+1117 | |                         "proportion": 1.0 / (91 * 2 * 6),
+1118 | |                     })
+     | |______________________^
+1119 |           state_dist = pd.DataFrame(state_dist_rows)
+     |
+help: Replace for loop with list.extend
+
+PERF102 When using only the values of a dict use the `values()` method
+   --> tests/test_data/test_fertility_rates.py:494:27
+    |
+492 |         # TFR is the sum of age-specific fertility rates (35 ages with rate ~0.002-0.005)
+493 |         # Should be low but positive
+494 |         for _race, tfr in result["tfr_by_race"].items():
+    |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+495 |             assert tfr > 0  # Should have positive TFR
+496 |             assert tfr < 5.0  # Should be less than 5 (reasonable upper bound)
+    |
+help: Replace `.items()` with `.values()`
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_data/test_fertility_rates.py:506:17
+    |
+504 |           for age in ages:
+505 |               for race in races:
+506 | /                 records.append(
+507 | |                     {
+508 | |                         "age": age,
+509 | |                         "race_ethnicity": race,
+510 | |                         "fertility_rate": 0.005,  # Very low, TFR ~0.175
+511 | |                     }
+512 | |                 )
+    | |_________________^
+513 |
+514 |           df = pd.DataFrame(records)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_data/test_migration_rates.py:693:21
+    |
+691 |               for sex in sexes:
+692 |                   for race in races:
+693 | /                     records.append(
+694 | |                         {
+695 | |                             "age": age,
+696 | |                             "sex": sex,
+697 | |                             "race_ethnicity": race,
+698 | |                             "net_migration": 50000,  # Extremely large
+699 | |                         }
+700 | |                     )
+    | |_____________________^
+701 |
+702 |           df = pd.DataFrame(records)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use a list comprehension to create a transformed list
+   --> tests/test_data/test_residual_migration.py:827:13
+    |
+825 |         # Benson (38005): net out-migration each year
+826 |         for year in range(2001, 2006):
+827 |             records.append({"geoid": "38005", "year": year, "netmig": -60})
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+828 |         # Sioux (38085): sign reversal period (positive PEP)
+829 |         for year in range(2001, 2006):
+    |
+help: Replace for loop with list comprehension
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_data/test_residual_migration.py:830:13
+    |
+828 |         # Sioux (38085): sign reversal period (positive PEP)
+829 |         for year in range(2001, 2006):
+830 |             records.append({"geoid": "38085", "year": year, "netmig": 20})
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+831 |         # A non-target county
+832 |         for year in range(2001, 2006):
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_data/test_residual_migration.py:833:13
+    |
+831 |         # A non-target county
+832 |         for year in range(2001, 2006):
+833 |             records.append({"geoid": "38017", "year": year, "netmig": 100})
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+834 |         return pd.DataFrame(records)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_data/test_residual_migration.py:843:21
+    |
+841 |               for ag in AGE_GROUP_LABELS:
+842 |                   for sex in ["Male", "Female"]:
+843 | /                     records.append(
+844 | |                         {
+845 | |                             "county_fips": county,
+846 | |                             "age_group": ag,
+847 | |                             "sex": sex,
+848 | |                             "period_start": 2000,
+849 | |                             "period_end": 2005,
+850 | |                             "pop_start": 200.0,
+851 | |                             "expected_pop": 190.0,
+852 | |                             "pop_end": 170.0,
+853 | |                             "net_migration": -20.0,
+854 | |                             "migration_rate": -0.02,
+855 | |                         }
+856 | |                     )
+    | |_____________________^
+857 |           return pd.DataFrame(records)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_data/test_residual_migration.py:931:17
+    |
+929 |           for ag in AGE_GROUP_LABELS:
+930 |               for sex in ["Male", "Female"]:
+931 | /                 records.append(
+932 | |                     {
+933 | |                         "county_fips": "38005",
+934 | |                         "age_group": ag,
+935 | |                         "sex": sex,
+936 | |                         "period_start": 2000,
+937 | |                         "period_end": 2005,
+938 | |                         "pop_start": 200.0,
+939 | |                         "expected_pop": 200.0,
+940 | |                         "pop_end": 200.0,
+941 | |                         "net_migration": 0.1,  # Very small: 0.1 * 36 = 3.6 total
+942 | |                         "migration_rate": 0.0005,
+943 | |                     }
+944 | |                 )
+    | |_________________^
+945 |           near_zero_rates = pd.DataFrame(records)
+    |
+help: Replace for loop with list.extend
+
+PERF102 When using only the values of a dict use the `values()` method
+   --> tests/test_data/test_survival_rates.py:532:25
+    |
+530 |         result = calculate_life_expectancy(sample_full_survival_table)
+531 |
+532 |         for _key, e0 in result.items():
+    |                         ^^^^^^^^^^^^
+533 |             # Life expectancy should be between 50 and 100 years
+534 |             assert 50 < e0 < 100
+    |
+help: Replace `.items()` with `.values()`
+
+PERF401 Use `list.extend` to create a transformed list
+  --> tests/test_geographic/test_multi_geography.py:40:21
+   |
+38 |               for sex in ["Male", "Female"]:
+39 |                   for race in ["White", "Black"]:
+40 | /                     data.append(
+41 | |                         {
+42 | |                             "age": age,
+43 | |                             "sex": sex,
+44 | |                             "race": race,
+45 | |                             "population": 100.0,
+46 | |                         }
+47 | |                     )
+   | |_____________________^
+48 |           return pd.DataFrame(data)
+   |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+  --> tests/test_geographic/test_multi_geography.py:56:17
+   |
+54 |           for age in range(15, 50):
+55 |               for race in ["White", "Black"]:
+56 | /                 data.append(
+57 | |                     {
+58 | |                         "age": age,
+59 | |                         "race": race,
+60 | |                         "fertility_rate": 0.05 if 20 <= age <= 35 else 0.02,
+61 | |                     }
+62 | |                 )
+   | |_________________^
+63 |           return pd.DataFrame(data)
+   |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_integration/test_end_to_end.py:180:17
+    |
+179 |               for age in ages:
+180 | /                 fertility_records.append(
+181 | |                     {
+182 | |                         "age": age,
+183 | |                         "race": mapped_race,
+184 | |                         "fertility_rate": asfr,
+185 | |                     }
+186 | |                 )
+    | |_________________^
+187 |
+188 |           fertility_rate_df = pd.DataFrame(fertility_records)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+  --> tests/test_output/test_reports.py:62:21
+   |
+60 |               for age in [0, 10, 30, 65, 80]:
+61 |                   for sex in ["Male", "Female"]:
+62 | /                     data.append(
+63 | |                         {
+64 | |                             "year": year,
+65 | |                             "age": age,
+66 | |                             "sex": sex,
+67 | |                             "race": "White",
+68 | |                             "population": 100.0 + (year - 2025) * 10,
+69 | |                         }
+70 | |                     )
+   | |_____________________^
+71 |           return pd.DataFrame(data)
+   |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_output/test_reports.py:210:21
+    |
+208 |               for age in [0, 10, 30, 65]:
+209 |                   for sex in ["Male", "Female"]:
+210 | /                     data.append(
+211 | |                         {
+212 | |                             "year": year,
+213 | |                             "age": age,
+214 | |                             "sex": sex,
+215 | |                             "race": "White",
+216 | |                             "population": 1000.0,
+217 | |                         }
+218 | |                     )
+    | |_____________________^
+219 |           return pd.DataFrame(data)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_output/test_reports.py:309:21
+    |
+307 |               for age in range(0, 91, 5):
+308 |                   for sex in ["Male", "Female"]:
+309 | /                     data.append(
+310 | |                         {
+311 | |                             "year": year,
+312 | |                             "age": age,
+313 | |                             "sex": sex,
+314 | |                             "race": "White",
+315 | |                             "population": 500.0 + (year - 2025) * 5,
+316 | |                         }
+317 | |                     )
+    | |_____________________^
+318 |           return pd.DataFrame(data)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_output/test_reports.py:408:21
+    |
+406 |               for age in range(0, 91, 5):
+407 |                   for sex in ["Male", "Female"]:
+408 | /                     data.append(
+409 | |                         {
+410 | |                             "year": year,
+411 | |                             "age": age,
+412 | |                             "sex": sex,
+413 | |                             "race": "White",
+414 | |                             "population": 500.0 + (year - 2025) * 5,
+415 | |                         }
+416 | |                     )
+    | |_____________________^
+417 |           return pd.DataFrame(data)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+  --> tests/test_output/test_writers.py:43:25
+   |
+41 |                   for sex in ["Male", "Female"]:
+42 |                       for race in ["White", "Black", "Hispanic"]:
+43 | /                         data.append(
+44 | |                             {
+45 | |                                 "year": year,
+46 | |                                 "age": age,
+47 | |                                 "sex": sex,
+48 | |                                 "race": race,
+49 | |                                 "population": 100.0 + year - 2025 + age * 0.5,
+50 | |                             }
+51 | |                         )
+   | |_________________________^
+52 |           return pd.DataFrame(data)
+   |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_output/test_writers.py:164:25
+    |
+162 |                   for sex in ["Male", "Female"]:
+163 |                       for race in ["White", "Black"]:
+164 | /                         data.append(
+165 | |                             {
+166 | |                                 "year": year,
+167 | |                                 "age": age,
+168 | |                                 "sex": sex,
+169 | |                                 "race": race,
+170 | |                                 "population": 1000.0 + year - 2025 + age * 2,
+171 | |                             }
+172 | |                         )
+    | |_________________________^
+173 |           return pd.DataFrame(data)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_output/test_writers.py:339:25
+    |
+337 |                   for sex in ["Male", "Female"]:
+338 |                       for race in ["White"]:
+339 | /                         data.append(
+340 | |                             {
+341 | |                                 "year": year,
+342 | |                                 "age": age,
+343 | |                                 "sex": sex,
+344 | |                                 "race": race,
+345 | |                                 "population": 500.0,
+346 | |                             }
+347 | |                         )
+    | |_________________________^
+348 |           return pd.DataFrame(data)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use a list comprehension to create a transformed list
+   --> tests/test_utils/test_demographic_utils.py:129:13
+    |
+127 |         data = []
+128 |         for age in range(91):
+129 |             data.append({"age": age, "population": 100})
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+130 |         pop = pd.DataFrame(data)
+    |
+help: Replace for loop with list comprehension
+
+PERF401 Use a list comprehension to create a transformed list
+   --> tests/test_utils/test_demographic_utils.py:154:13
+    |
+152 |         # Mostly young people
+153 |         for age in range(18):
+154 |             data.append({"age": age, "population": 500})
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+155 |         for age in range(18, 65):
+156 |             data.append({"age": age, "population": 100})
+    |
+help: Replace for loop with list comprehension
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_utils/test_demographic_utils.py:156:13
+    |
+154 |             data.append({"age": age, "population": 500})
+155 |         for age in range(18, 65):
+156 |             data.append({"age": age, "population": 100})
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+157 |         for age in range(65, 91):
+158 |             data.append({"age": age, "population": 10})
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_utils/test_demographic_utils.py:158:13
+    |
+156 |             data.append({"age": age, "population": 100})
+157 |         for age in range(65, 91):
+158 |             data.append({"age": age, "population": 10})
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+159 |         pop = pd.DataFrame(data)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use a list comprehension to create a transformed list
+   --> tests/test_utils/test_demographic_utils.py:171:13
+    |
+169 |         # Mostly elderly people
+170 |         for age in range(18):
+171 |             data.append({"age": age, "population": 50})
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+172 |         for age in range(18, 65):
+173 |             data.append({"age": age, "population": 100})
+    |
+help: Replace for loop with list comprehension
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_utils/test_demographic_utils.py:173:13
+    |
+171 |             data.append({"age": age, "population": 50})
+172 |         for age in range(18, 65):
+173 |             data.append({"age": age, "population": 100})
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+174 |         for age in range(65, 91):
+175 |             data.append({"age": age, "population": 300})
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+   --> tests/test_utils/test_demographic_utils.py:175:13
+    |
+173 |             data.append({"age": age, "population": 100})
+174 |         for age in range(65, 91):
+175 |             data.append({"age": age, "population": 300})
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+176 |         pop = pd.DataFrame(data)
+    |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+  --> tests/unit/test_journal_article_derived_stats.py:53:13
+   |
+51 |         values = [name]
+52 |         for y in years:
+53 |             values.append(us_pop[y] if name == "United States" else nd_pop[y])
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+54 |         for y in years:
+55 |             values.append(us_intmig[y] if name == "United States" else nd_intmig[y])
+   |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+  --> tests/unit/test_journal_article_derived_stats.py:55:13
+   |
+53 |             values.append(us_pop[y] if name == "United States" else nd_pop[y])
+54 |         for y in years:
+55 |             values.append(us_intmig[y] if name == "United States" else nd_intmig[y])
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+56 |         for y in years:
+57 |             if name == "United States":
+   |
+help: Replace for loop with list.extend
+
+PERF401 Use `list.extend` to create a transformed list
+  --> tests/unit/test_journal_article_derived_stats.py:79:9
+   |
+77 |     content = [",".join(header)]
+78 |     for row in rows:
+79 |         content.append(",".join(str(x) for x in row))
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+80 |     path.write_text("\n".join(content) + "\n", encoding="utf-8")
+   |
+help: Replace for loop with list.extend
+
+Found 123 errors.
+[*] 51 fixable with the `--fix` option (16 hidden fixes can be enabled with the `--unsafe-fixes` option).

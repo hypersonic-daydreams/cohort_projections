@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-27T18:12:34Z",
+  "claim_id": "RHA-015",
+  "claim_title": "Root-level clutter includes tracked and stray artifacts",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-015-C1",
+      "description": "Verify root clutter items were removed or relocated from repository root.",
+      "required": true,
+      "command": "tracked=$(git ls-files RCLONE_TEST | wc -l); exist_count=0; for item in 2025_popest_data journal_article_pdfs chatgpt_feedback_on_v0.9.md formula_audit_article-0.9-production_20260112_205726.md ward_county_nd_population_2008_2024.xlsx ingest.log ingest_full.log ingest_nohup.log; do [ -e \"$item\" ] && exist_count=$((exist_count+1)); done; echo \"RCLONE_TEST_TRACKED=$tracked\"; echo \"ROOT_CLUTTER_EXISTS=$exist_count\"; if [ \"$tracked\" -eq 0 ] && [ \"$exist_count\" -eq 0 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "RCLONE_TEST_TRACKED=0",
+          "ROOT_CLUTTER_EXISTS=0"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-27T18:12:34Z",
+      "duration_seconds": 0.015,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "RCLONE_TEST_TRACKED=0\nROOT_CLUTTER_EXISTS=0\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

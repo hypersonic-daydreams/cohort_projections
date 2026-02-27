@@ -17,8 +17,8 @@
 
 The SDC 2024 projections use **CDC NCHS Life Tables for North Dakota, published 2022 (for reference year 2020)**. The source publication is NVSR 71-02 (`nvsr71-02.pdf`). Processed life table files are stored as `ND1.xlsx`, `ND2.xlsx`, `ND3.xlsx`, `ND4.xlsx`.
 
-- **Reference:** `sdc_2024_replication/METHODOLOGY_SPEC.md`, Section 3.2
-- **Extracted data:** `sdc_2024_replication/data/survival_rates_by_county.csv`
+- **Reference:** `../sdc_2024_replication/METHODOLOGY_SPEC.md`, Section 3.2
+- **Extracted data:** `../sdc_2024_replication/data/survival_rates_by_county.csv`
 
 ### 1.2 Rate Structure
 
@@ -52,7 +52,7 @@ This formula yields the probability that someone currently in the 85+ group will
 
 ### 1.4 Extracted SDC Survival Rates
 
-From `sdc_2024_replication/data/survival_rates_by_county.csv`:
+From `../sdc_2024_replication/data/survival_rates_by_county.csv`:
 
 | Age Group | Male S(5yr) | Female S(5yr) |
 |-----------|-------------|---------------|
@@ -99,7 +99,7 @@ Population[0-4, t+5] = Births[t to t+5] * Survival_Rate[0-4, sex]
 
 The 0-4 survival rate serves as an infant/early childhood survival factor applied to total births.
 
-- **Source:** `sdc_2024_replication/scripts/projection_engine.py`, lines 253-318
+- **Source:** `../sdc_2024_replication/scripts/projection_engine.py`, lines 253-318
 
 ### 1.6 No Mortality Improvement
 
@@ -548,11 +548,11 @@ The 2026 system extends the terminal age group from 85+ to 90+. This means ages 
 
 | File | Role |
 |------|------|
-| `sdc_2024_replication/METHODOLOGY_SPEC.md` | SDC technical specification (Section 3.2: Survival Rates) |
-| `sdc_2024_replication/data/survival_rates_by_county.csv` | Extracted SDC 5-year survival rates (state-level, by sex) |
-| `sdc_2024_replication/scripts/extract_sdc_county_data.py` | Script that extracted SDC survival data from Excel workbook |
-| `sdc_2024_replication/scripts/projection_engine.py` | SDC replication engine showing 85+ handling (lines 253-318) |
-| `sdc_2024_replication/scripts/prepare_updated_data.py` | Updated data preparation showing 5yr-to-1yr conversion |
+| `../sdc_2024_replication/METHODOLOGY_SPEC.md` | SDC technical specification (Section 3.2: Survival Rates) |
+| `../sdc_2024_replication/data/survival_rates_by_county.csv` | Extracted SDC 5-year survival rates (state-level, by sex) |
+| `../sdc_2024_replication/scripts/extract_sdc_county_data.py` | Script that extracted SDC survival data from Excel workbook |
+| `../sdc_2024_replication/scripts/projection_engine.py` | SDC replication engine showing 85+ handling (lines 253-318) |
+| `../sdc_2024_replication/scripts/prepare_updated_data.py` | Updated data preparation showing 5yr-to-1yr conversion |
 | `data/processed/sdc_2024/survival_rates_sdc_2024_by_age_group.csv` | SDC rates with both 5yr and 1yr columns |
 | `data/processed/sdc_2024/survival_rates_sdc_2024.csv` | SDC rates expanded to single-year ages |
 | `docs/governance/adrs/002-survival-rate-processing.md` | ADR for survival rate methodology |

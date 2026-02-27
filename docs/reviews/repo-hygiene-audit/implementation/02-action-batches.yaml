@@ -1,6 +1,6 @@
 schema_version: 1
 audit_id: repo-hygiene-audit
-batch_plan_status: in_progress
+batch_plan_status: implementation_complete_with_open_risks
 last_updated: 2026-02-27
 
 batches:
@@ -89,7 +89,7 @@ batches:
   - batch_id: B05
     name: repository_footprint_and_data_hygiene
     priority: 5
-    status: in_progress
+    status: completed
     objective: Clean root clutter, stale directories, and duplicate data footprints with explicit archival decisions.
     includes_claims: [RHA-011, RHA-012, RHA-015, RHA-017, RHA-018, RHA-026]
     prerequisites: [B00, B01]
@@ -106,7 +106,7 @@ batches:
   - batch_id: B06
     name: final_harmonization_and_claim_revalidation
     priority: 6
-    status: proposed
+    status: completed_with_open_risk_tracking
     objective: Re-run claim verification and publish consolidated execution dashboard.
     includes_claims:
       - RHA-001

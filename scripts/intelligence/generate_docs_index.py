@@ -16,6 +16,7 @@ import psycopg2
 
 DB_NAME = "cohort_projections_meta"
 OUTPUT_FILE = Path("docs/INDEX.md")
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def get_db_connection():
@@ -49,6 +50,9 @@ def generate_index():
 
     for row in rows:
         filepath, desc, tag, doc_path, rel_type, status = row
+        code_path = REPO_ROOT / filepath
+        if not code_path.exists():
+            continue
 
         if tag not in by_function:
             by_function[tag] = []
@@ -96,7 +100,8 @@ def generate_index():
     # Ensure docs dir exists
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_FILE.write_text("\n".join(lines))
-    print(f"Generated {OUTPUT_FILE} ({len(rows)} links)")
+    link_count = sum(len(items) for items in by_function.values())
+    print(f"Generated {OUTPUT_FILE} ({link_count} links)")
 
 
 if __name__ == "__main__":

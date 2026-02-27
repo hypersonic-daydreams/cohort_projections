@@ -4,7 +4,7 @@ Canonical, current-state tracker for the North Dakota cohort projections reposit
 
 **Last Updated:** 2026-02-27  
 **Projection Horizon:** 2025-2055  
-**Status:** Publication preparation and repo-hygiene execution
+**Status:** Publication preparation and post-implementation repo-hygiene follow-through
 
 ## Purpose
 
@@ -19,15 +19,15 @@ Use this file for active status only. Historical session detail is archived to:
 | Core projection engine | complete | County/state production path is operational for all scenarios. |
 | Data processing pipeline | complete | Inputs and transforms are in place; no active blocker. |
 | Documentation alignment | complete | B01 documentation harmonization complete. |
-| Repo-hygiene program | in progress | B00-B04 complete; B05 Wave 1 complete; B05 Wave 2 Step 1 complete (archive dir + low_growth + Ward file); remaining Wave 2 extraction/placement actions pending. |
+| Repo-hygiene program | complete_with_open_risk_tracking | B00-B06 implemented; full adjudicated replay now `27/27` passing; RB-003 and RB-004 remain tracked for dedicated remediation/policy closeout. |
 | Test health baseline | stable | Latest recorded baseline: `1258 passed, 5 skipped`. |
-| Claim replay health | stable | `27/27` adjudicated claims passing after resolved-state check redesign. |
+| Claim replay health | stable | `27/27` adjudicated claims passing (latest full replay: 2026-02-27T18:14:03Z). |
 
 ## Active Priorities
 
-1. Execute remaining B05 Wave 2 extraction/cleanup actions (SDC extraction + remaining root-clutter placements).
-2. Maintain reproducible execution records for each B05 execution wave and replay affected claims.
-3. Keep RB-003 and RB-004 tracked until dedicated remediation wave or policy closeout.
+1. Plan and execute RB-003 remediation or policy-closeout for full pipeline dry-run coverage.
+2. Plan and execute RB-004 remediation or policy-closeout for full-repo lint/type debt.
+3. Maintain claim replay stability while transitioning from implementation to publication-focused work.
 
 ## Repo-Hygiene Batch State
 
@@ -38,8 +38,8 @@ Use this file for active status only. Historical session detail is archived to:
 | B02 | pipeline_entrypoint_and_order_consistency | complete | Canonical runner and stage wiring remediated. |
 | B03 | config_path_and_version_hygiene | complete | Version/config/path hygiene remediated. |
 | B04 | code_structure_and_test_scope_alignment | complete | Import boundary, helper dedupe, test scope realignment, orphan wiring complete. |
-| B05 | repository_footprint_and_data_hygiene | in progress | Wave 1 complete; Wave 2 Step 1 complete; remaining Wave 2 actions pending. |
-| B06 | final_harmonization_and_claim_revalidation | blocked | Depends on B05 implementation completion. |
+| B05 | repository_footprint_and_data_hygiene | complete | Wave 1 and Wave 2 (Step 1 + Step 2) complete; extraction and cleanup actions executed. |
+| B06 | final_harmonization_and_claim_revalidation | complete_with_open_risk_tracking | Full claim replay passing; RB-003/RB-004 remain open. |
 
 ## Current Working Agreements
 
@@ -50,9 +50,9 @@ Use this file for active status only. Historical session detail is archived to:
 
 ## Near-Term Next Actions
 
-1. Execute remaining Wave 2 archive placements and SDC extraction from `24-b05-delete-archive-proposal.md`.
-2. Reconcile B05 claim checks for post-remediation state (`RHA-017` currently expected drift after archival).
-3. Run B06 final harmonization once B05 closes.
+1. Define and schedule RB-003 dry-run stage coverage remediation (or accepted limitation policy).
+2. Define and schedule RB-004 lint/type debt remediation (or accepted baseline policy).
+3. Keep repo-hygiene artifacts and claim evidence current as publication tasks proceed.
 
 ## Deferred / Later Work
 

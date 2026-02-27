@@ -34,7 +34,7 @@ From the SDC report:
 
 The blending methodology is not fully documented. County-level rates are blended with state-level rates and then further blended with national rates. The exact blending weights are not specified in the published report or the `Projections_Base_2023.xlsx` workbook.
 
-**Reference**: `sdc_2024_replication/METHODOLOGY_SPEC.md`, Section 3.1.
+**Reference**: `../sdc_2024_replication/METHODOLOGY_SPEC.md`, Section 3.1.
 
 ### 1.2 Age Groups
 
@@ -51,13 +51,13 @@ Fertility rates are defined for **eight 5-year age groups**:
 | 40-44 | 8 | Yes |
 | 45-49 | 9 | Yes |
 
-The SDC replication engine (`sdc_2024_replication/scripts/projection_engine.py`) defines:
+The SDC replication engine (`../sdc_2024_replication/scripts/projection_engine.py`) defines:
 
 ```python
 CHILDBEARING_AGE_INDICES: list[int] = [3, 4, 5, 6, 7, 8, 9]
 ```
 
-This corresponds to ages 15-19 through 45-49. The 10-14 age group is present in the data file (`sdc_2024_replication/data/fertility_rates_by_county.csv`) but is **not used** in the birth calculation. Most counties carry a near-zero placeholder rate of 0.000178 for age 10-14; only 7 of 53 counties have rates above 0.001 (predominantly reservation counties: Benson, Ramsey, Rolette, Sioux).
+This corresponds to ages 15-19 through 45-49. The 10-14 age group is present in the data file (`../sdc_2024_replication/data/fertility_rates_by_county.csv`) but is **not used** in the birth calculation. Most counties carry a near-zero placeholder rate of 0.000178 for age 10-14; only 7 of 53 counties have rates above 0.001 (predominantly reservation counties: Benson, Ramsey, Rolette, Sioux).
 
 ### 1.3 Rate Format and Units
 
@@ -361,9 +361,9 @@ Pop[0-4, sex, county, t+5] = (
 | `Survival_Rate[0-4, sex]` | Probability of surviving from birth to the 0-4 cohort | CDC ND 2020 life table |
 
 **File references**:
-- Fertility rates: `sdc_2024_replication/data/fertility_rates_by_county.csv`
-- Projection engine: `sdc_2024_replication/scripts/projection_engine.py`, `calculate_births()` (line 155), `apply_infant_survival()` (line 214)
-- Methodology: `sdc_2024_replication/METHODOLOGY_SPEC.md`, Sections 2.4, 3.1, 7.3
+- Fertility rates: `../sdc_2024_replication/data/fertility_rates_by_county.csv`
+- Projection engine: `../sdc_2024_replication/scripts/projection_engine.py`, `calculate_births()` (line 155), `apply_infant_survival()` (line 214)
+- Methodology: `../sdc_2024_replication/METHODOLOGY_SPEC.md`, Sections 2.4, 3.1, 7.3
 
 ---
 
@@ -587,16 +587,16 @@ Over 5 years: approximately 1,600 * 5 = ~8,000 births (versus SDC's ~9,500). The
 - **Fertility data processing**: `cohort_projections/data/process/fertility_rates.py` -- `process_fertility_rates()`, `create_fertility_rate_table()`
 - **Rate transformation pipeline**: `scripts/pipeline/02_run_projections.py` -- `_transform_fertility_rates()`, `_expand_age_groups_to_single_years()`
 - **Projection engine (current)**: `cohort_projections/core/cohort_component.py` -- `project_single_year()`
-- **SDC replication engine**: `sdc_2024_replication/scripts/projection_engine.py` -- `calculate_births()`, `apply_infant_survival()`
+- **SDC replication engine**: `../sdc_2024_replication/scripts/projection_engine.py` -- `calculate_births()`, `apply_infant_survival()`
 - **Configuration**: `config/projection_config.yaml` -- `rates.fertility`, `scenarios`
 
 ### Data Files
-- **SDC fertility rates**: `sdc_2024_replication/data/fertility_rates_by_county.csv` (53 counties x 8 age groups = 424 records)
+- **SDC fertility rates**: `../sdc_2024_replication/data/fertility_rates_by_county.csv` (53 counties x 8 age groups = 424 records)
 - **Current ASFR input**: `data/raw/fertility/asfr_processed.csv` (7 age groups x 6 races = 42 records, 2024/2022 vintages)
 - **Data source documentation**: `data/raw/fertility/DATA_SOURCE_NOTES.md`
 
 ### SDC Documentation
-- **Methodology specification**: `sdc_2024_replication/METHODOLOGY_SPEC.md`, Sections 2.4, 3.1, 7.3
+- **Methodology specification**: `../sdc_2024_replication/METHODOLOGY_SPEC.md`, Sections 2.4, 3.1, 7.3
 - **SDC 2024 Report**: "Population Projections for the State of North Dakota and its Counties" (February 6, 2024)
 - **SDC source workbook**: `Projections_Base_2023.xlsx`
 

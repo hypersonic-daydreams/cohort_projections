@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-27T18:14:01Z",
+  "claim_id": "RHA-007",
+  "claim_title": "Hardcoded absolute paths exist in data scripts",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-007-C1",
+      "description": "Verify known absolute path patterns were removed from targeted scripts.",
+      "required": true,
+      "command": "matches=$(rg -n \"/mnt/c/Users/|workspace/shared-data/census/popest/parquet\" scripts/data/ingest_stcoreview.py scripts/data_processing/extract_pep_county_migration.py scripts/data_processing/extract_pep_county_migration_with_metadata.py | wc -l || true); echo \"HARDCODED_PATH_MATCHES=$matches\"; if [ \"$matches\" -eq 0 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "HARDCODED_PATH_MATCHES=0"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-27T18:14:01Z",
+      "duration_seconds": 0.062,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "HARDCODED_PATH_MATCHES=0\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

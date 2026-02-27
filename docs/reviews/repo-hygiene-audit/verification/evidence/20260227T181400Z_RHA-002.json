@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-27T18:14:00Z",
+  "claim_id": "RHA-002",
+  "claim_title": "Pipeline shell runner executes only three Python stages",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-002-C1",
+      "description": "Verify shell runner wires seven stage invocations for the full pipeline.",
+      "required": true,
+      "command": "calls=$(rg -n \"python scripts/pipeline/\" scripts/pipeline/run_complete_pipeline.sh | wc -l); steps=$(rg -n \"^run_step(_no_dryrun_support)? [0-9]+ 7\" scripts/pipeline/run_complete_pipeline.sh | wc -l); echo \"PIPELINE_CALLS=$calls\"; echo \"STEP_CALLS=$steps\"; if [ \"$calls\" -eq 7 ] && [ \"$steps\" -eq 7 ]; then echo \"ASSERTION=PASS\"; else echo \"ASSERTION=FAIL\"; exit 1; fi",
+      "timeout_seconds": 30,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "PIPELINE_CALLS=7",
+          "STEP_CALLS=7"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-27T18:14:00Z",
+      "duration_seconds": 0.167,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "PIPELINE_CALLS=7\nSTEP_CALLS=7\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}

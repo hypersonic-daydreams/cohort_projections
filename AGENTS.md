@@ -84,7 +84,7 @@ Data deletion, security changes, breaking output formats, **methodology changes 
 
 ### SDC 2024 Journal Article (Reference Only)
 If asked to work with the SDC 2024 journal article:
-- **Latest PDF**: Check `../sdc_2024_replication/scripts/statistical_analysis/journal_article/output/CURRENT_VERSION.txt` (fallback local cache: `journal_article_pdfs/`)
+- **Latest PDF**: Check `../sdc_2024_replication/scripts/statistical_analysis/journal_article/output/CURRENT_VERSION.txt`
 - **Source files**: `../sdc_2024_replication/scripts/statistical_analysis/journal_article/`
 
 ---

@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-02-27T18:14:02Z",
+  "claim_id": "RHA-011",
+  "claim_title": "sdc_2024_replication dominates repository file count",
+  "claim_status_at_run": "adjudicated",
+  "claim_verdict_at_run": "confirmed",
+  "results": [
+    {
+      "check_id": "RHA-011-C1",
+      "description": "Verify SDC boundary extraction is complete and in-repo SDC share is negligible.",
+      "required": true,
+      "command": "source .venv/bin/activate && python - <<'PY'\nfrom pathlib import Path\nimport subprocess\n\nrepo_root = Path(\n    subprocess.check_output(\n        [\"git\", \"rev-parse\", \"--show-toplevel\"], text=True\n    ).strip()\n)\nsibling_root = repo_root.parent / \"sdc_2024_replication\"\nin_repo_root = repo_root / \"sdc_2024_replication\"\n\ntracked = subprocess.check_output(\n    [\"git\", \"ls-files\", \"sdc_2024_replication\"], text=True\n).splitlines()\ntracked_existing = sum((repo_root / rel_path).exists() for rel_path in tracked)\n\nexclude = {\n    \".git\",\n    \".venv\",\n    \".pytest_cache\",\n    \".mypy_cache\",\n    \".ruff_cache\",\n    \".uv_cache\",\n    \"htmlcov\",\n}\nall_files = [\n    p\n    for p in repo_root.rglob(\"*\")\n    if p.is_file() and not any(part in exclude for part in p.parts)\n]\nsdc_files = [p for p in all_files if p.parts and p.parts[0] == \"sdc_2024_replication\"]\nshare = len(sdc_files) / len(all_files) if all_files else 0.0\n\nprint(f\"IN_REPO_SDC_EXISTS={int(in_repo_root.exists())}\")\nprint(f\"SIBLING_SDC_EXISTS={int(sibling_root.exists())}\")\nprint(f\"SDC_TRACKED_FILES_INDEX={len(tracked)}\")\nprint(f\"SDC_TRACKED_FILES_EXISTING={tracked_existing}\")\nprint(f\"SDC_SHARE={share:.4f}\")\n\nif (\n    not in_repo_root.exists()\n    and sibling_root.exists()\n    and tracked_existing == 0\n    and share < 0.01\n):\n    print(\"ASSERTION=PASS\")\nelse:\n    print(\"ASSERTION=FAIL\")\n    raise SystemExit(1)\nPY\n",
+      "timeout_seconds": 120,
+      "assertion": {
+        "expect_exit_code": 0,
+        "stdout_contains": [
+          "ASSERTION=PASS"
+        ],
+        "stdout_not_contains": [],
+        "stderr_contains": [],
+        "stderr_not_contains": [],
+        "regex_match": [
+          "IN_REPO_SDC_EXISTS=0",
+          "SIBLING_SDC_EXISTS=1",
+          "SDC_TRACKED_FILES_EXISTING=0",
+          "SDC_SHARE=0\\.[0-9]+"
+        ]
+      },
+      "executed": true,
+      "passed": true,
+      "failure_reasons": [],
+      "started_at_utc": "2026-02-27T18:14:01Z",
+      "duration_seconds": 0.457,
+      "return_code": 0,
+      "timed_out": false,
+      "stdout": "IN_REPO_SDC_EXISTS=0\nSIBLING_SDC_EXISTS=1\nSDC_TRACKED_FILES_INDEX=271\nSDC_TRACKED_FILES_EXISTING=0\nSDC_SHARE=0.0000\nASSERTION=PASS\n",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "checks_total": 1,
+    "checks_passed": 1,
+    "required_total": 1,
+    "required_passed": 1,
+    "claim_passed": true,
+    "dry_run": false
+  }
+}
