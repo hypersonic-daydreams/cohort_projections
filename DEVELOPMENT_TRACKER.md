@@ -27,7 +27,7 @@ Use this file for active status only. Historical session detail is archived to:
 | Data processing pipeline | complete | Inputs and transforms are in place; no active blocker. |
 | Documentation alignment | complete | B01 documentation harmonization complete. |
 | Repo-hygiene program | complete | B00-B06 implemented; full adjudicated replay `27/27` passing; RB-003 and RB-004 remediated and closed. |
-| Test health baseline | stable | Latest recorded baseline: `1258 passed, 5 skipped`. |
+| Test health baseline | stable | Latest recorded baseline: `1258 passed, 5 skipped`. ADR-056 accepted; coverage gaps identified for GQ separation, pipeline orchestrators, and base population loaders. |
 | Claim replay health | stable | `27/27` adjudicated claims passing (latest full replay: 2026-02-27T18:14:03Z). |
 
 ## Projection Development Backlog (Canonical)
@@ -37,6 +37,7 @@ Use this file for active status only. Historical session detail is archived to:
 | PP-001 | Publication-facing output QA and dissemination packaging | active | Collect stakeholder sign-off on 2026-02-28 package set and keep release checklist current for final publication handoff | `docs/reviews/2026-02-28-publication-output-qa-packaging-checklist.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
 | PP-002 | Non-regression validation cadence during publication work | active | Run and record the next cadence cycle after the next material projection/config change (same gate set) | `docs/reviews/repo-hygiene-audit/implementation/06-dashboard-current.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
 | PP-003 | City/place projection workstream reactivation (ADR-033) | scoping_in_progress | Complete Phase 1 scoping steps `PP3-S04` through `PP3-S06`, then prepare approval packet for `PP3-S07` | `docs/governance/adrs/033-city-level-projection-methodology.md`, `docs/reviews/2026-02-28-place-data-readiness-note.md`, `docs/reviews/2026-02-28-place-county-mapping-strategy-note.md` |
+| PP-004 | Test coverage gap closure (ADR-056) | active | Close priority coverage gaps identified in ADR-056 Decision 6; align with PP-002 periodic review cadence | `docs/governance/adrs/056-testing-strategy-maturation.md`, `docs/guides/test-maintenance-practices.md` |
 
 ## PP-003 Phase 1 Scoping Checklist (Canonical)
 
@@ -65,6 +66,21 @@ Scope statement confirmed on 2026-02-28 (ADR-033 alignment):
   - `LOWER` (500-2,500): 72 places
   - `EXCLUDED` (<500): 265 places
 - **Constraint frame:** place outputs remain county-constrained with explicit balance-of-county remainder (full constraint specification continues in `PP3-S04`).
+
+## PP-004 Test Coverage Gap Closure Checklist (Canonical)
+
+Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance-practices.md`. Items are ranked by risk to projection accuracy.
+
+| Step ID | Task | Status | Definition of Done | Reference |
+|------|------|------|------|------|
+| PP4-01 | GQ separation function tests (ADR-055) | pending | Tests exist for `subtract_gq_from_populations`, `_separate_gq_from_base_population`, `get_county_gq_population`, `_expand_gq_to_single_year_ages`, `_distribute_gq_across_races`; coverage on `base_population_loader.py` and `residual_migration.py` increases | `cohort_projections/data/load/base_population_loader.py`, `cohort_projections/data/process/residual_migration.py` |
+| PP4-02 | Pipeline orchestrator tests | pending | Tests exist for `run_residual_migration_pipeline` and `run_convergence_pipeline` with small synthetic data; wiring correctness verified | `cohort_projections/data/process/residual_migration.py`, `cohort_projections/data/process/convergence_interpolation.py` |
+| PP4-03 | Base population loader tests | pending | Tests exist for `load_base_population_for_county`, `load_base_population_for_all_counties`, `load_base_population_for_state` | `cohort_projections/data/load/base_population_loader.py` |
+| PP4-04 | Pre-commit hook blind spot fix | pending | Pre-commit pytest trigger includes `tests/**/*.py` so test-only changes are validated | `.pre-commit-config.yaml` |
+| PP4-05 | Silent skip audit | pending | Document current skip count; verify `IMPORTS_AVAILABLE` gates resolve in dev environment; establish skip-count baseline for periodic review | `docs/guides/test-maintenance-practices.md` |
+| PP4-06 | First PP-002-aligned periodic coverage review | pending | Run the 5-item checklist from `test-maintenance-practices.md` and record results | `docs/guides/test-maintenance-practices.md` |
+
+**Approach:** Gaps are closed incrementally as modules are touched (ADR-056 Decision 6), not as a standalone sprint. PP4-01 through PP4-03 are the highest-impact items. PP4-06 aligns with the existing PP-002 cadence.
 
 ## Documentation Consistency Queue
 
@@ -97,6 +113,7 @@ Scope statement confirmed on 2026-02-28 (ADR-033 alignment):
 1. Keep the documentation consistency queue current; add and resolve new cross-document drift items as they appear.
 2. Keep repo-hygiene evidence current while executing publication tasks (`PP-001`, `PP-002`) and refresh package QA records as new export vintages are generated.
 3. Execute `PP3-S04` through `PP3-S06` (model spec, backtesting design, output contract) to complete the pre-approval scoping packet for `PP3-S07`.
+4. Close `PP4-01` (GQ separation tests) as the highest-risk coverage gap. `PP4-02` and `PP4-03` follow in priority order. See `docs/guides/test-maintenance-practices.md` for detailed guidance.
 
 ## Deferred / Later Work
 
@@ -115,3 +132,7 @@ Scope statement confirmed on 2026-02-28 (ADR-033 alignment):
 - `docs/reviews/repo-hygiene-audit/implementation/17-open-risks-blockers-register.md`
 - `docs/reviews/repo-hygiene-audit/implementation/02-action-batches.yaml`
 - `docs/reviews/repo-hygiene-audit/verification/progress.md`
+- `docs/governance/adrs/056-testing-strategy-maturation.md`
+- `docs/guides/test-maintenance-practices.md`
+- `docs/guides/test-suite-reference.md`
+- `docs/guides/testing-workflow.md`

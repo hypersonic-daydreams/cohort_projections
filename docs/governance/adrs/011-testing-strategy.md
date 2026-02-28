@@ -1,7 +1,7 @@
 # ADR-011: Testing Strategy
 
 ## Status
-Accepted
+Superseded by [ADR-056](056-testing-strategy-maturation.md)
 
 ## Date
 2025-12-18
