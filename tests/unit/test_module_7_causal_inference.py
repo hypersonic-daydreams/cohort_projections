@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 import sys
+import warnings
 
 import pandas as pd
 
@@ -61,8 +62,20 @@ def test_event_study_max_year_filters_years():
     result = ModuleResult(module_id="7", analysis_name="test")
     df_did = prepare_travel_ban_did_data(df_refugee, result)
 
-    _, es_df_primary = estimate_event_study(df_did, result, max_year=2019)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message="invalid value encountered in sqrt",
+            category=RuntimeWarning,
+        )
+        _, es_df_primary = estimate_event_study(df_did, result, max_year=2019)
     assert es_df_primary["year"].max() == 2019
 
-    _, es_df_extended = estimate_event_study_extended(df_did, result, max_year=2024)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message="invalid value encountered in sqrt",
+            category=RuntimeWarning,
+        )
+        _, es_df_extended = estimate_event_study_extended(df_did, result, max_year=2024)
     assert es_df_extended["year"].max() == 2024

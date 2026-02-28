@@ -15,13 +15,23 @@ Architecture Decision Records are documents that capture important architectural
 
 ADRs serve as a historical record, helping current and future developers understand **why** the system is built the way it is, not just **how** it works.
 
+## Large Artifact Directories
+
+ADR-020 and ADR-021 include large generated report bundles under:
+
+- `docs/governance/adrs/020-reports/`
+- `docs/governance/adrs/021-reports/`
+
+These directories are intentionally excluded from git and synced externally.
+Treat them as evidence/output stores rather than canonical source documents.
+
 ## How to Create a New ADR
 
 ### Step 1: Determine the Next ADR Number
 
 Check existing ADRs and use the next sequential number:
 ```bash
-ls docs/adr/*.md | grep -E '^docs/adr/[0-9]{3}' | sort | tail -1
+ls docs/governance/adrs/[0-9][0-9][0-9]-*.md | sort | tail -1
 ```
 
 ### Step 2: Create the ADR File
@@ -37,7 +47,7 @@ Examples:
 
 Copy `TEMPLATE.md` to your new file:
 ```bash
-cp docs/adr/TEMPLATE.md docs/adr/NNN-your-title.md
+cp docs/governance/adrs/TEMPLATE.md docs/governance/adrs/NNN-your-title.md
 ```
 
 ### Step 4: Fill in the Template
@@ -305,7 +315,7 @@ Across all ADRs, these principles guided decisions:
 
 ---
 
-**Last Updated**: 2026-02-26
+**Last Updated**: 2026-02-28
 
 **Total ADRs**: 59 (52 accepted, 5 proposed, 1 rejected, 1 superseded)
 

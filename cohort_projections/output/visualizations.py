@@ -27,6 +27,7 @@ try:
     matplotlib.use("Agg")  # Non-interactive backend
     import matplotlib.patches as mpatches
     import matplotlib.pyplot as plt
+    import matplotlib.ticker as mticker
 
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
@@ -227,9 +228,10 @@ def plot_population_pyramid(
     max_val = max(abs(ax.get_xlim()[0]), abs(ax.get_xlim()[1]))
     ax.set_xlim(-max_val, max_val)
 
-    # Format x-axis labels as absolute values
-    x_ticks = ax.get_xticks()
-    ax.set_xticklabels([f"{abs(int(x)):,}" for x in x_ticks])
+    # Format x-axis labels as absolute values while preserving tick locator behavior.
+    ax.xaxis.set_major_formatter(
+        mticker.FuncFormatter(lambda x, _pos: f"{abs(int(round(x))):,}")
+    )
     ax.set_xlabel("Population")
 
     # Center line
