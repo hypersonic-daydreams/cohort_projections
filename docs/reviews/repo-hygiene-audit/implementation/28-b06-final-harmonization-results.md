@@ -65,5 +65,15 @@ Result:
 
 ## Status
 
-- B06: `complete_with_open_risk_tracking`
-- Program closeout state: implementation complete; RB-003/RB-004 remain explicitly tracked.
+- B06 (historical at capture time): `complete_with_open_risk_tracking`
+- Program closeout state at capture time: implementation complete; RB-003/RB-004 remained explicitly tracked.
+
+## Post-B06 Closeout Update
+
+As of 2026-02-27T18:58:26Z, both residual risks were remediated and closed in the dedicated follow-up wave:
+
+- `RB-003`: closed (pipeline dry-run coverage now includes stages `01a/01b/01c`).
+- `RB-004`: closed (full-repo `ruff` and `mypy` baseline passes).
+- Current overall program status: `implementation_complete`.
+
+See: `docs/reviews/repo-hygiene-audit/implementation/29-rb003-rb004-remediation-results.md`.

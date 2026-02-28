@@ -1,7 +1,7 @@
 schema_version: 1
 audit_id: repo-hygiene-audit
-batch_plan_status: implementation_complete_with_open_risks
-last_updated: 2026-02-27
+batch_plan_status: implementation_complete
+last_updated: 2026-02-28
 
 batches:
   - batch_id: B00
@@ -106,7 +106,7 @@ batches:
   - batch_id: B06
     name: final_harmonization_and_claim_revalidation
     priority: 6
-    status: completed_with_open_risk_tracking
+    status: completed
     objective: Re-run claim verification and publish consolidated execution dashboard.
     includes_claims:
       - RHA-001
