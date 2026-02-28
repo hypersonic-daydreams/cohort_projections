@@ -167,10 +167,7 @@ def parse_county_year_table(
             if line.startswith(county):
                 rest = line[len(county):].strip()
                 if rest and (
-                    rest[0].isdigit()
-                    or rest.startswith("NR")
-                    or rest.startswith("-")
-                    or rest.startswith("0")
+                    rest[0].isdigit() or rest.startswith(("NR", "-", "0"))
                 ):
                     matched_county = county
                     break
@@ -184,7 +181,7 @@ def parse_county_year_table(
                     "Total" if matched_county in SUMMARY_ROW_NAMES else matched_county
                 )
                 record = {"county": county_name}
-                for year, val in zip(years, values):
+                for year, val in zip(years, values, strict=False):
                     record[year] = val
                 records.append(record)
 
@@ -290,10 +287,7 @@ def parse_county_year_table_positional(
             if line_text.startswith(county):
                 rest = line_text[len(county):].strip()
                 if rest and (
-                    rest[0].isdigit()
-                    or rest.startswith("NR")
-                    or rest.startswith("-")
-                    or rest.startswith("0")
+                    rest[0].isdigit() or rest.startswith(("NR", "-", "0"))
                 ):
                     matched_county = county
                     break
@@ -403,7 +397,7 @@ def parse_census_data(page: pdfplumber.page.Page) -> pd.DataFrame:
                             else county
                         )
                         record = {"county": county_name}
-                        for col, val in zip(columns[1:], values):
+                        for col, val in zip(columns[1:], values, strict=False):
                             record[col] = val
                         records.append(record)
                     break

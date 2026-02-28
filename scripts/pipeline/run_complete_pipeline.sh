@@ -77,31 +77,6 @@ run_step() {
   echo ""
 }
 
-run_step_no_dryrun_support() {
-  local step="$1"
-  local total="$2"
-  local title="$3"
-  shift 3
-
-  print_step_banner "$step" "$total" "$title"
-
-  if $DRY_RUN; then
-    echo "[DRY RUN] Skipping ${title} (script does not implement --dry-run)."
-    echo ""
-    return
-  fi
-
-  if ! "$@"; then
-    echo ""
-    echo "ERROR: ${title} failed"
-    exit 1
-  fi
-
-  echo ""
-  echo "OK: ${title} completed successfully"
-  echo ""
-}
-
 DRY_RUN_ARGS=()
 RESUME_ARGS=()
 FAIL_FAST_ARGS=()
@@ -141,14 +116,14 @@ run_step 1 7 "Preparing Processed Inputs" \
 run_step 2 7 "Processing Demographic Data" \
   python scripts/pipeline/01_process_demographic_data.py --all "${DRY_RUN_ARGS[@]}" "${FAIL_FAST_ARGS[@]}"
 
-run_step_no_dryrun_support 3 7 "Computing Residual Migration Rates" \
-  python scripts/pipeline/01a_compute_residual_migration.py
+run_step 3 7 "Computing Residual Migration Rates" \
+  python scripts/pipeline/01a_compute_residual_migration.py "${DRY_RUN_ARGS[@]}"
 
-run_step_no_dryrun_support 4 7 "Computing Convergence Interpolation Rates" \
-  python scripts/pipeline/01b_compute_convergence.py --all-variants
+run_step 4 7 "Computing Convergence Interpolation Rates" \
+  python scripts/pipeline/01b_compute_convergence.py --all-variants "${DRY_RUN_ARGS[@]}"
 
-run_step_no_dryrun_support 5 7 "Computing Mortality Improvement Rates" \
-  python scripts/pipeline/01c_compute_mortality_improvement.py
+run_step 5 7 "Computing Mortality Improvement Rates" \
+  python scripts/pipeline/01c_compute_mortality_improvement.py "${DRY_RUN_ARGS[@]}"
 
 run_step 6 7 "Running Population Projections" \
   python scripts/pipeline/02_run_projections.py --all "${DRY_RUN_ARGS[@]}" "${RESUME_ARGS[@]}"
@@ -171,7 +146,6 @@ echo ""
 
 if $DRY_RUN; then
   echo "Dry run completed."
-  echo "Note: steps 3-5 were skipped because those scripts do not yet support --dry-run."
 else
   echo "Next steps:"
   echo "  1. Review processing reports in data/processed/reports/"

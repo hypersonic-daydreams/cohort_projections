@@ -1537,7 +1537,7 @@ def run_geographic_projections(
                         # State-level: compute population-weighted average of county rates
                         county_pops = load_county_populations()
                         pop_map = dict(
-                            zip(county_pops["county_fips"], county_pops["population"])
+                            zip(county_pops["county_fips"], county_pops["population"], strict=False)
                         )
                         total_pop = county_pops["population"].sum()
                         # Detect the rate column name (net_migration or migration_rate)
@@ -1596,7 +1596,7 @@ def run_geographic_projections(
 
                 _county_pops = _load_county_pops()
                 _pop_map = dict(
-                    zip(_county_pops["county_fips"], _county_pops["population"])
+                    zip(_county_pops["county_fips"], _county_pops["population"], strict=False)
                 )
                 _total_pop = _county_pops["population"].sum()
 

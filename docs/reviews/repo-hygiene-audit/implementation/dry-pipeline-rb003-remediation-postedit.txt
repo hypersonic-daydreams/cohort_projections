@@ -1,0 +1,360 @@
+=============================================================================
+North Dakota Population Projection System - Complete Pipeline
+=============================================================================
+
+Project Root: /home/nhaarstad/workspace/demography/cohort_projections
+Start Time: 2026-02-27 12:58:58
+Mode: DRY RUN (no files should be modified)
+
+=============================================================================
+STEP 1/7: Preparing Processed Inputs
+=============================================================================
+
+2026-02-27 12:58:58,914 | INFO | __main__ | ======================================================================
+2026-02-27 12:58:58,915 | INFO | __main__ | PREPARE PROCESSED DATA - North Dakota Population Projections
+2026-02-27 12:58:58,915 | INFO | __main__ | ======================================================================
+2026-02-27 12:58:58,915 | INFO | __main__ | Data directory: /home/nhaarstad/workspace/demography/cohort_projections/data
+2026-02-27 12:58:58,915 | INFO | __main__ | Dry run: True
+2026-02-27 12:58:58,915 | INFO | __main__ | Skip existing: False
+2026-02-27 12:58:58,915 | INFO | __main__ | 
+2026-02-27 12:58:58,915 | INFO | __main__ | Found 5 files to process
+2026-02-27 12:58:58,915 | INFO | __main__ | Processing 5 valid source files
+2026-02-27 12:58:58,915 | INFO | __main__ | 
+2026-02-27 12:58:58,915 | INFO | __main__ | Processing: Age-specific fertility rates
+2026-02-27 12:58:58,915 | INFO | __main__ | [DRY RUN] Would convert: nd_asfr_processed.csv -> fertility_rates.parquet
+2026-02-27 12:58:58,915 | INFO | __main__ | Processing: Age/sex/race survival rates
+2026-02-27 12:58:58,915 | INFO | __main__ | [DRY RUN] Would convert: survival_rates_processed.csv -> survival_rates.parquet
+2026-02-27 12:58:58,915 | INFO | __main__ | Processing: County migration flows
+2026-02-27 12:58:58,916 | INFO | __main__ | [DRY RUN] Would convert: nd_migration_processed.csv -> migration_rates.parquet
+2026-02-27 12:58:58,916 | INFO | __main__ | Processing: County population totals
+2026-02-27 12:58:58,916 | INFO | __main__ | [DRY RUN] Would convert: nd_county_population.csv -> county_population.parquet
+2026-02-27 12:58:58,916 | INFO | __main__ | Processing: Age/sex/race population distribution
+2026-02-27 12:58:58,916 | INFO | __main__ | [DRY RUN] Would convert: nd_age_sex_race_distribution.csv -> age_sex_race_distribution.parquet
+2026-02-27 12:58:58,916 | INFO | __main__ | All files processed successfully
+
+======================================================================
+PREPARE PROCESSED DATA - SUMMARY
+======================================================================
+
+Duration: 0.00 seconds
+
+Files processed: 5
+  Successful: 5
+  Skipped:    0
+  Failed:     0
+
+Total rows: 0
+
+----------------------------------------------------------------------
+FILE DETAILS
+----------------------------------------------------------------------
+
+fertility_rates.parquet: OK
+  Source: /home/nhaarstad/workspace/demography/cohort_projections/data/raw/fertility/nd_asfr_processed.csv
+  Rows: 0, Columns: 0
+
+survival_rates.parquet: OK
+  Source: /home/nhaarstad/workspace/demography/cohort_projections/data/raw/mortality/survival_rates_processed.csv
+  Rows: 0, Columns: 0
+
+migration_rates.parquet: OK
+  Source: /home/nhaarstad/workspace/demography/cohort_projections/data/raw/migration/nd_migration_processed.csv
+  Rows: 0, Columns: 0
+
+county_population.parquet: OK
+  Source: /home/nhaarstad/workspace/demography/cohort_projections/data/raw/population/nd_county_population.csv
+  Rows: 0, Columns: 0
+
+age_sex_race_distribution.parquet: OK
+  Source: /home/nhaarstad/workspace/demography/cohort_projections/data/raw/population/nd_age_sex_race_distribution.csv
+  Rows: 0, Columns: 0
+
+======================================================================
+
+
+OK: Preparing Processed Inputs completed successfully
+
+=============================================================================
+STEP 2/7: Processing Demographic Data
+=============================================================================
+
+2026-02-27 12:59:00,318 | INFO | __main__ | ================================================================================
+2026-02-27 12:59:00,319 | INFO | __main__ | DATA PROCESSING PIPELINE - North Dakota Population Projections
+2026-02-27 12:59:00,319 | INFO | __main__ | ================================================================================
+2026-02-27 12:59:00,319 | INFO | __main__ | Processing components: fertility, survival, migration
+2026-02-27 12:59:00,319 | INFO | __main__ | Dry run: True
+2026-02-27 12:59:00,319 | INFO | __main__ | Fail-fast mode: False
+2026-02-27 12:59:00,319 | INFO | __main__ | 
+2026-02-27 12:59:00,319 | INFO | __main__ | Processing fertility rates...
+2026-02-27 12:59:00,319 | INFO | __main__ | Input file: data/raw/fertility/nd_asfr_processed.csv
+2026-02-27 12:59:00,319 | INFO | __main__ | Output file: data/processed/fertility_rates.parquet
+2026-02-27 12:59:00,319 | INFO | __main__ | [DRY RUN] Would process fertility data
+2026-02-27 12:59:00,319 | INFO | __main__ | Processing survival rates...
+2026-02-27 12:59:00,319 | INFO | __main__ | Input file: data/raw/mortality/survival_rates_processed.csv
+2026-02-27 12:59:00,319 | INFO | __main__ | Output file: data/processed/survival_rates.parquet
+2026-02-27 12:59:00,319 | INFO | __main__ | [DRY RUN] Would process survival data
+2026-02-27 12:59:00,319 | INFO | __main__ | Processing migration rates...
+2026-02-27 12:59:00,319 | INFO | __main__ | Domestic input: data/raw/migration/irs_county_flows_2018_2022.csv
+2026-02-27 12:59:00,319 | INFO | __main__ | Output file: data/processed/migration_rates.parquet
+2026-02-27 12:59:00,319 | WARNING | __main__ | [DRY RUN] Migration input file not found; skipping strict input check
+2026-02-27 12:59:00,319 | INFO | __main__ | Generating processing report...
+2026-02-27 12:59:00,319 | INFO | __main__ | Processing report saved to data/processed/reports/data_processing_report_20260227_185900.json
+2026-02-27 12:59:00,319 | INFO | __main__ | Pipeline completed successfully
+
+================================================================================
+DATA PROCESSING PIPELINE SUMMARY
+================================================================================
+
+Start Time: 2026-02-27T18:59:00.319232+00:00
+End Time: 2026-02-27T18:59:00.319491+00:00
+Total Duration: 0.00 seconds
+
+Components Processed: 3
+  Successful: 3
+  Failed: 0
+
+--------------------------------------------------------------------------------
+COMPONENT DETAILS
+--------------------------------------------------------------------------------
+
+FERTILITY: ✓ SUCCESS
+  Output: None
+  Records: 0
+  Processing Time: 0.00s
+  Validation: Failed
+
+SURVIVAL: ✓ SUCCESS
+  Output: None
+  Records: 0
+  Processing Time: 0.00s
+  Validation: Failed
+
+MIGRATION: ✓ SUCCESS
+  Output: None
+  Records: 0
+  Processing Time: 0.00s
+  Validation: Failed
+
+================================================================================
+
+
+OK: Processing Demographic Data completed successfully
+
+=============================================================================
+STEP 3/7: Computing Residual Migration Rates
+=============================================================================
+
+2026-02-27 12:59:01,820 | INFO | __main__ | Loading configuration
+2026-02-27 12:59:01,832 | INFO | __main__ | Dry run enabled: validating residual migration dependencies
+2026-02-27 12:59:01,832 | INFO | __main__ | [DRY RUN] OK: input: /home/nhaarstad/workspace/demography/cohort_projections/data/raw/nd_sdc_2024_projections/source_files/reference/Census 2000 County Age and Sex.xlsx
+2026-02-27 12:59:01,832 | INFO | __main__ | [DRY RUN] OK: input: /home/nhaarstad/workspace/demography/cohort_projections/data/raw/nd_sdc_2024_projections/source_files/reference/cc-est2019-agesex-38 (1).xlsx
+2026-02-27 12:59:01,832 | INFO | __main__ | [DRY RUN] OK: input: /home/nhaarstad/workspace/shared-data/census/popest/parquet/2020-2024/county/cc-est2024-agesex-all.parquet
+2026-02-27 12:59:01,832 | INFO | __main__ | [DRY RUN] OK: input: /home/nhaarstad/workspace/demography/sdc_2024_replication/data/base_population_by_county.csv
+2026-02-27 12:59:01,832 | INFO | __main__ | [DRY RUN] OK: input: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/sdc_2024/survival_rates_sdc_2024_by_age_group.csv
+2026-02-27 12:59:01,832 | INFO | __main__ | [DRY RUN] OK: gq_correction: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/gq_county_age_sex_historical.parquet
+2026-02-27 12:59:01,832 | INFO | __main__ | [DRY RUN] OK: pep_recalibration: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/pep_county_components_2000_2025.parquet
+2026-02-27 12:59:01,832 | INFO | __main__ | [DRY RUN] Would write: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/migration/residual_migration_rates.parquet
+2026-02-27 12:59:01,832 | INFO | __main__ | [DRY RUN] Would write: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/migration/residual_migration_rates_averaged.parquet
+2026-02-27 12:59:01,832 | INFO | __main__ | [DRY RUN] Would write: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/migration/residual_migration_metadata.json
+2026-02-27 12:59:01,832 | INFO | __main__ | Dry run completed successfully
+
+OK: Computing Residual Migration Rates completed successfully
+
+=============================================================================
+STEP 4/7: Computing Convergence Interpolation Rates
+=============================================================================
+
+2026-02-27 12:59:03,185 | INFO | __main__ | Loading configuration
+2026-02-27 12:59:03,201 | INFO | __main__ | Dry run enabled: validating convergence dependencies
+2026-02-27 12:59:03,201 | INFO | __main__ | [DRY RUN] OK: input: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/migration/residual_migration_rates.parquet
+2026-02-27 12:59:03,201 | INFO | __main__ | [DRY RUN] OK: high_variant_input: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/migration/migration_rates_pep_baseline.parquet
+2026-02-27 12:59:03,201 | INFO | __main__ | [DRY RUN] OK: high_variant_input: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/migration/migration_rates_pep_high.parquet
+2026-02-27 12:59:03,201 | INFO | __main__ | [DRY RUN] Configured output compression: gzip
+2026-02-27 12:59:03,201 | INFO | __main__ | [DRY RUN] Would write: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/migration/convergence_rates_by_year.parquet
+2026-02-27 12:59:03,201 | INFO | __main__ | [DRY RUN] Would write: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/migration/convergence_metadata.json
+2026-02-27 12:59:03,201 | INFO | __main__ | [DRY RUN] Would write: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/migration/convergence_rates_by_year_high.parquet
+2026-02-27 12:59:03,201 | INFO | __main__ | [DRY RUN] Would write: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/migration/convergence_metadata_high.json
+2026-02-27 12:59:03,201 | INFO | __main__ | Dry run completed successfully
+
+OK: Computing Convergence Interpolation Rates completed successfully
+
+=============================================================================
+STEP 5/7: Computing Mortality Improvement Rates
+=============================================================================
+
+2026-02-27 12:59:04,535 | INFO | __main__ | Loading configuration
+2026-02-27 12:59:04,548 | INFO | __main__ | Dry run enabled: validating mortality improvement dependencies
+2026-02-27 12:59:04,548 | INFO | __main__ | [DRY RUN] OK: input: /home/nhaarstad/workspace/demography/cohort_projections/data/raw/census_bureau_methodology/np2023_a4_survival_ratios.csv
+2026-02-27 12:59:04,548 | INFO | __main__ | [DRY RUN] OK: input: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/sdc_2024/survival_rates_sdc_2024_by_age_group.csv
+2026-02-27 12:59:04,549 | INFO | __main__ | [DRY RUN] Would write: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/mortality/nd_adjusted_survival_projections.parquet
+2026-02-27 12:59:04,549 | INFO | __main__ | [DRY RUN] Would write: /home/nhaarstad/workspace/demography/cohort_projections/data/processed/mortality/mortality_improvement_metadata.json
+2026-02-27 12:59:04,549 | INFO | __main__ | [DRY RUN] Projection range from config: 2025-2055
+2026-02-27 12:59:04,549 | INFO | __main__ | Dry run completed successfully
+
+OK: Computing Mortality Improvement Rates completed successfully
+
+=============================================================================
+STEP 6/7: Running Population Projections
+=============================================================================
+
+2026-02-27 12:59:05,828 | INFO | __main__ | ================================================================================
+2026-02-27 12:59:05,829 | INFO | __main__ | PROJECTION RUNNER PIPELINE - North Dakota Population Projections
+2026-02-27 12:59:05,829 | INFO | __main__ | ================================================================================
+2026-02-27 12:59:05,829 | INFO | __main__ | Levels: state, county, place
+2026-02-27 12:59:05,829 | INFO | __main__ | Dry run: True
+2026-02-27 12:59:05,829 | INFO | __main__ | Resume: False
+2026-02-27 12:59:05,829 | INFO | __main__ | 
+2026-02-27 12:59:05,829 | INFO | __main__ | Loading processed demographic rates...
+2026-02-27 12:59:05,847 | INFO | __main__ | Loaded fertility rates: 49 records
+2026-02-27 12:59:05,848 | INFO | __main__ | Loaded survival rates: 1,212 records
+2026-02-27 12:59:05,857 | INFO | __main__ | Loaded PEP migration rates: 57,876 records
+2026-02-27 12:59:05,920 | INFO | __main__ | Loaded PEP migration rates for 53 counties
+2026-02-27 12:59:05,920 | INFO | __main__ | Transforming rates to engine format...
+2026-02-27 12:59:05,934 | INFO | __main__ | Transformed fertility rates: 210 records
+2026-02-27 12:59:05,934 | INFO | __main__ | Transformed survival rates: 1,212 records
+2026-02-27 12:59:08,923 | INFO | __main__ | Loaded convergence rates for 53 counties
+2026-02-27 12:59:08,957 | INFO | __main__ | Loaded mortality improvement for 21 years
+2026-02-27 12:59:08,958 | INFO | __main__ | Setting up projection run...
+2026-02-27 12:59:08,958 | INFO | __main__ | Scenarios to run: baseline, restricted_growth, high_growth
+2026-02-27 12:59:08,958 | INFO | __main__ | State: 38
+2026-02-27 12:59:08,958 | INFO | cohort_projections.geographic.geography_loader | Loading North Dakota counties (source: local, vintage: 2020)
+2026-02-27 12:59:08,958 | INFO | cohort_projections.geographic.geography_loader | Loading counties from data/raw/geographic/nd_counties.csv
+2026-02-27 12:59:08,964 | INFO | cohort_projections.geographic.geography_loader | Loaded 53 North Dakota counties
+2026-02-27 12:59:08,964 | INFO | __main__ | Counties: 53 to process
+2026-02-27 12:59:08,964 | INFO | cohort_projections.geographic.geography_loader | Loading geography list for level: place
+2026-02-27 12:59:08,964 | INFO | cohort_projections.geographic.geography_loader | Loading North Dakota places (source: local, vintage: 2020)
+2026-02-27 12:59:08,965 | INFO | cohort_projections.geographic.geography_loader | Loading places from /home/nhaarstad/workspace/demography/cohort_projections/data/raw/geographic/nd_places.csv
+2026-02-27 12:59:08,969 | WARNING | __main__ | Dry run fallback: skipping place level due place reference schema issue: Place data missing required columns: ['state_fips', 'place_fips', 'place_name', 'county_fips']
+2026-02-27 12:59:08,969 | INFO | __main__ | Setting up projection run...
+2026-02-27 12:59:08,969 | INFO | __main__ | Scenarios to run: baseline, restricted_growth, high_growth
+2026-02-27 12:59:08,969 | INFO | __main__ | State: 38
+2026-02-27 12:59:08,969 | INFO | cohort_projections.geographic.geography_loader | Loading North Dakota counties (source: local, vintage: 2020)
+2026-02-27 12:59:08,969 | INFO | cohort_projections.geographic.geography_loader | Loading counties from data/raw/geographic/nd_counties.csv
+2026-02-27 12:59:08,974 | INFO | cohort_projections.geographic.geography_loader | Loaded 53 North Dakota counties
+2026-02-27 12:59:08,974 | INFO | __main__ | Counties: 53 to process
+2026-02-27 12:59:08,975 | INFO | __main__ | 
+================================================================================
+2026-02-27 12:59:08,975 | INFO | __main__ | Running scenario: baseline
+2026-02-27 12:59:08,975 | INFO | __main__ | ================================================================================
+
+2026-02-27 12:59:08,975 | INFO | __main__ | Total geographies to process: 54
+2026-02-27 12:59:08,975 | INFO | __main__ | [DRY RUN] Would process projections
+2026-02-27 12:59:08,975 | INFO | __main__ | 
+================================================================================
+2026-02-27 12:59:08,975 | INFO | __main__ | Running scenario: restricted_growth
+2026-02-27 12:59:08,975 | INFO | __main__ | ================================================================================
+
+2026-02-27 12:59:08,975 | INFO | __main__ | Total geographies to process: 54
+2026-02-27 12:59:08,975 | INFO | __main__ | [DRY RUN] Would process projections
+2026-02-27 12:59:08,975 | INFO | __main__ | 
+================================================================================
+2026-02-27 12:59:08,975 | INFO | __main__ | Running scenario: high_growth
+2026-02-27 12:59:08,975 | INFO | __main__ | ================================================================================
+
+2026-02-27 12:59:08,975 | INFO | __main__ | Loading scenario-specific convergence rates for 'high_growth' (variant=high) from convergence_rates_by_year_high.parquet
+2026-02-27 12:59:11,927 | INFO | __main__ | Loaded high convergence rates for 53 counties
+2026-02-27 12:59:11,928 | INFO | __main__ | Total geographies to process: 54
+2026-02-27 12:59:11,928 | INFO | __main__ | [DRY RUN] Would process projections
+2026-02-27 12:59:11,928 | INFO | __main__ | 
+All scenarios completed
+
+[DRY RUN] Would process 54 geographies
+
+[DRY RUN] Would process 54 geographies
+
+[DRY RUN] Would process 54 geographies
+
+OK: Running Population Projections completed successfully
+
+=============================================================================
+STEP 7/7: Exporting Results
+=============================================================================
+
+2026-02-27 12:59:13,125 | INFO | __main__ | ================================================================================
+2026-02-27 12:59:13,125 | INFO | __main__ | EXPORT PIPELINE - North Dakota Population Projections
+2026-02-27 12:59:13,125 | INFO | __main__ | ================================================================================
+2026-02-27 12:59:13,125 | INFO | __main__ | Scenarios: methodology_comparison, restricted_growth, high_growth, baseline, CBO
+2026-02-27 12:59:13,125 | INFO | __main__ | Levels: state, county, place
+2026-02-27 12:59:13,125 | INFO | __main__ | Formats: csv, excel
+2026-02-27 12:59:13,125 | INFO | __main__ | Create packages: True
+2026-02-27 12:59:13,125 | INFO | __main__ | Dry run: True
+2026-02-27 12:59:13,125 | INFO | __main__ | 
+2026-02-27 12:59:13,125 | INFO | __main__ | Converting projection formats for scenario: methodology_comparison
+2026-02-27 12:59:13,126 | WARNING | __main__ | Level directory not found: data/projections/methodology_comparison/state
+2026-02-27 12:59:13,126 | WARNING | __main__ | Level directory not found: data/projections/methodology_comparison/county
+2026-02-27 12:59:13,126 | WARNING | __main__ | Level directory not found: data/projections/methodology_comparison/place
+2026-02-27 12:59:13,126 | INFO | __main__ | Format conversion complete: 0 files
+2026-02-27 12:59:13,126 | INFO | __main__ | Converting projection formats for scenario: restricted_growth
+2026-02-27 12:59:13,126 | INFO | __main__ | Processing 1 files for state level
+2026-02-27 12:59:13,126 | INFO | __main__ | [DRY RUN] Would convert 1 files
+2026-02-27 12:59:13,126 | INFO | __main__ | Processing 53 files for county level
+2026-02-27 12:59:13,126 | INFO | __main__ | [DRY RUN] Would convert 53 files
+2026-02-27 12:59:13,126 | WARNING | __main__ | Level directory not found: data/projections/restricted_growth/place
+2026-02-27 12:59:13,126 | INFO | __main__ | Format conversion complete: 108 files
+2026-02-27 12:59:13,126 | INFO | __main__ | Converting projection formats for scenario: high_growth
+2026-02-27 12:59:13,126 | INFO | __main__ | Processing 1 files for state level
+2026-02-27 12:59:13,126 | INFO | __main__ | [DRY RUN] Would convert 1 files
+2026-02-27 12:59:13,127 | INFO | __main__ | Processing 53 files for county level
+2026-02-27 12:59:13,127 | INFO | __main__ | [DRY RUN] Would convert 53 files
+2026-02-27 12:59:13,127 | WARNING | __main__ | Level directory not found: data/projections/high_growth/place
+2026-02-27 12:59:13,127 | INFO | __main__ | Format conversion complete: 108 files
+2026-02-27 12:59:13,127 | INFO | __main__ | Converting projection formats for scenario: baseline
+2026-02-27 12:59:13,127 | INFO | __main__ | Processing 1 files for state level
+2026-02-27 12:59:13,127 | INFO | __main__ | [DRY RUN] Would convert 1 files
+2026-02-27 12:59:13,127 | INFO | __main__ | Processing 53 files for county level
+2026-02-27 12:59:13,127 | INFO | __main__ | [DRY RUN] Would convert 53 files
+2026-02-27 12:59:13,127 | WARNING | __main__ | Level directory not found: data/projections/baseline/place
+2026-02-27 12:59:13,127 | INFO | __main__ | Format conversion complete: 108 files
+2026-02-27 12:59:13,127 | INFO | __main__ | Converting projection formats for scenario: CBO
+2026-02-27 12:59:13,127 | WARNING | __main__ | Level directory not found: data/projections/CBO/state
+2026-02-27 12:59:13,127 | WARNING | __main__ | Level directory not found: data/projections/CBO/county
+2026-02-27 12:59:13,127 | WARNING | __main__ | Level directory not found: data/projections/CBO/place
+2026-02-27 12:59:13,127 | INFO | __main__ | Format conversion complete: 0 files
+2026-02-27 12:59:13,127 | INFO | __main__ | Creating summary tables for scenario: methodology_comparison
+2026-02-27 12:59:13,127 | INFO | __main__ | [DRY RUN] Would create summary tables
+2026-02-27 12:59:13,127 | INFO | __main__ | Creating summary tables for scenario: restricted_growth
+2026-02-27 12:59:13,127 | INFO | __main__ | [DRY RUN] Would create summary tables
+2026-02-27 12:59:13,127 | INFO | __main__ | Creating summary tables for scenario: high_growth
+2026-02-27 12:59:13,127 | INFO | __main__ | [DRY RUN] Would create summary tables
+2026-02-27 12:59:13,127 | INFO | __main__ | Creating summary tables for scenario: baseline
+2026-02-27 12:59:13,127 | INFO | __main__ | [DRY RUN] Would create summary tables
+2026-02-27 12:59:13,127 | INFO | __main__ | Creating summary tables for scenario: CBO
+2026-02-27 12:59:13,127 | INFO | __main__ | [DRY RUN] Would create summary tables
+2026-02-27 12:59:13,127 | INFO | __main__ | Generating data dictionary...
+2026-02-27 12:59:13,127 | INFO | __main__ | [DRY RUN] Would generate data dictionary
+2026-02-27 12:59:13,127 | INFO | __main__ | Creating distribution packages...
+2026-02-27 12:59:13,127 | INFO | __main__ | [DRY RUN] Would create distribution packages
+2026-02-27 12:59:13,128 | INFO | __main__ | Export report saved to data/exports/export_report_20260227_185913.json
+2026-02-27 12:59:13,128 | INFO | __main__ | Export completed successfully
+
+================================================================================
+EXPORT PIPELINE SUMMARY
+================================================================================
+
+Duration: 0.00 seconds
+Files Exported: 324
+Packages Created: 0
+
+Components: 12
+  Successful: 12
+  Failed: 0
+
+================================================================================
+
+
+OK: Exporting Results completed successfully
+
+=============================================================================
+Pipeline Complete
+=============================================================================
+
+End Time: 2026-02-27 12:59:13
+
+Output Locations:
+  Processed Data:  data/processed/
+  Projections:     data/projections/
+  Exports:         data/exports/
+  Logs:            logs/
+
+Dry run completed.
+

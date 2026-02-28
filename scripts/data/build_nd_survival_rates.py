@@ -236,7 +236,7 @@ def main():
     print(f"  Adjusted {adjusted_count} records")
 
     # Recompute lx from adjusted qx
-    for (sex, race), group in survival_df.groupby(["sex", "race_ethnicity"]):
+    for (_sex, _race), group in survival_df.groupby(["sex", "race_ethnicity"]):
         sorted_idx = group.sort_values("age").index
         lx = 100000.0
         for i in sorted_idx:

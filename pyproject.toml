@@ -145,12 +145,14 @@ ignore = [
     "E402",    # Allow imports after sys.path modification (needed for module path setup)
     "N806",    # Allow uppercase variable names (X, Y, T for matrices)
     "SIM108",  # Allow if-else blocks for readability in fixtures
+    "PERF",    # Performance micro-optimizations are not required in test fixtures
 ]
 "scripts/**/*.py" = [
     "T201",    # Allow print statements in scripts
     "PLR2004", # Allow magic values in scripts
     "D",       # Ignore docstring requirements in scripts
     "N999",    # Allow invalid module names (numbered scripts for ordering)
+    "PERF",    # Prefer script readability over performance micro-optimizations
 ]
 # Legacy Phase A research scripts from ADR-019/020 investigation (deprecated 2026-01-01)
 # These are one-time exploratory analysis scripts, not production code.

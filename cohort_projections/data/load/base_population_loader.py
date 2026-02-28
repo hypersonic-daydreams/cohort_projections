@@ -302,7 +302,7 @@ def load_state_age_sex_race_distribution(
 
 def _build_statewide_single_year_weights(
     state_distribution: pd.DataFrame,
-) -> dict[tuple[str, str, str], float]:
+) -> dict[tuple[str, str, str], dict[int, float]]:
     """
     Build a lookup of statewide single-year proportions keyed by
     (age_group, sex, race) for use as interpolation weights when
@@ -357,9 +357,7 @@ def _build_statewide_single_year_weights(
         else:
             # Fallback: uniform if statewide has zero for this group
             n = len(weights_by_group[key])
-            weights_by_group[key] = {
-                age: 1.0 / n for age in weights_by_group[key]
-            }
+            weights_by_group[key] = dict.fromkeys(weights_by_group[key], 1.0 / n)
 
     return weights_by_group
 
@@ -425,13 +423,15 @@ def _expand_county_with_sprague(
             total_prop = prop_vector.sum()
             if total_prop == 0:
                 # All zeros for this sex-race: create zero single-year entries
-                for age in range(91):
-                    expanded_rows.append({
+                expanded_rows.extend(
+                    {
                         "age": age,
                         "sex": sex.title(),
                         "race": race,
                         "proportion": 0.0,
-                    })
+                    }
+                    for age in range(91)
+                )
                 continue
 
             # Apply Sprague interpolation to all 18 groups
@@ -477,13 +477,15 @@ def _expand_county_with_sprague(
                 age_90_prop = terminal_total / 6.0
 
             # Build output: ages 0-84 from Sprague, 85-89 adjusted, 90 from tail
-            for age in range(85):
-                expanded_rows.append({
+            expanded_rows.extend(
+                {
                     "age": age,
                     "sex": sex.title(),
                     "race": race,
                     "proportion": float(single_year_values[age]),
-                })
+                }
+                for age in range(85)
+            )
 
             for i, age in enumerate(range(85, 90)):
                 expanded_rows.append({
@@ -968,12 +970,14 @@ def _expand_gq_to_single_year_ages(
         ages = AGE_GROUP_RANGES[age_group]
         pop_per_age = gq_pop / len(ages) if len(ages) > 0 else 0.0
 
-        for age in ages:
-            expanded_rows.append({
+        expanded_rows.extend(
+            {
                 "age": age,
                 "sex": sex,
                 "gq_population": pop_per_age,
-            })
+            }
+            for age in ages
+        )
 
     return pd.DataFrame(expanded_rows)
 
@@ -1030,13 +1034,15 @@ def _distribute_gq_across_races(
         sex = row["sex"]
         gq_pop = float(row["gq_population"])
 
-        for race in expected_races:
-            rows.append({
+        rows.extend(
+            {
                 "age": age,
                 "sex": sex,
                 "race": race,
                 "gq_population": gq_pop * race_shares[race],
-            })
+            }
+            for race in expected_races
+        )
 
     return pd.DataFrame(rows)
 

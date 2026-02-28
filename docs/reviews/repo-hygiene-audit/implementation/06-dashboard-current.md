@@ -1,17 +1,17 @@
 # Repo Hygiene Audit Execution Dashboard (Current)
 
-**Snapshot Date (UTC):** 2026-02-27T18:21:14Z
-**Program Phase:** B06 Complete (Residual Risk Tracking Open)
+**Snapshot Date (UTC):** 2026-02-27T18:58:26Z
+**Program Phase:** Post-B06 Residual Risk Remediation Complete
 **Source Claims Registry:** `../verification/claims_registry.yaml`
 
 ## 0. Current Outcome
 
-- **Current batch outcome:** `B06` final harmonization executed after `B05` Wave 2 Step 2 completion.
-- **What changed this cycle:** completed SDC extraction + remaining root-clutter placements, converted B05 claims to resolved-state checks, and replayed all adjudicated claims to green.
+- **Current batch outcome:** dedicated `RB-003/RB-004` remediation wave completed after B06 closeout.
+- **What changed this cycle:** implemented explicit `--dry-run` handling for pipeline stages `01a/01b/01c`, removed remaining full-repo lint/type debt, and revalidated full pipeline + quality gates.
 - **Checklist instances:** [20-b05-go-no-go.md](./20-b05-go-no-go.md), [23-b05-references-inventory-and-migration-plan.md](./23-b05-references-inventory-and-migration-plan.md), [24-b05-delete-archive-proposal.md](./24-b05-delete-archive-proposal.md).
-- **Result records:** [21-b05-preflight-results.md](./21-b05-preflight-results.md), [25-b05-wave1-implementation-results.md](./25-b05-wave1-implementation-results.md), [26-b05-wave2-step1-results.md](./26-b05-wave2-step1-results.md), [27-b05-wave2-step2-results.md](./27-b05-wave2-step2-results.md), [28-b06-final-harmonization-results.md](./28-b06-final-harmonization-results.md).
-- **Most recent completed implementation step:** `B06` final harmonization + claim revalidation.
-- **Next recommended candidate:** dedicated RB-003/RB-004 remediation or policy closeout wave.
+- **Result records:** [21-b05-preflight-results.md](./21-b05-preflight-results.md), [25-b05-wave1-implementation-results.md](./25-b05-wave1-implementation-results.md), [26-b05-wave2-step1-results.md](./26-b05-wave2-step1-results.md), [27-b05-wave2-step2-results.md](./27-b05-wave2-step2-results.md), [28-b06-final-harmonization-results.md](./28-b06-final-harmonization-results.md), [29-rb003-rb004-remediation-results.md](./29-rb003-rb004-remediation-results.md).
+- **Most recent completed implementation step:** RB-003/RB-004 dedicated remediation wave.
+- **Next recommended candidate:** publication-focused follow-through and routine maintenance.
 
 ## 1. Program Summary
 
@@ -32,7 +32,7 @@
 | B03 | config_path_and_version_hygiene | completed | codex | 2026-02-26 | 2026-02-26 | Closed. |
 | B04 | code_structure_and_test_scope_alignment | completed | codex | 2026-02-26 | 2026-02-26 | Closed. |
 | B05 | repository_footprint_and_data_hygiene | completed | codex | 2026-02-26 | 2026-02-27 | Wave 1 complete; Wave 2 Step 1 + Step 2 complete; claims passing. |
-| B06 | final_harmonization_and_claim_revalidation | completed_with_open_risk_tracking | codex | 2026-02-27 | 2026-02-27 | Full claim replay passing; RB-003/RB-004 remain open. |
+| B06 | final_harmonization_and_claim_revalidation | completed | codex | 2026-02-27 | 2026-02-27 | Full claim replay passing; residual risks closed in follow-up wave. |
 
 ## 3. Dry-Run Gate Results
 
@@ -55,6 +55,8 @@
 | CLAIM-REPLAY-FINAL-ADJUDICATED | B06 | pass | 2026-02-27T18:14:03Z | codex | [progress.md](../verification/progress.md) |
 | DRY-LINT-TYPE (FINAL) | B06 | fail_known_debt | 2026-02-27T18:14:18Z | codex | [dry-lint-type-b06-final-ruff.txt](./dry-lint-type-b06-final-ruff.txt), [dry-lint-type-b06-final-mypy.txt](./dry-lint-type-b06-final-mypy.txt) |
 | DRY-TESTS (FINAL) | B06 | pass | 2026-02-27T18:19:53Z | codex | [28-b06-final-harmonization-results.md](./28-b06-final-harmonization-results.md) |
+| DRY-PIPELINE (RB-003) | Residual Risk Wave | pass | 2026-02-27T18:58:26Z | codex | [dry-pipeline-rb003-remediation-postedit.txt](./dry-pipeline-rb003-remediation-postedit.txt) |
+| DRY-LINT-TYPE (RB-004) | Residual Risk Wave | pass | 2026-02-27T18:58:26Z | codex | [dry-lint-type-rb004-remediation-ruff.txt](./dry-lint-type-rb004-remediation-ruff.txt), [dry-lint-type-rb004-remediation-mypy.txt](./dry-lint-type-rb004-remediation-mypy.txt) |
 
 ## 4. Claim-Level Implementation Tracker
 
@@ -90,8 +92,7 @@
 
 ## 5. Open Risks / Blocks
 
-1. Pipeline stages `01a`, `01b`, and `01c` still lack explicit `--dry-run` handling (accepted temporary limitation; tracked as RB-003).
-2. Full-repo lint/type debt remains and requires dedicated cleanup/policy closeout (tracked as RB-004).
+None. RB-003 and RB-004 were remediated and closed in the post-B06 cleanup wave.
 
 Risk register: [17-open-risks-blockers-register.md](./17-open-risks-blockers-register.md)
 
@@ -111,5 +112,6 @@ Risk register: [17-open-risks-blockers-register.md](./17-open-risks-blockers-reg
 | 2026-02-27 | Executed owner-confirmed Wave 2 Step 1 archive actions | B05 (`RHA-015`, `RHA-017`, `RHA-026`) | Created `archived/`, moved stale low-growth exports and Ward artifact, retained empty placeholders. | codex |
 | 2026-02-27 | Executed B05 Wave 2 Step 2 extraction/placement actions | B05 (`RHA-011`, `RHA-012`, `RHA-015`, `RHA-017`, `RHA-018`, `RHA-026`) | Completed SDC extraction, root-clutter placements, symlink rewiring, and rate dedup policy execution. | codex |
 | 2026-02-27 | Completed B06 final harmonization and full claim replay | B06 (all claims) | Achieved `27/27` adjudicated claim replay pass; retained explicit tracking for RB-003/RB-004. | codex |
+| 2026-02-27 | Completed RB-003/RB-004 remediation wave | RB-003, RB-004 | Added dry-run support for stages `01a/01b/01c`, achieved full `ruff` + `mypy` pass, and revalidated tests and pipeline dry-run. | codex |
 
 Decision record: `docs/reviews/repo-hygiene-audit/implementation/22-b05-strategy-decisions.md`

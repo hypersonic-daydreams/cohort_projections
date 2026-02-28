@@ -22,6 +22,7 @@ Usage:
 import argparse
 import sys
 import traceback
+from collections.abc import Iterable
 from pathlib import Path
 
 # Add project root to path for imports
@@ -34,6 +35,43 @@ from cohort_projections.data.process.convergence_interpolation import (  # noqa:
 from cohort_projections.utils import get_logger_from_config, load_projection_config  # noqa: E402
 
 logger = get_logger_from_config(__name__)
+
+
+def _log_path_status(label: str, paths: Iterable[Path]) -> list[Path]:
+    """Log path existence and return missing paths."""
+    missing: list[Path] = []
+    for path in paths:
+        if path.exists():
+            logger.info(f"[DRY RUN] OK: {label}: {path}")
+        else:
+            logger.error(f"[DRY RUN] MISSING: {label}: {path}")
+            missing.append(path)
+    return missing
+
+
+def _dry_run_validate_inputs(config: dict, root: Path, variants: list[str | None]) -> bool:
+    """Validate key convergence dependencies without writing outputs."""
+    output_dir = root / "data" / "processed" / "migration"
+
+    required_inputs = [output_dir / "residual_migration_rates.parquet"]
+    missing_inputs = _log_path_status("input", required_inputs)
+
+    if "high" in variants:
+        high_variant_inputs = [
+            output_dir / "migration_rates_pep_baseline.parquet",
+            output_dir / "migration_rates_pep_high.parquet",
+        ]
+        missing_inputs.extend(_log_path_status("high_variant_input", high_variant_inputs))
+
+    compression = config.get("output", {}).get("compression", "gzip")
+    logger.info(f"[DRY RUN] Configured output compression: {compression}")
+
+    for variant in variants:
+        suffix = f"_{variant}" if variant else ""
+        logger.info(f"[DRY RUN] Would write: {output_dir / f'convergence_rates_by_year{suffix}.parquet'}")
+        logger.info(f"[DRY RUN] Would write: {output_dir / f'convergence_metadata{suffix}.json'}")
+
+    return len(missing_inputs) == 0
 
 
 def main() -> int:
@@ -59,6 +97,11 @@ def main() -> int:
         action="store_true",
         help="Generate convergence rates for all variants (baseline + high)",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate configuration and inputs without computing or writing outputs",
+    )
     args = parser.parse_args()
 
     try:
@@ -71,6 +114,14 @@ def main() -> int:
             variants.append("high")
         elif args.variant:
             variants = [args.variant]
+
+        if args.dry_run:
+            logger.info("Dry run enabled: validating convergence dependencies")
+            if _dry_run_validate_inputs(config, project_root, variants):
+                logger.info("Dry run completed successfully")
+                return 0
+            logger.error("Dry run failed due to missing required inputs")
+            return 1
 
         for variant in variants:
             variant_label = f" (variant={variant})" if variant else " (baseline)"

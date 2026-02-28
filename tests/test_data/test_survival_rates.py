@@ -529,7 +529,7 @@ class TestCalculateLifeExpectancy:
         """Test that calculated life expectancy is in reasonable range."""
         result = calculate_life_expectancy(sample_full_survival_table)
 
-        for _key, e0 in result.items():
+        for e0 in result.values():
             # Life expectancy should be between 50 and 100 years
             assert 50 < e0 < 100
 

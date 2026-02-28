@@ -1,6 +1,6 @@
 # Repo Hygiene Audit Implementation Program Index
 
-**Status:** Implementation Complete (B05 and B06 complete; RB-003/RB-004 tracked)  
+**Status:** Implementation Complete (B00-B06 complete; RB-003/RB-004 remediated and closed)  
 **Audit:** `repo-hygiene-audit`  
 **Source of truth for verified claims:** `../verification/claims_registry.yaml`
 

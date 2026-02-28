@@ -19,11 +19,16 @@ except for the integration tests that use the real parquet file on disk.
 """
 
 from pathlib import Path
-from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
 import pytest
+
+# Import loader functions
+from cohort_projections.data.load.base_population_loader import (
+    load_county_age_sex_race_distribution,
+    load_county_distributions_file,
+)
 
 # Import ingestion script functions
 from scripts.data.build_race_distribution_from_census import (
@@ -34,15 +39,6 @@ from scripts.data.build_race_distribution_from_census import (
     build_county_distributions,
     validate_county_distributions,
 )
-
-# Import loader functions
-from cohort_projections.data.load.base_population_loader import (
-    AGE_GROUP_RANGES,
-    RACE_CODE_MAP,
-    load_county_age_sex_race_distribution,
-    load_county_distributions_file,
-)
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -345,7 +341,7 @@ class TestBuildCountyDistributions:
         # All counties should have purely county-derived distributions
         # Verify proportions still sum to 1
         county_sums = result.groupby("fips")["proportion"].sum()
-        for fips, prop_sum in county_sums.items():
+        for prop_sum in county_sums.values:
             assert abs(prop_sum - 1.0) < 1e-6
 
     def test_all_age_groups_present(self, synthetic_census_csv, statewide_distribution):

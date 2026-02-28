@@ -1,7 +1,7 @@
 # Repo Hygiene Audit Open Risks / Blockers Register
 
-**Last Updated (UTC):** 2026-02-27T18:21:14Z  
-**Scope:** B05 and B06 implementation complete; residual policy/quality risks tracked
+**Last Updated (UTC):** 2026-02-27T18:58:26Z  
+**Scope:** B00-B06 implementation and residual risk remediation complete
 
 ## Purpose
 
@@ -10,30 +10,25 @@ operational context.
 
 ## Active Items
 
+None.
+
+## Closed Items
+
 ### RB-003: Pipeline Dry-Run Coverage Gap
 
-- Status: `open`
-- Severity: `medium`
-- Affected stages: `scripts/pipeline/01a_*`, `01b_*`, `01c_*`
-- Current signal: `run_complete_pipeline.sh --dry-run` still skips stages `01a/01b/01c`.
-- Impact: dry-run does not exercise full stage graph.
-- Required action:
-  1. Add `--dry-run` handling to skipped stages, or
-  2. Codify skip as accepted limitation with dedicated check and rationale.
-- Exit criterion: deterministic dry-run policy for all seven pipeline stages.
+- Status: `closed` (2026-02-27)
+- Resolution:
+  1. Added explicit `--dry-run` support to `01a_compute_residual_migration.py`, `01b_compute_convergence.py`, and `01c_compute_mortality_improvement.py`.
+  2. Updated `run_complete_pipeline.sh` to execute stages `01a/01b/01c` in dry-run mode rather than skipping them.
+  3. Verified end-to-end dry-run pass (`RC=0`) with full 7-stage runner flow.
 
 ### RB-004: Full-Repo Lint/Type Debt
 
-- Status: `open`
-- Severity: `medium`
-- Current signal: full baseline still fails (`ruff`, `mypy`) outside current batch scopes.
-- Impact: quality gates rely on explicit non-regression policy by batch scope.
-- Required action:
-  1. Create dedicated debt-reduction wave (or ADR-backed policy) for baseline cleanup.
-  2. Track debt trend over batches to prevent growth.
-- Exit criterion: either full-repo lint/type pass or formally accepted long-term baseline policy.
-
-## Closed Items
+- Status: `closed` (2026-02-27)
+- Resolution:
+  1. Completed dedicated lint/type cleanup wave.
+  2. `ruff check .` passes (`RC=0`).
+  3. `mypy .` passes (`RC=0`).
 
 ### RB-001: Resolved-State Claim Check Redesign
 
@@ -57,5 +52,5 @@ operational context.
 
 ## Sequencing Guidance
 
-1. Execute dedicated RB-003/RB-004 remediation or policy-closeout wave.
-2. Preserve explicit non-regression evidence for lint/type until debt is resolved or policy-accepted.
+1. Maintain non-regression by keeping full-repo `ruff` and `mypy` in routine validation.
+2. Keep claim replay and dry-run evidence current as publication-focused work proceeds.

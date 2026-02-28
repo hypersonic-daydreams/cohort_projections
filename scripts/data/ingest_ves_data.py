@@ -104,54 +104,54 @@ EXPECTED_TABLE_ORDER: list[str] = [
 # specific patterns must come first.
 TITLE_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     # Census data (special format)
-    (re.compile(r"resident\s+census\s+data", re.I), "census_data"),
+    (re.compile(r"resident\s+census\s+data", re.IGNORECASE), "census_data"),
     # Teenage pregnancies (before generic pregnancies)
-    (re.compile(r"teenage\s+pregnancy\s+ratio", re.I), "teenage_pregnancy_ratios"),
-    (re.compile(r"teenage\s+pregnancy\s+rate", re.I), "teenage_pregnancy_rates"),
-    (re.compile(r"teenage\s+pregnanc", re.I), "teenage_pregnancies"),
+    (re.compile(r"teenage\s+pregnancy\s+ratio", re.IGNORECASE), "teenage_pregnancy_ratios"),
+    (re.compile(r"teenage\s+pregnancy\s+rate", re.IGNORECASE), "teenage_pregnancy_rates"),
+    (re.compile(r"teenage\s+pregnanc", re.IGNORECASE), "teenage_pregnancies"),
     # Teenage births (before generic births)
-    (re.compile(r"teenage\s+birth\s+ratio", re.I), "teenage_birth_ratios"),
-    (re.compile(r"teenage\s+birth\s+rate", re.I), "teenage_birth_rates"),
-    (re.compile(r"teenage\s+birth", re.I), "teenage_births"),
+    (re.compile(r"teenage\s+birth\s+ratio", re.IGNORECASE), "teenage_birth_ratios"),
+    (re.compile(r"teenage\s+birth\s+rate", re.IGNORECASE), "teenage_birth_rates"),
+    (re.compile(r"teenage\s+birth", re.IGNORECASE), "teenage_births"),
     # Out-of-wedlock pregnancies (before generic)
-    (re.compile(r"wedlock\s+pregnancy\s+ratio", re.I), "out_of_wedlock_pregnancy_ratios"),
-    (re.compile(r"wedlock\s+pregnanc", re.I), "out_of_wedlock_pregnancies"),
+    (re.compile(r"wedlock\s+pregnancy\s+ratio", re.IGNORECASE), "out_of_wedlock_pregnancy_ratios"),
+    (re.compile(r"wedlock\s+pregnanc", re.IGNORECASE), "out_of_wedlock_pregnancies"),
     # Out-of-wedlock births
-    (re.compile(r"wedlock\s+birth\s+ratio", re.I), "out_of_wedlock_birth_ratios"),
-    (re.compile(r"wedlock\s+birth", re.I), "out_of_wedlock_births"),
+    (re.compile(r"wedlock\s+birth\s+ratio", re.IGNORECASE), "out_of_wedlock_birth_ratios"),
+    (re.compile(r"wedlock\s+birth", re.IGNORECASE), "out_of_wedlock_births"),
     # Low weight births
-    (re.compile(r"low\s+weight\s+birth\s+ratio", re.I), "low_weight_birth_ratios"),
-    (re.compile(r"low\s+weight\s+birth", re.I), "low_weight_births"),
+    (re.compile(r"low\s+weight\s+birth\s+ratio", re.IGNORECASE), "low_weight_birth_ratios"),
+    (re.compile(r"low\s+weight\s+birth", re.IGNORECASE), "low_weight_births"),
     # Infant deaths
-    (re.compile(r"infant\s+death\s+ratio", re.I), "infant_death_ratios"),
-    (re.compile(r"infant\s+death", re.I), "infant_deaths"),
+    (re.compile(r"infant\s+death\s+ratio", re.IGNORECASE), "infant_death_ratios"),
+    (re.compile(r"infant\s+death", re.IGNORECASE), "infant_deaths"),
     # Neonatal deaths
-    (re.compile(r"neonatal\s+death\s+ratio", re.I), "neonatal_death_ratios"),
-    (re.compile(r"neonatal\s+death", re.I), "neonatal_deaths"),
+    (re.compile(r"neonatal\s+death\s+ratio", re.IGNORECASE), "neonatal_death_ratios"),
+    (re.compile(r"neonatal\s+death", re.IGNORECASE), "neonatal_deaths"),
     # Fetal deaths
-    (re.compile(r"fetal\s+death\s+ratio", re.I), "fetal_death_ratios"),
-    (re.compile(r"fetal\s+death", re.I), "fetal_deaths"),
+    (re.compile(r"fetal\s+death\s+ratio", re.IGNORECASE), "fetal_death_ratios"),
+    (re.compile(r"fetal\s+death", re.IGNORECASE), "fetal_deaths"),
     # Childhood deaths
-    (re.compile(r"childhood.*death\s+rate", re.I), "childhood_adolescent_death_rates"),
-    (re.compile(r"childhood.*death", re.I), "childhood_adolescent_deaths"),
+    (re.compile(r"childhood.*death\s+rate", re.IGNORECASE), "childhood_adolescent_death_rates"),
+    (re.compile(r"childhood.*death", re.IGNORECASE), "childhood_adolescent_deaths"),
     # Generic fertility rates (after teenage)
-    (re.compile(r"resident\s+fertility\s+rate", re.I), "fertility_rates"),
+    (re.compile(r"resident\s+fertility\s+rate", re.IGNORECASE), "fertility_rates"),
     # Generic pregnancy rates/counts (after teenage/wedlock)
-    (re.compile(r"resident\s+pregnancy\s+rate", re.I), "pregnancy_rates"),
-    (re.compile(r"resident\s+pregnanc", re.I), "pregnancies"),
+    (re.compile(r"resident\s+pregnancy\s+rate", re.IGNORECASE), "pregnancy_rates"),
+    (re.compile(r"resident\s+pregnanc", re.IGNORECASE), "pregnancies"),
     # Generic birth rates (after teenage/wedlock/low-weight)
-    (re.compile(r"resident\s+birth\s+rate", re.I), "birth_rates"),
+    (re.compile(r"resident\s+birth\s+rate", re.IGNORECASE), "birth_rates"),
     # Generic births (after all qualified births)
-    (re.compile(r"resident\s+births$", re.I), "births"),
+    (re.compile(r"resident\s+births$", re.IGNORECASE), "births"),
     # Generic death rates (after childhood)
-    (re.compile(r"resident\s+death\s+rate", re.I), "death_rates"),
+    (re.compile(r"resident\s+death\s+rate", re.IGNORECASE), "death_rates"),
     # Generic deaths (after infant/neonatal/fetal/childhood)
-    (re.compile(r"resident\s+deaths$", re.I), "deaths"),
+    (re.compile(r"resident\s+deaths$", re.IGNORECASE), "deaths"),
     # Marriage/divorce
-    (re.compile(r"marriage\s+rate", re.I), "marriage_rates"),
-    (re.compile(r"marriage\s+data", re.I), "marriages"),
-    (re.compile(r"divorce\s+rate", re.I), "divorce_rates"),
-    (re.compile(r"divorce.*data", re.I), "divorces"),
+    (re.compile(r"marriage\s+rate", re.IGNORECASE), "marriage_rates"),
+    (re.compile(r"marriage\s+data", re.IGNORECASE), "marriages"),
+    (re.compile(r"divorce\s+rate", re.IGNORECASE), "divorce_rates"),
+    (re.compile(r"divorce.*data", re.IGNORECASE), "divorces"),
 ]
 
 
@@ -176,7 +176,7 @@ def detect_year_columns(page_text: str) -> list[str]:
     for line in page_text.split("\n"):
         line = line.strip()
         # Standard header: "County of Residence YYYY YYYY ..."
-        if re.match(r"county\s+of\s+residen", line, re.I):
+        if re.match(r"county\s+of\s+residen", line, re.IGNORECASE):
             years = re.findall(r"\b((?:19|20)\d{2})\b", line)
             if len(years) >= 10:
                 return years
@@ -223,10 +223,7 @@ def parse_county_year_table(
             if line.startswith(county):
                 rest = line[len(county):].strip()
                 if rest and (
-                    rest[0].isdigit()
-                    or rest.startswith("NR")
-                    or rest.startswith("-")
-                    or rest.startswith("0")
+                    rest[0].isdigit() or rest.startswith(("NR", "-", "0"))
                 ):
                     matched_county = county
                     break
@@ -239,7 +236,7 @@ def parse_county_year_table(
                     "Total" if matched_county in SUMMARY_ROW_NAMES else matched_county
                 )
                 record = {"county": county_name}
-                for year, val in zip(years, values):
+                for year, val in zip(years, values, strict=False):
                     record[year] = val
                 records.append(record)
 
@@ -320,10 +317,7 @@ def parse_county_year_table_positional(
             if line_text.startswith(county):
                 rest = line_text[len(county):].strip()
                 if rest and (
-                    rest[0].isdigit()
-                    or rest.startswith("NR")
-                    or rest.startswith("-")
-                    or rest.startswith("0")
+                    rest[0].isdigit() or rest.startswith(("NR", "-", "0"))
                 ):
                     matched_county = county
                     break
@@ -421,7 +415,7 @@ def parse_census_data(page: pdfplumber.page.Page) -> pd.DataFrame:
                             "Total" if county in SUMMARY_ROW_NAMES else county
                         )
                         record = {"county": county_name}
-                        for col, val in zip(columns[1:], values):
+                        for col, val in zip(columns[1:], values, strict=False):
                             record[col] = val
                         records.append(record)
                     break
@@ -559,7 +553,7 @@ def extract_ves_tables(
         resolved_pages = _resolve_duplicate_labels(page_candidates)
 
         # Step 3: Extract data from each classified page
-        for page_idx, title, label in resolved_pages:
+        for page_idx, _title, label in resolved_pages:
             page = pdf.pages[page_idx]
 
             if label == "census_data":
@@ -664,7 +658,7 @@ def merge_vintages(
             all_counties_in_label.update(df["county"].unique())
         combined = pd.DataFrame({"county": sorted(all_counties_in_label)})
 
-        for vintage, df in dfs_by_vintage:
+        for _vintage, df in dfs_by_vintage:
             new_year_cols = [c for c in df.columns if c != "county"]
             county_map = df.set_index("county")
             for yr in new_year_cols:

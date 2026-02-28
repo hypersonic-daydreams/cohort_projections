@@ -491,7 +491,7 @@ class TestValidateFertilityRates:
 
         # TFR is the sum of age-specific fertility rates (35 ages with rate ~0.002-0.005)
         # Should be low but positive
-        for _race, tfr in result["tfr_by_race"].items():
+        for tfr in result["tfr_by_race"].values():
             assert tfr > 0  # Should have positive TFR
             assert tfr < 5.0  # Should be less than 5 (reasonable upper bound)
 

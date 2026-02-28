@@ -96,7 +96,7 @@ CENSUS_AGEGRP_TO_LABEL: dict[int, str] = {
 }
 
 # CDC WONDER age label -> our standard label
-WONDER_AGE_MAP: dict[str, str] = {
+WONDER_AGE_MAP: dict[str, str | None] = {
     "Under 15 years": None,  # exclude
     "15-19 years": "15-19",
     "20-24 years": "20-24",
@@ -301,7 +301,7 @@ def compute_asfr(
     # Identify cells with too few births (< 10 in 4 years = unreliable)
     suppressed = merged[(merged["births"] < 10) & (merged["race_code"] != "total")]
     if not suppressed.empty:
-        print(f"\n  Suppressed cells (< 10 births, falling back to national):")
+        print("\n  Suppressed cells (< 10 births, falling back to national):")
         for _, row in suppressed.iterrows():
             print(f"    {row['race_code']} × {row['age_group']}: {row['births']:.0f} births")
 
@@ -346,7 +346,7 @@ def main():
 
     # Step 2: Load national births for fallback
     print("\nStep 2: Loading national births from CDC WONDER (2020-2023 pooled)")
-    nat_births = load_wonder_births(nat_births_file)
+    load_wonder_births(nat_births_file)
 
     # Step 3: Load Census PEP female population (ND)
     # YEAR 2=Jul2020, 3=Jul2021, 4=Jul2022, 5=Jul2023

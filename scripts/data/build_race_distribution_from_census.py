@@ -144,7 +144,6 @@ import argparse
 import sys
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 # ---------------------------------------------------------------------------
@@ -346,7 +345,7 @@ def validate_distribution(df: pd.DataFrame) -> bool:
         ok = False
 
     if (df["estimated_count"] < 0).any():
-        print(f"  FAIL: Negative estimated_count values found")
+        print("  FAIL: Negative estimated_count values found")
         ok = False
 
     zero_cells = (df["estimated_count"] == 0).sum()
@@ -371,7 +370,7 @@ def validate_distribution(df: pd.DataFrame) -> bool:
     }
     actual_races = set(df["race_ethnicity"].unique())
     if actual_races == expected_races:
-        print(f"  OK: All 6 race categories present")
+        print("  OK: All 6 race categories present")
     else:
         missing = expected_races - actual_races
         extra = actual_races - expected_races
@@ -384,7 +383,7 @@ def validate_distribution(df: pd.DataFrame) -> bool:
     expected_sexes = {"male", "female"}
     actual_sexes = set(df["sex"].unique())
     if actual_sexes == expected_sexes:
-        print(f"  OK: Both sexes present")
+        print("  OK: Both sexes present")
     else:
         print(f"  FAIL: Expected sexes {expected_sexes}, got {actual_sexes}")
         ok = False
@@ -635,14 +634,14 @@ def validate_single_year_distribution(df: pd.DataFrame) -> bool:
         print(f"  FAIL: {df['estimated_count'].isna().sum()} NaN values")
         ok = False
     if (df["estimated_count"] < 0).any():
-        print(f"  FAIL: Negative estimated_count values found")
+        print("  FAIL: Negative estimated_count values found")
         ok = False
 
     zero_cells = (df["estimated_count"] == 0).sum()
     if zero_cells > 0:
         print(f"  NOTE: {zero_cells} cells have zero population")
     else:
-        print(f"  OK: All cells have non-zero population")
+        print("  OK: All cells have non-zero population")
 
     # 4. Age range
     age_min, age_max = df["age"].min(), df["age"].max()
@@ -659,7 +658,7 @@ def validate_single_year_distribution(df: pd.DataFrame) -> bool:
     }
     actual_races = set(df["race_ethnicity"].unique())
     if actual_races == expected_races:
-        print(f"  OK: All 6 race categories present")
+        print("  OK: All 6 race categories present")
     else:
         missing = expected_races - actual_races
         extra = actual_races - expected_races
@@ -672,7 +671,7 @@ def validate_single_year_distribution(df: pd.DataFrame) -> bool:
     expected_sexes = {"male", "female"}
     actual_sexes = set(df["sex"].unique())
     if actual_sexes == expected_sexes:
-        print(f"  OK: Both sexes present")
+        print("  OK: Both sexes present")
     else:
         print(f"  FAIL: Expected sexes {expected_sexes}, got {actual_sexes}")
         ok = False
@@ -877,7 +876,7 @@ def validate_county_distributions(df: pd.DataFrame) -> bool:
             print(f"    {fips}: {prop_sum:.8f}")
         ok = False
     else:
-        print(f"  OK: All county proportions sum to 1.0 (within 1e-6)")
+        print("  OK: All county proportions sum to 1.0 (within 1e-6)")
 
     # 4. No NaN or negative proportions
     nan_count = df["proportion"].isna().sum()
@@ -889,7 +888,7 @@ def validate_county_distributions(df: pd.DataFrame) -> bool:
         print(f"  FAIL: {neg_count} negative proportions")
         ok = False
     if nan_count == 0 and neg_count == 0:
-        print(f"  OK: No NaN or negative proportions")
+        print("  OK: No NaN or negative proportions")
 
     # 5. Reservation county spot checks
     reservation_checks = [
@@ -923,9 +922,9 @@ def validate_county_distributions(df: pd.DataFrame) -> bool:
     median_mad = sorted(mad_by_county)[len(mad_by_county) // 2]
     print(f"    Median MAD from average distribution: {median_mad:.6f}")
     if median_mad > 0:
-        print(f"    OK: County distributions diverge from each other")
+        print("    OK: County distributions diverge from each other")
     else:
-        print(f"    WARNING: All county distributions are identical")
+        print("    WARNING: All county distributions are identical")
 
     return ok
 
