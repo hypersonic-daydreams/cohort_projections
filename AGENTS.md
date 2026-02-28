@@ -2,7 +2,7 @@
 
 Canonical instruction set for all AI agents working on this codebase.
 
-**Last Updated:** 2026-02-18 | **Version:** 1.5.0 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
+**Last Updated:** 2026-02-28 | **Version:** 1.7.0 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
 
 ---
 
@@ -239,8 +239,11 @@ Validate: County sums must equal state total (within 1% tolerance).
 
 ### At Session Start
 1. Check `DEVELOPMENT_TRACKER.md` for current status
-2. Review recent commits: `git log --oneline -10`
-3. Run tests: `pytest tests/ -q`
+2. For "what remains?", "current priorities?", or similar status-entry questions, answer from `DEVELOPMENT_TRACKER.md` first (plus its linked open-risks register) before scanning broader docs
+3. Review recent commits: `git log --oneline -10`
+4. Run tests only when needed for the session type:
+   - Status/planning/documentation-only session: skip full-suite run unless verification is explicitly requested
+   - Implementation session: run relevant tests early; run full tests before committing
 
 ### At Session End
 1. Update `DEVELOPMENT_TRACKER.md`
@@ -323,6 +326,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.7.0 | 2026-02-28 | Established `DEVELOPMENT_TRACKER.md` as explicit status-entry source of truth; added fast-path session-start guidance for status/remaining-work queries |
 | 1.6.0 | 2026-02-23 | Added data processing documentation standards (Section 5); added ALWAYS items 6-8; references SOP-002 |
 | 1.5.0 | 2026-02-18 | Added ADR process guidance; updated horizon to 2055; added reviews reference |
 | 1.4.0 | 2026-02-02 | Refocused on 2026 cohort projections; de-emphasized SDC 2024; fixed section numbering; updated guides index |
@@ -335,7 +339,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-02-23 |
-| **Version** | 1.6.0 |
+| **Last Updated** | 2026-02-28 |
+| **Version** | 1.7.0 |
 | **Status** | Current |
 | **Applies To** | All AI Agents |

@@ -7,7 +7,7 @@
 | **Scope** | Full output review of all 3 scenario projections (baseline, high_growth, restricted_growth); ADR assessment for 051, 052, 036, 033 |
 | **Data Vintage** | Census PEP Vintage 2025; CBO Jan 2025/2026 |
 | **Status** | Complete — decisions documented for 5 ADRs |
-| **Related ADRs** | [ADR-033](../governance/adrs/033-city-level-projections.md), [ADR-036](../governance/adrs/036-migration-averaging.md), [ADR-045](../governance/adrs/045-reservation-county-calibration.md), [ADR-047](../governance/adrs/047-sprague-interpolation.md), [ADR-048](../governance/adrs/048-county-race-distributions.md), [ADR-049](../governance/adrs/049-scenario-ordering.md), [ADR-050](../governance/adrs/050-additive-migration.md), [ADR-051](../governance/adrs/051-oil-county-dampening.md), [ADR-052](../governance/adrs/052-ward-county-floor.md), [ADR-053](../governance/adrs/053-nd-specific-vital-rates.md) |
+| **Related ADRs** | [ADR-033](../governance/adrs/033-city-level-projection-methodology.md), [ADR-036](../governance/adrs/036-migration-averaging-methodology.md), [ADR-045](../governance/adrs/045-reservation-county-pep-recalibration.md), [ADR-047](../governance/adrs/047-county-specific-age-sex-race-distributions.md), [ADR-048](../governance/adrs/048-single-year-of-age-base-population.md), [ADR-049](../governance/adrs/049-college-age-smoothing-convergence-pipeline.md), [ADR-050](../governance/adrs/050-restricted-growth-additive-migration-adjustment.md), [ADR-051](../governance/adrs/051-oil-county-dampening-recalibration.md), [ADR-052](../governance/adrs/052-ward-county-high-growth-floor.md), [ADR-053](../governance/adrs/053-nd-specific-vital-rates.md), [ADR-054](../governance/adrs/054-state-county-aggregation-reconciliation.md) |
 | **Related Reviews** | [Projection Output Sanity Check (2026-02-18)](2026-02-18-projection-output-sanity-check.md), [Bakken Migration Dampening Review (2026-02-17)](2026-02-17-bakken-migration-dampening-review.md) |
 | **Config Version** | `config/projection_config.yaml` as of commit `d07e834` |
 
@@ -316,15 +316,29 @@ Each detail workbook contains 63 sheets: 1 summary + 1 state + 53 counties + 8 r
 
 ### Issue 1: Empty Summary CSVs
 
-The export summary CSVs (`county_growth_rates.csv`) contain headers only — no data rows. This is a non-blocking issue (the workbook exports are complete and correct) but should be investigated in the export pipeline.
+Initial 2026-02-23 finding: export summary CSVs (`county_growth_rates.csv`) appeared header-only.
+
+**Revalidation (2026-02-28): Resolved / stale finding.**
+
+- `data/exports/baseline/summaries/county_growth_rates.csv`: 54 lines
+- `data/exports/high_growth/summaries/county_growth_rates.csv`: 54 lines
+- `data/exports/restricted_growth/summaries/county_growth_rates.csv`: 54 lines
+
+This issue is now closed.
 
 ### Issue 2: Pandas FutureWarning
 
-One FutureWarning from pandas in `build_provisional_workbook.py` (line 512) regarding `observed=False` in a groupby operation. This does not affect output correctness but will become an error in a future pandas version. Should be addressed proactively.
+Initial 2026-02-23 finding: `build_provisional_workbook.py` used a `groupby` default that triggered a pandas FutureWarning.
+
+**Revalidation (2026-02-28): Resolved / stale finding.**
+
+`scripts/exports/build_provisional_workbook.py` now explicitly sets `observed=True` in the relevant `groupby` operation, so this warning item is closed.
 
 ---
 
 ## 13. Summary of Decisions
+
+This table records decision status at the time of this 2026-02-23 review. Subsequent ADR updates (notably ADR-054 acceptance/implementation) are reflected in the ADR files and `DEVELOPMENT_TRACKER.md`.
 
 | ADR | Title | Previous Status | New Status | Rationale |
 |-----|-------|:--------------:|:----------:|-----------|
@@ -356,5 +370,5 @@ One FutureWarning from pandas in `build_provisional_workbook.py` (line 512) rega
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-02-23 |
-| **Version** | 1.0 |
+| **Last Updated** | 2026-02-28 |
+| **Version** | 1.1 |

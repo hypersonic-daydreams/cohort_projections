@@ -8,7 +8,7 @@ Deferred
 
 ## Context
 
-The cohort-component projection system currently produces projections at state and county levels (all 53 North Dakota counties, 2025-2045). There is demand for city/place-level projections for municipal planning and local decision-making.
+The cohort-component projection system currently produces projections at state and county levels (all 53 North Dakota counties, 2025-2055). There is demand for city/place-level projections for municipal planning and local decision-making.
 
 ### Challenge
 
@@ -171,7 +171,7 @@ city_population_2045 = county_projection_2045 * city_share_2045
 ### Available
 - City population estimates 2020-2024: `data/raw/geographic/nd_places.csv`
 - County population estimates: `data/processed/nd_county_population.csv`
-- County projections 2025-2045: `data/projections/*/county/*.parquet`
+- County projections 2025-2055: `data/projections/*/county/*.parquet`
 
 ### Needed
 - City population estimates 2000-2019 (Census PEP historical)
@@ -205,15 +205,15 @@ Project housing units, apply persons-per-household.
 
 ## Deferral Rationale
 
-### Deferral Rationale (2026-02-23 Analysis)
+### Deferral Rationale (Updated 2026-02-28)
 
-City-level projections are deferred pending resolution of a prerequisite issue:
+City-level projections remain deferred for sequencing reasons, not because of an unresolved state-county consistency blocker:
 
-1. **State-County Aggregation Discrepancy**: The sum of 53 county projections exceeds the independent state projection by ~86,000 persons (10.6%) at 2055. City-level share-trending requires consistent county totals as its constraint layer. Adding a third hierarchical level would compound the aggregation problem. This discrepancy is being investigated under ADR-054.
+1. **Aggregation prerequisite resolved**: ADR-054 was accepted and implemented on 2026-02-23. State totals are now derived from county aggregation in the `--all` workflow, so the county constraint layer required for share-trending is consistent.
 
-2. **Small-County Limitations**: 18 of 53 counties (34%) project populations under 2,500 by 2055. Cities within these counties would almost universally fall into the LOWER or EXCLUDED confidence tiers, limiting the practical value of city-level detail for roughly a third of counties.
+2. **Publication sequencing priority**: The current primary workstream is publication-focused QA and dissemination packaging for state/county deliverables. Opening place-level model development in parallel would dilute publication execution.
 
-3. **Current county infrastructure is stable** (all 53 counties projecting, zero scenario ordering violations, 1,257 tests passing), so city-level work can proceed once the aggregation issue is resolved.
+3. **Method/data readiness tasks still unscheduled**: Phase 1 exploratory items remain to be explicitly scheduled (historical place series assembly for 2000-2019, place-to-county boundary/vintage consistency mapping, and backtesting setup by confidence tier).
 
 ## References
 
@@ -225,6 +225,7 @@ City-level projections are deferred pending resolution of a prerequisite issue:
 
 ## Revision History
 
+- **2026-02-28**: Deferral rationale updated to reflect ADR-054 implementation; city-level work remains deferred for sequencing/readiness, not aggregation inconsistency
 - **2026-02-23**: Deferred — state-county aggregation discrepancy (ADR-054) must be resolved before adding city layer
 - **2026-02-02**: Initial proposal (ADR-033)
 
