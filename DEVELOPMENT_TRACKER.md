@@ -27,7 +27,7 @@ Use this file for active status only. Historical session detail is archived to:
 | Data processing pipeline | complete | Inputs and transforms are in place; no active blocker. |
 | Documentation alignment | complete | B01 documentation harmonization complete. |
 | Repo-hygiene program | complete | B00-B06 implemented; full adjudicated replay `27/27` passing; RB-003 and RB-004 remediated and closed. |
-| Test health baseline | stable | Latest recorded baseline: `1258 passed, 5 skipped`. ADR-056 accepted; coverage gaps identified for GQ separation, pipeline orchestrators, and base population loaders. |
+| Test health baseline | stable | Latest recorded baseline: `1247 passed, 5 skipped` (excl. integration). ADR-056 accepted; PP4-01 through PP4-05 closed — 127 new tests added covering GQ separation, pipeline orchestrators, and base population loaders. |
 | Claim replay health | stable | `27/27` adjudicated claims passing (latest full replay: 2026-02-27T18:14:03Z). |
 
 ## Projection Development Backlog (Canonical)
@@ -73,14 +73,22 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 | Step ID | Task | Status | Definition of Done | Reference |
 |------|------|------|------|------|
-| PP4-01 | GQ separation function tests (ADR-055) | pending | Tests exist for `subtract_gq_from_populations`, `_separate_gq_from_base_population`, `get_county_gq_population`, `_expand_gq_to_single_year_ages`, `_distribute_gq_across_races`; coverage on `base_population_loader.py` and `residual_migration.py` increases | `cohort_projections/data/load/base_population_loader.py`, `cohort_projections/data/process/residual_migration.py` |
-| PP4-02 | Pipeline orchestrator tests | pending | Tests exist for `run_residual_migration_pipeline` and `run_convergence_pipeline` with small synthetic data; wiring correctness verified | `cohort_projections/data/process/residual_migration.py`, `cohort_projections/data/process/convergence_interpolation.py` |
-| PP4-03 | Base population loader tests | pending | Tests exist for `load_base_population_for_county`, `load_base_population_for_all_counties`, `load_base_population_for_state` | `cohort_projections/data/load/base_population_loader.py` |
-| PP4-04 | Pre-commit hook blind spot fix | pending | Pre-commit pytest trigger includes `tests/**/*.py` so test-only changes are validated | `.pre-commit-config.yaml` |
-| PP4-05 | Silent skip audit | pending | Document current skip count; verify `IMPORTS_AVAILABLE` gates resolve in dev environment; establish skip-count baseline for periodic review | `docs/guides/test-maintenance-practices.md` |
-| PP4-06 | First PP-002-aligned periodic coverage review | pending | Run the 5-item checklist from `test-maintenance-practices.md` and record results | `docs/guides/test-maintenance-practices.md` |
+| PP4-01 | GQ separation function tests (ADR-055) | completed_2026-02-28 | 42 tests in `test_gq_separation.py` covering all 5 GQ functions; `base_population_loader.py` 36.4%→68.2%, `residual_migration.py` 54.0%→85.4% | `tests/test_data/test_gq_separation.py` |
+| PP4-02 | Pipeline orchestrator tests | completed_2026-02-28 | 38 tests in `test_pipeline_orchestrators.py` covering `run_residual_migration_pipeline` and `run_convergence_pipeline`; `convergence_interpolation.py` 44.3%→88.1% | `tests/test_data/test_pipeline_orchestrators.py` |
+| PP4-03 | Base population loader tests | completed_2026-02-28 | 47 tests in `test_base_population_loader.py` covering all 3 loader entry points plus GQ separation; ADR-054 invariant verified | `tests/test_data/test_base_population_loader.py` |
+| PP4-04 | Pre-commit hook blind spot fix | completed_2026-02-28 | `files` pattern updated to `^(cohort_projections|tests)/.*\.py$` so test-only changes trigger pytest | `.pre-commit-config.yaml` |
+| PP4-05 | Silent skip audit | completed_2026-02-28 | Skip count: 5 (1 PyMC + 4 upstream bug); 222 silent-skip-capable tests all running; all IMPORTS_AVAILABLE gates resolve; baseline established | See PP4-05 audit results below |
+| PP4-06 | First PP-002-aligned periodic coverage review | completed_2026-02-28 | All 5 checklist items PASS: 1,247 tests passed (5 skipped, unchanged); coverage stable at baselines; 194 IMPORTS_AVAILABLE gates unchanged; 137 integration tests pass; skip count steady at 5 | `docs/reviews/2026-02-28-pp4-06-periodic-coverage-review.md` |
 
-**Approach:** Gaps are closed incrementally as modules are touched (ADR-056 Decision 6), not as a standalone sprint. PP4-01 through PP4-03 are the highest-impact items. PP4-06 aligns with the existing PP-002 cadence.
+**Approach:** Gaps are closed incrementally as modules are touched (ADR-056 Decision 6), not as a standalone sprint. PP4-01 through PP4-06 are complete. The PP-004 workstream is closed.
+
+### PP4-05 Audit Results (2026-02-28)
+
+- **Skip count baseline: 5** (1 PyMC slow test + 4 upstream `sigma_u.tolist()` bug in `test_bayesian_var.py`)
+- **Alert threshold:** If skip count rises above 5, investigate immediately
+- **Silent-skip-capable tests: 222** (194 IMPORTS_AVAILABLE-gated + 28 data-file-gated) — all currently running, none skipping
+- **All IMPORTS_AVAILABLE gates resolve to True** in dev environment (matplotlib, seaborn, openpyxl, geopandas, pymc all installed)
+- **Coverage deltas from PP4-01/02/03:** `base_population_loader.py` 36.4%→68.2%, `residual_migration.py` 54.0%→85.4%, `convergence_interpolation.py` 44.3%→88.1%
 
 ## Documentation Consistency Queue
 
@@ -113,7 +121,7 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 1. Keep the documentation consistency queue current; add and resolve new cross-document drift items as they appear.
 2. Keep repo-hygiene evidence current while executing publication tasks (`PP-001`, `PP-002`) and refresh package QA records as new export vintages are generated.
 3. Execute `PP3-S04` through `PP3-S06` (model spec, backtesting design, output contract) to complete the pre-approval scoping packet for `PP3-S07`.
-4. Close `PP4-01` (GQ separation tests) as the highest-risk coverage gap. `PP4-02` and `PP4-03` follow in priority order. See `docs/guides/test-maintenance-practices.md` for detailed guidance.
+4. ~~Execute `PP4-06`~~ Completed 2026-02-28. PP-004 workstream closed. Future periodic reviews follow the PP-002 cadence.
 
 ## Deferred / Later Work
 

@@ -66,8 +66,8 @@ repos:
         language: system
         pass_filenames: false
         always_run: false
-        # Only trigger when production code changes
-        files: ^cohort_projections/.*\.py$
+        # Trigger when production code or test files change
+        files: ^(cohort_projections|tests)/.*\.py$
         stages: [pre-commit]
 
       - id: data-manifest-check
