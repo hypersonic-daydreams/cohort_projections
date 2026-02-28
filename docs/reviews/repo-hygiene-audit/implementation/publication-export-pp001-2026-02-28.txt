@@ -1,0 +1,121 @@
+2026-02-28 13:48:43,318 | INFO | __main__ | ================================================================================
+2026-02-28 13:48:43,318 | INFO | __main__ | EXPORT PIPELINE - North Dakota Population Projections
+2026-02-28 13:48:43,318 | INFO | __main__ | ================================================================================
+2026-02-28 13:48:43,318 | INFO | __main__ | Scenarios: methodology_comparison, restricted_growth, high_growth, baseline, CBO
+2026-02-28 13:48:43,318 | INFO | __main__ | Levels: state, county, place
+2026-02-28 13:48:43,318 | INFO | __main__ | Formats: csv, excel
+2026-02-28 13:48:43,318 | INFO | __main__ | Create packages: True
+2026-02-28 13:48:43,318 | INFO | __main__ | Dry run: False
+2026-02-28 13:48:43,318 | INFO | __main__ | 
+2026-02-28 13:48:43,318 | INFO | __main__ | Converting projection formats for scenario: methodology_comparison
+2026-02-28 13:48:43,318 | WARNING | __main__ | Level directory not found: data/projections/methodology_comparison/state
+2026-02-28 13:48:43,318 | WARNING | __main__ | Level directory not found: data/projections/methodology_comparison/county
+2026-02-28 13:48:43,318 | WARNING | __main__ | Level directory not found: data/projections/methodology_comparison/place
+2026-02-28 13:48:43,318 | INFO | __main__ | Format conversion complete: 0 files
+2026-02-28 13:48:43,318 | INFO | __main__ | Converting projection formats for scenario: restricted_growth
+2026-02-28 13:48:43,319 | INFO | __main__ | Processing 1 files for state level
+2026-02-28 13:48:43,722 | INFO | __main__ | Converted 1 files to CSV
+2026-02-28 13:48:46,116 | INFO | __main__ | Converted 1 files to Excel
+2026-02-28 13:48:46,117 | INFO | __main__ | Processing 53 files for county level
+2026-02-28 13:49:03,606 | INFO | __main__ | Converted 53 files to CSV
+2026-02-28 13:51:11,107 | INFO | __main__ | Converted 53 files to Excel
+2026-02-28 13:51:11,107 | WARNING | __main__ | Level directory not found: data/projections/restricted_growth/place
+2026-02-28 13:51:11,107 | INFO | __main__ | Format conversion complete: 108 files
+2026-02-28 13:51:11,107 | INFO | __main__ | Converting projection formats for scenario: high_growth
+2026-02-28 13:51:11,108 | INFO | __main__ | Processing 1 files for state level
+2026-02-28 13:51:11,410 | INFO | __main__ | Converted 1 files to CSV
+2026-02-28 13:51:13,546 | INFO | __main__ | Converted 1 files to Excel
+2026-02-28 13:51:13,546 | INFO | __main__ | Processing 53 files for county level
+2026-02-28 13:51:30,747 | INFO | __main__ | Converted 53 files to CSV
+2026-02-28 13:53:20,924 | INFO | __main__ | Converted 53 files to Excel
+2026-02-28 13:53:20,924 | WARNING | __main__ | Level directory not found: data/projections/high_growth/place
+2026-02-28 13:53:20,924 | INFO | __main__ | Format conversion complete: 108 files
+2026-02-28 13:53:20,925 | INFO | __main__ | Converting projection formats for scenario: baseline
+2026-02-28 13:53:20,925 | INFO | __main__ | Processing 1 files for state level
+2026-02-28 13:53:21,244 | INFO | __main__ | Converted 1 files to CSV
+2026-02-28 13:53:23,336 | INFO | __main__ | Converted 1 files to Excel
+2026-02-28 13:53:23,337 | INFO | __main__ | Processing 53 files for county level
+2026-02-28 13:53:39,758 | INFO | __main__ | Converted 53 files to CSV
+2026-02-28 13:55:31,255 | INFO | __main__ | Converted 53 files to Excel
+2026-02-28 13:55:31,256 | WARNING | __main__ | Level directory not found: data/projections/baseline/place
+2026-02-28 13:55:31,256 | INFO | __main__ | Format conversion complete: 108 files
+2026-02-28 13:55:31,256 | INFO | __main__ | Converting projection formats for scenario: CBO
+2026-02-28 13:55:31,256 | WARNING | __main__ | Level directory not found: data/projections/CBO/state
+2026-02-28 13:55:31,256 | WARNING | __main__ | Level directory not found: data/projections/CBO/county
+2026-02-28 13:55:31,256 | WARNING | __main__ | Level directory not found: data/projections/CBO/place
+2026-02-28 13:55:31,256 | INFO | __main__ | Format conversion complete: 0 files
+2026-02-28 13:55:31,256 | INFO | __main__ | Creating summary tables for scenario: methodology_comparison
+2026-02-28 13:55:31,256 | INFO | __main__ | Created 0 summary tables
+2026-02-28 13:55:31,256 | INFO | __main__ | Creating summary tables for scenario: restricted_growth
+2026-02-28 13:55:31,256 | INFO | __main__ | Creating summaries for state level (1 geographies)
+2026-02-28 13:55:31,273 | INFO | __main__ | Creating age distribution summary...
+2026-02-28 13:55:31,378 | INFO | __main__ | Creating sex ratio summary...
+2026-02-28 13:55:31,416 | INFO | __main__ | Creating race composition summary...
+2026-02-28 13:55:31,497 | INFO | __main__ | Creating growth rates summary...
+2026-02-28 13:55:31,505 | INFO | __main__ | Creating dependency ratios summary...
+2026-02-28 13:55:31,546 | INFO | __main__ | Creating summaries for county level (53 geographies)
+2026-02-28 13:55:32,013 | INFO | __main__ | Creating age distribution summary...
+2026-02-28 13:55:37,391 | INFO | __main__ | Creating sex ratio summary...
+2026-02-28 13:55:39,435 | INFO | __main__ | Creating race composition summary...
+2026-02-28 13:55:43,912 | INFO | __main__ | Creating growth rates summary...
+2026-02-28 13:55:44,462 | INFO | __main__ | Creating dependency ratios summary...
+2026-02-28 13:55:46,576 | INFO | __main__ | Created 12 summary tables
+2026-02-28 13:55:46,577 | INFO | __main__ | Creating summary tables for scenario: high_growth
+2026-02-28 13:55:46,577 | INFO | __main__ | Creating summaries for state level (1 geographies)
+2026-02-28 13:55:46,589 | INFO | __main__ | Creating age distribution summary...
+2026-02-28 13:55:46,682 | INFO | __main__ | Creating sex ratio summary...
+2026-02-28 13:55:46,711 | INFO | __main__ | Creating race composition summary...
+2026-02-28 13:55:46,781 | INFO | __main__ | Creating growth rates summary...
+2026-02-28 13:55:46,791 | INFO | __main__ | Creating dependency ratios summary...
+2026-02-28 13:55:46,830 | INFO | __main__ | Creating summaries for county level (53 geographies)
+2026-02-28 13:55:47,301 | INFO | __main__ | Creating age distribution summary...
+2026-02-28 13:55:52,662 | INFO | __main__ | Creating sex ratio summary...
+2026-02-28 13:55:54,486 | INFO | __main__ | Creating race composition summary...
+2026-02-28 13:55:58,841 | INFO | __main__ | Creating growth rates summary...
+2026-02-28 13:55:59,355 | INFO | __main__ | Creating dependency ratios summary...
+2026-02-28 13:56:01,745 | INFO | __main__ | Created 12 summary tables
+2026-02-28 13:56:01,745 | INFO | __main__ | Creating summary tables for scenario: baseline
+2026-02-28 13:56:01,746 | INFO | __main__ | Creating summaries for state level (1 geographies)
+2026-02-28 13:56:01,757 | INFO | __main__ | Creating age distribution summary...
+2026-02-28 13:56:01,856 | INFO | __main__ | Creating sex ratio summary...
+2026-02-28 13:56:01,891 | INFO | __main__ | Creating race composition summary...
+2026-02-28 13:56:01,974 | INFO | __main__ | Creating growth rates summary...
+2026-02-28 13:56:01,986 | INFO | __main__ | Creating dependency ratios summary...
+2026-02-28 13:56:02,030 | INFO | __main__ | Creating summaries for county level (53 geographies)
+2026-02-28 13:56:02,510 | INFO | __main__ | Creating age distribution summary...
+2026-02-28 13:56:07,338 | INFO | __main__ | Creating sex ratio summary...
+2026-02-28 13:56:09,148 | INFO | __main__ | Creating race composition summary...
+2026-02-28 13:56:13,036 | INFO | __main__ | Creating growth rates summary...
+2026-02-28 13:56:13,471 | INFO | __main__ | Creating dependency ratios summary...
+2026-02-28 13:56:15,605 | INFO | __main__ | Created 12 summary tables
+2026-02-28 13:56:15,606 | INFO | __main__ | Creating summary tables for scenario: CBO
+2026-02-28 13:56:15,606 | INFO | __main__ | Created 0 summary tables
+2026-02-28 13:56:15,606 | INFO | __main__ | Generating data dictionary...
+2026-02-28 13:56:15,606 | INFO | __main__ | Data dictionary generated
+2026-02-28 13:56:15,606 | INFO | __main__ | Creating distribution packages...
+2026-02-28 13:56:15,778 | INFO | __main__ | Created package: nd_projections_state_20260228.zip
+2026-02-28 13:56:29,574 | INFO | __main__ | Created package: nd_projections_county_20260228.zip
+2026-02-28 13:56:29,576 | INFO | __main__ | Created package: nd_projections_place_20260228.zip
+2026-02-28 13:56:29,576 | INFO | __main__ | Created 3 distribution packages
+2026-02-28 13:56:29,576 | INFO | __main__ | Export report saved to data/exports/export_report_20260228_195629.json
+2026-02-28 13:56:29,577 | INFO | __main__ | Export completed successfully
+
+================================================================================
+EXPORT PIPELINE SUMMARY
+================================================================================
+
+Duration: 466.26 seconds
+Files Exported: 365
+Packages Created: 3
+
+Components: 12
+  Successful: 12
+  Failed: 0
+
+Packages Created:
+  - data/exports/packages/nd_projections_state_20260228.zip
+  - data/exports/packages/nd_projections_county_20260228.zip
+  - data/exports/packages/nd_projections_place_20260228.zip
+
+================================================================================
+

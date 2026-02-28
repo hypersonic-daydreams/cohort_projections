@@ -15,6 +15,9 @@ Analytical reviews and quality assurance documents for the North Dakota Populati
 | 2026-02-23 | [Projection Output Review and ADR Assessment](2026-02-23-projection-output-review.md) | Full 3-scenario review; ADR decisions for 051, 052, 036, 033; new finding on state-county aggregation | ADR-033, ADR-036, ADR-045, ADR-051, ADR-052, ADR-054 |
 | 2026-02-23 | [Post-ADR-054 Sanity Check](2026-02-23-post-adr054-sanity-check.md) | 9-category validation: structural, SDC comparison, calibration, plausibility, age structure, extremes, scenario spread, race, historical trends | ADR-049, ADR-050, ADR-052, ADR-053, ADR-054 |
 | 2026-02-23 | [Ward & Grand Forks Institutional Population Review](2026-02-23-ward-grand-forks-institutional-population-review.md) | Military base and college/university population handling in Ward and Grand Forks counties | ADR-049, ADR-052 |
+| 2026-02-28 | [Publication Output QA and Packaging Checklist](2026-02-28-publication-output-qa-packaging-checklist.md) | PP-001 rerun of export QA and dissemination packaging checklist closeout | ADR-033 (sequencing context) |
+| 2026-02-28 | [Place Data Readiness Note](2026-02-28-place-data-readiness-note.md) | PP3-S02 coverage and readiness assessment for place history (2000-2024) | ADR-033 |
+| 2026-02-28 | [Place-to-County Mapping Strategy Note](2026-02-28-place-county-mapping-strategy-note.md) | PP3-S03 authoritative mapping and boundary/vintage handling rules for place share-trending | ADR-033 |
 
 ## Conventions
 
@@ -25,4 +28,4 @@ Analytical reviews and quality assurance documents for the North Dakota Populati
 
 ---
 
-**Last Updated**: 2026-02-23
+**Last Updated**: 2026-02-28

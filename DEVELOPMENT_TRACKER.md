@@ -34,17 +34,17 @@ Use this file for active status only. Historical session detail is archived to:
 
 | ID | Work Item | Status | Next Milestone | Source |
 |------|------|------|------|------|
-| PP-001 | Publication-facing output QA and dissemination packaging | active | Re-run publication QA checks on current exports and finalize release packaging checklist | `DEVELOPMENT_TRACKER.md`, `docs/methodology.md` |
-| PP-002 | Non-regression validation cadence during publication work | active | Run and record next full validation cycle (`run_complete_pipeline.sh --dry-run`, `ruff`, `mypy`, `pytest`) | `docs/reviews/repo-hygiene-audit/implementation/06-dashboard-current.md` |
-| PP-003 | City/place projection workstream reactivation (ADR-033) | scoping_checklist_defined | Execute Phase 1 scoping checklist and issue explicit go/no-go decision before implementation | `docs/governance/adrs/033-city-level-projection-methodology.md`, `docs/governance/adrs/054-state-county-aggregation-reconciliation.md` |
+| PP-001 | Publication-facing output QA and dissemination packaging | active | Collect stakeholder sign-off on 2026-02-28 package set and keep release checklist current for final publication handoff | `docs/reviews/2026-02-28-publication-output-qa-packaging-checklist.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
+| PP-002 | Non-regression validation cadence during publication work | active | Run and record the next cadence cycle after the next material projection/config change (same gate set) | `docs/reviews/repo-hygiene-audit/implementation/06-dashboard-current.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
+| PP-003 | City/place projection workstream reactivation (ADR-033) | scoping_in_progress | Complete Phase 1 scoping steps `PP3-S04` through `PP3-S06`, then prepare approval packet for `PP3-S07` | `docs/governance/adrs/033-city-level-projection-methodology.md`, `docs/reviews/2026-02-28-place-data-readiness-note.md`, `docs/reviews/2026-02-28-place-county-mapping-strategy-note.md` |
 
 ## PP-003 Phase 1 Scoping Checklist (Canonical)
 
 | Step ID | Task | Status | Definition of Done | Evidence Artifact |
 |------|------|------|------|------|
-| PP3-S01 | Scope envelope | pending | Confirm place universe, projection horizon, and output granularity tiers (HIGH/MODERATE/LOWER/EXCLUDED) for the first release | Add scoped statement to `DEVELOPMENT_TRACKER.md` and cross-reference ADR-033 |
-| PP3-S02 | Historical place data readiness | pending | Verify place-level annual history coverage needed for backtesting (target window: 2000-2024) and identify any gaps requiring imputation or exclusion rules | Add short data readiness note under `docs/reviews/` and link it from tracker |
-| PP3-S03 | Place-to-county boundary mapping strategy | pending | Define authoritative mapping and handling rules for boundary/vintage changes so place shares can be compared consistently over time | Add mapping rules note under `docs/reviews/` and link it from tracker |
+| PP3-S01 | Scope envelope | completed_2026-02-28 | Confirm place universe, projection horizon, and output granularity tiers (HIGH/MODERATE/LOWER/EXCLUDED) for the first release | Scoped statement below (this file) + ADR-033 cross-reference |
+| PP3-S02 | Historical place data readiness | completed_2026-02-28 | Verify place-level annual history coverage needed for backtesting (target window: 2000-2024) and identify any gaps requiring imputation or exclusion rules | `docs/reviews/2026-02-28-place-data-readiness-note.md` |
+| PP3-S03 | Place-to-county boundary mapping strategy | completed_2026-02-28 | Define authoritative mapping and handling rules for boundary/vintage changes so place shares can be compared consistently over time | `docs/reviews/2026-02-28-place-county-mapping-strategy-note.md` |
 | PP3-S04 | Modeling spec for share-trending | pending | Select candidate trend specifications and constraint approach (share sum <= 100%, balance-of-county handling) for Phase 1 testing | Add Phase 1 model spec note under `docs/reviews/` and link it from tracker |
 | PP3-S05 | Backtesting design and metrics | pending | Lock backtest design (train/test windows) and acceptance metrics by confidence tier | Add validation design note under `docs/reviews/` and link it from tracker |
 | PP3-S06 | Output contract | pending | Define Phase 1 deliverables: projection files, metadata fields, QA summary tables, and workbook impacts | Add output contract note under `docs/reviews/` and link it from tracker |
@@ -52,6 +52,19 @@ Use this file for active status only. Historical session detail is archived to:
 | PP3-S08 | Implementation kickoff packet | pending | Publish execution-ready task list (files, tests, validation gates, and ADR touchpoints) | Add implementation plan doc under `docs/plans/` and link it from tracker |
 
 **Go/No-Go Rule:** PP-003 implementation starts only after `PP3-S01` through `PP3-S07` are complete and explicitly marked `go`.
+
+## PP-003 Scope Envelope (S01 Result)
+
+Scope statement confirmed on 2026-02-28 (ADR-033 alignment):
+
+- **Projection universe (first release):** 355 active ND incorporated places (2024 PEP place file in `data/raw/geographic/nd_places.csv`), with historical-only handling for dissolved places discovered in S02.
+- **Projection horizon:** 2025-2055 annual, aligned to county/state production horizon.
+- **Output granularity tiers (ADR-033 thresholds, based on 2024 population):**
+  - `HIGH` (>10,000): 9 places
+  - `MODERATE` (2,500-10,000): 9 places
+  - `LOWER` (500-2,500): 72 places
+  - `EXCLUDED` (<500): 265 places
+- **Constraint frame:** place outputs remain county-constrained with explicit balance-of-county remainder (full constraint specification continues in `PP3-S04`).
 
 ## Documentation Consistency Queue
 
@@ -82,8 +95,8 @@ Use this file for active status only. Historical session detail is archived to:
 ## Near-Term Next Actions
 
 1. Keep the documentation consistency queue current; add and resolve new cross-document drift items as they appear.
-2. Keep repo-hygiene evidence current while executing publication tasks (`PP-001`, `PP-002`).
-3. Execute `PP3-S01` through `PP3-S03` to establish the initial city/place scoping baseline.
+2. Keep repo-hygiene evidence current while executing publication tasks (`PP-001`, `PP-002`) and refresh package QA records as new export vintages are generated.
+3. Execute `PP3-S04` through `PP3-S06` (model spec, backtesting design, output contract) to complete the pre-approval scoping packet for `PP3-S07`.
 
 ## Deferred / Later Work
 
@@ -95,6 +108,10 @@ Use this file for active status only. Historical session detail is archived to:
 
 - `AGENTS.md`
 - `docs/reviews/repo-hygiene-audit/implementation/06-dashboard-current.md`
+- `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md`
+- `docs/reviews/2026-02-28-publication-output-qa-packaging-checklist.md`
+- `docs/reviews/2026-02-28-place-data-readiness-note.md`
+- `docs/reviews/2026-02-28-place-county-mapping-strategy-note.md`
 - `docs/reviews/repo-hygiene-audit/implementation/17-open-risks-blockers-register.md`
 - `docs/reviews/repo-hygiene-audit/implementation/02-action-batches.yaml`
 - `docs/reviews/repo-hygiene-audit/verification/progress.md`

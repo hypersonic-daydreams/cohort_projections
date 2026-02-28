@@ -1,17 +1,17 @@
 # Repo Hygiene Audit Execution Dashboard (Current)
 
-**Snapshot Date (UTC):** 2026-02-27T18:58:26Z
-**Program Phase:** Post-B06 Residual Risk Remediation Complete
+**Snapshot Date (UTC):** 2026-02-28T19:59:32Z
+**Program Phase:** Publication follow-through cadence run recorded after B06 residual-risk closeout
 **Source Claims Registry:** `../verification/claims_registry.yaml`
 
 ## 0. Current Outcome
 
-- **Current batch outcome:** dedicated `RB-003/RB-004` remediation wave completed after B06 closeout.
-- **What changed this cycle:** implemented explicit `--dry-run` handling for pipeline stages `01a/01b/01c`, removed remaining full-repo lint/type debt, and revalidated full pipeline + quality gates.
+- **Current batch outcome:** publication follow-through cycle (`PP-001`, `PP-002`) completed with fresh validation and packaging evidence.
+- **What changed this cycle:** executed a full non-regression validation cadence (`run_complete_pipeline.sh --dry-run`, `ruff`, `mypy`, `pytest`) and reran export/dissemination packaging plus publication QA checks.
 - **Checklist instances:** [20-b05-go-no-go.md](./20-b05-go-no-go.md), [23-b05-references-inventory-and-migration-plan.md](./23-b05-references-inventory-and-migration-plan.md), [24-b05-delete-archive-proposal.md](./24-b05-delete-archive-proposal.md).
-- **Result records:** [21-b05-preflight-results.md](./21-b05-preflight-results.md), [25-b05-wave1-implementation-results.md](./25-b05-wave1-implementation-results.md), [26-b05-wave2-step1-results.md](./26-b05-wave2-step1-results.md), [27-b05-wave2-step2-results.md](./27-b05-wave2-step2-results.md), [28-b06-final-harmonization-results.md](./28-b06-final-harmonization-results.md), [29-rb003-rb004-remediation-results.md](./29-rb003-rb004-remediation-results.md).
-- **Most recent completed implementation step:** RB-003/RB-004 dedicated remediation wave.
-- **Next recommended candidate:** publication-focused follow-through and routine maintenance.
+- **Result records:** [21-b05-preflight-results.md](./21-b05-preflight-results.md), [25-b05-wave1-implementation-results.md](./25-b05-wave1-implementation-results.md), [26-b05-wave2-step1-results.md](./26-b05-wave2-step1-results.md), [27-b05-wave2-step2-results.md](./27-b05-wave2-step2-results.md), [28-b06-final-harmonization-results.md](./28-b06-final-harmonization-results.md), [29-rb003-rb004-remediation-results.md](./29-rb003-rb004-remediation-results.md), [30-pp001-pp002-publication-followthrough-results.md](./30-pp001-pp002-publication-followthrough-results.md).
+- **Most recent completed implementation step:** PP-001/PP-002 publication follow-through validation and packaging rerun.
+- **Next recommended candidate:** PP-003 Phase 1 scoping completion (`PP3-S04` through `PP3-S06`).
 
 ## 1. Program Summary
 
@@ -57,6 +57,10 @@
 | DRY-TESTS (FINAL) | B06 | pass | 2026-02-27T18:19:53Z | codex | [28-b06-final-harmonization-results.md](./28-b06-final-harmonization-results.md) |
 | DRY-PIPELINE (RB-003) | Residual Risk Wave | pass | 2026-02-27T18:58:26Z | codex | [dry-pipeline-rb003-remediation-postedit.txt](./dry-pipeline-rb003-remediation-postedit.txt) |
 | DRY-LINT-TYPE (RB-004) | Residual Risk Wave | pass | 2026-02-27T18:58:26Z | codex | [dry-lint-type-rb004-remediation-ruff.txt](./dry-lint-type-rb004-remediation-ruff.txt), [dry-lint-type-rb004-remediation-mypy.txt](./dry-lint-type-rb004-remediation-mypy.txt) |
+| DRY-PIPELINE (PP-002) | Publication Cadence | pass | 2026-02-28T19:40:59Z | codex | [dry-pipeline-pp002-validation-2026-02-28.txt](./dry-pipeline-pp002-validation-2026-02-28.txt) |
+| DRY-LINT-TYPE (PP-002) | Publication Cadence | pass | 2026-02-28T19:41:11Z | codex | [dry-lint-type-pp002-validation-2026-02-28-ruff.txt](./dry-lint-type-pp002-validation-2026-02-28-ruff.txt), [dry-lint-type-pp002-validation-2026-02-28-mypy.txt](./dry-lint-type-pp002-validation-2026-02-28-mypy.txt) |
+| DRY-TESTS (PP-002) | Publication Cadence | pass | 2026-02-28T19:47:01Z | codex | [dry-tests-pp002-validation-2026-02-28.txt](./dry-tests-pp002-validation-2026-02-28.txt) |
+| EXPORT-PACKAGING-QA (PP-001) | Publication Cadence | pass | 2026-02-28T19:59:32Z | codex | [publication-export-pp001-2026-02-28.txt](./publication-export-pp001-2026-02-28.txt), [publication-qa-pp001-2026-02-28.txt](./publication-qa-pp001-2026-02-28.txt), [30-pp001-pp002-publication-followthrough-results.md](./30-pp001-pp002-publication-followthrough-results.md) |
 
 ## 4. Claim-Level Implementation Tracker
 
