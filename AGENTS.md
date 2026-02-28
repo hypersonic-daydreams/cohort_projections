@@ -104,7 +104,17 @@ If asked to work with the SDC 2024 journal article:
 - Sex ratio: Warning if < 0.90 or > 1.10
 - Annual growth rate: Warning if < -5% or > 5%
 
-**Testing:** See [docs/guides/testing-workflow.md](./docs/guides/testing-workflow.md)
+**Testing Philosophy (ADR-056):**
+- **Invariant tests over point-value assertions.** Check relationships (`restricted <= baseline <= high`, `state == sum(counties)`, `0 < survival_rate <= 1`) rather than specific numbers. These survive data vintage changes without maintenance.
+- **Synthetic data over heavy mocking.** Build small DataFrames and run real functions. Tests that mock everything test the mock, not the code.
+- **ADR implementations require tests.** New functions introduced by an ADR must have tests before the ADR is marked Accepted.
+- **Coverage-guided, not coverage-targeted.** Run `pytest --cov`, check that new lines are exercised. No numeric threshold to game.
+- **Pre-commit enforces automatically.** Tests run on every commit touching `cohort_projections/` or `tests/`. Do not bypass with `--no-verify`.
+
+**Testing Guides:**
+- [testing-workflow.md](./docs/guides/testing-workflow.md) — how to run tests
+- [test-suite-reference.md](./docs/guides/test-suite-reference.md) — what each test module covers
+- [test-maintenance-practices.md](./docs/guides/test-maintenance-practices.md) — when to write, update, and review tests
 
 ### Data Processing Script Documentation
 
