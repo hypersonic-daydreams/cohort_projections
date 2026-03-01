@@ -8,6 +8,7 @@ format placeholders where needed — importing scripts call ``.format()``
 or use the constants directly.
 
 Sources and traceability:
+    ADR-033: City/place projection methodology (share-of-county trending)
     ADR-004: Core projection engine architecture
     ADR-007: Race/ethnicity categorization (6-category system)
     ADR-035: Census PEP migration data source
@@ -97,8 +98,14 @@ DATA_AVAILABILITY_NOTE = (
 )
 
 PLACE_METHODOLOGY_LINE = (
-    "City/place projections: Share-of-county trending method (ADR-033). "
+    "City/place projections: Share-of-county trending method "
+    "(ADR-033 accepted, implemented 2026-03-01). "
+    "Winning backtest variant: B-II (weighted least squares logit-linear trend "
+    "+ cap-and-redistribute constraints). "
+    "IMP-19 end-to-end validation passed across all active scenarios "
+    "with human sign-off (2026-03-01). "
     "Population-based confidence tiers: HIGH (>10,000, 5-year age groups), "
     "MODERATE (2,500-10,000, broad age groups), LOWER (500-2,500, total only). "
-    "Place projections are constrained to county totals."
+    "Place projections are county-constrained (place totals plus balance-of-county "
+    "equal county totals by year)."
 )

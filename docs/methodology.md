@@ -1003,22 +1003,31 @@ The rationale for this design is that county-level migration patterns are inhere
 
 ### 7.5 Place Projection Orchestration (PP-003 Phase 2)
 
-Place-level outputs are generated from county projections using a county-constrained share-trending workflow (ADR-033 implementation, PP-003 Phase 2). The orchestration pipeline:
+Place-level outputs are generated from county projections using the **share-of-county trending** method specified in ADR-033 (**Accepted**, implemented 2026-03-01 via IMP-20) and operationalized in PP-003 Phase 2. Historical place shares are modeled in logit space:
 
-1. Loads historical place shares and a place-to-county crosswalk for the projection universe (HIGH, MODERATE, LOWER tiers; EXCLUDED places omitted from projection output).
-2. Fits and projects place shares within each county using the selected trend variant (from the PP-003 backtesting winner), then reconciles place plus balance-of-county shares to sum to 1.0 for every county-year.
+$$\text{logit}(s_{\text{place},t}) = \alpha + \beta (t - t_{\text{mid}})$$
+
+with back-transformation to projected shares via the inverse logit. The production winner selected in IMP-09 is **Variant B-II**: weighted least squares (`wls`) logit-linear fitting with **cap-and-redistribute** constraints. This production specification passed IMP-19 end-to-end validation (all active scenarios) and received human sign-off on 2026-03-01.
+
+The orchestration pipeline:
+
+1. Loads historical place shares and the place-to-county crosswalk for the projection universe (HIGH, MODERATE, LOWER tiers; EXCLUDED places omitted).
+2. Fits and projects place shares within each county using Variant B-II, then reconciles place plus balance-of-county shares to sum to 1.0 for every county-year.
 3. Converts projected shares to place totals by multiplying by county totals:
 
 $$P_{\text{place}}(t) = s_{\text{place}}(t) \times P_{\text{county}}(t)$$
 
 4. Allocates county demographic structure to place totals by confidence tier:
-   - **HIGH**: 18 five-year age groups by sex (36 rows per year),
-   - **MODERATE**: 6 broad age groups by sex (12 rows per year),
-   - **LOWER**: total population only.
-5. Writes per-place parquet/CSV/JSON outputs plus run-level `places_summary.csv` and `places_metadata.json`, including balance-of-county rows for county accounting transparency.
-6. Emits scenario QA artifacts in `data/projections/{scenario}/place/qa/` (`qa_tier_summary.csv`, `qa_share_sum_validation.csv`, `qa_outlier_flags.csv`, `qa_balance_of_county.csv`) and enforces hard consistency constraints (share bounds, county share sums, place-county totals, non-negative outputs, crosswalk-universe fidelity, and state-level scenario ordering).
+   - **HIGH** (>10,000): 18 five-year age groups by sex (36 rows per year),
+   - **MODERATE** (2,500-10,000): 6 broad age groups by sex (12 rows per year),
+   - **LOWER** (500-2,500): total population only.
+5. Writes per-place parquet/CSV/JSON outputs plus run-level `places_summary.csv` and `places_metadata.json`, including balance-of-county rows for accounting transparency.
+6. Emits scenario QA artifacts in `data/projections/{scenario}/place/qa/`:
+   `qa_tier_summary.csv`, `qa_share_sum_validation.csv`, `qa_reconciliation_magnitude.csv`,
+   `qa_outlier_flags.csv`, and `qa_balance_of_county.csv`.
+7. Enforces hard consistency constraints (share bounds, county share sums, place-county totals, non-negative outputs, crosswalk-universe fidelity, and state-level scenario ordering when all scenarios are present).
 
-This process preserves county consistency by construction: for each county-year, projected place totals plus balance-of-county equal the projected county total (subject only to floating-point tolerance).
+This process is county-constrained by construction: for each county-year, projected place totals plus balance-of-county equal the projected county total (subject only to floating-point tolerance).
 
 
 ## 8. Data Sources and References
@@ -1085,7 +1094,7 @@ The following Architecture Decision Records (ADRs) govern the methodological cho
 
 | ADR | Title | Status | Section(s) |
 |-----|-------|--------|------------|
-| ADR-033 | City-Level Projection Methodology | Deferred | 7.4 |
+| ADR-033 | City-Level Projection Methodology | Accepted | 7.5 |
 | ADR-036 | Migration Averaging Methodology -- Multi-Period and Interpolation Approaches | Accepted | 5 |
 | ADR-037 | CBO-Grounded Scenario Methodology | Accepted | 6.2 |
 | ADR-039 | International-Only Migration Factor for Restricted Growth Scenario | Accepted | 6.2 |

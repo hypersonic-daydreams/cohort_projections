@@ -279,4 +279,7 @@ def test_build_place_workbook_contract(monkeypatch, tmp_path: Path) -> None:
     method_text = " ".join(
         str(methodology_ws.cell(row=row_idx, column=1).value or "") for row_idx in range(1, 60)
     )
-    assert "Share-of-county trending method (ADR-033)" in method_text
+    assert "Share-of-county trending method" in method_text
+    assert "ADR-033 accepted, implemented 2026-03-01" in method_text
+    assert "Winning backtest variant: B-II" in method_text
+    assert "IMP-19 end-to-end validation passed" in method_text

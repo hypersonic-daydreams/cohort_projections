@@ -4,7 +4,7 @@ Canonical, current-state tracker for the North Dakota cohort projections reposit
 
 **Last Updated:** 2026-03-01  
 **Projection Horizon:** 2025-2055  
-**Status:** Publication preparation with repo-hygiene closeout complete; this file is the single source of truth for remaining projection-development work.
+**Status:** Publication preparation with repo-hygiene and PP-003 closeout complete; this file is the single source of truth for remaining projection-development work.
 
 ## Purpose
 
@@ -36,7 +36,7 @@ Use this file for active status only. Historical session detail is archived to:
 |------|------|------|------|------|
 | PP-001 | Publication-facing output QA and dissemination packaging | active | Collect stakeholder sign-off on 2026-02-28 package set and keep release checklist current for final publication handoff | `docs/reviews/2026-02-28-publication-output-qa-packaging-checklist.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
 | PP-002 | Non-regression validation cadence during publication work | active | Run and record the next cadence cycle after the next material projection/config change (same gate set) | `docs/reviews/repo-hygiene-audit/implementation/06-dashboard-current.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
-| PP-003 | City/place projection workstream reactivation (ADR-033) | active | IMP-16 export `--places` flag wiring completed (2026-03-01); next integration milestone is IMP-17 methodology text update | `docs/plans/pp3-s08-implementation-kickoff.md`, `docs/reviews/2026-02-28-pp3-s07-approval-gate.md`, `docs/reviews/2026-02-28-pp3-imp09-backtest-results.md`, `docs/reviews/pp3-backtest-outlier-narrative.md`, `docs/reviews/2026-03-01-pp3-imp11-pipeline-stage-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-approval-gate.md`, `docs/reviews/2026-03-01-pp3-imp13a-results.md`, `docs/reviews/2026-03-01-pp3-imp14-results.md`, `docs/reviews/2026-03-01-pp3-imp15-results.md`, `docs/reviews/2026-03-01-pp3-imp16-results.md` |
+| PP-003 | City/place projection workstream reactivation (ADR-033) | completed_2026-03-01 | Closed after IMP-21 methodology finalization consistency and IMP-22 tracker closeout confirmation | `docs/plans/pp3-s08-implementation-kickoff.md`, `docs/reviews/2026-02-28-pp3-s07-approval-gate.md`, `docs/reviews/2026-02-28-pp3-imp09-backtest-results.md`, `docs/reviews/pp3-backtest-outlier-narrative.md`, `docs/reviews/2026-03-01-pp3-imp11-pipeline-stage-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-approval-gate.md`, `docs/reviews/2026-03-01-pp3-imp13a-results.md`, `docs/reviews/2026-03-01-pp3-imp14-results.md`, `docs/reviews/2026-03-01-pp3-imp15-results.md`, `docs/reviews/2026-03-01-pp3-imp16-results.md`, `docs/reviews/2026-03-01-pp3-imp17-imp18-results.md`, `docs/reviews/pp3-end-to-end-validation.md`, `docs/reviews/2026-03-01-pp3-imp19-approval-gate.md`, `docs/reviews/2026-03-01-pp3-imp20-results.md`, `docs/reviews/2026-03-01-pp3-imp21-methodology-finalization-consistency-results.md`, `docs/reviews/2026-03-01-pp3-imp22-tracker-closeout-results.md`, `docs/governance/adrs/033-city-level-projection-methodology.md` |
 | PP-004 | Test coverage gap closure (ADR-056) | active | Close priority coverage gaps identified in ADR-056 Decision 6; align with PP-002 periodic review cadence | `docs/governance/adrs/056-testing-strategy-maturation.md`, `docs/guides/test-maintenance-practices.md` |
 
 ## PP-003 Phase 1 Scoping Checklist (Canonical)
@@ -82,6 +82,12 @@ Use this file for active status only. Historical session detail is archived to:
 | IMP-14 | Place workbook builder | completed_2026-03-01 | Added standalone place workbook builder per S06 Section 7.2 with required 21-sheet structure (TOC + 9 HIGH + 9 MODERATE + combined LOWER + Methodology), key-year age/sex tables, LOWER-tier uncertainty caveat header, TOC hyperlinks, and place-specific methodology text | `scripts/exports/build_place_workbook.py`, `scripts/exports/_methodology.py`, `tests/test_output/test_place_workbook.py`, `docs/reviews/2026-03-01-pp3-imp14-results.md` |
 | IMP-15 | Provisional workbook update (`Places` sheets) | completed_2026-03-01 | Added `Places — {scenario_short}` sheets to the provisional workbook for all active scenarios with place + balance rows, county/tier labels, key-year populations, and growth-rate columns while preserving legacy county/state sheet structure | `scripts/exports/build_provisional_workbook.py`, `tests/test_output/test_provisional_workbook_places.py`, `docs/reviews/2026-03-01-pp3-imp15-results.md` |
 | IMP-16 | Export pipeline `--places` flag wiring | completed_2026-03-01 | Wired `--places` in `scripts/pipeline/03_export_results.py` to emit place export artifacts (summary CSV + workbook), covered `--all` inclusion, and enforced dry-run no-file behavior via integration tests | `scripts/pipeline/03_export_results.py`, `tests/test_integration/test_export_places.py`, `docs/reviews/2026-03-01-pp3-imp16-results.md` |
+| IMP-17 | Methodology text update | completed_2026-03-01 | Added place-specific methodology text in shared export constants and expanded `docs/methodology.md` Section 7.5 with explicit share-of-county specification, winner variant (`B-II`), tier thresholds, county constraint, and QA artifact coverage (human wording/tone sign-off pending) | `scripts/exports/_methodology.py`, `docs/methodology.md`, `tests/test_output/test_place_workbook.py`, `docs/reviews/2026-03-01-pp3-imp17-imp18-results.md` |
+| IMP-18 | Integration tests | completed_2026-03-01 | Added synthetic end-to-end integration test running stage + export entrypoints with real orchestrator path, validating place constraints/QA artifacts and workbook export outputs | `tests/test_integration/test_place_projection_integration.py`, `docs/reviews/2026-03-01-pp3-imp17-imp18-results.md` |
+| IMP-19 | End-to-end validation (full active-scenario run) | approved_2026-03-01 | Executed full place pipeline for `baseline`, `restricted_growth`, and `high_growth`; all IMP-19 checks PASS (`90` place outputs/scenario, hard constraints PASS, QA artifact set complete, scenario ordering PASS, workbooks generated, metadata/summary counts verified, place totals constrained to county totals); human sign-off gate approved | `docs/reviews/pp3-end-to-end-validation.md`, `docs/reviews/2026-03-01-pp3-imp19-approval-gate.md` |
+| IMP-20 | ADR-033 status update | completed_2026-03-01 | ADR-033 status changed to `Accepted` with implemented date and full implementation-results section (winner metrics, IMP-19 validation summary, structural-break disposition, evidence links), and ADR index status/counts updated accordingly | `docs/governance/adrs/033-city-level-projection-methodology.md`, `docs/governance/adrs/README.md`, `docs/reviews/2026-03-01-pp3-imp20-results.md` |
+| IMP-21 | Publication-facing methodology finalization consistency | completed_2026-03-01 | Finalized publication-facing place methodology wording across `docs/methodology.md`, export constants, and place-workbook methodology output dependency coverage; aligned language to ADR-033 accepted/implemented state plus IMP-19/IMP-20 evidence | `docs/methodology.md`, `scripts/exports/_methodology.py`, `tests/test_output/test_place_workbook.py`, `docs/reviews/2026-03-01-pp3-imp21-methodology-finalization-consistency-results.md` |
+| IMP-22 | DEVELOPMENT_TRACKER closeout update | completed_2026-03-01 | Updated tracker and evidence links to final IMP-21/IMP-22 artifacts, removed superseded draft references, and confirmed PP-003 closeout state | `DEVELOPMENT_TRACKER.md`, `docs/reviews/2026-03-01-pp3-imp22-tracker-closeout-results.md`, `docs/reviews/2026-03-01-pp3-imp19-approval-gate.md`, `docs/reviews/2026-03-01-pp3-imp20-results.md`, `docs/reviews/2026-03-01-pp3-imp21-methodology-finalization-consistency-results.md` |
 
 ### IMP-05 Verification Evidence (2026-02-28)
 
@@ -173,6 +179,43 @@ Use this file for active status only. Historical session detail is archived to:
 - `source .venv/bin/activate && pytest tests/test_integration/test_export_places.py tests/test_output/test_place_workbook.py tests/test_output/test_provisional_workbook_places.py` -> `5 passed, 1 warning`.
 - `source .venv/bin/activate && pytest` -> `1440 passed, 5 skipped, 1 warning` in `263.68s` (coverage run enabled by project defaults).
 
+### IMP-17 / IMP-18 Verification Evidence (2026-03-01)
+
+- `source .venv/bin/activate && ruff check scripts/exports/_methodology.py tests/test_output/test_place_workbook.py tests/test_integration/test_place_projection_integration.py` -> `All checks passed!`.
+- `source .venv/bin/activate && mypy scripts/exports/_methodology.py tests/test_output/test_place_workbook.py tests/test_integration/test_place_projection_integration.py` -> `Success: no issues found in 3 source files`.
+- `source .venv/bin/activate && pytest tests/test_output/test_place_workbook.py tests/test_integration/test_place_projection_integration.py` -> `2 passed`.
+
+### IMP-19 Verification Evidence (2026-03-01)
+
+- `source .venv/bin/activate && python scripts/pipeline/02a_run_place_projections.py --scenarios baseline restricted_growth high_growth` -> successful full active-scenario stage run; each scenario completed with `90` places, `46` county balances, and `31` QA outlier flags.
+- `source .venv/bin/activate && python scripts/pipeline/03_export_results.py --places --scenarios baseline restricted_growth high_growth --formats parquet --no-package` -> `Export completed successfully` (`10` components successful, `0` failed, `14` files exported); place workbook artifacts generated for all three scenarios.
+- `source .venv/bin/activate && pytest tests/test_output/test_place_workbook.py tests/test_integration/test_place_projection_integration.py` -> `2 passed`.
+- `docs/reviews/pp3-end-to-end-validation.md` records full IMP-19 gate-check matrix and metric snapshot:
+  - hard constraints pass (`share constraints`, `place<=county`, `non-negative`),
+  - scenario ordering pass (`restricted_growth <= baseline <= high_growth`, years `2025-2055`),
+  - required QA artifacts emitted per scenario,
+  - `places_summary.csv` and `places_metadata.json` counts verified.
+- Human sign-off gate disposition: `docs/reviews/2026-03-01-pp3-imp19-approval-gate.md` -> **Approved**.
+
+### IMP-20 Verification Evidence (2026-03-01)
+
+- `docs/governance/adrs/033-city-level-projection-methodology.md` updated:
+  - status changed from `Deferred` to `Accepted`,
+  - `Implemented` date set to `2026-03-01`,
+  - `Implementation Results` section added with winner metrics and IMP-19 validation evidence.
+- `docs/governance/adrs/README.md` updated to reflect ADR-033 accepted status in the index and status summary counts (`Accepted=53`, `Proposed=4`).
+- `docs/reviews/2026-03-01-pp3-imp20-results.md` records IMP-20 execution summary and evidence links.
+
+### IMP-21 Verification Evidence (2026-03-01)
+
+- `source .venv/bin/activate && ruff check scripts/exports/_methodology.py tests/test_output/test_place_workbook.py` -> `All checks passed!`.
+- `source .venv/bin/activate && mypy scripts/exports/_methodology.py tests/test_output/test_place_workbook.py` -> `Success: no issues found in 2 source files`.
+- `source .venv/bin/activate && pytest tests/test_output/test_place_workbook.py` -> `1 passed`.
+
+### IMP-22 Verification Evidence (2026-03-01)
+
+- `rg` closeout hygiene check run against tracker + final IMP-21/IMP-22 artifacts -> `No draft references found in final IMP-21/IMP-22 closeout artifacts.`
+
 ## PP-003 Scope Envelope (S01 Result)
 
 Scope statement confirmed on 2026-02-28 (ADR-033 alignment):
@@ -239,8 +282,8 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 1. Keep the documentation consistency queue current; add and resolve new cross-document drift items as they appear.
 2. Keep repo-hygiene evidence current while executing publication tasks (`PP-001`, `PP-002`) and refresh package QA records as new export vintages are generated.
-3. Continue PP-003 Phase 2 integration: implement `IMP-17` methodology text update and `docs/methodology.md` alignment per kickoff packet.
-4. ~~Execute `PP4-06`~~ Completed 2026-02-28. PP-004 workstream closed. Future periodic reviews follow the PP-002 cadence.
+3. ~~Execute `PP4-06`~~ Completed 2026-02-28. PP-004 workstream closed. Future periodic reviews follow the PP-002 cadence.
+
 
 ## Deferred / Later Work
 
@@ -269,6 +312,13 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 - `docs/reviews/2026-03-01-pp3-imp14-results.md`
 - `docs/reviews/2026-03-01-pp3-imp15-results.md`
 - `docs/reviews/2026-03-01-pp3-imp16-results.md`
+- `docs/reviews/2026-03-01-pp3-imp17-imp18-results.md`
+- `docs/reviews/pp3-end-to-end-validation.md`
+- `docs/reviews/2026-03-01-pp3-imp19-approval-gate.md`
+- `docs/reviews/2026-03-01-pp3-imp20-results.md`
+- `docs/reviews/2026-03-01-pp3-imp21-methodology-finalization-consistency-results.md`
+- `docs/reviews/2026-03-01-pp3-imp22-tracker-closeout-results.md`
+- `docs/governance/adrs/033-city-level-projection-methodology.md`
 - `docs/plans/pp3-s08-implementation-kickoff.md`
 - `docs/reviews/repo-hygiene-audit/implementation/17-open-risks-blockers-register.md`
 - `docs/reviews/repo-hygiene-audit/implementation/02-action-batches.yaml`

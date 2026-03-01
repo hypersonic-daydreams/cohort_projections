@@ -1,10 +1,13 @@
 # ADR-033: City-Level Projection Methodology
 
 ## Status
-Deferred
+Accepted
 
 ## Date
 2026-02-02
+
+## Implemented
+2026-03-01
 
 ## Context
 
@@ -104,13 +107,17 @@ city_population_2045 = county_projection_2045 * city_share_2045
 - Accounts for actual volatility in ND cities
 - Allows honest communication of projection reliability
 
-## Implementation Plan
+## Implementation Plan (Proposal Baseline)
 
-### Phase 1: Data Assembly (Exploratory)
+The plan below captures the proposed phase structure from initial ADR drafting.
+Implementation is now complete; see **Implementation Results** for executed
+outputs, metrics, and approval status.
+
+### Phase 1: Data Assembly
 - Assemble city population time series 2000-2024
 - Calculate city/county share ratios
 - Visualize trends by city size class
-- **Status**: To be explored
+- **Status**: Completed (see Implementation Results)
 
 ### Phase 2: Trend Analysis
 - Fit trend models to share time series
@@ -203,17 +210,54 @@ Project housing units, apply persons-per-household.
 - Requires housing development data
 - Could complement share-trending for near-term
 
-## Deferral Rationale
+## Historical Deferral Rationale (Resolved)
 
-### Deferral Rationale (Updated 2026-02-28)
+On 2026-02-28 this ADR remained deferred for sequencing reasons during
+publication-priority work. That deferral state is now resolved:
 
-City-level projections remain deferred for sequencing reasons, not because of an unresolved state-county consistency blocker:
+1. ADR-054 aggregation prerequisites remained in place for county-constrained share modeling.
+2. PP-003 implementation milestones (IMP-01 through IMP-19) were executed.
+3. Human sign-off for IMP-19 was recorded on 2026-03-01.
 
-1. **Aggregation prerequisite resolved**: ADR-054 was accepted and implemented on 2026-02-23. State totals are now derived from county aggregation in the `--all` workflow, so the county constraint layer required for share-trending is consistent.
+## Implementation Results (2026-03-01)
 
-2. **Publication sequencing priority**: The current primary workstream is publication-focused QA and dissemination packaging for state/county deliverables. Opening place-level model development in parallel would dilute publication execution.
+### Overall Outcome
 
-3. **Method/data readiness tasks still unscheduled**: Phase 1 exploratory items remain to be explicitly scheduled (historical place series assembly for 2000-2019, place-to-county boundary/vintage consistency mapping, and backtesting setup by confidence tier).
+- PP-003 Phase 1 implementation for place projections is complete through IMP-19.
+- Production winner selected in IMP-09: **Variant B-II** (`wls` + `cap_and_redistribute`), score `3.0757840903894844`.
+- IMP-19 end-to-end validation passed for all active scenarios (`baseline`, `restricted_growth`, `high_growth`) with human sign-off recorded.
+
+### Backtest Acceptance Metrics (Primary Window, Winner B-II)
+
+- `HIGH` tier: `tier_medape=3.002588`, `tier_p90_mape=4.314164`, `abs_tier_mean_me=1.106081` (PASS)
+- `MODERATE` tier: `tier_medape=1.835121`, `tier_p90_mape=17.781376`, `abs_tier_mean_me=4.280532` (PASS)
+- `LOWER` tier: `tier_medape=4.248954`, `tier_p90_mape=11.049137`, `abs_tier_mean_me=0.775915` (PASS)
+- Primary acceptance: `all_scored_tiers_pass_primary=true`
+
+### Prediction Interval Snapshot (Primary Window, Winner B-II)
+
+- `HIGH`: PI80 +/-`4.377292%`, PI90 +/-`5.597436%`
+- `MODERATE`: PI80 +/-`11.321926%`, PI90 +/-`23.437520%`
+- `LOWER`: PI80 +/-`8.337710%`, PI90 +/-`13.039024%`
+
+### Production Validation Snapshot (IMP-19)
+
+- Per-scenario outputs: `90` projected places + `46` balance-of-county rows.
+- Hard constraints: PASS (share constraints, non-negative populations, place totals constrained to county totals, scenario ordering).
+- QA artifacts: full required set emitted per scenario, including reconciliation magnitude diagnostics.
+
+### Structural-Break Exclusion Disposition
+
+- Human review accepted structural-break interpretations (Horace, Williston).
+- No structural-break exclusions were applied to production outputs.
+
+### Evidence Artifacts
+
+- `docs/reviews/2026-02-28-pp3-imp09-backtest-results.md`
+- `docs/reviews/pp3-backtest-outlier-narrative.md`
+- `docs/reviews/pp3-end-to-end-validation.md`
+- `docs/reviews/2026-03-01-pp3-imp19-approval-gate.md`
+- `docs/reviews/2026-03-01-pp3-imp20-results.md`
 
 ## References
 
@@ -225,6 +269,7 @@ City-level projections remain deferred for sequencing reasons, not because of an
 
 ## Revision History
 
+- **2026-03-01**: Status changed from Deferred to Accepted; implemented date added; implementation results added (winner B-II, backtest metrics, IMP-19 validation and human sign-off)
 - **2026-02-28**: Deferral rationale updated to reflect ADR-054 implementation; city-level work remains deferred for sequencing/readiness, not aggregation inconsistency
 - **2026-02-23**: Deferred — state-county aggregation discrepancy (ADR-054) must be resolved before adding city layer
 - **2026-02-02**: Initial proposal (ADR-033)

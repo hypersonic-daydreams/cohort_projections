@@ -190,7 +190,7 @@ Where:
 
 | ADR | Title | Status | Date | Summary |
 |-----|-------|--------|------|---------|
-| [033](033-city-level-projection-methodology.md) | City-Level Projection Methodology | Proposed | 2026-02-02 | Methodology for place-level projections using county share-down approach |
+| [033](033-city-level-projection-methodology.md) | City-Level Projection Methodology | Accepted | 2026-02-02 | Implemented share-of-county place projections with B-II winner selection and county-constrained QA validation |
 
 ### Migration and Scenario Methodology
 
@@ -244,8 +244,8 @@ Where:
 
 | Status | Count |
 |--------|-------|
-| Accepted | 52 |
-| Proposed | 5 |
+| Accepted | 53 |
+| Proposed | 4 |
 | Rejected | 1 |
 | Deprecated | 0 |
 | Superseded | 1 |
