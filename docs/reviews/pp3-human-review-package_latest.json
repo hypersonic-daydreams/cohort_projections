@@ -1,0 +1,36 @@
+{
+  "generated_at_local": "2026-03-01 10:55:47 CST",
+  "generated_at_utc": "2026-03-01 16:55:47 UTC",
+  "version_tag": "20260301_105547",
+  "scenarios": [
+    "baseline",
+    "restricted_growth",
+    "high_growth"
+  ],
+  "focal_scenario": "baseline",
+  "versioned_html": "docs/reviews/2026-03-01-pp3-human-review-package_20260301_105547.html",
+  "asset_dir": "docs/reviews/assets/pp3-human-review/20260301_105547",
+  "charts": {
+    "artifact_counts": "artifact_counts_by_scenario.svg",
+    "outlier_counts": "outlier_counts_by_scenario.svg",
+    "share_sum_distribution": "baseline_share_sum_distribution.svg",
+    "rescaling_top_counties": "baseline_rescaling_top_counties.svg",
+    "rescaling_concentration": "baseline_rescaling_concentration.svg",
+    "growth_rate_boxplots": "growth_rate_boxplots_by_scenario.svg",
+    "balance_share_distribution": "baseline_balance_share_distribution.svg",
+    "top_flagged_places": "baseline_top_flagged_places.svg",
+    "state_ordering": "state_scenario_ordering.svg",
+    "hard_gate_violations": "hard_gate_violation_counts.svg"
+  },
+  "gates": [
+    "gate-artifacts",
+    "gate-share",
+    "gate-balance",
+    "gate-rescaling",
+    "gate-growth",
+    "gate-outliers",
+    "gate-ordering",
+    "gate-universe"
+  ],
+  "latest_html": "docs/reviews/2026-03-01-pp3-human-review-package.html"
+}

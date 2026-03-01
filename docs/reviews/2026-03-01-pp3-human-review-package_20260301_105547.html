@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PP-003 Human Review Package (20260301_105547)</title>
+  <style>
+    :root {
+      --panel: #ffffff;
+      --ink: #132238;
+      --muted: #4b5f78;
+      --accent: #1d5fa6;
+      --ok: #1f7a3f;
+      --warn: #a96900;
+      --border: #d5dfeb;
+      --tab: #e8f0fb;
+      --tab-active: #1d5fa6;
+      --tab-active-ink: #ffffff;
+    }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #f3f7fc 0%, #f8fbff 35%, #f6f8fb 100%);
+    }
+    .wrap {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 18px 16px 44px;
+    }
+    h1, h2, h3 { margin: 0 0 10px; }
+    h1 { font-size: 1.85rem; }
+    h2 {
+      margin-top: 12px;
+      padding-top: 8px;
+      font-size: 1.3rem;
+    }
+    p, li { line-height: 1.45; }
+    .muted { color: var(--muted); }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin: 10px 0;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .kpi {
+      background: #f8fbff;
+      border: 1px solid #dbe8f8;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .kpi .label { font-size: 0.82rem; color: var(--muted); }
+    .kpi .value { font-size: 1.25rem; font-weight: 700; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 0.95rem;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      text-align: left;
+      padding: 7px;
+      vertical-align: top;
+    }
+    th { background: #edf4fc; }
+    .table-scroll {
+      max-height: 560px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: white;
+      margin-top: 8px;
+    }
+    .table-scroll table {
+      margin-top: 0;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    .table-scroll thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    details {
+      margin-top: 10px;
+    }
+    details summary {
+      cursor: pointer;
+      color: #173657;
+      font-weight: 700;
+      padding: 6px 0;
+    }
+    code {
+      background: #edf2f8;
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+    a { color: var(--accent); }
+    .tabs {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 12px 0 8px;
+    }
+    .tab-button {
+      border: 1px solid #b7cae5;
+      background: var(--tab);
+      border-radius: 7px;
+      padding: 7px 10px;
+      cursor: pointer;
+      font-size: 0.92rem;
+      color: #173657;
+    }
+    .tab-button:hover {
+      background: #d7e6fb;
+    }
+    .tab-button.active {
+      background: var(--tab-active);
+      color: var(--tab-active-ink);
+      border-color: #1d5fa6;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .gate-status {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      vertical-align: middle;
+    }
+    .gate-status.pass { background: #eaf8ee; color: #1f7a3f; border: 1px solid #bde2c5; }
+    .gate-status.review { background: #fff4df; color: #a96900; border: 1px solid #ebd2a2; }
+    .decision { font-weight: 700; }
+    .viz-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+      gap: 12px;
+    }
+    .viz-card {
+      background: #fbfdff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px;
+    }
+    .viz-title {
+      margin: 2px 0 8px;
+      font-size: 0.95rem;
+      color: #1f2f42;
+    }
+    .viz-card img {
+      width: 100%;
+      height: auto;
+      border: 1px solid #e4ecf6;
+      border-radius: 6px;
+      background: white;
+      cursor: zoom-in;
+    }
+    .viz-caption {
+      margin: 6px 0 0;
+      font-size: 0.84rem;
+      line-height: 1.35;
+      color: #29405a;
+    }
+    .viz-rule {
+      margin: 6px 0 0;
+      font-size: 0.84rem;
+      line-height: 1.35;
+      color: #1f2f42;
+    }
+    .viz-reason {
+      margin: 6px 0 0;
+      font-size: 0.84rem;
+      line-height: 1.35;
+      color: #3a4f67;
+    }
+    .viz-hint {
+      margin: 6px 0 0;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 12, 23, 0.92);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      padding: 16px;
+    }
+    .lightbox.active { display: flex; }
+    .lightbox-frame {
+      width: min(96vw, 1800px);
+      max-height: 94vh;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .lightbox-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #e7eef8;
+      font-size: 0.9rem;
+    }
+    .lightbox-close, .lightbox-nav {
+      border: 1px solid #9fb7d8;
+      background: #1f3551;
+      color: #e7eef8;
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      margin-left: 6px;
+    }
+    .lightbox-close:hover, .lightbox-nav:hover { background: #284568; }
+    .lightbox-img {
+      max-width: 100%;
+      max-height: 88vh;
+      width: auto;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid #355274;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>PP-003 Human Review Package</h1>
+    <p class="muted">Scope: IMP-12 (QA artifacts) and IMP-13 (constraint enforcement) for place projections.</p>
+    <p class="muted">Version: <code>20260301_105547</code> | Generated: 2026-03-01 10:55:47 CST (local), 2026-03-01 16:55:47 UTC (UTC)</p>
+
+    <div class="tabs"><button class='tab-button active' data-tab='tab-overview'>Overview</button><button class='tab-button' data-tab='gate-artifacts'>Gate 1</button><button class='tab-button' data-tab='gate-share'>Gate 2</button><button class='tab-button' data-tab='gate-balance'>Gate 3</button><button class='tab-button' data-tab='gate-rescaling'>Gate 4</button><button class='tab-button' data-tab='gate-growth'>Gate 5</button><button class='tab-button' data-tab='gate-outliers'>Gate 6</button><button class='tab-button' data-tab='gate-ordering'>Gate 7</button><button class='tab-button' data-tab='gate-universe'>Gate 8</button></div>
+
+    
+      <section id="tab-overview" class="tab-panel active">
+        <h2>Overview</h2>
+        <div class="panel grid"><div class='kpi'><div class='label'>Scenarios Reviewed</div><div class='value'>3</div><div class='muted'>baseline, restricted_growth, high_growth</div></div><div class='kpi'><div class='label'>Projected Places (baseline)</div><div class='value'>90</div><div class='muted'>rows in places_summary (row_type=place)</div></div><div class='kpi'><div class='label'>Counties in QA (baseline)</div><div class='value'>46</div><div class='muted'>county_fips in qa_balance_of_county</div></div><div class='kpi'><div class='label'>Outlier Flags (baseline)</div><div class='value'>31</div><div class='muted'>rows in qa_outlier_flags</div></div></div>
+        <div class="panel">
+          <p><strong>Review model:</strong> one tab per quality gate/issue, including already-passing gates.</p>
+          <p><strong>What each tab includes:</strong> objective, what to check, relevant visual(s), summary stats, and agent recommendation.</p>
+          <p class="muted">Version: <code>20260301_105547</code> | Generated: 2026-03-01 10:55:47 CST (local), 2026-03-01 16:55:47 UTC (UTC)</p>
+        </div>
+      </section>
+    
+    
+        <section id="gate-artifacts" class="tab-panel">
+          <h2>Gate 1: QA Artifact Completeness <span class='gate-status pass'>PASS</span></h2>
+          <div class="panel">
+            <p><strong>What we are checking:</strong> Confirm all required QA outputs are present for every scenario with expected structural row patterns.</p>
+            <p><strong>Agent analysis:</strong> All scenarios include the four QA artifacts and expected row shapes. No structural completeness concerns were detected.</p>
+            <p><strong>Suggested decision:</strong> <span class='decision'>Approve</span></p>
+            <p><strong>Reviewer decision:</strong> [ ] Approve  [ ] Approve with notes  [ ] Request change</p>
+          </div>
+          <div class="panel">
+            <h3>Summary Statistics</h3>
+            <table><thead><tr><th>Scenario</th><th>tier rows</th><th>share-sum rows</th><th>balance rows</th><th>outlier rows</th></tr></thead><tbody><tr><td>baseline</td><td>3</td><td>1,426</td><td>1,426</td><td>31</td></tr><tr><td>restricted_growth</td><td>3</td><td>1,426</td><td>1,426</td><td>31</td></tr><tr><td>high_growth</td><td>3</td><td>1,426</td><td>1,426</td><td>31</td></tr></tbody></table>
+          </div>
+          <div class="panel">
+            <h3>Relevant Visuals</h3>
+            <div class="viz-grid">
+                <div class="viz-card">
+                  <h4 class="viz-title">QA Artifact Row Counts by Scenario</h4>
+                  <img class="expandable-chart" src="assets/pp3-human-review/20260301_105547/artifact_counts_by_scenario.svg" alt="Gate 1: QA Artifact Completeness - QA Artifact Row Counts by Scenario" />
+                  <p class="viz-caption"><strong>What this shows:</strong> Grouped bars show row counts for tier summary, share-sum validation, balance-of-county, and outlier-flag artifacts in each scenario.</p>
+                  <p class="viz-caption"><strong>How to interpret:</strong> Bar heights should be structurally comparable across scenarios. Missing bars or large unexpected differences indicate upstream artifact completeness issues.</p>
+                  <p class="viz-rule"><strong>Decision rule:</strong> Approve only if each scenario has all required QA artifacts present with expected structural row patterns.</p>
+                  <p class="viz-reason"><strong>Why this rule:</strong> Downstream quality checks are only credible when the full QA artifact set exists; missing or malformed artifacts can hide defects rather than reveal them.</p>
+                  <p class="viz-hint">Click chart to expand full-screen. Use Prev/Next or ←/→ keys in full-screen mode.</p>
+                </div>
+                </div>
+          </div>
+        </section>
+        
+        <section id="gate-share" class="tab-panel">
+          <h2>Gate 2: County Share Constraint <span class='gate-status pass'>PASS</span></h2>
+          <div class="panel">
+            <p><strong>What we are checking:</strong> Verify county-year place share totals satisfy the hard constraint (sum(place_shares) &lt;= 1.0).</p>
+            <p><strong>Agent analysis:</strong> No county-year rows exceeded the share ceiling and no rows were marked constraint_satisfied=false.</p>
+            <p><strong>Suggested decision:</strong> <span class='decision'>Approve</span></p>
+            <p><strong>Reviewer decision:</strong> [ ] Approve  [ ] Approve with notes  [ ] Request change</p>
+          </div>
+          <div class="panel">
+            <h3>Summary Statistics</h3>
+            <table><thead><tr><th>Scenario</th><th>Max sum_place_shares</th><th>Rows sum&gt;1</th><th>Rows constraint=false</th><th>Rescaling rows</th></tr></thead><tbody><tr><td>baseline</td><td>0.962674</td><td>0</td><td>0</td><td>530</td></tr><tr><td>restricted_growth</td><td>0.962674</td><td>0</td><td>0</td><td>530</td></tr><tr><td>high_growth</td><td>0.962674</td><td>0</td><td>0</td><td>530</td></tr></tbody></table>
+          </div>
+          <div class="panel">
+            <h3>Relevant Visuals</h3>
+            <div class="viz-grid">
+                <div class="viz-card">
+                  <h4 class="viz-title">County-Year Share-Sum Distribution</h4>
+                  <img class="expandable-chart" src="assets/pp3-human-review/20260301_105547/baseline_share_sum_distribution.svg" alt="Gate 2: County Share Constraint - County-Year Share-Sum Distribution" />
+                  <p class="viz-caption"><strong>What this shows:</strong> Histogram of county-year sum of place shares with a dashed hard-limit line at 1.0.</p>
+                  <p class="viz-caption"><strong>How to interpret:</strong> Most mass should be at or below 1.0. Any visible mass to the right of 1.0 implies constraint violations that should block approval.</p>
+                  <p class="viz-rule"><strong>Decision rule:</strong> Approve only if there are zero county-year observations with sum_place_shares &gt; 1.0.</p>
+                  <p class="viz-reason"><strong>Why this rule:</strong> Place shares represent partitions of a county total; totals above 1.0 violate mass conservation and invalidate county-place consistency.</p>
+                  <p class="viz-hint">Click chart to expand full-screen. Use Prev/Next or ←/→ keys in full-screen mode.</p>
+                </div>
+                </div>
+          </div>
+        </section>
+        
+        <section id="gate-balance" class="tab-panel">
+          <h2>Gate 3: Place-County Consistency and Balance <span class='gate-status pass'>PASS</span></h2>
+          <div class="panel">
+            <p><strong>What we are checking:</strong> Check that county totals remain internally consistent and balance-of-county is non-negative.</p>
+            <p><strong>Agent analysis:</strong> No negative balance-of-county rows were observed, supporting place&lt;=county consistency.</p>
+            <p><strong>Suggested decision:</strong> <span class='decision'>Approve</span></p>
+            <p><strong>Reviewer decision:</strong> [ ] Approve  [ ] Approve with notes  [ ] Request change</p>
+          </div>
+          <div class="panel">
+            <h3>Summary Statistics</h3>
+            <table><thead><tr><th>Scenario</th><th>Min balance_of_county_share</th><th>Negative balance rows</th></tr></thead><tbody><tr><td>baseline</td><td>0.037326</td><td>0</td></tr><tr><td>restricted_growth</td><td>0.037326</td><td>0</td></tr><tr><td>high_growth</td><td>0.037326</td><td>0</td></tr></tbody></table>
+          </div>
+          <div class="panel">
+            <h3>Relevant Visuals</h3>
+            <div class="viz-grid">
+                <div class="viz-card">
+                  <h4 class="viz-title">Balance-of-County Share Distribution</h4>
+                  <img class="expandable-chart" src="assets/pp3-human-review/20260301_105547/baseline_balance_share_distribution.svg" alt="Gate 3: Place-County Consistency and Balance - Balance-of-County Share Distribution" />
+                  <p class="viz-caption"><strong>What this shows:</strong> Histogram of county-year balance share values, representing the residual share not assigned to incorporated places.</p>
+                  <p class="viz-caption"><strong>How to interpret:</strong> Values should remain non-negative and within a plausible range. Heaping at extremes or unexpected shape shifts may warrant county-level follow-up.</p>
+                  <p class="viz-rule"><strong>Decision rule:</strong> Approve only if balance shares are non-negative and distribution shape has no unexplained extreme concentration.</p>
+                  <p class="viz-reason"><strong>Why this rule:</strong> Balance share is the residual county component; negative values are invalid and extreme heaping can indicate upstream allocation issues.</p>
+                  <p class="viz-hint">Click chart to expand full-screen. Use Prev/Next or ←/→ keys in full-screen mode.</p>
+                </div>
+                </div>
+          </div>
+        </section>
+        
+        <section id="gate-rescaling" class="tab-panel">
+          <h2>Gate 4: Rescaling Behavior <span class='gate-status review'>REVIEW</span></h2>
+          <div class="panel">
+            <p><strong>What we are checking:</strong> Review where and how often share reconciliation/rescaling occurs, and assess plausibility.</p>
+            <p><strong>Agent analysis:</strong> Rescaling is concentrated in a subset of counties and appears as a controlled, expected reconciliation behavior. Human review should confirm this concentration matches substantive expectations.</p>
+            <p><strong>Suggested decision:</strong> <span class='decision'>Approve with notes</span></p>
+            <p><strong>Reviewer decision:</strong> [ ] Approve  [ ] Approve with notes  [ ] Request change</p>
+          </div>
+          <div class="panel">
+            <h3>Summary Statistics</h3>
+            <h4>Concentration Summary</h4><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>Focal scenario</td><td>baseline</td></tr><tr><td>County-years evaluated</td><td>1,426</td></tr><tr><td>County-years with rescaling_applied=true</td><td>530 (37.2%)</td></tr><tr><td>Counties evaluated</td><td>46</td></tr><tr><td>Counties with any rescaling</td><td>21 (45.7%)</td></tr><tr><td>Share of rescaling in top 5 counties</td><td>29.2%</td></tr><tr><td>Share of rescaling in top 10 counties</td><td>58.5%</td></tr><tr><td>Counties needed to reach 80% of rescaling</td><td>14</td></tr></tbody></table><h4>All Counties</h4><div class='table-scroll'><table><thead><tr><th>Rank</th><th>County</th><th>County FIPS</th><th>Rescaling years</th><th>Rescaling rate</th><th>% of all rescaling</th><th>Cumulative %</th></tr></thead><tbody><tr><td>1</td><td>Burleigh County</td><td>38015</td><td>31</td><td>100.0%</td><td>5.8%</td><td>5.8%</td></tr><tr><td>2</td><td>Cass County</td><td>38017</td><td>31</td><td>100.0%</td><td>5.8%</td><td>11.7%</td></tr><tr><td>3</td><td>Dickey County</td><td>38021</td><td>31</td><td>100.0%</td><td>5.8%</td><td>17.5%</td></tr><tr><td>4</td><td>Grand Forks County</td><td>38035</td><td>31</td><td>100.0%</td><td>5.8%</td><td>23.4%</td></tr><tr><td>5</td><td>Hettinger County</td><td>38041</td><td>31</td><td>100.0%</td><td>5.8%</td><td>29.2%</td></tr><tr><td>6</td><td>LaMoure County</td><td>38045</td><td>31</td><td>100.0%</td><td>5.8%</td><td>35.1%</td></tr><tr><td>7</td><td>Morton County</td><td>38059</td><td>31</td><td>100.0%</td><td>5.8%</td><td>40.9%</td></tr><tr><td>8</td><td>Mountrail County</td><td>38061</td><td>31</td><td>100.0%</td><td>5.8%</td><td>46.8%</td></tr><tr><td>9</td><td>Pembina County</td><td>38067</td><td>31</td><td>100.0%</td><td>5.8%</td><td>52.6%</td></tr><tr><td>10</td><td>Richland County</td><td>38077</td><td>31</td><td>100.0%</td><td>5.8%</td><td>58.5%</td></tr><tr><td>11</td><td>Sargent County</td><td>38081</td><td>31</td><td>100.0%</td><td>5.8%</td><td>64.3%</td></tr><tr><td>12</td><td>Stark County</td><td>38089</td><td>31</td><td>100.0%</td><td>5.8%</td><td>70.2%</td></tr><tr><td>13</td><td>Traill County</td><td>38097</td><td>31</td><td>100.0%</td><td>5.8%</td><td>76.0%</td></tr><tr><td>14</td><td>Walsh County</td><td>38099</td><td>31</td><td>100.0%</td><td>5.8%</td><td>81.9%</td></tr><tr><td>15</td><td>Ward County</td><td>38101</td><td>31</td><td>100.0%</td><td>5.8%</td><td>87.7%</td></tr><tr><td>16</td><td>Williams County</td><td>38105</td><td>31</td><td>100.0%</td><td>5.8%</td><td>93.6%</td></tr><tr><td>17</td><td>Rolette County</td><td>38079</td><td>30</td><td>96.8%</td><td>5.7%</td><td>99.2%</td></tr><tr><td>18</td><td>McIntosh County</td><td>38051</td><td>1</td><td>3.2%</td><td>0.2%</td><td>99.4%</td></tr><tr><td>19</td><td>McLean County</td><td>38055</td><td>1</td><td>3.2%</td><td>0.2%</td><td>99.6%</td></tr><tr><td>20</td><td>Mercer County</td><td>38057</td><td>1</td><td>3.2%</td><td>0.2%</td><td>99.8%</td></tr><tr><td>21</td><td>Ransom County</td><td>38073</td><td>1</td><td>3.2%</td><td>0.2%</td><td>100.0%</td></tr><tr><td>22</td><td>Adams County</td><td>38001</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>23</td><td>Barnes County</td><td>38003</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>24</td><td>Bottineau County</td><td>38009</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>25</td><td>Bowman County</td><td>38011</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>26</td><td>Cavalier County</td><td>38019</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>27</td><td>Divide County</td><td>38023</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>28</td><td>Dunn County</td><td>38025</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>29</td><td>Eddy County</td><td>38027</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>30</td><td>Emmons County</td><td>38029</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>31</td><td>Foster County</td><td>38031</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>32</td><td>Golden Valley County</td><td>38033</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>33</td><td>Grant County</td><td>38037</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>34</td><td>Griggs County</td><td>38039</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>35</td><td>Kidder County</td><td>38043</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>36</td><td>Logan County</td><td>38047</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>37</td><td>McHenry County</td><td>38049</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>38</td><td>McKenzie County</td><td>38053</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>39</td><td>Nelson County</td><td>38063</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>40</td><td>Oliver County</td><td>38065</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>41</td><td>Pierce County</td><td>38069</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>42</td><td>Ramsey County</td><td>38071</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>43</td><td>Renville County</td><td>38075</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>44</td><td>Stutsman County</td><td>38093</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>45</td><td>Towner County</td><td>38095</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr><tr><td>46</td><td>Wells County</td><td>38103</td><td>0</td><td>0.0%</td><td>0.0%</td><td>100.0%</td></tr></tbody></table></div><details><summary>Show all rescaled county-years (530 rows)</summary><div class='table-scroll'><table><thead><tr><th>County</th><th>County FIPS</th><th>Year</th><th>sum_place_shares</th><th>balance_of_county_share</th></tr></thead><tbody><tr><td>Burleigh County</td><td>38015</td><td>2025</td><td>0.796719</td><td>0.203281</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2026</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2027</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2028</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2029</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2030</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2031</td><td>0.796529</td><td>0.203471</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2032</td><td>0.796478</td><td>0.203522</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2033</td><td>0.796446</td><td>0.203554</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2034</td><td>0.796432</td><td>0.203568</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2035</td><td>0.796438</td><td>0.203562</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2036</td><td>0.796463</td><td>0.203537</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2037</td><td>0.796508</td><td>0.203492</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2038</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2039</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2040</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2041</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2042</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2043</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2044</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2045</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2046</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2047</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2048</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2049</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2050</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2051</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2052</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2053</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2054</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Burleigh County</td><td>38015</td><td>2055</td><td>0.796549</td><td>0.203451</td></tr><tr><td>Cass County</td><td>38017</td><td>2025</td><td>0.947943</td><td>0.052057</td></tr><tr><td>Cass County</td><td>38017</td><td>2026</td><td>0.948447</td><td>0.051553</td></tr><tr><td>Cass County</td><td>38017</td><td>2027</td><td>0.949014</td><td>0.050986</td></tr><tr><td>Cass County</td><td>38017</td><td>2028</td><td>0.949574</td><td>0.050426</td></tr><tr><td>Cass County</td><td>38017</td><td>2029</td><td>0.950129</td><td>0.049871</td></tr><tr><td>Cass County</td><td>38017</td><td>2030</td><td>0.950678</td><td>0.049322</td></tr><tr><td>Cass County</td><td>38017</td><td>2031</td><td>0.951222</td><td>0.048778</td></tr><tr><td>Cass County</td><td>38017</td><td>2032</td><td>0.951759</td><td>0.048241</td></tr><tr><td>Cass County</td><td>38017</td><td>2033</td><td>0.952291</td><td>0.047709</td></tr><tr><td>Cass County</td><td>38017</td><td>2034</td><td>0.952818</td><td>0.047182</td></tr><tr><td>Cass County</td><td>38017</td><td>2035</td><td>0.953339</td><td>0.046661</td></tr><tr><td>Cass County</td><td>38017</td><td>2036</td><td>0.953854</td><td>0.046146</td></tr><tr><td>Cass County</td><td>38017</td><td>2037</td><td>0.954364</td><td>0.045636</td></tr><tr><td>Cass County</td><td>38017</td><td>2038</td><td>0.954869</td><td>0.045131</td></tr><tr><td>Cass County</td><td>38017</td><td>2039</td><td>0.955368</td><td>0.044632</td></tr><tr><td>Cass County</td><td>38017</td><td>2040</td><td>0.955862</td><td>0.044138</td></tr><tr><td>Cass County</td><td>38017</td><td>2041</td><td>0.956351</td><td>0.043649</td></tr><tr><td>Cass County</td><td>38017</td><td>2042</td><td>0.956835</td><td>0.043165</td></tr><tr><td>Cass County</td><td>38017</td><td>2043</td><td>0.957313</td><td>0.042687</td></tr><tr><td>Cass County</td><td>38017</td><td>2044</td><td>0.957787</td><td>0.042213</td></tr><tr><td>Cass County</td><td>38017</td><td>2045</td><td>0.958255</td><td>0.041745</td></tr><tr><td>Cass County</td><td>38017</td><td>2046</td><td>0.958719</td><td>0.041281</td></tr><tr><td>Cass County</td><td>38017</td><td>2047</td><td>0.959177</td><td>0.040823</td></tr><tr><td>Cass County</td><td>38017</td><td>2048</td><td>0.959631</td><td>0.040369</td></tr><tr><td>Cass County</td><td>38017</td><td>2049</td><td>0.960080</td><td>0.039920</td></tr><tr><td>Cass County</td><td>38017</td><td>2050</td><td>0.960524</td><td>0.039476</td></tr><tr><td>Cass County</td><td>38017</td><td>2051</td><td>0.960963</td><td>0.039037</td></tr><tr><td>Cass County</td><td>38017</td><td>2052</td><td>0.961398</td><td>0.038602</td></tr><tr><td>Cass County</td><td>38017</td><td>2053</td><td>0.961828</td><td>0.038172</td></tr><tr><td>Cass County</td><td>38017</td><td>2054</td><td>0.962253</td><td>0.037747</td></tr><tr><td>Cass County</td><td>38017</td><td>2055</td><td>0.962674</td><td>0.037326</td></tr><tr><td>Dickey County</td><td>38021</td><td>2025</td><td>0.590930</td><td>0.409070</td></tr><tr><td>Dickey County</td><td>38021</td><td>2026</td><td>0.589445</td><td>0.410555</td></tr><tr><td>Dickey County</td><td>38021</td><td>2027</td><td>0.587905</td><td>0.412095</td></tr><tr><td>Dickey County</td><td>38021</td><td>2028</td><td>0.586372</td><td>0.413628</td></tr><tr><td>Dickey County</td><td>38021</td><td>2029</td><td>0.584846</td><td>0.415154</td></tr><tr><td>Dickey County</td><td>38021</td><td>2030</td><td>0.583327</td><td>0.416673</td></tr><tr><td>Dickey County</td><td>38021</td><td>2031</td><td>0.581816</td><td>0.418184</td></tr><tr><td>Dickey County</td><td>38021</td><td>2032</td><td>0.580312</td><td>0.419688</td></tr><tr><td>Dickey County</td><td>38021</td><td>2033</td><td>0.578815</td><td>0.421185</td></tr><tr><td>Dickey County</td><td>38021</td><td>2034</td><td>0.577326</td><td>0.422674</td></tr><tr><td>Dickey County</td><td>38021</td><td>2035</td><td>0.575844</td><td>0.424156</td></tr><tr><td>Dickey County</td><td>38021</td><td>2036</td><td>0.574369</td><td>0.425631</td></tr><tr><td>Dickey County</td><td>38021</td><td>2037</td><td>0.572903</td><td>0.427097</td></tr><tr><td>Dickey County</td><td>38021</td><td>2038</td><td>0.571443</td><td>0.428557</td></tr><tr><td>Dickey County</td><td>38021</td><td>2039</td><td>0.569992</td><td>0.430008</td></tr><tr><td>Dickey County</td><td>38021</td><td>2040</td><td>0.568548</td><td>0.431452</td></tr><tr><td>Dickey County</td><td>38021</td><td>2041</td><td>0.567111</td><td>0.432889</td></tr><tr><td>Dickey County</td><td>38021</td><td>2042</td><td>0.565682</td><td>0.434318</td></tr><tr><td>Dickey County</td><td>38021</td><td>2043</td><td>0.564261</td><td>0.435739</td></tr><tr><td>Dickey County</td><td>38021</td><td>2044</td><td>0.562848</td><td>0.437152</td></tr><tr><td>Dickey County</td><td>38021</td><td>2045</td><td>0.561443</td><td>0.438557</td></tr><tr><td>Dickey County</td><td>38021</td><td>2046</td><td>0.560045</td><td>0.439955</td></tr><tr><td>Dickey County</td><td>38021</td><td>2047</td><td>0.558655</td><td>0.441345</td></tr><tr><td>Dickey County</td><td>38021</td><td>2048</td><td>0.557273</td><td>0.442727</td></tr><tr><td>Dickey County</td><td>38021</td><td>2049</td><td>0.555898</td><td>0.444102</td></tr><tr><td>Dickey County</td><td>38021</td><td>2050</td><td>0.554532</td><td>0.445468</td></tr><tr><td>Dickey County</td><td>38021</td><td>2051</td><td>0.553173</td><td>0.446827</td></tr><tr><td>Dickey County</td><td>38021</td><td>2052</td><td>0.551823</td><td>0.448177</td></tr><tr><td>Dickey County</td><td>38021</td><td>2053</td><td>0.550480</td><td>0.449520</td></tr><tr><td>Dickey County</td><td>38021</td><td>2054</td><td>0.549145</td><td>0.450855</td></tr><tr><td>Dickey County</td><td>38021</td><td>2055</td><td>0.547818</td><td>0.452182</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2025</td><td>0.872677</td><td>0.127323</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2026</td><td>0.874120</td><td>0.125880</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2027</td><td>0.875529</td><td>0.124471</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2028</td><td>0.876925</td><td>0.123075</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2029</td><td>0.878308</td><td>0.121692</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2030</td><td>0.879677</td><td>0.120323</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2031</td><td>0.881032</td><td>0.118968</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2032</td><td>0.882375</td><td>0.117625</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2033</td><td>0.883704</td><td>0.116296</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2034</td><td>0.885021</td><td>0.114979</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2035</td><td>0.886324</td><td>0.113676</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2036</td><td>0.887614</td><td>0.112386</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2037</td><td>0.888892</td><td>0.111108</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2038</td><td>0.890157</td><td>0.109843</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2039</td><td>0.891409</td><td>0.108591</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2040</td><td>0.892649</td><td>0.107351</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2041</td><td>0.893876</td><td>0.106124</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2042</td><td>0.895091</td><td>0.104909</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2043</td><td>0.896293</td><td>0.103707</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2044</td><td>0.897484</td><td>0.102516</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2045</td><td>0.898662</td><td>0.101338</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2046</td><td>0.899828</td><td>0.100172</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2047</td><td>0.900982</td><td>0.099018</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2048</td><td>0.902125</td><td>0.097875</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2049</td><td>0.903256</td><td>0.096744</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2050</td><td>0.904374</td><td>0.095626</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2051</td><td>0.905482</td><td>0.094518</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2052</td><td>0.906578</td><td>0.093422</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2053</td><td>0.907662</td><td>0.092338</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2054</td><td>0.908735</td><td>0.091265</td></tr><tr><td>Grand Forks County</td><td>38035</td><td>2055</td><td>0.909797</td><td>0.090203</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2025</td><td>0.550761</td><td>0.449239</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2026</td><td>0.550676</td><td>0.449324</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2027</td><td>0.551198</td><td>0.448802</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2028</td><td>0.551720</td><td>0.448280</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2029</td><td>0.552241</td><td>0.447759</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2030</td><td>0.552763</td><td>0.447237</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2031</td><td>0.553284</td><td>0.446716</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2032</td><td>0.553806</td><td>0.446194</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2033</td><td>0.554327</td><td>0.445673</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2034</td><td>0.554848</td><td>0.445152</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2035</td><td>0.555369</td><td>0.444631</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2036</td><td>0.555890</td><td>0.444110</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2037</td><td>0.556410</td><td>0.443590</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2038</td><td>0.556931</td><td>0.443069</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2039</td><td>0.557451</td><td>0.442549</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2040</td><td>0.557972</td><td>0.442028</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2041</td><td>0.558492</td><td>0.441508</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2042</td><td>0.559012</td><td>0.440988</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2043</td><td>0.559532</td><td>0.440468</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2044</td><td>0.560052</td><td>0.439948</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2045</td><td>0.560572</td><td>0.439428</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2046</td><td>0.561091</td><td>0.438909</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2047</td><td>0.561611</td><td>0.438389</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2048</td><td>0.562130</td><td>0.437870</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2049</td><td>0.562649</td><td>0.437351</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2050</td><td>0.563168</td><td>0.436832</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2051</td><td>0.563687</td><td>0.436313</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2052</td><td>0.564206</td><td>0.435794</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2053</td><td>0.564724</td><td>0.435276</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2054</td><td>0.565243</td><td>0.434757</td></tr><tr><td>Hettinger County</td><td>38041</td><td>2055</td><td>0.565761</td><td>0.434239</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2025</td><td>0.322315</td><td>0.677685</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2026</td><td>0.320638</td><td>0.679362</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2027</td><td>0.318945</td><td>0.681055</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2028</td><td>0.317264</td><td>0.682736</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2029</td><td>0.315594</td><td>0.684406</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2030</td><td>0.313938</td><td>0.686062</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2031</td><td>0.312293</td><td>0.687707</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2032</td><td>0.310660</td><td>0.689340</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2033</td><td>0.309040</td><td>0.690960</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2034</td><td>0.307432</td><td>0.692568</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2035</td><td>0.305835</td><td>0.694165</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2036</td><td>0.304251</td><td>0.695749</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2037</td><td>0.302679</td><td>0.697321</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2038</td><td>0.301119</td><td>0.698881</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2039</td><td>0.299571</td><td>0.700429</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2040</td><td>0.298035</td><td>0.701965</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2041</td><td>0.296511</td><td>0.703489</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2042</td><td>0.294998</td><td>0.705002</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2043</td><td>0.293498</td><td>0.706502</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2044</td><td>0.292009</td><td>0.707991</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2045</td><td>0.290533</td><td>0.709467</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2046</td><td>0.289068</td><td>0.710932</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2047</td><td>0.287614</td><td>0.712386</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2048</td><td>0.286173</td><td>0.713827</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2049</td><td>0.284743</td><td>0.715257</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2050</td><td>0.283325</td><td>0.716675</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2051</td><td>0.281918</td><td>0.718082</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2052</td><td>0.280523</td><td>0.719477</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2053</td><td>0.279139</td><td>0.720861</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2054</td><td>0.277766</td><td>0.722234</td></tr><tr><td>LaMoure County</td><td>38045</td><td>2055</td><td>0.276406</td><td>0.723594</td></tr><tr><td>McIntosh County</td><td>38051</td><td>2025</td><td>0.574791</td><td>0.425209</td></tr><tr><td>McLean County</td><td>38055</td><td>2025</td><td>0.478733</td><td>0.521267</td></tr><tr><td>Mercer County</td><td>38057</td><td>2025</td><td>0.636084</td><td>0.363916</td></tr><tr><td>Morton County</td><td>38059</td><td>2025</td><td>0.817575</td><td>0.182425</td></tr><tr><td>Morton County</td><td>38059</td><td>2026</td><td>0.818963</td><td>0.181037</td></tr><tr><td>Morton County</td><td>38059</td><td>2027</td><td>0.820363</td><td>0.179637</td></tr><tr><td>Morton County</td><td>38059</td><td>2028</td><td>0.821756</td><td>0.178244</td></tr><tr><td>Morton County</td><td>38059</td><td>2029</td><td>0.823139</td><td>0.176861</td></tr><tr><td>Morton County</td><td>38059</td><td>2030</td><td>0.824515</td><td>0.175485</td></tr><tr><td>Morton County</td><td>38059</td><td>2031</td><td>0.825882</td><td>0.174118</td></tr><tr><td>Morton County</td><td>38059</td><td>2032</td><td>0.827240</td><td>0.172760</td></tr><tr><td>Morton County</td><td>38059</td><td>2033</td><td>0.828590</td><td>0.171410</td></tr><tr><td>Morton County</td><td>38059</td><td>2034</td><td>0.829932</td><td>0.170068</td></tr><tr><td>Morton County</td><td>38059</td><td>2035</td><td>0.831265</td><td>0.168735</td></tr><tr><td>Morton County</td><td>38059</td><td>2036</td><td>0.832590</td><td>0.167410</td></tr><tr><td>Morton County</td><td>38059</td><td>2037</td><td>0.833907</td><td>0.166093</td></tr><tr><td>Morton County</td><td>38059</td><td>2038</td><td>0.835215</td><td>0.164785</td></tr><tr><td>Morton County</td><td>38059</td><td>2039</td><td>0.836515</td><td>0.163485</td></tr><tr><td>Morton County</td><td>38059</td><td>2040</td><td>0.837807</td><td>0.162193</td></tr><tr><td>Morton County</td><td>38059</td><td>2041</td><td>0.839091</td><td>0.160909</td></tr><tr><td>Morton County</td><td>38059</td><td>2042</td><td>0.840366</td><td>0.159634</td></tr><tr><td>Morton County</td><td>38059</td><td>2043</td><td>0.841633</td><td>0.158367</td></tr><tr><td>Morton County</td><td>38059</td><td>2044</td><td>0.842892</td><td>0.157108</td></tr><tr><td>Morton County</td><td>38059</td><td>2045</td><td>0.844143</td><td>0.155857</td></tr><tr><td>Morton County</td><td>38059</td><td>2046</td><td>0.845386</td><td>0.154614</td></tr><tr><td>Morton County</td><td>38059</td><td>2047</td><td>0.846620</td><td>0.153380</td></tr><tr><td>Morton County</td><td>38059</td><td>2048</td><td>0.847847</td><td>0.152153</td></tr><tr><td>Morton County</td><td>38059</td><td>2049</td><td>0.849065</td><td>0.150935</td></tr><tr><td>Morton County</td><td>38059</td><td>2050</td><td>0.850276</td><td>0.149724</td></tr><tr><td>Morton County</td><td>38059</td><td>2051</td><td>0.851478</td><td>0.148522</td></tr><tr><td>Morton County</td><td>38059</td><td>2052</td><td>0.852672</td><td>0.147328</td></tr><tr><td>Morton County</td><td>38059</td><td>2053</td><td>0.853859</td><td>0.146141</td></tr><tr><td>Morton County</td><td>38059</td><td>2054</td><td>0.855037</td><td>0.144963</td></tr><tr><td>Morton County</td><td>38059</td><td>2055</td><td>0.856208</td><td>0.143792</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2025</td><td>0.613218</td><td>0.386782</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2026</td><td>0.613680</td><td>0.386320</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2027</td><td>0.614954</td><td>0.385046</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2028</td><td>0.616228</td><td>0.383772</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2029</td><td>0.617499</td><td>0.382501</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2030</td><td>0.618769</td><td>0.381231</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2031</td><td>0.620037</td><td>0.379963</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2032</td><td>0.621304</td><td>0.378696</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2033</td><td>0.622569</td><td>0.377431</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2034</td><td>0.623832</td><td>0.376168</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2035</td><td>0.625094</td><td>0.374906</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2036</td><td>0.626354</td><td>0.373646</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2037</td><td>0.627612</td><td>0.372388</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2038</td><td>0.628869</td><td>0.371131</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2039</td><td>0.630124</td><td>0.369876</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2040</td><td>0.631377</td><td>0.368623</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2041</td><td>0.632628</td><td>0.367372</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2042</td><td>0.633877</td><td>0.366123</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2043</td><td>0.635125</td><td>0.364875</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2044</td><td>0.636371</td><td>0.363629</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2045</td><td>0.637615</td><td>0.362385</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2046</td><td>0.638857</td><td>0.361143</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2047</td><td>0.640098</td><td>0.359902</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2048</td><td>0.641336</td><td>0.358664</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2049</td><td>0.642573</td><td>0.357427</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2050</td><td>0.643807</td><td>0.356193</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2051</td><td>0.645040</td><td>0.354960</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2052</td><td>0.646271</td><td>0.353729</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2053</td><td>0.647500</td><td>0.352500</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2054</td><td>0.648727</td><td>0.351273</td></tr><tr><td>Mountrail County</td><td>38061</td><td>2055</td><td>0.649952</td><td>0.350048</td></tr><tr><td>Pembina County</td><td>38067</td><td>2025</td><td>0.429175</td><td>0.570825</td></tr><tr><td>Pembina County</td><td>38067</td><td>2026</td><td>0.429550</td><td>0.570450</td></tr><tr><td>Pembina County</td><td>38067</td><td>2027</td><td>0.429938</td><td>0.570062</td></tr><tr><td>Pembina County</td><td>38067</td><td>2028</td><td>0.430326</td><td>0.569674</td></tr><tr><td>Pembina County</td><td>38067</td><td>2029</td><td>0.430714</td><td>0.569286</td></tr><tr><td>Pembina County</td><td>38067</td><td>2030</td><td>0.431102</td><td>0.568898</td></tr><tr><td>Pembina County</td><td>38067</td><td>2031</td><td>0.431490</td><td>0.568510</td></tr><tr><td>Pembina County</td><td>38067</td><td>2032</td><td>0.431878</td><td>0.568122</td></tr><tr><td>Pembina County</td><td>38067</td><td>2033</td><td>0.432267</td><td>0.567733</td></tr><tr><td>Pembina County</td><td>38067</td><td>2034</td><td>0.432655</td><td>0.567345</td></tr><tr><td>Pembina County</td><td>38067</td><td>2035</td><td>0.433044</td><td>0.566956</td></tr><tr><td>Pembina County</td><td>38067</td><td>2036</td><td>0.433432</td><td>0.566568</td></tr><tr><td>Pembina County</td><td>38067</td><td>2037</td><td>0.433821</td><td>0.566179</td></tr><tr><td>Pembina County</td><td>38067</td><td>2038</td><td>0.434209</td><td>0.565791</td></tr><tr><td>Pembina County</td><td>38067</td><td>2039</td><td>0.434598</td><td>0.565402</td></tr><tr><td>Pembina County</td><td>38067</td><td>2040</td><td>0.434987</td><td>0.565013</td></tr><tr><td>Pembina County</td><td>38067</td><td>2041</td><td>0.435376</td><td>0.564624</td></tr><tr><td>Pembina County</td><td>38067</td><td>2042</td><td>0.435765</td><td>0.564235</td></tr><tr><td>Pembina County</td><td>38067</td><td>2043</td><td>0.436154</td><td>0.563846</td></tr><tr><td>Pembina County</td><td>38067</td><td>2044</td><td>0.436544</td><td>0.563456</td></tr><tr><td>Pembina County</td><td>38067</td><td>2045</td><td>0.436933</td><td>0.563067</td></tr><tr><td>Pembina County</td><td>38067</td><td>2046</td><td>0.437322</td><td>0.562678</td></tr><tr><td>Pembina County</td><td>38067</td><td>2047</td><td>0.437712</td><td>0.562288</td></tr><tr><td>Pembina County</td><td>38067</td><td>2048</td><td>0.438101</td><td>0.561899</td></tr><tr><td>Pembina County</td><td>38067</td><td>2049</td><td>0.438491</td><td>0.561509</td></tr><tr><td>Pembina County</td><td>38067</td><td>2050</td><td>0.438880</td><td>0.561120</td></tr><tr><td>Pembina County</td><td>38067</td><td>2051</td><td>0.439270</td><td>0.560730</td></tr><tr><td>Pembina County</td><td>38067</td><td>2052</td><td>0.439660</td><td>0.560340</td></tr><tr><td>Pembina County</td><td>38067</td><td>2053</td><td>0.440050</td><td>0.559950</td></tr><tr><td>Pembina County</td><td>38067</td><td>2054</td><td>0.440440</td><td>0.559560</td></tr><tr><td>Pembina County</td><td>38067</td><td>2055</td><td>0.440830</td><td>0.559170</td></tr><tr><td>Ransom County</td><td>38073</td><td>2025</td><td>0.550015</td><td>0.449985</td></tr><tr><td>Richland County</td><td>38077</td><td>2025</td><td>0.578104</td><td>0.421896</td></tr><tr><td>Richland County</td><td>38077</td><td>2026</td><td>0.577925</td><td>0.422075</td></tr><tr><td>Richland County</td><td>38077</td><td>2027</td><td>0.577744</td><td>0.422256</td></tr><tr><td>Richland County</td><td>38077</td><td>2028</td><td>0.577564</td><td>0.422436</td></tr><tr><td>Richland County</td><td>38077</td><td>2029</td><td>0.577385</td><td>0.422615</td></tr><tr><td>Richland County</td><td>38077</td><td>2030</td><td>0.577208</td><td>0.422792</td></tr><tr><td>Richland County</td><td>38077</td><td>2031</td><td>0.577031</td><td>0.422969</td></tr><tr><td>Richland County</td><td>38077</td><td>2032</td><td>0.576857</td><td>0.423143</td></tr><tr><td>Richland County</td><td>38077</td><td>2033</td><td>0.576683</td><td>0.423317</td></tr><tr><td>Richland County</td><td>38077</td><td>2034</td><td>0.576511</td><td>0.423489</td></tr><tr><td>Richland County</td><td>38077</td><td>2035</td><td>0.576340</td><td>0.423660</td></tr><tr><td>Richland County</td><td>38077</td><td>2036</td><td>0.576170</td><td>0.423830</td></tr><tr><td>Richland County</td><td>38077</td><td>2037</td><td>0.576001</td><td>0.423999</td></tr><tr><td>Richland County</td><td>38077</td><td>2038</td><td>0.575834</td><td>0.424166</td></tr><tr><td>Richland County</td><td>38077</td><td>2039</td><td>0.575668</td><td>0.424332</td></tr><tr><td>Richland County</td><td>38077</td><td>2040</td><td>0.575503</td><td>0.424497</td></tr><tr><td>Richland County</td><td>38077</td><td>2041</td><td>0.575339</td><td>0.424661</td></tr><tr><td>Richland County</td><td>38077</td><td>2042</td><td>0.575176</td><td>0.424824</td></tr><tr><td>Richland County</td><td>38077</td><td>2043</td><td>0.575015</td><td>0.424985</td></tr><tr><td>Richland County</td><td>38077</td><td>2044</td><td>0.574855</td><td>0.425145</td></tr><tr><td>Richland County</td><td>38077</td><td>2045</td><td>0.574696</td><td>0.425304</td></tr><tr><td>Richland County</td><td>38077</td><td>2046</td><td>0.574538</td><td>0.425462</td></tr><tr><td>Richland County</td><td>38077</td><td>2047</td><td>0.574381</td><td>0.425619</td></tr><tr><td>Richland County</td><td>38077</td><td>2048</td><td>0.574225</td><td>0.425775</td></tr><tr><td>Richland County</td><td>38077</td><td>2049</td><td>0.574071</td><td>0.425929</td></tr><tr><td>Richland County</td><td>38077</td><td>2050</td><td>0.573918</td><td>0.426082</td></tr><tr><td>Richland County</td><td>38077</td><td>2051</td><td>0.573765</td><td>0.426235</td></tr><tr><td>Richland County</td><td>38077</td><td>2052</td><td>0.573614</td><td>0.426386</td></tr><tr><td>Richland County</td><td>38077</td><td>2053</td><td>0.573464</td><td>0.426536</td></tr><tr><td>Richland County</td><td>38077</td><td>2054</td><td>0.573315</td><td>0.426685</td></tr><tr><td>Richland County</td><td>38077</td><td>2055</td><td>0.573167</td><td>0.426833</td></tr><tr><td>Rolette County</td><td>38079</td><td>2026</td><td>0.145879</td><td>0.854121</td></tr><tr><td>Rolette County</td><td>38079</td><td>2027</td><td>0.145928</td><td>0.854072</td></tr><tr><td>Rolette County</td><td>38079</td><td>2028</td><td>0.145978</td><td>0.854022</td></tr><tr><td>Rolette County</td><td>38079</td><td>2029</td><td>0.146027</td><td>0.853973</td></tr><tr><td>Rolette County</td><td>38079</td><td>2030</td><td>0.146077</td><td>0.853923</td></tr><tr><td>Rolette County</td><td>38079</td><td>2031</td><td>0.146126</td><td>0.853874</td></tr><tr><td>Rolette County</td><td>38079</td><td>2032</td><td>0.146176</td><td>0.853824</td></tr><tr><td>Rolette County</td><td>38079</td><td>2033</td><td>0.146225</td><td>0.853775</td></tr><tr><td>Rolette County</td><td>38079</td><td>2034</td><td>0.146275</td><td>0.853725</td></tr><tr><td>Rolette County</td><td>38079</td><td>2035</td><td>0.146325</td><td>0.853675</td></tr><tr><td>Rolette County</td><td>38079</td><td>2036</td><td>0.146374</td><td>0.853626</td></tr><tr><td>Rolette County</td><td>38079</td><td>2037</td><td>0.146424</td><td>0.853576</td></tr><tr><td>Rolette County</td><td>38079</td><td>2038</td><td>0.146474</td><td>0.853526</td></tr><tr><td>Rolette County</td><td>38079</td><td>2039</td><td>0.146523</td><td>0.853477</td></tr><tr><td>Rolette County</td><td>38079</td><td>2040</td><td>0.146573</td><td>0.853427</td></tr><tr><td>Rolette County</td><td>38079</td><td>2041</td><td>0.146623</td><td>0.853377</td></tr><tr><td>Rolette County</td><td>38079</td><td>2042</td><td>0.146672</td><td>0.853328</td></tr><tr><td>Rolette County</td><td>38079</td><td>2043</td><td>0.146722</td><td>0.853278</td></tr><tr><td>Rolette County</td><td>38079</td><td>2044</td><td>0.146772</td><td>0.853228</td></tr><tr><td>Rolette County</td><td>38079</td><td>2045</td><td>0.146822</td><td>0.853178</td></tr><tr><td>Rolette County</td><td>38079</td><td>2046</td><td>0.146871</td><td>0.853129</td></tr><tr><td>Rolette County</td><td>38079</td><td>2047</td><td>0.146921</td><td>0.853079</td></tr><tr><td>Rolette County</td><td>38079</td><td>2048</td><td>0.146971</td><td>0.853029</td></tr><tr><td>Rolette County</td><td>38079</td><td>2049</td><td>0.147021</td><td>0.852979</td></tr><tr><td>Rolette County</td><td>38079</td><td>2050</td><td>0.147071</td><td>0.852929</td></tr><tr><td>Rolette County</td><td>38079</td><td>2051</td><td>0.147121</td><td>0.852879</td></tr><tr><td>Rolette County</td><td>38079</td><td>2052</td><td>0.147170</td><td>0.852830</td></tr><tr><td>Rolette County</td><td>38079</td><td>2053</td><td>0.147220</td><td>0.852780</td></tr><tr><td>Rolette County</td><td>38079</td><td>2054</td><td>0.147270</td><td>0.852730</td></tr><tr><td>Rolette County</td><td>38079</td><td>2055</td><td>0.147320</td><td>0.852680</td></tr><tr><td>Sargent County</td><td>38081</td><td>2025</td><td>0.413663</td><td>0.586337</td></tr><tr><td>Sargent County</td><td>38081</td><td>2026</td><td>0.416275</td><td>0.583725</td></tr><tr><td>Sargent County</td><td>38081</td><td>2027</td><td>0.419611</td><td>0.580389</td></tr><tr><td>Sargent County</td><td>38081</td><td>2028</td><td>0.422955</td><td>0.577045</td></tr><tr><td>Sargent County</td><td>38081</td><td>2029</td><td>0.426305</td><td>0.573695</td></tr><tr><td>Sargent County</td><td>38081</td><td>2030</td><td>0.429662</td><td>0.570338</td></tr><tr><td>Sargent County</td><td>38081</td><td>2031</td><td>0.433026</td><td>0.566974</td></tr><tr><td>Sargent County</td><td>38081</td><td>2032</td><td>0.436396</td><td>0.563604</td></tr><tr><td>Sargent County</td><td>38081</td><td>2033</td><td>0.439772</td><td>0.560228</td></tr><tr><td>Sargent County</td><td>38081</td><td>2034</td><td>0.443153</td><td>0.556847</td></tr><tr><td>Sargent County</td><td>38081</td><td>2035</td><td>0.446540</td><td>0.553460</td></tr><tr><td>Sargent County</td><td>38081</td><td>2036</td><td>0.449931</td><td>0.550069</td></tr><tr><td>Sargent County</td><td>38081</td><td>2037</td><td>0.453328</td><td>0.546672</td></tr><tr><td>Sargent County</td><td>38081</td><td>2038</td><td>0.456728</td><td>0.543272</td></tr><tr><td>Sargent County</td><td>38081</td><td>2039</td><td>0.460133</td><td>0.539867</td></tr><tr><td>Sargent County</td><td>38081</td><td>2040</td><td>0.463541</td><td>0.536459</td></tr><tr><td>Sargent County</td><td>38081</td><td>2041</td><td>0.466953</td><td>0.533047</td></tr><tr><td>Sargent County</td><td>38081</td><td>2042</td><td>0.470368</td><td>0.529632</td></tr><tr><td>Sargent County</td><td>38081</td><td>2043</td><td>0.473786</td><td>0.526214</td></tr><tr><td>Sargent County</td><td>38081</td><td>2044</td><td>0.477206</td><td>0.522794</td></tr><tr><td>Sargent County</td><td>38081</td><td>2045</td><td>0.480628</td><td>0.519372</td></tr><tr><td>Sargent County</td><td>38081</td><td>2046</td><td>0.484052</td><td>0.515948</td></tr><tr><td>Sargent County</td><td>38081</td><td>2047</td><td>0.487478</td><td>0.512522</td></tr><tr><td>Sargent County</td><td>38081</td><td>2048</td><td>0.490905</td><td>0.509095</td></tr><tr><td>Sargent County</td><td>38081</td><td>2049</td><td>0.494332</td><td>0.505668</td></tr><tr><td>Sargent County</td><td>38081</td><td>2050</td><td>0.497760</td><td>0.502240</td></tr><tr><td>Sargent County</td><td>38081</td><td>2051</td><td>0.501189</td><td>0.498811</td></tr><tr><td>Sargent County</td><td>38081</td><td>2052</td><td>0.504617</td><td>0.495383</td></tr><tr><td>Sargent County</td><td>38081</td><td>2053</td><td>0.508045</td><td>0.491955</td></tr><tr><td>Sargent County</td><td>38081</td><td>2054</td><td>0.511472</td><td>0.488528</td></tr><tr><td>Sargent County</td><td>38081</td><td>2055</td><td>0.514898</td><td>0.485102</td></tr><tr><td>Stark County</td><td>38089</td><td>2025</td><td>0.824058</td><td>0.175942</td></tr><tr><td>Stark County</td><td>38089</td><td>2026</td><td>0.824677</td><td>0.175323</td></tr><tr><td>Stark County</td><td>38089</td><td>2027</td><td>0.825273</td><td>0.174727</td></tr><tr><td>Stark County</td><td>38089</td><td>2028</td><td>0.825867</td><td>0.174133</td></tr><tr><td>Stark County</td><td>38089</td><td>2029</td><td>0.826459</td><td>0.173541</td></tr><tr><td>Stark County</td><td>38089</td><td>2030</td><td>0.827050</td><td>0.172950</td></tr><tr><td>Stark County</td><td>38089</td><td>2031</td><td>0.827639</td><td>0.172361</td></tr><tr><td>Stark County</td><td>38089</td><td>2032</td><td>0.828226</td><td>0.171774</td></tr><tr><td>Stark County</td><td>38089</td><td>2033</td><td>0.828812</td><td>0.171188</td></tr><tr><td>Stark County</td><td>38089</td><td>2034</td><td>0.829397</td><td>0.170603</td></tr><tr><td>Stark County</td><td>38089</td><td>2035</td><td>0.829979</td><td>0.170021</td></tr><tr><td>Stark County</td><td>38089</td><td>2036</td><td>0.830561</td><td>0.169439</td></tr><tr><td>Stark County</td><td>38089</td><td>2037</td><td>0.831140</td><td>0.168860</td></tr><tr><td>Stark County</td><td>38089</td><td>2038</td><td>0.831718</td><td>0.168282</td></tr><tr><td>Stark County</td><td>38089</td><td>2039</td><td>0.832295</td><td>0.167705</td></tr><tr><td>Stark County</td><td>38089</td><td>2040</td><td>0.832870</td><td>0.167130</td></tr><tr><td>Stark County</td><td>38089</td><td>2041</td><td>0.833443</td><td>0.166557</td></tr><tr><td>Stark County</td><td>38089</td><td>2042</td><td>0.834015</td><td>0.165985</td></tr><tr><td>Stark County</td><td>38089</td><td>2043</td><td>0.834585</td><td>0.165415</td></tr><tr><td>Stark County</td><td>38089</td><td>2044</td><td>0.835153</td><td>0.164847</td></tr><tr><td>Stark County</td><td>38089</td><td>2045</td><td>0.835720</td><td>0.164280</td></tr><tr><td>Stark County</td><td>38089</td><td>2046</td><td>0.836286</td><td>0.163714</td></tr><tr><td>Stark County</td><td>38089</td><td>2047</td><td>0.836850</td><td>0.163150</td></tr><tr><td>Stark County</td><td>38089</td><td>2048</td><td>0.837412</td><td>0.162588</td></tr><tr><td>Stark County</td><td>38089</td><td>2049</td><td>0.837973</td><td>0.162027</td></tr><tr><td>Stark County</td><td>38089</td><td>2050</td><td>0.838532</td><td>0.161468</td></tr><tr><td>Stark County</td><td>38089</td><td>2051</td><td>0.839090</td><td>0.160910</td></tr><tr><td>Stark County</td><td>38089</td><td>2052</td><td>0.839646</td><td>0.160354</td></tr><tr><td>Stark County</td><td>38089</td><td>2053</td><td>0.840200</td><td>0.159800</td></tr><tr><td>Stark County</td><td>38089</td><td>2054</td><td>0.840753</td><td>0.159247</td></tr><tr><td>Stark County</td><td>38089</td><td>2055</td><td>0.841305</td><td>0.158695</td></tr><tr><td>Traill County</td><td>38097</td><td>2025</td><td>0.600229</td><td>0.399771</td></tr><tr><td>Traill County</td><td>38097</td><td>2026</td><td>0.600345</td><td>0.399655</td></tr><tr><td>Traill County</td><td>38097</td><td>2027</td><td>0.600518</td><td>0.399482</td></tr><tr><td>Traill County</td><td>38097</td><td>2028</td><td>0.600691</td><td>0.399309</td></tr><tr><td>Traill County</td><td>38097</td><td>2029</td><td>0.600864</td><td>0.399136</td></tr><tr><td>Traill County</td><td>38097</td><td>2030</td><td>0.601037</td><td>0.398963</td></tr><tr><td>Traill County</td><td>38097</td><td>2031</td><td>0.601210</td><td>0.398790</td></tr><tr><td>Traill County</td><td>38097</td><td>2032</td><td>0.601382</td><td>0.398618</td></tr><tr><td>Traill County</td><td>38097</td><td>2033</td><td>0.601555</td><td>0.398445</td></tr><tr><td>Traill County</td><td>38097</td><td>2034</td><td>0.601728</td><td>0.398272</td></tr><tr><td>Traill County</td><td>38097</td><td>2035</td><td>0.601901</td><td>0.398099</td></tr><tr><td>Traill County</td><td>38097</td><td>2036</td><td>0.602074</td><td>0.397926</td></tr><tr><td>Traill County</td><td>38097</td><td>2037</td><td>0.602246</td><td>0.397754</td></tr><tr><td>Traill County</td><td>38097</td><td>2038</td><td>0.602419</td><td>0.397581</td></tr><tr><td>Traill County</td><td>38097</td><td>2039</td><td>0.602592</td><td>0.397408</td></tr><tr><td>Traill County</td><td>38097</td><td>2040</td><td>0.602764</td><td>0.397236</td></tr><tr><td>Traill County</td><td>38097</td><td>2041</td><td>0.602937</td><td>0.397063</td></tr><tr><td>Traill County</td><td>38097</td><td>2042</td><td>0.603109</td><td>0.396891</td></tr><tr><td>Traill County</td><td>38097</td><td>2043</td><td>0.603282</td><td>0.396718</td></tr><tr><td>Traill County</td><td>38097</td><td>2044</td><td>0.603455</td><td>0.396545</td></tr><tr><td>Traill County</td><td>38097</td><td>2045</td><td>0.603627</td><td>0.396373</td></tr><tr><td>Traill County</td><td>38097</td><td>2046</td><td>0.603800</td><td>0.396200</td></tr><tr><td>Traill County</td><td>38097</td><td>2047</td><td>0.603972</td><td>0.396028</td></tr><tr><td>Traill County</td><td>38097</td><td>2048</td><td>0.604144</td><td>0.395856</td></tr><tr><td>Traill County</td><td>38097</td><td>2049</td><td>0.604317</td><td>0.395683</td></tr><tr><td>Traill County</td><td>38097</td><td>2050</td><td>0.604489</td><td>0.395511</td></tr><tr><td>Traill County</td><td>38097</td><td>2051</td><td>0.604662</td><td>0.395338</td></tr><tr><td>Traill County</td><td>38097</td><td>2052</td><td>0.604834</td><td>0.395166</td></tr><tr><td>Traill County</td><td>38097</td><td>2053</td><td>0.605006</td><td>0.394994</td></tr><tr><td>Traill County</td><td>38097</td><td>2054</td><td>0.605179</td><td>0.394821</td></tr><tr><td>Traill County</td><td>38097</td><td>2055</td><td>0.605351</td><td>0.394649</td></tr><tr><td>Walsh County</td><td>38099</td><td>2025</td><td>0.593011</td><td>0.406989</td></tr><tr><td>Walsh County</td><td>38099</td><td>2026</td><td>0.594202</td><td>0.405798</td></tr><tr><td>Walsh County</td><td>38099</td><td>2027</td><td>0.595467</td><td>0.404533</td></tr><tr><td>Walsh County</td><td>38099</td><td>2028</td><td>0.596731</td><td>0.403269</td></tr><tr><td>Walsh County</td><td>38099</td><td>2029</td><td>0.597994</td><td>0.402006</td></tr><tr><td>Walsh County</td><td>38099</td><td>2030</td><td>0.599255</td><td>0.400745</td></tr><tr><td>Walsh County</td><td>38099</td><td>2031</td><td>0.600515</td><td>0.399485</td></tr><tr><td>Walsh County</td><td>38099</td><td>2032</td><td>0.601773</td><td>0.398227</td></tr><tr><td>Walsh County</td><td>38099</td><td>2033</td><td>0.603030</td><td>0.396970</td></tr><tr><td>Walsh County</td><td>38099</td><td>2034</td><td>0.604286</td><td>0.395714</td></tr><tr><td>Walsh County</td><td>38099</td><td>2035</td><td>0.605541</td><td>0.394459</td></tr><tr><td>Walsh County</td><td>38099</td><td>2036</td><td>0.606794</td><td>0.393206</td></tr><tr><td>Walsh County</td><td>38099</td><td>2037</td><td>0.608046</td><td>0.391954</td></tr><tr><td>Walsh County</td><td>38099</td><td>2038</td><td>0.609296</td><td>0.390704</td></tr><tr><td>Walsh County</td><td>38099</td><td>2039</td><td>0.610545</td><td>0.389455</td></tr><tr><td>Walsh County</td><td>38099</td><td>2040</td><td>0.611792</td><td>0.388208</td></tr><tr><td>Walsh County</td><td>38099</td><td>2041</td><td>0.613038</td><td>0.386962</td></tr><tr><td>Walsh County</td><td>38099</td><td>2042</td><td>0.614283</td><td>0.385717</td></tr><tr><td>Walsh County</td><td>38099</td><td>2043</td><td>0.615526</td><td>0.384474</td></tr><tr><td>Walsh County</td><td>38099</td><td>2044</td><td>0.616767</td><td>0.383233</td></tr><tr><td>Walsh County</td><td>38099</td><td>2045</td><td>0.618007</td><td>0.381993</td></tr><tr><td>Walsh County</td><td>38099</td><td>2046</td><td>0.619245</td><td>0.380755</td></tr><tr><td>Walsh County</td><td>38099</td><td>2047</td><td>0.620482</td><td>0.379518</td></tr><tr><td>Walsh County</td><td>38099</td><td>2048</td><td>0.621718</td><td>0.378282</td></tr><tr><td>Walsh County</td><td>38099</td><td>2049</td><td>0.622951</td><td>0.377049</td></tr><tr><td>Walsh County</td><td>38099</td><td>2050</td><td>0.624183</td><td>0.375817</td></tr><tr><td>Walsh County</td><td>38099</td><td>2051</td><td>0.625414</td><td>0.374586</td></tr><tr><td>Walsh County</td><td>38099</td><td>2052</td><td>0.626643</td><td>0.373357</td></tr><tr><td>Walsh County</td><td>38099</td><td>2053</td><td>0.627870</td><td>0.372130</td></tr><tr><td>Walsh County</td><td>38099</td><td>2054</td><td>0.629096</td><td>0.370904</td></tr><tr><td>Walsh County</td><td>38099</td><td>2055</td><td>0.630320</td><td>0.369680</td></tr><tr><td>Ward County</td><td>38101</td><td>2025</td><td>0.758684</td><td>0.241316</td></tr><tr><td>Ward County</td><td>38101</td><td>2026</td><td>0.760131</td><td>0.239869</td></tr><tr><td>Ward County</td><td>38101</td><td>2027</td><td>0.761681</td><td>0.238319</td></tr><tr><td>Ward County</td><td>38101</td><td>2028</td><td>0.763224</td><td>0.236776</td></tr><tr><td>Ward County</td><td>38101</td><td>2029</td><td>0.764760</td><td>0.235240</td></tr><tr><td>Ward County</td><td>38101</td><td>2030</td><td>0.766290</td><td>0.233710</td></tr><tr><td>Ward County</td><td>38101</td><td>2031</td><td>0.767812</td><td>0.232188</td></tr><tr><td>Ward County</td><td>38101</td><td>2032</td><td>0.769327</td><td>0.230673</td></tr><tr><td>Ward County</td><td>38101</td><td>2033</td><td>0.770836</td><td>0.229164</td></tr><tr><td>Ward County</td><td>38101</td><td>2034</td><td>0.772337</td><td>0.227663</td></tr><tr><td>Ward County</td><td>38101</td><td>2035</td><td>0.773832</td><td>0.226168</td></tr><tr><td>Ward County</td><td>38101</td><td>2036</td><td>0.775319</td><td>0.224681</td></tr><tr><td>Ward County</td><td>38101</td><td>2037</td><td>0.776800</td><td>0.223200</td></tr><tr><td>Ward County</td><td>38101</td><td>2038</td><td>0.778274</td><td>0.221726</td></tr><tr><td>Ward County</td><td>38101</td><td>2039</td><td>0.779740</td><td>0.220260</td></tr><tr><td>Ward County</td><td>38101</td><td>2040</td><td>0.781200</td><td>0.218800</td></tr><tr><td>Ward County</td><td>38101</td><td>2041</td><td>0.782653</td><td>0.217347</td></tr><tr><td>Ward County</td><td>38101</td><td>2042</td><td>0.784099</td><td>0.215901</td></tr><tr><td>Ward County</td><td>38101</td><td>2043</td><td>0.785537</td><td>0.214463</td></tr><tr><td>Ward County</td><td>38101</td><td>2044</td><td>0.786969</td><td>0.213031</td></tr><tr><td>Ward County</td><td>38101</td><td>2045</td><td>0.788394</td><td>0.211606</td></tr><tr><td>Ward County</td><td>38101</td><td>2046</td><td>0.789812</td><td>0.210188</td></tr><tr><td>Ward County</td><td>38101</td><td>2047</td><td>0.791223</td><td>0.208777</td></tr><tr><td>Ward County</td><td>38101</td><td>2048</td><td>0.792626</td><td>0.207374</td></tr><tr><td>Ward County</td><td>38101</td><td>2049</td><td>0.794023</td><td>0.205977</td></tr><tr><td>Ward County</td><td>38101</td><td>2050</td><td>0.795413</td><td>0.204587</td></tr><tr><td>Ward County</td><td>38101</td><td>2051</td><td>0.796796</td><td>0.203204</td></tr><tr><td>Ward County</td><td>38101</td><td>2052</td><td>0.798172</td><td>0.201828</td></tr><tr><td>Ward County</td><td>38101</td><td>2053</td><td>0.799541</td><td>0.200459</td></tr><tr><td>Ward County</td><td>38101</td><td>2054</td><td>0.800903</td><td>0.199097</td></tr><tr><td>Ward County</td><td>38101</td><td>2055</td><td>0.802258</td><td>0.197742</td></tr><tr><td>Williams County</td><td>38105</td><td>2025</td><td>0.805101</td><td>0.194899</td></tr><tr><td>Williams County</td><td>38105</td><td>2026</td><td>0.805685</td><td>0.194315</td></tr><tr><td>Williams County</td><td>38105</td><td>2027</td><td>0.806213</td><td>0.193787</td></tr><tr><td>Williams County</td><td>38105</td><td>2028</td><td>0.806740</td><td>0.193260</td></tr><tr><td>Williams County</td><td>38105</td><td>2029</td><td>0.807266</td><td>0.192734</td></tr><tr><td>Williams County</td><td>38105</td><td>2030</td><td>0.807790</td><td>0.192210</td></tr><tr><td>Williams County</td><td>38105</td><td>2031</td><td>0.808314</td><td>0.191686</td></tr><tr><td>Williams County</td><td>38105</td><td>2032</td><td>0.808836</td><td>0.191164</td></tr><tr><td>Williams County</td><td>38105</td><td>2033</td><td>0.809357</td><td>0.190643</td></tr><tr><td>Williams County</td><td>38105</td><td>2034</td><td>0.809878</td><td>0.190122</td></tr><tr><td>Williams County</td><td>38105</td><td>2035</td><td>0.810397</td><td>0.189603</td></tr><tr><td>Williams County</td><td>38105</td><td>2036</td><td>0.810915</td><td>0.189085</td></tr><tr><td>Williams County</td><td>38105</td><td>2037</td><td>0.811432</td><td>0.188568</td></tr><tr><td>Williams County</td><td>38105</td><td>2038</td><td>0.811948</td><td>0.188052</td></tr><tr><td>Williams County</td><td>38105</td><td>2039</td><td>0.812463</td><td>0.187537</td></tr><tr><td>Williams County</td><td>38105</td><td>2040</td><td>0.812976</td><td>0.187024</td></tr><tr><td>Williams County</td><td>38105</td><td>2041</td><td>0.813489</td><td>0.186511</td></tr><tr><td>Williams County</td><td>38105</td><td>2042</td><td>0.814001</td><td>0.185999</td></tr><tr><td>Williams County</td><td>38105</td><td>2043</td><td>0.814511</td><td>0.185489</td></tr><tr><td>Williams County</td><td>38105</td><td>2044</td><td>0.815021</td><td>0.184979</td></tr><tr><td>Williams County</td><td>38105</td><td>2045</td><td>0.815529</td><td>0.184471</td></tr><tr><td>Williams County</td><td>38105</td><td>2046</td><td>0.816036</td><td>0.183964</td></tr><tr><td>Williams County</td><td>38105</td><td>2047</td><td>0.816542</td><td>0.183458</td></tr><tr><td>Williams County</td><td>38105</td><td>2048</td><td>0.817047</td><td>0.182953</td></tr><tr><td>Williams County</td><td>38105</td><td>2049</td><td>0.817551</td><td>0.182449</td></tr><tr><td>Williams County</td><td>38105</td><td>2050</td><td>0.818054</td><td>0.181946</td></tr><tr><td>Williams County</td><td>38105</td><td>2051</td><td>0.818556</td><td>0.181444</td></tr><tr><td>Williams County</td><td>38105</td><td>2052</td><td>0.819057</td><td>0.180943</td></tr><tr><td>Williams County</td><td>38105</td><td>2053</td><td>0.819557</td><td>0.180443</td></tr><tr><td>Williams County</td><td>38105</td><td>2054</td><td>0.820055</td><td>0.179945</td></tr><tr><td>Williams County</td><td>38105</td><td>2055</td><td>0.820553</td><td>0.179447</td></tr></tbody></table></div></details>
+          </div>
+          <div class="panel">
+            <h3>Relevant Visuals</h3>
+            <div class="viz-grid">
+                <div class="viz-card">
+                  <h4 class="viz-title">Top Counties by Rescaling Incidence</h4>
+                  <img class="expandable-chart" src="assets/pp3-human-review/20260301_105547/baseline_rescaling_top_counties.svg" alt="Gate 4: Rescaling Behavior - Top Counties by Rescaling Incidence" />
+                  <p class="viz-caption"><strong>What this shows:</strong> Horizontal bars rank counties by count of county-years where share rescaling was applied.</p>
+                  <p class="viz-caption"><strong>How to interpret:</strong> Concentration in known volatile counties can be acceptable. Broad or unexpected spread across many counties may suggest overactive reconciliation.</p>
+                  <p class="viz-rule"><strong>Decision rule:</strong> Approve with notes when rescaling is concentrated in substantively plausible counties; request change if rescaling is widespread without explanation.</p>
+                  <p class="viz-reason"><strong>Why this rule:</strong> Some local volatility is expected, but broad rescaling can indicate over-correction or unstable share inputs.</p>
+                  <p class="viz-hint">Click chart to expand full-screen. Use Prev/Next or ←/→ keys in full-screen mode.</p>
+                </div>
+                
+                <div class="viz-card">
+                  <h4 class="viz-title">Rescaling Concentration (Cumulative Share)</h4>
+                  <img class="expandable-chart" src="assets/pp3-human-review/20260301_105547/baseline_rescaling_concentration.svg" alt="Gate 4: Rescaling Behavior - Rescaling Concentration (Cumulative Share)" />
+                  <p class="viz-caption"><strong>What this shows:</strong> A cumulative curve of rescaling incidence when counties are ranked from most to least rescaling-applied county-years.</p>
+                  <p class="viz-caption"><strong>How to interpret:</strong> A steep early curve indicates rescaling is concentrated in a few counties. A near-linear curve indicates rescaling is broadly distributed across counties.</p>
+                  <p class="viz-rule"><strong>Decision rule:</strong> Approve with notes when a small subset of counties explains most rescaling; request change if rescaling is diffuse across many counties without a clear substantive rationale.</p>
+                  <p class="viz-reason"><strong>Why this rule:</strong> Controlled reconciliation typically appears as localized adjustments. Broad distribution can indicate systemic share instability.</p>
+                  <p class="viz-hint">Click chart to expand full-screen. Use Prev/Next or ←/→ keys in full-screen mode.</p>
+                </div>
+                </div>
+          </div>
+        </section>
+        
+        <section id="gate-growth" class="tab-panel">
+          <h2>Gate 5: Tier Growth Pattern Sanity <span class='gate-status review'>REVIEW</span></h2>
+          <div class="panel">
+            <p><strong>What we are checking:</strong> Inspect growth distributions by tier/scenario for patterns inconsistent with expected uncertainty structure.</p>
+            <p><strong>Agent analysis:</strong> Tier-level growth distributions show broader spread in LOWER and MODERATE tiers, as expected. Outlier tails exist and should be acknowledged in caveats, not automatically blocked.</p>
+            <p><strong>Suggested decision:</strong> <span class='decision'>Approve with notes</span></p>
+            <p><strong>Reviewer decision:</strong> [ ] Approve  [ ] Approve with notes  [ ] Request change</p>
+          </div>
+          <div class="panel">
+            <h3>Summary Statistics</h3>
+            <table><thead><tr><th>Scenario</th><th>Tier</th><th>Count</th><th>Mean</th><th>Median</th><th>Min</th><th>Max</th></tr></thead><tbody><tr><td>baseline</td><td>HIGH</td><td>9</td><td>0.2157</td><td>0.1155</td><td>-0.1149</td><td>0.7091</td></tr><tr><td>baseline</td><td>MODERATE</td><td>9</td><td>0.4596</td><td>-0.1009</td><td>-0.2224</td><td>1.9475</td></tr><tr><td>baseline</td><td>LOWER</td><td>72</td><td>-0.0842</td><td>-0.1457</td><td>-0.5098</td><td>1.1991</td></tr><tr><td>restricted_growth</td><td>HIGH</td><td>9</td><td>0.1411</td><td>0.0538</td><td>-0.1690</td><td>0.6004</td></tr><tr><td>restricted_growth</td><td>MODERATE</td><td>9</td><td>0.3723</td><td>-0.1525</td><td>-0.2657</td><td>1.7625</td></tr><tr><td>restricted_growth</td><td>LOWER</td><td>72</td><td>-0.1377</td><td>-0.1936</td><td>-0.5398</td><td>1.0592</td></tr><tr><td>high_growth</td><td>HIGH</td><td>9</td><td>0.4574</td><td>0.4469</td><td>0.1618</td><td>0.9170</td></tr><tr><td>high_growth</td><td>MODERATE</td><td>9</td><td>0.7623</td><td>0.2635</td><td>0.0465</td><td>2.1847</td></tr><tr><td>high_growth</td><td>LOWER</td><td>72</td><td>0.2004</td><td>0.1077</td><td>-0.3012</td><td>1.4666</td></tr></tbody></table>
+          </div>
+          <div class="panel">
+            <h3>Relevant Visuals</h3>
+            <div class="viz-grid">
+                <div class="viz-card">
+                  <h4 class="viz-title">Growth-Rate Distribution by Tier and Scenario</h4>
+                  <img class="expandable-chart" src="assets/pp3-human-review/20260301_105547/growth_rate_boxplots_by_scenario.svg" alt="Gate 5: Tier Growth Pattern Sanity - Growth-Rate Distribution by Tier and Scenario" />
+                  <p class="viz-caption"><strong>What this shows:</strong> Per-scenario boxplots summarize 2025-2055 place growth-rate distributions for HIGH, MODERATE, and LOWER confidence tiers.</p>
+                  <p class="viz-caption"><strong>How to interpret:</strong> LOWER and MODERATE tiers should generally show wider spread than HIGH. Extreme tails should be reviewed for plausibility rather than auto-failed.</p>
+                  <p class="viz-rule"><strong>Decision rule:</strong> Approve with notes if uncertainty spread is directionally sensible by tier and outlier tails are plausible; request change only for clear structural anomalies.</p>
+                  <p class="viz-reason"><strong>Why this rule:</strong> Confidence tiers encode uncertainty expectations, so distribution width should reflect tiering, while rare extremes may still be demographically plausible.</p>
+                  <p class="viz-hint">Click chart to expand full-screen. Use Prev/Next or ←/→ keys in full-screen mode.</p>
+                </div>
+                </div>
+          </div>
+        </section>
+        
+        <section id="gate-outliers" class="tab-panel">
+          <h2>Gate 6: Outlier Flag Review <span class='gate-status review'>REVIEW</span></h2>
+          <div class="panel">
+            <p><strong>What we are checking:</strong> Review flagged places/types and decide whether any require narrative handling or exclusions.</p>
+            <p><strong>Agent analysis:</strong> Flag mix is stable across scenarios and dominated by SHARE_RESCALED plus a smaller SHARE_REVERSAL set. Current pattern looks plausible for focused manual review without blocking the pipeline.</p>
+            <p><strong>Suggested decision:</strong> <span class='decision'>Approve with notes</span></p>
+            <p><strong>Reviewer decision:</strong> [ ] Approve  [ ] Approve with notes  [ ] Request change</p>
+          </div>
+          <div class="panel">
+            <h3>Summary Statistics</h3>
+            <table><thead><tr><th>Scenario</th><th>Flag Type</th><th>Count</th></tr></thead><tbody><tr><td>baseline</td><td>SHARE_RESCALED</td><td>20</td></tr><tr><td>baseline</td><td>SHARE_REVERSAL</td><td>11</td></tr><tr><td>high_growth</td><td>SHARE_RESCALED</td><td>20</td></tr><tr><td>high_growth</td><td>SHARE_REVERSAL</td><td>11</td></tr><tr><td>restricted_growth</td><td>SHARE_RESCALED</td><td>20</td></tr><tr><td>restricted_growth</td><td>SHARE_REVERSAL</td><td>11</td></tr></tbody></table>
+          </div>
+          <div class="panel">
+            <h3>Relevant Visuals</h3>
+            <div class="viz-grid">
+                <div class="viz-card">
+                  <h4 class="viz-title">Outlier Flags by Scenario and Type</h4>
+                  <img class="expandable-chart" src="assets/pp3-human-review/20260301_105547/outlier_counts_by_scenario.svg" alt="Gate 6: Outlier Flag Review - Outlier Flags by Scenario and Type" />
+                  <p class="viz-caption"><strong>What this shows:</strong> Stacked bars break total outlier flags into flag types for each scenario.</p>
+                  <p class="viz-caption"><strong>How to interpret:</strong> Use this to check whether flag composition is stable across scenarios. A sudden surge in one type may indicate scenario-specific modeling artifacts.</p>
+                  <p class="viz-rule"><strong>Decision rule:</strong> Approve with notes when type mix is broadly stable across scenarios; request change if one scenario shows a material unexplained spike in a flag type.</p>
+                  <p class="viz-reason"><strong>Why this rule:</strong> Scenario variants should shift levels modestly, but abrupt composition changes can signal unintended scenario-specific behavior.</p>
+                  <p class="viz-hint">Click chart to expand full-screen. Use Prev/Next or ←/→ keys in full-screen mode.</p>
+                </div>
+                
+                <div class="viz-card">
+                  <h4 class="viz-title">Top Places by Outlier Flag Count</h4>
+                  <img class="expandable-chart" src="assets/pp3-human-review/20260301_105547/baseline_top_flagged_places.svg" alt="Gate 6: Outlier Flag Review - Top Places by Outlier Flag Count" />
+                  <p class="viz-caption"><strong>What this shows:</strong> Horizontal bars list places with the highest number of outlier flags in the focal scenario.</p>
+                  <p class="viz-caption"><strong>How to interpret:</strong> Use this as a triage list for narrative review. Repeatedly flagged places are prime candidates for explanatory notes or targeted QA checks.</p>
+                  <p class="viz-rule"><strong>Decision rule:</strong> Approve with notes when top flagged places have plausible local explanations or are explicitly documented in narrative caveats.</p>
+                  <p class="viz-reason"><strong>Why this rule:</strong> This chart is a prioritization device for human judgment, not a hard-fail gate; high-frequency flags should be explained, not ignored.</p>
+                  <p class="viz-hint">Click chart to expand full-screen. Use Prev/Next or ←/→ keys in full-screen mode.</p>
+                </div>
+                </div>
+          </div>
+        </section>
+        
+        <section id="gate-ordering" class="tab-panel">
+          <h2>Gate 7: State Scenario Ordering <span class='gate-status pass'>PASS</span></h2>
+          <div class="panel">
+            <p><strong>What we are checking:</strong> Verify state totals preserve restricted_growth &lt;= baseline &lt;= high_growth for each projection year.</p>
+            <p><strong>Agent analysis:</strong> State scenario ordering is preserved across all comparable years.</p>
+            <p><strong>Suggested decision:</strong> <span class='decision'>Approve</span></p>
+            <p><strong>Reviewer decision:</strong> [ ] Approve  [ ] Approve with notes  [ ] Request change</p>
+          </div>
+          <div class="panel">
+            <h3>Summary Statistics</h3>
+            <table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody><tr><td>Violation years</td><td>0</td></tr><tr><td>Min (baseline - restricted_growth)</td><td>0.00</td></tr><tr><td>Min (high_growth - baseline)</td><td>0.00</td></tr></tbody></table>
+          </div>
+          <div class="panel">
+            <h3>Relevant Visuals</h3>
+            <div class="viz-grid">
+                <div class="viz-card">
+                  <h4 class="viz-title">State Scenario Ordering Check</h4>
+                  <img class="expandable-chart" src="assets/pp3-human-review/20260301_105547/state_scenario_ordering.svg" alt="Gate 7: State Scenario Ordering - State Scenario Ordering Check" />
+                  <p class="viz-caption"><strong>What this shows:</strong> Lines compare state totals by year for restricted_growth, baseline, and high_growth scenarios.</p>
+                  <p class="viz-caption"><strong>How to interpret:</strong> For each year, restricted_growth should remain below baseline, and baseline below high_growth. Any crossing indicates ordering violations.</p>
+                  <p class="viz-rule"><strong>Decision rule:</strong> Approve only if scenario lines never cross and ordering holds for every comparable year.</p>
+                  <p class="viz-reason"><strong>Why this rule:</strong> Scenario definitions imply monotonic state totals; line crossings contradict intended scenario semantics.</p>
+                  <p class="viz-hint">Click chart to expand full-screen. Use Prev/Next or ←/→ keys in full-screen mode.</p>
+                </div>
+                </div>
+          </div>
+        </section>
+        
+        <section id="gate-universe" class="tab-panel">
+          <h2>Gate 8: Output Universe and Non-Negative Populations <span class='gate-status pass'>PASS</span></h2>
+          <div class="panel">
+            <p><strong>What we are checking:</strong> Confirm output place universe matches crosswalk and no negative place populations appear in parquet outputs.</p>
+            <p><strong>Agent analysis:</strong> Output universe parity is exact and parquet population scans found no negative rows.</p>
+            <p><strong>Suggested decision:</strong> <span class='decision'>Approve</span></p>
+            <p><strong>Reviewer decision:</strong> [ ] Approve  [ ] Approve with notes  [ ] Request change</p>
+          </div>
+          <div class="panel">
+            <h3>Summary Statistics</h3>
+            <table><thead><tr><th>Scenario</th><th>Expected</th><th>Produced</th><th>Missing</th><th>Extra</th><th>Missing sample</th><th>Extra sample</th></tr></thead><tbody><tr><td>baseline</td><td>90</td><td>90</td><td>0</td><td>0</td><td></td><td></td></tr><tr><td>restricted_growth</td><td>90</td><td>90</td><td>0</td><td>0</td><td></td><td></td></tr><tr><td>high_growth</td><td>90</td><td>90</td><td>0</td><td>0</td><td></td><td></td></tr></tbody></table><table><thead><tr><th>Scenario</th><th>Place parquet files</th><th>Negative rows</th><th>Min population</th></tr></thead><tbody><tr><td>baseline</td><td>90</td><td>0</td><td>12.6126</td></tr><tr><td>restricted_growth</td><td>90</td><td>0</td><td>12.6126</td></tr><tr><td>high_growth</td><td>90</td><td>0</td><td>12.6126</td></tr></tbody></table>
+          </div>
+          <div class="panel">
+            <h3>Relevant Visuals</h3>
+            <div class="viz-grid">
+                <div class="viz-card">
+                  <h4 class="viz-title">Hard-Gate Violation Counts</h4>
+                  <img class="expandable-chart" src="assets/pp3-human-review/20260301_105547/hard_gate_violation_counts.svg" alt="Gate 8: Output Universe and Non-Negative Populations - Hard-Gate Violation Counts" />
+                  <p class="viz-caption"><strong>What this shows:</strong> Bar chart reports total counts of blocking violations across share, balance, universe, non-negative population, and state ordering checks.</p>
+                  <p class="viz-caption"><strong>How to interpret:</strong> Expected count is zero for every hard gate. Any non-zero red bar should be treated as a release blocker until resolved.</p>
+                  <p class="viz-rule"><strong>Decision rule:</strong> Approve only when every hard-gate violation count is exactly zero.</p>
+                  <p class="viz-reason"><strong>Why this rule:</strong> These are non-negotiable invariants for validity of released projections; any violation means outputs are not publication-ready.</p>
+                  <p class="viz-hint">Click chart to expand full-screen. Use Prev/Next or ←/→ keys in full-screen mode.</p>
+                </div>
+                </div>
+          </div>
+        </section>
+        
+
+    <div class="panel">
+      <h3>Sign-Off</h3>
+      <p><strong>Reviewer:</strong> ____________________</p>
+      <p><strong>Date:</strong> ____________________</p>
+      <p><strong>Decision:</strong> [ ] Approved as-is  [ ] Approved with notes  [ ] Changes requested</p>
+      <p><strong>Notes:</strong></p>
+      <p style="min-height: 70px; border: 1px dashed #b8d4bc; border-radius: 6px; padding: 8px;"></p>
+    </div>
+  </div>
+
+  <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="Expanded chart view">
+    <div class="lightbox-frame">
+      <div class="lightbox-toolbar">
+        <span id="lightbox-title">Chart</span>
+        <div>
+          <button id="lightbox-prev" class="lightbox-nav" type="button" aria-label="Previous chart">Prev</button>
+          <button id="lightbox-next" class="lightbox-nav" type="button" aria-label="Next chart">Next</button>
+          <button id="lightbox-close" class="lightbox-close" type="button" aria-label="Close expanded chart">Close</button>
+        </div>
+      </div>
+      <img id="lightbox-img" class="lightbox-img" src="" alt="Expanded chart" />
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      // Tab behavior
+      const tabButtons = Array.from(document.querySelectorAll('.tab-button'));
+      const tabPanels = Array.from(document.querySelectorAll('.tab-panel'));
+      function activateTab(tabId) {
+        tabButtons.forEach((btn) => {
+          btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+        });
+        tabPanels.forEach((panel) => {
+          panel.classList.toggle('active', panel.getAttribute('id') === tabId);
+        });
+      }
+      tabButtons.forEach((btn) => {
+        btn.addEventListener('click', () => activateTab(btn.getAttribute('data-tab') || 'tab-overview'));
+      });
+
+      // Lightbox behavior
+      const lightbox = document.getElementById("lightbox");
+      const lightboxImg = document.getElementById("lightbox-img");
+      const lightboxTitle = document.getElementById("lightbox-title");
+      const closeBtn = document.getElementById("lightbox-close");
+      const prevBtn = document.getElementById("lightbox-prev");
+      const nextBtn = document.getElementById("lightbox-next");
+      const charts = Array.from(document.querySelectorAll(".expandable-chart"));
+      if (!lightbox || !lightboxImg || !lightboxTitle || !closeBtn || !prevBtn || !nextBtn || charts.length === 0) return;
+
+      let currentIndex = -1;
+
+      function openLightbox(index) {
+        if (index < 0 || index >= charts.length) return;
+        currentIndex = index;
+        const img = charts[currentIndex];
+        const src = img.getAttribute("src") || "";
+        const alt = img.getAttribute("alt") || "Chart";
+        lightboxImg.src = src;
+        lightboxImg.alt = alt;
+        lightboxTitle.textContent = alt + " (" + (currentIndex + 1) + "/" + charts.length + ")";
+        lightbox.classList.add("active");
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeLightbox() {
+        lightbox.classList.remove("active");
+        lightboxImg.src = "";
+        document.body.style.overflow = "";
+        currentIndex = -1;
+      }
+
+      function stepChart(direction) {
+        if (!lightbox.classList.contains("active") || charts.length === 0) return;
+        let nextIndex = currentIndex + direction;
+        if (nextIndex < 0) nextIndex = charts.length - 1;
+        if (nextIndex >= charts.length) nextIndex = 0;
+        openLightbox(nextIndex);
+      }
+
+      charts.forEach((img, index) => {
+        img.addEventListener("click", () => openLightbox(index));
+      });
+
+      closeBtn.addEventListener("click", closeLightbox);
+      prevBtn.addEventListener("click", () => stepChart(-1));
+      nextBtn.addEventListener("click", () => stepChart(1));
+      lightbox.addEventListener("click", (event) => {
+        if (event.target === lightbox) closeLightbox();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && lightbox.classList.contains("active")) closeLightbox();
+        else if (event.key === "ArrowLeft" && lightbox.classList.contains("active")) stepChart(-1);
+        else if (event.key === "ArrowRight" && lightbox.classList.contains("active")) stepChart(1);
+      });
+    })();
+  </script>
+</body>
+</html>

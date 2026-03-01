@@ -451,6 +451,47 @@ def build_chart_assets(
     plt.close(fig)
     chart_files["rescaling_top_counties"] = p.name
 
+    # 4b) Rescaling concentration curve (focal, all counties).
+    by_county = (
+        res.groupby(["county_fips", "county_name"], as_index=False)["rescaling_applied"]
+        .sum()
+        .rename(columns={"rescaling_applied": "rescaling_years"})
+        .sort_values("rescaling_years", ascending=False)
+        .reset_index(drop=True)
+    )
+    total_rescaling_years = float(by_county["rescaling_years"].sum())
+    fig, ax = plt.subplots(figsize=(8.8, 4.6))
+    if total_rescaling_years > 0.0:
+        ranks = np.arange(1, len(by_county) + 1, dtype=int)
+        cum_share = by_county["rescaling_years"].cumsum().to_numpy(dtype=float) / total_rescaling_years
+        ax.plot(ranks, 100.0 * cum_share, color="#2d8f5a", linewidth=2.2, marker="o", markersize=3)
+        ax.axhline(80.0, color="#a96900", linestyle="--", linewidth=1.4, label="80% threshold")
+        k80_idx = np.argmax(cum_share >= 0.8)
+        if cum_share[k80_idx] >= 0.8:
+            ax.axvline(int(ranks[k80_idx]), color="#a96900", linestyle="--", linewidth=1.4)
+            ax.text(
+                float(ranks[k80_idx]) + 0.3,
+                82.0,
+                f"{int(ranks[k80_idx])} counties cover 80%",
+                fontsize=8,
+                color="#a96900",
+            )
+        ax.set_ylim(0.0, 100.0)
+        ax.set_xlim(1.0, float(len(by_county)))
+        ax.set_xlabel("County rank (by rescaling incidence)")
+        ax.set_ylabel("Cumulative share of rescaling (%)")
+        ax.set_title(f"{focal_scenario}: Rescaling Concentration (Cumulative Share)")
+        ax.legend(fontsize=8, loc="lower right")
+    else:
+        ax.text(0.5, 0.5, "No rescaling applied\n(rescaling_applied=true count is zero).", ha="center", va="center")
+        ax.set_title(f"{focal_scenario}: Rescaling Concentration (Cumulative Share)")
+        ax.set_axis_off()
+    fig.tight_layout()
+    p = output_dir / f"{focal_scenario}_rescaling_concentration.svg"
+    fig.savefig(p, format="svg")
+    plt.close(fig)
+    chart_files["rescaling_concentration"] = p.name
+
     # 5) Growth-rate distribution by tier/scenario.
     growth_rows: list[pd.DataFrame] = []
     for data in scenarios:
@@ -581,6 +622,7 @@ def build_gates(
 ) -> list[Gate]:
     """Assemble per-gate review content and agent suggestions."""
     focal: ScenarioData = metrics["focal"]
+    focal_scenario = str(metrics["focal_scenario"])
 
     snapshot_df = pd.DataFrame(metrics["snapshot_rows"])
     share_df = pd.DataFrame(metrics["share_gate_rows"])
@@ -631,19 +673,107 @@ def build_gates(
     )
 
     rescaling_focal = focal.share_sum.copy()
+    rescaling_focal["year"] = pd.to_numeric(rescaling_focal["year"], errors="coerce").astype("Int64")
     rescaling_focal["rescaling_applied"] = rescaling_focal["rescaling_applied"].astype(bool)
-    top_rescaling = (
-        rescaling_focal.groupby(["county_fips", "county_name"], as_index=False)["rescaling_applied"]
-        .sum()
-        .sort_values("rescaling_applied", ascending=False)
-        .head(10)
+    rescaling_focal = rescaling_focal.dropna(subset=["year"])
+    rescaling_focal["year"] = rescaling_focal["year"].astype(int)
+
+    rescaling_by_county = (
+        rescaling_focal.groupby(["county_fips", "county_name"], as_index=False)
+        .agg(total_years=("year", "count"), rescaling_years=("rescaling_applied", "sum"))
+        .sort_values(["rescaling_years", "county_name"], ascending=[False, True])
+        .reset_index(drop=True)
     )
-    rescaling_table = _table(
-        ["County", "County FIPS", "Rescaling years"],
+    rescaling_by_county["rescaling_years"] = rescaling_by_county["rescaling_years"].astype(int)
+    rescaling_by_county["total_years"] = rescaling_by_county["total_years"].astype(int)
+
+    total_county_years = int(rescaling_by_county["total_years"].sum())
+    total_rescaling_years = int(rescaling_by_county["rescaling_years"].sum())
+    counties_total = int(len(rescaling_by_county))
+    counties_with_rescaling = int((rescaling_by_county["rescaling_years"] > 0).sum())
+    overall_rescaling_rate = (total_rescaling_years / total_county_years) if total_county_years else 0.0
+
+    if total_rescaling_years > 0:
+        pct = rescaling_by_county["rescaling_years"] / float(total_rescaling_years)
+    else:
+        pct = pd.Series(np.zeros(len(rescaling_by_county), dtype=float))
+    rescaling_by_county["pct_of_rescaling"] = pct
+    rescaling_by_county["cum_pct_of_rescaling"] = pct.cumsum()
+    rescaling_by_county["rescaling_rate"] = rescaling_by_county["rescaling_years"] / rescaling_by_county["total_years"]
+
+    top5_share = float(rescaling_by_county.head(5)["pct_of_rescaling"].sum()) if total_rescaling_years else 0.0
+    top10_share = float(rescaling_by_county.head(10)["pct_of_rescaling"].sum()) if total_rescaling_years else 0.0
+    if total_rescaling_years and not rescaling_by_county.empty:
+        cum = rescaling_by_county["cum_pct_of_rescaling"].to_numpy(dtype=float)
+        k80 = int(np.argmax(cum >= 0.8) + 1) if np.any(cum >= 0.8) else counties_total
+    else:
+        k80 = 0
+
+    rescaling_summary_table = _table(
+        ["Metric", "Value"],
         [
-            [str(r["county_name"]), _normalize_fips(r["county_fips"], 5), str(int(r["rescaling_applied"]))]
-            for _, r in top_rescaling.iterrows()
+            ["Focal scenario", focal_scenario],
+            ["County-years evaluated", f"{total_county_years:,}"],
+            ["County-years with rescaling_applied=true", f"{total_rescaling_years:,} ({overall_rescaling_rate:.1%})"],
+            ["Counties evaluated", f"{counties_total:,}"],
+            ["Counties with any rescaling", f"{counties_with_rescaling:,} ({(counties_with_rescaling / counties_total) if counties_total else 0.0:.1%})"],
+            ["Share of rescaling in top 5 counties", f"{top5_share:.1%}"],
+            ["Share of rescaling in top 10 counties", f"{top10_share:.1%}"],
+            ["Counties needed to reach 80% of rescaling", str(k80)],
         ],
+    )
+
+    rescaling_by_county_rows: list[list[str]] = []
+    for idx, row in rescaling_by_county.iterrows():
+        rescaling_by_county_rows.append(
+            [
+                str(idx + 1),
+                str(row["county_name"]),
+                _normalize_fips(row["county_fips"], 5),
+                str(int(row["rescaling_years"])),
+                f"{float(row['rescaling_rate']):.1%}",
+                f"{float(row['pct_of_rescaling']):.1%}",
+                f"{float(row['cum_pct_of_rescaling']):.1%}",
+            ]
+        )
+    rescaling_by_county_table = _table(
+        [
+            "Rank",
+            "County",
+            "County FIPS",
+            "Rescaling years",
+            "Rescaling rate",
+            "% of all rescaling",
+            "Cumulative %",
+        ],
+        rescaling_by_county_rows,
+    )
+
+    rescaled_rows = rescaling_focal[rescaling_focal["rescaling_applied"]].copy()
+    rescaled_rows["sum_place_shares"] = pd.to_numeric(rescaled_rows["sum_place_shares"], errors="coerce")
+    rescaled_rows["balance_of_county_share"] = pd.to_numeric(rescaled_rows["balance_of_county_share"], errors="coerce")
+    rescaled_rows = rescaled_rows.sort_values(["county_name", "year"], ascending=[True, True])
+    rescaling_county_year_table = _table(
+        ["County", "County FIPS", "Year", "sum_place_shares", "balance_of_county_share"],
+        [
+            [
+                str(r["county_name"]),
+                _normalize_fips(r["county_fips"], 5),
+                str(int(r["year"])),
+                f"{float(r['sum_place_shares']):.6f}" if not pd.isna(r["sum_place_shares"]) else "nan",
+                f"{float(r['balance_of_county_share']):.6f}" if not pd.isna(r["balance_of_county_share"]) else "nan",
+            ]
+            for _, r in rescaled_rows.iterrows()
+        ],
+    )
+
+    rescaling_table = (
+        "<h4>Concentration Summary</h4>"
+        + rescaling_summary_table
+        + "<h4>All Counties</h4>"
+        + f"<div class='table-scroll'>{rescaling_by_county_table}</div>"
+        + f"<details><summary>Show all rescaled county-years ({len(rescaled_rows):,} rows)</summary>"
+        + f"<div class='table-scroll'>{rescaling_county_year_table}</div></details>"
     )
 
     growth_table = _table(
@@ -773,7 +903,7 @@ def build_gates(
                 "Rescaling is concentrated in a subset of counties and appears as a controlled, expected reconciliation behavior. "
                 "Human review should confirm this concentration matches substantive expectations."
             ),
-            visuals=["rescaling_top_counties"],
+            visuals=["rescaling_top_counties", "rescaling_concentration"],
             stats_html=rescaling_table,
         ),
         Gate(
@@ -922,6 +1052,25 @@ def html_page(
             "reason": (
                 "Some local volatility is expected, but broad rescaling can indicate over-correction or "
                 "unstable share inputs."
+            ),
+        },
+        "rescaling_concentration": {
+            "label": "Rescaling Concentration (Cumulative Share)",
+            "shows": (
+                "A cumulative curve of rescaling incidence when counties are ranked from most to least "
+                "rescaling-applied county-years."
+            ),
+            "interpret": (
+                "A steep early curve indicates rescaling is concentrated in a few counties. A near-linear "
+                "curve indicates rescaling is broadly distributed across counties."
+            ),
+            "rule": (
+                "Approve with notes when a small subset of counties explains most rescaling; request change "
+                "if rescaling is diffuse across many counties without a clear substantive rationale."
+            ),
+            "reason": (
+                "Controlled reconciliation typically appears as localized adjustments. Broad distribution "
+                "can indicate systemic share instability."
             ),
         },
         "growth_rate_boxplots": {
@@ -1181,6 +1330,33 @@ def html_page(
       vertical-align: top;
     }}
     th {{ background: #edf4fc; }}
+    .table-scroll {{
+      max-height: 560px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: white;
+      margin-top: 8px;
+    }}
+    .table-scroll table {{
+      margin-top: 0;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }}
+    .table-scroll thead th {{
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }}
+    details {{
+      margin-top: 10px;
+    }}
+    details summary {{
+      cursor: pointer;
+      color: #173657;
+      font-weight: 700;
+      padding: 6px 0;
+    }}
     code {{
       background: #edf2f8;
       border-radius: 4px;
