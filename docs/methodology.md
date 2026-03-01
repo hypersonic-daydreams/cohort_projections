@@ -56,6 +56,7 @@
   - [7.2 Multi-Year Execution](#72-multi-year-execution)
   - [7.3 Group Quarters Re-Addition](#73-group-quarters-re-addition-adr-055)
   - [7.4 State Aggregation](#74-state-aggregation-adr-054)
+  - [7.5 Place Projection Orchestration](#75-place-projection-orchestration-pp-003-phase-2)
 - [8. Data Sources and References](#8-data-sources-and-references)
   - [8.1 Primary Data Sources](#81-primary-data-sources)
   - [8.2 Methodological References](#82-methodological-references)
@@ -999,6 +1000,24 @@ $$P_{\text{state}}(a, s, r, t) = \sum_{c=1}^{53} P_c(a, s, r, t)$$
 This bottom-up aggregation strategy (ADR-054) ensures perfect internal consistency: the state population at every age, sex, race, and year is exactly equal to the sum of the corresponding county values. No reconciliation or pro-rata adjustment is needed, and there is no "remainder" or residual term.
 
 The rationale for this design is that county-level migration patterns are inherently heterogeneous---oil-patch counties, university counties, reservation counties, and metropolitan counties experience fundamentally different demographic dynamics. An independent state projection with top-down allocation to counties would either suppress this heterogeneity or require an additional allocation step that introduces its own assumptions and artifacts.
+
+### 7.5 Place Projection Orchestration (PP-003 Phase 2)
+
+Place-level outputs are generated from county projections using a county-constrained share-trending workflow (ADR-033 implementation, PP-003 Phase 2). The orchestration pipeline:
+
+1. Loads historical place shares and a place-to-county crosswalk for the projection universe (HIGH, MODERATE, LOWER tiers; EXCLUDED places omitted from projection output).
+2. Fits and projects place shares within each county using the selected trend variant (from the PP-003 backtesting winner), then reconciles place plus balance-of-county shares to sum to 1.0 for every county-year.
+3. Converts projected shares to place totals by multiplying by county totals:
+
+$$P_{\text{place}}(t) = s_{\text{place}}(t) \times P_{\text{county}}(t)$$
+
+4. Allocates county demographic structure to place totals by confidence tier:
+   - **HIGH**: 18 five-year age groups by sex (36 rows per year),
+   - **MODERATE**: 6 broad age groups by sex (12 rows per year),
+   - **LOWER**: total population only.
+5. Writes per-place parquet/CSV/JSON outputs plus run-level `places_summary.csv` and `places_metadata.json`, including balance-of-county rows for county accounting transparency.
+
+This process preserves county consistency by construction: for each county-year, projected place totals plus balance-of-county equal the projected county total (subject only to floating-point tolerance).
 
 
 ## 8. Data Sources and References

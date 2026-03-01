@@ -301,6 +301,38 @@ scenarios:
     migration: "sdc_2024_dampened"
     active: false
 
+# === PLACE PROJECTIONS (PP-003) ===
+# Phase 2 configuration for county-constrained place share-trending workflow.
+place_projections:
+  enabled: true
+  crosswalk_path: "data/processed/geographic/place_county_crosswalk_2020.csv"
+  historical_shares_path: "data/processed/place_shares_2000_2024.parquet"
+  place_population_history_path: "data/processed/place_population_history_2000_2024.parquet"
+
+  model:
+    epsilon: 0.001                       # Logit clamping (S04 Section 2.3)
+    lambda_decay: 0.9                    # WLS decay rate (S04 Section 3.2)
+    history_start: 2000                  # Fitting window start
+    history_end: 2024                    # Fitting window end
+    reconciliation_flag_threshold: 0.05  # Balance QA flag threshold (S04 Section 6.3)
+
+  tiers:
+    high_threshold: 10000
+    moderate_threshold: 2500
+    lower_threshold: 500
+    tier_boundary_margin: 0.05           # 5% of threshold for boundary flag
+
+  backtest:
+    primary_train: [2000, 2014]
+    primary_test: [2015, 2024]
+    secondary_train: [2000, 2019]
+    secondary_test: [2020, 2024]
+
+  output:
+    base_year: 2025
+    end_year: 2055
+    key_years: [2025, 2030, 2035, 2040, 2045, 2050, 2055]
+
 output:
   # Basic output settings
   formats:

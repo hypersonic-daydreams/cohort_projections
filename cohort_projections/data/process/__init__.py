@@ -79,6 +79,24 @@ from .pep_regime_analysis import (
     load_pep_preferred_estimates,
 )
 
+# Place backtesting (PP-003 Phase 3)
+from .place_backtest import (
+    compute_per_place_metrics,
+    compute_tier_aggregates,
+    compute_variant_score,
+    run_single_variant,
+    select_winner,
+)
+
+# Place projection orchestration (PP-003 Phase 2)
+from .place_projection_orchestrator import (
+    allocate_age_sex_detail,
+    run_place_projections,
+    write_place_outputs,
+    write_places_summary,
+    write_run_level_metadata,
+)
+
 # Place share trending (PP-003 Phase 2)
 from .place_share_trending import (
     BALANCE_KEY,
@@ -175,6 +193,12 @@ __all__ = [
     "calculate_regime_weighted_average",
     "load_pep_preferred_estimates",
     "generate_regime_analysis_report",
+    # Place backtesting
+    "run_single_variant",
+    "compute_per_place_metrics",
+    "compute_tier_aggregates",
+    "compute_variant_score",
+    "select_winner",
     # Place share trending
     "BALANCE_KEY",
     "DEFAULT_EPSILON",
@@ -190,6 +214,12 @@ __all__ = [
     "apply_cap_and_redistribute",
     "reconcile_county_shares",
     "trend_all_places_in_county",
+    # Place projection orchestration
+    "allocate_age_sex_detail",
+    "run_place_projections",
+    "write_place_outputs",
+    "write_places_summary",
+    "write_run_level_metadata",
     # Example entrypoint
     "load_example_usage_module",
 ]
