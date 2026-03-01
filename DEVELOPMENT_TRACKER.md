@@ -36,7 +36,7 @@ Use this file for active status only. Historical session detail is archived to:
 |------|------|------|------|------|
 | PP-001 | Publication-facing output QA and dissemination packaging | active | Collect stakeholder sign-off on 2026-02-28 package set and keep release checklist current for final publication handoff | `docs/reviews/2026-02-28-publication-output-qa-packaging-checklist.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
 | PP-002 | Non-regression validation cadence during publication work | active | Run and record the next cadence cycle after the next material projection/config change (same gate set) | `docs/reviews/repo-hygiene-audit/implementation/06-dashboard-current.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
-| PP-003 | City/place projection workstream reactivation (ADR-033) | scoping_in_progress | Complete Phase 1 scoping steps `PP3-S04` through `PP3-S06`, then prepare approval packet for `PP3-S07` | `docs/governance/adrs/033-city-level-projection-methodology.md`, `docs/reviews/2026-02-28-place-data-readiness-note.md`, `docs/reviews/2026-02-28-place-county-mapping-strategy-note.md` |
+| PP-003 | City/place projection workstream reactivation (ADR-033) | implementation_ready | S01-S08 complete; begin Phase 1 data assembly (IMP-01 through IMP-04) | `docs/plans/pp3-s08-implementation-kickoff.md`, `docs/reviews/2026-02-28-pp3-s07-approval-gate.md` |
 | PP-004 | Test coverage gap closure (ADR-056) | active | Close priority coverage gaps identified in ADR-056 Decision 6; align with PP-002 periodic review cadence | `docs/governance/adrs/056-testing-strategy-maturation.md`, `docs/guides/test-maintenance-practices.md` |
 
 ## PP-003 Phase 1 Scoping Checklist (Canonical)
@@ -46,11 +46,11 @@ Use this file for active status only. Historical session detail is archived to:
 | PP3-S01 | Scope envelope | completed_2026-02-28 | Confirm place universe, projection horizon, and output granularity tiers (HIGH/MODERATE/LOWER/EXCLUDED) for the first release | Scoped statement below (this file) + ADR-033 cross-reference |
 | PP3-S02 | Historical place data readiness | completed_2026-02-28 | Verify place-level annual history coverage needed for backtesting (target window: 2000-2024) and identify any gaps requiring imputation or exclusion rules | `docs/reviews/2026-02-28-place-data-readiness-note.md` |
 | PP3-S03 | Place-to-county boundary mapping strategy | completed_2026-02-28 | Define authoritative mapping and handling rules for boundary/vintage changes so place shares can be compared consistently over time | `docs/reviews/2026-02-28-place-county-mapping-strategy-note.md` |
-| PP3-S04 | Modeling spec for share-trending | pending | Select candidate trend specifications and constraint approach (share sum <= 100%, balance-of-county handling) for Phase 1 testing | Add Phase 1 model spec note under `docs/reviews/` and link it from tracker |
-| PP3-S05 | Backtesting design and metrics | pending | Lock backtest design (train/test windows) and acceptance metrics by confidence tier | Add validation design note under `docs/reviews/` and link it from tracker |
-| PP3-S06 | Output contract | pending | Define Phase 1 deliverables: projection files, metadata fields, QA summary tables, and workbook impacts | Add output contract note under `docs/reviews/` and link it from tracker |
-| PP3-S07 | Approval gate (required) | pending | Human approval recorded to proceed from scoping to implementation (Tier 3 methodology-change control) | Approval note in tracker + ADR/review cross-reference |
-| PP3-S08 | Implementation kickoff packet | pending | Publish execution-ready task list (files, tests, validation gates, and ADR touchpoints) | Add implementation plan doc under `docs/plans/` and link it from tracker |
+| PP3-S04 | Modeling spec for share-trending | completed_2026-02-28 | Select candidate trend specifications and constraint approach (share sum <= 100%, balance-of-county handling) for Phase 1 testing | `docs/reviews/2026-02-28-pp3-s04-modeling-spec.md` |
+| PP3-S05 | Backtesting design and metrics | completed_2026-02-28 | Lock backtest design (train/test windows) and acceptance metrics by confidence tier | `docs/reviews/2026-02-28-pp3-s05-backtesting-design.md` |
+| PP3-S06 | Output contract | completed_2026-02-28 | Define Phase 1 deliverables: projection files, metadata fields, QA summary tables, and workbook impacts | `docs/reviews/2026-02-28-pp3-s06-output-contract.md` |
+| PP3-S07 | Approval gate (required) | approved_2026-02-28 | Human approval recorded to proceed from scoping to implementation (Tier 3 methodology-change control) | `docs/reviews/2026-02-28-pp3-s07-approval-gate.md` |
+| PP3-S08 | Implementation kickoff packet | completed_2026-02-28 | Publish execution-ready task list (files, tests, validation gates, and ADR touchpoints) | `docs/plans/pp3-s08-implementation-kickoff.md` |
 
 **Go/No-Go Rule:** PP-003 implementation starts only after `PP3-S01` through `PP3-S07` are complete and explicitly marked `go`.
 
@@ -120,12 +120,12 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 1. Keep the documentation consistency queue current; add and resolve new cross-document drift items as they appear.
 2. Keep repo-hygiene evidence current while executing publication tasks (`PP-001`, `PP-002`) and refresh package QA records as new export vintages are generated.
-3. Execute `PP3-S04` through `PP3-S06` (model spec, backtesting design, output contract) to complete the pre-approval scoping packet for `PP3-S07`.
+3. ~~Execute `PP3-S04` through `PP3-S08`~~ Completed 2026-02-28. Begin PP-003 implementation Phase 1 (IMP-01 through IMP-04: data assembly).
 4. ~~Execute `PP4-06`~~ Completed 2026-02-28. PP-004 workstream closed. Future periodic reviews follow the PP-002 cadence.
 
 ## Deferred / Later Work
 
-- City/place projection expansion under ADR-033.
+- City/place projection Phase 2+ expansion under ADR-033 (rolling-origin backtests, multi-county place splitting, housing-unit method).
 - Optional TIGER integration and geospatial export enhancements.
 - Additional publication-facing formatting and package cleanup.
 
@@ -137,6 +137,11 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 - `docs/reviews/2026-02-28-publication-output-qa-packaging-checklist.md`
 - `docs/reviews/2026-02-28-place-data-readiness-note.md`
 - `docs/reviews/2026-02-28-place-county-mapping-strategy-note.md`
+- `docs/reviews/2026-02-28-pp3-s04-modeling-spec.md`
+- `docs/reviews/2026-02-28-pp3-s05-backtesting-design.md`
+- `docs/reviews/2026-02-28-pp3-s06-output-contract.md`
+- `docs/reviews/2026-02-28-pp3-s07-approval-gate.md`
+- `docs/plans/pp3-s08-implementation-kickoff.md`
 - `docs/reviews/repo-hygiene-audit/implementation/17-open-risks-blockers-register.md`
 - `docs/reviews/repo-hygiene-audit/implementation/02-action-batches.yaml`
 - `docs/reviews/repo-hygiene-audit/verification/progress.md`
