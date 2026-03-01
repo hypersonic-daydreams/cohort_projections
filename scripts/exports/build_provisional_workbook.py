@@ -690,7 +690,7 @@ def build_age_structure(wb: Workbook) -> None:
         all_data.groupby(["year", "age_group"], observed=True)["population"].sum().reset_index()
     )
     pivot = grouped.pivot_table(
-        index="age_group", columns="year", values="population", aggfunc="sum"
+        index="age_group", columns="year", values="population", aggfunc="sum", observed=False
     )
 
     headers = ["Age Group"] + [str(yr) for yr in KEY_YEARS] + ["Share 2025", "Share 2045"]
