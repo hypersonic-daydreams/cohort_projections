@@ -843,6 +843,7 @@ def write_place_qa_artifacts(
     config: Mapping[str, Any],
     all_places_summaries: list[dict[str, Any]],
     share_sum_rows: list[dict[str, Any]],
+    reconciliation_rows: list[dict[str, Any]],
     outlier_rows: list[dict[str, Any]],
     balance_rows: list[dict[str, Any]],
 ) -> dict[str, Path]:
@@ -856,6 +857,7 @@ def write_place_qa_artifacts(
 
     tier_summary_path = qa_dir / "qa_tier_summary.csv"
     share_sum_path = qa_dir / "qa_share_sum_validation.csv"
+    reconciliation_path = qa_dir / "qa_reconciliation_magnitude.csv"
     outlier_path = qa_dir / "qa_outlier_flags.csv"
     balance_path = qa_dir / "qa_balance_of_county.csv"
 
@@ -929,6 +931,24 @@ def write_place_qa_artifacts(
         share_sum_df = share_sum_df.sort_values(["county_fips", "year"]).reset_index(drop=True)
     share_sum_df.to_csv(share_sum_path, index=False)
 
+    reconciliation_columns = [
+        "county_fips",
+        "county_name",
+        "year",
+        "total_before_adjustment",
+        "total_after_adjustment",
+        "reconciliation_adjustment",
+        "reconciliation_flag",
+        "reconciliation_flag_threshold",
+        "rescaling_applied",
+    ]
+    reconciliation_df = pd.DataFrame(reconciliation_rows, columns=reconciliation_columns)
+    if not reconciliation_df.empty:
+        reconciliation_df = reconciliation_df.sort_values(["county_fips", "year"]).reset_index(
+            drop=True
+        )
+    reconciliation_df.to_csv(reconciliation_path, index=False)
+
     outlier_columns = ["place_fips", "name", "confidence_tier", "flag_type", "flag_detail", "year"]
     outlier_df = pd.DataFrame(outlier_rows, columns=outlier_columns)
     if outlier_df.empty:
@@ -960,6 +980,7 @@ def write_place_qa_artifacts(
         "qa_dir": qa_dir,
         "qa_tier_summary": tier_summary_path,
         "qa_share_sum_validation": share_sum_path,
+        "qa_reconciliation_magnitude": reconciliation_path,
         "qa_outlier_flags": outlier_path,
         "qa_balance_of_county": balance_path,
     }
@@ -1008,6 +1029,7 @@ def run_place_projections(
     all_place_summaries: list[dict[str, Any]] = []
     balance_rows: list[dict[str, Any]] = []
     qa_share_sum_rows: list[dict[str, Any]] = []
+    qa_reconciliation_rows: list[dict[str, Any]] = []
     qa_balance_rows: list[dict[str, Any]] = []
     qa_outlier_rows: list[dict[str, Any]] = []
 
@@ -1101,6 +1123,43 @@ def run_place_projections(
                 .gt(QA_FLOAT_TOLERANCE)
                 .any()
             )
+            year_all_rows = county_share_projection[county_share_projection["year"] == year].copy()
+            total_before_adjustment = float(
+                pd.to_numeric(year_all_rows["projected_share_raw"], errors="coerce").sum()
+            )
+            total_after_adjustment = float(
+                pd.to_numeric(year_all_rows["projected_share"], errors="coerce").sum()
+            )
+
+            reconciliation_adjustments = pd.to_numeric(
+                year_all_rows["reconciliation_adjustment"], errors="coerce"
+            ).dropna()
+            if reconciliation_adjustments.empty:
+                reconciliation_adjustment = abs(total_before_adjustment - 1.0)
+            else:
+                reconciliation_adjustment = float(reconciliation_adjustments.iloc[0])
+                if not np.isclose(
+                    reconciliation_adjustments.to_numpy(dtype=float),
+                    reconciliation_adjustment,
+                    atol=QA_FLOAT_TOLERANCE,
+                ).all():
+                    raise ValueError(
+                        "Inconsistent reconciliation_adjustment values within county-year "
+                        f"{county_fips}-{int(year)}."
+                    )
+
+            reconciliation_flags = year_all_rows["reconciliation_flag"].map(_as_bool).dropna()
+            if reconciliation_flags.empty:
+                reconciliation_flag = bool(
+                    reconciliation_adjustment > reconciliation_threshold + QA_FLOAT_TOLERANCE
+                )
+            else:
+                reconciliation_flag = bool(reconciliation_flags.iloc[0])
+                if not (reconciliation_flags == reconciliation_flag).all():
+                    raise ValueError(
+                        "Inconsistent reconciliation_flag values within county-year "
+                        f"{county_fips}-{int(year)}."
+                    )
 
             qa_share_sum_rows.append(
                 {
@@ -1110,6 +1169,19 @@ def run_place_projections(
                     "sum_place_shares": sum_place_shares,
                     "balance_of_county_share": balance_share,
                     "constraint_satisfied": bool(sum_place_shares <= 1.0 + QA_FLOAT_TOLERANCE),
+                    "rescaling_applied": rescaling_applied,
+                }
+            )
+            qa_reconciliation_rows.append(
+                {
+                    "county_fips": county_fips,
+                    "county_name": county_name,
+                    "year": int(year),
+                    "total_before_adjustment": total_before_adjustment,
+                    "total_after_adjustment": total_after_adjustment,
+                    "reconciliation_adjustment": reconciliation_adjustment,
+                    "reconciliation_flag": reconciliation_flag,
+                    "reconciliation_flag_threshold": reconciliation_threshold,
                     "rescaling_applied": rescaling_applied,
                 }
             )
@@ -1416,6 +1488,7 @@ def run_place_projections(
         config=config,
         all_places_summaries=all_place_summaries,
         share_sum_rows=qa_share_sum_rows,
+        reconciliation_rows=qa_reconciliation_rows,
         outlier_rows=qa_outlier_rows,
         balance_rows=qa_balance_rows,
     )

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from cohort_projections.data.process.place_projection_orchestrator import (
@@ -36,7 +37,7 @@ def _synthetic_county_cohorts(years: list[int], totals_by_year: dict[int, float]
 
 
 def test_run_place_projections_writes_qa_artifacts_with_contract_schema(tmp_path: Path) -> None:
-    """IMP-12: All four S06 QA artifacts are written with expected columns."""
+    """IMP-12/IMP-13A: QA artifacts are written with expected schemas and invariants."""
     projection_root = tmp_path / "projections"
     county_dir = projection_root / "baseline" / "county"
     county_dir.mkdir(parents=True, exist_ok=True)
@@ -191,6 +192,36 @@ def test_run_place_projections_writes_qa_artifacts_with_contract_schema(tmp_path
     ]
     assert len(share_sum) == 3
     assert share_sum["constraint_satisfied"].astype(bool).all()
+
+    reconciliation = pd.read_csv(qa_dir / "qa_reconciliation_magnitude.csv")
+    assert list(reconciliation.columns) == [
+        "county_fips",
+        "county_name",
+        "year",
+        "total_before_adjustment",
+        "total_after_adjustment",
+        "reconciliation_adjustment",
+        "reconciliation_flag",
+        "reconciliation_flag_threshold",
+        "rescaling_applied",
+    ]
+    assert len(reconciliation) == 3
+    assert (reconciliation["reconciliation_adjustment"] >= 0.0).all()
+    before_adjustment_gap = (pd.to_numeric(reconciliation["total_before_adjustment"]) - 1.0).abs()
+    assert np.allclose(
+        before_adjustment_gap.to_numpy(dtype=float),
+        pd.to_numeric(reconciliation["reconciliation_adjustment"]).to_numpy(dtype=float),
+        atol=1e-6,
+    )
+    assert np.allclose(
+        pd.to_numeric(reconciliation["total_after_adjustment"]).to_numpy(dtype=float),
+        np.ones(len(reconciliation), dtype=float),
+        atol=1e-6,
+    )
+    threshold = pd.to_numeric(reconciliation["reconciliation_flag_threshold"]).to_numpy(dtype=float)
+    flags = reconciliation["reconciliation_flag"].astype(bool).to_numpy(dtype=bool)
+    adjustments = pd.to_numeric(reconciliation["reconciliation_adjustment"]).to_numpy(dtype=float)
+    assert np.array_equal(flags, adjustments > threshold)
 
     outlier_flags = pd.read_csv(qa_dir / "qa_outlier_flags.csv")
     assert list(outlier_flags.columns) == [

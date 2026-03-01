@@ -36,7 +36,7 @@ Use this file for active status only. Historical session detail is archived to:
 |------|------|------|------|------|
 | PP-001 | Publication-facing output QA and dissemination packaging | active | Collect stakeholder sign-off on 2026-02-28 package set and keep release checklist current for final publication handoff | `docs/reviews/2026-02-28-publication-output-qa-packaging-checklist.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
 | PP-002 | Non-regression validation cadence during publication work | active | Run and record the next cadence cycle after the next material projection/config change (same gate set) | `docs/reviews/repo-hygiene-audit/implementation/06-dashboard-current.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
-| PP-003 | City/place projection workstream reactivation (ADR-033) | active | IMP-12/IMP-13 human gate approval recorded (approved with notes, 2026-03-01); next milestones are IMP-13A reconciliation-magnitude QA, then IMP-14 place workbook builder and IMP-15 provisional workbook `Places` sheet wiring | `docs/plans/pp3-s08-implementation-kickoff.md`, `docs/reviews/2026-02-28-pp3-s07-approval-gate.md`, `docs/reviews/2026-02-28-pp3-imp09-backtest-results.md`, `docs/reviews/pp3-backtest-outlier-narrative.md`, `docs/reviews/2026-03-01-pp3-imp11-pipeline-stage-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-approval-gate.md` |
+| PP-003 | City/place projection workstream reactivation (ADR-033) | active | IMP-13A reconciliation-magnitude QA follow-up completed (2026-03-01); next integration milestones are IMP-14 place workbook builder and IMP-15 provisional workbook `Places` sheet wiring | `docs/plans/pp3-s08-implementation-kickoff.md`, `docs/reviews/2026-02-28-pp3-s07-approval-gate.md`, `docs/reviews/2026-02-28-pp3-imp09-backtest-results.md`, `docs/reviews/pp3-backtest-outlier-narrative.md`, `docs/reviews/2026-03-01-pp3-imp11-pipeline-stage-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-approval-gate.md`, `docs/reviews/2026-03-01-pp3-imp13a-results.md` |
 | PP-004 | Test coverage gap closure (ADR-056) | active | Close priority coverage gaps identified in ADR-056 Decision 6; align with PP-002 periodic review cadence | `docs/governance/adrs/056-testing-strategy-maturation.md`, `docs/guides/test-maintenance-practices.md` |
 
 ## PP-003 Phase 1 Scoping Checklist (Canonical)
@@ -78,7 +78,7 @@ Use this file for active status only. Historical session detail is archived to:
 | IMP-11 | Place projection pipeline stage integration | completed_2026-03-01 | Added `02a_run_place_projections.py` stage, wired into `run_complete_pipeline.sh`, validated via integration tests and executed full stage run across active scenarios (`baseline`, `restricted_growth`, `high_growth`) with per-scenario outputs produced | `scripts/pipeline/02a_run_place_projections.py`, `scripts/pipeline/run_complete_pipeline.sh`, `tests/test_integration/test_place_pipeline_stage.py`, `docs/reviews/2026-03-01-pp3-imp11-pipeline-stage-results.md` |
 | IMP-12 | QA artifact generation | completed_2026-03-01 | Implemented S06 Section 5 QA artifact pipeline at `data/projections/{scenario}/place/qa/` (`qa_tier_summary.csv`, `qa_share_sum_validation.csv`, `qa_outlier_flags.csv`, `qa_balance_of_county.csv`) with schema checks and outlier flag-type validation; human review gate approved with notes | `cohort_projections/data/process/place_projection_orchestrator.py`, `tests/test_data/test_place_qa_artifacts.py`, `docs/reviews/2026-03-01-pp3-imp12-imp13-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-approval-gate.md` |
 | IMP-13 | Consistency constraint enforcement | completed_2026-03-01 | Enforced S06 hard constraints (share bounds, county share sum, place<=county totals, non-negative populations, exact output universe, state-level scenario ordering when all scenario county outputs are available) and soft QA signaling (balance warning, share-stability flags, tier-band extreme growth flags); human review gate approved with notes | `cohort_projections/data/process/place_projection_orchestrator.py`, `tests/test_data/test_place_consistency_constraints.py`, `docs/reviews/2026-03-01-pp3-imp12-imp13-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-approval-gate.md` |
-| IMP-13A | Reconciliation magnitude QA (Gate 4) | planned | Emit per county-year reconciliation magnitude (e.g., total-before-adjustment, adjustment, threshold flag) as a QA artifact and integrate into the human review package (distribution + top outliers); add invariant-style tests | `docs/reviews/2026-03-01-pp3-gate4-rescaling-review-note.md` |
+| IMP-13A | Reconciliation magnitude QA (Gate 4) | completed_2026-03-01 | Added `qa_reconciliation_magnitude.csv` county-year artifact (`total_before_adjustment`, `total_after_adjustment`, `reconciliation_adjustment`, threshold flag fields), integrated Gate 4 magnitude distribution + top-adjustment table in human review package, and added invariant-style tests | `cohort_projections/data/process/place_projection_orchestrator.py`, `scripts/reviews/build_pp3_human_review_package.py`, `tests/test_data/test_place_qa_artifacts.py`, `docs/reviews/2026-03-01-pp3-imp13a-results.md`, `docs/reviews/2026-03-01-pp3-gate4-rescaling-review-note.md` |
 
 ### IMP-05 Verification Evidence (2026-02-28)
 
@@ -138,6 +138,14 @@ Use this file for active status only. Historical session detail is archived to:
 - `source .venv/bin/activate && python scripts/pipeline/02a_run_place_projections.py --scenarios baseline` -> successful baseline stage execution with QA artifacts emitted and hard-constraint checks passing (`90` places, `46` county balances, `31` QA outlier flags).
 - `source .venv/bin/activate && python scripts/pipeline/02a_run_place_projections.py` -> successful full stage execution for `baseline`, `restricted_growth`, and `high_growth`; each scenario wrote place outputs (`90` places, `46` county balances) plus QA artifacts and passed hard constraints.
 - Human gate approvals recorded in `docs/reviews/2026-03-01-pp3-imp12-imp13-approval-gate.md`: overall **Approved with notes**; Gates 1/2/3/7/8 approved; Gates 4/5/6 approved with notes.
+
+### IMP-13A Verification Evidence (2026-03-01)
+
+- `source .venv/bin/activate && ruff check cohort_projections/data/process/place_projection_orchestrator.py scripts/reviews/build_pp3_human_review_package.py tests/test_data/test_place_qa_artifacts.py` -> `All checks passed!`.
+- `source .venv/bin/activate && mypy cohort_projections/data/process/place_projection_orchestrator.py scripts/reviews/build_pp3_human_review_package.py tests/test_data/test_place_qa_artifacts.py` -> `Success: no issues found in 3 source files`.
+- `source .venv/bin/activate && pytest tests/test_data/test_place_qa_artifacts.py tests/test_data/test_place_consistency_constraints.py tests/test_data/test_place_projection_orchestrator.py tests/test_integration/test_place_pipeline_stage.py` -> `11 passed`.
+- `source .venv/bin/activate && python scripts/pipeline/02a_run_place_projections.py` -> successful full stage execution for `baseline`, `restricted_growth`, and `high_growth` with `qa_reconciliation_magnitude.csv` emitted per scenario (`1,426` rows each).
+- `source .venv/bin/activate && python scripts/reviews/build_pp3_human_review_package.py --refresh-latest` -> review package regenerated with Gate 4 reconciliation-magnitude diagnostics (`distribution` + `top county-years by adjustment` table).
 
 ## PP-003 Scope Envelope (S01 Result)
 
@@ -205,7 +213,7 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 1. Keep the documentation consistency queue current; add and resolve new cross-document drift items as they appear.
 2. Keep repo-hygiene evidence current while executing publication tasks (`PP-001`, `PP-002`) and refresh package QA records as new export vintages are generated.
-3. Continue PP-003 Phase 2 integration: execute `IMP-13A` reconciliation-magnitude QA follow-up, then `IMP-14` place workbook export and `IMP-15` provisional workbook place-sheet wiring.
+3. Continue PP-003 Phase 2 integration: implement `IMP-14` place workbook export and `IMP-15` provisional workbook place-sheet wiring.
 4. ~~Execute `PP4-06`~~ Completed 2026-02-28. PP-004 workstream closed. Future periodic reviews follow the PP-002 cadence.
 
 ## Deferred / Later Work
@@ -231,6 +239,7 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 - `docs/reviews/2026-03-01-pp3-imp11-pipeline-stage-results.md`
 - `docs/reviews/2026-03-01-pp3-imp12-imp13-results.md`
 - `docs/reviews/2026-03-01-pp3-imp12-imp13-approval-gate.md`
+- `docs/reviews/2026-03-01-pp3-imp13a-results.md`
 - `docs/plans/pp3-s08-implementation-kickoff.md`
 - `docs/reviews/repo-hygiene-audit/implementation/17-open-risks-blockers-register.md`
 - `docs/reviews/repo-hygiene-audit/implementation/02-action-batches.yaml`

@@ -47,6 +47,7 @@ class ScenarioData:
     scenario: str
     outliers: pd.DataFrame
     share_sum: pd.DataFrame
+    reconciliation: pd.DataFrame
     balance: pd.DataFrame
     places_summary: pd.DataFrame
 
@@ -117,6 +118,7 @@ def load_scenario_data(scenario: str) -> ScenarioData:
     required_paths = {
         "outliers": qa_dir / "qa_outlier_flags.csv",
         "share_sum": qa_dir / "qa_share_sum_validation.csv",
+        "reconciliation": qa_dir / "qa_reconciliation_magnitude.csv",
         "balance": qa_dir / "qa_balance_of_county.csv",
         "places_summary": projection_dir / "places_summary.csv",
     }
@@ -126,6 +128,7 @@ def load_scenario_data(scenario: str) -> ScenarioData:
 
     outliers = pd.read_csv(required_paths["outliers"])
     share_sum = pd.read_csv(required_paths["share_sum"])
+    reconciliation = pd.read_csv(required_paths["reconciliation"])
     balance = pd.read_csv(required_paths["balance"])
     places_summary = pd.read_csv(required_paths["places_summary"])
     places_summary = places_summary[places_summary["row_type"] == "place"].copy()
@@ -134,6 +137,7 @@ def load_scenario_data(scenario: str) -> ScenarioData:
         scenario=scenario,
         outliers=outliers,
         share_sum=share_sum,
+        reconciliation=reconciliation,
         balance=balance,
         places_summary=places_summary,
     )
@@ -246,6 +250,7 @@ def compute_metrics(
                 "scenario": data.scenario,
                 "qa_tier_summary": int(data.places_summary["confidence_tier"].nunique()),
                 "qa_share_sum_validation": int(len(share)),
+                "qa_reconciliation_magnitude": int(len(data.reconciliation)),
                 "qa_balance_of_county": int(len(balance)),
                 "qa_outlier_flags": int(len(outliers)),
             }
@@ -372,12 +377,25 @@ def build_chart_assets(
     snap = pd.DataFrame(metrics["snapshot_rows"]).set_index("scenario")
     fig, ax = plt.subplots(figsize=(8.8, 4.4))
     x = np.arange(len(snap.index))
-    width = 0.18
-    cols = ["qa_tier_summary", "qa_share_sum_validation", "qa_balance_of_county", "qa_outlier_flags"]
-    labels = ["Tier", "Share Sum", "Balance", "Outliers"]
-    colors = ["#4c78a8", "#72b7b2", "#54a24b", "#f58518"]
+    cols = [
+        "qa_tier_summary",
+        "qa_share_sum_validation",
+        "qa_reconciliation_magnitude",
+        "qa_balance_of_county",
+        "qa_outlier_flags",
+    ]
+    labels = ["Tier", "Share Sum", "Reconciliation", "Balance", "Outliers"]
+    colors = ["#4c78a8", "#72b7b2", "#2d8f5a", "#54a24b", "#f58518"]
+    width = 0.15
+    offset_center = (len(cols) - 1) / 2.0
     for i, col in enumerate(cols):
-        ax.bar(x + (i - 1.5) * width, snap[col].to_numpy(dtype=float), width=width, label=labels[i], color=colors[i])
+        ax.bar(
+            x + (i - offset_center) * width,
+            snap[col].to_numpy(dtype=float),
+            width=width,
+            label=labels[i],
+            color=colors[i],
+        )
     ax.set_xticks(x)
     ax.set_xticklabels(snap.index.tolist())
     ax.set_title("QA Artifact Row Counts by Scenario")
@@ -491,6 +509,39 @@ def build_chart_assets(
     fig.savefig(p, format="svg")
     plt.close(fig)
     chart_files["rescaling_concentration"] = p.name
+
+    # 4c) Reconciliation adjustment magnitude distribution (focal).
+    recon = scenario_map[focal_scenario].reconciliation.copy()
+    recon["reconciliation_adjustment"] = pd.to_numeric(
+        recon["reconciliation_adjustment"], errors="coerce"
+    )
+    adjustment_vals_pct = (
+        recon["reconciliation_adjustment"].dropna().to_numpy(dtype=float) * 100.0
+    )
+    fig, ax = plt.subplots(figsize=(8.8, 4.4))
+    if len(adjustment_vals_pct) > 0:
+        ax.hist(adjustment_vals_pct, bins=20, color="#2d8f5a", alpha=0.90, edgecolor="white")
+        ax.axvline(0.5, color="#a96900", linestyle="--", linewidth=1.3, label="0.5 percentage points")
+        ax.axvline(1.0, color="#8d4f00", linestyle="--", linewidth=1.3, label="1.0 percentage point")
+        ax.set_xlabel("Reconciliation adjustment (percentage points)")
+        ax.set_ylabel("County-Year Count")
+        ax.set_title(f"{focal_scenario}: Reconciliation Adjustment Magnitude")
+        ax.legend(fontsize=8, loc="upper right")
+    else:
+        ax.text(
+            0.5,
+            0.5,
+            "No reconciliation rows available.",
+            ha="center",
+            va="center",
+        )
+        ax.set_title(f"{focal_scenario}: Reconciliation Adjustment Magnitude")
+        ax.set_axis_off()
+    fig.tight_layout()
+    p = output_dir / f"{focal_scenario}_reconciliation_adjustment_distribution.svg"
+    fig.savefig(p, format="svg")
+    plt.close(fig)
+    chart_files["reconciliation_adjustment_distribution"] = p.name
 
     # 5) Growth-rate distribution by tier/scenario.
     growth_rows: list[pd.DataFrame] = []
@@ -633,12 +684,20 @@ def build_gates(
 
     # Reusable tables
     snapshot_table = _table(
-        ["Scenario", "tier rows", "share-sum rows", "balance rows", "outlier rows"],
+        [
+            "Scenario",
+            "tier rows",
+            "share-sum rows",
+            "reconciliation rows",
+            "balance rows",
+            "outlier rows",
+        ],
         [
             [
                 str(row["scenario"]),
                 f"{int(row['qa_tier_summary'])}",
                 f"{int(row['qa_share_sum_validation']):,}",
+                f"{int(row['qa_reconciliation_magnitude']):,}",
                 f"{int(row['qa_balance_of_county']):,}",
                 f"{int(row['qa_outlier_flags']):,}",
             ]
@@ -767,9 +826,77 @@ def build_gates(
         ],
     )
 
+    reconciliation_focal = focal.reconciliation.copy()
+    reconciliation_focal["year"] = pd.to_numeric(reconciliation_focal["year"], errors="coerce").astype("Int64")
+    reconciliation_focal["reconciliation_adjustment"] = pd.to_numeric(
+        reconciliation_focal["reconciliation_adjustment"], errors="coerce"
+    )
+    reconciliation_focal["total_before_adjustment"] = pd.to_numeric(
+        reconciliation_focal["total_before_adjustment"], errors="coerce"
+    )
+    reconciliation_focal["total_after_adjustment"] = pd.to_numeric(
+        reconciliation_focal["total_after_adjustment"], errors="coerce"
+    )
+    reconciliation_focal["reconciliation_flag_threshold"] = pd.to_numeric(
+        reconciliation_focal["reconciliation_flag_threshold"], errors="coerce"
+    )
+    reconciliation_focal["reconciliation_flag"] = reconciliation_focal["reconciliation_flag"].astype(bool)
+    reconciliation_focal = reconciliation_focal.dropna(
+        subset=["year", "reconciliation_adjustment", "total_before_adjustment", "total_after_adjustment"]
+    ).copy()
+    reconciliation_focal["year"] = reconciliation_focal["year"].astype(int)
+
+    adjustment_pp = reconciliation_focal["reconciliation_adjustment"] * 100.0
+    adjustment_summary_table = _table(
+        ["Metric", "Value"],
+        [
+            ["County-years in reconciliation artifact", f"{len(reconciliation_focal):,}"],
+            ["Mean adjustment", f"{float(adjustment_pp.mean()):.3f} pp"],
+            ["Median adjustment", f"{float(adjustment_pp.median()):.3f} pp"],
+            ["95th percentile adjustment", f"{float(adjustment_pp.quantile(0.95)):.3f} pp"],
+            ["Max adjustment", f"{float(adjustment_pp.max()):.3f} pp"],
+            ["Rows >= 0.5 pp", f"{int((adjustment_pp >= 0.5).sum()):,}"],
+            ["Rows >= 1.0 pp", f"{int((adjustment_pp >= 1.0).sum()):,}"],
+            ["Rows flagged by threshold", f"{int(reconciliation_focal['reconciliation_flag'].sum()):,}"],
+        ],
+    )
+
+    top_adjustment_rows = reconciliation_focal.sort_values(
+        ["reconciliation_adjustment", "county_name", "year"], ascending=[False, True, True]
+    ).head(25)
+    top_adjustment_table = _table(
+        [
+            "Rank",
+            "County",
+            "County FIPS",
+            "Year",
+            "Total before",
+            "Adjustment",
+            "Flag threshold",
+            "Flagged",
+        ],
+        [
+            [
+                str(idx + 1),
+                str(row["county_name"]),
+                _normalize_fips(row["county_fips"], 5),
+                str(int(row["year"])),
+                f"{float(row['total_before_adjustment']):.6f}",
+                f"{float(row['reconciliation_adjustment']):.6f}",
+                f"{float(row['reconciliation_flag_threshold']):.4f}",
+                "true" if bool(row["reconciliation_flag"]) else "false",
+            ]
+            for idx, (_, row) in enumerate(top_adjustment_rows.iterrows())
+        ],
+    )
+
     rescaling_table = (
         "<h4>Concentration Summary</h4>"
         + rescaling_summary_table
+        + "<h4>Adjustment Magnitude Summary</h4>"
+        + adjustment_summary_table
+        + "<h4>Top County-Years by Adjustment</h4>"
+        + f"<div class='table-scroll'>{top_adjustment_table}</div>"
         + "<h4>All Counties</h4>"
         + f"<div class='table-scroll'>{rescaling_by_county_table}</div>"
         + f"<details><summary>Show all rescaled county-years ({len(rescaled_rows):,} rows)</summary>"
@@ -843,6 +970,12 @@ def build_gates(
         pop_scan_rows.append([scenario, str(int(stats["files"])), str(int(stats["negative_rows"])), min_text])
     pop_scan_table = _table(["Scenario", "Place parquet files", "Negative rows", "Min population"], pop_scan_rows)
 
+    artifact_completeness_pass = bool(
+        all(snapshot_df["qa_tier_summary"] == 3)
+        and all(snapshot_df["qa_share_sum_validation"] > 0)
+        and all(snapshot_df["qa_reconciliation_magnitude"] > 0)
+        and all(snapshot_df["qa_balance_of_county"] > 0)
+    )
     share_hard_pass = int(share_df["rows_sum_gt_1"].sum()) == 0 and int(share_df["rows_constraint_false"].sum()) == 0
     balance_hard_pass = int(balance_df["negative_balance_rows"].sum()) == 0
     ordering_pass = ordering_violations == 0 if ordering_df is not None else False
@@ -854,12 +987,12 @@ def build_gates(
             gate_id="gate-artifacts",
             title="Gate 1: QA Artifact Completeness",
             objective="Confirm all required QA outputs are present for every scenario with expected structural row patterns.",
-            status="PASS" if all(snapshot_df["qa_tier_summary"] == 3) else "REVIEW",
-            suggested_decision="Approve" if all(snapshot_df["qa_tier_summary"] == 3) else "Request change",
+            status="PASS" if artifact_completeness_pass else "REVIEW",
+            suggested_decision="Approve" if artifact_completeness_pass else "Request change",
             analysis=(
-                "All scenarios include the four QA artifacts and expected row shapes. "
+                "All scenarios include the required QA artifacts (including reconciliation magnitude) and expected row shapes. "
                 "No structural completeness concerns were detected."
-                if all(snapshot_df["qa_tier_summary"] == 3)
+                if artifact_completeness_pass
                 else "At least one scenario does not match expected QA artifact structure."
             ),
             visuals=["artifact_counts"],
@@ -896,14 +1029,19 @@ def build_gates(
         Gate(
             gate_id="gate-rescaling",
             title="Gate 4: Rescaling Behavior",
-            objective="Review where and how often share reconciliation/rescaling occurs, and assess plausibility.",
+            objective="Review where and how often share reconciliation/rescaling occurs, and assess plausibility and adjustment magnitude.",
             status="REVIEW",
             suggested_decision="Approve with notes",
             analysis=(
-                "Rescaling is concentrated in a subset of counties and appears as a controlled, expected reconciliation behavior. "
-                "Human review should confirm this concentration matches substantive expectations."
+                "Rescaling is concentrated in a subset of counties, and adjustment magnitudes are summarized to separate "
+                "small routine reconciliation from large corrective events. Human review should confirm both location and magnitude "
+                "patterns match substantive expectations."
             ),
-            visuals=["rescaling_top_counties", "rescaling_concentration"],
+            visuals=[
+                "rescaling_top_counties",
+                "rescaling_concentration",
+                "reconciliation_adjustment_distribution",
+            ],
             stats_html=rescaling_table,
         ),
         Gate(
@@ -986,7 +1124,7 @@ def html_page(
             "label": "QA Artifact Row Counts by Scenario",
             "shows": (
                 "Grouped bars show row counts for tier summary, share-sum validation, "
-                "balance-of-county, and outlier-flag artifacts in each scenario."
+                "reconciliation magnitude, balance-of-county, and outlier-flag artifacts in each scenario."
             ),
             "interpret": (
                 "Bar heights should be structurally comparable across scenarios. Missing bars "
@@ -1071,6 +1209,25 @@ def html_page(
             "reason": (
                 "Controlled reconciliation typically appears as localized adjustments. Broad distribution "
                 "can indicate systemic share instability."
+            ),
+        },
+        "reconciliation_adjustment_distribution": {
+            "label": "Reconciliation Adjustment Magnitude Distribution",
+            "shows": (
+                "Histogram of county-year reconciliation adjustment magnitudes "
+                "(absolute deviation corrected to enforce total share = 1.0)."
+            ),
+            "interpret": (
+                "Most mass should cluster near zero if reconciliation is routine. "
+                "A heavy right tail indicates larger corrective events that merit explicit review."
+            ),
+            "rule": (
+                "Approve with notes when adjustment magnitudes are predominantly small and larger adjustments "
+                "are sparse and explainable; request change for broad unexplained large adjustments."
+            ),
+            "reason": (
+                "Concentration alone does not show impact size; magnitude distribution confirms whether "
+                "reconciliation is minor housekeeping or materially altering projected shares."
             ),
         },
         "growth_rate_boxplots": {

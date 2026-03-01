@@ -48,3 +48,10 @@ Add visibility into **reconciliation magnitude**, not just its occurrence:
 - Surface per county-year reconciliation magnitude metrics (e.g., `total_before_adjustment`, `reconciliation_adjustment`, and threshold-flag) into a QA artifact and the Gate 4 review tab.
 - Add a distribution visual and “top county-years by adjustment” table so review can confirm that reconciliation is *small* in magnitude in addition to being concentrated in location.
 
+## Implementation Follow-Up Status
+
+Implemented on 2026-03-01 as `IMP-13A`:
+
+- New QA artifact: `qa_reconciliation_magnitude.csv` (county-year reconciliation magnitude fields).
+- Human-review package Gate 4 now includes reconciliation-magnitude distribution plus top-adjustment county-year table.
+- Verification details are recorded in `docs/reviews/2026-03-01-pp3-imp13a-results.md`.
