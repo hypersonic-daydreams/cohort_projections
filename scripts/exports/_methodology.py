@@ -95,3 +95,10 @@ CONDITIONAL_CAVEAT = (
 DATA_AVAILABILITY_NOTE = (
     "Detailed age-sex-race data available in parquet format for advanced analysis."
 )
+
+PLACE_METHODOLOGY_LINE = (
+    "City/place projections: Share-of-county trending method (ADR-033). "
+    "Population-based confidence tiers: HIGH (>10,000, 5-year age groups), "
+    "MODERATE (2,500-10,000, broad age groups), LOWER (500-2,500, total only). "
+    "Place projections are constrained to county totals."
+)

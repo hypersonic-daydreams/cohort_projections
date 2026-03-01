@@ -1,0 +1,282 @@
+"""Contract tests for PP-003 IMP-14 place workbook builder."""
+
+from __future__ import annotations
+
+import importlib
+import sys
+from pathlib import Path
+from typing import Any
+
+import pandas as pd
+from openpyxl import load_workbook
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT))
+
+workbook_mod = importlib.import_module("scripts.exports.build_place_workbook")
+
+KEY_YEARS = [2025, 2030, 2035, 2040, 2045, 2050, 2055]
+COUNTIES = ["38001", "38003", "38005", "38007", "38009", "38011", "38013", "38015", "38017"]
+
+
+def _write_county_reference_csv(root: Path) -> None:
+    """Write minimal ND county reference file used by workbook county labels."""
+    county_rows = []
+    for county_fips in COUNTIES:
+        county_rows.append(
+            {
+                "state_fips": "38",
+                "county_fips": county_fips,
+                "county_name": f"County {county_fips} County",
+            }
+        )
+    county_csv = root / "data" / "raw" / "geographic" / "nd_counties.csv"
+    county_csv.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(county_rows).to_csv(county_csv, index=False)
+
+
+def _write_place_parquet(
+    place_dir: Path,
+    place_fips: str,
+    scenario: str,
+    tier: str,
+    place_index: int,
+) -> None:
+    """Write synthetic place parquet matching tier schema."""
+    rows: list[dict[str, Any]] = []
+
+    if tier == "HIGH":
+        age_groups = workbook_mod.HIGH_AGE_GROUPS
+    elif tier == "MODERATE":
+        age_groups = workbook_mod.MODERATE_AGE_GROUPS
+    else:
+        age_groups = []
+
+    for year_index, year in enumerate(KEY_YEARS):
+        if tier == "LOWER":
+            rows.append(
+                {
+                    "year": year,
+                    "population": float(500 + place_index * 10 + year_index * 5),
+                }
+            )
+            continue
+
+        for age_index, age_group in enumerate(age_groups):
+            for sex_index, sex in enumerate(["Male", "Female"]):
+                rows.append(
+                    {
+                        "year": year,
+                        "age_group": age_group,
+                        "sex": sex,
+                        "population": float(100 + place_index * 7 + age_index * 3 + sex_index + year_index),
+                    }
+                )
+
+    place_df = pd.DataFrame(rows)
+    output_path = place_dir / f"nd_place_{place_fips}_projection_2025_2055_{scenario}.parquet"
+    place_df.to_parquet(output_path, index=False)
+
+
+def _write_synthetic_place_outputs(root: Path, scenario: str) -> None:
+    """Create synthetic PP-003 scenario outputs (90 places + balance rows)."""
+    place_dir = root / "data" / "projections" / scenario / "place"
+    place_dir.mkdir(parents=True, exist_ok=True)
+
+    summary_rows: list[dict[str, Any]] = []
+    all_places: list[tuple[str, str, str, str]] = []
+
+    for idx in range(1, 10):
+        all_places.append((f"3810{idx:03d}", f"High Place {idx}", "HIGH", COUNTIES[(idx - 1) % len(COUNTIES)]))
+    for idx in range(1, 10):
+        all_places.append(
+            (f"3820{idx:03d}", f"Moderate Place {idx}", "MODERATE", COUNTIES[(idx + 1) % len(COUNTIES)])
+        )
+    for idx in range(1, 73):
+        all_places.append((f"3830{idx:03d}", f"Lower Place {idx}", "LOWER", COUNTIES[(idx + 2) % len(COUNTIES)]))
+
+    for place_index, (place_fips, place_name, tier, county_fips) in enumerate(all_places, start=1):
+        _write_place_parquet(
+            place_dir=place_dir,
+            place_fips=place_fips,
+            scenario=scenario,
+            tier=tier,
+            place_index=place_index,
+        )
+        base_population = float(1000 + place_index * 25)
+        final_population = float(base_population + 100 + place_index)
+        growth_rate = (final_population - base_population) / base_population
+        summary_rows.append(
+            {
+                "place_fips": place_fips,
+                "name": place_name,
+                "county_fips": county_fips,
+                "level": "place",
+                "row_type": "place",
+                "confidence_tier": tier,
+                "base_population": base_population,
+                "final_population": final_population,
+                "absolute_growth": final_population - base_population,
+                "growth_rate": growth_rate,
+                "base_share": 0.1,
+                "final_share": 0.1,
+                "processing_time": 0.01,
+            }
+        )
+
+    # Include balance rows to verify workbook input filtering uses row_type == place.
+    summary_rows.extend(
+        [
+            {
+                "place_fips": "bal_38001",
+                "name": "Balance of County 38001",
+                "county_fips": "38001",
+                "level": "place",
+                "row_type": "balance_of_county",
+                "confidence_tier": None,
+                "base_population": 500.0,
+                "final_population": 520.0,
+                "absolute_growth": 20.0,
+                "growth_rate": 0.04,
+                "base_share": 0.2,
+                "final_share": 0.2,
+                "processing_time": 0.0,
+            },
+            {
+                "place_fips": "bal_38003",
+                "name": "Balance of County 38003",
+                "county_fips": "38003",
+                "level": "place",
+                "row_type": "balance_of_county",
+                "confidence_tier": None,
+                "base_population": 700.0,
+                "final_population": 730.0,
+                "absolute_growth": 30.0,
+                "growth_rate": 0.0428,
+                "base_share": 0.3,
+                "final_share": 0.3,
+                "processing_time": 0.0,
+            },
+        ]
+    )
+
+    pd.DataFrame(summary_rows).to_csv(place_dir / "places_summary.csv", index=False)
+
+
+def _find_header_row(ws: Any, header_value: str) -> int:
+    """Return row index containing expected first-column header value."""
+    for row_idx in range(1, 80):
+        if ws.cell(row=row_idx, column=1).value == header_value:
+            return row_idx
+    raise AssertionError(f"Header '{header_value}' not found in worksheet {ws.title}")
+
+
+def test_build_place_workbook_contract(monkeypatch, tmp_path: Path) -> None:
+    """
+    Build workbook from synthetic place outputs and verify IMP-14 contract.
+
+    Contract checks include:
+    - 21-sheet workbook structure
+    - HIGH/MODERATE sheet table shapes
+    - LOWER combined sheet row count + caveat
+    - TOC hyperlinks
+    - methodology text and output naming pattern
+    """
+    scenario = "baseline"
+    _write_county_reference_csv(tmp_path)
+    _write_synthetic_place_outputs(tmp_path, scenario=scenario)
+
+    config = {
+        "pipeline": {
+            "projection": {"output_dir": "data/projections"},
+            "export": {"output_dir": "data/exports"},
+        },
+        "place_projections": {"output": {"key_years": KEY_YEARS}},
+    }
+
+    monkeypatch.setattr(workbook_mod, "project_root", tmp_path)
+
+    output_path = workbook_mod.build_workbook(
+        scenario=scenario,
+        config=config,
+        date_stamp="20260301",
+    )
+
+    assert output_path.name == "nd_projections_baseline_places_20260301.xlsx"
+    assert output_path.exists()
+
+    wb = load_workbook(output_path, data_only=True)
+    sheetnames = wb.sheetnames
+
+    assert len(sheetnames) == 21
+    assert sheetnames[0] == "Table of Contents"
+    assert "LOWER Tier" in sheetnames
+    assert "Methodology" in sheetnames
+    assert sum(name.startswith("HIGH - ") for name in sheetnames) == 9
+    assert sum(name.startswith("MODERATE - ") for name in sheetnames) == 9
+
+    # TOC must link all 90 places.
+    toc_ws = wb["Table of Contents"]
+    toc_header_row = _find_header_row(toc_ws, "Place Name")
+    toc_rows = []
+    row = toc_header_row + 1
+    while toc_ws.cell(row=row, column=1).value:
+        toc_rows.append(row)
+        row += 1
+    assert len(toc_rows) == 90
+    for row_idx in toc_rows:
+        link = toc_ws.cell(row=row_idx, column=1).hyperlink
+        assert link is not None
+        assert str(link.target).startswith("#'")
+        assert str(link.target).endswith("'!A1")
+
+    # HIGH tier: 18 age rows and 2 sex columns per key year.
+    first_high_name = next(name for name in sheetnames if name.startswith("HIGH - "))
+    high_ws = wb[first_high_name]
+    high_header_row = _find_header_row(high_ws, "Age Group")
+    expected_high_headers = ["Age Group"] + [value for year in KEY_YEARS for value in (f"{year} Male", f"{year} Female")]
+    actual_high_headers = [
+        high_ws.cell(row=high_header_row, column=col_idx).value for col_idx in range(1, len(expected_high_headers) + 1)
+    ]
+    assert actual_high_headers == expected_high_headers
+    high_age_labels = [high_ws.cell(row=high_header_row + 1 + idx, column=1).value for idx in range(18)]
+    assert high_age_labels == workbook_mod.HIGH_AGE_GROUPS
+
+    # MODERATE tier: 6 broad age rows and 2 sex columns per key year.
+    first_mod_name = next(name for name in sheetnames if name.startswith("MODERATE - "))
+    mod_ws = wb[first_mod_name]
+    mod_header_row = _find_header_row(mod_ws, "Age Group")
+    expected_mod_headers = ["Age Group"] + [value for year in KEY_YEARS for value in (f"{year} Male", f"{year} Female")]
+    actual_mod_headers = [
+        mod_ws.cell(row=mod_header_row, column=col_idx).value for col_idx in range(1, len(expected_mod_headers) + 1)
+    ]
+    assert actual_mod_headers == expected_mod_headers
+    mod_age_labels = [mod_ws.cell(row=mod_header_row + 1 + idx, column=1).value for idx in range(6)]
+    assert mod_age_labels == workbook_mod.MODERATE_AGE_GROUPS
+
+    # LOWER tier sheet: 72 rows and caveat header.
+    lower_ws = wb["LOWER Tier"]
+    lower_header_row = _find_header_row(lower_ws, "Place Name")
+    lower_rows = []
+    row = lower_header_row + 1
+    while lower_ws.cell(row=row, column=1).value:
+        lower_rows.append(row)
+        row += 1
+    assert len(lower_rows) == 72
+    assert [lower_ws.cell(row=lower_header_row, column=4 + idx).value for idx in range(len(KEY_YEARS))] == [
+        str(year) for year in KEY_YEARS
+    ]
+    caveat_cell = None
+    for row_idx in range(1, lower_header_row):
+        value = lower_ws.cell(row=row_idx, column=1).value
+        if isinstance(value, str) and "wider uncertainty bands" in value:
+            caveat_cell = lower_ws.cell(row=row_idx, column=1)
+            break
+    assert caveat_cell is not None
+    assert caveat_cell.font.bold is True
+
+    methodology_ws = wb["Methodology"]
+    method_text = " ".join(
+        str(methodology_ws.cell(row=row_idx, column=1).value or "") for row_idx in range(1, 60)
+    )
+    assert "Share-of-county trending method (ADR-033)" in method_text
