@@ -36,7 +36,7 @@ Use this file for active status only. Historical session detail is archived to:
 |------|------|------|------|------|
 | PP-001 | Publication-facing output QA and dissemination packaging | active | Collect stakeholder sign-off on 2026-02-28 package set and keep release checklist current for final publication handoff | `docs/reviews/2026-02-28-publication-output-qa-packaging-checklist.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
 | PP-002 | Non-regression validation cadence during publication work | active | Run and record the next cadence cycle after the next material projection/config change (same gate set) | `docs/reviews/repo-hygiene-audit/implementation/06-dashboard-current.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
-| PP-003 | City/place projection workstream reactivation (ADR-033) | implementation_ready | S01-S08 complete; begin Phase 1 data assembly (IMP-01 through IMP-04) | `docs/plans/pp3-s08-implementation-kickoff.md`, `docs/reviews/2026-02-28-pp3-s07-approval-gate.md` |
+| PP-003 | City/place projection workstream reactivation (ADR-033) | active | IMP-01 through IMP-04 executed on production inputs (artifacts + QA evidence recorded 2026-02-28); proceed to IMP-05 model implementation | `docs/plans/pp3-s08-implementation-kickoff.md`, `docs/reviews/2026-02-28-pp3-s07-approval-gate.md` |
 | PP-004 | Test coverage gap closure (ADR-056) | active | Close priority coverage gaps identified in ADR-056 Decision 6; align with PP-002 periodic review cadence | `docs/governance/adrs/056-testing-strategy-maturation.md`, `docs/guides/test-maintenance-practices.md` |
 
 ## PP-003 Phase 1 Scoping Checklist (Canonical)
@@ -53,6 +53,17 @@ Use this file for active status only. Historical session detail is archived to:
 | PP3-S08 | Implementation kickoff packet | completed_2026-02-28 | Publish execution-ready task list (files, tests, validation gates, and ADR touchpoints) | `docs/plans/pp3-s08-implementation-kickoff.md` |
 
 **Go/No-Go Rule:** PP-003 implementation starts only after `PP3-S01` through `PP3-S07` are complete and explicitly marked `go`.
+
+## PP-003 Phase 1 Implementation Checklist (IMP-01 to IMP-04)
+
+| Step ID | Task | Status | Definition of Done | Evidence Artifact |
+|------|------|------|------|------|
+| IMP-01 | Build place-county crosswalk | completed_2026-02-28 | Production run complete: primary crosswalk `357` rows (`355` active + `2` historical_only), multicounty detail `14` rows (`7` places), major-place spot checks PASS | `scripts/data/build_place_county_crosswalk.py`, `data/processed/geographic/place_county_crosswalk_2020.csv`, `data/processed/geographic/place_county_crosswalk_2020_multicounty_detail.csv`, `tests/test_data/test_place_county_crosswalk.py` |
+| IMP-02 | Assemble place population history (2000-2024) | completed_2026-02-28 | Production run complete: `8,915` rows, year coverage `2000-2024` contiguous, no null populations, county join complete | `scripts/data/assemble_place_population_history.py`, `data/processed/place_population_history_2000_2024.parquet`, `tests/test_data/test_place_population_history.py` |
+| IMP-03 | Compute historical place shares | completed_2026-02-28 | Production run complete: `10,240` rows (`8,915` place + `1,325` balance), county-year share identity holds (`max abs error = 0.0`), epsilon clamping bounds enforced | `cohort_projections/data/process/place_shares.py`, `data/processed/place_shares_2000_2024.parquet`, `tests/test_data/test_place_shares.py` |
+| IMP-04 | Assign confidence tiers | completed_2026-02-28 | Tier enrichment written to crosswalk; active-place counts exactly `HIGH=9`, `MODERATE=9`, `LOWER=72`, `EXCLUDED=265` | `scripts/data/build_place_county_crosswalk.py`, `scripts/data/assemble_place_population_history.py`, `data/processed/geographic/place_county_crosswalk_2020.csv`, `tests/test_data/test_place_county_crosswalk.py`, `tests/test_data/test_place_population_history.py` |
+
+**Execution note:** Runtime artifact generation is complete (2026-02-28). Human plausibility review remains recommended for multicounty primary assignments before publication.
 
 ## PP-003 Scope Envelope (S01 Result)
 
@@ -120,7 +131,7 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 1. Keep the documentation consistency queue current; add and resolve new cross-document drift items as they appear.
 2. Keep repo-hygiene evidence current while executing publication tasks (`PP-001`, `PP-002`) and refresh package QA records as new export vintages are generated.
-3. ~~Execute `PP3-S04` through `PP3-S08`~~ Completed 2026-02-28. Begin PP-003 implementation Phase 1 (IMP-01 through IMP-04: data assembly).
+3. Begin PP-003 Phase 2 implementation (`IMP-05` onward): place share-trending model module, backtest variant matrix execution, and model winner selection.
 4. ~~Execute `PP4-06`~~ Completed 2026-02-28. PP-004 workstream closed. Future periodic reviews follow the PP-002 cadence.
 
 ## Deferred / Later Work
