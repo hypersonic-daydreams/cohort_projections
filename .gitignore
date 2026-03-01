@@ -173,3 +173,8 @@ sdc_2024_replication/scripts/statistical_analysis/results/seed_sweeps/
 # ADR report generated outputs (synced via rclone, not git)
 docs/governance/adrs/020-reports/
 docs/governance/adrs/021-reports/
+
+# Generated review packages (synced via rclone, not git)
+docs/reviews/**/*.html
+docs/reviews/**/*.json
+docs/reviews/assets/
