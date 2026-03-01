@@ -4,8 +4,9 @@
 |-----------|-------|
 | **Date** | 2026-03-01 |
 | **Scope** | PP-003 IMP-12 (QA artifacts) + IMP-13 (consistency constraints) |
-| **Status** | Completed |
+| **Status** | Completed; human approval recorded 2026-03-01 |
 | **Related Contract** | `docs/reviews/2026-02-28-pp3-s06-output-contract.md` |
+| **Approval Record** | `docs/reviews/2026-03-01-pp3-imp12-imp13-approval-gate.md` |
 
 ## Summary
 
@@ -79,3 +80,16 @@ From the 2026-03-01 baseline stage rerun:
 - `qa_balance_of_county.csv`: `1,426` rows
 - `qa_outlier_flags.csv`: `31` rows
 - Outlier type counts: `SHARE_RESCALED=20`, `SHARE_REVERSAL=11`
+
+## Human Review Disposition (2026-03-01)
+
+Formal gate decisions are recorded in:
+
+- `docs/reviews/2026-03-01-pp3-imp12-imp13-approval-gate.md`
+
+Recorded disposition summary:
+
+- Overall: **Approved with notes**
+- Gates 1/2/3/7/8: **Approved**
+- Gates 4/5/6: **Approved with notes**
+- Non-blocking follow-up retained: `IMP-13A` (reconciliation magnitude QA visibility)
