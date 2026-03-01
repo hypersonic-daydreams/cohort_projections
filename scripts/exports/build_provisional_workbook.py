@@ -80,11 +80,62 @@ def load_scenario_yearly_totals() -> dict[str, pd.DataFrame]:
     return results
 
 
+def load_place_summaries() -> dict[str, pd.DataFrame]:
+    """Load place summary CSVs for each scenario."""
+    summaries = {}
+    for key, label in SCENARIO_SHORT_NAMES.items():
+        path = PROJECT_ROOT / "data" / "projections" / key / "place" / "places_summary.csv"
+        if path.exists():
+            df = pd.read_csv(path, dtype={"place_fips": str, "county_fips": str})
+            df["county_fips"] = df["county_fips"].astype(str).str.zfill(5)
+            df["scenario"] = label
+            summaries[key] = df
+    return summaries
+
+
+def load_place_yearly_totals() -> dict[str, pd.DataFrame]:
+    """Load place parquet files and aggregate to place-year totals for each scenario."""
+    results = {}
+    for key in SCENARIOS:
+        place_dir = PROJECT_ROOT / "data" / "projections" / key / "place"
+        parquet_files = sorted(place_dir.glob(f"nd_place_*_projection_*_{key}.parquet"))
+        place_dfs = []
+        for pf in parquet_files:
+            place_fips = pf.stem.split("_")[2]  # nd_place_XXXXXXX_...
+            df = pd.read_parquet(pf, columns=["year", "population"])
+            yearly = df.groupby("year")["population"].sum().reset_index()
+            yearly["place_fips"] = place_fips
+            place_dfs.append(yearly)
+        if place_dfs:
+            results[key] = pd.concat(place_dfs, ignore_index=True)
+    return results
+
+
+def load_balance_yearly_totals() -> dict[str, pd.DataFrame]:
+    """Load county balance-of-county yearly totals from QA artifacts."""
+    results = {}
+    for key in SCENARIOS:
+        path = PROJECT_ROOT / "data" / "projections" / key / "place" / "qa" / "qa_balance_of_county.csv"
+        if path.exists():
+            df = pd.read_csv(path, dtype={"county_fips": str})
+            df["county_fips"] = df["county_fips"].astype(str).str.zfill(5)
+            results[key] = df
+    return results
+
+
 def load_county_names() -> dict[int, str]:
     """Get county FIPS -> name mapping from the baseline summary."""
     path = PROJECT_ROOT / "data" / "projections" / "baseline" / "county" / "countys_summary.csv"
     df = pd.read_csv(path)
     return dict(zip(df["fips"], df["name"], strict=False))
+
+
+def county_name_from_fips(county_fips: str, county_names: dict[int, str]) -> str:
+    """Resolve county label from FIPS code."""
+    try:
+        return county_names.get(int(county_fips), f"FIPS {county_fips}")
+    except ValueError:
+        return f"FIPS {county_fips}"
 
 
 def add_provisional_header(ws, title: str, start_row: int = 1) -> int:
@@ -437,6 +488,135 @@ def build_county_detail(
     auto_width(ws)
 
 
+def build_places_detail(
+    wb: Workbook,
+    scenario_key: str,
+    scenario_short: str,
+    scenario_full: str,
+    place_summaries: dict[str, pd.DataFrame],
+    place_yearly: dict[str, pd.DataFrame],
+    balance_yearly: dict[str, pd.DataFrame],
+    county_names: dict[int, str],
+) -> None:
+    """Build a place summary sheet for one scenario with key-year populations."""
+    sheet_name = f"Places \u2014 {scenario_short}"
+    ws = wb.create_sheet(sheet_name)
+
+    colors = {"Baseline": "548235", "Restricted Growth": "C55A11", "High Growth": "BF8F00"}
+    ws.sheet_properties.tabColor = colors.get(scenario_short, "808080")
+
+    row = add_provisional_header(ws, f"Place Projections \u2014 {scenario_full} Scenario")
+
+    if scenario_key not in place_summaries:
+        ws.cell(row=row, column=1, value="No place data available for this scenario.")
+        return
+
+    summary = place_summaries[scenario_key].copy()
+    summary["place_fips"] = summary["place_fips"].astype(str)
+    summary["county_fips"] = summary["county_fips"].astype(str).str.zfill(5)
+    summary = summary[summary["row_type"].isin(["place", "balance_of_county"])].copy()
+
+    place_pivot = pd.DataFrame()
+    if scenario_key in place_yearly:
+        place_pivot = place_yearly[scenario_key].pivot_table(
+            index="place_fips",
+            columns="year",
+            values="population",
+            aggfunc="sum",
+        )
+
+    balance_pivot = pd.DataFrame()
+    if scenario_key in balance_yearly:
+        balance_pivot = balance_yearly[scenario_key].pivot_table(
+            index="county_fips",
+            columns="year",
+            values="balance_of_county",
+            aggfunc="sum",
+        )
+
+    headers = (
+        ["Place FIPS", "Place", "County", "Row Type", "Tier"]
+        + [str(yr) for yr in KEY_YEARS]
+        + [
+            f"Change ({BASE_YEAR}\u2013{FINAL_YEAR})",
+            f"% Change ({BASE_YEAR}\u2013{FINAL_YEAR})",
+        ]
+    )
+    for c, h in enumerate(headers, 1):
+        ws.cell(row=row, column=c, value=h)
+    data_start = row
+    row += 1
+
+    row_order = {"place": 0, "balance_of_county": 1}
+    summary["__row_order"] = summary["row_type"].map(row_order).fillna(2)
+    summary = summary.sort_values(
+        by=["county_fips", "__row_order", "name", "place_fips"],
+        kind="stable",
+    )
+
+    for _, rec in summary.iterrows():
+        place_fips = str(rec["place_fips"])
+        place_name = str(rec["name"])
+        county_fips = str(rec["county_fips"]).zfill(5)
+        county_name = county_name_from_fips(county_fips, county_names)
+        row_type = str(rec["row_type"])
+        if row_type == "balance_of_county":
+            tier = "BALANCE"
+        elif pd.notna(rec["confidence_tier"]):
+            tier = str(rec["confidence_tier"])
+        else:
+            tier = ""
+
+        ws.cell(row=row, column=1, value=place_fips)
+        ws.cell(row=row, column=2, value=place_name)
+        ws.cell(row=row, column=3, value=county_name)
+        ws.cell(row=row, column=4, value=row_type)
+        ws.cell(row=row, column=5, value=tier)
+
+        for i, yr in enumerate(KEY_YEARS):
+            year_val: int | str = ""
+            if (
+                row_type == "place"
+                and not place_pivot.empty
+                and place_fips in place_pivot.index
+                and yr in place_pivot.columns
+            ):
+                year_val = fmt_pop(float(place_pivot.loc[place_fips, yr]))
+            elif (
+                row_type == "balance_of_county"
+                and not balance_pivot.empty
+                and county_fips in balance_pivot.index
+                and yr in balance_pivot.columns
+            ):
+                year_val = fmt_pop(float(balance_pivot.loc[county_fips, yr]))
+            elif yr == BASE_YEAR and pd.notna(rec["base_population"]):
+                year_val = fmt_pop(float(rec["base_population"]))
+            elif yr == FINAL_YEAR and pd.notna(rec["final_population"]):
+                year_val = fmt_pop(float(rec["final_population"]))
+
+            cell = ws.cell(row=row, column=6 + i, value=year_val)
+            if year_val != "":
+                cell.number_format = "#,##0"
+
+        if pd.notna(rec["absolute_growth"]):
+            ws.cell(row=row, column=6 + len(KEY_YEARS), value=fmt_pop(float(rec["absolute_growth"]))).number_format = (
+                "#,##0"
+            )
+        if pd.notna(rec["growth_rate"]):
+            ws.cell(row=row, column=7 + len(KEY_YEARS), value=round(float(rec["growth_rate"]) * 100, 1)).number_format = (
+                '0.0"%"'
+            )
+        row += 1
+
+    table_ref = f"A{data_start}:{get_column_letter(len(headers))}{row - 1}"
+    safe_name = scenario_short.replace(" ", "")
+    create_excel_table(ws, table_ref, f"Places{safe_name}")
+
+    row += 1
+
+    auto_width(ws, min_width=10, max_width=40)
+
+
 def build_growth_rankings(
     wb: Workbook,
     summaries: dict[str, pd.DataFrame],
@@ -572,10 +752,16 @@ def main() -> int:
     print("Loading projection data...")
     summaries = load_scenario_summaries()
     yearly = load_scenario_yearly_totals()
+    place_summaries = load_place_summaries()
+    place_yearly = load_place_yearly_totals()
+    balance_yearly = load_balance_yearly_totals()
     county_names = load_county_names()
 
     print(f"Loaded {len(summaries)} scenario summaries")
     print(f"Loaded {len(yearly)} scenario yearly datasets")
+    print(f"Loaded {len(place_summaries)} place summaries")
+    print(f"Loaded {len(place_yearly)} place yearly datasets")
+    print(f"Loaded {len(balance_yearly)} balance yearly datasets")
     print(f"County names: {len(county_names)}")
 
     wb = Workbook()
@@ -607,6 +793,18 @@ def main() -> int:
             "description": f"All 53 counties: projected population under {SCENARIOS['high_growth']} scenario (+15% migration, +5% fertility)",
         },
         {
+            "name": "Places \u2014 Baseline",
+            "description": f"Projected places and county balances at key years under {SCENARIOS['baseline']} assumptions",
+        },
+        {
+            "name": "Places \u2014 Restricted Growth",
+            "description": f"Projected places and county balances under {SCENARIOS['restricted_growth']} assumptions",
+        },
+        {
+            "name": "Places \u2014 High Growth",
+            "description": f"Projected places and county balances under {SCENARIOS['high_growth']} assumptions",
+        },
+        {
             "name": "Growth Rankings",
             "description": f"Counties ranked by projected growth rate (baseline scenario, {BASE_YEAR}\u2013{FINAL_YEAR})",
         },
@@ -633,6 +831,21 @@ def main() -> int:
         full = SCENARIOS[key]
         print(f"Building Counties \u2014 {short}...")
         build_county_detail(wb, key, short, full, yearly, county_names)
+
+    for key in SCENARIOS:
+        short = SCENARIO_SHORT_NAMES[key]
+        full = SCENARIOS[key]
+        print(f"Building Places \u2014 {short}...")
+        build_places_detail(
+            wb=wb,
+            scenario_key=key,
+            scenario_short=short,
+            scenario_full=full,
+            place_summaries=place_summaries,
+            place_yearly=place_yearly,
+            balance_yearly=balance_yearly,
+            county_names=county_names,
+        )
 
     print("Building Growth Rankings...")
     build_growth_rankings(wb, summaries)
