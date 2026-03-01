@@ -36,7 +36,7 @@ Use this file for active status only. Historical session detail is archived to:
 |------|------|------|------|------|
 | PP-001 | Publication-facing output QA and dissemination packaging | active | Collect stakeholder sign-off on 2026-02-28 package set and keep release checklist current for final publication handoff | `docs/reviews/2026-02-28-publication-output-qa-packaging-checklist.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
 | PP-002 | Non-regression validation cadence during publication work | active | Run and record the next cadence cycle after the next material projection/config change (same gate set) | `docs/reviews/repo-hygiene-audit/implementation/06-dashboard-current.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
-| PP-003 | City/place projection workstream reactivation (ADR-033) | active | IMP-01 through IMP-04 executed on production inputs (artifacts + QA evidence recorded 2026-02-28); proceed to IMP-05 model implementation | `docs/plans/pp3-s08-implementation-kickoff.md`, `docs/reviews/2026-02-28-pp3-s07-approval-gate.md` |
+| PP-003 | City/place projection workstream reactivation (ADR-033) | active | IMP-05 core share-trending module completed (code + tests + targeted lint/type checks recorded 2026-02-28); proceed to IMP-06 orchestrator implementation | `docs/plans/pp3-s08-implementation-kickoff.md`, `docs/reviews/2026-02-28-pp3-s07-approval-gate.md` |
 | PP-004 | Test coverage gap closure (ADR-056) | active | Close priority coverage gaps identified in ADR-056 Decision 6; align with PP-002 periodic review cadence | `docs/governance/adrs/056-testing-strategy-maturation.md`, `docs/guides/test-maintenance-practices.md` |
 
 ## PP-003 Phase 1 Scoping Checklist (Canonical)
@@ -64,6 +64,18 @@ Use this file for active status only. Historical session detail is archived to:
 | IMP-04 | Assign confidence tiers | completed_2026-02-28 | Tier enrichment written to crosswalk; active-place counts exactly `HIGH=9`, `MODERATE=9`, `LOWER=72`, `EXCLUDED=265` | `scripts/data/build_place_county_crosswalk.py`, `scripts/data/assemble_place_population_history.py`, `data/processed/geographic/place_county_crosswalk_2020.csv`, `tests/test_data/test_place_county_crosswalk.py`, `tests/test_data/test_place_population_history.py` |
 
 **Execution note:** Runtime artifact generation is complete (2026-02-28). Human plausibility review remains recommended for multicounty primary assignments before publication.
+
+## PP-003 Phase 2 Implementation Checklist (IMP-05 onward)
+
+| Step ID | Task | Status | Definition of Done | Evidence Artifact |
+|------|------|------|------|------|
+| IMP-05 | Core share-trending module | completed_2026-02-28 | Implemented S04 logit-linear engine (`OLS`/`WLS`, midpoint centering, proportional + cap-and-redistribute constraints, balance reconciliation, county orchestration) with required edge-case handling and full kickoff test matrix coverage | `cohort_projections/data/process/place_share_trending.py`, `cohort_projections/data/process/__init__.py`, `tests/test_data/test_place_share_trending.py` |
+
+### IMP-05 Verification Evidence (2026-02-28)
+
+- `source .venv/bin/activate && pytest tests/test_data/test_place_share_trending.py` -> `14 passed`.
+- `source .venv/bin/activate && ruff check cohort_projections/data/process/place_share_trending.py tests/test_data/test_place_share_trending.py cohort_projections/data/process/__init__.py` -> `All checks passed!`.
+- `source .venv/bin/activate && mypy cohort_projections/data/process/place_share_trending.py` -> `Success: no issues found in 1 source file`.
 
 ## PP-003 Scope Envelope (S01 Result)
 
@@ -131,7 +143,7 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 1. Keep the documentation consistency queue current; add and resolve new cross-document drift items as they appear.
 2. Keep repo-hygiene evidence current while executing publication tasks (`PP-001`, `PP-002`) and refresh package QA records as new export vintages are generated.
-3. Begin PP-003 Phase 2 implementation (`IMP-05` onward): place share-trending model module, backtest variant matrix execution, and model winner selection.
+3. Continue PP-003 Phase 2 implementation (`IMP-06` onward): place projection orchestrator, config additions (IMP-07), then backtest variant-matrix execution and model winner selection.
 4. ~~Execute `PP4-06`~~ Completed 2026-02-28. PP-004 workstream closed. Future periodic reviews follow the PP-002 cadence.
 
 ## Deferred / Later Work

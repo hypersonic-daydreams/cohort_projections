@@ -79,6 +79,24 @@ from .pep_regime_analysis import (
     load_pep_preferred_estimates,
 )
 
+# Place share trending (PP-003 Phase 2)
+from .place_share_trending import (
+    BALANCE_KEY,
+    DEFAULT_EPSILON,
+    DEFAULT_LAMBDA_DECAY,
+    DEFAULT_RECONCILIATION_FLAG_THRESHOLD,
+    ReconciliationResult,
+    apply_cap_and_redistribute,
+    apply_proportional_rescaling,
+    compute_recency_weights,
+    fit_share_trend,
+    inverse_logit,
+    logit_transform,
+    project_shares,
+    reconcile_county_shares,
+    trend_all_places_in_county,
+)
+
 # Survival rates processing
 from .survival_rates import (
     SEER_MORTALITY_RACE_MAP,
@@ -157,6 +175,21 @@ __all__ = [
     "calculate_regime_weighted_average",
     "load_pep_preferred_estimates",
     "generate_regime_analysis_report",
+    # Place share trending
+    "BALANCE_KEY",
+    "DEFAULT_EPSILON",
+    "DEFAULT_LAMBDA_DECAY",
+    "DEFAULT_RECONCILIATION_FLAG_THRESHOLD",
+    "ReconciliationResult",
+    "logit_transform",
+    "inverse_logit",
+    "compute_recency_weights",
+    "fit_share_trend",
+    "project_shares",
+    "apply_proportional_rescaling",
+    "apply_cap_and_redistribute",
+    "reconcile_county_shares",
+    "trend_all_places_in_county",
     # Example entrypoint
     "load_example_usage_module",
 ]
