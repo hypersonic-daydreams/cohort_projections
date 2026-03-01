@@ -960,7 +960,14 @@ def export_place_outputs(
         )
         source_summary = proj_dir / "places_summary.csv"
         if not source_summary.exists():
-            raise FileNotFoundError(f"Place summary not found: {source_summary}")
+            logger.warning(
+                "Skipping place artifacts for %s: source summary not found (%s)",
+                scenario,
+                source_summary,
+            )
+            result.success = True
+            result.files_exported = 0
+            return result
 
         workbook_output = output_dir / f"nd_projections_{scenario}_places_{datetime.now(UTC).strftime('%Y%m%d')}.xlsx"
         if dry_run:

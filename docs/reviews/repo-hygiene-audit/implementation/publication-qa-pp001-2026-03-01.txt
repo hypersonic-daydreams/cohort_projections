@@ -1,0 +1,19 @@
+latest_report=data/exports/export_report_20260301_220924.json
+report_duration_seconds=335.394536
+report_components={'total': 17, 'successful': 17, 'failed': 0}
+report_files_exported=917
+report_packages_created=3
+
+scenario_export_inventory:
+  baseline: state_csv=1 county_csv=106 place_csv=90 state_xlsx=1 county_xlsx=53 place_xlsx=90 summary_csv=14 county_growth_rows=53
+  high_growth: state_csv=1 county_csv=106 place_csv=90 state_xlsx=1 county_xlsx=106 place_xlsx=90 summary_csv=14 county_growth_rows=53
+  restricted_growth: state_csv=1 county_csv=106 place_csv=90 state_xlsx=1 county_xlsx=106 place_xlsx=90 summary_csv=14 county_growth_rows=53
+
+state_scenario_ordering=PASS years_checked=31
+
+package_integrity:
+  nd_projections_state_20260301.zip: files=7 scenario_files=6
+  nd_projections_county_20260301.zip: files=584 scenario_files=583
+  nd_projections_place_20260301.zip: files=544 scenario_files=543
+
+publication_qa_result=PASS

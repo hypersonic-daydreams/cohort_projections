@@ -17,13 +17,12 @@ import pytest
 
 from cohort_projections.data.load.base_population_loader import (
     AGE_GROUP_RANGES,
+    _county_gq_populations,
     _distribute_gq_across_races,
     _expand_gq_to_single_year_ages,
     _separate_gq_from_base_population,
     clear_gq_cache,
     get_county_gq_population,
-    _county_gq_populations,
-    _gq_data_cache,
 )
 from cohort_projections.data.process.residual_migration import (
     subtract_gq_from_populations,

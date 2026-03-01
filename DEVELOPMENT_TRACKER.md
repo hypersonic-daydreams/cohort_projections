@@ -4,7 +4,7 @@ Canonical, current-state tracker for the North Dakota cohort projections reposit
 
 **Last Updated:** 2026-03-01  
 **Projection Horizon:** 2025-2055  
-**Status:** Publication preparation with repo-hygiene and PP-003 closeout complete; this file is the single source of truth for remaining projection-development work.
+**Status:** Core projection development complete; PP-001 publication sign-off and PP-002 cadence closeout completed on 2026-03-01 (stakeholder feedback deferred by owner override).
 
 ## Purpose
 
@@ -27,17 +27,17 @@ Use this file for active status only. Historical session detail is archived to:
 | Data processing pipeline | complete | Inputs and transforms are in place; no active blocker. |
 | Documentation alignment | complete | B01 documentation harmonization complete. |
 | Repo-hygiene program | complete | B00-B06 implemented; full adjudicated replay `27/27` passing; RB-003 and RB-004 remediated and closed. |
-| Test health baseline | stable | Latest recorded baseline: `1247 passed, 5 skipped` (excl. integration). ADR-056 accepted; PP4-01 through PP4-05 closed — 127 new tests added covering GQ separation, pipeline orchestrators, and base population loaders. |
+| Test health baseline | stable | Latest recorded baseline: `1442 passed, 5 skipped` (`pytest tests/ -q`, 2026-03-01 cadence). ADR-056 accepted; PP4-01 through PP4-06 complete. |
 | Claim replay health | stable | `27/27` adjudicated claims passing (latest full replay: 2026-02-27T18:14:03Z). |
 
 ## Projection Development Backlog (Canonical)
 
 | ID | Work Item | Status | Next Milestone | Source |
 |------|------|------|------|------|
-| PP-001 | Publication-facing output QA and dissemination packaging | active | Collect stakeholder sign-off on 2026-02-28 package set and keep release checklist current for final publication handoff | `docs/reviews/2026-02-28-publication-output-qa-packaging-checklist.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
-| PP-002 | Non-regression validation cadence during publication work | active | Run and record the next cadence cycle after the next material projection/config change (same gate set) | `docs/reviews/repo-hygiene-audit/implementation/06-dashboard-current.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
+| PP-001 | Publication-facing output QA and dissemination packaging | completed_2026-03-01 | Closed: owner sign-off recorded for 2026-03-01 package set; stakeholder feedback incorporation explicitly deferred to later cycle | `docs/reviews/2026-03-01-publication-output-signoff.md`, `docs/reviews/repo-hygiene-audit/implementation/31-pp001-signoff-pp002-closeout-results.md` |
+| PP-002 | Non-regression validation cadence during publication work | completed_2026-03-01 | Closed: full cadence rerun after PP-003 integration and export wiring updates (`run_complete_pipeline --dry-run`, `ruff`, `mypy`, `pytest`) | `docs/reviews/repo-hygiene-audit/implementation/06-dashboard-current.md`, `docs/reviews/repo-hygiene-audit/implementation/31-pp001-signoff-pp002-closeout-results.md` |
 | PP-003 | City/place projection workstream reactivation (ADR-033) | completed_2026-03-01 | Closed after IMP-21 methodology finalization consistency and IMP-22 tracker closeout confirmation | `docs/plans/pp3-s08-implementation-kickoff.md`, `docs/reviews/2026-02-28-pp3-s07-approval-gate.md`, `docs/reviews/2026-02-28-pp3-imp09-backtest-results.md`, `docs/reviews/pp3-backtest-outlier-narrative.md`, `docs/reviews/2026-03-01-pp3-imp11-pipeline-stage-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-approval-gate.md`, `docs/reviews/2026-03-01-pp3-imp13a-results.md`, `docs/reviews/2026-03-01-pp3-imp14-results.md`, `docs/reviews/2026-03-01-pp3-imp15-results.md`, `docs/reviews/2026-03-01-pp3-imp16-results.md`, `docs/reviews/2026-03-01-pp3-imp17-imp18-results.md`, `docs/reviews/pp3-end-to-end-validation.md`, `docs/reviews/2026-03-01-pp3-imp19-approval-gate.md`, `docs/reviews/2026-03-01-pp3-imp20-results.md`, `docs/reviews/2026-03-01-pp3-imp21-methodology-finalization-consistency-results.md`, `docs/reviews/2026-03-01-pp3-imp22-tracker-closeout-results.md`, `docs/governance/adrs/033-city-level-projection-methodology.md` |
-| PP-004 | Test coverage gap closure (ADR-056) | active | Close priority coverage gaps identified in ADR-056 Decision 6; align with PP-002 periodic review cadence | `docs/governance/adrs/056-testing-strategy-maturation.md`, `docs/guides/test-maintenance-practices.md` |
+| PP-004 | Test coverage gap closure (ADR-056) | completed_2026-02-28 | Closed: PP4-01 through PP4-06 complete; periodic coverage checks now roll into future PP-002-style cadence events when material changes occur | `docs/governance/adrs/056-testing-strategy-maturation.md`, `docs/guides/test-maintenance-practices.md`, `docs/reviews/2026-02-28-pp4-06-periodic-coverage-review.md` |
 
 ## PP-003 Phase 1 Scoping Checklist (Canonical)
 
@@ -281,8 +281,8 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 ## Near-Term Next Actions
 
 1. Keep the documentation consistency queue current; add and resolve new cross-document drift items as they appear.
-2. Keep repo-hygiene evidence current while executing publication tasks (`PP-001`, `PP-002`) and refresh package QA records as new export vintages are generated.
-3. ~~Execute `PP4-06`~~ Completed 2026-02-28. PP-004 workstream closed. Future periodic reviews follow the PP-002 cadence.
+2. Re-open a PP-002-style cadence cycle only after the next material projection/config change.
+3. Incorporate deferred stakeholder feedback in the next publication update cycle (post-sign-off maintenance item).
 
 
 ## Deferred / Later Work
@@ -295,7 +295,8 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 - `AGENTS.md`
 - `docs/reviews/repo-hygiene-audit/implementation/06-dashboard-current.md`
-- `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md`
+- `docs/reviews/repo-hygiene-audit/implementation/31-pp001-signoff-pp002-closeout-results.md`
+- `docs/reviews/2026-03-01-publication-output-signoff.md`
 - `docs/reviews/2026-02-28-publication-output-qa-packaging-checklist.md`
 - `docs/reviews/2026-02-28-place-data-readiness-note.md`
 - `docs/reviews/2026-02-28-place-county-mapping-strategy-note.md`

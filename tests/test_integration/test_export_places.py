@@ -202,3 +202,45 @@ def test_places_dry_run_creates_no_files(
 
     assert export_mod.main() == 0
     assert not any(path.is_file() for path in export_root.rglob("*"))
+
+
+def test_all_flag_skips_scenarios_without_place_summary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """`--all` should not fail when some scenarios do not have place outputs."""
+    projection_root = tmp_path / "projections"
+    export_root = tmp_path / "exports"
+    config = _build_config(projection_root, export_root)
+    config["scenarios"]["CBO"] = {"active": True}
+    _write_place_summary(projection_root, "baseline")
+
+    _patch_non_place_steps(monkeypatch)
+    monkeypatch.setattr(export_mod, "load_projection_config", lambda _: config)
+
+    def _fake_build_place_workbook(scenario: str, config: dict[str, Any]) -> Path:
+        workbook_path = Path(config["pipeline"]["export"]["output_dir"]) / f"{scenario}_places.xlsx"
+        workbook_path.parent.mkdir(parents=True, exist_ok=True)
+        workbook_path.write_text("placeholder workbook", encoding="utf-8")
+        return workbook_path
+
+    monkeypatch.setattr(export_mod, "_build_place_workbook", _fake_build_place_workbook)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "03_export_results.py",
+            "--all",
+            "--scenarios",
+            "baseline",
+            "CBO",
+            "--formats",
+            "csv",
+            "--no-package",
+        ],
+    )
+
+    assert export_mod.main() == 0
+    assert (export_root / "baseline" / "place" / "places_summary.csv").exists()
+    assert (export_root / "baseline_places.xlsx").exists()
+    assert not (export_root / "CBO" / "place" / "places_summary.csv").exists()

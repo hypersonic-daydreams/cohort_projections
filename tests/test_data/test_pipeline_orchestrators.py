@@ -9,7 +9,7 @@ Coverage target: PP4-02 (pipeline orchestrator tests).
 """
 
 from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import mock_open, patch
 
 import numpy as np
 import pandas as pd
@@ -947,7 +947,6 @@ class TestConvergencePipelineWiring:
     ) -> None:
         """With rate cap disabled, rates can exceed the default cap thresholds."""
         # Create data with extreme rates that would normally be capped
-        counties = ["38001"]
         records = []
         for ps, pe in PERIODS:
             for ag in AGE_GROUP_LABELS:

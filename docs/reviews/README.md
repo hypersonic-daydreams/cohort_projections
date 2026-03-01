@@ -18,6 +18,7 @@ Analytical reviews and quality assurance documents for the North Dakota Populati
 | 2026-02-28 | [Publication Output QA and Packaging Checklist](2026-02-28-publication-output-qa-packaging-checklist.md) | PP-001 rerun of export QA and dissemination packaging checklist closeout | ADR-033 (sequencing context) |
 | 2026-02-28 | [Place Data Readiness Note](2026-02-28-place-data-readiness-note.md) | PP3-S02 coverage and readiness assessment for place history (2000-2024) | ADR-033 |
 | 2026-02-28 | [Place-to-County Mapping Strategy Note](2026-02-28-place-county-mapping-strategy-note.md) | PP3-S03 authoritative mapping and boundary/vintage handling rules for place share-trending | ADR-033 |
+| 2026-03-01 | [Publication Output Sign-Off](2026-03-01-publication-output-signoff.md) | PP-001 owner sign-off decision with deferred stakeholder-feedback override | ADR-033 (publication sequencing) |
 
 ## Conventions
 
@@ -28,4 +29,4 @@ Analytical reviews and quality assurance documents for the North Dakota Populati
 
 ---
 
-**Last Updated**: 2026-02-28
+**Last Updated**: 2026-03-01

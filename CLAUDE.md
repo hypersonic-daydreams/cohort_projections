@@ -2,6 +2,8 @@
 
 Quick reference for Claude Code. **For complete guidance, see [AGENTS.md](./AGENTS.md).**
 
+Current status: 2026 projection development backlog (`PP-001` through `PP-004`) is closed as of 2026-03-01; use `DEVELOPMENT_TRACKER.md` for maintenance-state tasks and any newly opened work.
+
 ---
 
 ## Quick Commands
@@ -86,6 +88,6 @@ git add . && git commit -m "..."
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-02-23 |
-| **Version** | 2.3.0 |
+| **Last Updated** | 2026-03-01 |
+| **Version** | 2.4.0 |
 | **Note** | Quick-reference wrapper for Claude Code. See AGENTS.md for complete guidance. |

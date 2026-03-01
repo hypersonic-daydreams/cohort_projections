@@ -1,0 +1,147 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.0.2, pluggy-1.6.0
+rootdir: /home/nhaarstad/workspace/demography/cohort_projections
+configfile: pyproject.toml
+plugins: timeout-2.4.0, cov-7.0.0, anyio-4.12.1
+timeout: 300.0s
+timeout method: signal
+timeout func_only: False
+collected 1447 items
+
+tests/test_config/test_place_projection_config.py ...                    [  0%]
+tests/test_config/test_race_mappings.py ...........................      [  2%]
+tests/test_core/test_cohort_component.py ............................... [  4%]
+.......                                                                  [  4%]
+tests/test_core/test_fertility.py ...............................        [  6%]
+tests/test_core/test_migration.py ...................................... [  9%]
+...................                                                      [ 10%]
+tests/test_core/test_mortality.py ..................................     [ 13%]
+tests/test_core/test_time_varying_engine.py .............                [ 14%]
+tests/test_data/test_base_population.py ...........................      [ 15%]
+tests/test_data/test_base_population_loader.py ......................... [ 17%]
+......................                                                   [ 19%]
+tests/test_data/test_bebr_averaging.py ................................. [ 21%]
+...                                                                      [ 21%]
+tests/test_data/test_census_api.py .................                     [ 22%]
+tests/test_data/test_convergence_interpolation.py ...................... [ 24%]
+..............                                                           [ 25%]
+tests/test_data/test_county_race_distributions.py ...................... [ 26%]
+...........................                                              [ 28%]
+tests/test_data/test_fertility_rates.py ................................ [ 30%]
+......                                                                   [ 31%]
+tests/test_data/test_gq_separation.py .................................. [ 33%]
+........                                                                 [ 34%]
+tests/test_data/test_migration_rates.py ................................ [ 36%]
+.................                                                        [ 37%]
+tests/test_data/test_mortality_improvement.py .......................... [ 39%]
+...                                                                      [ 39%]
+tests/test_data/test_pep_migration_rates.py ................             [ 40%]
+tests/test_data/test_pep_regime_analysis.py ............................ [ 42%]
+...                                                                      [ 42%]
+tests/test_data/test_pipeline_orchestrators.py ......................... [ 44%]
+.............                                                            [ 45%]
+tests/test_data/test_place_backtest.py ........                          [ 46%]
+tests/test_data/test_place_consistency_constraints.py ...                [ 46%]
+tests/test_data/test_place_county_crosswalk.py ......                    [ 46%]
+tests/test_data/test_place_population_history.py ....                    [ 46%]
+tests/test_data/test_place_projection_orchestrator.py ....               [ 47%]
+tests/test_data/test_place_qa_artifacts.py .                             [ 47%]
+tests/test_data/test_place_share_trending.py ..............              [ 48%]
+tests/test_data/test_place_shares.py ....                                [ 48%]
+tests/test_data/test_residual_migration.py ............................. [ 50%]
+................                                                         [ 51%]
+tests/test_data/test_survival_rates.py ................................. [ 53%]
+..........                                                               [ 54%]
+tests/test_geographic/test_geography_loader.py ......................... [ 56%]
+.........................                                                [ 58%]
+tests/test_geographic/test_multi_geography.py ........................   [ 59%]
+tests/test_integration/test_adr021_modules.py .......................... [ 61%]
+....................................................                     [ 65%]
+tests/test_integration/test_census_method_validation.py ................ [ 66%]
+..............                                                           [ 67%]
+tests/test_integration/test_end_to_end.py ..............                 [ 68%]
+tests/test_integration/test_export_places.py ....                        [ 68%]
+tests/test_integration/test_pep_pipeline.py ...............              [ 69%]
+tests/test_integration/test_place_pipeline_stage.py ...                  [ 69%]
+tests/test_integration/test_place_projection_integration.py .            [ 69%]
+tests/test_output/test_place_workbook.py .                               [ 69%]
+tests/test_output/test_provisional_workbook_places.py .                  [ 69%]
+tests/test_output/test_reports.py .....................................  [ 72%]
+tests/test_output/test_visualizations.py ............................... [ 74%]
+.....                                                                    [ 74%]
+tests/test_output/test_writers.py ..............................         [ 76%]
+tests/test_statistical/test_bayesian_var.py .........................s.. [ 78%]
+..ssss.....                                                              [ 79%]
+tests/test_statistical/test_covariate_anchor.py ....                     [ 79%]
+tests/test_statistical/test_multistate_placebo.py ...................... [ 81%]
+.................................................                        [ 84%]
+tests/test_statistical/test_regime_aware.py ............................ [ 86%]
+..................................                                       [ 89%]
+tests/test_tools/test_citation_audit.py ..........                       [ 89%]
+tests/test_utils/test_bigquery_client.py .......................         [ 91%]
+tests/test_utils/test_config_loader.py ....................              [ 92%]
+tests/test_utils/test_demographic_utils.py ............................. [ 94%]
+...............................                                          [ 96%]
+tests/test_utils/test_reproducibility.py ....................            [ 98%]
+tests/unit/test_build_dhs_lpr_panel_variants.py .                        [ 98%]
+tests/unit/test_duration_figure_table_consistency.py ..                  [ 98%]
+tests/unit/test_journal_article_derived_stats.py ..                      [ 98%]
+tests/unit/test_journal_article_versioning.py .......                    [ 99%]
+tests/unit/test_module_7_causal_inference.py ..                          [ 99%]
+tests/unit/test_module_8_duration_analysis.py .....                      [ 99%]
+tests/unit/test_popest_archive_and_fingerprints.py ....                  [ 99%]
+tests/unit/test_sdc_data_loader.py .                                     [100%]
+
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.3-final-0 ________________
+
+Name                                                               Stmts   Miss Branch BrPart   Cover   Missing
+---------------------------------------------------------------------------------------------------------------
+cohort_projections/__init__.py                                         2      0      0      0 100.00%
+cohort_projections/config/__init__.py                                  2      0      0      0 100.00%
+cohort_projections/config/race_mappings.py                            34      1     16      1  96.00%   202
+cohort_projections/core/__init__.py                                    5      0      0      0 100.00%
+cohort_projections/core/cohort_component.py                          217     27     82     14  85.62%   158, 163, 170, 179, 189, 335-336, 340-344, 401-403, 472-473, 488-489, 511-512, 542-543, 570, 588-589, 598-601
+cohort_projections/core/fertility.py                                  88      1     42      2  97.69%   132->139, 239
+cohort_projections/core/migration.py                                 174      9     82      8  93.36%   85->91, 186-187, 248, 251, 254, 319, 407-408, 440
+cohort_projections/core/mortality.py                                 115      3     48      4  95.71%   76, 87->122, 172, 275
+cohort_projections/data/__init__.py                                    0      0      0      0 100.00%
+cohort_projections/data/fetch/__init__.py                              2      0      0      0 100.00%
+cohort_projections/data/fetch/census_api.py                          238     89     54      6  61.30%   128, 157, 222, 241->240, 284, 420-456, 474-496, 511-518, 538-542, 579-642
+cohort_projections/data/fetch/vital_stats.py                          52     52     10      0   0.00%   8-130
+cohort_projections/data/load/__init__.py                               3      0      0      0 100.00%
+cohort_projections/data/load/base_population_loader.py               442    132    146     25  68.20%   93-111, 129-166, 207-300, 343, 359-360, 409, 426-435, 476-477, 555-556, 572-586, 626-627, 651-662, 687, 699-703, 740->743, 767-768, 785-786, 811-852, 919-938, 1141, 1209-1210, 1219, 1230-1231, 1238, 1265, 1315-1316, 1325, 1395-1396
+cohort_projections/data/load/census_age_sex_population.py            133     81     36      4  34.32%   103-121, 150, 168, 216-244, 275-331, 358-394, 475, 489
+cohort_projections/data/popest_shared.py                              48     18      8      0  53.57%   43, 52-60, 74-76, 82-83, 89-93
+cohort_projections/data/process/__init__.py                           14      1      0      0  92.86%   136
+cohort_projections/data/process/base_population.py                   223    106     92      7  50.16%   194-195, 197->213, 199->205, 202, 205->213, 208->213, 221->219, 259-297, 318-390, 411-481
+cohort_projections/data/process/convergence_interpolation.py         183     15     36      3  88.13%   104-105, 434, 510-522
+cohort_projections/data/process/example_usage.py                     138    138     14      0   0.00%   7-282
+cohort_projections/data/process/fertility_rates.py                   239     60     88     10  74.92%   73, 75, 92, 185->188, 322, 360, 375-386, 444, 523, 526->530, 577-671
+cohort_projections/data/process/migration_rates.py                   648    144    238     40  76.07%   95, 97, 113->118, 131, 135, 145, 224-236, 245->250, 246->245, 251, 255->260, 256->255, 261, 269-272, 581-590, 619, 675, 744, 830, 869, 874, 911-915, 1037->1034, 1041-1044, 1122->1136, 1295, 1356->1363, 1365-1374, 1380->1391, 1392-1398, 1474-1664, 1721, 1725-1726, 1738->1741, 1741->1746, 1743->1746, 1765-1768, 1795-1796, 1813-1814, 1822-1825, 1859-1860
+cohort_projections/data/process/mortality_improvement.py             143      5     22      4  94.55%   204, 274-277, 337, 385
+cohort_projections/data/process/pep_regime_analysis.py               165      9     62      6  91.63%   109->111, 111->114, 186-187, 363-372, 375, 409
+cohort_projections/data/process/place_backtest.py                    208     39     76     36  72.89%   34, 38, 50-55, 60->62, 62->65, 67->69, 74, 102, 119, 154, 156, 158, 160, 173, 183, 185, 203, 254, 256, 265, 291, 306-307, 309-310, 333, 335, 343, 384, 390, 395, 403, 406, 417, 444, 447, 449, 455
+cohort_projections/data/process/place_projection_orchestrator.py     587     66    180     60  83.05%   89-90, 140, 148-151, 160, 179, 183, 186, 190, 197, 199, 243-244, 256, 269, 293-294, 301-302, 316-317, 346, 354, 395, 404, 420, 435->439, 465, 487, 506-511, 624, 632, 738->736, 743->748, 807, 828, 868, 930->932, 946->950, 955, 959, 975->977, 1007-1008, 1047, 1056, 1083-1085, 1110, 1113, 1138, 1146, 1153, 1159, 1228, 1235->1272, 1246, 1260, 1281, 1296, 1323, 1357, 1365, 1367, 1439->1036, 1443, 1445
+cohort_projections/data/process/place_share_trending.py              301     51    130     43  76.80%   57, 72, 74, 81, 84, 94, 115, 126, 129-146, 164, 168, 186, 211, 243, 245, 261, 302, 306, 310, 333, 340-341, 344, 348, 361->385, 364, 368, 375, 388, 416, 418, 422, 438, 442, 549, 553, 556, 565-568, 574, 577, 593->598, 595->598, 664->667, 686->689
+cohort_projections/data/process/place_shares.py                      106     25     38     16  68.75%   24, 28, 63, 88, 105, 114, 117, 146, 152-153, 176-180, 187, 189-190, 223-224, 247, 249, 250->253, 266-271
+cohort_projections/data/process/residual_migration.py                387     51    112     20  85.37%   58, 77, 80, 279-393, 440, 456, 499->528, 519->528, 526, 552, 563->571, 674, 679, 684, 746-750, 759-763, 826, 836->830, 898, 917-933, 1028, 1060, 1112-1116
+cohort_projections/data/process/survival_rates.py                    364     93    164     21  73.48%   70, 72, 89, 107, 120, 205->208, 262, 264-265, 295-303, 320, 458, 513->522, 523, 538-549, 668, 683-685, 722->732, 733->739, 745, 747, 756, 782-783, 837-950
+cohort_projections/geographic/__init__.py                              3      0      0      0 100.00%
+cohort_projections/geographic/geography_loader.py                    188     42     70      9  77.13%   63-72, 141-154, 215, 232-233, 320-336, 349-350, 359-371, 418-419, 424-425, 430
+cohort_projections/geographic/multi_geography.py                     248    101     68      9  56.96%   24-40, 117, 167-192, 244, 262-266, 336->340, 340->343, 358-521, 569-570, 767, 802-803
+cohort_projections/output/__init__.py                                  4      0      0      0 100.00%
+cohort_projections/output/reports.py                                 234      7     60      2  96.94%   242-250, 535->544
+cohort_projections/output/visualizations.py                          288     35     88     17  86.17%   33-35, 42-43, 90, 115-118, 144, 146, 165, 291, 302-305, 356->368, 426, 463->475, 478-481, 555, 571-574, 638, 649-652, 660, 745
+cohort_projections/output/writers.py                                 311     19    156     15  92.72%   30-32, 39-40, 93-94, 108, 133->130, 138->130, 142->152, 297-298, 313->301, 332->334, 350->352, 358->360, 397-398, 489-491, 556->559, 580, 606, 671-672
+cohort_projections/utils/__init__.py                                  45     15      8      3  62.26%   32-33, 77-81, 88-103, 128->131, 135
+cohort_projections/utils/bigquery_client.py                          108      5     24      5  92.42%   62, 101-103, 175->178, 279, 316->319, 335->exit
+cohort_projections/utils/config_loader.py                             11      0      2      0 100.00%
+cohort_projections/utils/demographic_utils.py                         94      3     34      4  94.53%   32-33, 36->39, 365->380, 377
+cohort_projections/utils/reproducibility.py                           56      2      4      0  96.67%   127-128
+cohort_projections/utils/sdc_paths.py                                 37      9     14      4  70.59%   33, 43, 73->72, 76-77, 99-103
+cohort_projections/version.py                                         16      8      2      0  44.44%   9-14, 19-20
+---------------------------------------------------------------------------------------------------------------
+TOTAL                                                               6904   1462   2306    398  76.68%
+Coverage HTML written to dir htmlcov
+================= 1442 passed, 5 skipped in 250.79s (0:04:10) ==================

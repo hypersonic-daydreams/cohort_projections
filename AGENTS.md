@@ -2,7 +2,7 @@
 
 Canonical instruction set for all AI agents working on this codebase.
 
-**Last Updated:** 2026-02-28 | **Version:** 1.7.0 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
+**Last Updated:** 2026-03-01 | **Version:** 1.8.0 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
 
 ---
 
@@ -10,9 +10,9 @@ Canonical instruction set for all AI agents working on this codebase.
 
 **North Dakota Population Projection System** — Official cohort-component population projections for North Dakota at state, county, and place levels.
 
-### Current Focus: 2026 Cohort Projections
+### Current Focus: Post-Development Publication and Maintenance
 
-The primary work is developing the **2026 official population projections** for North Dakota. This includes refining methodology, validating against Census Bureau benchmarks, and producing publication-ready outputs.
+The 2026 projection development cycle is complete (`PP-001` through `PP-004` closed as of 2026-03-01). Primary work is now publication maintenance: documentation consistency, stakeholder-feedback incorporation in future updates, and PP-002-style non-regression cadence reruns after material changes.
 
 | Attribute | Value |
 |-----------|-------|
@@ -336,6 +336,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.8.0 | 2026-03-01 | Updated project focus to post-development publication/maintenance mode after PP-001 through PP-004 closeout |
 | 1.7.0 | 2026-02-28 | Established `DEVELOPMENT_TRACKER.md` as explicit status-entry source of truth; added fast-path session-start guidance for status/remaining-work queries |
 | 1.6.0 | 2026-02-23 | Added data processing documentation standards (Section 5); added ALWAYS items 6-8; references SOP-002 |
 | 1.5.0 | 2026-02-18 | Added ADR process guidance; updated horizon to 2055; added reviews reference |
@@ -349,7 +350,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-02-28 |
-| **Version** | 1.7.0 |
+| **Last Updated** | 2026-03-01 |
+| **Version** | 1.8.0 |
 | **Status** | Current |
 | **Applies To** | All AI Agents |

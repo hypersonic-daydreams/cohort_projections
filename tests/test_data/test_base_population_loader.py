@@ -21,9 +21,8 @@ ADR references:
     - ADR-056: testing strategy maturation
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -38,7 +37,6 @@ from cohort_projections.data.load.base_population_loader import (
     load_base_population_for_county,
     load_base_population_for_state,
 )
-
 
 # ---------------------------------------------------------------------------
 # Constants
