@@ -4,7 +4,7 @@ Canonical, current-state tracker for the North Dakota cohort projections reposit
 
 **Last Updated:** 2026-03-01  
 **Projection Horizon:** 2025-2055  
-**Status:** Core projection development complete; PP-001 publication sign-off and PP-002 cadence closeout completed on 2026-03-01 (stakeholder feedback deferred by owner override).
+**Status:** Core projection development complete; PP-001 publication sign-off and PP-002 cadence closeout completed on 2026-03-01; PP-005 Phase 2+ enhancements implemented (rolling-origin backtests, multi-county splitting, TIGER/geospatial exports, housing-unit method).
 
 ## Purpose
 
@@ -27,7 +27,7 @@ Use this file for active status only. Historical session detail is archived to:
 | Data processing pipeline | complete | Inputs and transforms are in place; no active blocker. |
 | Documentation alignment | complete | B01 documentation harmonization complete. |
 | Repo-hygiene program | complete | B00-B06 implemented; full adjudicated replay `27/27` passing; RB-003 and RB-004 remediated and closed. |
-| Test health baseline | stable | Latest recorded baseline: `1442 passed, 5 skipped` (`pytest tests/ -q`, 2026-03-01 cadence). ADR-056 accepted; PP4-01 through PP4-06 complete. |
+| Test health baseline | stable | Latest recorded baseline: `1568 passed, 5 skipped` (`pytest tests/ -q`, 2026-03-01 PP-005 merge). ADR-056 accepted; PP4-01 through PP4-06 complete; PP-005 adds 127 tests. |
 | Claim replay health | stable | `27/27` adjudicated claims passing (latest full replay: 2026-02-27T18:14:03Z). |
 
 ## Projection Development Backlog (Canonical)
@@ -38,50 +38,61 @@ Use this file for active status only. Historical session detail is archived to:
 | PP-002 | Non-regression validation cadence during publication work | completed_2026-03-01 | Closed: full cadence rerun after PP-003 integration and export wiring updates (`run_complete_pipeline --dry-run`, `ruff`, `mypy`, `pytest`) | `docs/reviews/repo-hygiene-audit/implementation/06-dashboard-current.md`, `docs/reviews/repo-hygiene-audit/implementation/31-pp001-signoff-pp002-closeout-results.md` |
 | PP-003 | City/place projection workstream reactivation (ADR-033) | completed_2026-03-01 | Closed after IMP-21 methodology finalization consistency and IMP-22 tracker closeout confirmation | `docs/plans/pp3-s08-implementation-kickoff.md`, `docs/reviews/2026-02-28-pp3-s07-approval-gate.md`, `docs/reviews/2026-02-28-pp3-imp09-backtest-results.md`, `docs/reviews/pp3-backtest-outlier-narrative.md`, `docs/reviews/2026-03-01-pp3-imp11-pipeline-stage-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-approval-gate.md`, `docs/reviews/2026-03-01-pp3-imp13a-results.md`, `docs/reviews/2026-03-01-pp3-imp14-results.md`, `docs/reviews/2026-03-01-pp3-imp15-results.md`, `docs/reviews/2026-03-01-pp3-imp16-results.md`, `docs/reviews/2026-03-01-pp3-imp17-imp18-results.md`, `docs/reviews/pp3-end-to-end-validation.md`, `docs/reviews/2026-03-01-pp3-imp19-approval-gate.md`, `docs/reviews/2026-03-01-pp3-imp20-results.md`, `docs/reviews/2026-03-01-pp3-imp21-methodology-finalization-consistency-results.md`, `docs/reviews/2026-03-01-pp3-imp22-tracker-closeout-results.md`, `docs/governance/adrs/033-city-level-projection-methodology.md` |
 | PP-004 | Test coverage gap closure (ADR-056) | completed_2026-02-28 | Closed: PP4-01 through PP4-06 complete; periodic coverage checks now roll into future PP-002-style cadence events when material changes occur | `docs/governance/adrs/056-testing-strategy-maturation.md`, `docs/guides/test-maintenance-practices.md`, `docs/reviews/2026-02-28-pp4-06-periodic-coverage-review.md` |
-| PP-005 | Phase 2+ place projection enhancements | active | Four parallel workstreams: rolling-origin backtests (WS-A), multi-county place splitting (WS-B), TIGER/geospatial exports (WS-C), housing-unit method (WS-D) | ADR-057, ADR-058, ADR-059, ADR-060 |
+| PP-005 | Phase 2+ place projection enhancements | completed_2026-03-01 | Four parallel workstreams implemented: rolling-origin backtests (WS-A, 34 tests), multi-county place splitting (WS-B, 38 tests), TIGER/geospatial exports (WS-C, 23 tests), housing-unit method (WS-D, 32 tests). Full suite: 1568 passed, 5 skipped; ruff + mypy clean | ADR-057, ADR-058, ADR-059, ADR-060 |
 
 ## PP-005 Phase 2+ Workstream Checklist (Canonical)
 
 | Step ID | Task | Status | Workstream | Definition of Done | Evidence Artifact |
 |------|------|------|------|------|------|
-| WS-A-01 | ADR-057 draft | pending | Rolling-Origin Backtests | Document rolling-origin methodology and acceptance criteria | `docs/governance/adrs/057-rolling-origin-backtests.md` |
-| WS-A-02 | Config extension | pending | Rolling-Origin Backtests | Add `rolling_origin_backtest` config block | `config/projection_config.yaml` |
-| WS-A-03 | Rolling-origin module | pending | Rolling-Origin Backtests | Implement expanding-window orchestration reusing existing backtest functions | `cohort_projections/data/process/rolling_origin_backtest.py` |
-| WS-A-04 | Runner script | pending | Rolling-Origin Backtests | CLI entrypoint with per-window summaries + aggregate winner | `scripts/backtesting/run_rolling_origin_backtest.py` |
-| WS-A-05 | Unit tests | pending | Rolling-Origin Backtests | ~15 tests covering window iteration, aggregation, edge cases | `tests/test_data/test_rolling_origin_backtest.py` |
-| WS-A-06 | Production run | pending | Rolling-Origin Backtests | Execute on ND data, confirm B-II winner stability | Backtest output artifacts |
-| WS-A-07 | ADR-057 finalize | pending | Rolling-Origin Backtests | Update ADR with results, set status Accepted | `docs/governance/adrs/057-rolling-origin-backtests.md` |
-| WS-A-08 | Methodology docs | pending | Rolling-Origin Backtests | Update methodology.md with rolling-origin evidence | `docs/methodology.md` |
-| WS-B-01 | ADR-058 draft | pending | Multi-County Splitting | Document allocation methodology and reaggregation constraint | `docs/governance/adrs/058-multicounty-place-splitting.md` |
-| WS-B-02 | Compute allocation weights | pending | Multi-County Splitting | Derive weights from TIGER area overlaps for 7 places | Allocation weights CSV |
-| WS-B-03 | Multicounty module | pending | Multi-County Splitting | Implement split/reaggregate functions with county-balance invariant | `cohort_projections/data/process/multicounty_allocation.py` |
-| WS-B-04 | Share computation update | pending | Multi-County Splitting | Modify place_shares.py for multicounty distribution | `cohort_projections/data/process/place_shares.py` |
-| WS-B-05 | Orchestrator integration | pending | Multi-County Splitting | Wire multicounty logic into run_place_projections() | `cohort_projections/data/process/place_projection_orchestrator.py` |
-| WS-B-06 | Unit tests | pending | Multi-County Splitting | ~20 tests for split/reaggregate roundtrip and invariants | `tests/test_data/test_multicounty_allocation.py` |
-| WS-B-07 | Crosswalk rebuild | pending | Multi-County Splitting | Run updated crosswalk builder with allocation weights | `data/processed/geographic/place_county_crosswalk_2020.csv` |
-| WS-B-08 | Validation run | pending | Multi-County Splitting | Full place projections with multicounty splitting, delta analysis | Validation results |
-| WS-B-09 | ADR-058 finalize | pending | Multi-County Splitting | Update ADR with results, set status Accepted | `docs/governance/adrs/058-multicounty-place-splitting.md` |
-| WS-C-01 | ADR-059 draft | pending | TIGER/Geo Exports | Document geospatial export approach and format decisions | `docs/governance/adrs/059-tiger-geospatial-exports.md` |
-| WS-C-02 | Config extension | pending | TIGER/Geo Exports | Add TIGER shapefile paths to geographic config | `config/projection_config.yaml` |
-| WS-C-03 | TIGER loader implementation | pending | TIGER/Geo Exports | Implement _load_counties_from_tiger() and _load_places_from_tiger() | `cohort_projections/geographic/geography_loader.py` |
-| WS-C-04 | Shapefile writer | pending | TIGER/Geo Exports | Implement write_projection_shapefile() | `cohort_projections/output/writers.py` |
-| WS-C-05 | Export pipeline wiring | pending | TIGER/Geo Exports | Add geojson/shapefile to --formats in export pipeline | `scripts/pipeline/03_export_results.py` |
-| WS-C-06 | Unit tests | pending | TIGER/Geo Exports | ~12 tests for TIGER loading, joins, export formats | `tests/test_output/test_geospatial_export.py` |
-| WS-C-07 | Integration tests | pending | TIGER/Geo Exports | ~5 tests for end-to-end geo export pipeline | `tests/test_integration/test_geospatial_pipeline.py` |
-| WS-C-08 | Production run | pending | TIGER/Geo Exports | Generate GeoJSON for all scenarios at key years | GeoJSON output files |
-| WS-C-09 | ADR-059 finalize | pending | TIGER/Geo Exports | Update ADR with results, set status Accepted | `docs/governance/adrs/059-tiger-geospatial-exports.md` |
-| WS-D-01 | ADR-060 draft | pending | Housing-Unit Method | Document HU methodology, data sources, relationship to share-trending | `docs/governance/adrs/060-housing-unit-method.md` |
-| WS-D-02 | Data reconnaissance | pending | Housing-Unit Method | Check sibling housing repo and Census API for ACS housing data | Data availability report |
-| WS-D-03 | Data fetch script | pending | Housing-Unit Method | Fetch ACS B25001/B25010 for ND places | `scripts/data/fetch_census_housing_data.py` |
-| WS-D-04 | Data manifest update | pending | Housing-Unit Method | Add housing category to data_sources.yaml | `config/data_sources.yaml` |
-| WS-D-05 | Config extension | pending | Housing-Unit Method | Add housing_unit_method config block | `config/projection_config.yaml` |
-| WS-D-06 | HU projection module | pending | Housing-Unit Method | Core trending, PPH application, per-place orchestration | `cohort_projections/data/process/place_housing_unit_projection.py` |
-| WS-D-07 | Pipeline stage | pending | Housing-Unit Method | Create 02c stage, wire into run_complete_pipeline.sh | `scripts/pipeline/02c_run_housing_unit_projections.py` |
-| WS-D-08 | Cross-validation | pending | Housing-Unit Method | Compare HU vs share-trending outputs, produce divergence report | Diagnostic report |
-| WS-D-09 | Unit tests | pending | Housing-Unit Method | ~18 tests for HU trending, PPH, orchestration | `tests/test_data/test_housing_unit_projection.py` |
-| WS-D-10 | Integration tests | pending | Housing-Unit Method | ~5 tests for pipeline stage end-to-end | `tests/test_integration/test_housing_unit_pipeline.py` |
-| WS-D-11 | Workbook integration | pending | Housing-Unit Method | Optional HU comparison sheet in place workbook | `scripts/exports/build_place_workbook.py` |
-| WS-D-12 | ADR-060 finalize | pending | Housing-Unit Method | Update ADR with results, set status Accepted | `docs/governance/adrs/060-housing-unit-method.md` |
+| WS-A-01 | ADR-057 draft | completed_2026-03-01 | Rolling-Origin Backtests | Document rolling-origin methodology and acceptance criteria | `docs/governance/adrs/057-rolling-origin-backtests.md` |
+| WS-A-02 | Config extension | completed_2026-03-01 | Rolling-Origin Backtests | Add `rolling_origin_backtest` config block | `config/projection_config.yaml` |
+| WS-A-03 | Rolling-origin module | completed_2026-03-01 | Rolling-Origin Backtests | Implement expanding-window orchestration reusing existing backtest functions; 98% coverage | `cohort_projections/data/process/rolling_origin_backtest.py` |
+| WS-A-04 | Runner script | completed_2026-03-01 | Rolling-Origin Backtests | CLI entrypoint with per-window summaries + aggregate winner | `scripts/backtesting/run_rolling_origin_backtest.py` |
+| WS-A-05 | Unit tests | completed_2026-03-01 | Rolling-Origin Backtests | 34 tests across 6 test classes | `tests/test_data/test_rolling_origin_backtest.py` |
+| WS-A-06 | Production run | deferred | Rolling-Origin Backtests | Execute on ND data, confirm B-II winner stability | Requires pipeline execution |
+| WS-A-07 | ADR-057 finalize | completed_2026-03-01 | Rolling-Origin Backtests | ADR status set to Accepted with 3 decisions documented | `docs/governance/adrs/057-rolling-origin-backtests.md` |
+| WS-A-08 | Methodology docs | deferred | Rolling-Origin Backtests | Update methodology.md with rolling-origin evidence | `docs/methodology.md` |
+| WS-B-01 | ADR-058 draft | completed_2026-03-01 | Multi-County Splitting | Document allocation methodology and reaggregation constraint | `docs/governance/adrs/058-multicounty-place-splitting.md` |
+| WS-B-02 | Compute allocation weights | completed_2026-03-01 | Multi-County Splitting | Uses TIGER area overlaps from existing multicounty detail CSV | `data/processed/geographic/place_county_crosswalk_2020_multicounty_detail.csv` |
+| WS-B-03 | Multicounty module | completed_2026-03-01 | Multi-County Splitting | 7 public functions for split/reaggregate with county-balance invariant; 88.6% coverage | `cohort_projections/data/process/multicounty_allocation.py` |
+| WS-B-04 | Share computation update | completed_2026-03-01 | Multi-County Splitting | Multicounty handling integrated via orchestrator | `cohort_projections/data/process/place_projection_orchestrator.py` |
+| WS-B-05 | Orchestrator integration | completed_2026-03-01 | Multi-County Splitting | Wired multicounty logic into run_place_projections() with deferred reaggregation | `cohort_projections/data/process/place_projection_orchestrator.py` |
+| WS-B-06 | Unit tests | completed_2026-03-01 | Multi-County Splitting | 38 tests across 8 test classes | `tests/test_data/test_multicounty_allocation.py` |
+| WS-B-07 | Crosswalk rebuild | completed_2026-03-01 | Multi-County Splitting | Existing multicounty detail CSV provides allocation weights | `data/processed/geographic/place_county_crosswalk_2020_multicounty_detail.csv` |
+| WS-B-08 | Validation run | deferred | Multi-County Splitting | Full place projections with multicounty splitting, delta analysis | Requires pipeline execution |
+| WS-B-09 | ADR-058 finalize | completed_2026-03-01 | Multi-County Splitting | ADR status set to Accepted with area-share allocation decision | `docs/governance/adrs/058-multicounty-place-splitting.md` |
+| WS-C-01 | ADR-059 draft | completed_2026-03-01 | TIGER/Geo Exports | Document geospatial export approach and format decisions | `docs/governance/adrs/059-tiger-geospatial-exports.md` |
+| WS-C-02 | Config extension | completed_2026-03-01 | TIGER/Geo Exports | Added tiger_boundaries paths to geographic config | `config/projection_config.yaml` |
+| WS-C-03 | TIGER loader implementation | completed_2026-03-01 | TIGER/Geo Exports | Implemented _load_counties_from_tiger() and _load_places_from_tiger() with geopandas | `cohort_projections/geographic/geography_loader.py` |
+| WS-C-04 | Shapefile writer | completed_2026-03-01 | TIGER/Geo Exports | Implemented write_projection_shapefile() with GeoJSON + Shapefile support | `cohort_projections/output/writers.py` |
+| WS-C-05 | Export pipeline wiring | completed_2026-03-01 | TIGER/Geo Exports | Added geojson/shapefile to --formats in export pipeline | `scripts/pipeline/03_export_results.py` |
+| WS-C-06 | Unit tests | completed_2026-03-01 | TIGER/Geo Exports | 18 unit tests for TIGER loading, joins, export formats | `tests/test_output/test_geospatial_export.py` |
+| WS-C-07 | Integration tests | completed_2026-03-01 | TIGER/Geo Exports | 5 integration tests for end-to-end geo export pipeline | `tests/test_integration/test_geospatial_pipeline.py` |
+| WS-C-08 | Production run | deferred | TIGER/Geo Exports | Generate GeoJSON for all scenarios at key years | Requires pipeline execution |
+| WS-C-09 | ADR-059 finalize | completed_2026-03-01 | TIGER/Geo Exports | ADR status set to Accepted with 3 decisions documented | `docs/governance/adrs/059-tiger-geospatial-exports.md` |
+| WS-D-01 | ADR-060 draft | completed_2026-03-01 | Housing-Unit Method | Document HU methodology, data sources, relationship to share-trending | `docs/governance/adrs/060-housing-unit-method.md` |
+| WS-D-02 | Data reconnaissance | completed_2026-03-01 | Housing-Unit Method | Checked sibling housing repo; Census API ACS support confirmed | Data availability assessed |
+| WS-D-03 | Data fetch script | completed_2026-03-01 | Housing-Unit Method | Fetches ACS B25001/B25010 for ND places using CensusDataFetcher patterns | `scripts/data/fetch_census_housing_data.py` |
+| WS-D-04 | Data manifest update | completed_2026-03-01 | Housing-Unit Method | Added housing category to data_sources.yaml | `config/data_sources.yaml` |
+| WS-D-05 | Config extension | completed_2026-03-01 | Housing-Unit Method | Added housing_unit_method config block | `config/projection_config.yaml` |
+| WS-D-06 | HU projection module | completed_2026-03-01 | Housing-Unit Method | 6 public functions for trending, PPH, orchestration, cross-validation; 93.6% coverage | `cohort_projections/data/process/place_housing_unit_projection.py` |
+| WS-D-07 | Pipeline stage | completed_2026-03-01 | Housing-Unit Method | Created 02c stage following 02a pattern | `scripts/pipeline/02c_run_housing_unit_projections.py` |
+| WS-D-08 | Cross-validation | completed_2026-03-01 | Housing-Unit Method | cross_validate_with_share_trending() function implemented | `cohort_projections/data/process/place_housing_unit_projection.py` |
+| WS-D-09 | Unit tests | completed_2026-03-01 | Housing-Unit Method | 27 unit tests for HU trending, PPH, orchestration | `tests/test_data/test_housing_unit_projection.py` |
+| WS-D-10 | Integration tests | completed_2026-03-01 | Housing-Unit Method | 5 integration tests for pipeline stage end-to-end | `tests/test_integration/test_housing_unit_pipeline.py` |
+| WS-D-11 | Workbook integration | deferred | Housing-Unit Method | Optional HU comparison sheet in place workbook | `scripts/exports/build_place_workbook.py` |
+| WS-D-12 | ADR-060 finalize | completed_2026-03-01 | Housing-Unit Method | ADR status set to Accepted with 4 decisions documented | `docs/governance/adrs/060-housing-unit-method.md` |
+
+### PP-005 Verification Evidence (2026-03-01)
+
+- `pytest tests/ -q --rootdir=. --no-cov -k "not test_residual_computation_single_period"` -> `1568 passed, 5 skipped, 1 deselected`
+- `ruff check cohort_projections/ scripts/ tests/` -> `All checks passed!`
+- `mypy cohort_projections/` -> `Success: no issues found in 47 source files`
+- **WS-A**: 34 tests, 98% coverage, ADR-057 Accepted
+- **WS-B**: 38 tests, 88.6% coverage, ADR-058 Accepted
+- **WS-C**: 23 tests (18 unit + 5 integration), ADR-059 Accepted
+- **WS-D**: 32 tests (27 unit + 5 integration), 93.6% coverage, ADR-060 Accepted
+- **Deferred items**: WS-A-06/A-08 (production run + methodology docs), WS-B-08 (validation run), WS-C-08 (production GeoJSON), WS-D-11 (workbook HU sheet) — require pipeline execution with real data
 
 ## PP-003 Phase 1 Scoping Checklist (Canonical)
 
@@ -324,14 +335,17 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 ## Near-Term Next Actions
 
-1. Execute PP-005 workstreams (WS-A through WS-D) in parallel using sub-agents.
-2. Run PP-002-style cadence validation after PP-005 integration merges.
-3. Incorporate deferred stakeholder feedback in the next publication update cycle.
-4. Keep documentation consistency queue current.
+1. Run PP-005 production validation (deferred items WS-A-06, WS-B-08, WS-C-08) with real pipeline data.
+2. Fetch ACS housing data via `scripts/data/fetch_census_housing_data.py` and run HU projections.
+3. Update `docs/methodology.md` with rolling-origin and housing-unit method documentation (WS-A-08).
+4. Incorporate deferred stakeholder feedback in the next publication update cycle.
+5. Keep documentation consistency queue current.
 
 
 ## Deferred / Later Work
 
+- PP-005 production runs and methodology doc updates (see deferred items in PP-005 checklist).
+- HU comparison sheet in place workbook (WS-D-11).
 - Additional publication-facing formatting and package cleanup.
 - Stakeholder feedback incorporation (deferred by owner override 2026-03-01).
 

@@ -72,12 +72,13 @@ class TestLoadNdCounties:
 
     @pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Dependencies not available")
     def test_load_counties_tiger_source(self):
-        """Test loading counties from TIGER source (falls back to default)."""
-        counties = load_nd_counties(source="tiger")
-
-        assert isinstance(counties, pd.DataFrame)
-        # TIGER loading not implemented, should use default data
-        assert len(counties) > 0
+        """Test loading counties from TIGER source (requires TIGER shapefiles)."""
+        try:
+            counties = load_nd_counties(source="tiger")
+            assert isinstance(counties, pd.DataFrame)
+            assert len(counties) > 0
+        except (FileNotFoundError, ImportError):
+            pytest.skip("TIGER shapefiles or geopandas not available")
 
     @pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Dependencies not available")
     def test_load_counties_invalid_source_raises(self):
@@ -109,20 +110,34 @@ class TestLoadNdCounties:
 class TestLoadNdPlaces:
     """Test load_nd_places function."""
 
+    @pytest.fixture()
+    def places_csv(self, tmp_path):
+        """Create a well-formatted test places CSV."""
+        df = pd.DataFrame(
+            {
+                "state_fips": ["38", "38", "38"],
+                "place_fips": ["3825700", "3807200", "3809700"],
+                "place_name": ["Fargo city", "Bismarck city", "Grand Forks city"],
+                "county_fips": ["38017", "38015", "38035"],
+                "population": [130000, 75000, 60000],
+            }
+        )
+        path = tmp_path / "test_places.csv"
+        df.to_csv(path, index=False)
+        return path
+
     @pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Dependencies not available")
-    def test_load_places_returns_dataframe(self):
-        """Test that load_nd_places returns a DataFrame using TIGER source."""
-        # Use tiger source which falls back to default data
-        places = load_nd_places(source="tiger")
+    def test_load_places_returns_dataframe(self, places_csv):
+        """Test that load_nd_places returns a DataFrame."""
+        places = load_nd_places(source="local", reference_path=places_csv)
 
         assert isinstance(places, pd.DataFrame)
         assert len(places) > 0
 
     @pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Dependencies not available")
-    def test_load_places_has_required_columns(self):
+    def test_load_places_has_required_columns(self, places_csv):
         """Test places DataFrame has required columns."""
-        # Use tiger source for predictable format
-        places = load_nd_places(source="tiger")
+        places = load_nd_places(source="local", reference_path=places_csv)
 
         assert "state_fips" in places.columns
         assert "place_fips" in places.columns
@@ -130,10 +145,9 @@ class TestLoadNdPlaces:
         assert "county_fips" in places.columns
 
     @pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Dependencies not available")
-    def test_load_places_fips_format(self):
+    def test_load_places_fips_format(self, places_csv):
         """Test place FIPS codes are properly formatted."""
-        # Use tiger source for predictable format
-        places = load_nd_places(source="tiger")
+        places = load_nd_places(source="local", reference_path=places_csv)
 
         # State FIPS should be 2 digits
         for fips in places["state_fips"]:
@@ -150,11 +164,12 @@ class TestLoadNdPlaces:
             assert len(fips) == 5
 
     @pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Dependencies not available")
-    def test_load_places_min_population_filter(self):
+    def test_load_places_min_population_filter(self, places_csv):
         """Test filtering places by minimum population."""
-        # Use tiger source for predictable format
-        all_places = load_nd_places(source="tiger")
-        filtered_places = load_nd_places(source="tiger", min_population=50000)
+        all_places = load_nd_places(source="local", reference_path=places_csv)
+        filtered_places = load_nd_places(
+            source="local", reference_path=places_csv, min_population=50000
+        )
 
         # Filtered should have fewer or equal places
         assert len(filtered_places) <= len(all_places)
@@ -186,11 +201,13 @@ class TestLoadNdPlaces:
 
     @pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Dependencies not available")
     def test_load_places_tiger_source(self):
-        """Test loading places from TIGER source (falls back to default)."""
-        places = load_nd_places(source="tiger")
-
-        assert isinstance(places, pd.DataFrame)
-        assert len(places) > 0
+        """Test loading places from TIGER source (requires TIGER shapefiles)."""
+        try:
+            places = load_nd_places(source="tiger")
+            assert isinstance(places, pd.DataFrame)
+            assert len(places) > 0
+        except (FileNotFoundError, ImportError):
+            pytest.skip("TIGER shapefiles or geopandas not available")
 
     @pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Dependencies not available")
     def test_load_places_invalid_source_raises(self):
@@ -586,14 +603,28 @@ class TestGeographyLoaderEdgeCases:
     """Test edge cases for geography loader."""
 
     @pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Dependencies not available")
-    def test_empty_result_after_filter(self):
+    def test_empty_result_after_filter(self, tmp_path):
         """Test handling when all geographies filtered out."""
-        # Use tiger source and filter to very high population that no places meet
-        places = load_nd_places(source="tiger", min_population=1_000_000_000)
+        # Create a test CSV with proper column names
+        df = pd.DataFrame(
+            {
+                "state_fips": ["38"],
+                "place_fips": ["3825700"],
+                "place_name": ["Fargo city"],
+                "county_fips": ["38017"],
+                "population": [130000],
+            }
+        )
+        csv_path = tmp_path / "test_places.csv"
+        df.to_csv(csv_path, index=False)
+
+        # Filter to very high population that no places meet
+        places = load_nd_places(
+            source="local", reference_path=csv_path, min_population=1_000_000_000
+        )
 
         # Should return empty DataFrame, not error
         assert isinstance(places, pd.DataFrame)
-        # Should be empty since no places have 1B population
         assert len(places) == 0
 
     @pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Dependencies not available")
@@ -615,13 +646,15 @@ class TestGeographyLoaderEdgeCases:
 
     @pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Dependencies not available")
     def test_vintage_parameter(self):
-        """Test vintage parameter is accepted."""
-        # Use tiger source which always returns default data
-        counties_2020 = load_nd_counties(source="tiger", vintage=2020)
-        places_2020 = load_nd_places(source="tiger", vintage=2020)
+        """Test vintage parameter is accepted (requires TIGER shapefiles)."""
+        try:
+            counties_2020 = load_nd_counties(source="tiger", vintage=2020)
+            places_2020 = load_nd_places(source="tiger", vintage=2020)
 
-        assert len(counties_2020) > 0
-        assert len(places_2020) > 0
+            assert len(counties_2020) > 0
+            assert len(places_2020) > 0
+        except (FileNotFoundError, ImportError):
+            pytest.skip("TIGER shapefiles or geopandas not available")
 
 
 if __name__ == "__main__":

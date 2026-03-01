@@ -318,6 +318,35 @@ data_sources:
         International migration is a smaller component for ND but
         should be included for completeness.
 
+  # ===========================================================================
+  # HOUSING DATA
+  # ===========================================================================
+  # Housing unit counts and household size for the housing-unit method.
+  # Used as a complementary cross-check for share-trending place projections.
+
+  housing:
+    nd_place_housing_units:
+      description: |
+        Place-level housing unit counts and average household size from ACS
+        5-year estimates.  Covers multiple vintages (2009-2023) for all
+        incorporated places and CDPs in North Dakota.
+        Used by the housing-unit method (ADR-060) to project place population
+        as housing_units x persons_per_household.
+      source_paths: []  # Fetched via Census ACS API
+      destination: "data/raw/housing/nd_place_housing_units.csv"
+      external_source: "Census Bureau American Community Survey 5-Year Estimates"
+      external_url: "https://data.census.gov/table?t=Housing+Units"
+      required_columns:
+        - "place_fips"
+        - "place_name"
+        - "year"
+        - "housing_units"
+        - "avg_hh_size"
+      notes: |
+        Fetched by scripts/data/fetch_census_housing_data.py.
+        Table B25001 (Total Housing Units) and B25010 (Average Household Size).
+        Each row represents one place in one ACS 5-year vintage.
+
 # =============================================================================
 # METADATA
 # =============================================================================
@@ -344,3 +373,4 @@ metadata:
     fertility: "Age-specific fertility rates for birth projections"
     mortality: "Life tables for survival rate calculations"
     migration: "Domestic and international migration flow data"
+    housing: "Housing unit counts and household size for HU method cross-check"

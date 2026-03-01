@@ -3,6 +3,11 @@ Place projection orchestration for PP-003 Phase 2 (IMP-06).
 
 This module applies county-constrained share-trending outputs to county
 projections and materializes place-level outputs by confidence tier.
+
+Multi-county place handling (PP-005 WS-B / ADR-058):
+When ``place_projections.multicounty_allocation.enabled`` is true, places
+that span multiple counties are split across constituent counties before
+share trending, then reaggregated to place-level totals afterward.
 """
 
 from __future__ import annotations
@@ -19,6 +24,13 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from cohort_projections.data.process.multicounty_allocation import (
+    get_multicounty_config,
+    identify_multicounty_places,
+    load_allocation_weights,
+    prepare_multicounty_share_history,
+    reaggregate_multicounty_place,
+)
 from cohort_projections.data.process.place_share_trending import (
     BALANCE_KEY,
     trend_all_places_in_county,
@@ -1022,6 +1034,83 @@ def run_place_projections(
     share_history = _load_share_history(config)
     county_names = _load_county_names(config)
 
+    # --- Multi-county place handling (ADR-058) ---
+    mc_config = get_multicounty_config(config)
+    mc_weights: dict[str, dict[str, float]] = {}
+    mc_place_fips: list[str] = []
+    # Track which place_fips are multicounty portions (non-primary) so we
+    # can skip writing per-place outputs for synthetic county portions and
+    # instead reaggregate to a single place output.
+    mc_secondary_entries: set[tuple[str, str]] = set()  # (place_fips, county_fips)
+
+    if mc_config["enabled"]:
+        root = _project_root()
+        xw_path = _resolve_path(
+            str(place_cfg.get(
+                "crosswalk_path",
+                "data/processed/geographic/place_county_crosswalk_2020.csv",
+            )),
+            root,
+        )
+        mc_detail_path = _resolve_path(mc_config["multicounty_detail_path"], root)
+        mc_weights = load_allocation_weights(
+            crosswalk_path=xw_path,
+            multicounty_detail_path=mc_detail_path,
+        )
+        # Only process multicounty places that are in the projected crosswalk.
+        all_mc_fips = identify_multicounty_places(
+            pd.read_csv(xw_path, dtype=str)
+        )
+        mc_place_fips = [
+            fp for fp in all_mc_fips
+            if fp in set(crosswalk["place_fips"].astype(str).tolist())
+        ]
+
+        if mc_place_fips:
+            logger.info(
+                "Multi-county allocation enabled: %d places to split across counties.",
+                len(mc_place_fips),
+            )
+            # Augment share history with synthetic rows for non-primary counties.
+            share_history = prepare_multicounty_share_history(
+                share_history=share_history,
+                crosswalk=crosswalk,
+                weights=mc_weights,
+                multicounty_place_fips=mc_place_fips,
+            )
+            # Expand the crosswalk so non-primary counties include these places.
+            mc_crosswalk_rows: list[dict[str, Any]] = []
+            for pfips in mc_place_fips:
+                if pfips not in mc_weights:
+                    continue
+                primary_row = crosswalk[crosswalk["place_fips"] == pfips]
+                if primary_row.empty:
+                    continue
+                primary_county = str(primary_row["county_fips"].iloc[0])
+                for county_fips_mc in mc_weights[pfips]:
+                    if county_fips_mc == primary_county:
+                        continue
+                    # Create a synthetic crosswalk row for this non-primary county.
+                    row_data = primary_row.iloc[0].to_dict()
+                    row_data["county_fips"] = county_fips_mc
+                    row_data["assignment_type"] = "multi_county_secondary"
+                    row_data["area_share"] = mc_weights[pfips][county_fips_mc]
+                    mc_crosswalk_rows.append(row_data)
+                    mc_secondary_entries.add((pfips, county_fips_mc))
+
+            if mc_crosswalk_rows:
+                mc_df = pd.DataFrame(mc_crosswalk_rows)
+                crosswalk = pd.concat(
+                    [crosswalk, mc_df], ignore_index=True
+                ).sort_values(["county_fips", "place_fips"]).reset_index(drop=True)
+                logger.info(
+                    "Expanded crosswalk with %d multi-county secondary entries.",
+                    len(mc_crosswalk_rows),
+                )
+
+    # Track per-county projection outputs for multicounty reaggregation.
+    mc_county_projections: dict[str, pd.DataFrame] = {}
+
     expected_place_fips = set(crosswalk["place_fips"].astype(str).tolist())
     produced_place_fips: set[str] = set()
 
@@ -1230,6 +1319,20 @@ def run_place_projections(
                 )
             produced_place_fips.add(place_fips)
 
+            # Store projection data for multicounty reaggregation.
+            is_mc_secondary = (place_fips, county_fips) in mc_secondary_entries
+            is_mc_primary = place_fips in mc_place_fips and not is_mc_secondary
+            if is_mc_secondary or is_mc_primary:
+                mc_county_projections.setdefault(county_fips, pd.DataFrame())
+                mc_county_projections[county_fips] = pd.concat(
+                    [mc_county_projections[county_fips], place_share_rows],
+                    ignore_index=True,
+                )
+            # Skip per-place output for multicounty secondary entries;
+            # these will be reaggregated with the primary county's portion.
+            if is_mc_secondary:
+                continue
+
             history_place_rows = history_county[history_county["place_fips"] == place_fips].copy()
             history_place_rows = history_place_rows.sort_values("year").reset_index(drop=True)
             if len(history_place_rows) >= 2 and len(place_share_rows) >= 2:
@@ -1336,6 +1439,23 @@ def run_place_projections(
                             ),
                             year=year,
                         )
+
+            # Multicounty primary entries are deferred until after the county
+            # loop so we can reaggregate populations from all constituent
+            # counties. Non-multicounty places are written immediately.
+            if is_mc_primary:
+                # Store deferred data for post-loop reaggregation.
+                mc_county_projections.setdefault("_deferred_places", {})  # type: ignore[arg-type]
+                mc_county_projections["_deferred_places"][place_fips] = {  # type: ignore[index]
+                    "place_name": place_name,
+                    "tier": tier,
+                    "primary_county_fips": county_fips,
+                    "place_share_rows": place_share_rows,
+                    "county_df": county_df,
+                    "share_sum_ok": share_sum_ok,
+                    "crosswalk_vintage": crosswalk_vintage,
+                }
+                continue
 
             place_start_time = time.perf_counter()
             annual_blocks: list[pd.DataFrame] = []
@@ -1465,6 +1585,142 @@ def run_place_projections(
                     "final_share": float(final_balance["projected_share"].iloc[0]),
                     "processing_time": 0.0,
                 }
+            )
+
+    # --- Reaggregate multi-county place outputs (ADR-058) ---
+    deferred = mc_county_projections.pop("_deferred_places", {})  # type: ignore[arg-type]
+    if deferred and isinstance(deferred, dict):
+        for mc_pfips, mc_info in deferred.items():
+            mc_pfips_str = str(mc_pfips)
+            mc_place_name = str(mc_info["place_name"])
+            mc_tier = str(mc_info["tier"])
+            mc_primary_county = str(mc_info["primary_county_fips"])
+            mc_share_rows_primary = mc_info["place_share_rows"]
+            mc_county_df = mc_info["county_df"]
+            mc_share_sum_ok = mc_info["share_sum_ok"]
+            mc_crosswalk_vintage = mc_info["crosswalk_vintage"]
+
+            # Reaggregate projected populations from all constituent counties.
+            reagg_totals = reaggregate_multicounty_place(
+                county_projections=mc_county_projections,
+                place_fips=mc_pfips_str,
+                weights=mc_weights,
+            )
+            # Merge reaggregated totals back into the primary share rows.
+            reagg_map = dict(
+                zip(
+                    reagg_totals["year"].astype(int),
+                    reagg_totals["place_total"],
+                    strict=True,
+                )
+            )
+
+            mc_start_time = time.perf_counter()
+            mc_annual_blocks: list[pd.DataFrame] = []
+            for _, year_row in mc_share_rows_primary.iterrows():
+                mc_year = int(year_row["year"])
+                # Use reaggregated total instead of single-county population.
+                mc_place_total = float(reagg_map.get(mc_year, year_row["projected_population"]))
+                mc_county_year = mc_county_df[mc_county_df["year"] == mc_year]
+                mc_allocated = allocate_age_sex_detail(
+                    place_total=mc_place_total,
+                    county_cohort_df=mc_county_year,
+                    tier=mc_tier,
+                )
+                mc_allocated.insert(0, "year", mc_year)
+                mc_annual_blocks.append(mc_allocated)
+
+            mc_place_df = pd.concat(mc_annual_blocks, ignore_index=True)
+            mc_place_df = mc_place_df.sort_values("year").reset_index(drop=True)
+
+            mc_base_row = mc_share_rows_primary[mc_share_rows_primary["year"] == base_year]
+            mc_final_row = mc_share_rows_primary[mc_share_rows_primary["year"] == end_year]
+            if mc_base_row.empty:
+                mc_base_row = mc_share_rows_primary.iloc[[0]]
+            if mc_final_row.empty:
+                mc_final_row = mc_share_rows_primary.iloc[[-1]]
+
+            mc_base_year_int = int(mc_base_row["year"].iloc[0])
+            mc_end_year_int = int(mc_final_row["year"].iloc[0])
+            mc_base_pop = float(reagg_map.get(mc_base_year_int, mc_base_row["projected_population"].iloc[0]))
+            mc_final_pop = float(reagg_map.get(mc_end_year_int, mc_final_row["projected_population"].iloc[0]))
+            mc_abs_growth = mc_final_pop - mc_base_pop
+            mc_growth_rate = mc_abs_growth / mc_base_pop if mc_base_pop > 0 else 0.0
+            mc_processing_time = round(time.perf_counter() - mc_start_time, 4)
+
+            mc_share_within_bounds = bool(
+                (
+                    (mc_share_rows_primary["projected_share"] >= -QA_FLOAT_TOLERANCE)
+                    & (mc_share_rows_primary["projected_share"] <= 1.0 + QA_FLOAT_TOLERANCE)
+                ).all()
+            )
+
+            mc_metadata: dict[str, Any] = {
+                "geography": {
+                    "level": "place",
+                    "place_fips": mc_pfips_str,
+                    "name": mc_place_name,
+                    "county_fips": mc_primary_county,
+                    "confidence_tier": mc_tier,
+                    "base_population": mc_base_pop,
+                    "multicounty": True,
+                    "constituent_counties": list(mc_weights.get(mc_pfips_str, {}).keys()),
+                },
+                "projection": {
+                    "base_year": base_year,
+                    "end_year": end_year,
+                    "scenario": scenario,
+                    "method": "share_of_county_trending_multicounty",
+                    "processing_date": datetime.now(UTC).isoformat(),
+                },
+                "share_model": {
+                    "trend_type": "logit_linear",
+                    "fitting_method": fitting_method,
+                    "constraint_method": constraint_method,
+                    "base_share": float(mc_base_row["projected_share"].iloc[0]),
+                    "final_share": float(mc_final_row["projected_share"].iloc[0]),
+                    "share_change": float(
+                        mc_final_row["projected_share"].iloc[0]
+                        - mc_base_row["projected_share"].iloc[0]
+                    ),
+                    "historical_window": f"{history_start}-{history_end}",
+                    "crosswalk_vintage": mc_crosswalk_vintage,
+                    "model_version": "1.0.0",
+                },
+                "summary_statistics": {
+                    "base_population": mc_base_pop,
+                    "final_population": mc_final_pop,
+                    "absolute_growth": mc_abs_growth,
+                    "growth_rate": mc_growth_rate,
+                    "years_projected": int(end_year - base_year),
+                },
+                "validation": {
+                    "share_within_bounds": mc_share_within_bounds,
+                    "share_sum_check_passed": mc_share_sum_ok,
+                    "all_checks_passed": bool(
+                        mc_share_within_bounds
+                        and mc_share_sum_ok
+                        and (mc_place_df["population"] >= -QA_FLOAT_TOLERANCE).all()
+                    ),
+                },
+                "processing_time_seconds": mc_processing_time,
+            }
+
+            mc_write_result = write_place_outputs(
+                place_df=mc_place_df,
+                metadata=mc_metadata,
+                scenario=scenario,
+                config=config,
+            )
+            all_place_metadata.append(mc_metadata)
+            all_place_summaries.append(mc_write_result["summary_row"])
+            logger.info(
+                "Reaggregated multi-county place %s (%s): base=%.0f, final=%.0f, growth=%.1f%%",
+                mc_pfips_str,
+                mc_place_name,
+                mc_base_pop,
+                mc_final_pop,
+                mc_growth_rate * 100,
             )
 
     _validate_projection_universe(

@@ -1,74 +1,160 @@
 # ADR-060: Housing-Unit Method for Place Projections
 
 ## Status
-Proposed
+Accepted
 
 ## Date
 2026-03-01
 
 ## Context
 
-ADR-033 identified the housing-unit method as an alternative approach for place-level projections: project housing units, then apply persons-per-household (PPH) ratios to derive population. While share-of-county trending (the Phase 1 winner) is well-suited for the 30-year projection horizon (2025-2055), the housing-unit method provides a complementary short-term (5-10 year) perspective that can serve as a cross-check and may be more appropriate for municipal planning use cases where housing development patterns are the primary driver.
+The cohort projection system produces place-level population projections
+using county-constrained share-trending (PP-003).  Share-trending works
+well for medium-to-long horizons but rests on assumptions about
+historical population share trajectories.  An independent cross-check
+using a different methodology strengthens confidence in the near-term
+place projections published by the State Data Center.
+
+The housing-unit (HU) method is a well-established short-term projection
+technique used by state and local demographers.  It estimates population
+as:
+
+    population = housing_units x persons_per_household
+
+ACS 5-year estimates provide both housing-unit counts (Table B25001) and
+average household size (Table B25010) for all incorporated places in
+North Dakota, covering vintages from 2009 through 2023.
 
 ### Requirements
-- Acquire place-level housing unit counts and average household size from Census ACS
-- Trend housing units for each place (linear or log-linear)
-- Apply projected PPH ratios to derive short-term population estimates
-- Cross-validate against share-trending outputs for consistency diagnostics
-- Produce supplementary output that complements (not replaces) the primary share-trending projections
+- Provide an independent short-term (5-10 year) cross-check for share-trending.
+- Use publicly available Census ACS data.
+- Produce place-level population estimates comparable to the share-trending outputs.
+- Quantify divergence between the two methods for diagnostic reporting.
 
 ### Challenges
-- Census ACS place-level housing data may have gaps for small places
-- PPH ratios change over time — need trend or scenario-based handling
-- Building permit data (local sources) is not readily available for all ND places
-- This is a complementary method, not a replacement — need clear communication about its role
+- ACS 5-year estimates have wide margins of error for small places.
+- PPH has been declining nationally, making the "hold last" assumption
+  modestly conservative.
+- Housing-unit counts reflect permits and completions, which are forward-looking
+  but noisy for small geographies.
 
 ## Decision
 
-*To be completed during implementation.*
+### Decision 1: Complementary Cross-Check, Not Replacement
+
+**Decision**: The housing-unit method supplements share-trending.  It does
+not replace or override the share-trending projections in the production
+pipeline.
+
+**Rationale**:
+- Share-trending is county-constrained and age-sex detailed; HU produces
+  total population only.
+- HU is most useful in the near-term (5-10 years) where building permit
+  trends are informative.
+- Divergence between the two methods flags places requiring analyst review.
+
+### Decision 2: Log-Linear Default Trend
+
+**Decision**: Use log-linear (exponential) trend as the default for
+projecting housing-unit counts forward.
+
+**Rationale**:
+- Housing growth in growing ND cities (Fargo, Bismarck, Williston) is
+  closer to multiplicative than additive.
+- Linear trend is available as an alternative via config.
+- Log-linear naturally prevents negative projections.
+
+### Decision 3: Hold-Last PPH Default
+
+**Decision**: Default PPH projection is "hold last observed value constant".
+
+**Rationale**:
+- National PPH has declined slowly (~0.02/decade).  For a 5-10 year
+  horizon, holding constant is a reasonable simplification.
+- Linear PPH trending is available as a config option for sensitivity
+  analysis.
+- PPH is floored at 1.0 to prevent nonsensical values.
+
+### Decision 4: ACS 5-Year Data Source
+
+**Decision**: Use Census ACS 5-year estimates (Tables B25001, B25010)
+fetched via the Census API for all available vintages (2009-2023).
+
+**Rationale**:
+- ACS 5-year estimates cover all places, including small CDPs.
+- Multiple vintages provide enough history for trend fitting.
+- The fetch script (`scripts/data/fetch_census_housing_data.py`) follows
+  the existing `CensusDataFetcher` patterns.
 
 ## Consequences
 
 ### Positive
-1. Provides independent cross-check on share-trending projections
-2. More intuitive for municipal stakeholders (housing = population driver)
-3. Better suited for short-term planning horizons (5-10 years)
-4. Can incorporate local housing development intelligence when available
+1. Provides an independent cross-check for share-trending projections.
+2. Uses a well-established, transparent methodology.
+3. Identifies places where share-trending and HU diverge significantly.
+4. Modular design: can be enabled or disabled via config.
 
 ### Negative
-1. Requires new data pipeline (Census ACS housing tables)
-2. Limited to short-term horizons where housing trend extrapolation is defensible
-3. May diverge from share-trending outputs, requiring explanation
+1. Total population only (no age-sex detail).
+2. ACS margins of error are large for small places (<500 population).
+3. Adds a new data dependency (ACS housing tables).
+
+### Risks and Mitigations
+
+**Risk**: HU projections diverge substantially from share-trending for
+rapidly growing places (e.g., Watford City during oil boom).
+- **Mitigation**: Cross-validation metrics flag divergences > 10% for
+  analyst review.  HU is advisory, not production.
+
+**Risk**: PPH hold-last assumption overstates population in places where
+household sizes are shrinking.
+- **Mitigation**: Config option to switch to linear PPH trend.
 
 ## Implementation Notes
 
 ### Key Functions/Classes
-- `trend_housing_units()`: Fit trend model to housing unit history
-- `project_population_from_hu()`: Apply PPH ratios to projected HUs
-- `run_housing_unit_projections()`: Per-place orchestration
-- Extends: `CensusDataFetcher` with ACS housing variables (B25001, B25010)
+- `load_housing_data(config)`: Load ACS housing CSV.
+- `trend_housing_units(history, method, years)`: Fit linear or log-linear trend.
+- `project_pph(history, method, years)`: Project persons-per-household.
+- `project_population_from_hu(hu, pph)`: Multiply HU x PPH.
+- `run_housing_unit_projections(config)`: Orchestrate per-place projections.
+- `cross_validate_with_share_trending(hu, st)`: Compute divergence metrics.
 
 ### Configuration Integration
-New `housing_unit_method` block in `projection_config.yaml`.
+```yaml
+housing_unit_method:
+  enabled: true
+  housing_data_path: "data/raw/housing/nd_place_housing_units.csv"
+  projection_horizon: 10
+  projection_years: [2025, 2030, 2035]
+  trend_method: "log_linear"
+  pph_method: "hold_last"
+  min_history_years: 3
+```
 
 ### Testing Strategy
-Unit tests for HU trending, PPH application, projection orchestration. Integration tests for pipeline stage. Cross-validation diagnostic against share-trending outputs.
+- 18 unit tests covering loading, trends, PPH, population computation,
+  orchestration, edge cases, cross-validation, and config parsing.
+- 5 integration tests covering end-to-end pipeline, dry-run, output
+  format, config-disabled skipping, and multi-scenario.
 
 ### Documentation
-- [ ] Update `docs/methodology.md` with housing-unit method documentation
+- [ ] Update `docs/methodology.md` when HU results are included in publications
 
 ## References
 
-1. ADR-033: City-Level Projection Methodology (Alternative 3: housing-unit method)
-2. Census ACS Table B25001: Housing Units
-3. Census ACS Table B25010: Average Household Size
-4. Sibling housing analysis repo: `~/workspace/demography/housing/`
+1. **Smith, S.K. and Cody, S. (2004)**. "An Evaluation of Population
+   Estimates in Florida." *Population Research and Policy Review*.
+2. **Census Bureau ACS 5-Year Estimates**: Tables B25001, B25010.
+3. **BEBR Housing-Unit Method**: University of Florida Bureau of Economic
+   and Business Research methodology documentation.
 
 ## Revision History
 
-- **2026-03-01**: Initial proposal (ADR-060) - Housing-unit method for complementary place projections
+- **2026-03-01**: Initial version (ADR-060) - Housing-unit method implementation.
 
 ## Related ADRs
 
-- ADR-033: City-Level Projection Methodology (complementary approach)
-- ADR-006: Data Pipeline Architecture (data ingestion patterns)
+- ADR-033: City-Level Projections (deferred; HU provides an alternative path)
+- ADR-054: State-County Aggregation Reconciliation (HU operates at place level)
+- ADR-055: Group Quarters Separation (GQ is not included in HU method)

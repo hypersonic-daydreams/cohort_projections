@@ -430,6 +430,46 @@ def get_geography_name(fips: str, level: Literal["state", "county", "place"] | N
         raise ValueError(f"Unknown level: {level}")
 
 
+def load_tiger_boundaries(
+    level: Literal["county", "place"],
+    vintage: int = 2020,
+) -> "pd.DataFrame":
+    """
+    Load Census TIGER boundary geometries for geospatial exports.
+
+    This is the public entry point used by the geospatial writer
+    (``write_projection_shapefile``) to obtain boundary geometries with
+    FIPS codes suitable for joining to projection data.
+
+    Args:
+        level: Geographic level -- ``"county"`` or ``"place"``.
+        vintage: Census TIGER vintage year (default: 2020).
+
+    Returns:
+        GeoDataFrame with at minimum ``geometry`` and the level-appropriate
+        FIPS column (``county_fips`` or ``place_fips``).
+
+    Raises:
+        ImportError: If geopandas is not installed.
+        FileNotFoundError: If the configured shapefile does not exist.
+        ValueError: If *level* is not ``"county"`` or ``"place"``.
+
+    Example:
+        >>> boundaries = load_tiger_boundaries("county")
+        >>> len(boundaries)  # 53 ND counties
+        53
+    """
+    if level == "county":
+        return _load_counties_from_tiger(vintage)
+    elif level == "place":
+        return _load_places_from_tiger(vintage)
+    else:
+        raise ValueError(
+            f"Unsupported level for TIGER boundaries: {level!r}. "
+            "Use 'county' or 'place'."
+        )
+
+
 # Helper functions for creating default reference data
 
 
@@ -585,24 +625,166 @@ def _create_default_nd_places() -> pd.DataFrame:
 
 def _load_counties_from_tiger(vintage: int) -> pd.DataFrame:
     """
-    Load county data from Census TIGER files.
+    Load North Dakota county data from Census TIGER boundary shapefiles.
 
-    This is a placeholder for TIGER integration. In production, would use
-    tigris library or direct TIGER file download.
+    Reads the US county shapefile configured at
+    ``geography.reference_data.tiger_boundaries.county_shapefile``, filters
+    to North Dakota (STATEFP == "38"), and maps TIGER column names to project
+    conventions.
+
+    Args:
+        vintage: Census TIGER vintage year (used for logging; file path
+                 comes from project config).
+
+    Returns:
+        DataFrame with columns: state_fips, county_fips, county_name, geometry
+
+    Raises:
+        ImportError: If geopandas is not installed.
+        FileNotFoundError: If the configured shapefile does not exist.
     """
-    logger.warning("TIGER loading not yet implemented, using default data")
-    return _create_default_nd_counties()
+    try:
+        import geopandas as gpd
+    except ImportError as exc:
+        raise ImportError(
+            "geopandas is required for TIGER county loading. "
+            "Install with: pip install geopandas"
+        ) from exc
+
+    config = load_projection_config()
+    tiger_cfg = (
+        config.get("geography", {})
+        .get("reference_data", {})
+        .get("tiger_boundaries", {})
+    )
+    shapefile_rel = tiger_cfg.get(
+        "county_shapefile",
+        "data/interim/geographic/tiger2020/tl_2020_us_county.shp",
+    )
+    project_root = Path(__file__).parent.parent.parent
+    shapefile_path = project_root / shapefile_rel
+
+    if not shapefile_path.exists():
+        raise FileNotFoundError(
+            f"TIGER county shapefile not found: {shapefile_path}"
+        )
+
+    logger.info(
+        "Loading counties from TIGER shapefile: %s (vintage %d)",
+        shapefile_path,
+        vintage,
+    )
+    gdf = gpd.read_file(shapefile_path)
+
+    # Filter to North Dakota
+    state_col = "STATEFP" if "STATEFP" in gdf.columns else "STATEFP20"
+    gdf = gdf[gdf[state_col] == "38"].copy()
+
+    # Map TIGER columns to project conventions
+    geoid_col = "GEOID" if "GEOID" in gdf.columns else "GEOID20"
+    name_col = "NAME" if "NAME" in gdf.columns else "NAMELSAD"
+
+    counties_df = gdf.rename(
+        columns={
+            state_col: "state_fips",
+            geoid_col: "county_fips",
+            name_col: "county_name",
+        }
+    )[["state_fips", "county_fips", "county_name", "geometry"]].copy()
+
+    # Ensure FIPS are strings with correct padding
+    counties_df["state_fips"] = counties_df["state_fips"].astype(str).str.zfill(2)
+    counties_df["county_fips"] = counties_df["county_fips"].astype(str).str.zfill(5)
+
+    logger.info("Loaded %d ND counties from TIGER", len(counties_df))
+    return counties_df
 
 
 def _load_places_from_tiger(vintage: int) -> pd.DataFrame:
     """
-    Load place data from Census TIGER files.
+    Load North Dakota place data from Census TIGER boundary shapefiles.
 
-    This is a placeholder for TIGER integration. In production, would use
-    tigris library or direct TIGER file download.
+    Reads the ND place shapefile configured at
+    ``geography.reference_data.tiger_boundaries.place_shapefile`` and maps
+    TIGER column names to project conventions.
+
+    Args:
+        vintage: Census TIGER vintage year (used for logging; file path
+                 comes from project config).
+
+    Returns:
+        DataFrame with columns: state_fips, place_fips, place_name, geometry
+
+    Raises:
+        ImportError: If geopandas is not installed.
+        FileNotFoundError: If the configured shapefile does not exist.
+
+    Note:
+        The returned DataFrame does **not** include ``county_fips`` because
+        TIGER place shapefiles do not carry county assignments. Use the
+        place-county crosswalk for county mapping.
     """
-    logger.warning("TIGER loading not yet implemented, using default data")
-    return _create_default_nd_places()
+    try:
+        import geopandas as gpd
+    except ImportError as exc:
+        raise ImportError(
+            "geopandas is required for TIGER place loading. "
+            "Install with: pip install geopandas"
+        ) from exc
+
+    config = load_projection_config()
+    tiger_cfg = (
+        config.get("geography", {})
+        .get("reference_data", {})
+        .get("tiger_boundaries", {})
+    )
+    shapefile_rel = tiger_cfg.get(
+        "place_shapefile",
+        "data/interim/geographic/tiger2020/tl_2020_38_place.shp",
+    )
+    project_root = Path(__file__).parent.parent.parent
+    shapefile_path = project_root / shapefile_rel
+
+    if not shapefile_path.exists():
+        raise FileNotFoundError(
+            f"TIGER place shapefile not found: {shapefile_path}"
+        )
+
+    logger.info(
+        "Loading places from TIGER shapefile: %s (vintage %d)",
+        shapefile_path,
+        vintage,
+    )
+    gdf = gpd.read_file(shapefile_path)
+
+    # Filter to ND (the place file should already be ND-only, but be safe)
+    state_col = "STATEFP" if "STATEFP" in gdf.columns else "STATEFP20"
+    gdf = gdf[gdf[state_col] == "38"].copy()
+
+    # Map TIGER columns to project conventions
+    geoid_col = "GEOID" if "GEOID" in gdf.columns else "GEOID20"
+    name_col = "NAME" if "NAME" in gdf.columns else "NAMELSAD"
+
+    places_df = gdf.rename(
+        columns={
+            state_col: "state_fips",
+            geoid_col: "place_fips",
+            name_col: "place_name",
+        }
+    )[["state_fips", "place_fips", "place_name", "geometry"]].copy()
+
+    # TIGER place shapefiles do not include county assignment.
+    # Add a placeholder county_fips so the DataFrame passes
+    # _validate_place_data; downstream code should use the
+    # place-county crosswalk for authoritative county mapping.
+    places_df["county_fips"] = ""
+
+    # Ensure FIPS are strings with correct padding
+    places_df["state_fips"] = places_df["state_fips"].astype(str).str.zfill(2)
+    places_df["place_fips"] = places_df["place_fips"].astype(str).str.zfill(7)
+
+    logger.info("Loaded %d ND places from TIGER", len(places_df))
+    return places_df
 
 
 def _validate_county_data(df: pd.DataFrame) -> pd.DataFrame:

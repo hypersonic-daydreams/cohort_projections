@@ -11,6 +11,7 @@ Modules:
     - migration_rates: Process IRS/ACS migration data into net migration by cohort
     - mortality_improvement: Census Bureau NP2023 ND-adjusted survival projections
     - pep_regime_analysis: Regime-aware migration analysis from Census PEP data
+    - place_housing_unit_projection: Housing-unit method for place projections (ADR-060)
 """
 
 from importlib import import_module
@@ -88,6 +89,16 @@ from .place_backtest import (
     select_winner,
 )
 
+# Place housing-unit method (PP-005 / ADR-060)
+from .place_housing_unit_projection import (
+    cross_validate_with_share_trending,
+    load_housing_data,
+    project_population_from_hu,
+    project_pph,
+    run_housing_unit_projections,
+    trend_housing_units,
+)
+
 # Place projection orchestration (PP-003 Phase 2)
 from .place_projection_orchestrator import (
     allocate_age_sex_detail,
@@ -115,6 +126,15 @@ from .place_share_trending import (
     project_shares,
     reconcile_county_shares,
     trend_all_places_in_county,
+)
+
+# Rolling-origin backtesting (PP-005 WS-A)
+from .rolling_origin_backtest import (
+    aggregate_rolling_metrics,
+    build_per_window_summary,
+    generate_rolling_windows,
+    run_rolling_origin_backtest,
+    select_rolling_winner,
 )
 
 # Survival rates processing
@@ -216,6 +236,19 @@ __all__ = [
     "apply_cap_and_redistribute",
     "reconcile_county_shares",
     "trend_all_places_in_county",
+    # Rolling-origin backtesting
+    "aggregate_rolling_metrics",
+    "build_per_window_summary",
+    "generate_rolling_windows",
+    "run_rolling_origin_backtest",
+    "select_rolling_winner",
+    # Place housing-unit method
+    "load_housing_data",
+    "trend_housing_units",
+    "project_pph",
+    "project_population_from_hu",
+    "run_housing_unit_projections",
+    "cross_validate_with_share_trending",
     # Place projection orchestration
     "allocate_age_sex_detail",
     "run_place_projections",

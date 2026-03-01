@@ -999,6 +999,138 @@ def export_place_outputs(
     return result
 
 
+def export_geospatial_outputs(
+    scenario: str,
+    levels: list[str],
+    config: dict[str, Any],
+    output_dir: Path,
+    format_type: Literal["geojson", "shapefile"] = "geojson",
+    dry_run: bool = False,
+) -> ExportResult:
+    """
+    Export projection data as geospatial files (GeoJSON or Shapefile).
+
+    Joins projection population totals to Census TIGER boundary geometries
+    and writes one file per geography level per key year.
+
+    Args:
+        scenario: Scenario name (e.g., 'baseline').
+        levels: Geographic levels to export ('county', 'place').
+        config: Project configuration dictionary.
+        output_dir: Root export directory.
+        format_type: Output format -- 'geojson' or 'shapefile'.
+        dry_run: If True, log planned actions without writing files.
+
+    Returns:
+        ExportResult summarising the export operation.
+    """
+    result = ExportResult(f"geospatial_{format_type}_{scenario}")
+    start_time = datetime.now(UTC)
+
+    try:
+        logger.info(
+            "Exporting geospatial %s for scenario: %s", format_type, scenario
+        )
+
+        # Geospatial exports only apply to county and place levels
+        geo_levels = [lvl for lvl in levels if lvl in ("county", "place")]
+        if not geo_levels:
+            logger.info("No county/place levels requested -- skipping geospatial export")
+            result.success = True
+            return result
+
+        proj_dir = (
+            Path(
+                config.get("pipeline", {})
+                .get("projection", {})
+                .get("output_dir", "data/projections")
+            )
+            / scenario
+        )
+
+        # Determine key years from config
+        key_years: list[int] = (
+            config.get("place_projections", {})
+            .get("output", {})
+            .get("key_years", [])
+        )
+
+        ext = "geojson" if format_type == "geojson" else "shp"
+        files_exported = 0
+
+        for level in geo_levels:
+            level_dir = proj_dir / level
+            if not level_dir.exists():
+                logger.warning("Level directory not found: %s", level_dir)
+                continue
+
+            parquet_files = list(level_dir.glob("*.parquet"))
+            if not parquet_files:
+                logger.warning("No projection files in %s", level_dir)
+                continue
+
+            # Read and combine all projection files for this level
+            frames = []
+            for pfile in parquet_files:
+                df = pd.read_parquet(pfile)
+                fips = _extract_fips_from_filename(pfile)
+                fips_col = "county_fips" if level == "county" else "place_fips"
+                df[fips_col] = fips
+                frames.append(df)
+            combined = pd.concat(frames, ignore_index=True)
+
+            # Determine which years to export
+            export_years: list[int] = key_years if key_years else sorted(int(y) for y in combined["year"].unique())
+
+            geo_output = output_dir / scenario / level / format_type
+            geo_output.mkdir(parents=True, exist_ok=True)
+
+            for yr in export_years:
+                out_file = geo_output / f"nd_{level}_{scenario}_{yr}.{ext}"
+                if dry_run:
+                    logger.info("[DRY RUN] Would write %s", out_file)
+                    files_exported += 1
+                    continue
+
+                try:
+                    from cohort_projections.output.writers import write_projection_shapefile
+
+                    write_projection_shapefile(
+                        projection_df=combined,
+                        geography_level=level,
+                        output_path=out_file,
+                        year=yr,
+                        format_type=format_type,
+                    )
+                    result.output_files.append(out_file)
+                    files_exported += 1
+                except ImportError:
+                    logger.warning(
+                        "geopandas not available -- skipping geospatial export"
+                    )
+                    result.success = True
+                    result.files_exported = 0
+                    return result
+                except FileNotFoundError as fnf:
+                    logger.warning("TIGER file missing, skipping geospatial: %s", fnf)
+                    result.success = True
+                    result.files_exported = 0
+                    return result
+
+        result.success = True
+        result.files_exported = files_exported
+        logger.info("Geospatial export complete: %d files", files_exported)
+
+    except Exception as e:
+        logger.error("Error in geospatial export: %s", e)
+        logger.debug(traceback.format_exc())
+        result.success = False
+        result.error = str(e)
+
+    result.export_time = (datetime.now(UTC) - start_time).total_seconds()
+    return result
+
+
 def export_all_results(
     config: dict[str, Any],
     scenarios: list[str],
@@ -1073,6 +1205,20 @@ def export_all_results(
             )
             report.add_result(result)
 
+    # Export geospatial outputs (ADR-059)
+    for geo_fmt in ("geojson", "shapefile"):
+        if geo_fmt in formats:
+            for scenario in scenarios:
+                result = export_geospatial_outputs(
+                    scenario=scenario,
+                    levels=levels,
+                    config=config,
+                    output_dir=export_dir,
+                    format_type=geo_fmt,
+                    dry_run=dry_run,
+                )
+                report.add_result(result)
+
     # Generate data dictionary
     result = generate_data_dictionary(config=config, output_dir=export_dir, dry_run=dry_run)
     report.add_result(result)
@@ -1136,7 +1282,7 @@ Examples:
     parser.add_argument(
         "--formats",
         nargs="+",
-        choices=["csv", "excel", "parquet"],
+        choices=["csv", "excel", "parquet", "geojson", "shapefile"],
         help="Output formats (default: from config)",
     )
 

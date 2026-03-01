@@ -191,9 +191,9 @@ Where:
 | ADR | Title | Status | Date | Summary |
 |-----|-------|--------|------|---------|
 | [033](033-city-level-projection-methodology.md) | City-Level Projection Methodology | Accepted | 2026-02-02 | Implemented share-of-county place projections with B-II winner selection and county-constrained QA validation |
-| [057](057-rolling-origin-backtests.md) | Rolling-Origin Backtests | Proposed | 2026-03-01 | Rolling-origin cross-validation for place projection variant selection |
-| [058](058-multicounty-place-splitting.md) | Multi-County Place Splitting | Proposed | 2026-03-01 | Allocate multi-county place population to constituent counties for projection |
-| [060](060-housing-unit-method.md) | Housing-Unit Method | Proposed | 2026-03-01 | Complementary short-term place projections using housing units × persons-per-household |
+| [057](057-rolling-origin-backtests.md) | Rolling-Origin Backtests | Accepted | 2026-03-01 | Rolling-origin cross-validation for place projection variant selection |
+| [058](058-multicounty-place-splitting.md) | Multi-County Place Splitting | Accepted | 2026-03-01 | Allocate multi-county place population to constituent counties for projection |
+| [060](060-housing-unit-method.md) | Housing-Unit Method | Accepted | 2026-03-01 | Complementary short-term place projections using housing units × persons-per-household |
 
 ### Migration and Scenario Methodology
 
@@ -219,7 +219,7 @@ Where:
 | ADR | Title | Status | Date | Summary |
 |-----|-------|--------|------|---------|
 | [038](038-multi-workbook-export-format.md) | Multi-Workbook Export Format | Accepted | 2026-02-17 | Multi-workbook Excel export with state, region, and county sheets |
-| [059](059-tiger-geospatial-exports.md) | TIGER Geospatial Exports | Proposed | 2026-03-01 | GeoJSON/Shapefile export using Census TIGER boundary files |
+| [059](059-tiger-geospatial-exports.md) | TIGER Geospatial Exports | Accepted | 2026-03-01 | GeoJSON/Shapefile export using Census TIGER boundary files |
 
 ### Presentation and Quality Assurance
 
@@ -248,8 +248,8 @@ Where:
 
 | Status | Count |
 |--------|-------|
-| Accepted | 53 |
-| Proposed | 8 |
+| Accepted | 57 |
+| Proposed | 4 |
 | Rejected | 1 |
 | Deprecated | 0 |
 | Superseded | 1 |
@@ -321,6 +321,6 @@ Across all ADRs, these principles guided decisions:
 
 **Last Updated**: 2026-03-01
 
-**Total ADRs**: 63 (53 accepted, 8 proposed, 1 rejected, 1 superseded)
+**Total ADRs**: 63 (57 accepted, 4 proposed, 1 rejected, 1 superseded)
 
 **Template**: See [TEMPLATE.md](TEMPLATE.md) for creating new ADRs

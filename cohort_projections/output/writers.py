@@ -673,29 +673,107 @@ def write_projection_shapefile(
             "geopandas required for shapefile export. Install with: pip install geopandas"
         )
 
+    import geopandas as gpd  # guarded by GEOPANDAS_AVAILABLE above
+
+    from ..geographic.geography_loader import load_tiger_boundaries
+
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     logger.info(f"Creating geospatial output: {output_path}")
 
-    # This is a placeholder implementation
-    # Full implementation would require:
-    # 1. Loading Census TIGER boundaries for the geography level
-    # 2. Joining projection data to boundaries
-    # 3. Exporting to shapefile or GeoJSON
+    # --- 1. Validate geography level --------------------------------
+    if geography_level not in ("county", "place"):
+        raise ValueError(
+            f"Geospatial export supports 'county' or 'place', got: {geography_level!r}"
+        )
 
-    logger.warning(
-        "write_projection_shapefile is not fully implemented - requires TIGER boundary data"
+    # Narrow the type for mypy after validation
+    geo_level: Literal["county", "place"] = cast(
+        Literal["county", "place"], geography_level
     )
 
-    # Basic implementation outline:
-    # 1. Load TIGER boundaries (would need to download or have local copies)
-    # 2. Filter projection data to specified year
-    # 3. Aggregate projection data appropriately
-    # 4. Join to geography
-    # 5. Export
+    # --- 2. Load TIGER boundaries ------------------------------------
+    boundaries = load_tiger_boundaries(geo_level, vintage=tiger_vintage)
 
-    raise NotImplementedError(
-        "Geospatial export requires Census TIGER boundary files. "
-        "Please use write_projection_csv or write_projection_excel for tabular exports."
+    # Determine the FIPS join key based on geography level
+    fips_col = "county_fips" if geography_level == "county" else "place_fips"
+
+    # --- 3. Prepare projection data ----------------------------------
+    df = projection_df.copy()
+
+    # Filter by specific geography if requested
+    if geography_fips is not None:
+        if fips_col in df.columns:
+            df = df[df[fips_col] == geography_fips].copy()
+        elif "fips" in df.columns:
+            df = df[df["fips"] == geography_fips].copy()
+
+    # Filter by year if requested
+    if year is not None and "year" in df.columns:
+        df = df[df["year"] == year].copy()
+
+    if df.empty:
+        raise ValueError(
+            f"No projection data remaining after filtering "
+            f"(year={year}, geography_fips={geography_fips})"
+        )
+
+    # --- 4. Aggregate to one row per geography (per year) ------------
+    # Determine the FIPS column name in the projection data
+    proj_fips_col = fips_col if fips_col in df.columns else "fips"
+    if proj_fips_col not in df.columns:
+        raise ValueError(
+            f"Projection data must contain a '{fips_col}' or 'fips' column "
+            f"for {geography_level}-level geospatial export"
+        )
+
+    group_cols = [proj_fips_col]
+    if "year" in df.columns:
+        group_cols.append("year")
+
+    agg_df = df.groupby(group_cols, as_index=False)["population"].sum()
+
+    # Rename the FIPS column to match boundaries if needed
+    if proj_fips_col != fips_col:
+        agg_df = agg_df.rename(columns={proj_fips_col: fips_col})
+
+    # Ensure FIPS codes are zero-padded strings for joining
+    fips_width = 5 if geography_level == "county" else 7
+    agg_df[fips_col] = agg_df[fips_col].astype(str).str.zfill(fips_width)
+
+    # --- 5. Join projection data to boundaries -----------------------
+    merged = boundaries.merge(agg_df, on=fips_col, how="inner")
+
+    if merged.empty:
+        raise ValueError(
+            f"No geometries matched projection data on '{fips_col}'. "
+            "Check that FIPS codes align between projection output and TIGER boundaries."
+        )
+
+    # Convert to GeoDataFrame for export
+    geo_df = gpd.GeoDataFrame(merged, geometry="geometry")
+
+    # --- 6. Add metadata properties ----------------------------------
+    name_col = "county_name" if geography_level == "county" else "place_name"
+    # Ensure name column exists (may have been dropped during merge)
+    if name_col not in geo_df.columns:
+        geo_df[name_col] = ""
+
+    # --- 7. Export ---------------------------------------------------
+    logger.info(
+        "Exporting %d features to %s format: %s",
+        len(geo_df),
+        format_type,
+        output_path,
     )
+
+    if format_type == "geojson":
+        geo_df.to_file(str(output_path), driver="GeoJSON")
+    elif format_type == "shapefile":
+        geo_df.to_file(str(output_path), driver="ESRI Shapefile")
+    else:
+        raise ValueError(f"Unsupported format_type: {format_type!r}")
+
+    logger.info(f"Geospatial export complete: {output_path}")
+    return output_path

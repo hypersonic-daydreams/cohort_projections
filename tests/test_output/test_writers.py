@@ -494,13 +494,13 @@ class TestWriteProjectionShapefile:
         )
 
     @pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Dependencies not available")
-    def test_shapefile_not_implemented(self, sample_projection, tmp_path):
-        """Test that shapefile export raises NotImplementedError when geopandas available."""
+    def test_shapefile_rejects_state_level(self, sample_projection, tmp_path):
+        """Test that shapefile export rejects unsupported 'state' level."""
         output_file = tmp_path / "test_output.geojson"
 
         if GEOPANDAS_AVAILABLE:
-            # With geopandas available, raises NotImplementedError
-            with pytest.raises(NotImplementedError):
+            # With geopandas available, raises ValueError for unsupported level
+            with pytest.raises(ValueError, match="county.*place"):
                 write_projection_shapefile(
                     sample_projection,
                     geography_level="state",

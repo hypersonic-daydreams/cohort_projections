@@ -32,6 +32,11 @@ geography:
     vintage: 2020  # Census vintage for geographic definitions
     counties_file: "data/raw/geographic/nd_counties.csv"
     places_file: "data/raw/geographic/nd_places.csv"
+    # TIGER/Line boundary shapefiles for geospatial exports (ADR-059)
+    tiger_boundaries:
+      county_shapefile: "data/interim/geographic/tiger2020/tl_2020_us_county.shp"
+      place_shapefile: "data/interim/geographic/tiger2020/tl_2020_38_place.shp"
+      vintage: 2020
 
   # Hierarchical aggregation
   hierarchy:
@@ -328,10 +333,39 @@ place_projections:
     secondary_train: [2000, 2019]
     secondary_test: [2020, 2024]
 
+  # PP-005 WS-A: Rolling-origin cross-validation (ADR-057)
+  rolling_origin_backtest:
+    enabled: true
+    min_train_years: 5          # Minimum training years for first window
+    test_horizon: 5             # Test years per window (non-overlapping)
+    acceptance_criteria: "mean_score"  # mean_score or median_score
+
+  # Multi-county place allocation (PP-005 WS-B / ADR-058)
+  # Handles the 7 places that span multiple counties by splitting population
+  # across constituent counties, projecting per county, then reaggregating.
+  multicounty_allocation:
+    enabled: true
+    allocation_method: "area_share"  # area_share or population_share
+    multicounty_detail_path: "data/processed/geographic/place_county_crosswalk_2020_multicounty_detail.csv"
+
   output:
     base_year: 2025
     end_year: 2055
     key_years: [2025, 2030, 2035, 2040, 2045, 2050, 2055]
+
+# === HOUSING-UNIT METHOD (PP-005 / ADR-060) ===
+# Complementary short-term place projection cross-check using
+# housing units x persons-per-household.  NOT a replacement for
+# the share-trending method above.
+housing_unit_method:
+  enabled: true
+  housing_data_path: "data/raw/housing/nd_place_housing_units.csv"
+  projection_horizon: 10          # years from base year
+  projection_years: [2025, 2030, 2035]
+  trend_method: "log_linear"      # "linear" or "log_linear"
+  pph_method: "hold_last"         # "hold_last" or "linear_trend"
+  min_history_years: 3            # minimum ACS vintages required to fit trend
+  output_dir: "data/projections"  # HU outputs written alongside share-trending
 
 output:
   # Basic output settings
