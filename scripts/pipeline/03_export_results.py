@@ -38,7 +38,9 @@ Key ADRs and config:
 """
 
 import argparse
+import importlib
 import json
+import shutil
 import sys
 import traceback
 import zipfile
@@ -909,6 +911,87 @@ def package_for_distribution(
     return result
 
 
+def _build_place_workbook(scenario: str, config: dict[str, Any]) -> Path:
+    """
+    Build place workbook for one scenario via PP-003 workbook builder.
+
+    Args:
+        scenario: Scenario key.
+        config: Project configuration.
+
+    Returns:
+        Path to workbook artifact.
+    """
+    workbook_module = importlib.import_module("scripts.exports.build_place_workbook")
+    workbook_path = workbook_module.build_workbook(scenario=scenario, config=config)
+    return Path(workbook_path)
+
+
+def export_place_outputs(
+    scenario: str,
+    config: dict[str, Any],
+    output_dir: Path,
+    dry_run: bool = False,
+) -> ExportResult:
+    """
+    Export place-specific artifacts required by PP-003 IMP-16.
+
+    Args:
+        scenario: Scenario name.
+        config: Project configuration.
+        output_dir: Export root directory.
+        dry_run: If True, only report actions.
+
+    Returns:
+        ExportResult with place artifact export status.
+    """
+    result = ExportResult(f"places_{scenario}")
+    start_time = datetime.now(UTC)
+
+    try:
+        proj_dir = (
+            Path(
+                config.get("pipeline", {})
+                .get("projection", {})
+                .get("output_dir", "data/projections")
+            )
+            / scenario
+            / "place"
+        )
+        source_summary = proj_dir / "places_summary.csv"
+        if not source_summary.exists():
+            raise FileNotFoundError(f"Place summary not found: {source_summary}")
+
+        workbook_output = output_dir / f"nd_projections_{scenario}_places_{datetime.now(UTC).strftime('%Y%m%d')}.xlsx"
+        if dry_run:
+            logger.info("[DRY RUN] Would copy %s -> %s", source_summary, output_dir / scenario / "place")
+            logger.info("[DRY RUN] Would build place workbook: %s", workbook_output)
+            result.success = True
+            result.files_exported = 2
+            return result
+
+        scenario_output = output_dir / scenario / "place"
+        scenario_output.mkdir(parents=True, exist_ok=True)
+        exported_summary = scenario_output / "places_summary.csv"
+        shutil.copy2(source_summary, exported_summary)
+        result.output_files.append(exported_summary)
+
+        workbook_path = _build_place_workbook(scenario=scenario, config=config)
+        result.output_files.append(workbook_path)
+
+        result.success = True
+        result.files_exported = 2
+        logger.info("Exported place artifacts for %s: summary=%s workbook=%s", scenario, exported_summary, workbook_path)
+    except Exception as e:
+        logger.error(f"Error exporting place artifacts for {scenario}: {e}")
+        logger.debug(traceback.format_exc())
+        result.success = False
+        result.error = str(e)
+
+    result.export_time = (datetime.now(UTC) - start_time).total_seconds()
+    return result
+
+
 def export_all_results(
     config: dict[str, Any],
     scenarios: list[str],
@@ -971,6 +1054,17 @@ def export_all_results(
             dry_run=dry_run,
         )
         report.add_result(result)
+
+    # Export place-specific artifacts (PP-003 IMP-16)
+    if "place" in levels:
+        for scenario in scenarios:
+            result = export_place_outputs(
+                scenario=scenario,
+                config=config,
+                output_dir=export_dir,
+                dry_run=dry_run,
+            )
+            report.add_result(result)
 
     # Generate data dictionary
     result = generate_data_dictionary(config=config, output_dir=export_dir, dry_run=dry_run)
@@ -1121,16 +1215,19 @@ Examples:
         # Print summary
         report.print_summary()
 
-        # Save report
-        export_dir = Path(
-            config.get("pipeline", {}).get("export", {}).get("output_dir", "data/exports")
-        )
-        report_file = (
-            export_dir / f"export_report_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
-        )
-        with open(report_file, "w") as f:
-            json.dump(report.get_summary(), f, indent=2)
-        logger.info(f"Export report saved to {report_file}")
+        if args.dry_run:
+            logger.info("Dry run enabled: skipping report file write.")
+        else:
+            # Save report
+            export_dir = Path(
+                config.get("pipeline", {}).get("export", {}).get("output_dir", "data/exports")
+            )
+            report_file = (
+                export_dir / f"export_report_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.json"
+            )
+            with open(report_file, "w") as f:
+                json.dump(report.get_summary(), f, indent=2)
+            logger.info(f"Export report saved to {report_file}")
 
         # Exit code
         summary = report.get_summary()
