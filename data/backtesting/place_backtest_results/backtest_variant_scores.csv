@@ -1,0 +1,9 @@
+window,variant_id,fitting_method,constraint_method,score
+primary,A-I,ols,proportional,3.3091666681622884
+primary,A-II,ols,cap_and_redistribute,3.292266231488078
+primary,B-I,wls,proportional,3.0992504068518123
+primary,B-II,wls,cap_and_redistribute,3.0757840903894844
+secondary,A-I,ols,proportional,5.143228577198215
+secondary,A-II,ols,cap_and_redistribute,5.110725547156504
+secondary,B-I,wls,proportional,5.231317440679748
+secondary,B-II,wls,cap_and_redistribute,5.196500617052385

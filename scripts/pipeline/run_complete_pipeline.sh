@@ -110,25 +110,28 @@ echo ""
 
 cd "$PROJECT_ROOT"
 
-run_step 1 7 "Preparing Processed Inputs" \
+run_step 1 8 "Preparing Processed Inputs" \
   python scripts/pipeline/00_prepare_processed_data.py "${DRY_RUN_ARGS[@]}"
 
-run_step 2 7 "Processing Demographic Data" \
+run_step 2 8 "Processing Demographic Data" \
   python scripts/pipeline/01_process_demographic_data.py --all "${DRY_RUN_ARGS[@]}" "${FAIL_FAST_ARGS[@]}"
 
-run_step 3 7 "Computing Residual Migration Rates" \
+run_step 3 8 "Computing Residual Migration Rates" \
   python scripts/pipeline/01a_compute_residual_migration.py "${DRY_RUN_ARGS[@]}"
 
-run_step 4 7 "Computing Convergence Interpolation Rates" \
+run_step 4 8 "Computing Convergence Interpolation Rates" \
   python scripts/pipeline/01b_compute_convergence.py --all-variants "${DRY_RUN_ARGS[@]}"
 
-run_step 5 7 "Computing Mortality Improvement Rates" \
+run_step 5 8 "Computing Mortality Improvement Rates" \
   python scripts/pipeline/01c_compute_mortality_improvement.py "${DRY_RUN_ARGS[@]}"
 
-run_step 6 7 "Running Population Projections" \
+run_step 6 8 "Running Population Projections" \
   python scripts/pipeline/02_run_projections.py --all "${DRY_RUN_ARGS[@]}" "${RESUME_ARGS[@]}"
 
-run_step 7 7 "Exporting Results" \
+run_step 7 8 "Running Place Projections" \
+  python scripts/pipeline/02a_run_place_projections.py "${DRY_RUN_ARGS[@]}"
+
+run_step 8 8 "Exporting Results" \
   python scripts/pipeline/03_export_results.py --all "${DRY_RUN_ARGS[@]}"
 
 echo "============================================================================="

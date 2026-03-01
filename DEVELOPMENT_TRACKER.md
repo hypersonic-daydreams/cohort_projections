@@ -2,7 +2,7 @@
 
 Canonical, current-state tracker for the North Dakota cohort projections repository.
 
-**Last Updated:** 2026-02-28  
+**Last Updated:** 2026-03-01  
 **Projection Horizon:** 2025-2055  
 **Status:** Publication preparation with repo-hygiene closeout complete; this file is the single source of truth for remaining projection-development work.
 
@@ -36,7 +36,7 @@ Use this file for active status only. Historical session detail is archived to:
 |------|------|------|------|------|
 | PP-001 | Publication-facing output QA and dissemination packaging | active | Collect stakeholder sign-off on 2026-02-28 package set and keep release checklist current for final publication handoff | `docs/reviews/2026-02-28-publication-output-qa-packaging-checklist.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
 | PP-002 | Non-regression validation cadence during publication work | active | Run and record the next cadence cycle after the next material projection/config change (same gate set) | `docs/reviews/repo-hygiene-audit/implementation/06-dashboard-current.md`, `docs/reviews/repo-hygiene-audit/implementation/30-pp001-pp002-publication-followthrough-results.md` |
-| PP-003 | City/place projection workstream reactivation (ADR-033) | active | IMP-08 backtest runner implementation completed (module + runner + tests + targeted lint/type checks recorded 2026-02-28); proceed to IMP-09 execution/winner selection on ND production artifacts | `docs/plans/pp3-s08-implementation-kickoff.md`, `docs/reviews/2026-02-28-pp3-s07-approval-gate.md` |
+| PP-003 | City/place projection workstream reactivation (ADR-033) | active | IMP-12 QA artifact generation and IMP-13 hard/soft constraint enforcement completed with tests; next integration milestones are IMP-14 place workbook builder and IMP-15 provisional workbook `Places` sheet wiring | `docs/plans/pp3-s08-implementation-kickoff.md`, `docs/reviews/2026-02-28-pp3-s07-approval-gate.md`, `docs/reviews/2026-02-28-pp3-imp09-backtest-results.md`, `docs/reviews/pp3-backtest-outlier-narrative.md`, `docs/reviews/2026-03-01-pp3-imp11-pipeline-stage-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-results.md` |
 | PP-004 | Test coverage gap closure (ADR-056) | active | Close priority coverage gaps identified in ADR-056 Decision 6; align with PP-002 periodic review cadence | `docs/governance/adrs/056-testing-strategy-maturation.md`, `docs/guides/test-maintenance-practices.md` |
 
 ## PP-003 Phase 1 Scoping Checklist (Canonical)
@@ -73,6 +73,11 @@ Use this file for active status only. Historical session detail is archived to:
 | IMP-06 | Place projection orchestrator | completed_2026-02-28 | Implemented county-driven place projection orchestration (`run_place_projections`), tier-specific age/sex allocation (`HIGH` 18x2, `MODERATE` 6x2, `LOWER` total-only), and S06 output writing contract (per-place parquet/metadata/summary + `places_summary.csv` + `places_metadata.json` with required parquet footer metadata keys) with synthetic end-to-end contract tests | `cohort_projections/data/process/place_projection_orchestrator.py`, `cohort_projections/data/process/__init__.py`, `tests/test_data/test_place_projection_orchestrator.py` |
 | IMP-07 | Configuration additions | completed_2026-02-28 | Added `place_projections` block to canonical config (paths, model, tiers, backtest windows, output years/key years) and added tests validating defaults plus configuration consumption by both IMP-05 (`trend_all_places_in_county`) and IMP-06 (`run_place_projections`) | `config/projection_config.yaml`, `tests/test_config/test_place_projection_config.py` |
 | IMP-08 | Backtest runner script + module | completed_2026-02-28 | Implemented backtest computation module (`run_single_variant`, per-place metrics, tier aggregates, weighted scoring, tie-break winner selection) plus standalone runner executing A-I/A-II/B-I/B-II across windows with output artifacts and synthetic matrix coverage tests including EXCLUDED informational-tier handling | `cohort_projections/data/process/place_backtest.py`, `scripts/backtesting/run_place_backtest.py`, `tests/test_data/test_place_backtest.py`, `cohort_projections/data/process/__init__.py` |
+| IMP-09 | Backtest execution + variant selection | completed_2026-02-28 | Ran ND production backtest matrix and produced S05 artifacts; winner selected `B-II` (`wls` + `cap_and_redistribute`, score `3.0757840903894844`). Primary scored tiers all PASS; secondary window HIGH tier flagged FAIL (diagnostic) | `scripts/backtesting/run_place_backtest.py`, `data/backtesting/place_backtest_results/backtest_summary_primary.csv`, `data/backtesting/place_backtest_results/backtest_summary_secondary.csv`, `data/backtesting/place_backtest_results/backtest_per_place_detail.csv`, `data/backtesting/place_backtest_results/backtest_variant_scores.csv`, `data/backtesting/place_backtest_results/backtest_prediction_intervals.csv`, `data/backtesting/place_backtest_results/backtest_winner.json`, `docs/reviews/2026-02-28-pp3-imp09-backtest-results.md` |
+| IMP-10 | Outlier narrative + structural-break documentation | completed_2026-03-01 | Human review completed: accepted winner adoption, approved Horace/Williston structural-break interpretations (annexation and oil-economy fluctuation), approved progression to pipeline integration with no diagnostic exclusions applied | `docs/reviews/pp3-backtest-outlier-narrative.md` |
+| IMP-11 | Place projection pipeline stage integration | completed_2026-03-01 | Added `02a_run_place_projections.py` stage, wired into `run_complete_pipeline.sh`, validated via integration tests and executed full stage run across active scenarios (`baseline`, `restricted_growth`, `high_growth`) with per-scenario outputs produced | `scripts/pipeline/02a_run_place_projections.py`, `scripts/pipeline/run_complete_pipeline.sh`, `tests/test_integration/test_place_pipeline_stage.py`, `docs/reviews/2026-03-01-pp3-imp11-pipeline-stage-results.md` |
+| IMP-12 | QA artifact generation | completed_2026-03-01 | Implemented S06 Section 5 QA artifact pipeline at `data/projections/{scenario}/place/qa/` (`qa_tier_summary.csv`, `qa_share_sum_validation.csv`, `qa_outlier_flags.csv`, `qa_balance_of_county.csv`) with schema checks and outlier flag-type validation | `cohort_projections/data/process/place_projection_orchestrator.py`, `tests/test_data/test_place_qa_artifacts.py`, `docs/reviews/2026-03-01-pp3-imp12-imp13-results.md` |
+| IMP-13 | Consistency constraint enforcement | completed_2026-03-01 | Enforced S06 hard constraints (share bounds, county share sum, place<=county totals, non-negative populations, exact output universe, state-level scenario ordering when all scenario county outputs are available) and soft QA signaling (balance warning, share-stability flags, tier-band extreme growth flags) | `cohort_projections/data/process/place_projection_orchestrator.py`, `tests/test_data/test_place_consistency_constraints.py`, `docs/reviews/2026-03-01-pp3-imp12-imp13-results.md` |
 
 ### IMP-05 Verification Evidence (2026-02-28)
 
@@ -97,6 +102,40 @@ Use this file for active status only. Historical session detail is archived to:
 - `source .venv/bin/activate && pytest tests/test_data/test_place_backtest.py tests/test_config/test_place_projection_config.py tests/test_data/test_place_projection_orchestrator.py` -> `15 passed`.
 - `source .venv/bin/activate && ruff check cohort_projections/data/process/place_backtest.py scripts/backtesting/run_place_backtest.py tests/test_data/test_place_backtest.py cohort_projections/data/process/__init__.py` -> `All checks passed!`.
 - `source .venv/bin/activate && mypy cohort_projections/data/process/place_backtest.py` -> `Success: no issues found in 1 source file`.
+
+### IMP-09 Verification Evidence (2026-02-28)
+
+- `source .venv/bin/activate && pytest tests/test_data/test_place_backtest.py` -> `8 passed`.
+- `source .venv/bin/activate && ruff check scripts/backtesting/run_place_backtest.py cohort_projections/data/process/place_backtest.py tests/test_data/test_place_backtest.py` -> `All checks passed!`.
+- `source .venv/bin/activate && mypy scripts/backtesting/run_place_backtest.py cohort_projections/data/process/place_backtest.py` -> `Success: no issues found in 2 source files`.
+- `source .venv/bin/activate && python scripts/backtesting/run_place_backtest.py` -> `Backtest complete: 8 score rows, winner B-II (score=3.0758)`.
+- Output artifacts written to `data/backtesting/place_backtest_results/` with required IMP-09 files.
+- Primary acceptance gate (S05): `HIGH PASS`, `MODERATE PASS`, `LOWER PASS` (`all_scored_tiers_pass_primary=true` in `backtest_winner.json`).
+
+### IMP-10 Verification Evidence (2026-03-01)
+
+- Human review approvals recorded in `docs/reviews/pp3-backtest-outlier-narrative.md`:
+  - Winner `B-II` approved for production integration.
+  - Horace and Williston structural-break interpretations approved (annexation / oil-economy fluctuation).
+  - No structural-break exclusions applied for diagnostic reporting.
+- IMP-09 review checklist updated to completed in `docs/reviews/2026-02-28-pp3-imp09-backtest-results.md`.
+
+### IMP-11 Verification Evidence (2026-03-01)
+
+- `source .venv/bin/activate && ruff check scripts/pipeline/02a_run_place_projections.py tests/test_integration/test_place_pipeline_stage.py` -> `All checks passed!`.
+- `source .venv/bin/activate && mypy scripts/pipeline/02a_run_place_projections.py` -> `Success: no issues found in 1 source file`.
+- `source .venv/bin/activate && pytest tests/test_integration/test_place_pipeline_stage.py` -> `3 passed`.
+- `source .venv/bin/activate && python scripts/pipeline/02a_run_place_projections.py --dry-run` -> dependency checks passed for winner payload + all active scenario county inputs.
+- `source .venv/bin/activate && python scripts/pipeline/02a_run_place_projections.py` -> successful runs for `baseline`, `restricted_growth`, `high_growth`; each wrote place outputs with `90` places and `46` county-balance rows.
+
+### IMP-12 / IMP-13 Verification Evidence (2026-03-01)
+
+- `source .venv/bin/activate && ruff check cohort_projections/data/process/place_projection_orchestrator.py cohort_projections/data/process/__init__.py tests/test_data/test_place_qa_artifacts.py tests/test_data/test_place_consistency_constraints.py` -> `All checks passed!`.
+- `source .venv/bin/activate && mypy cohort_projections/data/process/place_projection_orchestrator.py tests/test_data/test_place_qa_artifacts.py tests/test_data/test_place_consistency_constraints.py` -> `Success: no issues found in 3 source files`.
+- `source .venv/bin/activate && pytest tests/test_data/test_place_projection_orchestrator.py tests/test_data/test_place_qa_artifacts.py tests/test_data/test_place_consistency_constraints.py` -> `8 passed`.
+- `source .venv/bin/activate && pytest tests/test_integration/test_place_pipeline_stage.py` -> `3 passed`.
+- `source .venv/bin/activate && python scripts/pipeline/02a_run_place_projections.py --scenarios baseline` -> successful baseline stage execution with QA artifacts emitted and hard-constraint checks passing (`90` places, `46` county balances, `31` QA outlier flags).
+- `source .venv/bin/activate && python scripts/pipeline/02a_run_place_projections.py` -> successful full stage execution for `baseline`, `restricted_growth`, and `high_growth`; each scenario wrote place outputs (`90` places, `46` county balances) plus QA artifacts and passed hard constraints.
 
 ## PP-003 Scope Envelope (S01 Result)
 
@@ -164,7 +203,7 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 1. Keep the documentation consistency queue current; add and resolve new cross-document drift items as they appear.
 2. Keep repo-hygiene evidence current while executing publication tasks (`PP-001`, `PP-002`) and refresh package QA records as new export vintages are generated.
-3. Continue PP-003 Phase 2 implementation (`IMP-09` onward): run backtest matrix on ND artifacts, select winner, and publish S05 evidence tables.
+3. Continue PP-003 Phase 2 integration (`IMP-14` onward): implement place workbook export and provisional workbook place-sheet wiring.
 4. ~~Execute `PP4-06`~~ Completed 2026-02-28. PP-004 workstream closed. Future periodic reviews follow the PP-002 cadence.
 
 ## Deferred / Later Work
@@ -185,6 +224,10 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 - `docs/reviews/2026-02-28-pp3-s05-backtesting-design.md`
 - `docs/reviews/2026-02-28-pp3-s06-output-contract.md`
 - `docs/reviews/2026-02-28-pp3-s07-approval-gate.md`
+- `docs/reviews/2026-02-28-pp3-imp09-backtest-results.md`
+- `docs/reviews/pp3-backtest-outlier-narrative.md`
+- `docs/reviews/2026-03-01-pp3-imp11-pipeline-stage-results.md`
+- `docs/reviews/2026-03-01-pp3-imp12-imp13-results.md`
 - `docs/plans/pp3-s08-implementation-kickoff.md`
 - `docs/reviews/repo-hygiene-audit/implementation/17-open-risks-blockers-register.md`
 - `docs/reviews/repo-hygiene-audit/implementation/02-action-batches.yaml`

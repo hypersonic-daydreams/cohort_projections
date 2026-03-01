@@ -1016,6 +1016,7 @@ $$P_{\text{place}}(t) = s_{\text{place}}(t) \times P_{\text{county}}(t)$$
    - **MODERATE**: 6 broad age groups by sex (12 rows per year),
    - **LOWER**: total population only.
 5. Writes per-place parquet/CSV/JSON outputs plus run-level `places_summary.csv` and `places_metadata.json`, including balance-of-county rows for county accounting transparency.
+6. Emits scenario QA artifacts in `data/projections/{scenario}/place/qa/` (`qa_tier_summary.csv`, `qa_share_sum_validation.csv`, `qa_outlier_flags.csv`, `qa_balance_of_county.csv`) and enforces hard consistency constraints (share bounds, county share sums, place-county totals, non-negative outputs, crosswalk-universe fidelity, and state-level scenario ordering).
 
 This process preserves county consistency by construction: for each county-year, projected place totals plus balance-of-county equal the projected county total (subject only to floating-point tolerance).
 

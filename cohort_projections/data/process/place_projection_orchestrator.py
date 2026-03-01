@@ -32,6 +32,19 @@ TIER_MODERATE = "MODERATE"
 TIER_LOWER = "LOWER"
 PROJECTED_TIERS = {TIER_HIGH, TIER_MODERATE, TIER_LOWER}
 SEX_ORDER = ["Male", "Female"]
+ALLOWED_OUTLIER_FLAG_TYPES = {
+    "SHARE_REVERSAL",
+    "EXTREME_GROWTH",
+    "NEAR_ZERO_SHARE",
+    "SHARE_RESCALED",
+    "POPULATION_DECLINE_TO_NEAR_ZERO",
+}
+TIER_ANNUAL_GROWTH_BANDS = {
+    TIER_HIGH: 0.10,
+    TIER_MODERATE: 0.15,
+    TIER_LOWER: 0.25,
+}
+QA_FLOAT_TOLERANCE = 1e-9
 
 HIGH_AGE_GROUPS = [
     "0-4",
@@ -215,6 +228,196 @@ def _county_projection_dir(config: Mapping[str, Any], scenario: str) -> Path:
         config.get("pipeline", {}).get("projection", {}).get("output_dir", "data/projections")
     )
     return _resolve_path(str(projection_output), root) / scenario / "county"
+
+
+def _qa_dir_for_scenario(config: Mapping[str, Any], scenario: str) -> Path:
+    """Resolve QA artifact output directory for a scenario."""
+    return _output_dir_for_scenario(config, scenario) / "qa"
+
+
+def _validate_crosswalk_uniqueness(crosswalk: pd.DataFrame) -> None:
+    """Enforce one-row-per-place in projection crosswalk universe."""
+    duplicates = crosswalk[crosswalk.duplicated(subset=["place_fips"], keep=False)]
+    if duplicates.empty:
+        return
+    duplicate_ids = sorted(duplicates["place_fips"].astype(str).unique().tolist())
+    raise ValueError(
+        "Crosswalk projection universe must be unique on place_fips. "
+        f"Duplicate place_fips: {duplicate_ids}"
+    )
+
+
+def _validate_projection_universe(expected_place_fips: set[str], produced_place_fips: set[str]) -> None:
+    """Validate output universe matches the projected crosswalk exactly."""
+    missing = sorted(expected_place_fips - produced_place_fips)
+    extra = sorted(produced_place_fips - expected_place_fips)
+    if not missing and not extra:
+        return
+    raise ValueError(
+        "Monotonic FIPS constraint failed: output place universe does not match crosswalk. "
+        f"Missing={missing[:10]}, Extra={extra[:10]}"
+    )
+
+
+def _enforce_county_hard_constraints(
+    county_fips: str,
+    county_share_projection: pd.DataFrame,
+) -> None:
+    """Enforce S06 hard constraints 1-4 at county-year granularity."""
+    place_rows = county_share_projection[county_share_projection["row_type"] == "place"].copy()
+    if place_rows.empty:
+        raise ValueError(f"County {county_fips} has no place rows in projection output.")
+
+    place_rows["projected_share"] = pd.to_numeric(place_rows["projected_share"], errors="coerce")
+    place_rows["county_population"] = pd.to_numeric(place_rows["county_population"], errors="coerce")
+    place_rows["projected_population"] = pd.to_numeric(
+        place_rows["projected_population"], errors="coerce"
+    )
+    place_rows = place_rows.dropna(subset=["year", "projected_share", "county_population", "projected_population"])
+
+    out_of_bounds = place_rows[
+        (place_rows["projected_share"] < -QA_FLOAT_TOLERANCE)
+        | (place_rows["projected_share"] > 1.0 + QA_FLOAT_TOLERANCE)
+    ]
+    if not out_of_bounds.empty:
+        bad_row = out_of_bounds.iloc[0]
+        raise ValueError(
+            "Share bound hard constraint failed for county "
+            f"{county_fips} in year {int(bad_row['year'])}: "
+            f"share={float(bad_row['projected_share'])}"
+        )
+
+    share_sums = place_rows.groupby("year", as_index=False)["projected_share"].sum()
+    overfull = share_sums[share_sums["projected_share"] > 1.0 + QA_FLOAT_TOLERANCE]
+    if not overfull.empty:
+        bad_row = overfull.iloc[0]
+        raise ValueError(
+            "County share-sum hard constraint failed for county "
+            f"{county_fips} in year {int(bad_row['year'])}: "
+            f"sum_place_shares={float(bad_row['projected_share'])}"
+        )
+
+    if (place_rows["projected_population"] < -QA_FLOAT_TOLERANCE).any():
+        bad_row = place_rows[place_rows["projected_population"] < -QA_FLOAT_TOLERANCE].iloc[0]
+        raise ValueError(
+            "Non-negative population hard constraint failed for county "
+            f"{county_fips}, place {bad_row['place_fips']}, year {int(bad_row['year'])}: "
+            f"population={float(bad_row['projected_population'])}"
+        )
+
+    year_population = place_rows.groupby("year", as_index=False).agg(
+        sum_place_pop=("projected_population", "sum"),
+        county_population=("county_population", "first"),
+    )
+    inconsistent = year_population[
+        year_population["sum_place_pop"] > year_population["county_population"] + QA_FLOAT_TOLERANCE
+    ]
+    if not inconsistent.empty:
+        bad_row = inconsistent.iloc[0]
+        raise ValueError(
+            "Place-county consistency hard constraint failed for county "
+            f"{county_fips} in year {int(bad_row['year'])}: "
+            f"sum_place_pop={float(bad_row['sum_place_pop'])}, "
+            f"county_total={float(bad_row['county_population'])}"
+        )
+
+
+def _load_state_total_series_from_counties(
+    config: Mapping[str, Any],
+    scenario: str,
+    base_year: int,
+    end_year: int,
+) -> pd.Series | None:
+    """Aggregate state totals from county projection parquet files for one scenario."""
+    county_dir = _county_projection_dir(config, scenario)
+    county_files = sorted(county_dir.glob(f"nd_county_*_projection_*_{scenario}.parquet"))
+    if not county_files:
+        return None
+
+    totals_by_year: dict[int, float] = {}
+    for county_path in county_files:
+        county_df = pd.read_parquet(county_path, columns=["year", "population"])
+        county_df["year"] = pd.to_numeric(county_df["year"], errors="coerce").astype("Int64")
+        county_df["population"] = pd.to_numeric(county_df["population"], errors="coerce")
+        county_df = county_df.dropna(subset=["year", "population"]).copy()
+        county_df["year"] = county_df["year"].astype(int)
+        county_df = county_df[(county_df["year"] >= base_year) & (county_df["year"] <= end_year)].copy()
+        if county_df.empty:
+            continue
+
+        county_totals = county_df.groupby("year", as_index=False)["population"].sum()
+        for _, row in county_totals.iterrows():
+            year = int(row["year"])
+            totals_by_year[year] = totals_by_year.get(year, 0.0) + float(row["population"])
+
+    if not totals_by_year:
+        return None
+
+    series = pd.Series(totals_by_year, name=scenario, dtype=float).sort_index()
+    series.index = series.index.astype(int)
+    return series
+
+
+def validate_state_scenario_ordering(
+    config: Mapping[str, Any],
+    base_year: int,
+    end_year: int,
+    required_scenarios: tuple[str, str, str] = ("restricted_growth", "baseline", "high_growth"),
+    skip_if_missing: bool = True,
+) -> bool:
+    """
+    Validate S06 hard constraint 6: restricted <= baseline <= high at state level.
+
+    Returns ``True`` if evaluated successfully. Returns ``False`` only when
+    ``skip_if_missing`` is enabled and required scenario county outputs are absent.
+    """
+    series_by_scenario: dict[str, pd.Series] = {}
+    missing_scenarios: list[str] = []
+    for scenario in required_scenarios:
+        series = _load_state_total_series_from_counties(
+            config=config,
+            scenario=scenario,
+            base_year=base_year,
+            end_year=end_year,
+        )
+        if series is None:
+            missing_scenarios.append(scenario)
+            continue
+        series_by_scenario[scenario] = series
+
+    if missing_scenarios:
+        if skip_if_missing:
+            logger.warning(
+                "Skipping state scenario ordering check because county projections are missing for: %s",
+                ", ".join(missing_scenarios),
+            )
+            return False
+        raise FileNotFoundError(
+            "Cannot validate state scenario ordering; missing county outputs for: "
+            f"{', '.join(missing_scenarios)}"
+        )
+
+    ordering = pd.concat(series_by_scenario.values(), axis=1)
+    ordering.columns = list(series_by_scenario.keys())
+    ordering = ordering.sort_index()
+    if ordering.isna().any(axis=None):
+        raise ValueError("State scenario ordering check failed due to missing year totals.")
+
+    low, mid, high = required_scenarios
+    violations = ordering[
+        (ordering[low] > ordering[mid] + QA_FLOAT_TOLERANCE)
+        | (ordering[mid] > ordering[high] + QA_FLOAT_TOLERANCE)
+    ]
+    if not violations.empty:
+        bad_year = int(violations.index[0])
+        bad_row = violations.iloc[0]
+        raise ValueError(
+            "Scenario ordering hard constraint failed at state level for year "
+            f"{bad_year}: {low}={float(bad_row[low])}, "
+            f"{mid}={float(bad_row[mid])}, {high}={float(bad_row[high])}"
+        )
+
+    return True
 
 
 def _load_county_names(config: Mapping[str, Any]) -> dict[str, str]:
@@ -611,6 +814,157 @@ def write_places_summary(
     return summary_path
 
 
+def _add_outlier_flag(
+    outlier_flags: list[dict[str, Any]],
+    place_fips: str,
+    place_name: str,
+    confidence_tier: str,
+    flag_type: str,
+    flag_detail: str,
+    year: int | None = None,
+) -> None:
+    """Append one outlier flag row after validating the flag type."""
+    if flag_type not in ALLOWED_OUTLIER_FLAG_TYPES:
+        raise ValueError(f"Unsupported outlier flag_type: {flag_type}")
+    outlier_flags.append(
+        {
+            "place_fips": place_fips,
+            "name": place_name,
+            "confidence_tier": confidence_tier,
+            "flag_type": flag_type,
+            "flag_detail": flag_detail,
+            "year": year if year is not None else pd.NA,
+        }
+    )
+
+
+def write_place_qa_artifacts(
+    scenario: str,
+    config: Mapping[str, Any],
+    all_places_summaries: list[dict[str, Any]],
+    share_sum_rows: list[dict[str, Any]],
+    outlier_rows: list[dict[str, Any]],
+    balance_rows: list[dict[str, Any]],
+) -> dict[str, Path]:
+    """
+    Write S06 Section 5 QA artifacts for one scenario.
+
+    Returns a mapping of artifact names to written file paths.
+    """
+    qa_dir = _qa_dir_for_scenario(config, scenario)
+    qa_dir.mkdir(parents=True, exist_ok=True)
+
+    tier_summary_path = qa_dir / "qa_tier_summary.csv"
+    share_sum_path = qa_dir / "qa_share_sum_validation.csv"
+    outlier_path = qa_dir / "qa_outlier_flags.csv"
+    balance_path = qa_dir / "qa_balance_of_county.csv"
+
+    tier_rows: list[dict[str, Any]] = []
+    places_summary_df = pd.DataFrame(all_places_summaries)
+    for tier in [TIER_HIGH, TIER_MODERATE, TIER_LOWER]:
+        if places_summary_df.empty:
+            tier_df = pd.DataFrame()
+        else:
+            tier_df = places_summary_df[places_summary_df["confidence_tier"] == tier].copy()
+
+        if tier_df.empty:
+            tier_rows.append(
+                {
+                    "confidence_tier": tier,
+                    "place_count": 0,
+                    "total_base_population": 0.0,
+                    "total_final_population": 0.0,
+                    "mean_growth_rate": 0.0,
+                    "median_growth_rate": 0.0,
+                    "min_growth_rate": 0.0,
+                    "max_growth_rate": 0.0,
+                }
+            )
+            continue
+
+        growth_series = pd.to_numeric(tier_df["growth_rate"], errors="coerce").fillna(0.0)
+        tier_rows.append(
+            {
+                "confidence_tier": tier,
+                "place_count": int(len(tier_df)),
+                "total_base_population": float(
+                    pd.to_numeric(tier_df["base_population"], errors="coerce").fillna(0.0).sum()
+                ),
+                "total_final_population": float(
+                    pd.to_numeric(tier_df["final_population"], errors="coerce").fillna(0.0).sum()
+                ),
+                "mean_growth_rate": float(growth_series.mean()),
+                "median_growth_rate": float(growth_series.median()),
+                "min_growth_rate": float(growth_series.min()),
+                "max_growth_rate": float(growth_series.max()),
+            }
+        )
+
+    tier_summary_df = pd.DataFrame(
+        tier_rows,
+        columns=[
+            "confidence_tier",
+            "place_count",
+            "total_base_population",
+            "total_final_population",
+            "mean_growth_rate",
+            "median_growth_rate",
+            "min_growth_rate",
+            "max_growth_rate",
+        ],
+    )
+    tier_summary_df.to_csv(tier_summary_path, index=False)
+
+    share_sum_columns = [
+        "county_fips",
+        "county_name",
+        "year",
+        "sum_place_shares",
+        "balance_of_county_share",
+        "constraint_satisfied",
+        "rescaling_applied",
+    ]
+    share_sum_df = pd.DataFrame(share_sum_rows, columns=share_sum_columns)
+    if not share_sum_df.empty:
+        share_sum_df = share_sum_df.sort_values(["county_fips", "year"]).reset_index(drop=True)
+    share_sum_df.to_csv(share_sum_path, index=False)
+
+    outlier_columns = ["place_fips", "name", "confidence_tier", "flag_type", "flag_detail", "year"]
+    outlier_df = pd.DataFrame(outlier_rows, columns=outlier_columns)
+    if outlier_df.empty:
+        outlier_df = pd.DataFrame(columns=outlier_columns)
+    else:
+        invalid_types = set(outlier_df["flag_type"]) - ALLOWED_OUTLIER_FLAG_TYPES
+        if invalid_types:
+            raise ValueError(f"qa_outlier_flags contains unsupported flag types: {sorted(invalid_types)}")
+        outlier_df = outlier_df.drop_duplicates().sort_values(
+            ["place_fips", "flag_type", "year"], na_position="last"
+        ).reset_index(drop=True)
+    outlier_df.to_csv(outlier_path, index=False)
+
+    balance_columns = [
+        "county_fips",
+        "county_name",
+        "year",
+        "county_total",
+        "sum_of_places",
+        "balance_of_county",
+        "balance_share",
+    ]
+    balance_df = pd.DataFrame(balance_rows, columns=balance_columns)
+    if not balance_df.empty:
+        balance_df = balance_df.sort_values(["county_fips", "year"]).reset_index(drop=True)
+    balance_df.to_csv(balance_path, index=False)
+
+    return {
+        "qa_dir": qa_dir,
+        "qa_tier_summary": tier_summary_path,
+        "qa_share_sum_validation": share_sum_path,
+        "qa_outlier_flags": outlier_path,
+        "qa_balance_of_county": balance_path,
+    }
+
+
 def run_place_projections(
     scenario: str,
     config: Mapping[str, Any],
@@ -643,12 +997,19 @@ def run_place_projections(
     history_end = int(place_cfg_model.get("history_end", 2024))
 
     crosswalk = _load_crosswalk(config)
+    _validate_crosswalk_uniqueness(crosswalk)
     share_history = _load_share_history(config)
     county_names = _load_county_names(config)
+
+    expected_place_fips = set(crosswalk["place_fips"].astype(str).tolist())
+    produced_place_fips: set[str] = set()
 
     all_place_metadata: list[dict[str, Any]] = []
     all_place_summaries: list[dict[str, Any]] = []
     balance_rows: list[dict[str, Any]] = []
+    qa_share_sum_rows: list[dict[str, Any]] = []
+    qa_balance_rows: list[dict[str, Any]] = []
+    qa_outlier_rows: list[dict[str, Any]] = []
 
     for county_fips, county_places in crosswalk.groupby("county_fips"):
         county_df = _load_county_projection(
@@ -670,8 +1031,9 @@ def run_place_projections(
             place_fips_values=county_place_ids,
         )
         if history_county.empty:
-            logger.warning("Skipping county %s: no historical place shares for projection universe.", county_fips)
-            continue
+            raise ValueError(
+                f"County {county_fips} has no historical place shares for projected universe."
+            )
 
         trend_config = {
             "projection_years": projection_years,
@@ -687,10 +1049,98 @@ def run_place_projections(
             config=trend_config,
         )
 
-        share_sum_by_year = county_share_projection.groupby("year")["projected_share"].sum()
-        share_sum_ok = bool(np.allclose(share_sum_by_year.to_numpy(dtype=float), 1.0, atol=1e-9, rtol=1e-9))
+        _enforce_county_hard_constraints(county_fips=county_fips, county_share_projection=county_share_projection)
 
-        crosswalk_vintage = str(county_places["source_vintage"].iloc[0]) if "source_vintage" in county_places else "2020"
+        place_projection_rows = county_share_projection[
+            county_share_projection["row_type"] == "place"
+        ].copy()
+        place_projection_rows = place_projection_rows.sort_values(["place_fips", "year"]).reset_index(drop=True)
+
+        projected_place_ids = set(place_projection_rows["place_fips"].astype(str).tolist())
+        if projected_place_ids != county_place_ids:
+            missing = sorted(county_place_ids - projected_place_ids)
+            extra = sorted(projected_place_ids - county_place_ids)
+            raise ValueError(
+                "Monotonic FIPS hard constraint failed within county "
+                f"{county_fips}. Missing={missing}, Extra={extra}"
+            )
+
+        county_name = county_names.get(county_fips, f"County {county_fips}")
+        crosswalk_vintage = (
+            str(county_places["source_vintage"].iloc[0]) if "source_vintage" in county_places else "2020"
+        )
+
+        raw_share_sum_by_year = (
+            place_projection_rows.groupby("year", as_index=False)["projected_share_raw"].sum().set_index("year")
+        )["projected_share_raw"].to_dict()
+        share_sum_by_year = (
+            place_projection_rows.groupby("year", as_index=False)["projected_share"].sum().set_index("year")
+        )["projected_share"].to_dict()
+        place_population_sum_by_year = (
+            place_projection_rows.groupby("year", as_index=False)["projected_population"].sum().set_index("year")
+        )["projected_population"].to_dict()
+        county_population_by_year = dict(
+            zip(county_totals["year"].astype(int), county_totals["county_population"], strict=True)
+        )
+
+        for year in projection_years:
+            if year not in share_sum_by_year:
+                raise ValueError(f"County {county_fips} missing projected shares for year {year}.")
+            year_place_rows = place_projection_rows[place_projection_rows["year"] == year].copy()
+            if year_place_rows.empty:
+                raise ValueError(f"County {county_fips} has no place rows for year {year}.")
+
+            sum_place_shares = float(share_sum_by_year[year])
+            balance_share = 1.0 - sum_place_shares
+            rescaling_applied = bool(
+                (
+                    pd.to_numeric(year_place_rows["projected_share"], errors="coerce")
+                    - pd.to_numeric(year_place_rows["projected_share_raw"], errors="coerce")
+                )
+                .abs()
+                .gt(QA_FLOAT_TOLERANCE)
+                .any()
+            )
+
+            qa_share_sum_rows.append(
+                {
+                    "county_fips": county_fips,
+                    "county_name": county_name,
+                    "year": int(year),
+                    "sum_place_shares": sum_place_shares,
+                    "balance_of_county_share": balance_share,
+                    "constraint_satisfied": bool(sum_place_shares <= 1.0 + QA_FLOAT_TOLERANCE),
+                    "rescaling_applied": rescaling_applied,
+                }
+            )
+
+            county_total = float(county_population_by_year[int(year)])
+            sum_of_places = float(place_population_sum_by_year.get(year, 0.0))
+            balance_of_county = county_total - sum_of_places
+            balance_share_pop = balance_of_county / county_total if county_total > 0 else 0.0
+            qa_balance_rows.append(
+                {
+                    "county_fips": county_fips,
+                    "county_name": county_name,
+                    "year": int(year),
+                    "county_total": county_total,
+                    "sum_of_places": sum_of_places,
+                    "balance_of_county": balance_of_county,
+                    "balance_share": balance_share_pop,
+                }
+            )
+            if balance_of_county < 0.0:
+                logger.warning(
+                    "Soft constraint flag: negative balance-of-county for %s (%s) year %s: %.6f",
+                    county_name,
+                    county_fips,
+                    year,
+                    balance_of_county,
+                )
+
+        share_sum_ok = bool(
+            all(value <= 1.0 + QA_FLOAT_TOLERANCE for value in share_sum_by_year.values())
+        )
 
         for _, place_row in county_places.iterrows():
             place_fips = str(place_row["place_fips"])
@@ -703,8 +1153,117 @@ def run_place_projections(
             ].copy()
             place_share_rows = place_share_rows.sort_values("year").reset_index(drop=True)
             if place_share_rows.empty:
-                logger.warning("Skipping place %s (%s): no projected share rows.", place_fips, place_name)
-                continue
+                raise ValueError(
+                    f"Monotonic FIPS hard constraint failed: missing projected rows for place {place_fips}."
+                )
+            produced_place_fips.add(place_fips)
+
+            history_place_rows = history_county[history_county["place_fips"] == place_fips].copy()
+            history_place_rows = history_place_rows.sort_values("year").reset_index(drop=True)
+            if len(history_place_rows) >= 2 and len(place_share_rows) >= 2:
+                historical_change = float(history_place_rows["share_raw"].iloc[-1] - history_place_rows["share_raw"].iloc[0])
+                projected_change = float(
+                    place_share_rows["projected_share"].iloc[-1] - place_share_rows["projected_share"].iloc[0]
+                )
+
+                if (
+                    abs(historical_change) > QA_FLOAT_TOLERANCE
+                    and abs(projected_change) > QA_FLOAT_TOLERANCE
+                    and (historical_change * projected_change < 0.0)
+                ):
+                    _add_outlier_flag(
+                        outlier_flags=qa_outlier_rows,
+                        place_fips=place_fips,
+                        place_name=place_name,
+                        confidence_tier=tier,
+                        flag_type="SHARE_REVERSAL",
+                        flag_detail=(
+                            "Historical and projected share directions differ "
+                            f"(historical_change={historical_change:.6f}, "
+                            f"projected_change={projected_change:.6f})."
+                        ),
+                    )
+
+                if abs(projected_change) > 0.20:
+                    _add_outlier_flag(
+                        outlier_flags=qa_outlier_rows,
+                        place_fips=place_fips,
+                        place_name=place_name,
+                        confidence_tier=tier,
+                        flag_type="SHARE_REVERSAL",
+                        flag_detail=(
+                            "Share stability soft-constraint exceeded: "
+                            f"{projected_change:.6f} change over horizon (>0.20)."
+                        ),
+                    )
+
+            growth_band = TIER_ANNUAL_GROWTH_BANDS[tier]
+            for idx, share_row in place_share_rows.iterrows():
+                year = int(share_row["year"])
+                projected_share = float(share_row["projected_share"])
+                projected_share_raw = float(share_row["projected_share_raw"])
+                projected_population = float(share_row["projected_population"])
+                raw_sum_place_share = float(raw_share_sum_by_year.get(year, np.nan))
+
+                if projected_share <= 0.001 + QA_FLOAT_TOLERANCE:
+                    _add_outlier_flag(
+                        outlier_flags=qa_outlier_rows,
+                        place_fips=place_fips,
+                        place_name=place_name,
+                        confidence_tier=tier,
+                        flag_type="NEAR_ZERO_SHARE",
+                        flag_detail=f"Projected share {projected_share:.6f} is below 0.1% threshold.",
+                        year=year,
+                    )
+
+                if (
+                    np.isfinite(raw_sum_place_share)
+                    and raw_sum_place_share > 1.0 + QA_FLOAT_TOLERANCE
+                    and abs(projected_share - projected_share_raw) > QA_FLOAT_TOLERANCE
+                ):
+                    _add_outlier_flag(
+                        outlier_flags=qa_outlier_rows,
+                        place_fips=place_fips,
+                        place_name=place_name,
+                        confidence_tier=tier,
+                        flag_type="SHARE_RESCALED",
+                        flag_detail=(
+                            "Projected share was adjusted during county reconciliation "
+                            f"(raw_sum_place_shares={raw_sum_place_share:.6f})."
+                        ),
+                        year=year,
+                    )
+
+                if projected_population < 50.0:
+                    _add_outlier_flag(
+                        outlier_flags=qa_outlier_rows,
+                        place_fips=place_fips,
+                        place_name=place_name,
+                        confidence_tier=tier,
+                        flag_type="POPULATION_DECLINE_TO_NEAR_ZERO",
+                        flag_detail=f"Projected population {projected_population:.3f} is below 50.",
+                        year=year,
+                    )
+
+                if idx > 0:
+                    previous_population = float(place_share_rows["projected_population"].iloc[idx - 1])
+                    if previous_population <= 0.0:
+                        annual_growth = np.inf if projected_population > 0.0 else 0.0
+                    else:
+                        annual_growth = (projected_population / previous_population) - 1.0
+
+                    if abs(annual_growth) > growth_band:
+                        _add_outlier_flag(
+                            outlier_flags=qa_outlier_rows,
+                            place_fips=place_fips,
+                            place_name=place_name,
+                            confidence_tier=tier,
+                            flag_type="EXTREME_GROWTH",
+                            flag_detail=(
+                                f"Annual growth {annual_growth:.4f} exceeds tier band +/-{growth_band:.2f}."
+                            ),
+                            year=year,
+                        )
 
             place_start_time = time.perf_counter()
             annual_blocks: list[pd.DataFrame] = []
@@ -722,6 +1281,11 @@ def run_place_projections(
 
             place_df = pd.concat(annual_blocks, ignore_index=True)
             place_df = place_df.sort_values("year").reset_index(drop=True)
+            if (place_df["population"] < -QA_FLOAT_TOLERANCE).any():
+                raise ValueError(
+                    f"Non-negative population hard constraint failed for place {place_fips}: "
+                    "tier-detail allocation produced negative cohort values."
+                )
 
             base_row = place_share_rows[place_share_rows["year"] == base_year]
             final_row = place_share_rows[place_share_rows["year"] == end_year]
@@ -737,7 +1301,10 @@ def run_place_projections(
             processing_time = round(time.perf_counter() - place_start_time, 4)
 
             share_within_bounds = bool(
-                ((place_share_rows["projected_share"] >= 0.0) & (place_share_rows["projected_share"] <= 1.0)).all()
+                (
+                    (place_share_rows["projected_share"] >= -QA_FLOAT_TOLERANCE)
+                    & (place_share_rows["projected_share"] <= 1.0 + QA_FLOAT_TOLERANCE)
+                ).all()
             )
 
             metadata = {
@@ -777,7 +1344,11 @@ def run_place_projections(
                 "validation": {
                     "share_within_bounds": share_within_bounds,
                     "share_sum_check_passed": share_sum_ok,
-                    "all_checks_passed": bool(share_within_bounds and share_sum_ok and (place_df["population"] >= 0).all()),
+                    "all_checks_passed": bool(
+                        share_within_bounds
+                        and share_sum_ok
+                        and (place_df["population"] >= -QA_FLOAT_TOLERANCE).all()
+                    ),
                 },
                 "processing_time_seconds": processing_time,
             }
@@ -805,7 +1376,6 @@ def run_place_projections(
             final_pop = float(final_balance["projected_population"].iloc[0])
             growth = final_pop - base_pop
             growth_rate = growth / base_pop if base_pop > 0 else 0.0
-            county_name = county_names.get(county_fips, f"County {county_fips}")
 
             balance_rows.append(
                 {
@@ -825,6 +1395,11 @@ def run_place_projections(
                 }
             )
 
+    _validate_projection_universe(
+        expected_place_fips=expected_place_fips,
+        produced_place_fips=produced_place_fips,
+    )
+
     summary_path = write_places_summary(
         all_places_summaries=all_place_summaries,
         balance_rows=balance_rows,
@@ -836,12 +1411,27 @@ def run_place_projections(
         scenario=scenario,
         config=config,
     )
+    qa_paths = write_place_qa_artifacts(
+        scenario=scenario,
+        config=config,
+        all_places_summaries=all_place_summaries,
+        share_sum_rows=qa_share_sum_rows,
+        outlier_rows=qa_outlier_rows,
+        balance_rows=qa_balance_rows,
+    )
+    state_ordering_checked = validate_state_scenario_ordering(
+        config=config,
+        base_year=base_year,
+        end_year=end_year,
+        skip_if_missing=True,
+    )
 
     logger.info(
-        "Place projections complete for %s: %d places, %d county balances.",
+        "Place projections complete for %s: %d places, %d county balances, %d QA outlier flags.",
         scenario,
         len(all_place_metadata),
         len(balance_rows),
+        len(qa_outlier_rows),
     )
     return {
         "scenario": scenario,
@@ -851,12 +1441,16 @@ def run_place_projections(
         "balance_rows": len(balance_rows),
         "summary_path": summary_path,
         "metadata_path": run_metadata_path,
+        "qa_paths": qa_paths,
+        "state_ordering_checked": state_ordering_checked,
     }
 
 
 __all__ = [
     "allocate_age_sex_detail",
     "run_place_projections",
+    "validate_state_scenario_ordering",
+    "write_place_qa_artifacts",
     "write_place_outputs",
     "write_places_summary",
     "write_run_level_metadata",

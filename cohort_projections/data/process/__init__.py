@@ -92,7 +92,9 @@ from .place_backtest import (
 from .place_projection_orchestrator import (
     allocate_age_sex_detail,
     run_place_projections,
+    validate_state_scenario_ordering,
     write_place_outputs,
+    write_place_qa_artifacts,
     write_places_summary,
     write_run_level_metadata,
 )
@@ -217,6 +219,8 @@ __all__ = [
     # Place projection orchestration
     "allocate_age_sex_detail",
     "run_place_projections",
+    "validate_state_scenario_ordering",
+    "write_place_qa_artifacts",
     "write_place_outputs",
     "write_places_summary",
     "write_run_level_metadata",

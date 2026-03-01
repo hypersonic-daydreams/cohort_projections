@@ -1,0 +1,5 @@
+confidence_tier,place_count,tier_medape,tier_mean_me,tier_p90_mape,tier_max_mape,tier_population_2024,window,variant_id,tier_medape_threshold,tier_p90_mape_threshold,abs_tier_mean_me_threshold,abs_tier_mean_me,tier_medape_pass,tier_p90_mape_pass,abs_tier_mean_me_pass,scored_tier,tier_pass,evaluation_status
+HIGH,9,3.002588249200702,1.106080569557265,4.314163861484023,7.372711573984191,457462.0,primary,B-II,10.0,20.0,5.0,1.106080569557265,True,True,True,True,True,PASS
+MODERATE,9,1.8351213094178065,-4.280532295532804,17.78137641177561,24.660004866419783,48813.0,primary,B-II,15.0,30.0,8.0,4.280532295532804,True,True,True,True,True,PASS
+LOWER,72,4.248953610360955,0.7759145572422921,11.049137130153726,19.352511469168412,80163.0,primary,B-II,25.0,45.0,12.0,0.7759145572422921,True,True,True,True,True,PASS
+EXCLUDED,267,9.308560275940952,-1.619601296826965,36.143633002399625,315.7421428571429,36313.0,primary,B-II,,,,1.619601296826965,True,True,True,False,True,INFORMATIONAL

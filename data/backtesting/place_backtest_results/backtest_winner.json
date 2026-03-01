@@ -1,0 +1,33 @@
+{
+  "winner_variant_id": "B-II",
+  "window": "primary",
+  "score": 3.0757840903894844,
+  "fitting_method": "wls",
+  "constraint_method": "cap_and_redistribute",
+  "acceptance": {
+    "all_scored_tiers_pass_primary": true,
+    "failed_tiers_primary": [],
+    "scored_tiers": [
+      "HIGH",
+      "MODERATE",
+      "LOWER"
+    ],
+    "thresholds": {
+      "HIGH": {
+        "tier_medape": 10.0,
+        "tier_p90_mape": 20.0,
+        "abs_tier_mean_me": 5.0
+      },
+      "MODERATE": {
+        "tier_medape": 15.0,
+        "tier_p90_mape": 30.0,
+        "abs_tier_mean_me": 8.0
+      },
+      "LOWER": {
+        "tier_medape": 25.0,
+        "tier_p90_mape": 45.0,
+        "abs_tier_mean_me": 12.0
+      }
+    }
+  }
+}
