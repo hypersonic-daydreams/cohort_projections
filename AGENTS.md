@@ -10,9 +10,9 @@ Canonical instruction set for all AI agents working on this codebase.
 
 **North Dakota Population Projection System** — Official cohort-component population projections for North Dakota at state, county, and place levels.
 
-### Current Focus: Post-Development Publication and Maintenance
+### Current Focus: PP-005 Phase 2+ Place Projection Enhancements
 
-The 2026 projection development cycle is complete (`PP-001` through `PP-004` closed as of 2026-03-01). Primary work is now publication maintenance: documentation consistency, stakeholder-feedback incorporation in future updates, and PP-002-style non-regression cadence reruns after material changes.
+Active development of four parallel workstreams under `PP-005`: rolling-origin backtests (ADR-057), multi-county place splitting (ADR-058), TIGER/geospatial exports (ADR-059), and housing-unit method (ADR-060). See `DEVELOPMENT_TRACKER.md` for workstream checklist status.
 
 | Attribute | Value |
 |-----------|-------|
