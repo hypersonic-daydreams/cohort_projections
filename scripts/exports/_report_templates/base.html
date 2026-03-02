@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>North Dakota Population Projections - Interactive Report</title>
+    {{ plotly_js }}
+    <style>
+        /* ============================================================
+           CSS Reset & Base
+           ============================================================ */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 15px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            color: #333;
+            background: #f8f9fa;
+            line-height: 1.6;
+        }
+
+        /* ============================================================
+           Header
+           ============================================================ */
+        header {
+            background: linear-gradient(135deg, #1F3864 0%, #0563C1 100%);
+            color: white;
+            padding: 2rem 2rem 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        header h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.25rem;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.85;
+            font-weight: 400;
+        }
+
+        .provisional-banner {
+            display: inline-block;
+            background: #C00000;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.2rem 0.6rem;
+            border-radius: 3px;
+            margin-top: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        /* ============================================================
+           Navigation
+           ============================================================ */
+        nav {
+            background: white;
+            border-bottom: 1px solid #ddd;
+            position: sticky;
+            top: 0;
+            z-index: 99;
+            padding: 0 1rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            gap: 0;
+            max-width: 1200px;
+            margin: 0 auto;
+            overflow-x: auto;
+        }
+
+        nav a {
+            display: block;
+            padding: 0.75rem 1.2rem;
+            color: #595959;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+            transition: color 0.15s, border-color 0.15s;
+        }
+
+        nav a:hover {
+            color: #0563C1;
+            border-bottom-color: #00B0F0;
+        }
+
+        nav a.active {
+            color: #1F3864;
+            border-bottom-color: #0563C1;
+            font-weight: 600;
+        }
+
+        /* ============================================================
+           Main Layout
+           ============================================================ */
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem 1.5rem 3rem;
+        }
+
+        section {
+            display: none;
+            animation: fadeIn 0.2s ease-in;
+        }
+
+        section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        section h2 {
+            color: #1F3864;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #0563C1;
+        }
+
+        section h3 {
+            color: #1F3864;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+        }
+
+        /* ============================================================
+           KPI Cards
+           ============================================================ */
+        .kpi-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .kpi-card {
+            flex: 1;
+            min-width: 180px;
+            background: white;
+            border-radius: 8px;
+            padding: 1.2rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            border-top: 4px solid #1F3864;
+        }
+
+        .kpi-card.kpi-base {
+            border-top: 4px solid #1F3864;
+        }
+
+        .kpi-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #595959;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-bottom: 0.4rem;
+        }
+
+        .kpi-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #1F3864;
+            line-height: 1.2;
+        }
+
+        .kpi-subtitle {
+            font-size: 0.8rem;
+            color: #808080;
+            margin-top: 0.3rem;
+        }
+
+        .kpi-detail {
+            font-size: 0.78rem;
+            color: #595959;
+            margin-top: 0.5rem;
+            line-height: 1.5;
+        }
+
+        /* ============================================================
+           Chart Containers
+           ============================================================ */
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .chart-note {
+            font-size: 0.8rem;
+            color: #808080;
+            font-style: italic;
+            margin-top: 0.5rem;
+            padding: 0 0.5rem;
+        }
+
+        .placeholder {
+            color: #808080;
+            font-style: italic;
+            padding: 2rem;
+            text-align: center;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin: 1rem 0;
+        }
+
+        /* ============================================================
+           Tables
+           ============================================================ */
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 1rem 0 1.5rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .data-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table th {
+            background: #1F3864;
+            color: white;
+            padding: 0.6rem 0.8rem;
+            font-weight: 600;
+            text-align: left;
+            white-space: nowrap;
+            cursor: default;
+            user-select: none;
+        }
+
+        .data-table th.num,
+        .data-table td.num {
+            text-align: right;
+        }
+
+        .data-table th.sortable-header {
+            cursor: pointer;
+        }
+
+        .data-table th.sortable-header:hover {
+            background: #2a4a7f;
+        }
+
+        .data-table th .sort-arrow {
+            font-size: 0.7rem;
+            margin-left: 0.3rem;
+            opacity: 0.5;
+        }
+
+        .data-table th.sort-asc .sort-arrow,
+        .data-table th.sort-desc .sort-arrow {
+            opacity: 1;
+        }
+
+        .data-table td {
+            padding: 0.5rem 0.8rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .data-table tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .data-table tbody tr:hover {
+            background: #e8f0fe;
+        }
+
+        /* ============================================================
+           Badges
+           ============================================================ */
+        .tier-badge {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: white;
+            padding: 0.15rem 0.5rem;
+            border-radius: 3px;
+            letter-spacing: 0.04em;
+        }
+
+        .scenario-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 0.4rem;
+            vertical-align: middle;
+        }
+
+        /* ============================================================
+           Methodology Text
+           ============================================================ */
+        .methodology-text {
+            background: white;
+            border-radius: 8px;
+            padding: 1.2rem 1.5rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            margin: 1rem 0;
+            line-height: 1.7;
+            font-size: 0.9rem;
+        }
+
+        .methodology-text ul {
+            padding-left: 1.5rem;
+            margin: 0.5rem 0;
+        }
+
+        .methodology-text li {
+            margin-bottom: 0.4rem;
+        }
+
+        .methodology-text p {
+            margin-bottom: 0.6rem;
+        }
+
+        .methodology-text.caveats {
+            border-left: 4px solid #FFC000;
+        }
+
+        .attribution {
+            font-weight: 600;
+            color: #1F3864;
+            margin-top: 1rem !important;
+        }
+
+        /* ============================================================
+           Footer
+           ============================================================ */
+        footer {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            text-align: center;
+            color: #808080;
+            font-size: 0.8rem;
+            border-top: 1px solid #ddd;
+        }
+
+        footer p {
+            margin: 0.2rem 0;
+        }
+
+        /* ============================================================
+           Print Styles
+           ============================================================ */
+        @media print {
+            header {
+                position: static;
+                background: white !important;
+                color: #1F3864 !important;
+                box-shadow: none;
+                border-bottom: 2px solid #1F3864;
+            }
+
+            nav {
+                display: none !important;
+            }
+
+            section {
+                display: block !important;
+                page-break-before: always;
+            }
+
+            section:first-child {
+                page-break-before: avoid;
+            }
+
+            .chart-container,
+            .table-wrapper,
+            .kpi-card,
+            .methodology-text {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+
+            body {
+                background: white;
+            }
+
+            .provisional-banner {
+                border: 2px solid #C00000;
+                background: white !important;
+                color: #C00000 !important;
+            }
+        }
+
+        /* ============================================================
+           Responsive
+           ============================================================ */
+        @media (max-width: 768px) {
+            header {
+                padding: 1.2rem 1rem;
+            }
+
+            header h1 {
+                font-size: 1.2rem;
+            }
+
+            main {
+                padding: 1rem;
+            }
+
+            .kpi-row {
+                flex-direction: column;
+            }
+
+            .kpi-card {
+                min-width: 100%;
+            }
+
+            nav a {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>North Dakota Population Projections</h1>
+        <p class="subtitle">{{ subtitle }}</p>
+        <span class="provisional-banner">{{ provisional_label }}</span>
+    </header>
+
+    <nav id="main-nav">
+        <ul>
+            <li><a href="#state-overview" class="nav-link active" data-section="state-overview">State Overview</a></li>
+            <li><a href="#county-explorer" class="nav-link" data-section="county-explorer">County Explorer</a></li>
+            <li><a href="#place-projections" class="nav-link" data-section="place-projections">Place Projections</a></li>
+            <li><a href="#qa-diagnostics" class="nav-link" data-section="qa-diagnostics">QA &amp; Diagnostics</a></li>
+            <li><a href="#methodology" class="nav-link" data-section="methodology">Methodology</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="state-overview" class="active">
+            {{ state_overview }}
+        </section>
+        <section id="county-explorer">
+            {{ county_explorer }}
+        </section>
+        <section id="place-projections">
+            {{ place_projections }}
+        </section>
+        <section id="qa-diagnostics">
+            {{ qa_diagnostics }}
+        </section>
+        <section id="methodology">
+            {{ methodology }}
+        </section>
+    </main>
+
+    <footer>
+        <p>Generated {{ generation_date }} | {{ provisional_label }}</p>
+        <p>North Dakota State Data Center</p>
+    </footer>
+
+    <script>
+    /* =================================================================
+       Navigation: Tab switching, hash support, sortable tables
+       ================================================================= */
+    (function() {
+        'use strict';
+
+        // --- Tab Navigation ---
+        var navLinks = document.querySelectorAll('.nav-link');
+        var sections = document.querySelectorAll('main > section');
+
+        function activateSection(sectionId) {
+            // Hide all sections
+            for (var i = 0; i < sections.length; i++) {
+                sections[i].classList.remove('active');
+            }
+            // Deactivate all nav links
+            for (var j = 0; j < navLinks.length; j++) {
+                navLinks[j].classList.remove('active');
+            }
+            // Activate target section
+            var target = document.getElementById(sectionId);
+            if (target) {
+                target.classList.add('active');
+                // Trigger Plotly resize for any charts in newly visible section
+                var plotDivs = target.querySelectorAll('.js-plotly-plot');
+                for (var k = 0; k < plotDivs.length; k++) {
+                    if (window.Plotly) {
+                        window.Plotly.Plots.resize(plotDivs[k]);
+                    }
+                }
+            }
+            // Activate corresponding nav link
+            var link = document.querySelector('.nav-link[data-section="' + sectionId + '"]');
+            if (link) {
+                link.classList.add('active');
+            }
+        }
+
+        // Click handlers for nav links
+        for (var i = 0; i < navLinks.length; i++) {
+            navLinks[i].addEventListener('click', function(e) {
+                e.preventDefault();
+                var sectionId = this.getAttribute('data-section');
+                activateSection(sectionId);
+                // Update URL hash
+                history.pushState(null, null, '#' + sectionId);
+                // Scroll to top of main
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+
+        // Handle initial hash
+        var hash = window.location.hash.replace('#', '');
+        if (hash && document.getElementById(hash)) {
+            activateSection(hash);
+        }
+
+        // Handle back/forward navigation
+        window.addEventListener('popstate', function() {
+            var h = window.location.hash.replace('#', '');
+            if (h && document.getElementById(h)) {
+                activateSection(h);
+            }
+        });
+
+        // --- Sortable Tables ---
+        function initSortableTables() {
+            var tables = document.querySelectorAll('table.sortable');
+            for (var t = 0; t < tables.length; t++) {
+                initTableSort(tables[t]);
+            }
+        }
+
+        function initTableSort(table) {
+            var headers = table.querySelectorAll('th[data-sort]');
+            for (var h = 0; h < headers.length; h++) {
+                headers[h].classList.add('sortable-header');
+                headers[h].innerHTML += ' <span class="sort-arrow">&#9650;&#9660;</span>';
+                headers[h].addEventListener('click', (function(header, colIdx) {
+                    return function() {
+                        sortTable(table, header, colIdx);
+                    };
+                })(headers[h], h));
+            }
+        }
+
+        function sortTable(table, header, colIdx) {
+            var tbody = table.querySelector('tbody');
+            if (!tbody) return;
+
+            var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+            var sortType = header.getAttribute('data-sort');
+            var ascending = !header.classList.contains('sort-asc');
+
+            // Reset all headers
+            var allHeaders = table.querySelectorAll('th');
+            for (var i = 0; i < allHeaders.length; i++) {
+                allHeaders[i].classList.remove('sort-asc', 'sort-desc');
+            }
+            header.classList.add(ascending ? 'sort-asc' : 'sort-desc');
+
+            rows.sort(function(a, b) {
+                var aText = a.cells[colIdx].textContent.trim();
+                var bText = b.cells[colIdx].textContent.trim();
+                var aVal, bVal;
+
+                if (sortType === 'int') {
+                    aVal = parseInt(aText.replace(/[^0-9\-]/g, ''), 10) || 0;
+                    bVal = parseInt(bText.replace(/[^0-9\-]/g, ''), 10) || 0;
+                } else if (sortType === 'float') {
+                    aVal = parseFloat(aText.replace(/[^0-9.\-]/g, '')) || 0;
+                    bVal = parseFloat(bText.replace(/[^0-9.\-]/g, '')) || 0;
+                } else {
+                    aVal = aText.toLowerCase();
+                    bVal = bText.toLowerCase();
+                }
+
+                if (aVal < bVal) return ascending ? -1 : 1;
+                if (aVal > bVal) return ascending ? 1 : -1;
+                return 0;
+            });
+
+            for (var j = 0; j < rows.length; j++) {
+                tbody.appendChild(rows[j]);
+            }
+        }
+
+        // Initialize sorting after DOM is ready
+        initSortableTables();
+    })();
+    </script>
+</body>
+</html>

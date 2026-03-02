@@ -58,6 +58,7 @@
   - [7.4 State Aggregation](#74-state-aggregation-adr-054)
   - [7.5 Place Projection Orchestration](#75-place-projection-orchestration-pp-003-phase-2)
     - [7.5.1 Rolling-Origin Cross-Validation](#751-rolling-origin-cross-validation-adr-057)
+    - [7.5.2 Housing-Unit Cross-Validation](#752-housing-unit-cross-validation-adr-060)
 - [8. Data Sources and References](#8-data-sources-and-references)
   - [8.1 Primary Data Sources](#81-primary-data-sources)
   - [8.2 Methodological References](#82-methodological-references)
@@ -1046,6 +1047,47 @@ Four expanding windows were generated from the 2000--2024 history:
 
 The rolling-origin winner by mean score is **B-I** (WLS + proportional), with a mean score of 2.586 across 4 windows. However, all four variants scored within a range of 0.079 (2.586 to 2.664), indicating that variant choice has minimal practical impact on forecast accuracy. The production specification remains **B-II** (WLS + cap-and-redistribute) as selected in IMP-09, because (a) the score difference between B-I and B-II is not practically significant, and (b) the cap-and-redistribute constraint provides more defensible behavior for places approaching share boundaries. The rolling-origin evidence confirms that WLS fitting outperforms OLS on average, consistent with the original static backtest conclusion.
 
+#### 7.5.2 Housing-Unit Cross-Validation (ADR-060)
+
+The share-trending method (Section 7.5) relies on historical population share trajectories to project place-level populations. As an independent cross-check, the system implements the **housing-unit (HU) method**, a well-established short-term projection technique used by state and local demographers (Smith & Cody, 2004; BEBR methodology). The HU method estimates population from a fundamentally different data stream---housing stock and household size---providing a complementary signal that is especially informative over 5-to-10-year horizons where building-permit and occupancy trends are reliable predictors.
+
+The HU method is advisory. It does **not** replace or override the share-trending projections in the production pipeline. Its role is to identify places where the two independent methods diverge, flagging those places for analyst review before publication.
+
+**Data sources.** The HU method draws on Census Bureau American Community Survey (ACS) 5-year estimates for all incorporated places in North Dakota:
+
+- **Table B25001** (Total Housing Units): provides the count of housing units per place.
+- **Table B25010** (Average Household Size of Occupied Housing Units): provides persons per household (PPH).
+
+Fifteen ACS 5-year vintages are available (end-years 2009 through 2023, representing the 2005--2009 through 2019--2023 estimate periods), covering 406 places. These data are fetched via the Census API and stored as a long-format CSV with one row per place per vintage year.
+
+**Housing-unit trending.** For each place with at least three vintage years of data, the system fits a trend model to the historical housing-unit series and extrapolates to the projection years (default: 2025, 2030, 2035). The default trend is **log-linear** (exponential), which fits an ordinary least-squares regression on (year, ln(HU)) and then exponentiates the predicted values:
+
+$$\ln(\widehat{HU}_t) = \hat{\alpha} + \hat{\beta} \cdot t \quad \Longrightarrow \quad \widehat{HU}_t = e^{\hat{\alpha} + \hat{\beta} \cdot t}$$
+
+Log-linear trending is preferred because housing growth in North Dakota's expanding cities (Fargo, Bismarck, Williston) is closer to multiplicative than additive. A linear alternative is available via configuration. Both methods floor projected housing units at zero.
+
+**Persons-per-household projection.** PPH is projected using a **hold-last** default: the most recently observed ACS household size is carried forward unchanged to all projection years. This is a conservative simplification appropriate for 5--10-year horizons, given that national PPH has declined at roughly 0.02 persons per decade. A linear-trend alternative is available via configuration. Both methods floor PPH at 1.0 to prevent nonsensical values.
+
+**Population projection.** The projected place population is the product of the two trend components:
+
+$$\widehat{P}_{\text{place}}(t) = \widehat{HU}_{\text{place}}(t) \times \widehat{PPH}_{\text{place}}(t)$$
+
+This produces a **total population only** estimate---the HU method does not produce age-sex detail.
+
+**Cross-validation with share-trending.** For each place and projection year where both an HU projection and a share-trending projection exist, the system computes divergence metrics:
+
+$$\text{pct\_diff} = \frac{\widehat{P}_{\text{HU}} - \widehat{P}_{\text{share}}}{\widehat{P}_{\text{share}}} \times 100$$
+
+Positive values indicate that the HU method projects higher population than share-trending; negative values indicate the opposite. The cross-validation focuses on **HIGH** and **MODERATE** tier places (populations above 2,500), where ACS margins of error are small enough for the comparison to be meaningful. In the production run, 405 places received HU projections and 18 HIGH+MODERATE tier places were flagged for review in the HU Comparison sheet of the place workbook.
+
+**Interpretation guidance.** Divergence between the two methods should be interpreted in light of each method's strengths:
+
+- **HU higher than share-trending** often indicates recent construction activity that has not yet been reflected in the population share trajectory. This is common in boom-phase cities (e.g., Watford City during oil development) and is generally most informative in the near-term (5 years).
+- **HU lower than share-trending** may indicate that the share trajectory is extrapolating historical population growth that has outpaced recent housing starts, or that PPH is declining faster than the hold-last assumption captures.
+- **Large divergences (>10%)** are flagged for analyst review. The analyst determines whether to adjust share-trending assumptions, note the discrepancy in the publication, or accept the share-trending projection with an explanatory comment.
+- **Small places (<500 population)** are excluded from the cross-validation because ACS margins of error for housing units and household size are proportionally large, making point-estimate comparisons unreliable.
+
+The HU method is configured in `projection_config.yaml` under the `housing_unit_method` key, with options to toggle enablement, set the trend method (`log_linear` or `linear`), set the PPH method (`hold_last` or `linear_trend`), and specify projection years. The implementation follows ADR-060.
 
 ## 8. Data Sources and References
 
@@ -1077,6 +1119,10 @@ The rolling-origin winner by mean score is **B-I** (WLS + proportional), with a 
 
 - U.S. Census Bureau. (2025). *Population in Group Quarters by County: stcoreview HHpop/GQpop Tabulations.* Vintage 2025.
 
+**Census Bureau ACS Housing Data.** Place-level housing unit counts (Table B25001) and average household size (Table B25010) from American Community Survey 5-year estimates, 15 vintages (2009--2023). Used for the housing-unit cross-validation method (ADR-060, Section 7.5.2).
+
+- U.S. Census Bureau. (2024). *American Community Survey 5-Year Estimates: Tables B25001, B25010.* Retrieved from https://data.census.gov
+
 ### 8.2 Methodological References
 
 **Cohort-Component Method.** The foundational demographic projection method used throughout this system.
@@ -1105,6 +1151,11 @@ The rolling-origin winner by mean score is **B-I** (WLS + proportional), with a 
 
 - Lee, R. D., & Carter, L. R. (1992). Modeling and forecasting U.S. mortality. *Journal of the American Statistical Association,* 87(419), 659--671.
 
+**Housing-Unit Method.** The short-term population estimation technique that projects population as the product of housing units and persons per household. Used as a complementary cross-check for share-trending place projections (Section 7.5.2).
+
+- Smith, S. K., & Cody, S. (2004). An evaluation of population estimates in Florida: April 1, 2000. *Population Research and Policy Review,* 23(1), 1--24.
+- Smith, S. K., & Rayer, S. (2014). Projections of Florida Population by County, 2015--2040. *Florida Population Studies, Bulletin 168.* Bureau of Economic and Business Research, University of Florida.
+
 ### 8.3 Architecture Decision Records
 
 The following Architecture Decision Records (ADRs) govern the methodological choices documented in this report. Each ADR is maintained in the project repository at `docs/governance/adrs/`.
@@ -1129,3 +1180,4 @@ The following Architecture Decision Records (ADRs) govern the methodological cho
 | ADR-054 | State-County Aggregation Reconciliation | Accepted | 7.4 |
 | ADR-055 | Group Quarters Population Separation | Accepted | 2, 5, 7.3 |
 | ADR-057 | Rolling-Origin Backtests for Place Variant Selection | Accepted | 7.5.1 |
+| ADR-060 | Housing-Unit Method for Place Projections | Accepted | 7.5.2 |
