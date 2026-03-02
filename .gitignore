@@ -103,7 +103,11 @@ htmlcov/
 .env.local
 data/projections/**/*.json
 data/projections/**/*.pdf
+data/projections/**/*.geojson
 !data/projections/.gitkeep
+
+# Backtesting outputs (synced via rclone, not git)
+data/backtesting/**
 
 # Local scratch work (not synced anywhere)
 scratch/**
