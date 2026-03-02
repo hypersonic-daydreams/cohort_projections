@@ -112,7 +112,10 @@ def fetch_acs_housing_vintage(year: int) -> pd.DataFrame | None:
         "year": year,
     })
     for api_var, col_name in VARIABLES.items():
-        result[col_name] = pd.to_numeric(df[api_var], errors="coerce")
+        values = pd.to_numeric(df[api_var], errors="coerce")
+        # Census uses -666666666 (and similar) as "not available" sentinel
+        values = values.where(values >= 0)
+        result[col_name] = values
 
     logger.info(f"ACS {year}: fetched {len(result)} places")
     return result

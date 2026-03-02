@@ -283,3 +283,182 @@ def test_build_place_workbook_contract(monkeypatch, tmp_path: Path) -> None:
     assert "ADR-033 accepted, implemented 2026-03-01" in method_text
     assert "Winning backtest variant: B-II" in method_text
     assert "IMP-19 end-to-end validation passed" in method_text
+
+    # HU Comparison sheet must NOT be present (no HU parquet written).
+    assert "HU Comparison" not in sheetnames
+
+
+def _write_synthetic_hu_projections(root: Path, scenario: str) -> None:
+    """Write synthetic housing-unit projections for HIGH and MODERATE places."""
+    place_dir = root / "data" / "projections" / scenario / "place"
+    place_dir.mkdir(parents=True, exist_ok=True)
+
+    hu_years = [2025, 2030, 2035]
+    hu_rows: list[dict[str, Any]] = []
+
+    # Write HU projections for all 9 HIGH and 9 MODERATE places.
+    for idx in range(1, 10):
+        place_fips = f"3810{idx:03d}"
+        for year in hu_years:
+            hu_rows.append({
+                "place_fips": place_fips,
+                "year": year,
+                "hu_projected": float(400 + idx * 20 + (year - 2025)),
+                "pph_projected": 2.5,
+                "population_hu": float((400 + idx * 20 + (year - 2025)) * 2.5),
+                "method": "hu_log_linear",
+            })
+    for idx in range(1, 10):
+        place_fips = f"3820{idx:03d}"
+        for year in hu_years:
+            hu_rows.append({
+                "place_fips": place_fips,
+                "year": year,
+                "hu_projected": float(200 + idx * 15 + (year - 2025)),
+                "pph_projected": 2.3,
+                "population_hu": float((200 + idx * 15 + (year - 2025)) * 2.3),
+                "method": "hu_log_linear",
+            })
+
+    pd.DataFrame(hu_rows).to_parquet(
+        place_dir / "housing_unit_projections.parquet", index=False,
+    )
+
+
+def test_hu_comparison_sheet_present(monkeypatch, tmp_path: Path) -> None:
+    """
+    When HU projections are available, the HU Comparison sheet is added.
+
+    Verifies:
+    - 22-sheet workbook (21 base + HU Comparison)
+    - HU Comparison sheet is between LOWER Tier and Methodology
+    - Correct header structure: Place Name, Tier, Place FIPS, then year groups
+    - 18 data rows (9 HIGH + 9 MODERATE)
+    - Explanatory note is present
+    - Values are numeric and Diff/% Diff are computed correctly
+    """
+    scenario = "baseline"
+    _write_county_reference_csv(tmp_path)
+    _write_synthetic_place_outputs(tmp_path, scenario=scenario)
+    _write_synthetic_hu_projections(tmp_path, scenario=scenario)
+
+    config = {
+        "pipeline": {
+            "projection": {"output_dir": "data/projections"},
+            "export": {"output_dir": "data/exports"},
+        },
+        "place_projections": {"output": {"key_years": KEY_YEARS}},
+    }
+
+    monkeypatch.setattr(workbook_mod, "project_root", tmp_path)
+
+    output_path = workbook_mod.build_workbook(
+        scenario=scenario,
+        config=config,
+        date_stamp="20260301",
+    )
+
+    assert output_path.exists()
+    wb = load_workbook(output_path, data_only=True)
+    sheetnames = wb.sheetnames
+
+    # HU Comparison should be present, making 22 sheets total.
+    assert len(sheetnames) == 22
+    assert "HU Comparison" in sheetnames
+
+    # HU Comparison must come between LOWER Tier and Methodology.
+    hu_idx = sheetnames.index("HU Comparison")
+    lower_idx = sheetnames.index("LOWER Tier")
+    method_idx = sheetnames.index("Methodology")
+    assert lower_idx < hu_idx < method_idx
+
+    hu_ws = wb["HU Comparison"]
+
+    # Title and note checks.
+    assert hu_ws.cell(row=1, column=1).value == "Housing-Unit Method Comparison"
+
+    note_found = False
+    for row_idx in range(1, 15):
+        cell_value = hu_ws.cell(row=row_idx, column=1).value
+        if isinstance(cell_value, str) and "complementary cross-check" in cell_value:
+            note_found = True
+            break
+    assert note_found, "Explanatory note not found in HU Comparison sheet"
+
+    # Header row structure.
+    hu_header_row = _find_header_row(hu_ws, "Place Name")
+    expected_headers = ["Place Name", "Tier", "Place FIPS"]
+    for year in [2025, 2030, 2035]:
+        expected_headers.extend([
+            f"{year} Share-Trend",
+            f"{year} HU Method",
+            f"{year} Diff",
+            f"{year} % Diff",
+        ])
+    actual_headers = [
+        hu_ws.cell(row=hu_header_row, column=col_idx).value
+        for col_idx in range(1, len(expected_headers) + 1)
+    ]
+    assert actual_headers == expected_headers
+
+    # Count data rows (should be 18: 9 HIGH + 9 MODERATE).
+    data_rows = []
+    row = hu_header_row + 1
+    while hu_ws.cell(row=row, column=1).value:
+        data_rows.append(row)
+        row += 1
+    assert len(data_rows) == 18
+
+    # Validate HIGH places come before MODERATE places.
+    tiers = [hu_ws.cell(row=r, column=2).value for r in data_rows]
+    high_count = sum(1 for t in tiers if t == "HIGH")
+    moderate_count = sum(1 for t in tiers if t == "MODERATE")
+    assert high_count == 9
+    assert moderate_count == 9
+    # All HIGH rows should come before all MODERATE rows.
+    first_moderate_idx = tiers.index("MODERATE")
+    assert all(t == "HIGH" for t in tiers[:first_moderate_idx])
+    assert all(t == "MODERATE" for t in tiers[first_moderate_idx:])
+
+    # Verify numeric values are present and Diff = HU - Share.
+    first_data_row = data_rows[0]
+    share_2025 = hu_ws.cell(row=first_data_row, column=4).value
+    hu_2025 = hu_ws.cell(row=first_data_row, column=5).value
+    diff_2025 = hu_ws.cell(row=first_data_row, column=6).value
+    pct_2025 = hu_ws.cell(row=first_data_row, column=7).value
+
+    assert isinstance(share_2025, (int, float))
+    assert isinstance(hu_2025, (int, float))
+    assert isinstance(diff_2025, (int, float))
+    assert isinstance(pct_2025, (int, float))
+    assert abs(diff_2025 - (hu_2025 - share_2025)) < 0.01
+    if share_2025 != 0:
+        expected_pct = (hu_2025 - share_2025) / share_2025
+        assert abs(pct_2025 - expected_pct) < 0.001
+
+
+def test_hu_comparison_absent_without_data(monkeypatch, tmp_path: Path) -> None:
+    """Without HU projection data, workbook should have 21 sheets (no HU Comparison)."""
+    scenario = "baseline"
+    _write_county_reference_csv(tmp_path)
+    _write_synthetic_place_outputs(tmp_path, scenario=scenario)
+
+    config = {
+        "pipeline": {
+            "projection": {"output_dir": "data/projections"},
+            "export": {"output_dir": "data/exports"},
+        },
+        "place_projections": {"output": {"key_years": KEY_YEARS}},
+    }
+
+    monkeypatch.setattr(workbook_mod, "project_root", tmp_path)
+
+    output_path = workbook_mod.build_workbook(
+        scenario=scenario,
+        config=config,
+        date_stamp="20260301",
+    )
+
+    wb = load_workbook(output_path, data_only=True)
+    assert len(wb.sheetnames) == 21
+    assert "HU Comparison" not in wb.sheetnames

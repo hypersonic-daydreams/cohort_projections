@@ -10,7 +10,8 @@ Workbook structure follows S06 Section 7.2:
 2. 9 HIGH-tier sheets (age-group x sex at key years)
 3. 9 MODERATE-tier sheets (broad age-group x sex at key years)
 4. 1 LOWER-tier combined sheet (total population at key years)
-5. Methodology
+5. HU Comparison (optional, if housing-unit projections available)
+6. Methodology
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
@@ -484,6 +486,222 @@ def _write_methodology_sheet(
     ws.column_dimensions["A"].width = 120
 
 
+HU_COMPARISON_YEARS = [2025, 2030, 2035]
+NOTE_FONT = Font(name="Aptos", size=9, italic=True, color="595959")
+HU_DIFF_FILL = PatternFill("solid", fgColor="FFF2CC")
+PCT_DIFF_FMT = "0.0%"
+
+
+def _load_hu_projections(scenario: str, config: dict[str, Any]) -> pd.DataFrame | None:
+    """
+    Load housing-unit projections for a scenario, or return None if unavailable.
+
+    Returns a DataFrame with columns: place_fips, year, population_hu.
+    Returns None if the parquet file does not exist or is empty.
+    """
+    hu_parquet = _projection_root(config) / scenario / "place" / "housing_unit_projections.parquet"
+    if not hu_parquet.exists():
+        logger.info("HU projections not found for %s (no HU Comparison sheet)", scenario)
+        return None
+
+    try:
+        hu_df = pd.read_parquet(hu_parquet)
+    except Exception:
+        logger.warning("Failed to read HU projections: %s", hu_parquet, exc_info=True)
+        return None
+
+    if hu_df.empty:
+        logger.info("HU projections empty for %s (no HU Comparison sheet)", scenario)
+        return None
+
+    required = {"place_fips", "year", "population_hu"}
+    if not required.issubset(hu_df.columns):
+        logger.warning(
+            "HU projections missing columns %s (need %s)",
+            required - set(hu_df.columns),
+            required,
+        )
+        return None
+
+    hu_df["place_fips"] = hu_df["place_fips"].astype(str).str.zfill(7)
+    hu_df["year"] = pd.to_numeric(hu_df["year"], errors="coerce").astype(int)
+    hu_df["population_hu"] = pd.to_numeric(hu_df["population_hu"], errors="coerce")
+    return hu_df[["place_fips", "year", "population_hu"]]
+
+
+def _build_hu_comparison_data(
+    places_df: pd.DataFrame,
+    details_by_place: dict[str, pd.DataFrame],
+    hu_df: pd.DataFrame,
+    comparison_years: list[int],
+) -> pd.DataFrame | None:
+    """
+    Build the comparison table between share-trending and HU projections.
+
+    Only includes HIGH and MODERATE tier places that appear in both datasets.
+    Returns a DataFrame ready for rendering, or None if no overlap.
+    """
+    # Filter to HIGH and MODERATE tiers only
+    hm_places = places_df[places_df["confidence_tier"].isin(["HIGH", "MODERATE"])].copy()
+    if hm_places.empty:
+        return None
+
+    # Build share-trending totals for comparison years
+    st_rows: list[dict[str, Any]] = []
+    for _, place_row in hm_places.iterrows():
+        place_fips = str(place_row["place_fips"])
+        place_detail = details_by_place.get(place_fips)
+        if place_detail is None or place_detail.empty:
+            continue
+        yearly_totals = _totals_by_year(place_detail, comparison_years)
+        for year in comparison_years:
+            st_rows.append({
+                "place_fips": place_fips,
+                "name": str(place_row["name"]),
+                "confidence_tier": str(place_row["confidence_tier"]),
+                "year": year,
+                "pop_share": yearly_totals[year],
+            })
+
+    if not st_rows:
+        return None
+
+    st_df = pd.DataFrame(st_rows)
+
+    # Filter HU data to comparison years
+    hu_subset = hu_df[hu_df["year"].isin(comparison_years)].copy()
+
+    # Merge on place_fips and year — inner join keeps only overlapping places
+    merged = st_df.merge(
+        hu_subset[["place_fips", "year", "population_hu"]],
+        on=["place_fips", "year"],
+        how="inner",
+    )
+
+    if merged.empty:
+        return None
+
+    merged["pop_hu"] = merged["population_hu"]
+    merged["abs_diff"] = merged["pop_hu"] - merged["pop_share"]
+    merged["pct_diff"] = np.where(
+        merged["pop_share"] != 0,
+        (merged["pop_hu"] - merged["pop_share"]) / merged["pop_share"],
+        np.nan,
+    )
+
+    # Sort by tier priority, then name, then year
+    tier_rank = {"HIGH": 0, "MODERATE": 1}
+    merged["tier_rank"] = merged["confidence_tier"].map(tier_rank)
+    merged = merged.sort_values(["tier_rank", "name", "place_fips", "year"]).reset_index(drop=True)
+    merged = merged.drop(columns=["tier_rank", "population_hu"])
+
+    return merged
+
+
+def _write_hu_comparison_sheet(
+    ws: Any,
+    *,
+    comparison_df: pd.DataFrame,
+    scenario_label: str,
+    comparison_years: list[int],
+) -> None:
+    """Write the HU Comparison sheet with side-by-side method comparison."""
+    row = _write_header_block(
+        ws,
+        title="Housing-Unit Method Comparison",
+        scenario_label=scenario_label,
+        subtitle="HIGH and MODERATE tier places",
+    )
+
+    # Explanatory note
+    note_text = (
+        "Note: The housing-unit (HU) method is a complementary cross-check using "
+        "housing units \u00d7 persons-per-household (ADR-060). It is NOT the primary "
+        "projection method. Differences are expected and reflect methodological "
+        "variation, not errors. The share-trending method (ADR-033) remains the "
+        "official projection."
+    )
+    ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=8)
+    note_cell = ws.cell(row=row, column=1, value=note_text)
+    note_cell.font = NOTE_FONT
+    note_cell.alignment = Alignment(wrap_text=True)
+    ws.row_dimensions[row].height = 45
+    row += 2
+
+    # Build column headers: one group of columns per comparison year
+    headers = ["Place Name", "Tier", "Place FIPS"]
+    for year in comparison_years:
+        headers.extend([
+            f"{year} Share-Trend",
+            f"{year} HU Method",
+            f"{year} Diff",
+            f"{year} % Diff",
+        ])
+
+    for col_idx, header in enumerate(headers, 1):
+        cell = ws.cell(row=row, column=col_idx, value=header)
+        cell.font = COL_HEADER_FONT
+        cell.fill = COL_HEADER_FILL
+        cell.alignment = Alignment(horizontal="center", wrap_text=True)
+    row += 1
+
+    ws.freeze_panes = ws.cell(row=row, column=1)
+
+    # Pivot data to one row per place with year-based columns
+    places_in_order = comparison_df.drop_duplicates(
+        subset=["place_fips"]
+    )[["place_fips", "name", "confidence_tier"]].values.tolist()
+
+    values_lookup: dict[tuple[str, int], dict[str, float]] = {}
+    for _, data_row in comparison_df.iterrows():
+        key = (str(data_row["place_fips"]), int(data_row["year"]))
+        values_lookup[key] = {
+            "pop_share": float(data_row["pop_share"]),
+            "pop_hu": float(data_row["pop_hu"]),
+            "abs_diff": float(data_row["abs_diff"]),
+            "pct_diff": float(data_row["pct_diff"]) if pd.notna(data_row["pct_diff"]) else 0.0,
+        }
+
+    for place_fips, name, tier in places_in_order:
+        ws.cell(row=row, column=1, value=name).font = NORMAL_FONT
+        ws.cell(row=row, column=2, value=tier).font = NORMAL_FONT
+        ws.cell(row=row, column=3, value=place_fips).font = NORMAL_FONT
+
+        col = 4
+        for year in comparison_years:
+            vals = values_lookup.get((place_fips, year), {})
+            pop_share = vals.get("pop_share", 0.0)
+            pop_hu = vals.get("pop_hu", 0.0)
+            abs_diff = vals.get("abs_diff", 0.0)
+            pct_diff = vals.get("pct_diff", 0.0)
+
+            ws.cell(row=row, column=col, value=pop_share).number_format = NUM_FMT
+            ws.cell(row=row, column=col + 1, value=pop_hu).number_format = NUM_FMT
+
+            diff_cell = ws.cell(row=row, column=col + 2, value=abs_diff)
+            diff_cell.number_format = NUM_FMT
+            if abs(abs_diff) > 0:
+                diff_cell.fill = HU_DIFF_FILL
+
+            pct_cell = ws.cell(row=row, column=col + 3, value=pct_diff)
+            pct_cell.number_format = PCT_DIFF_FMT
+            if abs(pct_diff) > 0:
+                pct_cell.fill = HU_DIFF_FILL
+
+            col += 4
+
+        for col_idx in range(1, len(headers) + 1):
+            ws.cell(row=row, column=col_idx).border = THIN_BORDER
+        row += 1
+
+    # Column widths
+    ws.column_dimensions["A"].width = 22
+    ws.column_dimensions["B"].width = 12
+    ws.column_dimensions["C"].width = 12
+    for col_idx in range(4, len(headers) + 1):
+        ws.column_dimensions[get_column_letter(col_idx)].width = 14
+
+
 def build_workbook(
     scenario: str,
     config: dict[str, Any],
@@ -518,7 +736,7 @@ def build_workbook(
     toc_ws = wb.active
     toc_ws.title = "Table of Contents"
 
-    used_sheet_names = {"Table of Contents", "LOWER Tier", "Methodology"}
+    used_sheet_names = {"Table of Contents", "LOWER Tier", "HU Comparison", "Methodology"}
     sheet_lookup: dict[str, str] = {}
 
     for _, row_data in high_df.sort_values(["name", "place_fips"]).iterrows():
@@ -585,6 +803,34 @@ def build_workbook(
         key_years=key_years,
     )
 
+    # Optional HU Comparison sheet — only added when HU projection data is available
+    hu_df = _load_hu_projections(scenario, config)
+    hu_sheet_added = False
+    if hu_df is not None:
+        comparison_years = [y for y in HU_COMPARISON_YEARS if y in key_years]
+        if not comparison_years:
+            comparison_years = list(HU_COMPARISON_YEARS)
+        comparison_data = _build_hu_comparison_data(
+            places_df=places_df,
+            details_by_place=details_by_place,
+            hu_df=hu_df,
+            comparison_years=comparison_years,
+        )
+        if comparison_data is not None and not comparison_data.empty:
+            hu_ws = wb.create_sheet("HU Comparison")
+            _write_hu_comparison_sheet(
+                hu_ws,
+                comparison_df=comparison_data,
+                scenario_label=scenario_label,
+                comparison_years=comparison_years,
+            )
+            hu_sheet_added = True
+            logger.info(
+                "Added HU Comparison sheet: %d places, years %s",
+                comparison_data["place_fips"].nunique(),
+                comparison_years,
+            )
+
     methodology_ws = wb.create_sheet("Methodology")
     _write_methodology_sheet(
         methodology_ws,
@@ -599,13 +845,14 @@ def build_workbook(
     wb.save(output_path)
 
     logger.info(
-        "Built place workbook for %s: %s (sheets=%s, high=%s, moderate=%s, lower=%s)",
+        "Built place workbook for %s: %s (sheets=%s, high=%s, moderate=%s, lower=%s, hu_comparison=%s)",
         scenario,
         output_path,
         len(wb.sheetnames),
         len(high_df),
         len(moderate_df),
         len(lower_df),
+        hu_sheet_added,
     )
     return output_path
 

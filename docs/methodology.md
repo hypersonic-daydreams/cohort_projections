@@ -57,6 +57,7 @@
   - [7.3 Group Quarters Re-Addition](#73-group-quarters-re-addition-adr-055)
   - [7.4 State Aggregation](#74-state-aggregation-adr-054)
   - [7.5 Place Projection Orchestration](#75-place-projection-orchestration-pp-003-phase-2)
+    - [7.5.1 Rolling-Origin Cross-Validation](#751-rolling-origin-cross-validation-adr-057)
 - [8. Data Sources and References](#8-data-sources-and-references)
   - [8.1 Primary Data Sources](#81-primary-data-sources)
   - [8.2 Methodological References](#82-methodological-references)
@@ -1029,6 +1030,22 @@ $$P_{\text{place}}(t) = s_{\text{place}}(t) \times P_{\text{county}}(t)$$
 
 This process is county-constrained by construction: for each county-year, projected place totals plus balance-of-county equal the projected county total (subject only to floating-point tolerance).
 
+#### 7.5.1 Rolling-Origin Cross-Validation (ADR-057)
+
+The initial variant selection (IMP-08/IMP-09) used a static two-window backtest with fixed train/test splits. To provide more robust evidence, PP-005 WS-A introduced expanding-window rolling-origin cross-validation (ADR-057). Rather than evaluating variants on a single fixed split, this approach generates a sequence of expanding training windows -- each starting at 2000 and growing in 5-year increments -- followed by non-overlapping 5-year test horizons. Per-window scores are aggregated across all windows, reducing sensitivity to any single evaluation period.
+
+Four expanding windows were generated from the 2000--2024 history:
+
+| Window | Training Period | Test Period | A-I | A-II | B-I | B-II |
+|--------|----------------|-------------|-----|------|-----|------|
+| 1 | 2000--2004 | 2005--2009 | 0.298 | 0.239 | 0.278 | 0.229 |
+| 2 | 2000--2009 | 2010--2014 | 3.206 | 3.482 | 3.186 | 3.485 |
+| 3 | 2000--2014 | 2015--2019 | 1.705 | 1.564 | 1.648 | 1.747 |
+| 4 | 2000--2019 | 2020--2024 | 5.143 | 5.111 | 5.231 | 5.197 |
+| **Mean** | | | **2.588** | **2.599** | **2.586** | **2.664** |
+
+The rolling-origin winner by mean score is **B-I** (WLS + proportional), with a mean score of 2.586 across 4 windows. However, all four variants scored within a range of 0.079 (2.586 to 2.664), indicating that variant choice has minimal practical impact on forecast accuracy. The production specification remains **B-II** (WLS + cap-and-redistribute) as selected in IMP-09, because (a) the score difference between B-I and B-II is not practically significant, and (b) the cap-and-redistribute constraint provides more defensible behavior for places approaching share boundaries. The rolling-origin evidence confirms that WLS fitting outperforms OLS on average, consistent with the original static backtest conclusion.
+
 
 ## 8. Data Sources and References
 
@@ -1111,3 +1128,4 @@ The following Architecture Decision Records (ADRs) govern the methodological cho
 | ADR-053 | North Dakota-Specific Fertility and Mortality Rates | Accepted | 3, 4 |
 | ADR-054 | State-County Aggregation Reconciliation | Accepted | 7.4 |
 | ADR-055 | Group Quarters Population Separation | Accepted | 2, 5, 7.3 |
+| ADR-057 | Rolling-Origin Backtests for Place Variant Selection | Accepted | 7.5.1 |
