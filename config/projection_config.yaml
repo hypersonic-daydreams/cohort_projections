@@ -193,6 +193,7 @@ rates:
         # residual migration, removing institutional rotation signals.
         gq_correction:
           enabled: true
+          fraction: 1.0  # ADR-061: 1.0 = full Phase 2 subtraction; 0.5 = half; 0.0 = Phase 1 only
           historical_gq_path: "data/processed/gq_county_age_sex_historical.parquet"
           pre_2020_method: "backward_constant"  # 2020 GQ used for 2000-2015
         # PEP-anchored recalibration for reservation counties (ADR-045)
@@ -211,7 +212,7 @@ rates:
             - "38017"  # Cass
             - "38101"  # Ward
             - "38015"  # Burleigh
-          age_groups: ["15-19", "20-24"]
+          age_groups: ["15-19", "20-24", "25-29"]  # Extended per ADR-061 (Census College Fix)
           blend_factor: 0.5
         male_dampening:
           enabled: true
@@ -233,7 +234,7 @@ rates:
         medium_to_longterm_years: 5
       rate_cap:
         enabled: true
-        college_ages: ["15-19", "20-24"]
+        college_ages: ["15-19", "20-24", "25-29"]  # Extended per ADR-061 (Census College Fix)
         college_cap: 0.15        # +/-15% for ages 15-24 (preserves university enrollment dynamics)
         general_cap: 0.08        # +/-8% for all other ages (clips small-county statistical noise)
 
