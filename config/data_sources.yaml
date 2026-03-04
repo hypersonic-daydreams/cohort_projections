@@ -347,6 +347,27 @@ data_sources:
         Table B25001 (Total Housing Units) and B25010 (Average Household Size).
         Each row represents one place in one ACS 5-year vintage.
 
+  enrollment:
+    ndus_enrollment_reports:
+      description: |
+        NDUS Annual Enrollment Reports (AY 2001-2002 through 2024-2025).
+        22 PDF reports from the ND University System Office of Institutional Research.
+        Provides degree credit headcount by institution and delivery mode
+        (on-campus face-to-face, off-campus, distance education).
+        Used to identify college counties for migration rate smoothing (ADR-061 Decision 4).
+      source_paths: []  # Manual acquisition from NDUS
+      destination: "data/raw/enrollment/"
+      external_source: "North Dakota University System, Office of Institutional Research"
+      external_url: "https://ndus.edu/data-reports/"
+      required_columns: []  # PDF reports, not tabular
+      notes: |
+        Archive: ndus_annual_enrollment_reports_2001-2025.zip (22 PDFs)
+        Reference file: ndus_institution_reference.csv (institution-to-county FIPS mapping)
+        On-campus face-to-face enrollment is the relevant metric for population projections.
+        Private institutions (U of Mary, U of Jamestown) have estimated F2F enrollment.
+        See data/raw/enrollment/DATA_SOURCE_NOTES.md for full documentation.
+        License: CC BY-NC-SA 4.0
+
 # =============================================================================
 # METADATA
 # =============================================================================
@@ -374,3 +395,4 @@ metadata:
     mortality: "Life tables for survival rate calculations"
     migration: "Domestic and international migration flow data"
     housing: "Housing unit counts and household size for HU method cross-check"
+    enrollment: "Higher education enrollment data for college county identification"

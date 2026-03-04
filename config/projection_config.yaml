@@ -207,11 +207,20 @@ rates:
         college_age:
           enabled: true
           method: "smooth"
+          # Counties with on-campus F2F enrollment >2.5% of population (2024-2025 data)
           counties:
-            - "38035"  # Grand Forks
-            - "38017"  # Cass
-            - "38101"  # Ward
-            - "38015"  # Burleigh
+            - "38003"  # Barnes (VCSU, 7.3%)
+            - "38009"  # Bottineau (DCB, 5.4%)
+            - "38015"  # Burleigh (BSC + U of Mary, 3.8%)
+            - "38017"  # Cass (NDSU, 5.5%)
+            - "38035"  # Grand Forks (UND, 13.4%)
+            - "38071"  # Ramsey (LRSC, 3.0%)
+            - "38077"  # Richland (NDSCS, 10.6%)
+            - "38089"  # Stark (DSU, 3.0%)
+            - "38093"  # Stutsman (U of Jamestown, ~4.2%)
+            - "38097"  # Traill (MASU, 6.1%)
+            - "38101"  # Ward (MISU, 2.9%)
+            - "38105"  # Williams (WSC, 1.5%)
           age_groups: ["15-19", "20-24", "25-29"]  # Extended per ADR-061 (Census College Fix)
           blend_factor: 0.5
         male_dampening:

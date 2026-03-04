@@ -1104,7 +1104,11 @@ def run_residual_migration_pipeline(
     college_cfg = adjustments_cfg.get("college_age", {})
     college_enabled = college_cfg.get("enabled", True)
     college_method = college_cfg.get("method", "smooth")
-    college_counties = college_cfg.get("counties", ["38035", "38017", "38101", "38015"])
+    college_counties = college_cfg.get("counties", [
+        "38003", "38009", "38015", "38017", "38035",
+        "38071", "38077", "38089", "38093", "38097", "38101",
+        "38105",
+    ])
     college_age_groups = college_cfg.get("age_groups", ["15-19", "20-24"])
     college_blend = college_cfg.get("blend_factor", 0.5)
 
