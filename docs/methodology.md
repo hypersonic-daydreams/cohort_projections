@@ -565,9 +565,9 @@ To address this, the pipeline subtracts historical GQ populations from the six p
 
 **GQ subtraction formula.** For each county, age group, sex, and time point:
 
-$$P_{\text{hh}}(a, t) = \max\bigl(P_{\text{total}}(a, t) - \text{GQ}(a, t),\; 0\bigr)$$
+$$P_{\text{hh}}(a, t) = \max\bigl(P_{\text{total}}(a, t) - f \times \text{GQ}(a, t),\; 0\bigr)$$
 
-where $P_{\text{hh}}$ is the household-only population used in the residual computation. The floor at zero prevents negative household populations in cells where the GQ estimate exceeds the total population (which can occur due to the race-distribution approximation).
+where $P_{\text{hh}}$ is the household-only population used in the residual computation, and $f$ is the GQ correction fraction (ADR-061, default 1.0). The fraction parameter allows calibrating the intensity of the Phase 2 correction: $f = 1.0$ applies full GQ subtraction, $f = 0.5$ applies half, and $f = 0.0$ effectively reverts to Phase 1 only (no subtraction from historical snapshots). This parameterization was introduced because Census Bureau "College Fix" methodology does not modify historical rate computation — it partitions at projection time only — and sensitivity analysis showed the full subtraction has a 37,084-person impact on the 2050 state projection. The floor at zero prevents negative household populations in cells where the GQ estimate exceeds the total population (which can occur due to the race-distribution approximation).
 
 **Historical GQ estimation.** GQ by county, five-year age group, and sex is available from the Census Bureau's PEP stcoreview product for years 2020 and 2024. For earlier time points (2000, 2005, 2010, 2015), the 2020 GQ levels are applied as a backward constant. This assumption is defensible because institutional capacity -- barracks, dormitories, nursing beds -- changes slowly over five- to ten-year windows. The primary goal is removing institutional rotation signals from the rates, not precisely tracking historical GQ changes.
 
@@ -661,7 +661,7 @@ To prevent enrollment-driven spikes from dominating the convergence rates, the p
 | Ward | 38101 | Minot State University |
 | Burleigh | 38015 | University of Mary, Bismarck State College |
 
-The smoothing applies to age groups 15-19 and 20-24.
+The smoothing applies to age groups 15-19, 20-24, and 25-29 (ADR-061 extended from the original 15-24 range based on Census Bureau "College Fix" research, which found that the departure signal at ages 25-29 is the amplified side of the administrative data asymmetry — IRS data captures graduating students filing independently but misses incoming freshmen who remain dependents on parents' returns).
 
 **Smoothing formula.** For each affected county, age group, sex, and period:
 
@@ -731,12 +731,12 @@ After convergence interpolation, an age-aware rate cap is applied to clip statis
 
 | Age Groups | Cap | Rationale |
 |:----------:|:---:|-----------|
-| 15-19, 20-24 (college ages) | $\pm 15\%$ | Preserves legitimate university enrollment dynamics (peak rates of 13-14%) |
+| 15-19, 20-24, 25-29 (college ages) | $\pm 15\%$ | Preserves legitimate university enrollment dynamics (peak rates of 13-14%); extended to 25-29 per ADR-061 |
 | All other ages | $\pm 8\%$ | Clips small-county noise; sits at the 99th percentile of the medium-term distribution |
 
 **Application formula.** For each cell:
 
-$$r_{\text{capped}} = \begin{cases} \text{clip}(r, -0.15, +0.15) & \text{if } a \in \{15\text{-}19, 20\text{-}24\} \\ \text{clip}(r, -0.08, +0.08) & \text{otherwise} \end{cases}$$
+$$r_{\text{capped}} = \begin{cases} \text{clip}(r, -0.15, +0.15) & \text{if } a \in \{15\text{-}19, 20\text{-}24, 25\text{-}29\} \\ \text{clip}(r, -0.08, +0.08) & \text{otherwise} \end{cases}$$
 
 The cap is applied after the convergence interpolation for each year offset but before storing the result, so it catches all three convergence phases without modifying the underlying window averages. This preserves data lineage while guarding against outlier propagation.
 

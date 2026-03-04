@@ -1,13 +1,13 @@
 # ADR-049: College-Age Smoothing Propagation to Convergence Pipeline
 
 ## Status
-Accepted
+Accepted — Amended by [ADR-061](061-college-fix-model-revision.md) (age groups extended to 25-29)
 
 ## Date
 2026-02-18
 
 ## Last Reviewed
-2026-02-23
+2026-03-04
 
 ## Scope
 Ensure college-age migration rate smoothing is applied to convergence pipeline inputs, not only to averaged rates
@@ -196,6 +196,7 @@ Step 7:  Save output files (period-level + averaged)
 
 ## Revision History
 
+- **2026-03-04**: Amended by ADR-061 — college-age smoothing age groups extended from ["15-19", "20-24"] to ["15-19", "20-24", "25-29"] to address the asymmetric 25-29 departure signal identified by Census Bureau College Fix research
 - **2026-02-23**: Accepted and implemented — moved college-age smoothing to period-level rates (Step 5), added 5 unit tests, updated docstrings and step numbering
 - **2026-02-18**: Initial version (ADR-049) — Fix college-age smoothing propagation to convergence pipeline
 
@@ -204,3 +205,8 @@ Step 7:  Save output files (period-level + averaged)
 - **ADR-043: Age-Aware Migration Rate Cap** — The 15% college-age cap partially compensates for missing smoothing, but is insufficient (0.124 passes the 0.15 cap)
 - **ADR-036: Migration Averaging Methodology** — Defines the averaging pipeline where smoothing is applied
 - **ADR-040: Extend Boom Dampening** — Analogous rate adjustment that IS correctly applied before both averaged and period-level saves
+
+## Related Reviews
+
+- **[College Fix Research Implications](../../reviews/2026-03-04-college-fix-research-implications.md)** — Census Bureau "College Fix" uses complete exclusion (not rate blending) and covers ages 25-29; suggests ADR-049 may be deprecated once an enrollment-based partition is implemented
+- **[Projection Accuracy Analysis](../../reviews/2026-03-04-projection-accuracy-analysis.md)** — identifies college-age smoothing + GQ correction double-dampening as a core accuracy problem for urban/college counties

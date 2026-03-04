@@ -1,13 +1,13 @@
 # ADR-055: Group Quarters Population Separation
 
 ## Status
-Accepted
+Accepted — Amended by [ADR-061](061-college-fix-model-revision.md) (fractional GQ correction parameter)
 
 ## Date
 2026-02-23
 
 ## Last Reviewed
-2026-02-23
+2026-03-04
 
 ## Scope
 Separate group quarters (GQ) populations from household populations in the projection pipeline to prevent institutional population rotations (military PCS cycles, university enrollment turnover) from distorting migration rates and eroding institutional populations that are structurally stable.
@@ -397,6 +397,7 @@ Despite producing more conservative bottom-line numbers, Phase 2 achieves import
 
 ## Revision History
 
+- **2026-03-04**: Amended by ADR-061 — added `fraction` parameter (0.0-1.0) to `subtract_gq_from_populations()` allowing calibration of Phase 2 GQ correction intensity
 - **2026-02-26**: Phase 2 implemented — GQ-corrected migration rates (subtract GQ from population snapshots before residual computation)
 - **2026-02-23**: Accepted — Phase 1 implementation complete (GQ separation + hold-constant re-addition)
 - **2026-02-23**: Initial version (Proposed) — root cause analysis, phased implementation plan
@@ -410,3 +411,8 @@ Despite producing more conservative bottom-line numbers, Phase 2 achieves import
 - **ADR-047**: County-Specific Distributions — the base population distributions that GQ will be subtracted from
 - **ADR-048**: Single-Year-of-Age Base Population — Sprague interpolation used for GQ age distribution
 - **ADR-054**: State-County Aggregation — bottom-up state compatible with per-county GQ separation
+
+## Related Reviews
+
+- **[College Fix Research Implications](../../reviews/2026-03-04-college-fix-research-implications.md)** — Census Bureau "College Fix" methodology suggests enrollment-based partition may be more appropriate than GQ-based partition; challenges Phase 2's 100% GQ subtraction from historical denominators
+- **[Projection Accuracy Analysis](../../reviews/2026-03-04-projection-accuracy-analysis.md)** — identifies Phase 2 GQ correction as the 3rd-largest sensitivity factor (37,084-person impact on 2050 projection)
