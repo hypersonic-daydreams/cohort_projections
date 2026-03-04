@@ -936,11 +936,12 @@ def _load_survival_rates(config: dict[str, Any]) -> pd.DataFrame:
 def subtract_gq_from_populations(
     populations: dict[int, pd.DataFrame],
     gq_historical: pd.DataFrame,
+    fraction: float = 1.0,
 ) -> dict[int, pd.DataFrame]:
     """Subtract group quarters from population snapshots to get household-only.
 
     For each time point, merges the GQ estimate by (county_fips, age_group, sex)
-    and subtracts: household_pop = max(population - gq_population, 0).
+    and subtracts: household_pop = max(population - fraction * gq_population, 0).
 
     The GQ historical file has columns: county_fips, year, age_group, sex,
     gq_population. Population snapshots have: county_fips, age_group, sex,
@@ -951,6 +952,8 @@ def subtract_gq_from_populations(
             [county_fips, age_group, sex, population].
         gq_historical: DataFrame with columns
             [county_fips, year, age_group, sex, gq_population].
+        fraction: Fraction of GQ to subtract (ADR-061). 1.0 = full Phase 2
+            subtraction, 0.5 = half, 0.0 = no subtraction (Phase 1 only).
 
     Returns:
         Dict mapping year to DataFrame with household-only population.
@@ -979,8 +982,10 @@ def subtract_gq_from_populations(
         )
         merged["gq_population"] = merged["gq_population"].fillna(0.0)
 
-        # Subtract GQ, floor at zero
-        merged["population"] = (merged["population"] - merged["gq_population"]).clip(lower=0.0)
+        # Subtract GQ (scaled by fraction), floor at zero
+        merged["population"] = (
+            merged["population"] - fraction * merged["gq_population"]
+        ).clip(lower=0.0)
 
         total_after = merged["population"].sum()
         gq_subtracted = total_before - total_after
@@ -1066,7 +1071,10 @@ def run_residual_migration_pipeline(
             f"Loaded historical GQ data: {len(gq_historical)} rows, "
             f"years: {sorted(gq_historical['year'].unique())}"
         )
-        populations = subtract_gq_from_populations(populations, gq_historical)
+        gq_fraction = gq_correction_cfg.get("fraction", 1.0)
+        populations = subtract_gq_from_populations(
+            populations, gq_historical, fraction=gq_fraction
+        )
     else:
         logger.info("Step 1b: GQ correction disabled; using total population")
 
@@ -1256,6 +1264,7 @@ def run_residual_migration_pipeline(
         },
         "gq_correction": {
             "enabled": gq_correction_enabled,
+            "fraction": gq_correction_cfg.get("fraction", 1.0),
             "historical_gq_path": gq_correction_cfg.get(
                 "historical_gq_path", ""
             ),
