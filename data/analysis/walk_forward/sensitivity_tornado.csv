@@ -1,0 +1,10 @@
+method,parameter,baseline_state_error,baseline_county_mape,low_deviation,high_deviation,low_label,high_label,swing_state_error,mape_low_deviation,mape_high_deviation,mape_swing
+m2026,fertility_rate,-1.7878,6.2696,-2.0364,2.037,-25%,+25%,4.0734,-0.0549,0.3804,0.4352
+m2026,convergence_schedule,-1.7878,6.2696,-2.4448,0.9927,all_longterm,all_recent,3.4375,-0.3637,1.1207,1.4844
+m2026,survival_rate,-1.7878,6.2696,-0.1906,0.1915,+5% q (more deaths),-5% q (fewer deaths),0.3822,0.0,0.0063,0.0063
+m2026,migration_rate,-1.7878,6.2696,0.0,0.1881,baseline,+50%,0.1881,-1.1142,1.8007,2.9149
+m2026,mortality_improvement,-1.7878,6.2696,-0.0792,0.0779,0.0%,1.0%,0.1571,-0.0065,0.0088,0.0153
+sdc_2024,fertility_rate,-2.4805,5.6763,-2.0264,2.0265,-25%,+25%,4.053,-0.0551,0.3495,0.4046
+sdc_2024,migration_rate,-2.4805,5.6763,-0.1109,0.6207,+25%,-50%,0.7315,-0.7607,1.11,1.8707
+sdc_2024,sdc_bakken_dampening,-2.4805,5.6763,-0.1608,0.1633,0.4,0.8,0.3241,-0.0077,0.0074,0.0151
+sdc_2024,survival_rate,-2.4805,5.6763,-0.1597,0.1606,+5% q (more deaths),-5% q (fewer deaths),0.3204,-0.043,0.0465,0.0895
