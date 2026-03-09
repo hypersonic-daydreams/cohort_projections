@@ -155,7 +155,8 @@ sdc_2024_replication/scripts/statistical_analysis/results/**/*.parquet
 sdc_2024_replication/scripts/statistical_analysis/results/**/*.csv
 
 # Claude Code config (ephemeral, not tracked)
-.claude/
+.claude/*
+!.claude/commands/
 
 # Misc data files in project root
 *.xlsx
