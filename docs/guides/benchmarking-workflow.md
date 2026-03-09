@@ -272,8 +272,135 @@ Response:
 
 - use the documented tolerance from the benchmarking module rather than treating this as a methodological regression
 
+## Experiment Orchestration (BM-001)
+
+The experiment orchestrator provides a single-command pipeline for running
+benchmark experiments from a declarative spec. It wraps the standard workflow
+(register profile → run suite → evaluate → log) into one step.
+
+### Experiment Spec Format
+
+Experiment specs are YAML files stored in `data/analysis/experiments/pending/`.
+Schema: `config/experiment_spec_schema.yaml`.
+
+Required fields:
+
+- `experiment_id` — unique ID (format: `exp-YYYYMMDD-short-slug`)
+- `hypothesis` — what is being tested
+- `base_method` — method_id to build on
+- `base_config` — config_id to build on
+- `config_delta` — nested config changes from the base
+- `scope` — benchmark scope (`county`)
+- `benchmark_label` — human-readable label
+- `requested_by` — `agent` or `human`
+
+Example:
+
+```yaml
+experiment_id: exp-20260310-convergence-hold
+hypothesis: >
+  Extending convergence hold from 20 to 25 years will reduce long-horizon
+  overshoot in college counties.
+base_method: m2026r1
+base_config: cfg-20260309-college-fix-v1
+config_delta:
+  convergence:
+    hold_after_year: 2030
+scope: county
+benchmark_label: convergence-hold-2030
+requested_by: agent
+```
+
+### Running an Experiment
+
+```bash
+source .venv/bin/activate
+python scripts/analysis/run_experiment.py --spec data/analysis/experiments/pending/exp-20260310-convergence-hold.yaml
+```
+
+Optional flags:
+
+- `--dry-run` — validate spec and print resolved config without running
+- `--policy <path>` — override default evaluation policy
+- `--profile-dir <path>` — override method profile directory
+
+The orchestrator:
+
+1. validates the spec,
+2. derives `method_id` and `config_id` (or uses overrides),
+3. checks `METHOD_DISPATCH` registration,
+4. creates an immutable method profile,
+5. runs `run_benchmark_suite.py` as a subprocess,
+6. evaluates results against the evaluation policy,
+7. writes an experiment log entry,
+8. moves the spec from `pending/` to `completed/`,
+9. prints a structured JSON result.
+
+The orchestrator **never promotes** — it only classifies results.
+
+### Evaluation Policy
+
+Location: `config/benchmark_evaluation_policy.yaml`
+
+The policy defines:
+
+- **Hard gates** (zero tolerance): `negative_population_violations`,
+  `scenario_order_violations`, `aggregation_violations`
+- **Tradeoff thresholds** (max regression): `county_mape_rural` (0.10),
+  `county_mape_bakken` (0.50), `county_mape_overall` (0.05)
+
+Classification outcomes:
+
+| Outcome | Meaning |
+|---------|---------|
+| `passed_all_gates` | All gates passed, all tradeoffs within threshold |
+| `needs_human_review` | Gates pass but tradeoff breached or sensitivity flag |
+| `failed_hard_gate` | At least one hard gate violated |
+| `inconclusive` | Benchmark failed or code changes required |
+
+### Experiment Log
+
+Location: `data/analysis/experiments/experiment_log.csv`
+Schema: `config/experiment_log_schema.yaml`
+
+The log is append-only. Each entry records:
+
+- `experiment_id`, `run_date`, `hypothesis`, `base_method`
+- `config_delta_summary`, `run_id`, `outcome`
+- `key_metrics_summary`, `interpretation`, `next_action`
+- `agent_or_human`, `spec_path`
+
+Query utilities in `cohort_projections/analysis/experiment_log.py`:
+
+- `read_experiment_log()` — full log as DataFrame
+- `get_tested_hypotheses()` — set of experiment_ids (dedup check)
+
+### Agent Experiment Workflow
+
+1. Check `data/analysis/experiments/pending/` for queued specs.
+2. Check `experiment_log.csv` for what has already been tried.
+3. Run the next pending experiment via `run_experiment.py --spec <path>`.
+4. Review the JSON output for the classification.
+5. Flag any `needs_human_review` results and stop on that line of inquiry.
+
+### Directory Map (Updated)
+
+| Path | Purpose |
+|------|---------|
+| `config/experiment_spec_schema.yaml` | Experiment spec contract |
+| `config/experiment_log_schema.yaml` | Log entry contract |
+| `config/benchmark_evaluation_policy.yaml` | Machine-readable gates and thresholds |
+| `data/analysis/experiments/pending/` | Queued experiment specs |
+| `data/analysis/experiments/completed/` | Executed experiment specs |
+| `data/analysis/experiments/experiment_log.csv` | Append-only experiment journal |
+| `scripts/analysis/run_experiment.py` | Single-command experiment orchestrator |
+| `cohort_projections/analysis/evaluation_policy.py` | Policy evaluation logic |
+| `cohort_projections/analysis/experiment_log.py` | Log read/write utilities |
+
 ## Related Documents
 
 - [SOP-003](../governance/sops/SOP-003-method-benchmarking-versioning-promotion.md)
 - [testing-workflow.md](./testing-workflow.md)
 - [DEVELOPMENT_TRACKER.md](../../DEVELOPMENT_TRACKER.md)
+- [Benchmarking Process Improvement Roadmap](../plans/benchmarking-process-improvement-roadmap.md)
+- [BM-001 Implementation Plan](../plans/benchmarking-p0-implementation-plan.md)

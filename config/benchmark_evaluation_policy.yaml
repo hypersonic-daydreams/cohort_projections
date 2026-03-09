@@ -1,0 +1,53 @@
+# Benchmark Evaluation Policy
+# Machine-readable gates and thresholds for automated experiment evaluation.
+# Referenced by: cohort_projections/analysis/evaluation_policy.py
+# See: docs/plans/benchmarking-process-improvement-roadmap.md (P1/P2)
+
+policy_version: "1.0"
+
+hard_gates:
+  # Zero tolerance — any violation fails the experiment immediately
+  negative_population_violations:
+    max_allowed: 0
+    description: "No county-year may project negative population"
+  scenario_order_violations:
+    max_allowed: 0
+    description: "Baseline must always be between restricted and high growth"
+  aggregation_violations:
+    max_allowed: 0
+    description: "County sums must match state totals within rounding tolerance"
+
+tradeoff_thresholds:
+  # Maximum regression allowed relative to champion (positive = worse)
+  # If exceeded, result is needs_human_review
+  county_mape_rural:
+    max_regression: 0.10
+    description: "Rural county MAPE regression limit (percentage points)"
+  county_mape_bakken:
+    max_regression: 0.50
+    description: "Bakken county MAPE regression limit (percentage points)"
+  county_mape_overall:
+    max_regression: 0.05
+    description: "Overall county MAPE regression limit (percentage points)"
+
+agent_classification_rules:
+  passed_all_gates:
+    description: "All hard gates passed AND no tradeoff regression beyond threshold"
+    conditions:
+      - "all hard gates: challenger value <= max_allowed"
+      - "all tradeoffs: challenger delta <= max_regression"
+      - "sensitivity_instability_flag is false"
+  needs_human_review:
+    description: "Hard gates pass but tradeoff thresholds are breached, or mixed signals"
+    conditions:
+      - "all hard gates pass"
+      - "at least one tradeoff threshold exceeded OR sensitivity_instability_flag is true"
+  failed_hard_gate:
+    description: "At least one hard gate is violated"
+    conditions:
+      - "any hard gate: challenger value > max_allowed"
+  inconclusive:
+    description: "Unable to evaluate — missing data, benchmark failure, or code-change required"
+    conditions:
+      - "scorecard is incomplete or benchmark did not run to completion"
+      - "experiment requires METHOD_DISPATCH code changes (not config-only)"

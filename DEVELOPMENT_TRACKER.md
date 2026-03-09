@@ -336,21 +336,23 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 ## BM-001: Agent Experiment Infrastructure (P0/P0.5/P1-stub)
 
-**Status:** pending
+**Status:** complete
 **Plan:** `docs/plans/benchmarking-p0-implementation-plan.md`
 **Roadmap:** `docs/plans/benchmarking-process-improvement-roadmap.md`
 **Purpose:** Enable AI agents to run benchmark experiments semi-autonomously with full traceability.
+**Completed:** 2026-03-09
+**Test baseline:** 1624 passed, 5 skipped (42 new tests added, zero regressions)
 
 | Step ID | Task | Status | Wave | Definition of Done | Creates |
 |---------|------|--------|------|-------------------|---------|
-| BM-001-01 | Experiment spec and log schemas | pending | 1 | Schema YAMLs with types, constraints, and inline examples | `config/experiment_spec_schema.yaml`, `config/experiment_log_schema.yaml` |
-| BM-001-02 | Evaluation policy and validation logic | pending | 2 | Policy YAML + `evaluate_scorecard()` returning classification | `config/benchmark_evaluation_policy.yaml`, `cohort_projections/analysis/evaluation_policy.py` |
-| BM-001-03 | Experiment log writer and reader | pending | 2 | Append-only CSV log with query utilities | `cohort_projections/analysis/experiment_log.py`, `data/analysis/experiments/experiment_log.csv` |
-| BM-001-04 | Experiment orchestrator | pending | 2 | `run_experiment.py` reads spec → runs benchmark → evaluates → logs | `scripts/analysis/run_experiment.py` |
-| BM-001-05 | Evaluation policy tests | pending | 3 | All classifications tested with synthetic scorecards | `tests/test_analysis/test_evaluation_policy.py` |
-| BM-001-06 | Experiment log tests | pending | 3 | Append, read, dedup, append-only property tested | `tests/test_analysis/test_experiment_log.py` |
-| BM-001-07 | Orchestrator tests | pending | 3 | End-to-end flow with mocked benchmark suite | `tests/test_analysis/test_run_experiment.py` |
-| BM-001-08 | Documentation updates | pending | 4 | Workflow guide extended; tracker updated | `docs/guides/benchmarking-workflow.md`, `DEVELOPMENT_TRACKER.md` |
+| BM-001-01 | Experiment spec and log schemas | complete | 1 | Schema YAMLs with types, constraints, and inline examples | `config/experiment_spec_schema.yaml`, `config/experiment_log_schema.yaml` |
+| BM-001-02 | Evaluation policy and validation logic | complete | 2 | Policy YAML + `evaluate_scorecard()` returning classification | `config/benchmark_evaluation_policy.yaml`, `cohort_projections/analysis/evaluation_policy.py` |
+| BM-001-03 | Experiment log writer and reader | complete | 2 | Append-only CSV log with query utilities | `cohort_projections/analysis/experiment_log.py`, `data/analysis/experiments/experiment_log.csv` |
+| BM-001-04 | Experiment orchestrator | complete | 2 | `run_experiment.py` reads spec → runs benchmark → evaluates → logs | `scripts/analysis/run_experiment.py` |
+| BM-001-05 | Evaluation policy tests | complete | 3 | All classifications tested with synthetic scorecards (13 tests) | `tests/test_analysis/test_evaluation_policy.py` |
+| BM-001-06 | Experiment log tests | complete | 3 | Append, read, dedup, append-only property tested (11 tests) | `tests/test_analysis/test_experiment_log.py` |
+| BM-001-07 | Orchestrator tests | complete | 3 | Spec parsing, derivation, profile creation, dispatch check (18 tests) | `tests/test_analysis/test_run_experiment.py` |
+| BM-001-08 | Documentation updates | complete | 4 | Workflow guide extended; tracker updated | `docs/guides/benchmarking-workflow.md`, `DEVELOPMENT_TRACKER.md` |
 
 ## Near-Term Next Actions
 
@@ -359,7 +361,6 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 3. Review rolling-origin B-I vs B-II results with domain experts; confirm B-II retention rationale.
 4. Review `docs/reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md` and decide whether `m2026r1` should be promoted.
 5. If approved, promote via alias update tooling and re-run production projections under the promoted config.
-6. Implement BM-001 agent experiment infrastructure per `docs/plans/benchmarking-p0-implementation-plan.md`.
 
 ## Deferred / Later Work
 

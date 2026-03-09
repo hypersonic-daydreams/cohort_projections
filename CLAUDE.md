@@ -34,6 +34,13 @@ python scripts/fetch_data.py    # Fetch from sibling repos
 python scripts/projections/run_all_projections.py
 ```
 
+### Benchmarking
+
+```bash
+python scripts/analysis/run_experiment.py --spec <path>  # Full experiment pipeline
+python scripts/analysis/run_experiment.py --spec <path> --dry-run  # Validate only
+```
+
 ---
 
 ## Session Workflow

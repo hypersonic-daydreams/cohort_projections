@@ -1,0 +1,142 @@
+# Experiment Log Schema
+# Defines the canonical format for entries in the experiment log CSV.
+# Log file location: data/analysis/experiments/experiment_log.csv
+#
+# Each row records the outcome of one experiment run. The experiment_id
+# links back to the full spec YAML in completed/ (or pending/ if not_run).
+#
+# CSV column order should follow the field order below.
+
+schema_version: "1.0"
+
+fields:
+
+  experiment_id:
+    type: string
+    format: "exp-YYYYMMDD-short-slug"
+    required: true
+    description: >
+      Links this log entry to its experiment spec YAML file.
+      Must match an existing spec in pending/ or completed/.
+    constraints:
+      - Must match pattern: exp-\d{8}-[a-z0-9]+(-[a-z0-9]+)*
+
+  run_date:
+    type: string
+    format: "YYYY-MM-DD (ISO 8601)"
+    required: true
+    description: >
+      Date the experiment was executed. Use the date the benchmark
+      run completed, not the date the spec was created.
+
+  hypothesis:
+    type: string
+    required: true
+    description: >
+      Copied verbatim from the experiment spec. Provides context
+      without needing to open the spec file.
+
+  base_method:
+    type: string
+    required: true
+    description: >
+      The method_id of the base method this experiment built on.
+      Copied from the spec for easy filtering.
+
+  config_delta_summary:
+    type: string
+    required: true
+    description: >
+      Human-readable one-line summary of what changed from the base.
+      Should be concise enough to scan in a table view.
+
+  run_id:
+    type: string
+    required: true
+    description: >
+      Benchmark run_id linking to benchmark_history for full results.
+      Empty string if outcome is "not_run".
+
+  outcome:
+    type: string
+    required: true
+    description: >
+      Classification of the experiment result against benchmark gates.
+    constraints:
+      - >
+        enum: [passed_all_gates, failed_hard_gate, needs_human_review,
+        inconclusive, not_run]
+      - "passed_all_gates: all hard and soft gates passed"
+      - "failed_hard_gate: at least one hard gate failed"
+      - "needs_human_review: soft gate triggered, human judgment needed"
+      - "inconclusive: results ambiguous, may need redesign"
+      - "not_run: spec created but not yet executed"
+
+  key_metrics_summary:
+    type: string
+    required: true
+    description: >
+      Compact metrics summary showing the most important deltas from
+      the base. Use signed values to show direction of change.
+      Empty string if outcome is "not_run".
+
+  interpretation:
+    type: string
+    required: true
+    description: >
+      What the result means for the hypothesis. Should state whether
+      the hypothesis was supported, refuted, or inconclusive, and why.
+
+  next_action:
+    type: string
+    required: true
+    description: >
+      Recommended follow-up action based on the outcome.
+    constraints:
+      - "enum: [proceed_to_next, flag_for_review, promote_candidate, abandon_line]"
+      - "proceed_to_next: continue with the next experiment in the sequence"
+      - "flag_for_review: escalate to human for decision"
+      - "promote_candidate: results good enough to become new default"
+      - "abandon_line: this direction is not promising, stop exploring"
+
+  agent_or_human:
+    type: string
+    required: true
+    description: >
+      Who ran the experiment — an autonomous agent or a human operator.
+    constraints:
+      - "enum: [agent, human]"
+
+  spec_path:
+    type: string
+    required: true
+    description: >
+      Relative path from project root to the experiment spec YAML file.
+      Points to completed/ after execution, pending/ if not_run.
+
+# ---------------------------------------------------------------------------
+# Example: Complete valid log entry
+# ---------------------------------------------------------------------------
+# CSV header:
+#   experiment_id,run_date,hypothesis,base_method,config_delta_summary,
+#   run_id,outcome,key_metrics_summary,interpretation,next_action,
+#   agent_or_human,spec_path
+#
+example:
+  experiment_id: "exp-20260310-convergence-hold"
+  run_date: "2026-03-10"
+  hypothesis: >
+    Holding convergence rates at their 2030 level will reduce overshoot
+    in small-county projections without degrading state-level accuracy.
+  base_method: "m2026r1"
+  config_delta_summary: "convergence freeze after 2030"
+  run_id: "bench-20260310-143022"
+  outcome: "passed_all_gates"
+  key_metrics_summary: "state APE -0.2pp, rural MAPE -1.1pp, Cass APE +0.3pp"
+  interpretation: >
+    Hypothesis supported. Rural counties improved significantly while
+    Cass degradation stays within soft-gate tolerance. Net improvement
+    across all hard gates.
+  next_action: "promote_candidate"
+  agent_or_human: "agent"
+  spec_path: "data/analysis/experiments/completed/exp-20260310-convergence-hold.yaml"

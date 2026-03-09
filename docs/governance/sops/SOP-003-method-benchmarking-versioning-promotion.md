@@ -186,16 +186,25 @@ The following locations are required to implement this SOP.
 
 | Path | Purpose | Status |
 |------|---------|--------|
-| `config/method_profiles/` | Immutable method/config profiles used for benchmarked methods | To implement |
-| `config/method_profiles/aliases.yaml` | Mutable alias map from role to immutable method/config IDs | To implement |
-| `data/analysis/benchmark_history/` | Append-only benchmark run artifacts | To implement |
-| `data/analysis/benchmark_history/index.csv` | Append-only benchmark run index | To implement |
+| `config/method_profiles/` | Immutable method/config profiles used for benchmarked methods | Implemented |
+| `config/method_profiles/aliases.yaml` | Mutable alias map from role to immutable method/config IDs | Implemented |
+| `data/analysis/benchmark_history/` | Append-only benchmark run artifacts | Implemented |
+| `data/analysis/benchmark_history/index.csv` | Append-only benchmark run index | Implemented |
 | `data/analysis/benchmark_history/latest/` | Optional convenience pointers or symlinks to latest reports | Optional |
-| `docs/reviews/benchmark_decisions/` | Human-readable decision records comparing challenger vs champion | To implement |
-| `scripts/analysis/run_benchmark_suite.py` | Canonical automation entrypoint for benchmark runs | To implement |
-| `scripts/analysis/compare_benchmark_runs.py` | Canonical comparison/diff reporting tool | To implement |
-| `scripts/analysis/promote_method.py` | Controlled alias update tool for champion promotion | To implement |
-| `tests/test_analysis/test_benchmarking.py` | Automation and schema tests for the new workflow | To implement |
+| `docs/reviews/benchmark_decisions/` | Human-readable decision records comparing challenger vs champion | Implemented |
+| `scripts/analysis/run_benchmark_suite.py` | Canonical automation entrypoint for benchmark runs | Implemented |
+| `scripts/analysis/compare_benchmark_runs.py` | Canonical comparison/diff reporting tool | Implemented |
+| `scripts/analysis/promote_method.py` | Controlled alias update tool for champion promotion | Implemented |
+| `tests/test_analysis/test_benchmarking.py` | Automation and schema tests for the new workflow | Implemented |
+| `config/benchmark_evaluation_policy.yaml` | Machine-readable hard gates and tradeoff thresholds | Implemented (BM-001) |
+| `config/experiment_spec_schema.yaml` | Experiment spec contract for agent orchestration | Implemented (BM-001) |
+| `config/experiment_log_schema.yaml` | Experiment log entry contract | Implemented (BM-001) |
+| `scripts/analysis/run_experiment.py` | Single-command experiment orchestrator (spec → benchmark → evaluate → log) | Implemented (BM-001) |
+| `cohort_projections/analysis/evaluation_policy.py` | Scorecard evaluation against policy gates | Implemented (BM-001) |
+| `cohort_projections/analysis/experiment_log.py` | Append-only experiment log utilities | Implemented (BM-001) |
+| `data/analysis/experiments/experiment_log.csv` | Append-only experiment journal | Implemented (BM-001) |
+| `data/analysis/experiments/pending/` | Queued experiment specs | Implemented (BM-001) |
+| `data/analysis/experiments/completed/` | Executed experiment specs | Implemented (BM-001) |
 
 ### 6.1 Method Profile Contract
 
@@ -606,18 +615,21 @@ Use the template in:
 
 The following implementation items are required to fully operationalize this SOP.
 
-| Priority | Component | Required Behavior |
-|----------|-----------|-------------------|
-| P0 | Method profile loader | Read immutable profiles and alias pointers |
-| P0 | Benchmark suite runner | Orchestrate walk-forward, sensitivity, uncertainty, and QC in one command |
-| P0 | Manifest writer | Capture config snapshots, hashes, commit, command, and outputs |
-| P0 | Benchmark index updater | Append rows without rewriting history |
-| P0 | Comparison report builder | Produce challenger-vs-champion diff artifacts |
-| P0 | Promotion tool | Update alias pointers only, with audit trail |
-| P1 | Schema validation tests | Validate manifest and scorecard contract |
-| P1 | History smoke tests | Confirm old run directories remain readable |
-| P1 | Latest-pointer updater | Refresh convenience `latest/` links without affecting canonical history |
-| P2 | HTML dashboard | Read `index.csv` and summarize longitudinal performance |
+| Priority | Component | Required Behavior | Status |
+|----------|-----------|-------------------|--------|
+| P0 | Method profile loader | Read immutable profiles and alias pointers | Implemented |
+| P0 | Benchmark suite runner | Orchestrate walk-forward, sensitivity, uncertainty, and QC in one command | Implemented |
+| P0 | Manifest writer | Capture config snapshots, hashes, commit, command, and outputs | Implemented |
+| P0 | Benchmark index updater | Append rows without rewriting history | Implemented |
+| P0 | Comparison report builder | Produce challenger-vs-champion diff artifacts | Implemented |
+| P0 | Promotion tool | Update alias pointers only, with audit trail | Implemented |
+| P0 | Experiment orchestrator | Single-command spec → benchmark → evaluate → log pipeline | Implemented (BM-001) |
+| P0 | Evaluation policy engine | Load gates/thresholds from YAML, classify scorecard results | Implemented (BM-001) |
+| P0 | Experiment log | Append-only journal linking hypothesis → outcome → next action | Implemented (BM-001) |
+| P1 | Schema validation tests | Validate manifest and scorecard contract | Implemented |
+| P1 | History smoke tests | Confirm old run directories remain readable | Pending |
+| P1 | Latest-pointer updater | Refresh convenience `latest/` links without affecting canonical history | Pending |
+| P2 | HTML dashboard | Read `index.csv` and summarize longitudinal performance | Pending |
 
 ### 10.1 Required Script Responsibilities
 
