@@ -209,25 +209,6 @@ AVAILABLE_PERIODS: dict[int, list[tuple[int, int]]] = {
     2020: [(2000, 2005), (2005, 2010), (2010, 2015), (2015, 2020)],
 }
 
-# Bakken counties (oil boom dampening)
-BAKKEN_FIPS = {"38105", "38053", "38061", "38025", "38089"}
-
-# College counties (college-age smoothing)
-COLLEGE_FIPS = {"38017", "38035", "38101", "38015"}
-
-# College age groups for smoothing
-COLLEGE_AGE_GROUPS = {"15-19", "20-24"}
-
-# SDC dampening factor (flat, post-averaging)
-SDC_BAKKEN_DAMPENING = 0.6
-
-# 2026 method dampening factors by period (pre-averaging)
-BOOM_PERIOD_DAMPENING: dict[tuple[int, int], float] = {
-    (2005, 2010): 0.50,
-    (2010, 2015): 0.40,
-}
-BOOM_MALE_DAMPENING = 0.80
-
 # Mortality improvement rate (annual)
 MORTALITY_IMPROVEMENT_RATE = 0.005
 
@@ -240,16 +221,79 @@ MAX_PROJECTION_YEARS = 50
 STEP = 5
 
 # ---------------------------------------------------------------------------
-# Method Registry
+# Per-Method Configuration (ADR-061 config refactor)
 # ---------------------------------------------------------------------------
+#
+# Each projection method carries its own config dict so that config-level
+# changes (county lists, dampening factors, convergence schedules) can be
+# A/B tested between methods in a single walk-forward run.
+#
+# To create a new variant, copy a base config and override specific keys:
+#     M2026R2_CONFIG = {**M2026R1_CONFIG, "college_fips": {"38017", "38035"}}
 
-# m2026r1 overrides (College Fix revision — ADR-061)
-M2026R1_COLLEGE_AGE_GROUPS = {"15-19", "20-24", "25-29"}
-M2026R1_CONVERGENCE_SCHEDULE = {
-    "recent_to_medium_steps": 1,   # years 1-5
-    "medium_hold_steps": 3,        # years 6-20 (extended from 2 to 3)
-    "medium_to_longterm_steps": 1, # years 21-25
-    # step 5+: longterm
+from typing import TypedDict
+
+
+class MethodConfig(TypedDict, total=False):
+    """Per-method configuration for walk-forward validation."""
+
+    # Bakken oil-boom dampening
+    bakken_fips: set[str]
+    boom_period_dampening: dict[tuple[int, int], float]
+    boom_male_dampening: float
+
+    # College-age smoothing
+    college_fips: set[str]
+    college_age_groups: set[str]
+    college_blend_factor: float
+
+    # SDC flat dampening (post-averaging)
+    sdc_bakken_dampening: float
+
+    # Convergence schedule (5-year step boundaries)
+    # recent_hold: steps at recent-medium blend (step 1)
+    # medium_hold: steps at medium rate (steps 2..2+medium_hold-1)
+    # transition_hold: steps at medium-longterm blend
+    # after that: longterm
+    convergence_recent_hold: int
+    convergence_medium_hold: int
+    convergence_transition_hold: int
+
+
+# Shared Bakken county set (used by all methods)
+_BAKKEN_FIPS = {"38105", "38053", "38061", "38025", "38089"}
+
+SDC_2024_CONFIG: MethodConfig = {
+    "bakken_fips": _BAKKEN_FIPS,
+    "sdc_bakken_dampening": 0.6,
+}
+
+M2026_CONFIG: MethodConfig = {
+    # Bakken dampening
+    "bakken_fips": _BAKKEN_FIPS,
+    "boom_period_dampening": {(2005, 2010): 0.50, (2010, 2015): 0.40},
+    "boom_male_dampening": 0.80,
+    # College-age smoothing: original 4 counties
+    "college_fips": {"38017", "38035", "38101", "38015"},
+    "college_age_groups": {"15-19", "20-24"},
+    "college_blend_factor": 0.5,
+    # Convergence: 5-10-5 schedule (step 1 blend, steps 2-3 medium, step 4 transition, 5+ long)
+    "convergence_recent_hold": 1,
+    "convergence_medium_hold": 2,
+    "convergence_transition_hold": 1,
+}
+
+M2026R1_CONFIG: MethodConfig = {
+    **M2026_CONFIG,
+    # Expanded to 12 counties (ADR-061 Decision 4)
+    "college_fips": {
+        "38003", "38009", "38015", "38017", "38035",
+        "38071", "38077", "38089", "38093", "38097", "38101", "38105",
+    },
+    # Extended college-age groups (ADR-061 Decision 1)
+    "college_age_groups": {"15-19", "20-24", "25-29"},
+    # Extended convergence: 5-15-5 schedule (ADR-061 Decision 3)
+    "convergence_medium_hold": 3,
 }
 
 # Known state totals for sanity checking
@@ -357,16 +401,18 @@ def load_fertility_rates() -> dict[str, float]:
 def prepare_sdc_rates(
     mig_raw: pd.DataFrame,
     origin_year: int,
+    config: MethodConfig | None = None,
 ) -> pd.DataFrame:
     """Prepare migration rates using SDC 2024 method.
 
     1. Filter to available periods for this origin year.
     2. Convert annualized rates to 5-year rates.
     3. Simple arithmetic average across all available periods.
-    4. Apply flat 60% Bakken dampening post-averaging.
+    4. Apply flat Bakken dampening post-averaging.
 
     Returns DataFrame with columns: [county_fips, age_group, sex, migration_rate_5yr]
     """
+    cfg = config or SDC_2024_CONFIG
     periods = AVAILABLE_PERIODS[origin_year]
     mask = mig_raw.apply(
         lambda r: (r["period_start"], r["period_end"]) in periods, axis=1
@@ -384,8 +430,10 @@ def prepare_sdc_rates(
     )
 
     # Flat Bakken dampening (post-averaging)
-    bakken_mask = avg["county_fips"].isin(BAKKEN_FIPS)
-    avg.loc[bakken_mask, "migration_rate_5yr"] *= SDC_BAKKEN_DAMPENING
+    bakken_fips = cfg.get("bakken_fips", set())
+    sdc_dampening = cfg.get("sdc_bakken_dampening", 0.6)
+    bakken_mask = avg["county_fips"].isin(bakken_fips)
+    avg.loc[bakken_mask, "migration_rate_5yr"] *= sdc_dampening
 
     return avg
 
@@ -417,52 +465,57 @@ def _compute_statewide_average_rate(
 def _apply_2026_period_dampening(
     mig_raw: pd.DataFrame,
     periods: list[tuple[int, int]],
+    config: MethodConfig,
     *,
     annualize: bool = False,
-    college_age_groups: set[str] | None = None,
 ) -> pd.DataFrame:
     """Apply 2026 method period-specific dampening and convert to 5-year rates.
 
     1. Filter to requested periods.
-    2. For boom-era periods (2005-2010, 2010-2015), apply overall dampening
-       factor to Bakken counties.
+    2. For boom-era periods, apply overall dampening factor to Bakken counties.
     3. For boom-era periods, apply male dampening factor to male rates in
        Bakken counties.
-    4. College-age smoothing: blend 50/50 with statewide average for ages
-       15-19 and 20-24 in college counties.
+    4. College-age smoothing: blend with statewide average for college ages
+       in college counties (all read from config).
     5. Convert annualized rates to 5-year rates (or keep annualized if
        ``annualize=True``).
 
     Args:
         mig_raw: Raw migration rates DataFrame.
         periods: List of (start, end) period tuples.
+        config: Per-method config dict.
         annualize: If True, keep rates as annualized rates (column name
             ``rate_5yr`` is still used for interface consistency with
             downstream averaging, but the values are annualized).
-        college_age_groups: Set of age group labels for college-age smoothing.
-            If None, defaults to module-level ``COLLEGE_AGE_GROUPS``.
 
     Returns DataFrame with columns:
     [county_fips, age_group, sex, period_start, period_end, rate_5yr]
     """
+    bakken_fips = config.get("bakken_fips", set())
+    boom_dampening = config.get("boom_period_dampening", {})
+    boom_male = config.get("boom_male_dampening", 1.0)
+    college_fips = config.get("college_fips", set())
+    college_age_groups = config.get("college_age_groups", set())
+    blend_factor = config.get("college_blend_factor", 0.5)
+
     mask = mig_raw.apply(
         lambda r: (r["period_start"], r["period_end"]) in periods, axis=1
     )
     df = mig_raw[mask].copy()
 
     # Apply boom-era dampening (pre-conversion to 5yr) on annualized rates
-    for period, factor in BOOM_PERIOD_DAMPENING.items():
+    for period, factor in boom_dampening.items():
         if period not in periods:
             continue
         period_mask = (df["period_start"] == period[0]) & (df["period_end"] == period[1])
-        bakken_mask = df["county_fips"].isin(BAKKEN_FIPS)
+        bakken_mask = df["county_fips"].isin(bakken_fips)
 
         # Overall dampening for Bakken counties in boom periods
         df.loc[period_mask & bakken_mask, "migration_rate"] *= factor
 
         # Additional male dampening in boom periods for Bakken counties
         male_mask = df["sex"] == "Male"
-        df.loc[period_mask & bakken_mask & male_mask, "migration_rate"] *= BOOM_MALE_DAMPENING
+        df.loc[period_mask & bakken_mask & male_mask, "migration_rate"] *= boom_male
 
     # Convert annualized to 5-year rates (or keep annualized)
     if annualize:
@@ -470,36 +523,40 @@ def _apply_2026_period_dampening(
     else:
         df["rate_5yr"] = (1 + df["migration_rate"]) ** 5 - 1
 
-    # College-age smoothing: for each period, blend 50/50 with statewide avg
-    result_parts = []
-    for period in periods:
-        p_mask = (df["period_start"] == period[0]) & (df["period_end"] == period[1])
-        period_df = df[p_mask].copy()
+    # College-age smoothing: for each period, blend with statewide avg
+    if college_fips and college_age_groups:
+        result_parts = []
+        for period in periods:
+            p_mask = (df["period_start"] == period[0]) & (df["period_end"] == period[1])
+            period_df = df[p_mask].copy()
 
-        # Compute statewide averages for this period
-        state_avg = _compute_statewide_average_rate(period_df)
+            # Compute statewide averages for this period
+            state_avg = _compute_statewide_average_rate(period_df)
 
-        # Merge statewide avg onto period data
-        period_df = period_df.merge(state_avg, on=["age_group", "sex"], how="left")
+            # Merge statewide avg onto period data
+            period_df = period_df.merge(state_avg, on=["age_group", "sex"], how="left")
 
-        # Apply college-age smoothing
-        college_mask = (
-            period_df["county_fips"].isin(COLLEGE_FIPS)
-            & period_df["age_group"].isin(college_age_groups or COLLEGE_AGE_GROUPS)
-        )
-        period_df.loc[college_mask, "rate_5yr"] = (
-            0.5 * period_df.loc[college_mask, "rate_5yr"]
-            + 0.5 * period_df.loc[college_mask, "state_avg_rate"]
-        )
-        period_df = period_df.drop(columns=["state_avg_rate"])
-        result_parts.append(period_df)
+            # Apply college-age smoothing
+            college_mask = (
+                period_df["county_fips"].isin(college_fips)
+                & period_df["age_group"].isin(college_age_groups)
+            )
+            period_df.loc[college_mask, "rate_5yr"] = (
+                blend_factor * period_df.loc[college_mask, "rate_5yr"]
+                + (1 - blend_factor) * period_df.loc[college_mask, "state_avg_rate"]
+            )
+            period_df = period_df.drop(columns=["state_avg_rate"])
+            result_parts.append(period_df)
 
-    return pd.concat(result_parts, ignore_index=True)
+        return pd.concat(result_parts, ignore_index=True)
+
+    return df
 
 
 def prepare_2026_convergence_rates(
     mig_raw: pd.DataFrame,
     origin_year: int,
+    config: MethodConfig | None = None,
 ) -> dict[str, pd.DataFrame]:
     """Prepare migration rate windows for 2026 convergence schedule.
 
@@ -515,10 +572,11 @@ def prepare_2026_convergence_rates(
     - Origin 2020 (4 periods): recent=(2015,2020), medium=avg(2010-2020),
       longterm=avg(2000-2020)
     """
+    cfg = config or M2026_CONFIG
     periods = AVAILABLE_PERIODS[origin_year]
 
     # Apply dampening/smoothing to all available periods
-    dampened = _apply_2026_period_dampening(mig_raw, periods)
+    dampened = _apply_2026_period_dampening(mig_raw, periods, cfg)
 
     def _avg_periods(
         df: pd.DataFrame, target_periods: list[tuple[int, int]]
@@ -626,6 +684,7 @@ def get_convergence_rate_for_step(
 def prepare_2026_convergence_rates_annual(
     mig_raw: pd.DataFrame,
     origin_year: int,
+    config: MethodConfig | None = None,
 ) -> dict[str, pd.DataFrame]:
     """Prepare ANNUALIZED migration rate windows for the 2026 annual engine.
 
@@ -637,10 +696,11 @@ def prepare_2026_convergence_rates_annual(
     Returns dict with keys 'recent', 'medium', 'longterm', each a DataFrame
     with columns [county_fips, age_group, sex, migration_rate_annual].
     """
+    cfg = config or M2026_CONFIG
     periods = AVAILABLE_PERIODS[origin_year]
 
     # Apply dampening/smoothing but keep rates annualized
-    dampened = _apply_2026_period_dampening(mig_raw, periods, annualize=True)
+    dampened = _apply_2026_period_dampening(mig_raw, periods, cfg, annualize=True)
 
     def _avg_periods(
         df: pd.DataFrame, target_periods: list[tuple[int, int]]
@@ -695,28 +755,44 @@ def prepare_2026_convergence_rates_annual(
 def get_convergence_rate_for_year(
     year_offset: int,
     windows: dict[str, pd.DataFrame],
+    config: MethodConfig | None = None,
 ) -> pd.DataFrame:
     """Select the appropriate annualized migration rate for a given projection year.
 
-    Maps year offsets (years from origin) to the convergence schedule:
-    - Years 1-5 (step 1): average of recent and medium
-    - Years 6-15 (steps 2-3): medium rate
-    - Years 16-20 (step 4): average of medium and long-term
-    - Years 21+ (step 5+): long-term rate
+    Uses the convergence schedule from config to map year offsets to rate windows.
+    The schedule is defined by three parameters (all in 5-year steps):
+    - ``convergence_recent_hold``: steps at recent-medium blend
+    - ``convergence_medium_hold``: steps at medium rate
+    - ``convergence_transition_hold``: steps at medium-longterm blend
+    - After that: longterm rate
+
+    Default (m2026): 1-2-1 = 5-10-5 years (recent blend / medium / transition / long)
+    m2026r1:         1-3-1 = 5-15-5 years
 
     Args:
         year_offset: Years from origin (1-based; year 1 = first year forward).
         windows: dict with 'recent', 'medium', 'longterm' DataFrames, each
             having columns [county_fips, age_group, sex, migration_rate_annual].
+        config: Per-method config dict. If None, uses M2026_CONFIG defaults.
 
     Returns:
         DataFrame with columns [county_fips, age_group, sex, migration_rate_annual]
     """
-    # Map year offset to 5-year step number
-    step_number = (year_offset - 1) // 5 + 1  # year 1-5 -> step 1, 6-10 -> step 2, ...
+    cfg = config or M2026_CONFIG
+    recent_hold = cfg.get("convergence_recent_hold", 1)
+    medium_hold = cfg.get("convergence_medium_hold", 2)
+    transition_hold = cfg.get("convergence_transition_hold", 1)
 
-    if step_number == 1:
-        # Average of recent and medium
+    # Map year offset to 5-year step number
+    step_number = (year_offset - 1) // 5 + 1  # year 1-5 -> step 1, etc.
+
+    # Determine phase based on step boundaries
+    recent_end = recent_hold  # step <= recent_end: recent-medium blend
+    medium_end = recent_end + medium_hold  # step <= medium_end: medium
+    transition_end = medium_end + transition_hold  # step <= transition_end: transition
+
+    if step_number <= recent_end:
+        # Blend of recent and medium
         merged = windows["recent"].merge(
             windows["medium"],
             on=["county_fips", "age_group", "sex"],
@@ -728,11 +804,11 @@ def get_convergence_rate_for_year(
         )
         return merged[["county_fips", "age_group", "sex", "migration_rate_annual"]]
 
-    elif step_number in (2, 3):
+    elif step_number <= medium_end:
         return windows["medium"].copy()
 
-    elif step_number == 4:
-        # Average of medium and long-term
+    elif step_number <= transition_end:
+        # Blend of medium and long-term
         merged = windows["medium"].merge(
             windows["longterm"],
             on=["county_fips", "age_group", "sex"],
@@ -744,7 +820,7 @@ def get_convergence_rate_for_year(
         )
         return merged[["county_fips", "age_group", "sex", "migration_rate_annual"]]
 
-    else:  # step >= 5
+    else:
         return windows["longterm"].copy()
 
 
@@ -759,137 +835,8 @@ def _build_mig_annual_lookup(
     return lookup
 
 
-def prepare_m2026r1_convergence_rates_annual(
-    mig_raw: pd.DataFrame,
-    origin_year: int,
-) -> dict[str, pd.DataFrame]:
-    """Prepare ANNUALIZED migration rate windows for the m2026r1 variant.
-
-    Identical to ``prepare_2026_convergence_rates_annual`` except it uses the
-    extended college-age group set (``M2026R1_COLLEGE_AGE_GROUPS``: 15-19,
-    20-24, 25-29) for the college-age smoothing step.
-
-    Returns dict with keys 'recent', 'medium', 'longterm', each a DataFrame
-    with columns [county_fips, age_group, sex, migration_rate_annual].
-    """
-    periods = AVAILABLE_PERIODS[origin_year]
-
-    # Apply dampening/smoothing but keep rates annualized; use extended college groups
-    dampened = _apply_2026_period_dampening(
-        mig_raw, periods, annualize=True, college_age_groups=M2026R1_COLLEGE_AGE_GROUPS
-    )
-
-    def _avg_periods(
-        df: pd.DataFrame, target_periods: list[tuple[int, int]]
-    ) -> pd.DataFrame:
-        mask = df.apply(
-            lambda r: (r["period_start"], r["period_end"]) in target_periods, axis=1
-        )
-        subset = df[mask]
-        return (
-            subset.groupby(["county_fips", "age_group", "sex"], as_index=False)["rate_5yr"]
-            .mean()
-            .rename(columns={"rate_5yr": "migration_rate_annual"})
-        )
-
-    if origin_year == 2005:
-        avg = _avg_periods(dampened, periods)
-        return {"recent": avg, "medium": avg.copy(), "longterm": avg.copy()}
-
-    elif origin_year == 2010:
-        recent_periods = [(2005, 2010)]
-        medium_periods = [(2000, 2005), (2005, 2010)]
-        longterm_periods = [(2000, 2005), (2005, 2010)]
-        return {
-            "recent": _avg_periods(dampened, recent_periods),
-            "medium": _avg_periods(dampened, medium_periods),
-            "longterm": _avg_periods(dampened, longterm_periods),
-        }
-
-    elif origin_year == 2015:
-        recent_periods = [(2010, 2015)]
-        medium_periods = [(2005, 2010), (2010, 2015)]
-        longterm_periods = [(2000, 2005), (2005, 2010), (2010, 2015)]
-        return {
-            "recent": _avg_periods(dampened, recent_periods),
-            "medium": _avg_periods(dampened, medium_periods),
-            "longterm": _avg_periods(dampened, longterm_periods),
-        }
-
-    elif origin_year == 2020:
-        recent_periods = [(2015, 2020)]
-        medium_periods = [(2010, 2015), (2015, 2020)]
-        longterm_periods = [(2000, 2005), (2005, 2010), (2010, 2015), (2015, 2020)]
-        return {
-            "recent": _avg_periods(dampened, recent_periods),
-            "medium": _avg_periods(dampened, medium_periods),
-            "longterm": _avg_periods(dampened, longterm_periods),
-        }
-
-    raise ValueError(f"Unknown origin year: {origin_year}")
 
 
-def get_convergence_rate_for_year_r1(
-    year_offset: int,
-    windows: dict[str, pd.DataFrame],
-) -> pd.DataFrame:
-    """Select the appropriate annualized migration rate for m2026r1 variant.
-
-    Extended convergence schedule (medium hold extended to 20 years):
-    - Years 1-5 (step 1): average of recent and medium
-    - Years 6-20 (steps 2-4): medium rate  <-- extended from 6-15
-    - Years 21-25 (step 5): average of medium and long-term
-    - Years 26+ (step 6+): long-term rate
-
-    Args:
-        year_offset: Years from origin (1-based; year 1 = first year forward).
-        windows: dict with 'recent', 'medium', 'longterm' DataFrames, each
-            having columns [county_fips, age_group, sex, migration_rate_annual].
-
-    Returns:
-        DataFrame with columns [county_fips, age_group, sex, migration_rate_annual]
-    """
-    # Map year offset to step number using extended schedule
-    if year_offset <= 5:
-        step_number = 1
-    elif year_offset <= 20:
-        step_number = 2  # medium hold (steps 2-4 equivalent)
-    elif year_offset <= 25:
-        step_number = 5  # transition step
-    else:
-        step_number = 6  # long-term
-
-    if step_number == 1:
-        # Average of recent and medium
-        merged = windows["recent"].merge(
-            windows["medium"],
-            on=["county_fips", "age_group", "sex"],
-            suffixes=("_recent", "_medium"),
-        )
-        merged["migration_rate_annual"] = (
-            0.5 * merged["migration_rate_annual_recent"]
-            + 0.5 * merged["migration_rate_annual_medium"]
-        )
-        return merged[["county_fips", "age_group", "sex", "migration_rate_annual"]]
-
-    elif step_number in (2, 3, 4):
-        return windows["medium"].copy()
-
-    elif step_number == 5:
-        # Average of medium and long-term
-        merged = windows["medium"].merge(
-            windows["longterm"],
-            on=["county_fips", "age_group", "sex"],
-            suffixes=("_medium", "_longterm"),
-        )
-        merged["migration_rate_annual"] = (
-            0.5 * merged["migration_rate_annual_medium"]
-            + 0.5 * merged["migration_rate_annual_longterm"]
-        )
-        return merged[["county_fips", "age_group", "sex", "migration_rate_annual"]]
-
-    else:  # step >= 6
-        return windows["longterm"].copy()
 
 
 # ---------------------------------------------------------------------------
@@ -1144,9 +1091,9 @@ def _project_annual_core(
     county_fips: str,
     n_years: int,
     origin_year: int,
-    convergence_getter: object,
+    config: MethodConfig | None = None,
 ) -> dict[int, float]:
-    """Shared annual projection engine parameterised by convergence getter.
+    """Shared annual projection engine with config-driven convergence schedule.
 
     Args:
         base_pop: Base population snapshot DataFrame.
@@ -1157,15 +1104,11 @@ def _project_annual_core(
         county_fips: FIPS code for the county.
         n_years: Number of years to project forward.
         origin_year: The origin year of the projection.
-        convergence_getter: Callable(year_offset, windows) -> DataFrame with
-            columns [county_fips, age_group, sex, migration_rate_annual].
+        config: Per-method config dict (passed to convergence getter).
 
     Returns:
         dict mapping year -> total county population.
     """
-    from typing import Callable
-    _get_rate: Callable[[int, dict[str, pd.DataFrame]], pd.DataFrame] = convergence_getter  # type: ignore[assignment]
-
     pop = _init_pop(base_pop, county_fips)
 
     results: dict[int, float] = {origin_year: sum(pop.values())}
@@ -1174,7 +1117,7 @@ def _project_annual_core(
         year = origin_year + yr_offset
 
         # Get convergence-scheduled annualized migration rates for this year
-        year_mig = _get_rate(yr_offset, convergence_windows)
+        year_mig = get_convergence_rate_for_year(yr_offset, convergence_windows, config)
         mig_lookup = _build_mig_annual_lookup(year_mig, county_fips)
 
         # Get mortality-improved 1-year survival rates
@@ -1262,8 +1205,9 @@ def project_2026_annual(
     county_fips: str,
     n_years: int,
     origin_year: int,
+    config: MethodConfig | None = None,
 ) -> dict[int, float]:
-    """Run 2026 method projection for one county with annual stepping.
+    """Run 2026-family projection for one county with annual stepping.
 
     Uses the 1/5 aging approximation for 5-year age groups with annual steps:
     - Aging: (4/5) of survived cohort stays, (1/5) ages up from previous group
@@ -1280,6 +1224,7 @@ def project_2026_annual(
         county_fips: FIPS code for the county.
         n_years: Number of years to project forward.
         origin_year: The origin year of the projection.
+        config: Per-method config dict (controls convergence schedule).
 
     Returns:
         dict mapping year -> total county population.
@@ -1287,42 +1232,7 @@ def project_2026_annual(
     return _project_annual_core(
         base_pop, survival, fertility, convergence_windows,
         county_fips, n_years, origin_year,
-        convergence_getter=get_convergence_rate_for_year,
-    )
-
-
-def project_2026r1_annual(
-    base_pop: pd.DataFrame,
-    survival: dict[tuple[str, str], float],
-    fertility: dict[str, float],
-    convergence_windows: dict[str, pd.DataFrame],
-    county_fips: str,
-    n_years: int,
-    origin_year: int,
-) -> dict[int, float]:
-    """Run m2026r1 method projection for one county with annual stepping.
-
-    Identical to ``project_2026_annual`` except it uses the extended
-    convergence schedule from ``get_convergence_rate_for_year_r1`` (medium
-    rate held through year 20 instead of year 15).
-
-    Args:
-        base_pop: Base population snapshot DataFrame.
-        survival: 5-year survival rates keyed by (age_group, sex).
-        fertility: Annual ASFRs keyed by age_group label.
-        convergence_windows: Dict with 'recent', 'medium', 'longterm' DataFrames,
-            each with columns [county_fips, age_group, sex, migration_rate_annual].
-        county_fips: FIPS code for the county.
-        n_years: Number of years to project forward.
-        origin_year: The origin year of the projection.
-
-    Returns:
-        dict mapping year -> total county population.
-    """
-    return _project_annual_core(
-        base_pop, survival, fertility, convergence_windows,
-        county_fips, n_years, origin_year,
-        convergence_getter=get_convergence_rate_for_year_r1,
+        config=config,
     )
 
 
@@ -1340,71 +1250,53 @@ def project_2026r1_annual(
 # Structure
 # ---------
 # Each key is a short method identifier (e.g. "sdc_2024", "m2026", "m2026r1").
-# Each value is a dict with exactly three keys:
+# Each value is a dict with keys:
 #
 #   {
-#       "prepare":   callable(mig_raw: pd.DataFrame, origin_year: int) -> rates,
+#       "config":    MethodConfig dict with all tunable parameters,
+#       "prepare":   callable(mig_raw, origin_year, config) -> rates,
 #       "project":   callable(base_pop, survival, fertility, rates,
-#                             county_fips, n_periods, origin_year) -> dict[int, float],
+#                             county_fips, n_periods, origin_year, config)
+#                    -> dict[int, float],
 #       "is_annual": bool,
 #   }
 #
-#   prepare  — Accepts raw migration data and an origin year.  Returns
-#              prepared rates whose type depends on the method:
-#                * 5-year methods: pd.DataFrame with column migration_rate_5yr
-#                * Annual methods: dict with keys 'recent', 'medium', 'longterm',
-#                  each a DataFrame with column migration_rate_annual
-#   project  — Accepts base population, survival rates, fertility rates, the
-#              prepared rates from ``prepare``, a county FIPS code, the number
-#              of periods (5-year steps or annual years depending on
-#              ``is_annual``), and the origin year.  Returns a dict mapping
-#              calendar year -> total projected population for that county.
-#   is_annual — True if the method uses annual stepping (n_periods = years),
-#               False if it uses 5-year stepping (n_periods = number of 5-yr
-#               steps).  The validation harness uses this flag to pass the
-#               correct period count and to interpolate 5-year results to
-#               annual targets when needed.
-#
 # Adding a New Method Variant
 # ---------------------------
-# 1. Implement a ``prepare_<name>(mig_raw, origin_year)`` function that
-#    returns the rate structure your projection engine expects.
-# 2. Implement a ``project_<name>(base_pop, survival, fertility, rates,
-#    county_fips, n_periods, origin_year)`` function that returns
-#    ``dict[int, float]`` (year -> population).
-# 3. Add an entry to METHOD_DISPATCH below, e.g.:
-#        "m2026r2": {
-#            "prepare": lambda mig, origin: prepare_m2026r2_rates(mig, origin),
-#            "project": lambda base, surv, fert, rates, fips, n, origin: (
-#                project_m2026r2(base, surv, fert, rates, fips, n, origin)
-#            ),
-#            "is_annual": True,
-#        },
-# 4. The new method is automatically picked up by both
-#    ``run_walk_forward_validation`` and ``run_expanding_window_validation``,
-#    and will appear in the CLI ``--methods`` choices.
-# 5. Run the validation to generate comparison metrics:
-#        python scripts/analysis/walk_forward_validation.py --methods m2026r1 m2026r2
+# Config-only variants can reuse existing prepare/project functions — just
+# copy a base config and override specific values:
+#
+#     "m2026r2": {
+#         "config": {**M2026R1_CONFIG, "college_fips": {"38017", "38035"}},
+#         "prepare": lambda mig, origin, cfg: prepare_2026_convergence_rates_annual(mig, origin, cfg),
+#         "project": lambda base, surv, fert, rates, fips, n, origin, cfg: (
+#             project_2026_annual(base, surv, fert, rates, fips, n, origin, cfg)
+#         ),
+#         "is_annual": True,
+#     },
 #
 METHOD_DISPATCH: dict[str, dict[str, object]] = {
     "sdc_2024": {
-        "prepare": lambda mig, origin: prepare_sdc_rates(mig, origin),
-        "project": lambda base, surv, fert, rates, fips, n, origin: project_sdc(
+        "config": SDC_2024_CONFIG,
+        "prepare": lambda mig, origin, cfg: prepare_sdc_rates(mig, origin, cfg),
+        "project": lambda base, surv, fert, rates, fips, n, origin, cfg: project_sdc(
             base, surv, fert, rates, fips, n, origin
         ),
         "is_annual": False,
     },
     "m2026": {
-        "prepare": lambda mig, origin: prepare_2026_convergence_rates_annual(mig, origin),
-        "project": lambda base, surv, fert, rates, fips, n, origin: project_2026_annual(
-            base, surv, fert, rates, fips, n, origin
+        "config": M2026_CONFIG,
+        "prepare": lambda mig, origin, cfg: prepare_2026_convergence_rates_annual(mig, origin, cfg),
+        "project": lambda base, surv, fert, rates, fips, n, origin, cfg: project_2026_annual(
+            base, surv, fert, rates, fips, n, origin, cfg
         ),
         "is_annual": True,
     },
     "m2026r1": {
-        "prepare": lambda mig, origin: prepare_m2026r1_convergence_rates_annual(mig, origin),
-        "project": lambda base, surv, fert, rates, fips, n, origin: project_2026r1_annual(
-            base, surv, fert, rates, fips, n, origin
+        "config": M2026R1_CONFIG,
+        "prepare": lambda mig, origin, cfg: prepare_2026_convergence_rates_annual(mig, origin, cfg),
+        "project": lambda base, surv, fert, rates, fips, n, origin, cfg: project_2026_annual(
+            base, surv, fert, rates, fips, n, origin, cfg
         ),
         "is_annual": True,
     },
@@ -1491,21 +1383,23 @@ def run_walk_forward_validation(
         method_rates: dict[str, object] = {}
         for method_name in methods:
             dispatch = METHOD_DISPATCH[method_name]
-            method_rates[method_name] = dispatch["prepare"](mig_raw, origin_year)  # type: ignore[operator]
+            cfg = dispatch["config"]  # type: ignore[index]
+            method_rates[method_name] = dispatch["prepare"](mig_raw, origin_year, cfg)  # type: ignore[operator]
 
         # Project all counties with each method
         for fips in counties:
             for method_name in methods:
                 dispatch = METHOD_DISPATCH[method_name]
+                cfg = dispatch["config"]  # type: ignore[index]
                 rates = method_rates[method_name]
 
                 if dispatch["is_annual"]:
                     proj = dispatch["project"](  # type: ignore[operator]
-                        base_pop, survival, fertility, rates, fips, n_years_annual, origin_year
+                        base_pop, survival, fertility, rates, fips, n_years_annual, origin_year, cfg
                     )
                 else:
                     proj = dispatch["project"](  # type: ignore[operator]
-                        base_pop, survival, fertility, rates, fips, n_steps, origin_year
+                        base_pop, survival, fertility, rates, fips, n_steps, origin_year, cfg
                     )
 
                 for target_year, horizon in targets:
@@ -1980,7 +1874,8 @@ def run_annual_validation(
         method_rates: dict[str, object] = {}
         for method_name in methods:
             dispatch = METHOD_DISPATCH[method_name]
-            method_rates[method_name] = dispatch["prepare"](mig_raw, origin_year)  # type: ignore[operator]
+            cfg = dispatch["config"]  # type: ignore[index]
+            method_rates[method_name] = dispatch["prepare"](mig_raw, origin_year, cfg)  # type: ignore[operator]
 
         # Collect per-county annual projections for each method
         # {method: {fips: {year: pop}}}
@@ -1991,15 +1886,16 @@ def run_annual_validation(
         for fips in counties:
             for method_name in methods:
                 dispatch = METHOD_DISPATCH[method_name]
+                cfg = dispatch["config"]  # type: ignore[index]
                 rates = method_rates[method_name]
 
                 if dispatch["is_annual"]:
                     county_annual = dispatch["project"](  # type: ignore[operator]
-                        base_pop, survival, fertility, rates, fips, n_years, origin_year
+                        base_pop, survival, fertility, rates, fips, n_years, origin_year, cfg
                     )
                 else:
                     step_proj = dispatch["project"](  # type: ignore[operator]
-                        base_pop, survival, fertility, rates, fips, n_steps, origin_year
+                        base_pop, survival, fertility, rates, fips, n_steps, origin_year, cfg
                     )
                     county_annual = interpolate_county_annual(step_proj, origin_year)
 

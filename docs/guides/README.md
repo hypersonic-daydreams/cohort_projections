@@ -8,6 +8,7 @@ Detailed procedural guides for common workflows. These expand on the concise rul
 |-------|---------|
 | [environment-setup.md](./environment-setup.md) | Virtual environment, uv, pre-commit, IDE setup |
 | [testing-workflow.md](./testing-workflow.md) | Test commands, writing tests, pre-commit integration |
+| [benchmarking-workflow.md](./benchmarking-workflow.md) | How to run benchmark bundles, review challengers, and promote champions |
 | [configuration-reference.md](./configuration-reference.md) | All configuration files and settings |
 | [data-sources-workflow.md](./data-sources-workflow.md) | Data acquisition, sources, and update procedures |
 | [troubleshooting.md](./troubleshooting.md) | Common errors, solutions, and debugging tips |
@@ -28,4 +29,4 @@ Detailed procedural guides for common workflows. These expand on the concise rul
 
 ---
 
-*Last Updated: 2026-02-02*
+*Last Updated: 2026-03-09*

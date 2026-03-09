@@ -8,6 +8,7 @@ This directory contains standard operating procedures for the cohort_projections
 |----|-------|--------|--------------|
 | [SOP-001](./SOP-001-external-ai-analysis-integration.md) | External AI Analysis Integration | Active | 2026-01-01 |
 | [SOP-002](./SOP-002-data-processing-documentation.md) | Data Processing Script & Data Source Documentation | Active | 2026-02-23 |
+| [SOP-003](./SOP-003-method-benchmarking-versioning-promotion.md) | Method Benchmarking, Versioning, and Promotion | Active | 2026-03-09 |
 
 ---
 
@@ -41,6 +42,7 @@ docs/sops/
 ├── SOP-001-*.md                 # Individual SOPs
 └── templates/                   # Reusable templates referenced by SOPs
     ├── adr-report-structure.md  # ADR report directory template
+    ├── benchmark-decision-record.md  # Challenger-vs-champion decision template
     ├── planning-synthesis.md    # Planning document template
     └── module-package.md        # Python module package template
 ```
@@ -55,4 +57,4 @@ docs/sops/
 
 ---
 
-*Last Updated: 2026-02-23*
+*Last Updated: 2026-03-09*

@@ -1,0 +1,9 @@
+county_champion:
+  method_id: m2026
+  config_id: cfg-20260223-baseline-v1
+county_candidate:
+  method_id: m2026r1
+  config_id: cfg-20260309-college-fix-v1
+county_reference:
+  method_id: sdc_2024
+  config_id: cfg-20260309-sdc-reference-v1

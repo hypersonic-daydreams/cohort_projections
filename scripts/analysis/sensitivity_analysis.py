@@ -59,6 +59,7 @@ Usage
 from __future__ import annotations
 
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -88,7 +89,7 @@ SENSITIVITY_ORIGINS = [2015, 2020]
 VALIDATION_YEAR = 2024
 
 # Baseline parameter values
-BASELINE_SDC_DAMPENING = wfv.SDC_BAKKEN_DAMPENING  # 0.6
+BASELINE_SDC_DAMPENING = wfv.SDC_2024_CONFIG["sdc_bakken_dampening"]  # 0.6
 BASELINE_MORTALITY_IMPROVEMENT = wfv.MORTALITY_IMPROVEMENT_RATE  # 0.005
 
 
@@ -104,7 +105,7 @@ def method_display_label(method_key: str) -> str:
 
     # Split on underscores first
     parts = method_key.split("_")
-    result_parts = []
+    result_parts: list[str] = []
     for part in parts:
         # Insert space before revision suffix (e.g., "m2026r1" -> "m2026 r1")
         sub_parts = re.sub(r"(r\d+)$", r" \1", part).split()
@@ -119,13 +120,13 @@ SHARED_PARAMS = ["migration_rate", "fertility_rate", "survival_rate"]
 
 # Map perturbation parameter -> predicate on METHOD_DISPATCH entry.
 # If the predicate returns True, the perturbation applies to that method.
-METHOD_PARAM_APPLICABILITY: dict[str, object] = {
+METHOD_PARAM_APPLICABILITY: dict[str, Callable[[dict[str, object]], bool]] = {
     "migration_rate": lambda _dispatch: True,
     "fertility_rate": lambda _dispatch: True,
     "survival_rate": lambda _dispatch: True,
-    "sdc_bakken_dampening": lambda dispatch: not dispatch["is_annual"],
-    "mortality_improvement": lambda dispatch: dispatch["is_annual"],
-    "convergence_schedule": lambda dispatch: dispatch["is_annual"],
+    "sdc_bakken_dampening": lambda dispatch: not bool(dispatch["is_annual"]),
+    "mortality_improvement": lambda dispatch: bool(dispatch["is_annual"]),
+    "convergence_schedule": lambda dispatch: bool(dispatch["is_annual"]),
 }
 
 
@@ -276,7 +277,7 @@ def _prepare_sdc_rates_with_dampening(
     )
 
     # Bakken dampening with custom factor
-    bakken_mask = avg["county_fips"].isin(wfv.BAKKEN_FIPS)
+    bakken_mask = avg["county_fips"].isin(wfv.SDC_2024_CONFIG["bakken_fips"])
     avg.loc[bakken_mask, "migration_rate_5yr"] *= dampening
 
     return avg
@@ -326,6 +327,7 @@ def run_scenario(
 
     dispatch = METHOD_DISPATCH[method]
     is_annual = dispatch["is_annual"]
+    cfg = dispatch["config"]  # type: ignore[index]
     counties = sorted(base_pop["county_fips"].unique())
     n_years = VALIDATION_YEAR - origin_year
 
@@ -338,7 +340,7 @@ def run_scenario(
 
         for fips in counties:
             proj = dispatch["project"](  # type: ignore[operator]
-                base_pop, survival, fertility, sdc_mig, fips, n_steps, origin_year
+                base_pop, survival, fertility, sdc_mig, fips, n_steps, origin_year, cfg
             )
             # Interpolate to get validation year value
             proj_annual = wfv.interpolate_county_annual(proj, origin_year, VALIDATION_YEAR)
@@ -346,7 +348,7 @@ def run_scenario(
 
     else:
         # Annual convergence methods (m2026, m2026r1, etc.)
-        windows = dispatch["prepare"](mig_raw, origin_year)  # type: ignore[operator]
+        windows = dispatch["prepare"](mig_raw, origin_year, cfg)  # type: ignore[operator]
 
         if convergence_override is not None:
             windows = make_flat_convergence_windows(windows, convergence_override)
@@ -357,7 +359,7 @@ def run_scenario(
 
         for fips in counties:
             proj = dispatch["project"](  # type: ignore[operator]
-                base_pop, survival, fertility, windows, fips, n_years, origin_year
+                base_pop, survival, fertility, windows, fips, n_years, origin_year, cfg
             )
             projected_totals[fips] = proj.get(VALIDATION_YEAR, 0.0)
 
@@ -478,9 +480,11 @@ def run_sensitivity_analysis(
                         sdc_damp = level["value"]
                     elif param_name == "mortality_improvement":
                         mort_imp = level["value"]
-                    elif param_name == "convergence_schedule":
-                        if level["window"] != "baseline":
-                            conv_override = level["window"]
+                    elif (
+                        param_name == "convergence_schedule"
+                        and level["window"] != "baseline"
+                    ):
+                        conv_override = level["window"]
 
                     result = run_scenario(
                         method=method,
@@ -718,9 +722,9 @@ def build_html_report(
             barmode="overlay",
             height=350 + len(m_tornado) * 50,
             template="plotly_white",
-            legend=dict(
-                orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5
-            ),
+            legend={
+                "orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "center", "x": 0.5
+            },
         )
 
         # Add vertical baseline line at zero
@@ -782,9 +786,9 @@ def build_html_report(
             barmode="overlay",
             height=350 + len(m_tornado) * 50,
             template="plotly_white",
-            legend=dict(
-                orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5
-            ),
+            legend={
+                "orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "center", "x": 0.5
+            },
         )
 
         fig.add_vline(x=0, line_dash="dash", line_color="gray", line_width=1)
@@ -857,14 +861,14 @@ def build_html_report(
                 f"<sub>Normalized swing magnitude "
                 f"(1.0 = most influential)</sub>"
             ),
-            polar=dict(
-                radialaxis=dict(visible=True, range=[0, 1.05]),
-            ),
+            polar={
+                "radialaxis": {"visible": True, "range": [0, 1.05]},
+            },
             height=500,
             template="plotly_white",
-            legend=dict(
-                orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5
-            ),
+            legend={
+                "orientation": "h", "yanchor": "bottom", "y": -0.15, "xanchor": "center", "x": 0.5
+            },
         )
 
         sections.append({
@@ -987,9 +991,9 @@ def build_html_report(
             ),
             height=400,
             template="plotly_white",
-            legend=dict(
-                orientation="h", yanchor="bottom", y=1.08, xanchor="center", x=0.5
-            ),
+            legend={
+                "orientation": "h", "yanchor": "bottom", "y": 1.08, "xanchor": "center", "x": 0.5
+            },
         )
         fig.update_xaxes(title_text="Perturbation Level", row=1, col=1)
         fig.update_xaxes(title_text="Perturbation Level", row=1, col=2)
@@ -1074,10 +1078,10 @@ def build_html_report(
             ),
             height=400,
             template="plotly_white",
-            legend=dict(
-                orientation="h", yanchor="bottom", y=1.08,
-                xanchor="center", x=0.5,
-            ),
+            legend={
+                "orientation": "h", "yanchor": "bottom", "y": 1.08,
+                "xanchor": "center", "x": 0.5,
+            },
         )
         fig.update_xaxes(title_text="Perturbation Level", row=1, col=1)
         fig.update_xaxes(title_text="Perturbation Level", row=1, col=2)
@@ -1114,18 +1118,18 @@ def build_html_report(
             continue
 
         summary_fig.add_trace(go.Table(
-            header=dict(
-                values=[
+            header={
+                "values": [
                     "Parameter", "Baseline State Error",
                     "Low Deviation", "High Deviation", "Swing (pp)",
                     "Low Label", "High Label",
                 ],
-                fill_color=colors[method],
-                font_color="white",
-                align="left",
-            ),
-            cells=dict(
-                values=[
+                "fill_color": colors[method],
+                "font_color": "white",
+                "align": "left",
+            },
+            cells={
+                "values": [
                     m_tornado["parameter"],
                     m_tornado["baseline_state_error"].apply(
                         lambda x: f"{x:+.2f}%"
@@ -1136,12 +1140,12 @@ def build_html_report(
                     m_tornado["low_label"],
                     m_tornado["high_label"],
                 ],
-                align="left",
-            ),
-            domain=dict(
-                x=[0, 1],
-                y=table_y_ranges[method],
-            ),
+                "align": "left",
+            },
+            domain={
+                "x": [0, 1],
+                "y": table_y_ranges[method],
+            },
         ))
 
     # Build annotations dynamically for each method's table label
@@ -1149,15 +1153,15 @@ def build_html_report(
     for m in methods_in_results:
         y_range = table_y_ranges.get(m, [0, 1])
         table_annotations.append(
-            dict(
-                text=method_labels[m],
-                x=0.02,
-                y=y_range[1] + 0.01,
-                xref="paper",
-                yref="paper",
-                showarrow=False,
-                font=dict(size=14, color=colors[m]),
-            )
+            {
+                "text": method_labels[m],
+                "x": 0.02,
+                "y": y_range[1] + 0.01,
+                "xref": "paper",
+                "yref": "paper",
+                "showarrow": False,
+                "font": {"size": 14, "color": colors[m]},
+            }
         )
 
     summary_fig.update_layout(

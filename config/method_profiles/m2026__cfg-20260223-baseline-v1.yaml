@@ -1,0 +1,38 @@
+method_id: m2026
+config_id: cfg-20260223-baseline-v1
+scope: county
+status: champion
+created_date: 2026-02-23
+created_from: scripts/analysis/walk_forward_validation.py::M2026_CONFIG
+description: Baseline 2026 county projection method used as the current champion.
+code_refs:
+  - scripts/analysis/walk_forward_validation.py
+adr_refs:
+  - docs/governance/adrs/036-migration-averaging-methodology.md
+  - docs/governance/adrs/040-extend-boom-dampening-2015-2020.md
+  - docs/governance/adrs/049-college-age-smoothing-convergence-pipeline.md
+resolved_config:
+  bakken_fips:
+    - "38025"
+    - "38053"
+    - "38061"
+    - "38089"
+    - "38105"
+  boom_period_dampening:
+    "2005-2010": 0.5
+    "2010-2015": 0.4
+  boom_male_dampening: 0.8
+  college_fips:
+    - "38015"
+    - "38017"
+    - "38035"
+    - "38101"
+  college_age_groups:
+    - "15-19"
+    - "20-24"
+  college_blend_factor: 0.5
+  convergence_recent_hold: 1
+  convergence_medium_hold: 2
+  convergence_transition_hold: 1
+notes:
+  - Current county champion as of 2026-03-09.

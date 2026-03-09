@@ -1,0 +1,21 @@
+method_id: sdc_2024
+config_id: cfg-20260309-sdc-reference-v1
+scope: county
+status: accepted
+created_date: 2026-03-09
+created_from: scripts/analysis/walk_forward_validation.py::SDC_2024_CONFIG
+description: SDC 2024 reference method retained for historical comparison.
+code_refs:
+  - scripts/analysis/walk_forward_validation.py
+adr_refs:
+  - docs/governance/adrs/017-sdc-2024-methodology-comparison.md
+resolved_config:
+  bakken_fips:
+    - "38025"
+    - "38053"
+    - "38061"
+    - "38089"
+    - "38105"
+  sdc_bakken_dampening: 0.6
+notes:
+  - Retained as benchmark reference, not current champion.

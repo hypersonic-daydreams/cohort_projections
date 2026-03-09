@@ -2,7 +2,7 @@
 
 Canonical, current-state tracker for the North Dakota cohort projections repository.
 
-**Last Updated:** 2026-03-01  
+**Last Updated:** 2026-03-09  
 **Projection Horizon:** 2025-2055  
 **Status:** Core projection development complete; PP-001 publication sign-off and PP-002 cadence closeout completed on 2026-03-01; PP-005 Phase 2+ enhancements implemented (rolling-origin backtests, multi-county splitting, TIGER/geospatial exports, housing-unit method).
 
@@ -39,7 +39,7 @@ Use this file for active status only. Historical session detail is archived to:
 | PP-003 | City/place projection workstream reactivation (ADR-033) | completed_2026-03-01 | Closed after IMP-21 methodology finalization consistency and IMP-22 tracker closeout confirmation | `docs/plans/pp3-s08-implementation-kickoff.md`, `docs/reviews/2026-02-28-pp3-s07-approval-gate.md`, `docs/reviews/2026-02-28-pp3-imp09-backtest-results.md`, `docs/reviews/pp3-backtest-outlier-narrative.md`, `docs/reviews/2026-03-01-pp3-imp11-pipeline-stage-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-results.md`, `docs/reviews/2026-03-01-pp3-imp12-imp13-approval-gate.md`, `docs/reviews/2026-03-01-pp3-imp13a-results.md`, `docs/reviews/2026-03-01-pp3-imp14-results.md`, `docs/reviews/2026-03-01-pp3-imp15-results.md`, `docs/reviews/2026-03-01-pp3-imp16-results.md`, `docs/reviews/2026-03-01-pp3-imp17-imp18-results.md`, `docs/reviews/pp3-end-to-end-validation.md`, `docs/reviews/2026-03-01-pp3-imp19-approval-gate.md`, `docs/reviews/2026-03-01-pp3-imp20-results.md`, `docs/reviews/2026-03-01-pp3-imp21-methodology-finalization-consistency-results.md`, `docs/reviews/2026-03-01-pp3-imp22-tracker-closeout-results.md`, `docs/governance/adrs/033-city-level-projection-methodology.md` |
 | PP-004 | Test coverage gap closure (ADR-056) | completed_2026-02-28 | Closed: PP4-01 through PP4-06 complete; periodic coverage checks now roll into future PP-002-style cadence events when material changes occur | `docs/governance/adrs/056-testing-strategy-maturation.md`, `docs/guides/test-maintenance-practices.md`, `docs/reviews/2026-02-28-pp4-06-periodic-coverage-review.md` |
 | PP-005 | Phase 2+ place projection enhancements | completed_2026-03-01 | Four parallel workstreams implemented: rolling-origin backtests (WS-A, 34 tests), multi-county place splitting (WS-B, 38 tests), TIGER/geospatial exports (WS-C, 23 tests), housing-unit method (WS-D, 32 tests). Full suite: 1568 passed, 5 skipped; ruff + mypy clean | ADR-057, ADR-058, ADR-059, ADR-060 |
-| CF-001 | College Fix model revision (m2026r1) | in_progress | Infrastructure complete (walk-forward method registry, CLI args, m2026r1 variant, 5 new tests). Pending: run head-to-head validation, human approval of production config changes (Tier 3), re-run production projections | ADR-061, `docs/reviews/2026-03-04-college-fix-research-implications.md`, `docs/reviews/2026-03-04-projection-accuracy-analysis.md` |
+| CF-001 | College Fix model revision (m2026r1) | in_progress | SOP-003 P0 benchmark/versioning scaffold implemented and first head-to-head benchmark bundle completed (`br-20260309-160948-m2026r1-ecb4498`). Results: improved recent-origin state APE and urban/college county MAPE; no hard-constraint regression. Pending: human review of benchmark decision record, Tier 3 approval of production config changes, re-run production projections if promoted | ADR-061, `docs/reviews/2026-03-04-college-fix-research-implications.md`, `docs/reviews/2026-03-04-projection-accuracy-analysis.md`, `docs/governance/sops/SOP-003-method-benchmarking-versioning-promotion.md`, `docs/reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md` |
 
 ## PP-005 Phase 2+ Workstream Checklist (Canonical)
 
@@ -339,6 +339,8 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 1. Incorporate deferred stakeholder feedback in the next publication update cycle.
 2. Keep documentation consistency queue current.
 3. Review rolling-origin B-I vs B-II results with domain experts; confirm B-II retention rationale.
+4. Review `docs/reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md` and decide whether `m2026r1` should be promoted.
+5. If approved, promote via alias update tooling and re-run production projections under the promoted config.
 
 
 ## Deferred / Later Work
@@ -346,6 +348,8 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 - Additional publication-facing formatting and package cleanup.
 - Stakeholder feedback incorporation (deferred by owner override 2026-03-01).
 - Housing-unit method: update methodology docs with HU cross-validation narrative.
+- Benchmark/versioning follow-on work from SOP-003: latest-pointer refresh, richer comparison dashboards, and broader scope coverage beyond county benchmarks.
+- Benchmarking process improvement roadmap tracked in `docs/plans/benchmarking-process-improvement-roadmap.md` (promotion thresholds, schema enforcement, dashboarding, post-promotion revalidation, broader segmentation).
 
 ## References
 
