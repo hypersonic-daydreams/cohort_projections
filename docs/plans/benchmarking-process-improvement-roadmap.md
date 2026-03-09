@@ -34,7 +34,8 @@ The remaining work is about making the process:
 - less manual,
 - faster to execute,
 - more robust against drift,
-- easier to interpret over many sessions.
+- easier to interpret over many sessions,
+- suitable for semi-autonomous AI agent operation.
 
 ## Current Strengths
 
@@ -49,6 +50,149 @@ The workflow already does the important things correctly:
 That means future process improvements should optimize usability and rigor, not redesign the core model.
 
 ## Priority Roadmap
+
+## P0: Agent Experiment Orchestration Layer
+
+### Problem
+
+The current workflow assumes a human operator threading together 4-5 CLI commands with correct arguments: register a profile, run the benchmark suite, generate a decision record, evaluate results, optionally promote. An AI agent can follow this sequence, but it requires re-deriving the full command chain each time, which is slow, error-prone, and blocks semi-autonomous operation.
+
+There is no declarative way for an agent to know "what to try next," no single entry point that goes from hypothesis to logged result, and no machine-readable policy for deciding whether results require human review or can be autonomously logged and moved past.
+
+### Improvement
+
+#### 1. Experiment Spec Format
+
+Define a declarative YAML experiment spec that captures everything an agent needs to run a single experiment:
+
+```yaml
+experiment_id: exp-20260310-conv-hold-25yr
+hypothesis: >
+  Extending convergence hold from 20 to 25 years will reduce long-horizon
+  overshoot in college counties without materially worsening rural accuracy.
+expected_improvement:
+  - county_mape_urban_college reduction
+risk_areas:
+  - county_mape_rural regression if hold is too long
+  - sensitivity instability from extended extrapolation
+base_method: m2026r1
+base_config: cfg-20260309-college-fix-v1
+config_delta:
+  convergence_schedule:
+    medium_hold_years: 25
+scope: county
+benchmark_label: conv_hold_25yr_test
+requested_by: agent  # or human
+```
+
+Store pending specs in `data/analysis/experiments/pending/` and completed specs in `data/analysis/experiments/completed/`.
+
+#### 2. Single-Command Orchestrator
+
+Build `scripts/analysis/run_experiment.py` that:
+
+1. reads an experiment spec,
+2. derives a new `method_id` and `config_id` from the base + delta (or uses explicitly provided ones),
+3. registers the immutable method profile,
+4. runs `run_benchmark_suite.py` with correct arguments,
+5. evaluates hard gates and tradeoff thresholds against the promotion policy (P1),
+6. writes an experiment log entry (P0.5),
+7. moves the spec from `pending/` to `completed/`,
+8. returns a structured result: `passed_all_gates`, `needs_human_review`, `failed_hard_gate`, or `inconclusive`.
+
+The orchestrator never promotes automatically — it only classifies results. Promotion remains a separate, human-gated step.
+
+#### 3. Autonomous vs. Review-Required Classification
+
+Define a machine-readable evaluation policy (extends P1 promotion thresholds):
+
+```yaml
+agent_evaluation_policy:
+  auto_log_and_continue:
+    # Agent can mark "candidate passed" and move to next experiment if:
+    hard_gates_passed: true
+    no_tradeoff_regression_beyond:
+      county_mape_rural: 0.10
+      county_mape_bakken: 0.50
+      county_mape_overall: 0.05
+  flag_for_human_review:
+    # Agent must stop and request review if:
+    - any hard gate fails
+    - any tradeoff metric regresses beyond tolerance
+    - sensitivity instability flag is set
+    - state APE improves but county MAPE worsens (mixed signal)
+  never_autonomous:
+    # Always requires human decision:
+    - promotion (alias update)
+    - rejection of a method (permanent status change)
+    - changes to the evaluation policy itself
+```
+
+#### 4. Git Branch Conventions for Agent Experiments
+
+Agent-driven experiments should use predictable branch names:
+
+- `experiment/<experiment_id>` for code changes needed by the experiment
+- Branches are created from the current feature branch, not from master
+- If the experiment requires no code changes (config-only delta), no branch is needed
+
+This keeps agent-driven code exploration navigable in git history without polluting the main feature branch.
+
+### Why This Matters
+
+This is the single highest-leverage improvement for enabling AI agents to iterate on model improvements semi-independently. Without it, every experiment cycle requires a human (or agent) to manually reconstruct the full command sequence and interpret results ad hoc. With it, an agent can process a queue of experiments, log all results immutably, and only interrupt the human when something genuinely requires judgment.
+
+---
+
+## P0.5: Experiment Log
+
+### Problem
+
+The benchmark archive records *what happened* mechanically (methods, configs, git state, metrics) but not *why it was tried* or *what was learned*. When reviewing a sequence of 10+ experiments after the fact, the manifests and scorecards show outcomes but not the reasoning thread that connects them. This makes post-hoc review slow and makes it hard to avoid re-testing hypotheses that were already explored.
+
+### Improvement
+
+Add an append-only experiment log alongside the benchmark index:
+
+**Location:** `data/analysis/experiments/experiment_log.csv`
+
+**Required columns:**
+
+| Column | Description |
+|--------|-------------|
+| `experiment_id` | Unique identifier (format: `exp-YYYYMMDD-short-slug`) |
+| `run_date` | ISO date of execution |
+| `hypothesis` | One-sentence description of what was being tested |
+| `base_method` | The method this experiment builds on |
+| `config_delta_summary` | Human-readable summary of what changed |
+| `run_id` | Link to benchmark run (if executed) |
+| `outcome` | `passed` / `failed_hard_gate` / `mixed_signal` / `inconclusive` / `not_run` |
+| `key_metrics_summary` | Compact summary: e.g., "state APE -0.2, rural MAPE +0.02" |
+| `interpretation` | What the result means for the hypothesis |
+| `next_action` | `proceed_to_next` / `flag_for_review` / `promote_candidate` / `abandon_line` |
+| `agent_or_human` | Who ran the experiment |
+| `spec_path` | Path to the full experiment spec YAML |
+
+**Complementary YAML log** (richer detail): `data/analysis/experiments/experiment_log.yaml`
+
+Each entry mirrors the CSV but allows multi-line hypothesis, interpretation, and structured config delta fields. The CSV is for quick scanning and dashboard integration; the YAML is for full post-hoc review.
+
+### Interaction with Existing Artifacts
+
+- The experiment log does **not** replace the benchmark index — it links to it via `run_id`.
+- The experiment log does **not** replace decision records — decision records are for promotion decisions; the experiment log is for the broader exploration trajectory.
+- The experiment spec YAML (from P0) is the input; the experiment log entry is the output.
+
+### Why This Matters
+
+This turns the benchmarking archive from "a collection of individual run results" into "a navigable research journal." It directly supports:
+
+- **Future analysis:** Which hypotheses have been tested? Which lines of inquiry were productive?
+- **Reporting:** Summarize the improvement trajectory for stakeholders.
+- **Agent continuity:** A new agent session can read the log to understand what has already been tried and what the current frontier is, without re-exploring dead ends.
+- **Post-hoc review:** A human reviewer can trace the full chain from hypothesis → experiment → result → interpretation → next action.
+
+---
 
 ## P1: Add Explicit Promotion Thresholds
 
@@ -349,20 +493,24 @@ A method that is slightly more accurate but much more fragile should not be judg
 
 ## Recommended Implementation Order
 
-Recommended sequence (revised to account for iterative benchmarking workflow):
+Recommended sequence (revised to prioritize agent-driven iteration):
 
-1. **P6 runtime optimization** — unlocks faster iteration on all subsequent improvements; 5-8x speedup compounds with every benchmark cycle
-2. P1 promotion thresholds
-3. P2 hard-gates vs tradeoffs split
-4. P3 schema enforcement
-5. P8 post-promotion revalidation
-6. P4 dashboard
-7. P5 promotion package builder
-8. P9 segmentation refinement
-9. P7 place-scope extension
-10. P10 operational quality tracking
+1. **P0 agent experiment orchestration** — highest-leverage improvement; transforms the workflow from human-threaded CLI commands to declarative experiment specs that agents can process semi-autonomously
+2. **P0.5 experiment log** — lightweight companion to P0; without it, rapid agent iteration produces results with no reasoning trail
+3. **P6 runtime optimization** — unlocks faster iteration; 5-8x speedup compounds with every benchmark cycle
+4. **P1 promotion thresholds** — required by P0's evaluation policy; defines the machine-readable gates that agents use to classify results
+5. P2 hard-gates vs tradeoffs split
+6. P3 schema enforcement
+7. P8 post-promotion revalidation
+8. P4 dashboard (enhanced by P0.5 experiment log as a data source)
+9. P5 promotion package builder
+10. P9 segmentation refinement
+11. P7 place-scope extension
+12. P10 operational quality tracking
 
-> **Rationale for P6 promotion:** The original ordering assumed a stable, infrequent benchmarking cadence. With active iterative model development (e.g., ADR-061 college fix revision), benchmark runs happen multiple times per session. Cutting each run from ~15-25 minutes to ~3-5 minutes directly accelerates the development feedback loop and makes all other improvements cheaper to validate.
+> **Rationale for P0/P0.5 at the top:** The original ordering assumed a human operator running benchmarks occasionally. With AI agents available to iterate on model improvements, the bottleneck shifts from "how fast does the benchmark run" to "how autonomously can an agent go from hypothesis to logged result." P0 and P0.5 remove the manual command-threading overhead and create the reasoning trail needed for post-hoc review. P6 (runtime) remains critical but is most valuable *after* the agent can actually use the faster runs without human intervention at each step.
+>
+> **Implementation note:** P0 and P1 are mutually reinforcing — the orchestrator's evaluation step (P0 §3) depends on having machine-readable thresholds (P1). A minimal P1 stub (hard gates only) should ship with P0, with the full tradeoff thresholds completed as a fast follow.
 
 ## Session-Start Shortcut
 
@@ -375,4 +523,13 @@ Then confirm whether the work should be treated as:
 - process-only documentation,
 - automation implementation,
 - policy tightening,
-- or scope expansion beyond county benchmarks.
+- scope expansion beyond county benchmarks,
+- or agent experiment infrastructure (P0/P0.5).
+
+When an agent session is tasked with running experiments:
+
+1. Check `data/analysis/experiments/pending/` for queued experiment specs.
+2. Check `data/analysis/experiments/experiment_log.csv` for what has already been tried.
+3. Run the next pending experiment via `scripts/analysis/run_experiment.py` (once P0 is implemented), or manually thread the CLI commands per `docs/guides/benchmarking-workflow.md`.
+4. Log the result in the experiment log before moving to the next experiment.
+5. Flag any `needs_human_review` results and stop on that line of inquiry until reviewed.
