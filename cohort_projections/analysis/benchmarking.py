@@ -216,10 +216,12 @@ def _aggregation_violations(annual_county: pd.DataFrame, annual_state: pd.DataFr
         on=["origin_year", "method", "validation_year"],
         how="left",
     )
-    # County totals are stored at 0.1 precision while state totals are stored as
-    # whole numbers, so sub-person drift up to 1.0 can arise from rounding alone.
-    projected_mismatch = (merged["projected"] - merged["projected_state"]).abs() > 1.0
-    actual_mismatch = (merged["actual"] - merged["actual_state"]).abs() > 1.0
+    # County values at 0.1 precision (53 counties) + state as whole numbers:
+    # theoretical 3-sigma rounding drift ≈ 1.07; observed max across 460
+    # pairs is 1.1.  Tolerance of 2.0 covers normal drift while still
+    # catching real aggregation bugs (which produce errors of 100+).
+    projected_mismatch = (merged["projected"] - merged["projected_state"]).abs() > 2.0
+    actual_mismatch = (merged["actual"] - merged["actual_state"]).abs() > 2.0
     return int((projected_mismatch | actual_mismatch).sum())
 
 

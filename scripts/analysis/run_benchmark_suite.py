@@ -39,6 +39,70 @@ from cohort_projections.analysis.benchmarking import (  # noqa: E402
 from cohort_projections.utils.reproducibility import log_execution  # noqa: E402
 
 
+# ---------------------------------------------------------------------------
+# Config injection: bridge method profiles → METHOD_DISPATCH
+# ---------------------------------------------------------------------------
+
+
+# Keys in resolved_config that should be converted from YAML lists to Python sets
+_SET_KEYS = frozenset({"bakken_fips", "college_fips", "college_age_groups"})
+
+
+def _yaml_config_to_method_config(resolved_config: dict[str, Any]) -> dict[str, Any]:
+    """Convert a profile's resolved_config (YAML types) to METHOD_DISPATCH types.
+
+    YAML serialisation loses Python sets (→ list) and tuple-keyed dicts
+    (→ string-keyed dicts).  This function reverses those conversions so the
+    config is compatible with walk_forward_validation's MethodConfig contract.
+    """
+    cfg: dict[str, Any] = {}
+    for key, value in resolved_config.items():
+        if key in _SET_KEYS and isinstance(value, list):
+            cfg[key] = set(value)
+        elif key == "boom_period_dampening" and isinstance(value, dict):
+            # "2005-2010" → (2005, 2010)
+            converted: dict[tuple[int, int], float] = {}
+            for period_str, factor in value.items():
+                parts = str(period_str).split("-")
+                converted[(int(parts[0]), int(parts[1]))] = float(factor)
+            cfg[key] = converted
+        else:
+            cfg[key] = value
+    return cfg
+
+
+def _inject_profile_configs(
+    profile_map: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any] | None]:
+    """Temporarily override METHOD_DISPATCH configs with profile resolved_configs.
+
+    For each method in *profile_map*, if the profile contains a ``resolved_config``,
+    convert it to MethodConfig-compatible types and patch
+    ``METHOD_DISPATCH[method_id]["config"]``.
+
+    Returns a dict mapping method_id → original config (or None if not patched),
+    so the caller can restore the originals after the run.
+    """
+    originals: dict[str, dict[str, Any] | None] = {}
+    for method_id, profile in profile_map.items():
+        resolved = profile.get("resolved_config")
+        if not resolved or method_id not in wfv.METHOD_DISPATCH:
+            originals[method_id] = None
+            continue
+        originals[method_id] = wfv.METHOD_DISPATCH[method_id]["config"]  # type: ignore[index]
+        patched = _yaml_config_to_method_config(resolved)
+        wfv.METHOD_DISPATCH[method_id]["config"] = patched  # type: ignore[index]
+        print(f"  Injected profile config for '{method_id}' ({len(patched)} keys)")
+    return originals
+
+
+def _restore_configs(originals: dict[str, dict[str, Any] | None]) -> None:
+    """Restore METHOD_DISPATCH configs to their pre-injection state."""
+    for method_id, original in originals.items():
+        if original is not None and method_id in wfv.METHOD_DISPATCH:
+            wfv.METHOD_DISPATCH[method_id]["config"] = original  # type: ignore[index]
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the versioned benchmark suite.")
     parser.add_argument("--scope", default="county", help="Benchmark scope. Only 'county' is supported today.")
@@ -166,6 +230,12 @@ def main() -> None:
     ]
 
     with log_execution(__file__, parameters=parameters, outputs=output_paths) as execution_log_run_id:
+        # Inject profile resolved_configs into METHOD_DISPATCH so that
+        # config-only experiments (config_delta from experiment specs)
+        # actually affect the computation.  Restore originals when done.
+        print("Injecting profile configs into METHOD_DISPATCH...")
+        saved_configs = _inject_profile_configs(profile_map)
+
         print("Loading shared benchmark inputs...")
         snapshots = wfv.load_all_snapshots()
         mig_raw = wfv.load_migration_rates_raw()
@@ -316,6 +386,9 @@ def main() -> None:
             git_commit=git_commit,
             champion_method_id=args.champion_method,
         )
+
+        # Restore original METHOD_DISPATCH configs
+        _restore_configs(saved_configs)
 
     print(f"Benchmark run complete: {run_dir.relative_to(PROJECT_ROOT)}")
 

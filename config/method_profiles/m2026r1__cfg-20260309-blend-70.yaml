@@ -1,0 +1,46 @@
+method_id: m2026r1
+config_id: cfg-20260309-blend-70
+scope: county
+status: experiment
+created_date: '2026-03-09'
+created_from: scripts/analysis/walk_forward_validation.py::M2026R1_CONFIG
+description: College-fix challenger extending college counties, ages 25-29 smoothing,
+  and convergence hold.
+code_refs:
+- scripts/analysis/walk_forward_validation.py
+adr_refs:
+- docs/governance/adrs/061-college-fix-model-revision.md
+resolved_config:
+  bakken_fips:
+  - '38025'
+  - '38053'
+  - '38061'
+  - '38089'
+  - '38105'
+  boom_period_dampening:
+    2005-2010: 0.5
+    2010-2015: 0.4
+  boom_male_dampening: 0.8
+  college_fips:
+  - '38003'
+  - '38009'
+  - '38015'
+  - '38017'
+  - '38035'
+  - '38071'
+  - '38077'
+  - '38089'
+  - '38093'
+  - '38097'
+  - '38101'
+  - '38105'
+  college_age_groups:
+  - 15-19
+  - 20-24
+  - 25-29
+  college_blend_factor: 0.7
+  convergence_recent_hold: 1
+  convergence_medium_hold: 3
+  convergence_transition_hold: 1
+notes:
+- Current county challenger as of 2026-03-09.

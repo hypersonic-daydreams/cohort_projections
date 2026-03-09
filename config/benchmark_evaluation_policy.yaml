@@ -15,7 +15,7 @@ hard_gates:
     description: "Baseline must always be between restricted and high growth"
   aggregation_violations:
     max_allowed: 0
-    description: "County sums must match state totals within rounding tolerance"
+    description: "County sums must match state totals within rounding tolerance (2.0 persons; see ADR-062)"
 
 tradeoff_thresholds:
   # Maximum regression allowed relative to champion (positive = worse)
