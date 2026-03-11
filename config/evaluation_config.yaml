@@ -1,0 +1,100 @@
+# Evaluation Framework Configuration
+# Referenced by: cohort_projections/analysis/evaluation/
+# See: docs/plans/evaluation-blueprint.md
+
+version: "1.0"
+
+# Standard forecast horizons to evaluate
+horizons: [1, 2, 3, 5, 10, 15, 20]
+
+# County-type groups for stratified reporting
+county_groups:
+  bakken: ["38105", "38053", "38061", "38025", "38089"]
+  reservation: ["38005", "38085", "38079"]
+  urban_college: ["38017", "38015", "38035", "38101"]
+  # rural: all remaining counties (computed dynamically)
+
+# Sentinel counties for per-county monitoring
+sentinel_counties:
+  "38017": "Cass"
+  "38035": "Grand Forks"
+  "38101": "Ward"
+  "38015": "Burleigh"
+  "38105": "Williams"
+  "38053": "McKenzie"
+
+# Target variables to evaluate
+targets:
+  - population
+  - births
+  - deaths
+  - net_migration
+
+# Age groups for age-structure evaluation
+age_groups:
+  - "0-4"
+  - "5-9"
+  - "10-14"
+  - "15-19"
+  - "20-24"
+  - "25-29"
+  - "30-34"
+  - "35-39"
+  - "40-44"
+  - "45-49"
+  - "50-54"
+  - "55-59"
+  - "60-64"
+  - "65-69"
+  - "70-74"
+  - "75-79"
+  - "80-84"
+  - "85+"
+
+# Accuracy metrics to compute for every run
+accuracy_metrics:
+  - mae
+  - rmse
+  - mape
+  - median_ape
+  - wape
+  - mean_signed_error
+  - mean_signed_percentage_error
+
+# Structural realism thresholds
+realism:
+  max_jsd_age_distribution: 0.05   # Jensen-Shannon divergence warning threshold
+  max_cohort_survival_residual: 0.10  # fraction
+  plausible_fertility_range: [0.0, 0.30]  # age-specific TFR bounds
+  plausible_migration_rate_range: [-0.50, 0.50]
+
+# Sensitivity testing defaults
+sensitivity:
+  perturbation_pct:
+    base_population: [0.5, 1.0]
+    births: [1.0]
+    deaths: [1.0]
+    migration: [5.0]
+  parameter_sweep_levels: 3  # low / medium / high
+  monte_carlo_iterations: 500
+
+# Scorecard weights (must sum to 1.0)
+scorecard_weights:
+  near_term_accuracy: 0.25
+  long_term_accuracy: 0.25
+  bias_calibration: 0.15
+  age_structure_realism: 0.15
+  robustness_stability: 0.10
+  interpretability: 0.10
+
+# Near-term vs long-term horizon split
+near_term_max_horizon: 5
+long_term_min_horizon: 10
+
+# Historical regimes for regime-specific backtesting (North Dakota)
+regimes:
+  stable: { start: 2000, end: 2007 }
+  energy_boom: { start: 2008, end: 2014 }
+  energy_bust: { start: 2015, end: 2019 }
+  pandemic: { start: 2020, end: 2021 }
+  post_pandemic: { start: 2022, end: 2024 }
