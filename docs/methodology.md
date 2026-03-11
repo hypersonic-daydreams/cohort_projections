@@ -59,10 +59,15 @@
   - [7.5 Place Projection Orchestration](#75-place-projection-orchestration-pp-003-phase-2)
     - [7.5.1 Rolling-Origin Cross-Validation](#751-rolling-origin-cross-validation-adr-057)
     - [7.5.2 Housing-Unit Cross-Validation](#752-housing-unit-cross-validation-adr-060)
-- [8. Data Sources and References](#8-data-sources-and-references)
-  - [8.1 Primary Data Sources](#81-primary-data-sources)
-  - [8.2 Methodological References](#82-methodological-references)
-  - [8.3 Architecture Decision Records](#83-architecture-decision-records)
+- [8. Evaluation Framework](#8-evaluation-framework)
+  - [8.1 Backtesting Design](#81-backtesting-design)
+  - [8.2 Evaluation Modules](#82-evaluation-modules)
+  - [8.3 Scorecard](#83-scorecard)
+  - [8.4 Configuration and Implementation](#84-configuration-and-implementation)
+- [9. Data Sources and References](#9-data-sources-and-references)
+  - [9.1 Primary Data Sources](#91-primary-data-sources)
+  - [9.2 Methodological References](#92-methodological-references)
+  - [9.3 Architecture Decision Records](#93-architecture-decision-records)
 
 ---
 
@@ -1089,9 +1094,52 @@ Positive values indicate that the HU method projects higher population than shar
 
 The HU method is configured in `projection_config.yaml` under the `housing_unit_method` key, with options to toggle enablement, set the trend method (`log_linear` or `linear`), set the PPH method (`hold_last` or `linear_trend`), and specify projection years. The implementation follows ADR-060.
 
-## 8. Data Sources and References
+## 8. Evaluation Framework
 
-### 8.1 Primary Data Sources
+The model includes a systematic evaluation framework for backtesting projection accuracy, assessing structural realism, and comparing candidate methods. The framework was designed to support the model revision cycle (e.g., the ADR-061 college fix revision) by providing reproducible, quantitative evidence for methodological decisions.
+
+### 8.1 Backtesting Design
+
+The evaluation framework uses **rolling-origin walk-forward validation** (ADR-057) as its primary backtesting design. In this approach, the model is trained on data up to a series of historical origin years and then projects forward to years where actuals are known. Each origin year produces an expanding training window, ensuring that the model is evaluated on genuinely out-of-sample data rather than in-sample fit.
+
+This design avoids the common pitfall of fixed train/test splits, which can produce misleadingly favorable accuracy metrics if the test window happens to align with a benign demographic period. The expanding-window approach tests robustness across multiple demographic regimes (oil boom, recovery, COVID).
+
+### 8.2 Evaluation Modules
+
+The framework is organized into five evaluation modules:
+
+1. **Forecast Accuracy.** Computes standard error metrics (MAPE, RMSE, MAE, bias) by county type, age group, and projection horizon. County-type stratification (oil, metro, college, rural, reservation) ensures that statewide averages do not mask systematic under- or over-projection in specific subpopulations.
+
+2. **Structural Realism.** Validates that projected demographic structures remain plausible over long horizons -- age distributions follow expected shapes, sex ratios stay within biological bounds, growth rates do not produce implausible doubling times, and scenario ordering (restricted < baseline < high growth) is maintained across all counties and years.
+
+3. **Sensitivity and Robustness.** Assesses how projection results change in response to perturbations in key inputs (migration rates, fertility assumptions, convergence schedules). Identifies which parameters have the largest influence on projection outcomes and whether the model is fragile to small input changes.
+
+4. **Benchmark Comparison.** Compares candidate methods head-to-head using paired walk-forward runs. Produces gate-style pass/fail results against acceptance thresholds (e.g., overall MAPE regression < 0.50 percentage points, college county MAPE improvement required).
+
+5. **Reporting.** Generates summary tables, visualizations, and narrative diagnostics from evaluation results. Supports both human review and automated CI-style gate checks.
+
+### 8.3 Scorecard
+
+The evaluation scorecard provides a **6-axis weighted composite** for comparing candidate model configurations:
+
+- Overall forecast accuracy (MAPE)
+- College county accuracy
+- Bakken county accuracy
+- Rural county accuracy
+- Structural realism pass rate
+- Sensitivity stability
+
+Each axis receives a weight reflecting its importance to the projection's primary use case (county-level planning). The composite score enables systematic ranking of candidate methods while the per-axis breakdown ensures that no single dimension is sacrificed for aggregate improvement.
+
+### 8.4 Configuration and Implementation
+
+The evaluation framework is configured via `config/evaluation_config.yaml`, which specifies backtesting windows, accuracy thresholds, county-type classifications, scorecard weights, and gate pass/fail criteria.
+
+The implementation resides in `cohort_projections/analysis/evaluation/`, organized as a Python subpackage with modules corresponding to each evaluation domain. The framework is designed for use both interactively (via runner scripts) and programmatically (via the evaluation API).
+
+## 9. Data Sources and References
+
+### 9.1 Primary Data Sources
 
 **Census Bureau Population Estimates Program (PEP), Vintage 2025.** County-level population estimates by age, sex, and race/ethnicity for North Dakota, 2020--2025. Accessed via the Census Bureau's stcoreview data interface. These estimates serve as the basis for base population construction, residual migration computation, and PEP-anchored recalibration of reservation counties.
 
@@ -1123,7 +1171,7 @@ The HU method is configured in `projection_config.yaml` under the `housing_unit_
 
 - U.S. Census Bureau. (2024). *American Community Survey 5-Year Estimates: Tables B25001, B25010.* Retrieved from https://data.census.gov
 
-### 8.2 Methodological References
+### 9.2 Methodological References
 
 **Cohort-Component Method.** The foundational demographic projection method used throughout this system.
 
@@ -1156,7 +1204,7 @@ The HU method is configured in `projection_config.yaml` under the `housing_unit_
 - Smith, S. K., & Cody, S. (2004). An evaluation of population estimates in Florida: April 1, 2000. *Population Research and Policy Review,* 23(1), 1--24.
 - Smith, S. K., & Rayer, S. (2014). Projections of Florida Population by County, 2015--2040. *Florida Population Studies, Bulletin 168.* Bureau of Economic and Business Research, University of Florida.
 
-### 8.3 Architecture Decision Records
+### 9.3 Architecture Decision Records
 
 The following Architecture Decision Records (ADRs) govern the methodological choices documented in this report. Each ADR is maintained in the project repository at `docs/governance/adrs/`.
 

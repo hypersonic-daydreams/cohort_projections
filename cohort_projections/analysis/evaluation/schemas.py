@@ -95,6 +95,15 @@ class HorizonBands:
     """Manage near-term / long-term horizon partitioning from config."""
 
     def __init__(self, near_max: int = 5, long_min: int = 10) -> None:
+        """Initialize horizon band thresholds.
+
+        Parameters
+        ----------
+        near_max : int, default 5
+            Maximum horizon (inclusive) classified as near-term.
+        long_min : int, default 10
+            Minimum horizon (inclusive) classified as long-term.
+        """
         self.near_max = near_max
         self.long_min = long_min
 

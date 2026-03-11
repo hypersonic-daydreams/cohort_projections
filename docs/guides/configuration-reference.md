@@ -13,6 +13,7 @@ Complete reference for all configuration files in the cohort projections system.
 | `config/projection_config.yaml` | Main projection settings | Yes |
 | `config/data_sources.yaml` | Data acquisition manifest | No |
 | `config/nd_brand.yaml` | Visualization colors/styling | No |
+| `config/evaluation_config.yaml` | Evaluation framework settings | No |
 | `.env` | Environment variables (secrets) | No |
 
 ---
@@ -473,6 +474,207 @@ matplotlib:
 
 ---
 
+## evaluation_config.yaml
+
+Configuration for the evaluation framework (`cohort_projections/analysis/evaluation/`). Defines metrics, thresholds, county groupings, and scorecard weights used by walk-forward validation and benchmark comparison runs.
+
+### Loading Evaluation Configuration
+
+```python
+from cohort_projections.utils import load_yaml_config
+
+eval_config = load_yaml_config("config/evaluation_config.yaml")
+horizons = eval_config["horizons"]
+```
+
+### Evaluation Section Reference
+
+#### horizons
+
+Standard forecast horizons to evaluate.
+
+```yaml
+horizons: [1, 2, 3, 5, 10, 15, 20]
+```
+
+---
+
+#### county_groups
+
+Named county-type groups for stratified reporting. Rural is computed dynamically as all counties not in any named group.
+
+```yaml
+county_groups:
+  bakken: ["38105", "38053", "38061", "38025", "38089"]
+  reservation: ["38005", "38085", "38079"]
+  urban_college: ["38017", "38015", "38035", "38101"]
+  # rural: all remaining counties (computed dynamically)
+```
+
+---
+
+#### sentinel_counties
+
+FIPS-to-name mapping for per-county monitoring in scorecards and reports.
+
+```yaml
+sentinel_counties:
+  "38017": "Cass"
+  "38035": "Grand Forks"
+  "38101": "Ward"
+  "38015": "Burleigh"
+  "38105": "Williams"
+  "38053": "McKenzie"
+```
+
+---
+
+#### targets
+
+Target variables to evaluate.
+
+```yaml
+targets:
+  - population
+  - births
+  - deaths
+  - net_migration
+```
+
+---
+
+#### age_groups
+
+18 standard 5-year age groups used for age-structure evaluation.
+
+```yaml
+age_groups:
+  - "0-4"
+  - "5-9"
+  # ... through "80-84"
+  - "85+"
+```
+
+---
+
+#### accuracy_metrics
+
+Metrics computed for every evaluation run. Each maps to a function in the `METRIC_REGISTRY` (see `schemas.py`).
+
+```yaml
+accuracy_metrics:
+  - mae
+  - rmse
+  - mape
+  - median_ape
+  - wape
+  - mean_signed_error
+  - mean_signed_percentage_error
+```
+
+| Metric | Description |
+|--------|-------------|
+| `mae` | Mean absolute error |
+| `rmse` | Root mean squared error |
+| `mape` | Mean absolute percentage error |
+| `median_ape` | Median absolute percentage error |
+| `wape` | Weighted absolute percentage error |
+| `mean_signed_error` | Mean signed error (bias) |
+| `mean_signed_percentage_error` | Mean signed percentage error (bias) |
+
+---
+
+#### realism
+
+Structural realism thresholds. Projections exceeding these trigger warnings.
+
+```yaml
+realism:
+  max_jsd_age_distribution: 0.05
+  max_cohort_survival_residual: 0.10
+  plausible_fertility_range: [0.0, 0.30]
+  plausible_migration_rate_range: [-0.50, 0.50]
+```
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `max_jsd_age_distribution` | float | Jensen-Shannon divergence warning threshold |
+| `max_cohort_survival_residual` | float | Maximum cohort survival residual (fraction) |
+| `plausible_fertility_range` | list | Age-specific TFR bounds [min, max] |
+| `plausible_migration_rate_range` | list | Net migration rate bounds [min, max] |
+
+---
+
+#### sensitivity
+
+Sensitivity testing defaults for perturbation analysis and Monte Carlo simulation.
+
+```yaml
+sensitivity:
+  perturbation_pct:
+    base_population: [0.5, 1.0]
+    births: [1.0]
+    deaths: [1.0]
+    migration: [5.0]
+  parameter_sweep_levels: 3
+  monte_carlo_iterations: 500
+```
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `perturbation_pct.*` | list | Perturbation percentages per component |
+| `parameter_sweep_levels` | int | Number of sweep levels (low/medium/high) |
+| `monte_carlo_iterations` | int | Number of Monte Carlo iterations |
+
+---
+
+#### scorecard_weights
+
+Six-axis weights for the composite scorecard. Must sum to 1.0.
+
+```yaml
+scorecard_weights:
+  near_term_accuracy: 0.25
+  long_term_accuracy: 0.25
+  bias_calibration: 0.15
+  age_structure_realism: 0.15
+  robustness_stability: 0.10
+  interpretability: 0.10
+```
+
+---
+
+#### near_term_max_horizon / long_term_min_horizon
+
+Horizon classification thresholds used by `HorizonBands` in `schemas.py`.
+
+```yaml
+near_term_max_horizon: 5
+long_term_min_horizon: 10
+```
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `near_term_max_horizon` | int | Maximum horizon classified as near-term (inclusive) |
+| `long_term_min_horizon` | int | Minimum horizon classified as long-term (inclusive) |
+
+---
+
+#### regimes
+
+North Dakota historical regimes for regime-specific backtesting.
+
+```yaml
+regimes:
+  stable: { start: 2000, end: 2007 }
+  energy_boom: { start: 2008, end: 2014 }
+  energy_bust: { start: 2015, end: 2019 }
+  pandemic: { start: 2020, end: 2021 }
+  post_pandemic: { start: 2022, end: 2024 }
+```
+
+---
+
 ## Environment Variables (.env)
 
 Environment variables for secrets and machine-specific settings. See `.env.example` for a template.
@@ -549,4 +751,4 @@ python scripts/run_projections.py
 
 ---
 
-*Last Updated: 2026-02-02*
+*Last Updated: 2026-03-11*

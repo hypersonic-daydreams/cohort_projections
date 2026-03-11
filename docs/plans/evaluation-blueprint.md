@@ -1,15 +1,14 @@
 ---
 title: "Population Projection Evaluation Blueprint"
 created: 2026-03-11
-status: proposed
+status: accepted
 author: ChatGPT
 purpose: >
   Formal evaluation framework for population projection models covering
   accuracy, bias, structural realism, sensitivity, and benchmarking.
 related_docs:
-  - docs/guides/benchmarking-workflow.md
-  - docs/plans/experiment-catalog.md
-  - config/benchmark_evaluation_policy.yaml
+  - config/evaluation_config.yaml
+  - cohort_projections/analysis/evaluation/
 related_adrs:
   - ADR-057 (Rolling-Origin Backtests)
   - ADR-061 (College Fix Model Revision)

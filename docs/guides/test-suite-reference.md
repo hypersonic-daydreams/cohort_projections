@@ -23,6 +23,7 @@
 | `tests/test_geographic/` | 74 | **7s** | Geography loader, multi-level aggregation |
 | `tests/test_config/` | 27 | **5s** | Race category mappings |
 | `tests/test_tools/` | 10 | **5s** | Citation audit tooling |
+| `tests/test_analysis/test_evaluation/` | 154 | **~10s** | Forecast accuracy, structural realism, sensitivity, benchmarks, scorecard |
 | `tests/test_utils/` | 123 | **3s** | Config loader, demographic math, BigQuery, reproducibility |
 
 ---
@@ -382,6 +383,60 @@ Guards the utility functions that everything else depends on. Fast and foundatio
 **What it validates:** BibTeX citation audit -- nocite handling, string macro expansion, multiline citation parsing, LaTeX `\input` traversal, bibliography fix suggestions.
 
 **Why it matters:** Missing or uncited references in a published article are a peer-review defect. String macros that don't expand produce broken journal names in the bibliography.
+
+---
+
+### `tests/test_analysis/test_evaluation/` -- Evaluation Framework (154 tests, ~10s)
+
+Guards the evaluation and backtesting infrastructure used for systematic model comparison and validation.
+
+#### `test_forecast_accuracy.py`
+
+**What it validates:** MAPE, RMSE, MAE, and bias computation by county type, age group, and projection horizon. County-type stratification (oil, metro, college, rural, reservation) and threshold-based pass/fail gates.
+
+**Why it matters:** Forecast accuracy metrics are the primary evidence for accepting or rejecting candidate model revisions. If stratified metrics silently aggregate across county types, a regression in college counties could be masked by improvement elsewhere.
+
+#### `test_structural_realism.py`
+
+**What it validates:** Age distribution shape, sex ratio bounds, growth rate plausibility, scenario ordering invariants (restricted < baseline < high growth) across all counties and years.
+
+**Why it matters:** A model that passes accuracy gates but produces implausible demographic structures (e.g., sex ratios outside biological bounds or negative populations) is not fit for publication.
+
+#### `test_sensitivity.py`
+
+**What it validates:** Parameter perturbation effects on projection outputs, input sensitivity rankings, and model fragility detection.
+
+**Why it matters:** If small perturbations to migration rates produce large swings in county projections, the model is fragile and the specific projection values are unreliable for planning purposes.
+
+#### `test_benchmark_comparison.py`
+
+**What it validates:** Paired walk-forward comparison of candidate methods, gate-style acceptance thresholds, head-to-head MAPE delta computation.
+
+**Why it matters:** This is the gate that determines whether a candidate method (e.g., ADR-061 college fix) improves on the current production method. False positives here would degrade projection quality.
+
+#### `test_benchmark_runners.py`
+
+**What it validates:** Walk-forward benchmark execution orchestration, origin-year iteration, result aggregation across windows.
+
+**Why it matters:** The benchmark runner coordinates the multi-window evaluation. If window boundaries are wrong or results from different windows are incorrectly aggregated, the overall comparison is invalid.
+
+#### `test_scorecard.py`
+
+**What it validates:** 6-axis weighted composite scoring, per-axis normalization, weight application, and ranking consistency.
+
+**Why it matters:** The scorecard provides the summary metric for model comparison. If axis weights don't sum to 1.0 or normalization inverts the direction (higher-is-better vs. lower-is-better), rankings are reversed.
+
+#### `test_visualization.py`
+
+**What it validates:** Evaluation chart generation -- accuracy heatmaps, scorecard radar plots, comparison tables.
+
+**Why it matters:** Evaluation visualizations are used in human review gates. If chart axes are mislabeled or data series are swapped, reviewers may approve a regression.
+
+#### `test_runner.py`
+
+**What it validates:** End-to-end evaluation pipeline execution, module orchestration, output artifact generation, configuration loading.
+
+**Why it matters:** The runner is the main entry point for evaluation. If module ordering is wrong or intermediate results are not passed correctly between stages, the final evaluation report is inconsistent.
 
 ---
 
