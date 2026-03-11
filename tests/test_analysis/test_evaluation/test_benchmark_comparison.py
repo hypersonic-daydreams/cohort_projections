@@ -8,8 +8,9 @@ import pytest
 
 from cohort_projections.analysis.evaluation.benchmark_comparison import (
     BenchmarkComparisonModule,
-    _validate_result_df,
 )
+from cohort_projections.analysis.evaluation.schemas import PROJECTION_RESULT_COLUMNS
+from cohort_projections.analysis.evaluation.utils import validate_dataframe
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -103,12 +104,12 @@ def bad_method_df():
 
 class TestValidation:
     def test_validate_result_df_passes(self, baseline_df):
-        _validate_result_df(baseline_df, label="test")
+        validate_dataframe(baseline_df, PROJECTION_RESULT_COLUMNS, "test")
 
     def test_validate_result_df_missing_column(self):
         df = pd.DataFrame({"geography": ["a"], "year": [2020]})
         with pytest.raises(ValueError, match="missing required columns"):
-            _validate_result_df(df, label="bad")
+            validate_dataframe(df, PROJECTION_RESULT_COLUMNS, "bad")
 
 
 # ---------------------------------------------------------------------------

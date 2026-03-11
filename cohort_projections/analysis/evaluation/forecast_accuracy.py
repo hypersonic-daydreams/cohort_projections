@@ -18,87 +18,19 @@ import pandas as pd
 from .metrics import (
     decile_capture,
     directional_accuracy,
-    mae,
     mape,
-    mean_signed_error,
-    mean_signed_percentage_error,
-    median_absolute_percentage_error,
-    rmse,
     spearman_rank_correlation,
     wape,
 )
+from .schemas import METRIC_REGISTRY, PROJECTION_RESULT_COLUMNS
+from .utils import (
+    compute_grouped_metrics,
+    make_diagnostic_record,
+    resolve_county_group,
+    validate_dataframe,
+)
 
 logger = logging.getLogger(__name__)
-
-# Mapping from config-friendly names to (function, is_signed) pairs.
-_ACCURACY_METRICS: dict[str, tuple[Any, str]] = {
-    "mae": (mae, "accuracy"),
-    "rmse": (rmse, "accuracy"),
-    "mape": (mape, "accuracy"),
-    "median_ape": (median_absolute_percentage_error, "accuracy"),
-    "wape": (wape, "accuracy"),
-    "mean_signed_error": (mean_signed_error, "bias"),
-    "mean_signed_percentage_error": (mean_signed_percentage_error, "bias"),
-}
-
-# Required input columns (subset of ProjectionResultRecord fields).
-_REQUIRED_COLUMNS: set[str] = {
-    "run_id",
-    "geography",
-    "geography_type",
-    "year",
-    "horizon",
-    "sex",
-    "age_group",
-    "target",
-    "projected_value",
-    "actual_value",
-    "base_value",
-}
-
-
-def _validate_dataframe(df: pd.DataFrame) -> None:
-    """Raise ``ValueError`` if *df* is missing required columns."""
-    missing = _REQUIRED_COLUMNS - set(df.columns)
-    if missing:
-        raise ValueError(f"Input DataFrame missing columns: {sorted(missing)}")
-
-
-def _make_diagnostic_row(
-    run_id: str,
-    metric_name: str,
-    metric_group: str,
-    geography: str,
-    geography_group: str,
-    target: str,
-    value: float,
-    horizon: int | None = None,
-    notes: str = "",
-) -> dict[str, Any]:
-    """Build a dict compatible with :class:`DiagnosticRecord`."""
-    return {
-        "run_id": run_id,
-        "metric_name": metric_name,
-        "metric_group": metric_group,
-        "geography": geography,
-        "geography_group": geography_group,
-        "target": target,
-        "horizon": horizon,
-        "value": value,
-        "comparison_run_id": "",
-        "notes": notes,
-    }
-
-
-def _resolve_county_group(
-    fips: str,
-    county_groups: dict[str, list[str]],
-) -> str:
-    """Return the county-type group a FIPS code belongs to, or ``'rural'``."""
-    for group_name, fips_list in county_groups.items():
-        if fips in fips_list:
-            return group_name
-    return "rural"
 
 
 class ForecastAccuracyModule:
@@ -136,7 +68,7 @@ class ForecastAccuracyModule:
         Returns:
             DataFrame with columns matching :class:`DiagnosticRecord`.
         """
-        _validate_dataframe(df)
+        validate_dataframe(df, PROJECTION_RESULT_COLUMNS, label="input")
         parts: list[pd.DataFrame] = [
             self.accuracy_by_geography_horizon(df, target="population"),
             self.accuracy_by_age_group(df),
@@ -171,41 +103,20 @@ class ForecastAccuracyModule:
         Returns:
             DataFrame of :class:`DiagnosticRecord`-compatible rows.
         """
-        _validate_dataframe(df)
+        validate_dataframe(df, PROJECTION_RESULT_COLUMNS, label="input")
         subset = df[
             (df["target"] == target)
             & (df["age_group"] == "total")
             & (df["sex"] == "total")
         ].copy()
 
-        rows: list[dict[str, Any]] = []
-
-        for (run_id, geography, horizon), grp in subset.groupby(
-            ["run_id", "geography", "horizon"]
-        ):
-            geo_type = grp["geography_type"].iloc[0]
-            geo_group = (
-                "state"
-                if geo_type == "state"
-                else _resolve_county_group(str(geography), self.county_groups)
-            )
-            proj = grp["projected_value"]
-            act = grp["actual_value"]
-
-            for metric_name, (metric_fn, metric_group) in _ACCURACY_METRICS.items():
-                val = metric_fn(proj, act)
-                rows.append(
-                    _make_diagnostic_row(
-                        run_id=str(run_id),
-                        metric_name=metric_name,
-                        metric_group=metric_group,
-                        geography=str(geography),
-                        geography_group=geo_group,
-                        target=target,
-                        value=val,
-                        horizon=int(horizon),
-                    )
-                )
+        rows = compute_grouped_metrics(
+            subset,
+            groupby_cols=["run_id", "geography", "horizon"],
+            metrics=METRIC_REGISTRY,
+            county_groups=self.county_groups,
+            default_target=target,
+        )
 
         return pd.DataFrame(rows)
 
@@ -227,7 +138,7 @@ class ForecastAccuracyModule:
         Returns:
             DataFrame of :class:`DiagnosticRecord`-compatible rows.
         """
-        _validate_dataframe(df)
+        validate_dataframe(df, PROJECTION_RESULT_COLUMNS, label="input")
         subset = df[
             (df["target"] == target)
             & (df["age_group"] != "total")
@@ -243,22 +154,22 @@ class ForecastAccuracyModule:
             geo_group = (
                 "state"
                 if geo_type == "state"
-                else _resolve_county_group(str(geography), self.county_groups)
+                else resolve_county_group(str(geography), self.county_groups)
             )
             proj = grp["projected_value"]
             act = grp["actual_value"]
 
-            for metric_name, (metric_fn, metric_group) in _ACCURACY_METRICS.items():
+            for metric_name, (metric_fn, metric_group) in METRIC_REGISTRY.items():
                 val = metric_fn(proj, act)
                 rows.append(
-                    _make_diagnostic_row(
+                    make_diagnostic_record(
                         run_id=str(run_id),
                         metric_name=f"{metric_name}__age_{age_group}",
                         metric_group=metric_group,
                         geography=str(geography),
-                        geography_group=geo_group,
                         target=target,
                         value=val,
+                        geography_group=geo_group,
                         horizon=int(horizon),
                         notes=f"age_group={age_group}",
                     )
@@ -287,7 +198,7 @@ class ForecastAccuracyModule:
         Returns:
             DataFrame of :class:`DiagnosticRecord`-compatible rows.
         """
-        _validate_dataframe(df)
+        validate_dataframe(df, PROJECTION_RESULT_COLUMNS, label="input")
         subset = df[
             (df["target"] == target)
             & (df["age_group"] == "total")
@@ -296,38 +207,17 @@ class ForecastAccuracyModule:
 
         bias_metrics = {
             k: v
-            for k, v in _ACCURACY_METRICS.items()
+            for k, v in METRIC_REGISTRY.items()
             if v[1] == "bias"
         }
 
-        rows: list[dict[str, Any]] = []
-
-        for (run_id, geography, horizon), grp in subset.groupby(
-            ["run_id", "geography", "horizon"]
-        ):
-            geo_type = grp["geography_type"].iloc[0]
-            geo_group = (
-                "state"
-                if geo_type == "state"
-                else _resolve_county_group(str(geography), self.county_groups)
-            )
-            proj = grp["projected_value"]
-            act = grp["actual_value"]
-
-            for metric_name, (metric_fn, metric_group) in bias_metrics.items():
-                val = metric_fn(proj, act)
-                rows.append(
-                    _make_diagnostic_row(
-                        run_id=str(run_id),
-                        metric_name=metric_name,
-                        metric_group=metric_group,
-                        geography=str(geography),
-                        geography_group=geo_group,
-                        target=target,
-                        value=val,
-                        horizon=int(horizon),
-                    )
-                )
+        rows = compute_grouped_metrics(
+            subset,
+            groupby_cols=["run_id", "geography", "horizon"],
+            metrics=bias_metrics,
+            county_groups=self.county_groups,
+            default_target=target,
+        )
 
         return pd.DataFrame(rows)
 
@@ -354,7 +244,7 @@ class ForecastAccuracyModule:
         Returns:
             DataFrame of :class:`DiagnosticRecord`-compatible rows.
         """
-        _validate_dataframe(df)
+        validate_dataframe(df, PROJECTION_RESULT_COLUMNS, label="input")
         subset = df[
             (df["target"] == target)
             & (df["age_group"] == "total")
@@ -383,56 +273,56 @@ class ForecastAccuracyModule:
 
             # Spearman rank correlation
             rows.append(
-                _make_diagnostic_row(
+                make_diagnostic_record(
                     run_id=str(run_id),
                     metric_name="spearman_rank_correlation",
                     metric_group="accuracy",
                     geography="all_counties",
-                    geography_group="all",
                     target=target,
                     value=spearman_rank_correlation(pg, ag),
+                    geography_group="all",
                     horizon=int(horizon),
                 )
             )
 
             # Directional accuracy
             rows.append(
-                _make_diagnostic_row(
+                make_diagnostic_record(
                     run_id=str(run_id),
                     metric_name="directional_accuracy",
                     metric_group="accuracy",
                     geography="all_counties",
-                    geography_group="all",
                     target=target,
                     value=directional_accuracy(pg, ag),
+                    geography_group="all",
                     horizon=int(horizon),
                 )
             )
 
             # Top-decile capture
             rows.append(
-                _make_diagnostic_row(
+                make_diagnostic_record(
                     run_id=str(run_id),
                     metric_name="top_decile_capture",
                     metric_group="accuracy",
                     geography="all_counties",
-                    geography_group="all",
                     target=target,
                     value=decile_capture(pg, ag, quantile=0.1, tail="top"),
+                    geography_group="all",
                     horizon=int(horizon),
                 )
             )
 
             # Bottom-decile capture
             rows.append(
-                _make_diagnostic_row(
+                make_diagnostic_record(
                     run_id=str(run_id),
                     metric_name="bottom_decile_capture",
                     metric_group="accuracy",
                     geography="all_counties",
-                    geography_group="all",
                     target=target,
                     value=decile_capture(pg, ag, quantile=0.1, tail="bottom"),
+                    geography_group="all",
                     horizon=int(horizon),
                 )
             )
@@ -460,7 +350,7 @@ class ForecastAccuracyModule:
         Returns:
             DataFrame of :class:`DiagnosticRecord`-compatible rows.
         """
-        _validate_dataframe(df)
+        validate_dataframe(df, PROJECTION_RESULT_COLUMNS, label="input")
         subset = df[
             (df["target"] == target)
             & (df["age_group"] == "total")
@@ -478,27 +368,27 @@ class ForecastAccuracyModule:
             wape_val = wape(proj, act)
 
             rows.append(
-                _make_diagnostic_row(
+                make_diagnostic_record(
                     run_id=str(run_id),
                     metric_name="mape",
                     metric_group="accuracy",
                     geography="all_counties",
-                    geography_group="all",
                     target=target,
                     value=mape_val,
+                    geography_group="all",
                     horizon=int(horizon),
                     notes="unweighted (cross-county)",
                 )
             )
             rows.append(
-                _make_diagnostic_row(
+                make_diagnostic_record(
                     run_id=str(run_id),
                     metric_name="wape",
                     metric_group="accuracy",
                     geography="all_counties",
-                    geography_group="all",
                     target=target,
                     value=wape_val,
+                    geography_group="all",
                     horizon=int(horizon),
                     notes="population-weighted (cross-county)",
                 )
@@ -506,14 +396,14 @@ class ForecastAccuracyModule:
 
             ratio = wape_val / mape_val if mape_val != 0 else float("nan")
             rows.append(
-                _make_diagnostic_row(
+                make_diagnostic_record(
                     run_id=str(run_id),
                     metric_name="wape_mape_ratio",
                     metric_group="accuracy",
                     geography="all_counties",
-                    geography_group="all",
                     target=target,
                     value=ratio,
+                    geography_group="all",
                     horizon=int(horizon),
                     notes="<1 means large counties more accurate",
                 )
@@ -547,7 +437,7 @@ class ForecastAccuracyModule:
             DataFrame of :class:`DiagnosticRecord`-compatible rows.  Each
             row carries a ``notes`` field of the form ``regime=<name>``.
         """
-        _validate_dataframe(df)
+        validate_dataframe(df, PROJECTION_RESULT_COLUMNS, label="input")
         regimes = regimes if regimes is not None else self.regimes
         if not regimes:
             return pd.DataFrame()
@@ -580,22 +470,22 @@ class ForecastAccuracyModule:
             geo_group = (
                 "state"
                 if geo_type == "state"
-                else _resolve_county_group(str(geography), self.county_groups)
+                else resolve_county_group(str(geography), self.county_groups)
             )
             proj = grp["projected_value"]
             act = grp["actual_value"]
 
-            for metric_name, (metric_fn, metric_group) in _ACCURACY_METRICS.items():
+            for metric_name, (metric_fn, metric_group) in METRIC_REGISTRY.items():
                 val = metric_fn(proj, act)
                 rows.append(
-                    _make_diagnostic_row(
+                    make_diagnostic_record(
                         run_id=str(run_id),
                         metric_name=f"{metric_name}__regime_{regime}",
                         metric_group=metric_group,
                         geography=str(geography),
-                        geography_group=geo_group,
                         target=target,
                         value=val,
+                        geography_group=geo_group,
                         notes=f"regime={regime}",
                     )
                 )

@@ -17,35 +17,15 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from . import metrics
+from .schemas import (
+    METRIC_REGISTRY,
+    PROJECTION_JOIN_KEYS,
+    PROJECTION_RESULT_COLUMNS,
+    HorizonBands,
+)
+from .utils import validate_dataframe
 
 logger = logging.getLogger(__name__)
-
-# Required columns in projection result DataFrames
-_RESULT_COLUMNS = [
-    "run_id",
-    "geography",
-    "geography_type",
-    "year",
-    "horizon",
-    "sex",
-    "age_group",
-    "target",
-    "projected_value",
-    "actual_value",
-    "base_value",
-]
-
-# Columns that define a unique observation (for joining/merging)
-_JOIN_KEYS = [
-    "geography",
-    "geography_type",
-    "year",
-    "horizon",
-    "sex",
-    "age_group",
-    "target",
-]
 
 # Standard benchmark families referenced in the blueprint
 BENCHMARK_FAMILIES = [
@@ -57,23 +37,13 @@ BENCHMARK_FAMILIES = [
     "state_share",
 ]
 
-# Default metrics computed per comparison
+# Ordered list form of PROJECTION_RESULT_COLUMNS for column selection
+_RESULT_COLUMNS = sorted(PROJECTION_RESULT_COLUMNS)
+
+# Default metrics: extract just the callable from METRIC_REGISTRY entries
 _DEFAULT_METRICS: dict[str, Any] = {
-    "mae": metrics.mae,
-    "rmse": metrics.rmse,
-    "mape": metrics.mape,
-    "mean_signed_error": metrics.mean_signed_error,
-    "mean_signed_percentage_error": metrics.mean_signed_percentage_error,
+    name: fn for name, (fn, _group) in METRIC_REGISTRY.items()
 }
-
-
-def _validate_result_df(df: pd.DataFrame, label: str = "input") -> None:
-    """Raise ``ValueError`` if *df* is missing required columns."""
-    missing = set(_RESULT_COLUMNS) - set(df.columns)
-    if missing:
-        raise ValueError(
-            f"{label} DataFrame missing required columns: {sorted(missing)}"
-        )
 
 
 class BenchmarkComparisonModule:
@@ -97,6 +67,9 @@ class BenchmarkComparisonModule:
         self.long_term_min: int = config.get("long_term_min_horizon", 10)
         self.horizons: list[int] = config.get("horizons", [1, 2, 3, 5, 10, 15, 20])
         self.county_groups: dict[str, list[str]] = config.get("county_groups", {})
+        self._hbands = HorizonBands(
+            near_max=self.near_term_max, long_min=self.long_term_min
+        )
 
     # ------------------------------------------------------------------
     # Full comparison
@@ -131,7 +104,7 @@ class BenchmarkComparisonModule:
                 f"Available: {sorted(method_results.keys())}"
             )
         baseline_df = method_results[baseline_name]
-        _validate_result_df(baseline_df, label=f"baseline ({baseline_name})")
+        validate_dataframe(baseline_df, PROJECTION_RESULT_COLUMNS, f"baseline ({baseline_name})")
 
         rows: list[dict[str, Any]] = []
         for name, challenger_df in method_results.items():
@@ -186,8 +159,8 @@ class BenchmarkComparisonModule:
         pd.DataFrame
             Rows with metric deltas by geography group and horizon band.
         """
-        _validate_result_df(challenger_df, label=method_name)
-        _validate_result_df(baseline_df, label=baseline_name)
+        validate_dataframe(challenger_df, PROJECTION_RESULT_COLUMNS, method_name)
+        validate_dataframe(baseline_df, PROJECTION_RESULT_COLUMNS, baseline_name)
 
         rows: list[dict[str, Any]] = []
 
@@ -248,7 +221,7 @@ class BenchmarkComparisonModule:
         """
         rows: list[dict[str, Any]] = []
         for swap_label, df in swap_results.items():
-            _validate_result_df(df, label=swap_label)
+            validate_dataframe(df, PROJECTION_RESULT_COLUMNS, swap_label)
 
             for horizon_band, horizon_filter in self._horizon_bands().items():
                 sub = df[df["horizon"].isin(horizon_filter)]
@@ -310,12 +283,12 @@ class BenchmarkComparisonModule:
         pd.DataFrame
             Blended projection result with the same columns as the inputs.
         """
-        _validate_result_df(near_term_df, label="near_term")
-        _validate_result_df(long_term_df, label="long_term")
+        validate_dataframe(near_term_df, PROJECTION_RESULT_COLUMNS, "near_term")
+        validate_dataframe(long_term_df, PROJECTION_RESULT_COLUMNS, "long_term")
 
         merged = near_term_df.merge(
             long_term_df,
-            on=_JOIN_KEYS,
+            on=PROJECTION_JOIN_KEYS,
             suffixes=("_near", "_long"),
             how="outer",
         )
@@ -339,7 +312,7 @@ class BenchmarkComparisonModule:
         near_proj = merged.get("projected_value_near", pd.Series(0.0, index=merged.index)).fillna(0.0)
         long_proj = merged.get("projected_value_long", pd.Series(0.0, index=merged.index)).fillna(0.0)
 
-        blended = merged[_JOIN_KEYS].copy()
+        blended = merged[PROJECTION_JOIN_KEYS].copy()
         blended["projected_value"] = w_near * near_proj + w_long * long_proj
 
         # Carry actual and base values from whichever side is available
@@ -396,10 +369,10 @@ class BenchmarkComparisonModule:
 
         # Validate all DataFrames
         for name, df in method_results.items():
-            _validate_result_df(df, label=name)
+            validate_dataframe(df, PROJECTION_RESULT_COLUMNS, name)
 
         # Start from the first method and merge in the rest
-        base_df = method_results[names[0]][_JOIN_KEYS + ["actual_value", "base_value"]].copy()
+        base_df = method_results[names[0]][PROJECTION_JOIN_KEYS + ["actual_value", "base_value"]].copy()
         base_df["projected_value"] = (
             method_results[names[0]]["projected_value"] * w[names[0]]
         )
@@ -407,8 +380,8 @@ class BenchmarkComparisonModule:
         for name in names[1:]:
             other = method_results[name]
             merged = base_df.merge(
-                other[_JOIN_KEYS + ["projected_value"]],
-                on=_JOIN_KEYS,
+                other[PROJECTION_JOIN_KEYS + ["projected_value"]],
+                on=PROJECTION_JOIN_KEYS,
                 how="outer",
                 suffixes=("", f"_{name}"),
             )
@@ -453,7 +426,7 @@ class BenchmarkComparisonModule:
             Combined result using the selected method per county group.
         """
         for name, df in method_results.items():
-            _validate_result_df(df, label=name)
+            validate_dataframe(df, PROJECTION_RESULT_COLUMNS, name)
 
         # Build a set of assigned FIPS codes
         assigned_fips: set[str] = set()
@@ -619,8 +592,8 @@ class BenchmarkComparisonModule:
         """Return near-term, long-term, and overall horizon groupings."""
         all_h = self.horizons
         return {
-            "near_term": [h for h in all_h if h <= self.near_term_max],
-            "long_term": [h for h in all_h if h >= self.long_term_min],
+            "near_term": [h for h in all_h if h <= self._hbands.near_max],
+            "long_term": [h for h in all_h if h >= self._hbands.long_min],
             "all": all_h,
         }
 

@@ -15,8 +15,9 @@ import pytest
 
 from cohort_projections.analysis.evaluation.sensitivity import (
     SensitivityModule,
-    _validate_results_df,
+    _REQUIRED_COLS,
 )
+from cohort_projections.analysis.evaluation.utils import validate_dataframe
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -128,15 +129,15 @@ def module(config: dict[str, Any]) -> SensitivityModule:
 
 
 class TestValidateResultsDf:
-    """Tests for _validate_results_df."""
+    """Tests for validate_dataframe (sensitivity required columns)."""
 
     def test_valid_df_passes(self, baseline_results: pd.DataFrame) -> None:
-        _validate_results_df(baseline_results)  # should not raise
+        validate_dataframe(baseline_results, _REQUIRED_COLS)  # should not raise
 
     def test_missing_column_raises(self) -> None:
         df = pd.DataFrame({"geography": ["A"], "year": [2025]})
         with pytest.raises(ValueError, match="missing required columns"):
-            _validate_results_df(df)
+            validate_dataframe(df, _REQUIRED_COLS)
 
 
 # ---------------------------------------------------------------------------
@@ -424,7 +425,7 @@ class TestComputeStabilityIndex:
         module: SensitivityModule,
     ) -> None:
         df = pd.DataFrame({"geography": ["A"], "other": [1.0]})
-        with pytest.raises(ValueError, match="missing columns"):
+        with pytest.raises(ValueError, match="missing required columns"):
             module.compute_stability_index(df)
 
     def test_disproportionate_flag(

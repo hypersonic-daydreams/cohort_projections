@@ -27,6 +27,8 @@ import numpy as np
 import pandas as pd
 
 from .metrics import mae, mape, mean_signed_percentage_error
+from .schemas import HorizonBands
+from .utils import build_lookup, validate_dataframe
 
 logger = logging.getLogger(__name__)
 
@@ -34,16 +36,9 @@ logger = logging.getLogger(__name__)
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-_REQUIRED_COLS = {"geography", "year", "horizon", "projected_value", "actual_value"}
-
-
-def _validate_results_df(df: pd.DataFrame, label: str = "results") -> None:
-    """Raise ``ValueError`` if *df* is missing required columns."""
-    missing = _REQUIRED_COLS - set(df.columns)
-    if missing:
-        raise ValueError(
-            f"{label} DataFrame is missing required columns: {sorted(missing)}"
-        )
+_REQUIRED_COLS = frozenset(
+    {"geography", "year", "horizon", "projected_value", "actual_value"}
+)
 
 
 def _error_metrics(projected: np.ndarray, actual: np.ndarray) -> dict[str, float]:
@@ -53,14 +48,6 @@ def _error_metrics(projected: np.ndarray, actual: np.ndarray) -> dict[str, float
         "mape": mape(projected, actual),
         "bias": mean_signed_percentage_error(projected, actual),
     }
-
-
-def _near_term_mask(df: pd.DataFrame, threshold: int = 5) -> pd.Series:
-    return df["horizon"] <= threshold
-
-
-def _long_term_mask(df: pd.DataFrame, threshold: int = 10) -> pd.Series:
-    return df["horizon"] >= threshold
 
 
 # ---------------------------------------------------------------------------
@@ -92,6 +79,9 @@ class SensitivityModule:
         self._mc_iterations: int = int(config.get("monte_carlo_iterations", 500))
         self._near_term_max: int = int(config.get("near_term_max_horizon", 5))
         self._long_term_min: int = int(config.get("long_term_min_horizon", 10))
+        self._horizon_bands = HorizonBands(
+            near_max=self._near_term_max, long_min=self._long_term_min
+        )
 
     # ------------------------------------------------------------------
     # Parameter sweep
@@ -116,23 +106,23 @@ class SensitivityModule:
             ``long_term_error``, ``bias``, ``realism_score``,
             ``stability_score``.
         """
-        _validate_results_df(baseline_results, "baseline_results")
+        validate_dataframe(baseline_results, _REQUIRED_COLS, "baseline_results")
 
         records: list[dict[str, Any]] = []
         for val in values:
             logger.info("Parameter sweep: %s = %s", param_name, val)
             run_results = self.run_projection_fn({param_name: val})
-            _validate_results_df(run_results, f"run({param_name}={val})")
+            validate_dataframe(run_results, _REQUIRED_COLS, f"run({param_name}={val})")
 
             projected = run_results["projected_value"].to_numpy()
             actual = run_results["actual_value"].to_numpy()
 
             # Near-term error
-            nt = _near_term_mask(run_results, self._near_term_max)
+            nt = self._horizon_bands.near_term_mask(run_results)
             near_err = mape(projected[nt], actual[nt]) if nt.any() else float("nan")
 
             # Long-term error
-            lt = _long_term_mask(run_results, self._long_term_min)
+            lt = self._horizon_bands.long_term_mask(run_results)
             long_err = mape(projected[lt], actual[lt]) if lt.any() else float("nan")
 
             # Bias
@@ -183,7 +173,7 @@ class SensitivityModule:
             ``value_a``, ``value_b``, ``near_term_error``,
             ``long_term_error``, ``bias``.
         """
-        _validate_results_df(baseline_results, "baseline_results")
+        validate_dataframe(baseline_results, _REQUIRED_COLS, "baseline_results")
 
         records: list[dict[str, Any]] = []
         for param_a, param_b in param_pairs:
@@ -194,13 +184,13 @@ class SensitivityModule:
                     "Interaction sweep: %s=%s, %s=%s", param_a, va, param_b, vb
                 )
                 run_results = self.run_projection_fn({param_a: va, param_b: vb})
-                _validate_results_df(run_results)
+                validate_dataframe(run_results, _REQUIRED_COLS)
 
                 projected = run_results["projected_value"].to_numpy()
                 actual = run_results["actual_value"].to_numpy()
 
-                nt = _near_term_mask(run_results, self._near_term_max)
-                lt = _long_term_mask(run_results, self._long_term_min)
+                nt = self._horizon_bands.near_term_mask(run_results)
+                lt = self._horizon_bands.long_term_mask(run_results)
 
                 records.append({
                     "param_a": param_a,
@@ -243,7 +233,7 @@ class SensitivityModule:
             ``baseline_value``, ``perturbed_value``,
             ``abs_change``, ``sensitivity_index``.
         """
-        _validate_results_df(baseline_results, "baseline_results")
+        validate_dataframe(baseline_results, _REQUIRED_COLS, "baseline_results")
         if perturbation_pcts is None:
             perturbation_pcts = self._perturbation_pcts
 
@@ -261,7 +251,7 @@ class SensitivityModule:
                         "Perturbation test: %s %+.1f%%", component, pct * sign
                     )
                     run_results = self.run_projection_fn(override)
-                    _validate_results_df(run_results)
+                    validate_dataframe(run_results, _REQUIRED_COLS)
 
                     # Match rows by geography and horizon
                     merged = baseline_results.merge(
@@ -325,7 +315,7 @@ class SensitivityModule:
             ``uncertainty_contribution_<component>``, and
             ``uncertainty_amplification``.
         """
-        _validate_results_df(baseline_results, "baseline_results")
+        validate_dataframe(baseline_results, _REQUIRED_COLS, "baseline_results")
         if n_iterations is None:
             n_iterations = self._mc_iterations
 
@@ -356,7 +346,7 @@ class SensitivityModule:
                 }
             }
             run_results = self.run_projection_fn(override)
-            _validate_results_df(run_results)
+            validate_dataframe(run_results, _REQUIRED_COLS)
 
             for _, row in run_results.iterrows():
                 key = (str(row["geography"]), int(row["horizon"]))
@@ -414,22 +404,21 @@ class SensitivityModule:
             ``horizon``, ``projected_value``, ``baseline_projected``,
             ``deviation``, ``deviation_pct``.
         """
-        _validate_results_df(baseline_results, "baseline_results")
+        validate_dataframe(baseline_results, _REQUIRED_COLS, "baseline_results")
 
         records: list[dict[str, Any]] = []
-        base_lookup = {
-            (str(r["geography"]), int(r["horizon"])): float(r["projected_value"])
-            for _, r in baseline_results.iterrows()
-        }
+        base_lookup = build_lookup(
+            baseline_results, ["geography", "horizon"], "projected_value"
+        )
 
         for origin in origin_years:
             logger.info("Base-year sensitivity: origin=%d", origin)
             run_results = self.run_projection_fn({"__origin_year__": origin})
-            _validate_results_df(run_results)
+            validate_dataframe(run_results, _REQUIRED_COLS)
 
             for _, row in run_results.iterrows():
-                key = (str(row["geography"]), int(row["horizon"]))
-                baseline_val = base_lookup.get(key, float("nan"))
+                key = (row["geography"], row["horizon"])
+                baseline_val = float(base_lookup.get(key, float("nan")))
                 proj_val = float(row["projected_value"])
                 deviation = proj_val - baseline_val
                 dev_pct = (
@@ -470,7 +459,7 @@ class SensitivityModule:
             DataFrame with columns ``window_label``, ``near_term_error``,
             ``long_term_error``, ``bias``, ``n_rows``.
         """
-        _validate_results_df(baseline_results, "baseline_results")
+        validate_dataframe(baseline_results, _REQUIRED_COLS, "baseline_results")
 
         records: list[dict[str, Any]] = []
         for window in windows:
@@ -478,13 +467,13 @@ class SensitivityModule:
             logger.info("History-window sensitivity: %s", label)
             override = {"__history_window__": window}
             run_results = self.run_projection_fn(override)
-            _validate_results_df(run_results)
+            validate_dataframe(run_results, _REQUIRED_COLS)
 
             projected = run_results["projected_value"].to_numpy()
             actual = run_results["actual_value"].to_numpy()
 
-            nt = _near_term_mask(run_results, self._near_term_max)
-            lt = _long_term_mask(run_results, self._long_term_min)
+            nt = self._horizon_bands.near_term_mask(run_results)
+            lt = self._horizon_bands.long_term_mask(run_results)
 
             records.append({
                 "window_label": label,
@@ -517,7 +506,7 @@ class SensitivityModule:
             DataFrame with columns ``shock_label``, ``near_term_error``,
             ``long_term_error``, ``bias``, ``n_rows``.
         """
-        _validate_results_df(baseline_results, "baseline_results")
+        validate_dataframe(baseline_results, _REQUIRED_COLS, "baseline_results")
 
         records: list[dict[str, Any]] = []
         for shock_cfg in shock_configs:
@@ -525,13 +514,13 @@ class SensitivityModule:
             logger.info("Shock-year sensitivity: %s", label)
             override = {"__shock_config__": shock_cfg}
             run_results = self.run_projection_fn(override)
-            _validate_results_df(run_results)
+            validate_dataframe(run_results, _REQUIRED_COLS)
 
             projected = run_results["projected_value"].to_numpy()
             actual = run_results["actual_value"].to_numpy()
 
-            nt = _near_term_mask(run_results, self._near_term_max)
-            lt = _long_term_mask(run_results, self._long_term_min)
+            nt = self._horizon_bands.near_term_mask(run_results)
+            lt = self._horizon_bands.long_term_mask(run_results)
 
             records.append({
                 "shock_label": label,
@@ -561,12 +550,11 @@ class SensitivityModule:
             ``max_sensitivity``, ``stability_rank``,
             ``disproportionate_flag``.  Lower rank = more stable.
         """
-        required = {"geography", "sensitivity_index"}
-        missing = required - set(perturbation_results.columns)
-        if missing:
-            raise ValueError(
-                f"perturbation_results is missing columns: {sorted(missing)}"
-            )
+        validate_dataframe(
+            perturbation_results,
+            frozenset({"geography", "sensitivity_index"}),
+            "perturbation_results",
+        )
 
         grouped = perturbation_results.groupby("geography")["sensitivity_index"]
         summary = pd.DataFrame({

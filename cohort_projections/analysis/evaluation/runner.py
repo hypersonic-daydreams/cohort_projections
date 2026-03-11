@@ -16,17 +16,10 @@ import yaml
 
 from .data_structures import ScorecardEntry
 from .forecast_accuracy import ForecastAccuracyModule
-from .metrics import (
-    mae,
-    mape,
-    mean_signed_error,
-    mean_signed_percentage_error,
-    median_absolute_percentage_error,
-    rmse,
-    wape,
-)
+from .schemas import METRIC_REGISTRY, PROJECTION_RESULT_COLUMNS, HorizonBands
 from .scorecard import ModelScorecard
 from .sensitivity import SensitivityModule
+from .utils import make_diagnostic_record, resolve_county_group, safe_plot
 from .visualization import (
     MATPLOTLIB_AVAILABLE,
     plot_bias_map,
@@ -43,15 +36,9 @@ _DEFAULT_CONFIG_PATH = (
     Path(__file__).resolve().parents[3] / "config" / "evaluation_config.yaml"
 )
 
-# Map config metric names to functions
+# Map config metric names to functions (derived from canonical registry)
 _METRIC_FUNCS: dict[str, Callable[..., float]] = {
-    "mae": mae,
-    "rmse": rmse,
-    "mape": mape,
-    "median_ape": median_absolute_percentage_error,
-    "wape": wape,
-    "mean_signed_error": mean_signed_error,
-    "mean_signed_percentage_error": mean_signed_percentage_error,
+    name: fn for name, (fn, _group) in METRIC_REGISTRY.items()
 }
 
 
@@ -120,9 +107,7 @@ class EvaluationRunner:
 
         # Regime-stratified accuracy (appended to accuracy diagnostics)
         if self.regimes:
-            from .forecast_accuracy import _REQUIRED_COLUMNS
-
-            has_required = _REQUIRED_COLUMNS.issubset(set(results_df.columns))
+            has_required = PROJECTION_RESULT_COLUMNS.issubset(set(results_df.columns))
             if has_required:
                 fa_module = ForecastAccuracyModule(
                     county_groups=self.county_groups,
@@ -367,23 +352,22 @@ class EvaluationRunner:
                     continue
                 val = func(proj, act)
                 geo_group = self._resolve_geography_group(str(geography))
-                records.append(
-                    {
-                        "run_id": grp["run_id"].iloc[0] if "run_id" in grp.columns else "",
-                        "metric_name": metric_name,
-                        "metric_group": "accuracy",
-                        "geography": str(geography),
-                        "geography_group": geo_group,
-                        "target": grp["target"].iloc[0] if "target" in grp.columns else "population",
-                        "horizon": int(horizon),
-                        "value": val,
-                        "model_name": (
-                            grp["model_name"].iloc[0]
-                            if "model_name" in grp.columns
-                            else ""
-                        ),
-                    }
+                rec = make_diagnostic_record(
+                    run_id=grp["run_id"].iloc[0] if "run_id" in grp.columns else "",
+                    metric_name=metric_name,
+                    metric_group="accuracy",
+                    geography=str(geography),
+                    target=grp["target"].iloc[0] if "target" in grp.columns else "population",
+                    value=val,
+                    geography_group=geo_group,
+                    horizon=int(horizon),
                 )
+                rec["model_name"] = (
+                    grp["model_name"].iloc[0]
+                    if "model_name" in grp.columns
+                    else ""
+                )
+                records.append(rec)
 
         return pd.DataFrame(records)
 
@@ -419,28 +403,25 @@ class EvaluationRunner:
 
             jsd = jensen_shannon_divergence(proj.values, act.values)
             records.append(
-                {
-                    "run_id": grp["run_id"].iloc[0] if "run_id" in grp.columns else "",
-                    "metric_name": "jsd",
-                    "metric_group": "realism",
-                    "geography": str(geography),
-                    "geography_group": self._resolve_geography_group(str(geography)),
-                    "target": "age_distribution",
-                    "horizon": int(horizon),
-                    "value": jsd,
-                }
+                make_diagnostic_record(
+                    run_id=grp["run_id"].iloc[0] if "run_id" in grp.columns else "",
+                    metric_name="jsd",
+                    metric_group="realism",
+                    geography=str(geography),
+                    target="age_distribution",
+                    value=jsd,
+                    geography_group=self._resolve_geography_group(str(geography)),
+                    horizon=int(horizon),
+                )
             )
 
         return pd.DataFrame(records)
 
     def _resolve_geography_group(self, geography: str) -> str:
         """Map a FIPS code to its county group name."""
-        for group_name, fips_list in self.county_groups.items():
-            if geography in fips_list:
-                return group_name
         if geography == "state":
             return "state"
-        return "rural"
+        return resolve_county_group(geography, self.county_groups)
 
     def _generate_figures(
         self,
@@ -454,39 +435,31 @@ class EvaluationRunner:
         if accuracy_diag.empty:
             return figures
 
-        try:
-            figures["horizon_profile"] = plot_horizon_profile(
-                accuracy_diag, "mape"
-            )
-        except Exception:
-            logger.warning("Could not generate horizon profile plot", exc_info=True)
+        fig = safe_plot(plot_horizon_profile, accuracy_diag, "mape")
+        if fig is not None:
+            figures["horizon_profile"] = fig
 
-        try:
-            figures["county_horizon_heatmap"] = plot_county_horizon_heatmap(
-                accuracy_diag, "mape"
-            )
-        except Exception:
-            logger.warning("Could not generate county heatmap", exc_info=True)
+        fig = safe_plot(plot_county_horizon_heatmap, accuracy_diag, "mape")
+        if fig is not None:
+            figures["county_horizon_heatmap"] = fig
 
-        try:
-            figures["bias_map"] = plot_bias_map(accuracy_diag)
-        except Exception:
-            logger.warning("Could not generate bias map", exc_info=True)
+        fig = safe_plot(plot_bias_map, accuracy_diag)
+        if fig is not None:
+            figures["bias_map"] = fig
 
         if component_diag is not None:
-            try:
-                figures["component_blame"] = plot_component_blame(component_diag)
-            except Exception:
-                logger.warning("Could not generate component blame plot", exc_info=True)
+            fig = safe_plot(plot_component_blame, component_diag)
+            if fig is not None:
+                figures["component_blame"] = fig
 
-        try:
-            figures["stability_scatter"] = plot_stability_scatter(
-                accuracy_diag,
-                near_term_max_horizon=self.near_term_max,
-                long_term_min_horizon=self.long_term_min,
-            )
-        except Exception:
-            logger.warning("Could not generate stability scatter", exc_info=True)
+        fig = safe_plot(
+            plot_stability_scatter,
+            accuracy_diag,
+            near_term_max_horizon=self.near_term_max,
+            long_term_min_horizon=self.long_term_min,
+        )
+        if fig is not None:
+            figures["stability_scatter"] = fig
 
         return figures
 

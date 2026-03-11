@@ -38,11 +38,24 @@ from .metrics import (
     rmse,
     wape,
 )
+from .schemas import (
+    HorizonBands,
+    METRIC_REGISTRY,
+    PROJECTION_RESULT_COLUMNS,
+)
+from .utils import (
+    make_diagnostic_record,
+    resolve_county_group,
+    validate_dataframe,
+)
 
 __all__ = [
     "ComponentRecord",
     "DiagnosticRecord",
     "ExperimentRegistryEntry",
+    "HorizonBands",
+    "METRIC_REGISTRY",
+    "PROJECTION_RESULT_COLUMNS",
     "ProjectionResultRecord",
     "RunIdentity",
     "ScorecardEntry",
@@ -51,10 +64,13 @@ __all__ = [
     "carry_forward",
     "linear_trend",
     "mae",
+    "make_diagnostic_record",
     "mape",
     "mean_signed_error",
     "mean_signed_percentage_error",
     "median_absolute_percentage_error",
+    "resolve_county_group",
     "rmse",
+    "validate_dataframe",
     "wape",
 ]

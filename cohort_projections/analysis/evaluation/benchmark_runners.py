@@ -20,21 +20,13 @@ import logging
 import numpy as np
 import pandas as pd
 
+from .schemas import PROJECTION_JOIN_KEYS
+from .utils import validate_dataframe
+
 logger = logging.getLogger(__name__)
 
-# Columns that define a unique observation (mirrored from benchmark_comparison)
-_JOIN_KEYS = [
-    "geography",
-    "geography_type",
-    "year",
-    "horizon",
-    "sex",
-    "age_group",
-    "target",
-]
-
 # Minimum columns we require from input DataFrames
-_REQUIRED_COLUMNS = {
+_REQUIRED_COLUMNS = frozenset({
     "geography",
     "year",
     "actual_value",
@@ -43,16 +35,7 @@ _REQUIRED_COLUMNS = {
     "target",
     "sex",
     "age_group",
-}
-
-
-def _check_required_columns(df: pd.DataFrame, label: str = "input") -> None:
-    """Raise ``ValueError`` if *df* is missing required columns."""
-    missing = _REQUIRED_COLUMNS - set(df.columns)
-    if missing:
-        raise ValueError(
-            f"{label} DataFrame missing required columns: {sorted(missing)}"
-        )
+})
 
 
 # ------------------------------------------------------------------
@@ -82,7 +65,7 @@ def carry_forward(results_df: pd.DataFrame, origin_year: int) -> pd.DataFrame:
         carry-forward projection and ``run_id`` set to
         ``"benchmark_carry_forward"``.
     """
-    _check_required_columns(results_df, label="carry_forward input")
+    validate_dataframe(results_df, _REQUIRED_COLUMNS, "carry_forward input")
 
     group_cols = ["geography", "sex", "age_group", "target"]
 
@@ -138,7 +121,7 @@ def linear_trend(
         trend extrapolation and ``run_id`` set to
         ``"benchmark_linear_trend"``.
     """
-    _check_required_columns(results_df, label="linear_trend input")
+    validate_dataframe(results_df, _REQUIRED_COLUMNS, "linear_trend input")
 
     group_cols = ["geography", "sex", "age_group", "target"]
 
@@ -210,7 +193,7 @@ def average_growth(
         average-growth projection and ``run_id`` set to
         ``"benchmark_average_growth"``.
     """
-    _check_required_columns(results_df, label="average_growth input")
+    validate_dataframe(results_df, _REQUIRED_COLUMNS, "average_growth input")
 
     group_cols = ["geography", "sex", "age_group", "target"]
 
@@ -302,8 +285,8 @@ def build_component_swap(
         Combined result with ``run_id`` set to
         ``"{label_a}_swap_{components}_from_{label_b}"``.
     """
-    _check_required_columns(method_a, label="method_a")
-    _check_required_columns(method_b, label="method_b")
+    validate_dataframe(method_a, _REQUIRED_COLUMNS, "method_a")
+    validate_dataframe(method_b, _REQUIRED_COLUMNS, "method_b")
 
     # Split method_a into swapped and kept portions
     swap_mask_a = method_a["target"].isin(components)

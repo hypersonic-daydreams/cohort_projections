@@ -9,13 +9,11 @@ identities, and cross-county distributional realism.
 from __future__ import annotations
 
 import logging
-from dataclasses import asdict
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
-from .data_structures import DiagnosticRecord
 from .metrics import (
     jensen_shannon_divergence,
     kullback_leibler_divergence,
@@ -23,6 +21,7 @@ from .metrics import (
     mape,
     mean_signed_percentage_error,
 )
+from .utils import build_lookup, make_diagnostic_record
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,7 @@ _COHORT_SUCCESSOR: dict[str, str] = dict(
 )
 
 
-def _make_diagnostic(
+def _realism_diagnostic(
     run_id: str,
     metric_name: str,
     geography: str,
@@ -58,19 +57,65 @@ def _make_diagnostic(
     horizon: int | None = None,
     notes: str = "",
 ) -> dict[str, Any]:
-    """Build a dict compatible with DiagnosticRecord."""
-    rec = DiagnosticRecord(
+    """Build a realism diagnostic record with metric_group='realism'."""
+    return make_diagnostic_record(
         run_id=run_id,
         metric_name=metric_name,
         metric_group="realism",
         geography=geography,
-        geography_group=geography_group,
         target=target,
-        horizon=horizon,
         value=value,
+        geography_group=geography_group,
+        horizon=horizon,
         notes=notes,
     )
-    return asdict(rec)
+
+
+def _compute_divergence_metrics(
+    run_id: str,
+    proj_dist: np.ndarray,
+    act_dist: np.ndarray,
+    geography: str,
+    horizon: int | None,
+    jsd_metric_name: str,
+    kld_metric_name: str,
+    target: str = "population",
+    max_jsd: float | None = None,
+) -> list[dict[str, Any]]:
+    """Compute JSD and KLD for two distributions and return diagnostic records.
+
+    Shared helper used by both :meth:`age_structure_realism` and
+    :meth:`distributional_realism` to reduce duplicated divergence logic.
+    """
+    records: list[dict[str, Any]] = []
+    if act_dist.sum() <= 0 or proj_dist.sum() <= 0:
+        return records
+
+    jsd = jensen_shannon_divergence(proj_dist, act_dist)
+    notes = ""
+    if max_jsd is not None:
+        notes = "WARN" if jsd > max_jsd else "OK"
+    records.append(_realism_diagnostic(
+        run_id=run_id,
+        metric_name=jsd_metric_name,
+        geography=geography,
+        target=target,
+        value=jsd,
+        horizon=horizon,
+        notes=notes,
+    ))
+
+    kld = kullback_leibler_divergence(act_dist, proj_dist)
+    records.append(_realism_diagnostic(
+        run_id=run_id,
+        metric_name=kld_metric_name,
+        geography=geography,
+        target=target,
+        value=kld,
+        horizon=horizon,
+    ))
+
+    return records
 
 
 class StructuralRealismModule:
@@ -175,7 +220,7 @@ class StructuralRealismModule:
                 act = hslice["actual_component_value"].values
 
                 mape_val = mape(proj, act)
-                records.append(_make_diagnostic(
+                records.append(_realism_diagnostic(
                     run_id=run_id,
                     metric_name=f"{component}_mape",
                     geography="all",
@@ -185,7 +230,7 @@ class StructuralRealismModule:
                 ))
 
                 mspe_val = mean_signed_percentage_error(proj, act)
-                records.append(_make_diagnostic(
+                records.append(_realism_diagnostic(
                     run_id=run_id,
                     metric_name=f"{component}_mspe",
                     geography="all",
@@ -195,7 +240,7 @@ class StructuralRealismModule:
                 ))
 
                 mae_val = mae(proj, act)
-                records.append(_make_diagnostic(
+                records.append(_realism_diagnostic(
                     run_id=run_id,
                     metric_name=f"{component}_mae",
                     geography="all",
@@ -262,29 +307,18 @@ class StructuralRealismModule:
 
             horizon = int(group["horizon"].iloc[0]) if "horizon" in group.columns else None
 
-            # JSD
-            if act_dist.sum() > 0 and proj_dist.sum() > 0:
-                jsd = jensen_shannon_divergence(proj_dist, act_dist)
-                flag = "WARN" if jsd > self.max_jsd else "OK"
-                records.append(_make_diagnostic(
-                    run_id=run_id,
-                    metric_name="age_jsd",
-                    geography=str(geo),
-                    target="population",
-                    value=jsd,
-                    horizon=horizon,
-                    notes=flag,
-                ))
-
-                kld = kullback_leibler_divergence(act_dist, proj_dist)
-                records.append(_make_diagnostic(
-                    run_id=run_id,
-                    metric_name="age_kld",
-                    geography=str(geo),
-                    target="population",
-                    value=kld,
-                    horizon=horizon,
-                ))
+            # JSD and KLD via shared helper
+            records.extend(_compute_divergence_metrics(
+                run_id=run_id,
+                proj_dist=proj_dist,
+                act_dist=act_dist,
+                geography=str(geo),
+                horizon=horizon,
+                jsd_metric_name="age_jsd",
+                kld_metric_name="age_kld",
+                target="population",
+                max_jsd=self.max_jsd,
+            ))
 
             # Five-year age-band MAPE
             for _, row in group.iterrows():
@@ -293,7 +327,7 @@ class StructuralRealismModule:
                         (row["projected_value"] - row["actual_value"])
                         / row["actual_value"]
                     ) * 100
-                    records.append(_make_diagnostic(
+                    records.append(_realism_diagnostic(
                         run_id=run_id,
                         metric_name=f"age_band_ape_{row['age_group']}",
                         geography=str(geo),
@@ -307,7 +341,7 @@ class StructuralRealismModule:
                 normed = proj_dist / proj_dist.sum()
                 second_diff = np.diff(normed, n=2)
                 roughness = float(np.sqrt(np.mean(second_diff**2)))
-                records.append(_make_diagnostic(
+                records.append(_realism_diagnostic(
                     run_id=run_id,
                     metric_name="age_roughness",
                     geography=str(geo),
@@ -357,10 +391,11 @@ class StructuralRealismModule:
         records: list[dict[str, Any]] = []
 
         # Build lookup: (geography, sex, year, age_group) -> projected_value
-        lookup: dict[tuple[str, str, int, str], float] = {}
-        for _, row in pop.iterrows():
-            key = (str(row["geography"]), str(row["sex"]), int(row["year"]), str(row["age_group"]))
-            lookup[key] = float(row["projected_value"])
+        lookup = build_lookup(
+            pop,
+            key_cols=["geography", "sex", "year", "age_group"],
+            value_col="projected_value",
+        )
 
         years = sorted(pop["year"].unique())
 
@@ -383,7 +418,7 @@ class StructuralRealismModule:
                         residual = abs(ratio - 1.0)
 
                         flag = "WARN" if residual > self.max_cohort_residual else "OK"
-                        records.append(_make_diagnostic(
+                        records.append(_realism_diagnostic(
                             run_id=run_id,
                             metric_name="cohort_survival_residual",
                             geography=str(geo),
@@ -502,7 +537,7 @@ class StructuralRealismModule:
                 rel_residual = abs(residual) / max(abs(p_t), 1.0)
 
                 flag = "FAIL" if rel_residual > 0.001 else "OK"
-                records.append(_make_diagnostic(
+                records.append(_realism_diagnostic(
                     run_id=run_id,
                     metric_name="accounting_identity_residual",
                     geography=str(geo),
@@ -543,7 +578,7 @@ class StructuralRealismModule:
 
             diff_pct = abs(detail_sum - reported_total) / abs(reported_total) * 100
             flag = "FAIL" if diff_pct > 0.1 else "OK"
-            records.append(_make_diagnostic(
+            records.append(_realism_diagnostic(
                 run_id=run_id,
                 metric_name="age_sex_total_mismatch_pct",
                 geography=str(geo),
@@ -592,7 +627,7 @@ class StructuralRealismModule:
                 continue
             diff_pct = abs(county_sum - state_val) / abs(state_val) * 100
             flag = "FAIL" if diff_pct > 0.1 else "OK"
-            records.append(_make_diagnostic(
+            records.append(_realism_diagnostic(
                 run_id=run_id,
                 metric_name="county_state_total_mismatch_pct",
                 geography="state",
@@ -645,7 +680,7 @@ class StructuralRealismModule:
                 out_of_bounds = rate < lo or rate > hi
 
             if out_of_bounds:
-                records.append(_make_diagnostic(
+                records.append(_realism_diagnostic(
                     run_id=run_id,
                     metric_name=f"{component}_rate_out_of_bounds",
                     geography=str(row["geography"]),
@@ -709,24 +744,25 @@ class StructuralRealismModule:
             act_sizes = yslice["actual_value"].values.astype(float)
             horizon = int(yslice["horizon"].iloc[0])
 
-            # Population size distribution JSD
-            if act_sizes.sum() > 0 and proj_sizes.sum() > 0:
-                size_jsd = jensen_shannon_divergence(proj_sizes, act_sizes)
-                records.append(_make_diagnostic(
-                    run_id=run_id,
-                    metric_name="county_size_dist_jsd",
-                    geography="all_counties",
-                    target="population",
-                    value=size_jsd,
-                    horizon=horizon,
-                ))
+            # Population size distribution JSD via shared helper
+            # (only JSD is used here; KLD record is also emitted for consistency)
+            records.extend(_compute_divergence_metrics(
+                run_id=run_id,
+                proj_dist=proj_sizes,
+                act_dist=act_sizes,
+                geography="all_counties",
+                horizon=horizon,
+                jsd_metric_name="county_size_dist_jsd",
+                kld_metric_name="county_size_dist_kld",
+                target="population",
+            ))
 
             # Variance ratio of population sizes
             proj_var = float(np.var(proj_sizes))
             act_var = float(np.var(act_sizes))
             if act_var > 0:
                 variance_ratio = proj_var / act_var
-                records.append(_make_diagnostic(
+                records.append(_realism_diagnostic(
                     run_id=run_id,
                     metric_name="county_size_variance_ratio",
                     geography="all_counties",
@@ -741,7 +777,7 @@ class StructuralRealismModule:
 
             proj_skew = float(scipy_skew(proj_sizes))
             act_skew = float(scipy_skew(act_sizes))
-            records.append(_make_diagnostic(
+            records.append(_realism_diagnostic(
                 run_id=run_id,
                 metric_name="county_size_skewness_diff",
                 geography="all_counties",
@@ -763,7 +799,7 @@ class StructuralRealismModule:
                     pg_var = float(np.var(proj_growth))
                     ag_var = float(np.var(act_growth))
                     if ag_var > 0:
-                        records.append(_make_diagnostic(
+                        records.append(_realism_diagnostic(
                             run_id=run_id,
                             metric_name="county_growth_variance_ratio",
                             geography="all_counties",
@@ -776,7 +812,7 @@ class StructuralRealismModule:
                     # Growth rate skewness difference
                     pg_skew = float(scipy_skew(proj_growth))
                     ag_skew = float(scipy_skew(act_growth))
-                    records.append(_make_diagnostic(
+                    records.append(_realism_diagnostic(
                         run_id=run_id,
                         metric_name="county_growth_skewness_diff",
                         geography="all_counties",

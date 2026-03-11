@@ -8,9 +8,17 @@ import pytest
 
 from cohort_projections.analysis.evaluation.forecast_accuracy import (
     ForecastAccuracyModule,
-    _resolve_county_group,
-    _validate_dataframe,
 )
+from cohort_projections.analysis.evaluation.schemas import PROJECTION_RESULT_COLUMNS
+from cohort_projections.analysis.evaluation.utils import (
+    resolve_county_group as _resolve_county_group,
+    validate_dataframe as _validate_dataframe_raw,
+)
+
+
+def _validate_dataframe(df: pd.DataFrame) -> None:
+    """Thin wrapper matching the old single-arg signature for tests."""
+    _validate_dataframe_raw(df, PROJECTION_RESULT_COLUMNS, label="input")
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -126,7 +134,7 @@ class TestValidation:
 
     def test_validate_dataframe_raises_on_missing_column(self) -> None:
         df = pd.DataFrame({"run_id": [1], "geography": ["x"]})
-        with pytest.raises(ValueError, match="missing columns"):
+        with pytest.raises(ValueError, match="missing required columns"):
             _validate_dataframe(df)
 
     def test_resolve_county_group_known(self) -> None:
