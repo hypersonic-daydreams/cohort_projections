@@ -70,6 +70,9 @@ data/projections/**/*.png
 # Interim data files (synced via rclone, not git)
 data/interim/**
 
+# Analysis outputs (walk-forward, benchmarks, experiments — synced via rclone, not git)
+data/analysis/**
+
 # Metadata (database backups synced via rclone, not git)
 data/metadata/**/*.sql
 
@@ -152,7 +155,8 @@ sdc_2024_replication/scripts/statistical_analysis/results/**/*.parquet
 sdc_2024_replication/scripts/statistical_analysis/results/**/*.csv
 
 # Claude Code config (ephemeral, not tracked)
-.claude/
+.claude/*
+!.claude/commands/
 
 # Misc data files in project root
 *.xlsx
