@@ -21,6 +21,7 @@ from .data_structures import (
     ExperimentRegistryEntry,
     ProjectionResultRecord,
     RunIdentity,
+    ScorecardEntry,
 )
 from .metrics import (
     mae,
@@ -38,6 +39,7 @@ __all__ = [
     "ExperimentRegistryEntry",
     "ProjectionResultRecord",
     "RunIdentity",
+    "ScorecardEntry",
     "mae",
     "mape",
     "mean_signed_error",
