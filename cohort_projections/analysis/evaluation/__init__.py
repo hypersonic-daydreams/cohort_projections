@@ -23,6 +23,12 @@ from .data_structures import (
     RunIdentity,
     ScorecardEntry,
 )
+from .benchmark_runners import (
+    average_growth,
+    build_component_swap,
+    carry_forward,
+    linear_trend,
+)
 from .metrics import (
     mae,
     mape,
@@ -40,6 +46,10 @@ __all__ = [
     "ProjectionResultRecord",
     "RunIdentity",
     "ScorecardEntry",
+    "average_growth",
+    "build_component_swap",
+    "carry_forward",
+    "linear_trend",
     "mae",
     "mape",
     "mean_signed_error",

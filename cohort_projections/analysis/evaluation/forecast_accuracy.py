@@ -108,10 +108,19 @@ class ForecastAccuracyModule:
         county_groups: Mapping of group name to list of FIPS codes.
             Expected groups: ``bakken``, ``reservation``, ``urban_college``.
             Counties not listed are assigned to ``rural``.
+        regimes: Mapping of regime name to ``{"start": int, "end": int}``
+            defining historical year ranges.  If provided,
+            :meth:`compute_all_metrics` will include regime-stratified
+            accuracy rows.
     """
 
-    def __init__(self, county_groups: dict[str, list[str]] | None = None) -> None:
+    def __init__(
+        self,
+        county_groups: dict[str, list[str]] | None = None,
+        regimes: dict[str, dict[str, int]] | None = None,
+    ) -> None:
         self.county_groups: dict[str, list[str]] = county_groups or {}
+        self.regimes: dict[str, dict[str, int]] = regimes or {}
 
     # ------------------------------------------------------------------
     # Primary entry point
@@ -135,6 +144,8 @@ class ForecastAccuracyModule:
             self.rank_direction_tests(df),
             self.weighted_vs_unweighted_comparison(df),
         ]
+        if self.regimes:
+            parts.append(self.accuracy_by_regime(df, self.regimes))
         result = pd.concat(parts, ignore_index=True)
         logger.info("ForecastAccuracyModule: computed %d diagnostic rows", len(result))
         return result
@@ -507,5 +518,86 @@ class ForecastAccuracyModule:
                     notes="<1 means large counties more accurate",
                 )
             )
+
+        return pd.DataFrame(rows)
+
+    # ------------------------------------------------------------------
+    # 7. Regime-specific accuracy
+    # ------------------------------------------------------------------
+
+    def accuracy_by_regime(
+        self,
+        df: pd.DataFrame,
+        regimes: dict[str, dict[str, int]] | None = None,
+        target: str = "population",
+    ) -> pd.DataFrame:
+        """Accuracy metrics stratified by historical regime and geography group.
+
+        Each projection year is assigned to the regime whose ``[start, end]``
+        range contains it.  Rows whose year falls outside all regimes are
+        silently excluded.
+
+        Args:
+            df: Projection-result DataFrame.
+            regimes: Mapping of regime name to ``{"start": int, "end": int}``.
+                If ``None``, falls back to ``self.regimes``.
+            target: Target variable (default ``"population"``).
+
+        Returns:
+            DataFrame of :class:`DiagnosticRecord`-compatible rows.  Each
+            row carries a ``notes`` field of the form ``regime=<name>``.
+        """
+        _validate_dataframe(df)
+        regimes = regimes if regimes is not None else self.regimes
+        if not regimes:
+            return pd.DataFrame()
+
+        subset = df[
+            (df["target"] == target)
+            & (df["age_group"] == "total")
+            & (df["sex"] == "total")
+        ].copy()
+
+        # Tag each row with its regime
+        def _year_to_regime(year: int) -> str | None:
+            for name, span in regimes.items():
+                if span["start"] <= year <= span["end"]:
+                    return name
+            return None
+
+        subset["regime"] = subset["year"].apply(_year_to_regime)
+        subset = subset.dropna(subset=["regime"])
+
+        if subset.empty:
+            return pd.DataFrame()
+
+        rows: list[dict[str, Any]] = []
+
+        for (run_id, regime, geography), grp in subset.groupby(
+            ["run_id", "regime", "geography"]
+        ):
+            geo_type = grp["geography_type"].iloc[0]
+            geo_group = (
+                "state"
+                if geo_type == "state"
+                else _resolve_county_group(str(geography), self.county_groups)
+            )
+            proj = grp["projected_value"]
+            act = grp["actual_value"]
+
+            for metric_name, (metric_fn, metric_group) in _ACCURACY_METRICS.items():
+                val = metric_fn(proj, act)
+                rows.append(
+                    _make_diagnostic_row(
+                        run_id=str(run_id),
+                        metric_name=f"{metric_name}__regime_{regime}",
+                        metric_group=metric_group,
+                        geography=str(geography),
+                        geography_group=geo_group,
+                        target=target,
+                        value=val,
+                        notes=f"regime={regime}",
+                    )
+                )
 
         return pd.DataFrame(rows)

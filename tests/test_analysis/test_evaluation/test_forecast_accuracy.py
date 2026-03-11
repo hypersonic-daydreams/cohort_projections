@@ -326,3 +326,175 @@ class TestComputeAllMetrics:
     ) -> None:
         result = module.compute_all_metrics(sample_df)
         assert all(result["run_id"] == "run1")
+
+    def test_includes_regime_rows_when_regimes_configured(
+        self, sample_df: pd.DataFrame
+    ) -> None:
+        """compute_all_metrics should include regime rows when regimes set."""
+        regimes = {
+            "post_pandemic": {"start": 2024, "end": 2026},
+            "long_term": {"start": 2027, "end": 2035},
+        }
+        mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS, regimes=regimes)
+        result = mod.compute_all_metrics(sample_df)
+        regime_rows = result[result["notes"].str.startswith("regime=", na=False)]
+        assert len(regime_rows) > 0
+
+
+# ---------------------------------------------------------------------------
+# accuracy_by_regime
+# ---------------------------------------------------------------------------
+
+
+REGIMES: dict[str, dict[str, int]] = {
+    "stable": {"start": 2024, "end": 2026},
+    "boom": {"start": 2027, "end": 2035},
+}
+
+
+@pytest.fixture()
+def regime_df() -> pd.DataFrame:
+    """Synthetic DataFrame with years spanning two regimes."""
+    records = []
+    counties = [
+        ("38017", "county"),  # urban_college
+        ("38105", "county"),  # bakken
+        ("38099", "county"),  # rural
+    ]
+    for fips, geo_type in counties:
+        for year in [2025, 2030]:
+            base = 10000.0
+            actual = base * 1.05
+            projected = actual * 1.02  # 2% over-projection
+            records.append(
+                {
+                    "run_id": "run1",
+                    "geography": fips,
+                    "geography_type": geo_type,
+                    "year": year,
+                    "horizon": year - 2020,
+                    "sex": "total",
+                    "age_group": "total",
+                    "target": "population",
+                    "projected_value": projected,
+                    "actual_value": actual,
+                    "base_value": base,
+                }
+            )
+    # State row for each year
+    for year in [2025, 2030]:
+        state_actual = 30000.0 * 1.05
+        records.append(
+            {
+                "run_id": "run1",
+                "geography": "state",
+                "geography_type": "state",
+                "year": year,
+                "horizon": year - 2020,
+                "sex": "total",
+                "age_group": "total",
+                "target": "population",
+                "projected_value": state_actual * 1.015,
+                "actual_value": state_actual,
+                "base_value": 30000.0,
+            }
+        )
+    return pd.DataFrame(records)
+
+
+class TestAccuracyByRegime:
+    """Tests for regime-stratified accuracy metrics."""
+
+    def test_returns_dataframe(self, regime_df: pd.DataFrame) -> None:
+        mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS)
+        result = mod.accuracy_by_regime(regime_df, REGIMES)
+        assert isinstance(result, pd.DataFrame)
+        assert len(result) > 0
+
+    def test_metric_names_contain_regime_suffix(
+        self, regime_df: pd.DataFrame
+    ) -> None:
+        mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS)
+        result = mod.accuracy_by_regime(regime_df, REGIMES)
+        assert all("__regime_" in mn for mn in result["metric_name"])
+
+    def test_notes_contain_regime_label(self, regime_df: pd.DataFrame) -> None:
+        mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS)
+        result = mod.accuracy_by_regime(regime_df, REGIMES)
+        assert all(result["notes"].str.startswith("regime="))
+
+    def test_both_regimes_present(self, regime_df: pd.DataFrame) -> None:
+        """Year 2025 falls in 'stable', year 2030 falls in 'boom'."""
+        mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS)
+        result = mod.accuracy_by_regime(regime_df, REGIMES)
+        regime_labels = set(result["notes"].unique())
+        assert "regime=stable" in regime_labels
+        assert "regime=boom" in regime_labels
+
+    def test_mape_approximately_2_percent_per_regime(
+        self, regime_df: pd.DataFrame
+    ) -> None:
+        """All counties have 2% over-projection in both regimes."""
+        mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS)
+        result = mod.accuracy_by_regime(regime_df, REGIMES)
+        county_mape = result[
+            (result["metric_name"].str.startswith("mape__regime_"))
+            & (result["geography"] != "state")
+        ]
+        assert all(np.isclose(county_mape["value"], 2.0, atol=0.1))
+
+    def test_county_group_assignment_in_regime(
+        self, regime_df: pd.DataFrame
+    ) -> None:
+        mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS)
+        result = mod.accuracy_by_regime(regime_df, REGIMES)
+        bakken = result[result["geography"] == "38105"]
+        assert all(bakken["geography_group"] == "bakken")
+        rural = result[result["geography"] == "38099"]
+        assert all(rural["geography_group"] == "rural")
+
+    def test_state_rows_included(self, regime_df: pd.DataFrame) -> None:
+        mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS)
+        result = mod.accuracy_by_regime(regime_df, REGIMES)
+        state_rows = result[result["geography"] == "state"]
+        assert len(state_rows) > 0
+        assert all(state_rows["geography_group"] == "state")
+
+    def test_empty_when_no_regimes(self, regime_df: pd.DataFrame) -> None:
+        mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS)
+        result = mod.accuracy_by_regime(regime_df, regimes={})
+        assert len(result) == 0
+
+    def test_empty_when_years_outside_all_regimes(
+        self, regime_df: pd.DataFrame
+    ) -> None:
+        """Regimes that don't overlap any data years produce empty output."""
+        far_future = {"far": {"start": 2050, "end": 2060}}
+        mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS)
+        result = mod.accuracy_by_regime(regime_df, far_future)
+        assert len(result) == 0
+
+    def test_uses_instance_regimes_when_arg_is_none(
+        self, regime_df: pd.DataFrame
+    ) -> None:
+        """Falls back to self.regimes when regimes arg is None."""
+        mod = ForecastAccuracyModule(
+            county_groups=COUNTY_GROUPS, regimes=REGIMES
+        )
+        result = mod.accuracy_by_regime(regime_df)
+        assert len(result) > 0
+
+    def test_has_diagnostic_columns(self, regime_df: pd.DataFrame) -> None:
+        mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS)
+        result = mod.accuracy_by_regime(regime_df, REGIMES)
+        expected_cols = {
+            "run_id",
+            "metric_name",
+            "metric_group",
+            "geography",
+            "geography_group",
+            "target",
+            "value",
+            "notes",
+        }
+        assert expected_cols.issubset(set(result.columns))

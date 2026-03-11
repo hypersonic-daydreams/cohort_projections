@@ -15,6 +15,7 @@ import pandas as pd
 import yaml
 
 from .data_structures import ScorecardEntry
+from .forecast_accuracy import ForecastAccuracyModule
 from .metrics import (
     mae,
     mape,
@@ -25,6 +26,7 @@ from .metrics import (
     wape,
 )
 from .scorecard import ModelScorecard
+from .sensitivity import SensitivityModule
 from .visualization import (
     MATPLOTLIB_AVAILABLE,
     plot_bias_map,
@@ -69,6 +71,7 @@ class EvaluationRunner:
 
         self.horizons: list[int] = self.config.get("horizons", [1, 2, 3, 5, 10, 15, 20])
         self.county_groups: dict[str, list[str]] = self.config.get("county_groups", {})
+        self.regimes: dict[str, dict[str, int]] = self.config.get("regimes", {})
         self.near_term_max: int = self.config.get("near_term_max_horizon", 5)
         self.long_term_min: int = self.config.get("long_term_min_horizon", 10)
         self.accuracy_metrics: list[str] = self.config.get(
@@ -101,18 +104,43 @@ class EvaluationRunner:
             method_results_dict: Mapping ``{model_name: results_df}`` for
                 multi-model comparison.  Optional.
             projection_runner_fn: Callable to re-run projections for
-                sensitivity analysis.  Optional / reserved for future use.
+                sensitivity analysis.  Signature:
+                ``fn(overrides: dict) -> pd.DataFrame``.  Optional.
             output_dir: If provided, save report to this directory.
 
         Returns:
             Dictionary with keys ``accuracy_diagnostics``,
             ``component_diagnostics``, ``scorecard``, ``comparison``,
-            ``figures``.
+            ``sensitivity``, ``figures``.
         """
         out: dict[str, Any] = {}
 
         # Module 1 -- Accuracy
         accuracy_diag = self._compute_accuracy_diagnostics(results_df)
+
+        # Regime-stratified accuracy (appended to accuracy diagnostics)
+        if self.regimes:
+            from .forecast_accuracy import _REQUIRED_COLUMNS
+
+            has_required = _REQUIRED_COLUMNS.issubset(set(results_df.columns))
+            if has_required:
+                fa_module = ForecastAccuracyModule(
+                    county_groups=self.county_groups,
+                    regimes=self.regimes,
+                )
+                regime_diag = fa_module.accuracy_by_regime(
+                    results_df, self.regimes
+                )
+                if not regime_diag.empty:
+                    accuracy_diag = pd.concat(
+                        [accuracy_diag, regime_diag], ignore_index=True
+                    )
+            else:
+                logger.debug(
+                    "Skipping regime-stratified accuracy: results_df missing "
+                    "columns required by ForecastAccuracyModule"
+                )
+
         out["accuracy_diagnostics"] = accuracy_diag
 
         # Module 2 -- Structural realism (age JSD if age data available)
@@ -131,6 +159,14 @@ class EvaluationRunner:
             comparison_df = self.run_comparison(method_results_dict)
         out["comparison"] = comparison_df
 
+        # Module 5 -- Sensitivity analysis (requires projection runner)
+        sensitivity_results: dict[str, Any] | None = None
+        if projection_runner_fn is not None:
+            sensitivity_results = self._run_sensitivity(
+                projection_runner_fn, results_df
+            )
+        out["sensitivity"] = sensitivity_results
+
         # Scorecard
         entry = self._scorecard.build_scorecard(
             accuracy_diagnostics=accuracy_diag,
@@ -144,7 +180,7 @@ class EvaluationRunner:
         )
         out["scorecard"] = entry
 
-        # Module 5 -- Visualizations
+        # Module 6 -- Visualizations
         figures: dict[str, Any] = {}
         if MATPLOTLIB_AVAILABLE:
             figures = self._generate_figures(
@@ -219,6 +255,27 @@ class EvaluationRunner:
 
         return combined
 
+    def run_sensitivity_only(
+        self,
+        projection_runner_fn: Callable[[dict[str, Any]], pd.DataFrame],
+        baseline_results: pd.DataFrame,
+    ) -> dict[str, Any]:
+        """Run sensitivity module only.
+
+        Convenience method analogous to :meth:`run_accuracy_only`.
+
+        Args:
+            projection_runner_fn: Callable that accepts a dict of parameter
+                overrides and returns a projection-results DataFrame.
+            baseline_results: Baseline projection results used to compare
+                perturbed runs against.
+
+        Returns:
+            Dictionary with keys ``perturbation``, ``stability_index``,
+            and optionally ``parameter_sweeps``.
+        """
+        return self._run_sensitivity(projection_runner_fn, baseline_results)
+
     # ------------------------------------------------------------------
     # Report generation
     # ------------------------------------------------------------------
@@ -252,6 +309,16 @@ class EvaluationRunner:
         comp = evaluation_results.get("comparison")
         if comp is not None and not comp.empty:
             comp.to_csv(out / "comparison_diagnostics.csv", index=False)
+
+        # Save sensitivity results
+        sens = evaluation_results.get("sensitivity")
+        if isinstance(sens, dict):
+            pert = sens.get("perturbation")
+            if isinstance(pert, pd.DataFrame) and not pert.empty:
+                pert.to_csv(out / "sensitivity_perturbation.csv", index=False)
+            stab = sens.get("stability_index")
+            if isinstance(stab, pd.DataFrame) and not stab.empty:
+                stab.to_csv(out / "sensitivity_stability_index.csv", index=False)
 
         # Save scorecard
         entry = evaluation_results.get("scorecard")
@@ -422,3 +489,54 @@ class EvaluationRunner:
             logger.warning("Could not generate stability scatter", exc_info=True)
 
         return figures
+
+    def _run_sensitivity(
+        self,
+        projection_runner_fn: Callable[[dict[str, Any]], pd.DataFrame],
+        baseline_results: pd.DataFrame,
+    ) -> dict[str, Any]:
+        """Run the sensitivity module and return a results dict.
+
+        Args:
+            projection_runner_fn: Callable that accepts parameter overrides
+                and returns a projection-results DataFrame.
+            baseline_results: Baseline projection results.
+
+        Returns:
+            Dictionary with keys ``perturbation``, ``stability_index``,
+            and optionally ``parameter_sweeps``.
+        """
+        sensitivity_config = self.config.get("sensitivity", {})
+        sens_module = SensitivityModule(projection_runner_fn, sensitivity_config)
+
+        results: dict[str, Any] = {}
+
+        # Perturbation tests
+        perturbation_pcts = sensitivity_config.get("perturbation_pct")
+        perturbation_df = sens_module.perturbation_test(
+            baseline_inputs={},
+            perturbation_pcts=perturbation_pcts,
+            baseline_results=baseline_results,
+        )
+        results["perturbation"] = perturbation_df
+
+        # Stability index (derived from perturbation results)
+        if not perturbation_df.empty and "sensitivity_index" in perturbation_df.columns:
+            stability_df = sens_module.compute_stability_index(perturbation_df)
+            results["stability_index"] = stability_df
+        else:
+            results["stability_index"] = pd.DataFrame()
+
+        # Parameter sweeps (if parameter_ranges provided in config)
+        param_ranges = sensitivity_config.get("parameter_ranges")
+        if param_ranges is not None:
+            sweep_results: dict[str, pd.DataFrame] = {}
+            for param_name, values in param_ranges.items():
+                sweep_df = sens_module.parameter_sweep(
+                    param_name, values, baseline_results
+                )
+                sweep_results[param_name] = sweep_df
+            results["parameter_sweeps"] = sweep_results
+
+        logger.info("Sensitivity analysis complete")
+        return results
