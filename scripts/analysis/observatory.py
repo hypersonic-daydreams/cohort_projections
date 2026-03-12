@@ -340,6 +340,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Metric to track across experiments (default: county_mape_overall).",
     )
 
+    # --- run-recommended ---
+    recommended_parser = sub.add_parser(
+        "run-recommended",
+        help="Run config-only recommendations from the recommender.",
+    )
+    recommended_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would run without executing experiments.",
+    )
+
     # --- refresh ---
     sub.add_parser(
         "refresh",
@@ -769,28 +780,19 @@ def cmd_run_pending(
 
     print(f"Found {len(untested)} untested variant(s).")  # noqa: T201
 
-    # Generate spec files in a temp directory
-    try:
-        import yaml
-    except ImportError:
-        print("Error: PyYAML is required for spec generation.")  # noqa: T201
-        return 1
-
     with tempfile.TemporaryDirectory(prefix="observatory_pending_") as tmpdir:
         tmpdir_path = Path(tmpdir)
         spec_paths: list[str] = []
 
         for variant in untested:
-            spec = _variant_to_spec(variant, config)
-            if spec is None:
+            vid = variant.get("variant_id")
+            if vid is None:
                 continue
-            exp_id = spec.get("experiment_id", "unknown")
-            spec_path = tmpdir_path / f"{exp_id}.yaml"
-            spec_path.write_text(
-                yaml.safe_dump(spec, sort_keys=False, default_flow_style=False),
-                encoding="utf-8",
-            )
-            spec_paths.append(str(spec_path))
+            try:
+                spec_path = catalog.generate_spec(vid, output_dir=tmpdir_path)
+                spec_paths.append(str(spec_path))
+            except Exception as e:
+                logger.warning("Failed to generate spec for %s: %s", vid, e)
 
         if not spec_paths:
             print("No valid specs generated from untested variants.")  # noqa: T201
@@ -819,7 +821,164 @@ def cmd_run_pending(
         )
         return result.returncode
 
-    return 0
+
+def cmd_run_recommended(
+    store: Any,
+    config: dict[str, Any],
+    args: argparse.Namespace,
+) -> int:
+    """Handle the ``run-recommended`` subcommand.
+
+    Gets recommendations from the recommender, filters to config-only ones,
+    generates spec files via the variant catalog, and delegates to
+    ``run_experiment_sweep.py``.
+
+    Returns
+    -------
+    int
+        Exit code.
+    """
+    if store is None:
+        print("Error: ResultsStore unavailable.")  # noqa: T201
+        return 1
+
+    comparator = _load_comparator(store, config)
+    bounds_catalog = _load_variant_catalog(config)
+    recommender = _load_recommender(
+        store, config, comparator=comparator, bounds_catalog=bounds_catalog
+    )
+    if recommender is None:
+        print("Error: ObservatoryRecommender is not available.")  # noqa: T201
+        return 1
+
+    catalog = _load_variant_catalog(config)
+
+    try:
+        recommendations = recommender.suggest_next_experiments(n=20)
+    except Exception as e:
+        print(f"Error generating recommendations: {e}")  # noqa: T201
+        return 1
+
+    # Filter to config-only recommendations
+    config_only_recs = [r for r in recommendations if not r.requires_code_change]
+    if not config_only_recs:
+        print("No config-only recommendations available.")  # noqa: T201
+        return 0
+
+    print(f"Found {len(config_only_recs)} config-only recommendation(s).")  # noqa: T201
+
+    with tempfile.TemporaryDirectory(prefix="observatory_recommended_") as tmpdir:
+        tmpdir_path = Path(tmpdir)
+        spec_paths: list[str] = []
+
+        for rec in config_only_recs:
+            try:
+                # Build a config_delta from the recommendation
+                if isinstance(rec.suggested_value, dict):
+                    config_delta = dict(rec.suggested_value)
+                elif rec.suggested_value is not None:
+                    config_delta = {rec.parameter: rec.suggested_value}
+                else:
+                    continue
+
+                # Try to use catalog.generate_spec if the recommendation
+                # matches a catalog variant
+                generated = False
+                if catalog is not None:
+                    try:
+                        variants_df = catalog.list_variants()
+                        for _, row in variants_df.iterrows():
+                            if (
+                                row["parameter"] == rec.parameter
+                                and row["value"] == rec.suggested_value
+                                and not row["tested"]
+                            ):
+                                sp = catalog.generate_spec(
+                                    row["variant_id"],
+                                    output_dir=tmpdir_path,
+                                )
+                                spec_paths.append(str(sp))
+                                generated = True
+                                break
+                    except Exception:
+                        pass
+
+                if not generated:
+                    # Fall back to building a spec directly
+                    import datetime as _dt
+                    import yaml as _yaml
+
+                    today = _dt.datetime.now(tz=_dt.UTC).date().strftime("%Y%m%d")
+                    param_slug = rec.parameter.replace("_", "-")
+                    if isinstance(rec.suggested_value, dict):
+                        val_slug = "combo"
+                    else:
+                        val_s = str(rec.suggested_value).replace(".", "p")
+                        val_slug = "".join(
+                            c for c in val_s if c.isalnum() or c in ("-", "_")
+                        )
+                    exp_id = f"exp-{today}-rec-{param_slug}-{val_slug}"
+
+                    spec: dict[str, Any] = {
+                        "experiment_id": exp_id,
+                        "hypothesis": rec.rationale[:200],
+                        "base_method": config.get("challenger_base_method", "m2026r1"),
+                        "base_config": config.get(
+                            "base_config", "cfg-20260309-college-fix-v1"
+                        ),
+                        "config_delta": config_delta,
+                        "scope": "county",
+                        "benchmark_label": f"rec-{param_slug}-{val_slug}",
+                        "requested_by": "observatory-recommender",
+                    }
+
+                    spec_path = tmpdir_path / f"{exp_id}.yaml"
+                    spec_path.write_text(
+                        _yaml.safe_dump(
+                            spec, sort_keys=False, default_flow_style=False
+                        ),
+                        encoding="utf-8",
+                    )
+                    spec_paths.append(str(spec_path))
+
+            except Exception as e:
+                logger.warning(
+                    "Failed to generate spec for recommendation %s=%s: %s",
+                    rec.parameter,
+                    rec.suggested_value,
+                    e,
+                )
+
+        if not spec_paths:
+            print("No valid specs generated from recommendations.")  # noqa: T201
+            return 0
+
+        print(f"Generated {len(spec_paths)} experiment spec(s).")  # noqa: T201
+
+        if args.dry_run:
+            print("Dry run -- would execute:")  # noqa: T201
+            for sp in spec_paths:
+                print(f"  {sp}")  # noqa: T201
+            return 0
+
+        # Delegate to run_experiment_sweep.py
+        sweep_script = (
+            PROJECT_ROOT / "scripts" / "analysis" / "run_experiment_sweep.py"
+        )
+        if not sweep_script.exists():
+            print(f"Error: sweep script not found at {sweep_script}")  # noqa: T201
+            return 1
+
+        cmd = [sys.executable, str(sweep_script), "--specs", *spec_paths]
+        print(  # noqa: T201
+            f"Running: {' '.join(cmd[:4])} ... ({len(spec_paths)} specs)"
+        )
+
+        result = subprocess.run(
+            cmd,
+            cwd=str(PROJECT_ROOT),
+        )
+        return result.returncode
 
 
 def cmd_report(
@@ -1569,56 +1728,6 @@ def _safe_call(obj: Any, method: str, *a: Any, default: Any = None, **kw: Any) -
         return default
 
 
-def _variant_to_spec(variant: Any, config: dict[str, Any]) -> dict[str, Any] | None:
-    """Convert a catalog variant to an experiment spec dict.
-
-    Parameters
-    ----------
-    variant:
-        A variant object/dict from the VariantCatalog.
-    config:
-        The observatory config dict.
-
-    Returns
-    -------
-    dict or None
-        An experiment spec suitable for ``run_experiment_sweep.py``,
-        or None if the variant cannot be converted.
-    """
-    # Try multiple key names for the variant ID
-    exp_id = _safe_attr(variant, "variant_id")
-    if exp_id is None:
-        exp_id = _safe_attr(variant, "experiment_id")
-    if exp_id is None:
-        exp_id = _safe_attr(variant, "id")
-    if exp_id is None:
-        return None
-
-    base_method = config.get("challenger_base_method", "m2026r1")
-
-    hypothesis = _safe_attr(variant, "hypothesis", f"Catalog variant: {exp_id}")
-
-    # Build config_delta from parameter + value
-    param = _safe_attr(variant, "parameter")
-    value = _safe_attr(variant, "value")
-    config_delta: dict[str, Any] = {}
-    if param and value is not None:
-        config_delta[param] = value
-
-    benchmark_label = f"observatory-{exp_id}"
-
-    return {
-        "experiment_id": str(exp_id),
-        "hypothesis": str(hypothesis),
-        "method": str(base_method),
-        "profile": f"observatory-{exp_id}",
-        "resolved_config": config_delta,
-        "scope": "county",
-        "benchmark_label": str(benchmark_label),
-        "requested_by": "observatory-cli",
-    }
-
-
 # ---------------------------------------------------------------------------
 # Command dispatch
 # ---------------------------------------------------------------------------
@@ -1629,6 +1738,7 @@ _COMMANDS: dict[str, Any] = {
     "rank": cmd_rank,
     "recommend": cmd_recommend,
     "run-pending": cmd_run_pending,
+    "run-recommended": cmd_run_recommended,
     "report": cmd_report,
     "refresh": cmd_refresh,
     "diff": cmd_diff,

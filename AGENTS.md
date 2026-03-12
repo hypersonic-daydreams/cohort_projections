@@ -82,6 +82,7 @@ Data deletion, security changes, breaking output formats, **methodology changes 
 - **Backups**: Use `scripts/bisync.sh`. NEVER run raw `rclone` commands for syncing.
 - **Maintenance**: Use provided scripts in `scripts/maintenance/`.
 - **Benchmarking**: Use `scripts/analysis/run_benchmark_suite.py` for champion-vs-challenger runs. Use `scripts/analysis/run_experiment.py --spec <path>` for the full experiment pipeline (spec → profile → benchmark → evaluate → log). Use `scripts/analysis/build_experiment_dashboard.py` to generate an interactive HTML dashboard comparing all experiment results. Use `scripts/analysis/run_experiment_sweep.py` for batch sweeps (spec list, parameter grid, or pending queue). See `docs/guides/benchmarking-workflow.md` for the complete workflow and `config/benchmark_evaluation_policy.yaml` for gate thresholds.
+- **Observatory**: Use `scripts/analysis/observatory.py` as the unified entry point for variant comparison and experiment execution. Key commands: `status`, `compare`, `rank`, `recommend`, `run-pending`, `run-recommended`, `diff`, `history`, `report`. Config files: `config/observatory_config.yaml` (paths, metrics, thresholds), `config/observatory_variants.yaml` (variant definitions and grid sweeps). Package: `cohort_projections/analysis/observatory/`.
 
 ### SDC 2024 Journal Article (Reference Only)
 If asked to work with the SDC 2024 journal article:
@@ -294,6 +295,8 @@ uv sync               # Install dependencies
 | [docs/governance/sops/](./docs/governance/sops/) | Standard Operating Procedures index |
 | [SOP-001](./docs/governance/sops/SOP-001-external-ai-analysis-integration.md) | External AI analysis integration workflow |
 | [SOP-002](./docs/governance/sops/SOP-002-data-processing-documentation.md) | Data processing script and data source documentation |
+| [SOP-003](./docs/governance/sops/SOP-003-method-benchmarking-versioning-promotion.md) | Method benchmarking, versioning, and promotion |
+| [SOP-004](./docs/governance/sops/SOP-004-experimental-methodology-branches.md) | Experimental methodology branch workflow |
 
 ### ADRs (Why Decisions)
 | ADR | Topic |

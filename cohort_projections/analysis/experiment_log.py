@@ -132,3 +132,117 @@ def get_tested_hypotheses(
         return set()
 
     return set(df["experiment_id"].dropna())
+
+
+# ---------------------------------------------------------------------------
+# Shared parameter-level dedup utilities
+# ---------------------------------------------------------------------------
+
+
+def config_delta_summary(config_delta: dict[str, Any]) -> str:
+    """Build a canonical human-readable summary of a config_delta dict.
+
+    This mirrors the format used in experiment_log.csv's
+    ``config_delta_summary`` column for cross-referencing.
+
+    Parameters
+    ----------
+    config_delta : dict[str, Any]
+        The config_delta mapping (parameter name -> value).
+
+    Returns
+    -------
+    str
+        A summary string like ``"college_blend_factor=0.7"`` or
+        ``"boom_period_dampening: {2005-2010=0.5, 2010-2015=0.3}"``.
+    """
+    parts: list[str] = []
+    for key, val in config_delta.items():
+        if isinstance(val, dict):
+            inner = ", ".join(f"{k}={v}" for k, v in val.items())
+            parts.append(f"{key}: {{{inner}}}")
+        elif isinstance(val, list):
+            parts.append(f"{key}={val}")
+        else:
+            parts.append(f"{key}={val}")
+    return "; ".join(parts)
+
+
+def _match_config_delta(
+    log_summary: str,
+    candidate_delta: dict[str, Any],
+) -> bool:
+    """Check if a log entry's config_delta_summary matches a candidate config_delta.
+
+    Uses parameter-level matching: for each key in the candidate, checks
+    whether the log summary contains that key=value pair. This allows
+    matching across different experiment IDs that tested the same parameter
+    at the same value.
+
+    Parameters
+    ----------
+    log_summary : str
+        The ``config_delta_summary`` string from the experiment log.
+    candidate_delta : dict[str, Any]
+        The config_delta dict to match against.
+
+    Returns
+    -------
+    bool
+        True if all parameters in the candidate appear in the log summary.
+    """
+    if not isinstance(log_summary, str):
+        return False
+
+    candidate_summary = config_delta_summary(candidate_delta)
+
+    # Direct match covers the common case
+    if candidate_summary == log_summary:
+        return True
+
+    # Fallback: check each individual key=value fragment
+    for key, val in candidate_delta.items():
+        if isinstance(val, dict):
+            inner = ", ".join(f"{k}={v}" for k, v in val.items())
+            fragment = f"{key}: {{{inner}}}"
+        elif isinstance(val, list):
+            fragment = f"{key}={val}"
+        else:
+            fragment = f"{key}={val}"
+
+        if fragment not in log_summary:
+            return False
+
+    return True
+
+
+def is_config_delta_tested(
+    config_delta: dict[str, Any],
+    log_path: Path = DEFAULT_LOG_PATH,
+) -> bool:
+    """Check if a config delta has been tested by matching against experiment log entries.
+
+    Performs parameter-level matching against the ``config_delta_summary``
+    column of the experiment log CSV.
+
+    Parameters
+    ----------
+    config_delta : dict[str, Any]
+        The config delta to check.
+    log_path : Path
+        Path to the experiment log CSV file.
+
+    Returns
+    -------
+    bool
+        True if the config delta matches any entry in the experiment log.
+    """
+    if not log_path.exists():
+        return False
+
+    df = read_experiment_log(log_path)
+    if df.empty or "config_delta_summary" not in df.columns:
+        return False
+
+    summaries = df["config_delta_summary"].dropna().tolist()
+    return any(_match_config_delta(s, config_delta) for s in summaries)

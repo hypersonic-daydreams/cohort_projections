@@ -14,6 +14,8 @@ Complete reference for all configuration files in the cohort projections system.
 | `config/data_sources.yaml` | Data acquisition manifest | No |
 | `config/nd_brand.yaml` | Visualization colors/styling | No |
 | `config/evaluation_config.yaml` | Evaluation framework settings | No |
+| `config/observatory_config.yaml` | Projection Observatory settings | No |
+| `config/observatory_variants.yaml` | Observatory variant catalog | No |
 | `.env` | Environment variables (secrets) | No |
 
 ---
@@ -672,6 +674,138 @@ regimes:
   pandemic: { start: 2020, end: 2021 }
   post_pandemic: { start: 2022, end: 2024 }
 ```
+
+---
+
+## observatory_config.yaml
+
+Configuration for the Projection Observatory (`cohort_projections/analysis/observatory/`). Defines paths, comparison metrics, and recommendation behavior.
+
+### Section Reference
+
+#### observatory
+
+Top-level paths and method identity settings.
+
+```yaml
+observatory:
+  history_dir: data/analysis/benchmark_history
+  cache_dir: data/analysis/observatory
+  experiment_log: data/analysis/experiments/experiment_log.csv
+  variant_catalog: config/observatory_variants.yaml
+  champion_method: m2026
+  challenger_base_method: m2026r1
+```
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `history_dir` | string | Directory containing benchmark run bundles |
+| `cache_dir` | string | Directory for observatory cache files |
+| `experiment_log` | string | Path to the append-only experiment log CSV |
+| `variant_catalog` | string | Path to the variant catalog YAML |
+| `champion_method` | string | Method ID of the current production champion |
+| `challenger_base_method` | string | Method ID used as the base for challenger variants |
+
+#### observatory.comparison
+
+Metrics used for N-way comparison and ranking.
+
+```yaml
+  comparison:
+    primary_metric: county_mape_overall
+    secondary_metrics:
+      - county_mape_rural
+      - county_mape_bakken
+      - county_mape_urban_college
+```
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `primary_metric` | string | Default metric for ranking and comparison |
+| `secondary_metrics` | list | Additional metrics shown in comparison tables |
+
+#### observatory.recommendation
+
+Settings controlling the recommender's suggestion behavior.
+
+```yaml
+  recommendation:
+    max_suggestions: 5
+    min_improvement_threshold: 0.02
+```
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `max_suggestions` | int | Maximum number of next-experiment suggestions |
+| `min_improvement_threshold` | float | Minimum expected metric improvement to recommend a variant |
+
+---
+
+## observatory_variants.yaml
+
+Machine-readable experiment definitions for automated sweep execution. This file is the single source of truth for what parameter variants can be tested. The `VariantCatalog` module reads this file and can generate experiment spec YAML files for any variant or grid.
+
+### Top-Level Fields
+
+```yaml
+base_method: m2026r1
+base_config: cfg-20260309-college-fix-v1
+```
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `base_method` | string | Method ID that all variants build on |
+| `base_config` | string | Config ID that all variants build on |
+
+### parameter_bounds
+
+Min/max constraints for numeric parameters. Used by the recommender to clamp suggestions and avoid nonsensical values.
+
+```yaml
+parameter_bounds:
+  college_blend_factor:
+    min: 0.0
+    max: 1.0
+    description: "Weight between historical and converged rates"
+```
+
+Each entry has `min`, `max` (numeric bounds), and `description` (human-readable purpose).
+
+### variants
+
+Individual experiment definitions. Each variant overrides one or more parameters from the base config.
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | yes | Human-readable variant name |
+| `slug` | yes | Short identifier used in experiment spec filenames |
+| `parameter` | yes | MethodConfig key being varied |
+| `value` | yes | Override value (scalar, dict, or list) |
+| `hypothesis` | yes | What the experiment is testing |
+| `expected_improvement` | yes | List of metrics expected to improve |
+| `risk_areas` | yes | List of metrics or areas at risk of regression |
+| `tier` | yes | Priority tier (1 = highest) |
+| `config_only` | yes | Whether the variant can be tested via config injection alone |
+| `results` | no | Populated after execution with `status`, `run_id`, `deltas`, and optional `notes` |
+| `notes` | no | Additional context (e.g., why a variant requires code changes) |
+
+### grids
+
+Cartesian product sweep definitions for multi-parameter exploration.
+
+```yaml
+grids:
+  blend-factor-sweep:
+    parameters:
+      college_blend_factor: [0.3, 0.5, 0.7, 0.8, 0.9]
+    hypothesis: Find optimal college blend factor across the full range.
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `parameters` | yes | Dict of parameter names to lists of values |
+| `mode` | no | `cartesian` (default) or `zip` for paired parameters |
+| `hypothesis` | yes | What the grid sweep is testing |
 
 ---
 

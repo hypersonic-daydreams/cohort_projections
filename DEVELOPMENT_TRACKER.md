@@ -355,6 +355,26 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 | BM-001-07 | Orchestrator tests | complete | 3 | Spec parsing, derivation, profile creation, dispatch check (18 tests) | `tests/test_analysis/test_run_experiment.py` |
 | BM-001-08 | Documentation updates | complete | 4 | Workflow guide extended; tracker updated | `docs/guides/benchmarking-workflow.md`, `DEVELOPMENT_TRACKER.md` |
 
+## OBS-001: Projection Observatory
+
+**Status:** complete
+**Purpose:** Unified variant testing, comparative analysis, and experiment recommendation system built on top of BM-001 experiment infrastructure.
+**Completed:** 2026-03-12
+**Test baseline:** 176 tests across 5 test files, zero regressions
+
+| Component | Description | Location |
+|-----------|-------------|----------|
+| Package | Observatory core (results store, comparator, recommender, variant catalog, report) | `cohort_projections/analysis/observatory/` |
+| CLI | Unified entry point for all observatory commands | `scripts/analysis/observatory.py` |
+| Config | Observatory settings (paths, metrics, thresholds) | `config/observatory_config.yaml` |
+| Variant catalog | Machine-readable experiment definitions (11 variants, 5 grids) | `config/observatory_variants.yaml` |
+| Cache | Observatory results cache | `data/analysis/observatory/` |
+| Tests | Store, comparator, recommender, catalog, CLI tests | `tests/test_analysis/test_observatory_*.py` |
+
+**CLI commands:** `status`, `compare`, `rank`, `recommend`, `run-pending`, `run-recommended`, `diff`, `history`, `report`, `refresh`
+
+**Integration with BM-001:** Observatory delegates execution to the experiment sweep runner. `run-pending` generates specs from the variant catalog via `catalog.generate_spec()`. Shared dedup logic lives in `experiment_log.py`. The experiment dashboard reads variant definitions from the catalog dynamically.
+
 ## Near-Term Next Actions
 
 1. Incorporate deferred stakeholder feedback in the next publication update cycle.

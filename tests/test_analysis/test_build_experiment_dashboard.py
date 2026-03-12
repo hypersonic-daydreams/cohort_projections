@@ -276,10 +276,11 @@ class TestConstants:
         for exp_id in SLUG_TO_EXP.values():
             assert exp_id in EXPERIMENT_COLORS, f"Missing color for {exp_id}"
 
-    def test_slug_to_exp_covers_all_colors(self) -> None:
+    def test_slug_to_exp_and_colors_same_size(self) -> None:
+        # Both mappings should cover the same set of experiment IDs
         exp_ids_in_slugs = set(SLUG_TO_EXP.values())
-        for exp_id in EXPERIMENT_COLORS:
-            assert exp_id in exp_ids_in_slugs, f"Color defined for {exp_id} but no slug mapping"
+        exp_ids_in_colors = set(EXPERIMENT_COLORS.keys())
+        assert exp_ids_in_slugs == exp_ids_in_colors
 
 
 # ---------------------------------------------------------------------------

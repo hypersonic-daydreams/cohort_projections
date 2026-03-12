@@ -13,10 +13,12 @@ import pandas as pd
 import pytest
 import yaml
 
+from cohort_projections.analysis.experiment_log import (
+    _match_config_delta,
+    config_delta_summary as _config_delta_summary,
+)
 from cohort_projections.analysis.observatory.variant_catalog import (
     VariantCatalog,
-    _config_delta_summary,
-    _match_config_delta,
     _normalize_config_delta,
     _slugify_value,
 )

@@ -1,10 +1,10 @@
-# SOP-003: Experimental Methodology Branch Workflow
+# SOP-004: Experimental Methodology Branch Workflow
 
 ## Document Information
 
 | Field | Value |
 |-------|-------|
-| SOP ID | 003 |
+| SOP ID | 004 |
 | Status | Active |
 | Created | 2026-03-04 |
 | Last Updated | 2026-03-04 |

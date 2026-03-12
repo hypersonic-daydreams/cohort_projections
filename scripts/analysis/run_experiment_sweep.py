@@ -68,6 +68,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 from cohort_projections.analysis.experiment_log import (  # noqa: E402
     get_tested_hypotheses,
+    is_config_delta_tested,
 )
 
 logger = logging.getLogger(__name__)
@@ -635,7 +636,7 @@ def run_sweep(
             spec_path.name,
         )
 
-        # Dedup check
+        # Dedup check — experiment ID level
         if experiment_id in tested:
             logger.info(
                 "Skipping %s — already tested (found in experiment log).",
@@ -651,6 +652,29 @@ def run_sweep(
                 "stderr": "",
             })
             continue
+
+        # Dedup check — parameter-level matching
+        try:
+            spec_data = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
+            config_delta = spec_data.get("config_delta") if isinstance(spec_data, dict) else None
+            if isinstance(config_delta, dict) and config_delta:
+                if is_config_delta_tested(config_delta):
+                    logger.info(
+                        "Skipping %s — config delta already tested (parameter-level match).",
+                        experiment_id,
+                    )
+                    results.append({
+                        "experiment_id": experiment_id,
+                        "spec_path": str(spec_path),
+                        "exit_code": -1,
+                        "outcome": "(skipped)",
+                        "key_delta": "-",
+                        "stdout": "",
+                        "stderr": "",
+                    })
+                    continue
+        except Exception:
+            pass  # If we can't read the spec, proceed to run it
 
         if dry_run:
             logger.info("  [dry-run] Would run: %s", spec_path)

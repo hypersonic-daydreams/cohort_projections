@@ -483,6 +483,84 @@ python scripts/analysis/run_experiment_sweep.py --pending
 - **Summary table**: A summary table is printed showing experiment outcomes
   and key metric deltas.
 
+## Projection Observatory
+
+The Projection Observatory is a unified analysis and comparison layer built on
+top of the experiment and sweep infrastructure. It consolidates all benchmark
+results into a single store, computes N-way comparisons, and recommends the
+next experiments to run.
+
+### How It Integrates
+
+The Observatory does not replace the sweep or experiment runner. It delegates
+to them for execution:
+
+1. **Sweep** produces benchmark run bundles under `data/analysis/benchmark_history/`.
+2. The Observatory's `ResultsStore` loads all run scorecards from that history.
+3. `ObservatoryComparator` ranks runs, computes deltas against the champion, and
+   identifies Pareto-optimal configurations.
+4. `ObservatoryRecommender` analyzes tested parameter ranges and the variant
+   catalog to suggest what to try next.
+5. `run-pending` and `run-recommended` generate experiment specs from the
+   variant catalog and invoke the sweep runner for execution.
+
+### CLI Commands
+
+```bash
+source .venv/bin/activate
+python scripts/analysis/observatory.py status          # Inventory and catalog status
+python scripts/analysis/observatory.py compare         # Full N-way comparison report
+python scripts/analysis/observatory.py rank <metric>   # Rank all runs by a specific metric
+python scripts/analysis/observatory.py recommend       # Next-experiment suggestions
+python scripts/analysis/observatory.py run-pending     # Run all untested catalog variants
+python scripts/analysis/observatory.py run-pending --dry-run  # Preview without executing
+python scripts/analysis/observatory.py run-recommended     # Run config-only recommendations
+python scripts/analysis/observatory.py run-recommended --dry-run  # Preview recommendations
+python scripts/analysis/observatory.py diff <id1> <id2>    # Head-to-head run comparison
+python scripts/analysis/observatory.py history         # Chronological experiment progression
+python scripts/analysis/observatory.py report          # Generate HTML observatory report
+python scripts/analysis/observatory.py refresh         # Rebuild results cache
+python scripts/analysis/observatory.py --format json status  # Machine-readable output
+```
+
+### Execution Workflows
+
+**`run-pending`** iterates over all variants in the catalog that have no
+recorded results, generates experiment specs via `catalog.generate_spec()`,
+and runs them through the sweep infrastructure. Use `--dry-run` to preview
+which variants would be executed.
+
+**`run-recommended`** asks the recommender for suggestions (boundary
+extensions, untested catalog entries, interaction candidates), filters to
+config-only variants, generates specs, and runs them. Use `--dry-run` to
+preview the recommendations without execution.
+
+### Configuration
+
+| File | Purpose |
+|------|---------|
+| `config/observatory_config.yaml` | Paths (history dir, cache dir, experiment log, variant catalog), champion/challenger method IDs, comparison metrics, recommendation thresholds |
+| `config/observatory_variants.yaml` | Variant definitions (11 experiments EXP-A through EXP-K), parameter bounds, grid sweep definitions |
+
+### Results Flow
+
+```
+experiment spec → sweep runner → benchmark_history/<run_id>/
+    → observatory ResultsStore (loads scorecards)
+    → compare / rank / recommend
+```
+
+### Directory Map (Observatory)
+
+| Path | Purpose |
+|------|---------|
+| `cohort_projections/analysis/observatory/` | Observatory package (results_store, comparator, recommender, variant_catalog, report) |
+| `config/observatory_config.yaml` | Observatory settings |
+| `config/observatory_variants.yaml` | Variant catalog and grid definitions |
+| `scripts/analysis/observatory.py` | CLI entry point |
+| `data/analysis/observatory/` | Cache directory for observatory results |
+| `tests/test_analysis/test_observatory_*.py` | 176 tests across 5 test files |
+
 ## Related Documents
 
 - [SOP-003](../governance/sops/SOP-003-method-benchmarking-versioning-promotion.md)

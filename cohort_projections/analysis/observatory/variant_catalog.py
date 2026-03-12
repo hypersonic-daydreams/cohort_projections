@@ -36,6 +36,11 @@ from typing import Any
 import pandas as pd
 import yaml
 
+from cohort_projections.analysis.experiment_log import (
+    _match_config_delta,
+    config_delta_summary as _config_delta_summary,
+)
+
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 DEFAULT_CATALOG_PATH = PROJECT_ROOT / "config" / "observatory_variants.yaml"
@@ -77,73 +82,6 @@ def _normalize_config_delta(parameter: str, value: Any) -> dict[str, Any]:
         A dict suitable for the ``config_delta`` field in a spec file.
     """
     return {parameter: value}
-
-
-def _config_delta_summary(config_delta: dict[str, Any]) -> str:
-    """Build a human-readable summary of a config_delta dict.
-
-    This mirrors the format used in experiment_log.csv for cross-referencing.
-
-    Args:
-        config_delta: The config_delta mapping.
-
-    Returns:
-        A summary string like ``"college_blend_factor=0.7"`` or
-        ``"boom_period_dampening: {2005-2010=0.5, 2010-2015=0.3}"``.
-    """
-    parts: list[str] = []
-    for key, val in config_delta.items():
-        if isinstance(val, dict):
-            inner = ", ".join(f"{k}={v}" for k, v in val.items())
-            parts.append(f"{key}: {{{inner}}}")
-        elif isinstance(val, list):
-            parts.append(f"{key}={val}")
-        else:
-            parts.append(f"{key}={val}")
-    return "; ".join(parts)
-
-
-def _match_config_delta(
-    log_summary: str,
-    candidate_delta: dict[str, Any],
-) -> bool:
-    """Check if a log entry's config_delta_summary matches a candidate config_delta.
-
-    Uses parameter-level matching: for each key in the candidate, checks
-    whether the log summary contains that key=value pair. This allows
-    matching across different experiment IDs that tested the same parameter
-    at the same value.
-
-    Args:
-        log_summary: The ``config_delta_summary`` string from the experiment log.
-        candidate_delta: The config_delta dict to match against.
-
-    Returns:
-        True if all parameters in the candidate appear in the log summary.
-    """
-    if not isinstance(log_summary, str):
-        return False
-
-    candidate_summary = _config_delta_summary(candidate_delta)
-
-    # Direct match covers the common case
-    if candidate_summary == log_summary:
-        return True
-
-    # Fallback: check each individual key=value fragment
-    for key, val in candidate_delta.items():
-        if isinstance(val, dict):
-            inner = ", ".join(f"{k}={v}" for k, v in val.items())
-            fragment = f"{key}: {{{inner}}}"
-        elif isinstance(val, list):
-            fragment = f"{key}={val}"
-        else:
-            fragment = f"{key}={val}"
-
-        if fragment not in log_summary:
-            return False
-
-    return True
 
 
 # ---------------------------------------------------------------------------

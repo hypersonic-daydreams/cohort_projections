@@ -9,6 +9,7 @@ This directory contains standard operating procedures for the cohort_projections
 | [SOP-001](./SOP-001-external-ai-analysis-integration.md) | External AI Analysis Integration | Active | 2026-01-01 |
 | [SOP-002](./SOP-002-data-processing-documentation.md) | Data Processing Script & Data Source Documentation | Active | 2026-02-23 |
 | [SOP-003](./SOP-003-method-benchmarking-versioning-promotion.md) | Method Benchmarking, Versioning, and Promotion | Active | 2026-03-09 |
+| [SOP-004](./SOP-004-experimental-methodology-branches.md) | Experimental Methodology Branch Workflow | Active | 2026-03-04 |
 
 ---
 

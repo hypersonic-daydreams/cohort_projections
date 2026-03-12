@@ -79,9 +79,29 @@ from cohort_projections.analysis.experiment_log import (  # noqa: E402
 # ---------------------------------------------------------------------------
 DEFAULT_CATALOG = PROJECT_ROOT / "docs" / "plans" / "experiment-catalog.md"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "data" / "analysis" / "experiments"
+DEFAULT_VARIANT_CATALOG_PATH = PROJECT_ROOT / "config" / "observatory_variants.yaml"
 
-# Fixed color mapping for experiments — consistent across all tabs
-EXPERIMENT_COLORS: dict[str, str] = {
+# Color palette for dynamic assignment when catalog-based colors are used
+_COLOR_PALETTE: list[str] = [
+    "#0563C1",  # Blue
+    "#00B050",  # Green
+    "#7030A0",  # Purple
+    "#9DC3E6",  # Light blue
+    "#ED7D31",  # Orange
+    "#A9D18E",  # Light green
+    "#BF8F00",  # Dark gold
+    "#548235",  # Dark green
+    "#C00000",  # Red
+    "#00B0F0",  # Teal
+    "#FFC000",  # Gold
+    "#FF6699",  # Pink
+    "#336699",  # Steel blue
+    "#669933",  # Olive
+    "#993366",  # Plum
+]
+
+# Fallback hardcoded color mapping — used when variant catalog is unavailable
+_FALLBACK_EXPERIMENT_COLORS: dict[str, str] = {
     "EXP-A": "#0563C1",  # Blue
     "EXP-B": "#00B050",  # Green (the winner)
     "EXP-C": "#7030A0",  # Purple
@@ -95,12 +115,8 @@ EXPERIMENT_COLORS: dict[str, str] = {
     "EXP-K": "#FFC000",  # Gold
 }
 
-CHAMPION_COLOR = NAVY
-CANDIDATE_COLOR = BLUE
-
-# Slug-to-catalog-ID mapping (built from catalog parse)
-# These map benchmark_labels in index.csv to catalog experiment IDs
-SLUG_TO_EXP: dict[str, str] = {
+# Fallback hardcoded slug-to-catalog-ID mapping
+_FALLBACK_SLUG_TO_EXP: dict[str, str] = {
     "convergence-medium-hold-5": "EXP-A",
     "college-blend-70": "EXP-B",
     "gq-fraction-75": "EXP-C",
@@ -113,6 +129,62 @@ SLUG_TO_EXP: dict[str, str] = {
     "convergence-medium-hold-4": "EXP-J",
     "boom-dampening-peak-35": "EXP-K",
 }
+
+
+def _load_catalog_mappings() -> tuple[dict[str, str], dict[str, str]]:
+    """Build SLUG_TO_EXP and EXPERIMENT_COLORS from the variant catalog YAML.
+
+    Falls back to hardcoded mappings if the variant catalog cannot be loaded.
+
+    Returns
+    -------
+    tuple[dict[str, str], dict[str, str]]
+        (slug_to_exp mapping, experiment_colors mapping)
+    """
+    try:
+        from cohort_projections.analysis.observatory.variant_catalog import (
+            VariantCatalog,
+        )
+
+        if not DEFAULT_VARIANT_CATALOG_PATH.exists():
+            raise FileNotFoundError(DEFAULT_VARIANT_CATALOG_PATH)
+
+        cat = VariantCatalog(
+            catalog_path=DEFAULT_VARIANT_CATALOG_PATH,
+            experiment_log=pd.DataFrame(),
+        )
+        variants_df = cat.list_variants()
+
+        slug_to_exp: dict[str, str] = {}
+        colors: dict[str, str] = {}
+
+        for i, (_, row) in enumerate(variants_df.iterrows()):
+            vid = str(row["variant_id"])
+            # Use the variant_id as the experiment ID — uppercase for display
+            exp_id = vid.upper()
+            # Use the slug from the catalog for matching
+            slug_val = str(row.get("name", vid)).lower().replace(" ", "-")
+            # Check if there's a slug in the raw catalog definition
+            vdef = cat.get_variant(vid)
+            slug_val = vdef.get("slug", slug_val)
+
+            slug_to_exp[slug_val] = exp_id
+            colors[exp_id] = _COLOR_PALETTE[i % len(_COLOR_PALETTE)]
+
+        if slug_to_exp:
+            return slug_to_exp, colors
+
+    except Exception:
+        pass
+
+    return dict(_FALLBACK_SLUG_TO_EXP), dict(_FALLBACK_EXPERIMENT_COLORS)
+
+
+# Initialize from catalog (with fallback)
+SLUG_TO_EXP, EXPERIMENT_COLORS = _load_catalog_mappings()
+
+CHAMPION_COLOR = NAVY
+CANDIDATE_COLOR = BLUE
 
 # Key metrics for comparison
 DELTA_METRICS = [

@@ -8,8 +8,11 @@ import pytest
 
 from cohort_projections.analysis.experiment_log import (
     LOG_COLUMNS,
+    _match_config_delta,
     append_experiment_entry,
+    config_delta_summary,
     get_tested_hypotheses,
+    is_config_delta_tested,
     read_experiment_log,
 )
 
@@ -152,3 +155,87 @@ class TestGetTestedHypotheses:
         log_path = tmp_path / "no_such_file.csv"
         result = get_tested_hypotheses(log_path)
         assert result == set()
+
+
+class TestConfigDeltaSummary:
+    """Tests for config_delta_summary."""
+
+    def test_scalar_value(self) -> None:
+        result = config_delta_summary({"college_blend_factor": 0.7})
+        assert result == "college_blend_factor=0.7"
+
+    def test_dict_value(self) -> None:
+        result = config_delta_summary({"boom_period_dampening": {"2005-2010": 0.5}})
+        assert "boom_period_dampening" in result
+        assert "2005-2010=0.5" in result
+
+    def test_list_value(self) -> None:
+        result = config_delta_summary({"bakken_fips": [38017, 38105]})
+        assert "bakken_fips=" in result
+
+    def test_multiple_params(self) -> None:
+        result = config_delta_summary({"a": 1, "b": 2})
+        assert "a=1" in result
+        assert "b=2" in result
+        assert "; " in result
+
+    def test_empty_dict(self) -> None:
+        result = config_delta_summary({})
+        assert result == ""
+
+    def test_consistent_output(self) -> None:
+        """Same input always produces the same output."""
+        delta = {"college_blend_factor": 0.7}
+        assert config_delta_summary(delta) == config_delta_summary(delta)
+
+
+class TestMatchConfigDelta:
+    """Tests for _match_config_delta."""
+
+    def test_exact_match(self) -> None:
+        assert _match_config_delta("college_blend_factor=0.7", {"college_blend_factor": 0.7})
+
+    def test_no_match(self) -> None:
+        assert not _match_config_delta("college_blend_factor=0.5", {"college_blend_factor": 0.7})
+
+    def test_non_string_log_summary(self) -> None:
+        assert not _match_config_delta(None, {"a": 1})  # type: ignore[arg-type]
+
+    def test_subset_match(self) -> None:
+        """Candidate delta is a subset of the log entry."""
+        log = "college_blend_factor=0.7; convergence_medium_hold=5"
+        assert _match_config_delta(log, {"college_blend_factor": 0.7})
+
+    def test_dict_value_match(self) -> None:
+        log = "boom_period_dampening: {2005-2010=0.5}"
+        assert _match_config_delta(log, {"boom_period_dampening": {"2005-2010": 0.5}})
+
+
+class TestIsConfigDeltaTested:
+    """Tests for is_config_delta_tested."""
+
+    def test_match_in_log(self, tmp_path: Path) -> None:
+        log_path = tmp_path / "log.csv"
+        append_experiment_entry(
+            _make_entry(config_delta_summary="college_blend_factor=0.7"),
+            log_path=log_path,
+        )
+        assert is_config_delta_tested(
+            {"college_blend_factor": 0.7}, log_path=log_path
+        )
+
+    def test_no_match_in_log(self, tmp_path: Path) -> None:
+        log_path = tmp_path / "log.csv"
+        append_experiment_entry(
+            _make_entry(config_delta_summary="college_blend_factor=0.5"),
+            log_path=log_path,
+        )
+        assert not is_config_delta_tested(
+            {"college_blend_factor": 0.7}, log_path=log_path
+        )
+
+    def test_nonexistent_log(self, tmp_path: Path) -> None:
+        log_path = tmp_path / "nonexistent.csv"
+        assert not is_config_delta_tested(
+            {"college_blend_factor": 0.7}, log_path=log_path
+        )
