@@ -23,6 +23,7 @@ from .data_structures import (
     RunIdentity,
     ScorecardEntry,
 )
+from .html_report import generate_html_report
 from .benchmark_runners import (
     average_growth,
     build_component_swap,
@@ -53,6 +54,7 @@ __all__ = [
     "ComponentRecord",
     "DiagnosticRecord",
     "ExperimentRegistryEntry",
+    "generate_html_report",
     "HorizonBands",
     "METRIC_REGISTRY",
     "PROJECTION_RESULT_COLUMNS",
