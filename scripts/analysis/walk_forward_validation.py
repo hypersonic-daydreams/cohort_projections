@@ -109,6 +109,8 @@ Usage
 
 from __future__ import annotations
 
+import os
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -259,6 +261,15 @@ class MethodConfig(TypedDict, total=False):
     convergence_medium_hold: int
     convergence_transition_hold: int
 
+    # Upstream data-processing parameters (EXP-C, EXP-D)
+    gq_correction_fraction: float  # 1.0 = full GQ subtraction (default)
+    rate_cap_general: float  # 0.08 = current general rate cap (default)
+
+
+# Defaults for upstream parameters — used to detect overrides
+_DEFAULT_GQ_CORRECTION_FRACTION: float = 1.0
+_DEFAULT_RATE_CAP_GENERAL: float = 0.08
+
 
 # Shared Bakken county set (used by all methods)
 _BAKKEN_FIPS = {"38105", "38053", "38061", "38025", "38089"}
@@ -281,6 +292,9 @@ M2026_CONFIG: MethodConfig = {
     "convergence_recent_hold": 1,
     "convergence_medium_hold": 2,
     "convergence_transition_hold": 1,
+    # Upstream data-processing parameters (defaults = no change from pre-computed rates)
+    "gq_correction_fraction": _DEFAULT_GQ_CORRECTION_FRACTION,
+    "rate_cap_general": _DEFAULT_RATE_CAP_GENERAL,
 }
 
 M2026R1_CONFIG: MethodConfig = {
@@ -391,6 +405,94 @@ def load_fertility_rates() -> dict[str, float]:
         label = f"{int(row['age_start'])}-{int(row['age_end'])}"
         rates[label] = row["asfr_annual"]
     return rates
+
+
+# ---------------------------------------------------------------------------
+# GQ Correction Override — in-memory recomputation (EXP-C)
+# ---------------------------------------------------------------------------
+
+GQ_HISTORICAL_PATH = (
+    PROJECT_ROOT / "data" / "processed" / "gq_county_age_sex_historical.parquet"
+)
+
+
+def recompute_migration_with_gq_override(
+    snapshots: dict[int, pd.DataFrame],
+    gq_correction_fraction: float,
+) -> pd.DataFrame:
+    """Recompute residual migration rates in-memory with an overridden GQ fraction.
+
+    Loads GQ historical data, subtracts ``gq_correction_fraction`` of GQ from
+    each snapshot year, then runs the residual migration computation on the
+    adjusted household-only population.  This avoids mutating any on-disk
+    ``data/processed/`` files.
+
+    Args:
+        snapshots: Population snapshots keyed by year (original, with full pop).
+        gq_correction_fraction: Fraction of GQ to subtract (0.0 = none, 1.0 = full).
+
+    Returns:
+        DataFrame with the same schema as ``load_migration_rates_raw()``
+        [county_fips, age_group, sex, period_start, period_end, migration_rate].
+    """
+    from cohort_projections.data.process.residual_migration import (
+        compute_residual_migration_rates,
+        subtract_gq_from_populations,
+    )
+
+    # Load GQ historical data
+    gq_historical = pd.read_parquet(GQ_HISTORICAL_PATH)
+
+    # Subtract overridden GQ fraction from snapshots
+    adjusted_pops = subtract_gq_from_populations(
+        snapshots, gq_historical, fraction=gq_correction_fraction
+    )
+
+    # Load survival rates for the residual computation
+    survival_df = pd.read_csv(SURVIVAL_PATH)
+
+    # Compute residual migration for each period
+    all_period_rates: list[pd.DataFrame] = []
+    for period_start, period_end in ALL_PERIODS:
+        if period_start not in adjusted_pops or period_end not in adjusted_pops:
+            continue
+        period_rates = compute_residual_migration_rates(
+            pop_start=adjusted_pops[period_start],
+            pop_end=adjusted_pops[period_end],
+            survival_rates=survival_df,
+            period=(period_start, period_end),
+        )
+        all_period_rates.append(period_rates)
+
+    combined = pd.concat(all_period_rates, ignore_index=True)
+    return combined[
+        ["county_fips", "age_group", "sex", "period_start", "period_end", "migration_rate"]
+    ]
+
+
+def maybe_recompute_mig_raw(
+    mig_raw: pd.DataFrame,
+    snapshots: dict[int, pd.DataFrame],
+    config: MethodConfig,
+) -> pd.DataFrame:
+    """Conditionally recompute migration rates if GQ fraction differs from default.
+
+    If the config's ``gq_correction_fraction`` equals the default (1.0) or is
+    absent, returns the original ``mig_raw`` unchanged (same object).  Otherwise,
+    triggers in-memory recomputation with the overridden fraction.
+
+    Args:
+        mig_raw: Pre-computed migration rates DataFrame.
+        snapshots: Population snapshots keyed by year.
+        config: Per-method config dict.
+
+    Returns:
+        Migration rates DataFrame (original or recomputed).
+    """
+    fraction = config.get("gq_correction_fraction", _DEFAULT_GQ_CORRECTION_FRACTION)
+    if fraction == _DEFAULT_GQ_CORRECTION_FRACTION:
+        return mig_raw
+    return recompute_migration_with_gq_override(snapshots, fraction)
 
 
 # ---------------------------------------------------------------------------
@@ -752,6 +854,49 @@ def prepare_2026_convergence_rates_annual(
     raise ValueError(f"Unknown origin year: {origin_year}")
 
 
+# ---------------------------------------------------------------------------
+# Rate Cap — annual-rate equivalent of convergence_interpolation._apply_rate_cap
+# ---------------------------------------------------------------------------
+
+_DEFAULT_COLLEGE_CAP: float = 0.15
+_DEFAULT_COLLEGE_AGES: frozenset[str] = frozenset({"15-19", "20-24"})
+
+
+def _apply_annual_rate_cap(
+    rate_series: pd.Series,
+    age_groups: pd.Series,
+    general_cap: float,
+    college_cap: float = _DEFAULT_COLLEGE_CAP,
+    college_ages: frozenset[str] | set[str] = _DEFAULT_COLLEGE_AGES,
+) -> pd.Series:
+    """Apply age-aware symmetric cap to annualized migration rates.
+
+    Mirrors the logic of ``convergence_interpolation._apply_rate_cap`` but
+    operates on annualized rates within the walk-forward validation context.
+
+    College-age cells (default 15-19, 20-24) are capped at ``college_cap``
+    (default 0.15). All other ages are capped at ``general_cap``.
+
+    Args:
+        rate_series: Series of annualized migration rates.
+        age_groups: Series of age group labels aligned with *rate_series*.
+        general_cap: Symmetric cap for non-college ages.
+        college_cap: Symmetric cap for college ages (default 0.15).
+        college_ages: Set of age group labels receiving the wider cap.
+
+    Returns:
+        Capped rate series (same index as input).
+    """
+    college_mask = age_groups.isin(college_ages)
+
+    capped = rate_series.copy()
+    capped = capped.clip(lower=-general_cap, upper=general_cap)
+    capped[college_mask] = rate_series[college_mask].clip(
+        lower=-college_cap, upper=college_cap
+    )
+    return capped
+
+
 def get_convergence_rate_for_year(
     year_offset: int,
     windows: dict[str, pd.DataFrame],
@@ -802,10 +947,10 @@ def get_convergence_rate_for_year(
             0.5 * merged["migration_rate_annual_recent"]
             + 0.5 * merged["migration_rate_annual_medium"]
         )
-        return merged[["county_fips", "age_group", "sex", "migration_rate_annual"]]
+        result = merged[["county_fips", "age_group", "sex", "migration_rate_annual"]].copy()
 
     elif step_number <= medium_end:
-        return windows["medium"].copy()
+        result = windows["medium"].copy()
 
     elif step_number <= transition_end:
         # Blend of medium and long-term
@@ -818,10 +963,21 @@ def get_convergence_rate_for_year(
             0.5 * merged["migration_rate_annual_medium"]
             + 0.5 * merged["migration_rate_annual_longterm"]
         )
-        return merged[["county_fips", "age_group", "sex", "migration_rate_annual"]]
+        result = merged[["county_fips", "age_group", "sex", "migration_rate_annual"]].copy()
 
     else:
-        return windows["longterm"].copy()
+        result = windows["longterm"].copy()
+
+    # Apply rate cap if the config specifies a non-default value
+    rate_cap = cfg.get("rate_cap_general", _DEFAULT_RATE_CAP_GENERAL)
+    if rate_cap != _DEFAULT_RATE_CAP_GENERAL:
+        result["migration_rate_annual"] = _apply_annual_rate_cap(
+            result["migration_rate_annual"],
+            result["age_group"],
+            general_cap=rate_cap,
+        )
+
+    return result
 
 
 def _build_mig_annual_lookup(
@@ -1379,12 +1535,13 @@ def run_walk_forward_validation(
         # Determine maximum number of years needed for annual engines
         n_years_annual = MAX_PROJECTION_YEARS
 
-        # Prepare rates for each method
+        # Prepare rates for each method (with per-method GQ recomputation)
         method_rates: dict[str, object] = {}
         for method_name in methods:
             dispatch = METHOD_DISPATCH[method_name]
             cfg = dispatch["config"]  # type: ignore[index]
-            method_rates[method_name] = dispatch["prepare"](mig_raw, origin_year, cfg)  # type: ignore[operator]
+            method_mig = maybe_recompute_mig_raw(mig_raw, snapshots, cfg)
+            method_rates[method_name] = dispatch["prepare"](method_mig, origin_year, cfg)  # type: ignore[operator]
 
         # Project all counties with each method
         for fips in counties:
@@ -1810,6 +1967,196 @@ def load_annual_validation_actuals(
     return actuals
 
 
+# ---------------------------------------------------------------------------
+# Per-origin worker function (picklable — no lambdas)
+# ---------------------------------------------------------------------------
+
+# Local dispatch maps that avoid the lambda-based METHOD_DISPATCH for
+# cross-process pickling.  Each method name is mapped to its concrete
+# prepare/project functions and ``is_annual`` flag.
+
+_PREPARE_DISPATCH: dict[str, object] = {
+    "sdc_2024": prepare_sdc_rates,
+    "m2026": prepare_2026_convergence_rates_annual,
+    "m2026r1": prepare_2026_convergence_rates_annual,
+}
+
+_PROJECT_DISPATCH: dict[str, object] = {
+    "sdc_2024": project_sdc,
+    "m2026": project_2026_annual,
+    "m2026r1": project_2026_annual,
+}
+
+_IS_ANNUAL: dict[str, bool] = {
+    "sdc_2024": False,
+    "m2026": True,
+    "m2026r1": True,
+}
+
+
+def _run_single_origin_annual(
+    *,
+    origin_year: int,
+    base_pop: pd.DataFrame,
+    mig_raw: pd.DataFrame,
+    survival: dict[tuple[str, str], float],
+    fertility: dict[str, float],
+    counties: list[str],
+    methods: list[str],
+    method_configs: dict[str, MethodConfig],
+    actual_county_totals: dict[int, dict[str, float]],
+    max_validation_year: int,
+    method_mig_raw: dict[str, pd.DataFrame] | None = None,
+) -> tuple[list[dict], list[dict], list[dict]]:
+    """Run walk-forward validation for a single origin year.
+
+    This function is designed to be picklable for use with
+    ``ProcessPoolExecutor``.  It avoids lambdas by using the module-level
+    ``_PREPARE_DISPATCH`` / ``_PROJECT_DISPATCH`` / ``_IS_ANNUAL`` maps
+    instead of ``METHOD_DISPATCH``.
+
+    Args:
+        origin_year: The origin year (e.g. 2005, 2010, 2015, 2020).
+        base_pop: Population snapshot DataFrame for the origin year.
+        mig_raw: Raw migration rates DataFrame.
+        survival: 5-year survival rates keyed by (age_group, sex).
+        fertility: Annual ASFRs keyed by age_group label.
+        counties: Sorted list of county FIPS codes.
+        methods: List of method identifiers to run.
+        method_configs: Dict mapping method_id to its MethodConfig.
+        actual_county_totals: Precomputed {year: {fips: total_pop}}.
+        max_validation_year: Maximum year to validate against.
+        method_mig_raw: Optional per-method migration rate overrides.
+            Maps method_id -> migration DataFrame.  If absent or a method
+            is not in this dict, ``mig_raw`` is used.
+
+    Returns:
+        Tuple of (county_records, state_records, curve_records).
+    """
+    n_steps = MAX_PROJECTION_YEARS // STEP
+    n_years = MAX_PROJECTION_YEARS
+
+    # Prepare rates for each method
+    method_rates: dict[str, object] = {}
+    for method_name in methods:
+        cfg = method_configs[method_name]
+        effective_mig = mig_raw
+        if method_mig_raw and method_name in method_mig_raw:
+            effective_mig = method_mig_raw[method_name]
+        prepare_fn = _PREPARE_DISPATCH[method_name]
+        method_rates[method_name] = prepare_fn(effective_mig, origin_year, cfg)  # type: ignore[operator]
+
+    # Project all counties with each method
+    method_county_annual: dict[str, dict[str, dict[int, float]]] = {
+        m: {} for m in methods
+    }
+
+    for fips in counties:
+        for method_name in methods:
+            cfg = method_configs[method_name]
+            rates = method_rates[method_name]
+            is_annual = _IS_ANNUAL[method_name]
+            project_fn = _PROJECT_DISPATCH[method_name]
+
+            if is_annual:
+                county_annual = project_fn(  # type: ignore[operator]
+                    base_pop, survival, fertility, rates, fips, n_years, origin_year, cfg
+                )
+            else:
+                step_proj = project_fn(  # type: ignore[operator]
+                    base_pop, survival, fertility, rates, fips, n_steps, origin_year, cfg
+                )
+                county_annual = interpolate_county_annual(step_proj, origin_year)
+
+            method_county_annual[method_name][fips] = county_annual
+
+    # Build curve records
+    curve_records: list[dict] = []
+    for method_name in methods:
+        county_annuals = method_county_annual[method_name]
+        all_years = sorted(
+            set().union(*(ca.keys() for ca in county_annuals.values()))
+        )
+        for yr in all_years:
+            state_total = sum(
+                ca.get(yr, 0.0) for ca in county_annuals.values()
+            )
+            curve_records.append(
+                {
+                    "origin_year": origin_year,
+                    "method": method_name,
+                    "year": yr,
+                    "projected_state": round(state_total, 0),
+                }
+            )
+
+    # Compute annual error metrics
+    validation_years = [
+        yr for yr in range(origin_year + 1, max_validation_year + 1)
+        if yr in actual_county_totals
+    ]
+
+    county_records: list[dict] = []
+    state_records: list[dict] = []
+
+    for val_yr in validation_years:
+        horizon = val_yr - origin_year
+
+        for method_name in methods:
+            county_annuals = method_county_annual[method_name]
+
+            method_proj_state = 0.0
+            method_actual_state = 0.0
+
+            for fips in counties:
+                projected = county_annuals[fips].get(val_yr, 0.0)
+                actual = actual_county_totals[val_yr].get(fips, 0.0)
+                error = projected - actual
+                pct_error = (error / actual * 100) if actual > 0 else 0.0
+
+                county_name = FIPS_TO_COUNTY_NAME.get(fips, fips)
+
+                county_records.append(
+                    {
+                        "origin_year": origin_year,
+                        "method": method_name,
+                        "validation_year": val_yr,
+                        "horizon": horizon,
+                        "county_fips": fips,
+                        "county_name": county_name,
+                        "projected": round(projected, 1),
+                        "actual": round(actual, 1),
+                        "error": round(error, 1),
+                        "pct_error": round(pct_error, 4),
+                    }
+                )
+
+                method_proj_state += projected
+                method_actual_state += actual
+
+            state_error = method_proj_state - method_actual_state
+            state_pct_error = (
+                (state_error / method_actual_state * 100)
+                if method_actual_state > 0
+                else 0.0
+            )
+            state_records.append(
+                {
+                    "origin_year": origin_year,
+                    "method": method_name,
+                    "validation_year": val_yr,
+                    "horizon": horizon,
+                    "projected_state": round(method_proj_state, 0),
+                    "actual_state": round(method_actual_state, 0),
+                    "error": round(state_error, 0),
+                    "pct_error": round(state_pct_error, 4),
+                    "abs_pct_error": round(abs(state_pct_error), 4),
+                }
+            )
+
+    return county_records, state_records, curve_records
+
+
 def run_annual_validation(
     snapshots: dict[int, pd.DataFrame],
     mig_raw: pd.DataFrame,
@@ -1817,6 +2164,7 @@ def run_annual_validation(
     fertility: dict[str, float],
     max_validation_year: int = 2024,
     methods: list[str] | None = None,
+    workers: int = 1,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Run annual-granularity walk-forward validation for all origins and methods.
 
@@ -1835,6 +2183,10 @@ def run_annual_validation(
         max_validation_year: Maximum year to validate against.
         methods: List of method names to run (keys of METHOD_DISPATCH).
             If None, defaults to ``["sdc_2024", "m2026"]``.
+        workers: Number of parallel workers.  ``1`` (default) runs
+            sequentially on the main process.  ``0`` auto-detects
+            ``min(len(ORIGIN_YEARS), cpu_count)``.  Values > 1 use a
+            ``ProcessPoolExecutor`` with origin years as work units.
 
     Returns:
         annual_state_results: DataFrame with state-level annual error metrics
@@ -1852,138 +2204,94 @@ def run_annual_validation(
 
     # Precompute county totals from annual actuals: {year: {fips: total_pop}}
     actual_county_totals: dict[int, dict[str, float]] = {}
-    actual_state_totals: dict[int, float] = {}
     for yr, df in annual_actuals.items():
         county_tots = df.groupby("county_fips")["population"].sum().to_dict()
         actual_county_totals[yr] = county_tots
-        actual_state_totals[yr] = sum(county_tots.values())
 
     counties = sorted(snapshots[2000]["county_fips"].unique())
 
+    # Build method_configs from METHOD_DISPATCH
+    method_configs: dict[str, MethodConfig] = {}
+    for m in methods:
+        method_configs[m] = METHOD_DISPATCH[m]["config"]  # type: ignore[index]
+
+    # Pre-compute per-method migration rate overrides (GQ recomputation)
+    method_mig_raw: dict[str, pd.DataFrame] = {}
+    for method_name in methods:
+        cfg = method_configs[method_name]
+        recomputed = maybe_recompute_mig_raw(mig_raw, snapshots, cfg)
+        if recomputed is not mig_raw:
+            method_mig_raw[method_name] = recomputed
+
+    # Resolve effective worker count
+    n_origins = len(ORIGIN_YEARS)
+    if workers == 0:
+        effective_workers = min(n_origins, os.cpu_count() or 1)
+    else:
+        effective_workers = max(1, min(workers, n_origins))
+
+    # Build shared keyword arguments for _run_single_origin_annual
+    shared_kwargs: dict[str, object] = {
+        "mig_raw": mig_raw,
+        "survival": survival,
+        "fertility": fertility,
+        "counties": counties,
+        "methods": methods,
+        "method_configs": method_configs,
+        "actual_county_totals": actual_county_totals,
+        "max_validation_year": max_validation_year,
+        "method_mig_raw": method_mig_raw if method_mig_raw else None,
+    }
+
+    # Collect results in deterministic ORIGIN_YEARS order
     annual_county_records: list[dict] = []
     annual_state_records: list[dict] = []
     curve_records: list[dict] = []
 
-    for origin_year in ORIGIN_YEARS:
-        print(f"\n  Origin {origin_year} (annual):")
-        n_steps = MAX_PROJECTION_YEARS // STEP  # 10 steps = 50 years for SDC
-        n_years = MAX_PROJECTION_YEARS  # 50 years for annual engines
-        base_pop = snapshots[origin_year]
-
-        # Prepare rates for each method
-        method_rates: dict[str, object] = {}
-        for method_name in methods:
-            dispatch = METHOD_DISPATCH[method_name]
-            cfg = dispatch["config"]  # type: ignore[index]
-            method_rates[method_name] = dispatch["prepare"](mig_raw, origin_year, cfg)  # type: ignore[operator]
-
-        # Collect per-county annual projections for each method
-        # {method: {fips: {year: pop}}}
-        method_county_annual: dict[str, dict[str, dict[int, float]]] = {
-            m: {} for m in methods
-        }
-
-        for fips in counties:
-            for method_name in methods:
-                dispatch = METHOD_DISPATCH[method_name]
-                cfg = dispatch["config"]  # type: ignore[index]
-                rates = method_rates[method_name]
-
-                if dispatch["is_annual"]:
-                    county_annual = dispatch["project"](  # type: ignore[operator]
-                        base_pop, survival, fertility, rates, fips, n_years, origin_year, cfg
-                    )
-                else:
-                    step_proj = dispatch["project"](  # type: ignore[operator]
-                        base_pop, survival, fertility, rates, fips, n_steps, origin_year, cfg
-                    )
-                    county_annual = interpolate_county_annual(step_proj, origin_year)
-
-                method_county_annual[method_name][fips] = county_annual
-
-        # Compute state annual totals for projection curves
-        for method_name in methods:
-            county_annuals = method_county_annual[method_name]
-            all_years = sorted(
-                set().union(*(ca.keys() for ca in county_annuals.values()))
+    if effective_workers <= 1:
+        # Sequential execution — same code path as before
+        for origin_year in ORIGIN_YEARS:
+            print(f"\n  Origin {origin_year} (annual):")
+            county_recs, state_recs, crv_recs = _run_single_origin_annual(
+                origin_year=origin_year,
+                base_pop=snapshots[origin_year],
+                **shared_kwargs,  # type: ignore[arg-type]
             )
-            for yr in all_years:
-                state_total = sum(
-                    ca.get(yr, 0.0) for ca in county_annuals.values()
+            annual_county_records.extend(county_recs)
+            annual_state_records.extend(state_recs)
+            curve_records.extend(crv_recs)
+    else:
+        # Parallel execution using ProcessPoolExecutor
+        print(f"\n  Running {n_origins} origin years with {effective_workers} workers...")
+        futures: dict[int, object] = {}  # origin_year -> Future
+
+        with ProcessPoolExecutor(max_workers=effective_workers) as executor:
+            for origin_year in ORIGIN_YEARS:
+                fut = executor.submit(
+                    _run_single_origin_annual,
+                    origin_year=origin_year,
+                    base_pop=snapshots[origin_year],
+                    **shared_kwargs,  # type: ignore[arg-type]
                 )
-                curve_records.append(
-                    {
-                        "origin_year": origin_year,
-                        "method": method_name,
-                        "year": yr,
-                        "projected_state": round(state_total, 0),
-                    }
+                futures[origin_year] = fut
+
+        # Merge results in deterministic ORIGIN_YEARS order
+        for origin_year in ORIGIN_YEARS:
+            fut = futures[origin_year]
+            try:
+                county_recs, state_recs, crv_recs = fut.result()  # type: ignore[union-attr]
+            except Exception as exc:
+                # Graceful fallback: re-run this origin year sequentially
+                print(f"  WARNING: Worker for origin {origin_year} failed "
+                      f"({exc!r}), retrying sequentially...")
+                county_recs, state_recs, crv_recs = _run_single_origin_annual(
+                    origin_year=origin_year,
+                    base_pop=snapshots[origin_year],
+                    **shared_kwargs,  # type: ignore[arg-type]
                 )
-
-        # Compute annual error metrics for each validation year
-        validation_years = [
-            yr for yr in range(origin_year + 1, max_validation_year + 1)
-            if yr in actual_county_totals
-        ]
-        n_val = len(validation_years)
-        print(f"    Validation years: {n_val} "
-              f"({min(validation_years)}-{max(validation_years)})")
-
-        for val_yr in validation_years:
-            horizon = val_yr - origin_year
-
-            for method_name in methods:
-                county_annuals = method_county_annual[method_name]
-
-                method_proj_state = 0.0
-                method_actual_state = 0.0
-
-                for fips in counties:
-                    projected = county_annuals[fips].get(val_yr, 0.0)
-                    actual = actual_county_totals[val_yr].get(fips, 0.0)
-                    error = projected - actual
-                    pct_error = (error / actual * 100) if actual > 0 else 0.0
-
-                    county_name = FIPS_TO_COUNTY_NAME.get(fips, fips)
-
-                    annual_county_records.append(
-                        {
-                            "origin_year": origin_year,
-                            "method": method_name,
-                            "validation_year": val_yr,
-                            "horizon": horizon,
-                            "county_fips": fips,
-                            "county_name": county_name,
-                            "projected": round(projected, 1),
-                            "actual": round(actual, 1),
-                            "error": round(error, 1),
-                            "pct_error": round(pct_error, 4),
-                        }
-                    )
-
-                    method_proj_state += projected
-                    method_actual_state += actual
-
-                # State-level record
-                state_error = method_proj_state - method_actual_state
-                state_pct_error = (
-                    (state_error / method_actual_state * 100)
-                    if method_actual_state > 0
-                    else 0.0
-                )
-                annual_state_records.append(
-                    {
-                        "origin_year": origin_year,
-                        "method": method_name,
-                        "validation_year": val_yr,
-                        "horizon": horizon,
-                        "projected_state": round(method_proj_state, 0),
-                        "actual_state": round(method_actual_state, 0),
-                        "error": round(state_error, 0),
-                        "pct_error": round(state_pct_error, 4),
-                        "abs_pct_error": round(abs(state_pct_error), 4),
-                    }
-                )
+            annual_county_records.extend(county_recs)
+            annual_state_records.extend(state_recs)
+            curve_records.extend(crv_recs)
 
     annual_state_df = pd.DataFrame(annual_state_records)
     annual_county_df = pd.DataFrame(annual_county_records)
@@ -2206,10 +2514,21 @@ def main() -> None:
         default=list(METHOD_DISPATCH.keys()),
         help=f"Methods to run (default: all registered: {list(METHOD_DISPATCH.keys())})",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help=(
+            "Number of parallel workers for annual validation. "
+            "0 = auto-detect min(len(ORIGIN_YEARS), cpu_count). "
+            "1 = sequential (default)."
+        ),
+    )
     args = parser.parse_args()
 
     methods: list[str] = args.methods
     label: str | None = args.run_label
+    n_workers: int = args.workers
 
     # Validate method names
     for m in methods:
@@ -2288,7 +2607,8 @@ def main() -> None:
     print("=" * 80)
 
     annual_state, annual_county, projection_curves = run_annual_validation(
-        snapshots, mig_raw, survival, fertility, methods=methods
+        snapshots, mig_raw, survival, fertility, methods=methods,
+        workers=n_workers,
     )
 
     # 9. Compute annual summary metrics

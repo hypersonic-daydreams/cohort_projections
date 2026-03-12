@@ -396,6 +396,92 @@ Query utilities in `cohort_projections/analysis/experiment_log.py`:
 | `scripts/analysis/run_experiment.py` | Single-command experiment orchestrator |
 | `cohort_projections/analysis/evaluation_policy.py` | Policy evaluation logic |
 | `cohort_projections/analysis/experiment_log.py` | Log read/write utilities |
+| `scripts/analysis/build_experiment_dashboard.py` | Interactive experiment comparison dashboard |
+| `data/analysis/experiments/experiment_dashboard.html` | Generated dashboard output |
+
+## Dashboard and Visualization
+
+After running experiments, generate an interactive HTML dashboard to compare
+results across all completed experiments:
+
+```bash
+source .venv/bin/activate
+python scripts/analysis/build_experiment_dashboard.py
+```
+
+The dashboard is written to `data/analysis/experiments/experiment_dashboard.html`
+and includes five interactive tabs:
+
+1. **Experiment Tracker** — catalog status, KPIs, outcome badges, MAPE deltas
+2. **Spaghetti Plot** — overlaid state projection curves with origin-year filtering
+3. **Scorecard Comparison** — grouped bar chart of deltas + full metrics table
+4. **Horizon Analysis** — MAPE and bias degradation by forecast horizon
+5. **County Detail** — heatmap of county-level performance by experiment
+
+Optional flags:
+
+- `--output <path>` — write dashboard to a custom location
+- `--no-plotly-js` — load Plotly.js from CDN (smaller file, requires internet)
+
+The dashboard reads from existing benchmark history artifacts; it does not
+re-run any experiments.
+
+## Batch Sweeps
+
+The sweep runner automates running multiple experiments in sequence with dedup
+checking and dashboard regeneration.
+
+### Spec List Mode
+
+Run specific experiment specs in order:
+
+```bash
+source .venv/bin/activate
+python scripts/analysis/run_experiment_sweep.py \
+  --specs data/analysis/experiments/pending/exp-001.yaml \
+         data/analysis/experiments/pending/exp-002.yaml
+```
+
+### Grid Mode
+
+Generate specs from a parameter grid and run them all:
+
+```bash
+source .venv/bin/activate
+python scripts/analysis/run_experiment_sweep.py --grid config/grids/blend-sweep.yaml
+```
+
+Grid YAML format:
+
+```yaml
+base_method: m2026r1
+base_config: cfg-20260309-college-fix-v1
+scope: county
+requested_by: agent
+parameters:
+  college_blend_factor: [0.5, 0.6, 0.7, 0.8, 0.9]
+mode: cartesian  # or "zip" for paired parameters
+```
+
+### Pending Mode
+
+Run all specs queued in the pending directory:
+
+```bash
+source .venv/bin/activate
+python scripts/analysis/run_experiment_sweep.py --pending
+```
+
+### Behavior
+
+- **Dedup**: Before running each spec, the sweep checks the experiment log.
+  Already-tested experiment IDs are skipped with a message.
+- **Fault tolerance**: If a single experiment fails, the sweep logs the
+  failure and continues with the next spec.
+- **Dashboard**: After all specs complete, the dashboard is automatically
+  regenerated via `build_experiment_dashboard.py`.
+- **Summary table**: A summary table is printed showing experiment outcomes
+  and key metric deltas.
 
 ## Related Documents
 

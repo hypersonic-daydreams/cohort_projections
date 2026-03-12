@@ -39,6 +39,10 @@ python scripts/projections/run_all_projections.py
 ```bash
 python scripts/analysis/run_experiment.py --spec <path>  # Full experiment pipeline
 python scripts/analysis/run_experiment.py --spec <path> --dry-run  # Validate only
+python scripts/analysis/build_experiment_dashboard.py     # Interactive results dashboard
+python scripts/analysis/run_experiment_sweep.py --specs s1.yaml s2.yaml  # Batch sweep
+python scripts/analysis/run_experiment_sweep.py --grid grid.yaml         # Parameter grid sweep
+python scripts/analysis/run_experiment_sweep.py --pending                # Run all pending specs
 ```
 
 ---
@@ -95,6 +99,6 @@ git add . && git commit -m "..."
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-03-01 |
-| **Version** | 2.4.0 |
+| **Last Updated** | 2026-03-12 |
+| **Version** | 2.5.0 |
 | **Note** | Quick-reference wrapper for Claude Code. See AGENTS.md for complete guidance. |

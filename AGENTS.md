@@ -81,7 +81,7 @@ Data deletion, security changes, breaking output formats, **methodology changes 
 - **Projections**: Use `scripts/projections/run_all_projections.py` for full pipeline runs.
 - **Backups**: Use `scripts/bisync.sh`. NEVER run raw `rclone` commands for syncing.
 - **Maintenance**: Use provided scripts in `scripts/maintenance/`.
-- **Benchmarking**: Use `scripts/analysis/run_benchmark_suite.py` for champion-vs-challenger runs. Use `scripts/analysis/run_experiment.py --spec <path>` for the full experiment pipeline (spec → profile → benchmark → evaluate → log). See `docs/guides/benchmarking-workflow.md` for the complete workflow and `config/benchmark_evaluation_policy.yaml` for gate thresholds.
+- **Benchmarking**: Use `scripts/analysis/run_benchmark_suite.py` for champion-vs-challenger runs. Use `scripts/analysis/run_experiment.py --spec <path>` for the full experiment pipeline (spec → profile → benchmark → evaluate → log). Use `scripts/analysis/build_experiment_dashboard.py` to generate an interactive HTML dashboard comparing all experiment results. Use `scripts/analysis/run_experiment_sweep.py` for batch sweeps (spec list, parameter grid, or pending queue). See `docs/guides/benchmarking-workflow.md` for the complete workflow and `config/benchmark_evaluation_policy.yaml` for gate thresholds.
 
 ### SDC 2024 Journal Article (Reference Only)
 If asked to work with the SDC 2024 journal article:

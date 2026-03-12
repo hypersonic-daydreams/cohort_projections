@@ -2,7 +2,7 @@
 
 Canonical, current-state tracker for the North Dakota cohort projections repository.
 
-**Last Updated:** 2026-03-09  
+**Last Updated:** 2026-03-12
 **Projection Horizon:** 2025-2055  
 **Status:** Core projection development complete; PP-001 publication sign-off and PP-002 cadence closeout completed on 2026-03-01; PP-005 Phase 2+ enhancements implemented (rolling-origin backtests, multi-county splitting, TIGER/geospatial exports, housing-unit method).
 
@@ -368,8 +368,9 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 - Additional publication-facing formatting and package cleanup.
 - Stakeholder feedback incorporation (deferred by owner override 2026-03-01).
 - Housing-unit method: update methodology docs with HU cross-validation narrative.
-- Benchmark/versioning follow-on work from SOP-003: latest-pointer refresh, richer comparison dashboards, and broader scope coverage beyond county benchmarks.
-- Benchmarking process improvement roadmap P2-P10 tracked in `docs/plans/benchmarking-process-improvement-roadmap.md` (hard-gate split, schema enforcement, runtime optimization, dashboarding, post-promotion revalidation, segmentation, place-scope extension, operational quality).
+- Benchmark/versioning follow-on work from SOP-003: latest-pointer refresh and broader scope coverage beyond county benchmarks.
+- ~~Richer comparison dashboards~~ — completed 2026-03-12: interactive experiment dashboard (`scripts/analysis/build_experiment_dashboard.py`) with 5 tabs (tracker, spaghetti plot, scorecard, horizon analysis, county heatmap), 19 tests.
+- Benchmarking process improvement roadmap P2-P10 tracked in `docs/plans/benchmarking-process-improvement-roadmap.md` (hard-gate split, schema enforcement, runtime optimization, post-promotion revalidation, segmentation, place-scope extension, operational quality).
 
 ## References
 

@@ -438,6 +438,28 @@ Guards the evaluation and backtesting infrastructure used for systematic model c
 
 **Why it matters:** The runner is the main entry point for evaluation. If module ordering is wrong or intermediate results are not passed correctly between stages, the final evaluation report is inconsistent.
 
+### `tests/test_analysis/test_build_experiment_dashboard.py` -- Experiment Dashboard (19 tests, <1s)
+
+Guards the interactive experiment comparison dashboard used for tracking and reviewing A/B experiment results.
+
+#### `TestParseCatalog`
+
+**What it validates:** Markdown catalog parsing -- experiment extraction, tier assignment, slug extraction, parameter parsing, config-only flag detection, generated experiment ideas parsing.
+
+**Why it matters:** The catalog parser is the entry point for all dashboard data. If tier assignment is wrong, experiments appear in the wrong priority group. If config-only detection fails, blocked experiments appear as runnable.
+
+#### `TestConstants`
+
+**What it validates:** Consistency between `SLUG_TO_EXP` mapping and `EXPERIMENT_COLORS` palette -- every experiment with a slug has a color, and vice versa.
+
+**Why it matters:** Missing colors cause chart rendering failures. Orphaned color entries indicate drift between catalog and code.
+
+#### `TestBuildHtml`
+
+**What it validates:** HTML assembly with both empty and populated data -- tab presence, nav links, Plotly chart embedding, outcome badges, delta rendering, champion header info, scorecard metrics, KPI card counts.
+
+**Why it matters:** The dashboard is the primary interface for reviewing experiment results. Missing tabs, absent charts, or incorrect delta values would mislead decision-makers reviewing candidate promotions.
+
 ---
 
 ## The Bottleneck: Why `test_data/` Takes So Long

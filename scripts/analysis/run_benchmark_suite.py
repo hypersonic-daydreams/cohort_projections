@@ -128,6 +128,16 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Validate inputs and print resolved method/config pairs without running the suite.",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help=(
+            "Number of parallel workers for walk-forward validation. "
+            "0 = auto-detect min(len(ORIGIN_YEARS), cpu_count). "
+            "1 = sequential (default)."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -249,6 +259,7 @@ def main() -> None:
             survival,
             fertility,
             methods=methods,
+            workers=args.workers,
         )
         annual_horizon = wfv.compute_annual_horizon_summary(annual_state, annual_county)
         annual_comparison = wfv.compute_annual_method_comparison(annual_state, annual_county)

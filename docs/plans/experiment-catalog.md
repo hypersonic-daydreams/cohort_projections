@@ -45,7 +45,7 @@ Each entry is ready to be turned into an experiment spec via `/experiment`.
 | Expected improvement | `county_mape_urban_college` |
 | Risk areas | Cass County may over-project if NDSU dorm growth leaks back into migration signal |
 | Rationale | Full GQ subtraction (Phase 2) was a large swing. Partial subtraction tests whether we over-corrected. Grand Forks (-2.9pp delta) is the sentinel. |
-| Notes | **Not benchmark-testable as config-only.** GQ fraction is an upstream data-processing parameter in `residual_migration.py` — requires reprocessing migration rates before walk-forward validation. Needs a dedicated data-reprocessing experiment workflow. |
+| Notes | **Now benchmark-testable as config-only.** GQ fraction is injectable via `gq_correction_fraction` in MethodConfig; walk-forward validation recomputes migration rates in-memory when the value differs from the default (1.0). |
 
 ---
 
@@ -61,7 +61,7 @@ Each entry is ready to be turned into an experiment spec via `/experiment`.
 | Expected improvement | `county_mape_rural`, small-county max APE |
 | Risk areas | Rapidly growing small counties (e.g., Morton, Billings) may be artificially capped |
 | Rationale | The 8% cap was set conservatively. Most non-Bakken, non-college counties have rates well within 6%. This tests whether tighter clipping helps. |
-| Notes | **Not benchmark-testable as config-only.** Rate cap is applied in `convergence_interpolation.py` during data processing, upstream of walk-forward validation. Needs a dedicated data-reprocessing experiment workflow. |
+| Notes | **Now benchmark-testable as config-only.** Rate cap is injectable via `rate_cap_general` in MethodConfig; walk-forward validation applies the cap during convergence blending when the value differs from the default (0.08). |
 
 ### EXP-E: Boom Dampening 2010-2015 at 0.30
 
@@ -157,7 +157,7 @@ Some experiments are best run in pairs or sequences:
 ### Infrastructure Notes
 
 - **Config injection implemented**: `run_benchmark_suite.py` now injects method profile `resolved_config` into `METHOD_DISPATCH` at runtime, enabling config-only experiments. This was a missing piece in the BM-001 experiment pipeline.
-- **Upstream parameter gap**: EXP-C (GQ fraction) and EXP-D (rate cap) cannot be tested as config-only experiments because they affect data processing in `residual_migration.py` and `convergence_interpolation.py` respectively, upstream of the walk-forward validation. A dedicated data-reprocessing experiment workflow is needed.
+- **Upstream parameter injection implemented**: EXP-C (`gq_correction_fraction`) and EXP-D (`rate_cap_general`) are now injectable via MethodConfig. Walk-forward validation recomputes migration rates in-memory for non-default GQ fractions and applies rate caps during convergence blending for non-default cap values. No on-disk data reprocessing is needed.
 
 ### Cross-Cutting Observation
 
