@@ -281,9 +281,9 @@ class TestBestVariantPerGroup:
         assert isinstance(best, dict)
         assert "overall" in best
         # Best overall is run-a (8.2)
-        assert best["overall"] == "run-a"
+        assert best["overall"]["run_id"] == "run-a"
         # Best rural is run-b (6.5)
-        assert best["Rural"] == "run-b"
+        assert best["Rural"]["run_id"] == "run-b"
 
     def test_best_variant_empty(self) -> None:
         store = _make_store(pd.DataFrame())

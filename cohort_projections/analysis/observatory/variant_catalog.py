@@ -185,6 +185,9 @@ class VariantCatalog:
         self._base_config: str = raw.get("base_config", "cfg-20260309-college-fix-v1")
         self._variants: dict[str, dict[str, Any]] = raw.get("variants", {})
         self._grids: dict[str, dict[str, Any]] = raw.get("grids", {})
+        self._parameter_bounds: dict[str, dict[str, Any]] = raw.get(
+            "parameter_bounds", {}
+        )
 
         # Load or accept the experiment log
         if experiment_log is not None:
@@ -353,6 +356,48 @@ class VariantCatalog:
                 f"Available: {sorted(self._grids.keys())}"
             )
         return {"grid_id": grid_id, **self._grids[grid_id]}
+
+    # -----------------------------------------------------------------
+    # Parameter bounds
+    # -----------------------------------------------------------------
+
+    def get_bounds(self, parameter: str) -> dict[str, Any] | None:
+        """Return min/max/description bounds for a parameter, or None.
+
+        Args:
+            parameter: The MethodConfig parameter name.
+
+        Returns:
+            A dict with ``min``, ``max``, and ``description`` keys, or
+            ``None`` if no bounds are defined for the parameter.
+        """
+        bounds = self._parameter_bounds.get(parameter)
+        if bounds is None:
+            return None
+        return dict(bounds)  # defensive copy
+
+    def clamp_value(self, parameter: str, value: float) -> float:
+        """Clamp *value* to the defined bounds for *parameter*.
+
+        If no bounds are defined, the value is returned unchanged.
+
+        Args:
+            parameter: The MethodConfig parameter name.
+            value: The numeric value to clamp.
+
+        Returns:
+            The clamped value.
+        """
+        bounds = self._parameter_bounds.get(parameter)
+        if bounds is None:
+            return value
+        lo = bounds.get("min")
+        hi = bounds.get("max")
+        if lo is not None and value < lo:
+            return float(lo)
+        if hi is not None and value > hi:
+            return float(hi)
+        return value
 
     # -----------------------------------------------------------------
     # Spec generation

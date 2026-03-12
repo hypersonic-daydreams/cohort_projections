@@ -54,8 +54,11 @@ python scripts/analysis/observatory.py rank <metric>   # Rank by specific metric
 python scripts/analysis/observatory.py recommend       # Next-experiment suggestions
 python scripts/analysis/observatory.py run-pending     # Run all untested variants
 python scripts/analysis/observatory.py run-pending --dry-run  # Preview what would run
+python scripts/analysis/observatory.py diff <id1> <id2>  # Head-to-head run comparison
+python scripts/analysis/observatory.py history         # Chronological experiment progression
 python scripts/analysis/observatory.py report          # Generate HTML observatory report
 python scripts/analysis/observatory.py refresh         # Rebuild results cache
+python scripts/analysis/observatory.py --format json status  # Machine-readable output (json/csv)
 ```
 
 ---

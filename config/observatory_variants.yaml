@@ -12,6 +12,42 @@ base_method: m2026r1
 base_config: cfg-20260309-college-fix-v1
 
 # ---------------------------------------------------------------------------
+# Parameter Bounds
+# ---------------------------------------------------------------------------
+# Min/max constraints for numeric parameters.  Used by the recommender to
+# clamp suggestions and avoid recommending nonsensical values.
+
+parameter_bounds:
+  college_blend_factor:
+    min: 0.0
+    max: 1.0
+    description: "Weight between historical and converged rates"
+  convergence_medium_hold:
+    min: 1
+    max: 10
+    description: "Years to hold medium-growth convergence target"
+  gq_correction_fraction:
+    min: 0.0
+    max: 1.0
+    description: "Fraction of GQ population to subtract from migration base"
+  rate_cap_general:
+    min: 0.01
+    max: 0.20
+    description: "Maximum absolute migration rate"
+  mortality_improvement_factor:
+    min: 0.0
+    max: 0.02
+    description: "Annual mortality rate improvement factor"
+  sdc_bakken_dampening:
+    min: 0.0
+    max: 1.0
+    description: "SDC Bakken county dampening factor"
+  boom_period_dampening:
+    min: 0.0
+    max: 1.0
+    description: "Period-specific Bakken boom dampening factors (dict values)"
+
+# ---------------------------------------------------------------------------
 # Individual Variants
 # ---------------------------------------------------------------------------
 

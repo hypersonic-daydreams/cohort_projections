@@ -338,21 +338,26 @@ class ObservatoryComparator:
 
         return result
 
-    def best_variant_per_group(self) -> dict[str, str]:
+    def best_variant_per_group(self) -> dict[str, dict[str, str]]:
         """Identify which run is best for each county group.
 
-        Returns a dict mapping county group name to the ``run_id`` with
-        the lowest MAPE for that group.
+        Returns a dict mapping county group name to a dict with
+        ``run_id`` and ``config_id`` for the variant with the lowest
+        MAPE for that group.
         """
         scorecards = self._load_all_scorecards()
         if scorecards.empty:
             return {}
 
-        best: dict[str, str] = {}
+        best: dict[str, dict[str, str]] = {}
         for group, col in _GROUP_TO_SCORECARD_COL.items():
             if col in scorecards.columns:
                 best_idx = scorecards[col].idxmin()
-                best[group] = str(scorecards.loc[best_idx, "run_id"])
+                run_id = str(scorecards.loc[best_idx, "run_id"])
+                config_id = str(
+                    scorecards.loc[best_idx, "config_id"]
+                ) if "config_id" in scorecards.columns else run_id
+                best[group] = {"run_id": run_id, "config_id": config_id}
         return best
 
     def full_comparison(
@@ -528,8 +533,12 @@ class ObservatoryComparator:
         if result.best_per_group:
             lines.append("BEST RUN PER COUNTY GROUP")
             lines.append("-" * 72)
-            for group, run_id in result.best_per_group.items():
-                lines.append(f"  {group:<20s}  {run_id}")
+            for group, info in result.best_per_group.items():
+                if isinstance(info, dict):
+                    label = info.get("config_id", info.get("run_id", "?"))
+                else:
+                    label = str(info)
+                lines.append(f"  {group:<20s}  {label}")
             lines.append("")
 
         # Pareto frontier.
@@ -550,11 +559,10 @@ class ObservatoryComparator:
             lines.append("-" * 72)
             top5 = result.ranking.head(5)
             for _, row in top5.iterrows():
-                run_id = row.get("run_id", "?")
-                method = row.get("method_id", "?")
                 config = row.get("config_id", "?")
                 val = row.get(self.primary_metric, float("nan"))
-                lines.append(f"  {str(run_id):<50s}  {val:.4f}  ({method}/{config})")
+                run_id = row.get("run_id", "?")
+                lines.append(f"  {str(config):<30s}  {val:.4f}  (run: {run_id})")
             lines.append("")
 
         # Deltas summary (non-champion rows with notable improvements).
@@ -567,9 +575,9 @@ class ObservatoryComparator:
                     lines.append("RUNS IMPROVING ON CHAMPION (primary metric)")
                     lines.append("-" * 72)
                     for _, row in improved.head(10).iterrows():
-                        run_id = row.get("run_id", "?")
+                        config = row.get("config_id", row.get("run_id", "?"))
                         delta = row[delta_col]
-                        lines.append(f"  {str(run_id):<50s}  {delta:+.4f} pp")
+                        lines.append(f"  {str(config):<30s}  {delta:+.4f} pp")
                     lines.append("")
 
         lines.append(sep)

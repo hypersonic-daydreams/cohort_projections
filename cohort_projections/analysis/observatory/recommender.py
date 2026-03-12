@@ -20,6 +20,7 @@ import pandas as pd
 
 from cohort_projections.analysis.observatory.comparator import ObservatoryComparator
 from cohort_projections.analysis.observatory.results_store import ResultsStore
+from cohort_projections.analysis.observatory.variant_catalog import VariantCatalog
 
 # ---------------------------------------------------------------------------
 # MethodConfig parameters that can be injected at runtime (config-only).
@@ -30,8 +31,6 @@ CONFIG_ONLY_PARAMS: frozenset[str] = frozenset(
         "bakken_fips",
         "boom_period_dampening",
         "boom_male_dampening",
-        "college_fips",
-        "college_age_groups",
         "college_blend_factor",
         "sdc_bakken_dampening",
         "convergence_recent_hold",
@@ -90,9 +89,19 @@ def _is_numeric(value: Any) -> bool:
     return isinstance(value, (int, float)) and math.isfinite(value)
 
 
-def _numeric_values_sorted(values: list[Any]) -> list[float]:
-    """Filter to finite numerics and return sorted."""
-    return sorted(float(v) for v in values if _is_numeric(v))
+def _numeric_values_sorted(values: list[Any], *, unique: bool = False) -> list[float]:
+    """Filter to finite numerics and return sorted.
+
+    Parameters
+    ----------
+    unique : bool
+        If True, deduplicate values before sorting so each distinct numeric
+        appears only once.
+    """
+    nums = sorted(float(v) for v in values if _is_numeric(v))
+    if unique:
+        nums = sorted(set(nums))
+    return nums
 
 
 def _linear_trend(xs: list[float], ys: list[float]) -> float | None:
@@ -152,12 +161,14 @@ class ObservatoryRecommender:
         comparator: ObservatoryComparator,
         variant_catalog: Any | None = None,
         config: dict | None = None,
+        bounds_catalog: VariantCatalog | None = None,
     ) -> None:
         self.store = store
         self.comparator = comparator
         self.variant_catalog = variant_catalog or []
         self._config = config or {}
         self._plateau_threshold: float = self._config.get("plateau_threshold", 0.02)
+        self._bounds_catalog: VariantCatalog | None = bounds_catalog
 
     # ------------------------------------------------------------------
     # Public API
@@ -437,7 +448,7 @@ class ObservatoryRecommender:
         for param, group in sensitivity.groupby("parameter"):
             param = str(param)
             all_values = list(group["value"])
-            numeric_vals = _numeric_values_sorted(all_values)
+            numeric_vals = _numeric_values_sorted(all_values, unique=True)
             if len(numeric_vals) < 2:
                 continue
 
@@ -485,7 +496,38 @@ class ObservatoryRecommender:
                 # Best is interior — no boundary recommendation
                 continue
 
+            # --- Apply parameter bounds clamping ---
+            clamped = False
+            if self._bounds_catalog is not None:
+                bounds = self._bounds_catalog.get_bounds(param)
+                if bounds is not None:
+                    original_suggested = suggested
+                    suggested = self._bounds_catalog.clamp_value(
+                        param, suggested
+                    )
+                    if suggested != original_suggested:
+                        clamped = True
+
+                    # Clamp grid values too
+                    clamped_grid_vals: list[float] = []
+                    for gv in grid[param]:
+                        clamped_gv = self._bounds_catalog.clamp_value(param, gv)
+                        if clamped_gv not in clamped_grid_vals:
+                            clamped_grid_vals.append(clamped_gv)
+                    grid[param] = clamped_grid_vals
+
+            # Skip if clamped value was already tested
+            if clamped and suggested in numeric_vals:
+                continue
+
             best_delta = float(best_row[metric_col])
+            clamp_note = ""
+            if clamped:
+                clamp_note = (
+                    f" (clamped to "
+                    f"{'max' if is_at_max else 'min'} "
+                    f"{suggested})"
+                )
             recs.append(
                 Recommendation(
                     parameter=param,
@@ -496,6 +538,7 @@ class ObservatoryRecommender:
                         f"{'upper' if is_at_max else 'lower'} boundary of "
                         f"tested range {numeric_vals}. "
                         f"Best overall MAPE delta was {best_delta:+.4f}pp."
+                        f"{clamp_note}"
                     ),
                     expected_impact=(
                         f"~{abs(best_delta):.2f}pp county_mape_overall "
@@ -586,6 +629,12 @@ class ObservatoryRecommender:
                     "best_delta": float(best_delta),
                 }
 
+        # Filter to config-only parameters — interactions involving params
+        # that require code changes are not actionable via sweep.
+        improving_params = {
+            p: v for p, v in improving_params.items() if p in CONFIG_ONLY_PARAMS
+        }
+
         # Generate pairwise interaction suggestions
         param_list = sorted(improving_params.keys())
         for i, p1 in enumerate(param_list):
@@ -593,9 +642,8 @@ class ObservatoryRecommender:
                 info1 = improving_params[p1]
                 info2 = improving_params[p2]
                 combined_delta = info1["best_delta"] + info2["best_delta"]
-                requires_code = (
-                    p1 not in CONFIG_ONLY_PARAMS or p2 not in CONFIG_ONLY_PARAMS
-                )
+                # Both p1 and p2 are guaranteed config-only after filtering above
+                requires_code = False
                 recs.append(
                     Recommendation(
                         parameter=f"{p1} + {p2}",
@@ -649,14 +697,24 @@ class ObservatoryRecommender:
             param = str(param)
             valid = group.dropna(subset=[metric_col])
             numeric_rows = valid[valid["value"].apply(_is_numeric)]
-            if len(numeric_rows) < 3:
+            if numeric_rows.empty:
                 continue
 
-            xs = [float(v) for v in numeric_rows["value"]]
-            ys = [float(v) for v in numeric_rows[metric_col]]
-            sorted_pairs = sorted(zip(xs, ys, strict=True))
-            xs_sorted = [p[0] for p in sorted_pairs]
-            ys_sorted = [p[1] for p in sorted_pairs]
+            # Deduplicate: average metric deltas across runs for each unique value
+            deduped = (
+                numeric_rows.assign(value_f=numeric_rows["value"].apply(float))
+                .groupby("value_f")[metric_col]
+                .mean()
+                .reset_index()
+            )
+            if len(deduped) < 3:
+                continue
+
+            xs_sorted = sorted(deduped["value_f"].tolist())
+            ys_sorted = [
+                float(deduped.loc[deduped["value_f"] == x, metric_col].iloc[0])
+                for x in xs_sorted
+            ]
 
             slope = _linear_trend(xs_sorted, ys_sorted)
             if slope is None:

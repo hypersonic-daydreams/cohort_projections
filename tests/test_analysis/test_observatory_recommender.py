@@ -396,18 +396,18 @@ class TestInteractionRecommendations:
     def test_with_improving_params(self) -> None:
         """Two independently improving parameters should produce an interaction rec."""
         sensitivity = pd.DataFrame([
-            {"parameter": "alpha", "value": 0.7, "county_mape_overall_delta": -0.1},
-            {"parameter": "beta", "value": 3, "county_mape_overall_delta": -0.2},
+            {"parameter": "college_blend_factor", "value": 0.7, "county_mape_overall_delta": -0.1},
+            {"parameter": "convergence_medium_hold", "value": 3, "county_mape_overall_delta": -0.2},
         ])
         store, comparator = _make_store_and_comparator(pd.DataFrame())
         rec = ObservatoryRecommender(store=store, comparator=comparator)
         recs = rec._interaction_recommendations(sensitivity)
         assert len(recs) == 1
-        assert "alpha" in recs[0].parameter and "beta" in recs[0].parameter
+        assert "college_blend_factor" in recs[0].parameter and "convergence_medium_hold" in recs[0].parameter
 
     def test_no_improving_params(self) -> None:
         sensitivity = pd.DataFrame([
-            {"parameter": "alpha", "value": 0.7, "county_mape_overall_delta": 0.1},
+            {"parameter": "college_blend_factor", "value": 0.7, "county_mape_overall_delta": 0.1},
         ])
         store, comparator = _make_store_and_comparator(pd.DataFrame())
         rec = ObservatoryRecommender(store=store, comparator=comparator)
