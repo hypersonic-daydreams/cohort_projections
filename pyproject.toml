@@ -97,8 +97,12 @@ excel_io = [
     # Legacy Excel file support (.xls format)
     "xlrd>=2.0.2",
 ]
+dashboard = [
+    "panel>=1.3.0",
+    "plotly>=5.14.0",
+]
 all = [
-    "cohort_projections[dev,viz,geo,stats,bayesian,pdf_export,excel_io]",
+    "cohort_projections[dev,viz,geo,stats,bayesian,pdf_export,excel_io,dashboard]",
 ]
 
 [project.urls]
