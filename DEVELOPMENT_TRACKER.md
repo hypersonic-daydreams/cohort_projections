@@ -2,7 +2,7 @@
 
 Canonical, current-state tracker for the North Dakota cohort projections repository.
 
-**Last Updated:** 2026-03-01  
+**Last Updated:** 2026-03-09  
 **Projection Horizon:** 2025-2055  
 **Status:** Core projection development complete; PP-001 publication sign-off and PP-002 cadence closeout completed on 2026-03-01; PP-005 Phase 2+ enhancements implemented (rolling-origin backtests, multi-county splitting, TIGER/geospatial exports, housing-unit method).
 
@@ -40,6 +40,7 @@ Use this file for active status only. Historical session detail is archived to:
 | PP-004 | Test coverage gap closure (ADR-056) | completed_2026-02-28 | Closed: PP4-01 through PP4-06 complete; periodic coverage checks now roll into future PP-002-style cadence events when material changes occur | `docs/governance/adrs/056-testing-strategy-maturation.md`, `docs/guides/test-maintenance-practices.md`, `docs/reviews/2026-02-28-pp4-06-periodic-coverage-review.md` |
 | PP-005 | Phase 2+ place projection enhancements | completed_2026-03-01 | Four parallel workstreams implemented: rolling-origin backtests (WS-A, 34 tests), multi-county place splitting (WS-B, 38 tests), TIGER/geospatial exports (WS-C, 23 tests), housing-unit method (WS-D, 32 tests). Full suite: 1568 passed, 5 skipped; ruff + mypy clean | ADR-057, ADR-058, ADR-059, ADR-060 |
 | PP-006 | Evaluation framework | completed_2026-03-11 | 5-module evaluation framework (forecast accuracy, structural realism, sensitivity, benchmark comparison, reporting) with scorecard, 13 Python files (~4,800 LOC), 154 tests across 8 test files, DRY refactor extracting shared utils/schemas | `docs/plans/evaluation-blueprint.md`, `cohort_projections/analysis/evaluation/`, `tests/test_analysis/test_evaluation/`, `config/evaluation_config.yaml` |
+| CF-001 | College Fix model revision (m2026r1) | in_progress | SOP-003 P0 benchmark/versioning scaffold implemented and first head-to-head benchmark bundle completed (`br-20260309-160948-m2026r1-ecb4498`). Results: improved recent-origin state APE and urban/college county MAPE; no hard-constraint regression. Pending: human review of benchmark decision record, Tier 3 approval of production config changes, re-run production projections if promoted | ADR-061, `docs/reviews/2026-03-04-college-fix-research-implications.md`, `docs/reviews/2026-03-04-projection-accuracy-analysis.md`, `docs/governance/sops/SOP-003-method-benchmarking-versioning-promotion.md`, `docs/reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md` |
 
 ## PP-005 Phase 2+ Workstream Checklist (Canonical)
 
@@ -334,18 +335,41 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 - Use dry-run and claim-replay gates before and after batch edits.
 - Keep audit narrative files (`docs/reviews/repo-hygiene-audit/00-07*.md`) unchanged unless explicitly requested.
 
+## BM-001: Agent Experiment Infrastructure (P0/P0.5/P1-stub)
+
+**Status:** complete
+**Plan:** `docs/plans/benchmarking-p0-implementation-plan.md`
+**Roadmap:** `docs/plans/benchmarking-process-improvement-roadmap.md`
+**Purpose:** Enable AI agents to run benchmark experiments semi-autonomously with full traceability.
+**Completed:** 2026-03-09
+**Test baseline:** 1624 passed, 5 skipped (42 new tests added, zero regressions)
+
+| Step ID | Task | Status | Wave | Definition of Done | Creates |
+|---------|------|--------|------|-------------------|---------|
+| BM-001-01 | Experiment spec and log schemas | complete | 1 | Schema YAMLs with types, constraints, and inline examples | `config/experiment_spec_schema.yaml`, `config/experiment_log_schema.yaml` |
+| BM-001-02 | Evaluation policy and validation logic | complete | 2 | Policy YAML + `evaluate_scorecard()` returning classification | `config/benchmark_evaluation_policy.yaml`, `cohort_projections/analysis/evaluation_policy.py` |
+| BM-001-03 | Experiment log writer and reader | complete | 2 | Append-only CSV log with query utilities | `cohort_projections/analysis/experiment_log.py`, `data/analysis/experiments/experiment_log.csv` |
+| BM-001-04 | Experiment orchestrator | complete | 2 | `run_experiment.py` reads spec → runs benchmark → evaluates → logs | `scripts/analysis/run_experiment.py` |
+| BM-001-05 | Evaluation policy tests | complete | 3 | All classifications tested with synthetic scorecards (13 tests) | `tests/test_analysis/test_evaluation_policy.py` |
+| BM-001-06 | Experiment log tests | complete | 3 | Append, read, dedup, append-only property tested (11 tests) | `tests/test_analysis/test_experiment_log.py` |
+| BM-001-07 | Orchestrator tests | complete | 3 | Spec parsing, derivation, profile creation, dispatch check (18 tests) | `tests/test_analysis/test_run_experiment.py` |
+| BM-001-08 | Documentation updates | complete | 4 | Workflow guide extended; tracker updated | `docs/guides/benchmarking-workflow.md`, `DEVELOPMENT_TRACKER.md` |
+
 ## Near-Term Next Actions
 
 1. Incorporate deferred stakeholder feedback in the next publication update cycle.
 2. Keep documentation consistency queue current.
 3. Review rolling-origin B-I vs B-II results with domain experts; confirm B-II retention rationale.
-
+4. Review `docs/reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md` and decide whether `m2026r1` should be promoted.
+5. If approved, promote via alias update tooling and re-run production projections under the promoted config.
 
 ## Deferred / Later Work
 
 - Additional publication-facing formatting and package cleanup.
 - Stakeholder feedback incorporation (deferred by owner override 2026-03-01).
 - Housing-unit method: update methodology docs with HU cross-validation narrative.
+- Benchmark/versioning follow-on work from SOP-003: latest-pointer refresh, richer comparison dashboards, and broader scope coverage beyond county benchmarks.
+- Benchmarking process improvement roadmap P2-P10 tracked in `docs/plans/benchmarking-process-improvement-roadmap.md` (hard-gate split, schema enforcement, runtime optimization, dashboarding, post-promotion revalidation, segmentation, place-scope extension, operational quality).
 
 ## References
 

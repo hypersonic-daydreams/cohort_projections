@@ -86,6 +86,19 @@ def _load_parquet_safe(path: Path, **kwargs: Any) -> pd.DataFrame | None:
         return None
 
 
+def _clean_place_name(name: str) -> str:
+    """Remove trailing ' city' suffix from Census place names.
+
+    Examples:
+        'Fargo city' -> 'Fargo'
+        'Watford City city' -> 'Watford City'
+        'Balance of Cass County' -> 'Balance of Cass County'  (unchanged)
+    """
+    if isinstance(name, str) and name.endswith(" city"):
+        return name[:-5]
+    return name
+
+
 def _load_json_safe(path: Path) -> dict[str, Any] | None:
     """Load a JSON file, returning None on failure."""
     if not path.exists():
@@ -129,10 +142,13 @@ def load_scenario_data(scenario: str) -> dict[str, Any]:
 
     # Place
     place_dir = base / "place"
-    data["place_summary"] = _load_csv_safe(
+    place_summary = _load_csv_safe(
         place_dir / "places_summary.csv",
         dtype={"place_fips": str, "county_fips": str},
     )
+    if place_summary is not None and "name" in place_summary.columns:
+        place_summary["name"] = place_summary["name"].map(_clean_place_name)
+    data["place_summary"] = place_summary
     data["hu_projections"] = _load_parquet_safe(
         place_dir / "housing_unit_projections.parquet"
     )
@@ -142,7 +158,10 @@ def load_scenario_data(scenario: str) -> dict[str, Any]:
     data["qa_tier_summary"] = _load_csv_safe(qa_dir / "qa_tier_summary.csv")
     data["qa_reconciliation"] = _load_csv_safe(qa_dir / "qa_reconciliation_magnitude.csv")
     data["qa_share_sum_validation"] = _load_csv_safe(qa_dir / "qa_share_sum_validation.csv")
-    data["qa_outlier_flags"] = _load_csv_safe(qa_dir / "qa_outlier_flags.csv")
+    outlier_flags = _load_csv_safe(qa_dir / "qa_outlier_flags.csv")
+    if outlier_flags is not None and "name" in outlier_flags.columns:
+        outlier_flags["name"] = outlier_flags["name"].map(_clean_place_name)
+    data["qa_outlier_flags"] = outlier_flags
 
     return data
 

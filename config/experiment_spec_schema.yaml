@@ -1,0 +1,133 @@
+# Experiment Spec Schema
+# Defines the canonical format for experiment spec YAML files.
+# Specs are written to: data/analysis/experiments/pending/
+# After execution, moved to: data/analysis/experiments/completed/
+#
+# File naming convention: {experiment_id}.yaml
+# Example: exp-20260310-convergence-hold.yaml
+
+schema_version: "1.0"
+
+required_fields:
+
+  experiment_id:
+    type: string
+    format: "exp-YYYYMMDD-short-slug"
+    description: >
+      Unique identifier for this experiment. Date portion is the creation date.
+      Slug should be 2-4 hyphenated words summarizing the change.
+    constraints:
+      - Must match pattern: exp-\d{8}-[a-z0-9]+(-[a-z0-9]+)*
+      - Must be unique across all specs (pending and completed)
+
+  hypothesis:
+    type: string
+    description: >
+      One-sentence description of what is being tested and why.
+      Should be falsifiable — state the expected direction of change.
+
+  base_method:
+    type: string
+    description: >
+      The method_id this experiment builds on. Must reference an existing
+      method profile in config/method_profiles/.
+    constraints:
+      - Must be a valid method_id (e.g., "m2026", "m2026r1")
+
+  base_config:
+    type: string
+    description: >
+      The config_id this experiment builds on. References a specific
+      configuration snapshot used as the starting point.
+    constraints:
+      - Must be a valid config_id (e.g., "cfg-20260309-college-fix-v1")
+
+  config_delta:
+    type: mapping
+    description: >
+      Nested key-value pairs describing config changes from the base.
+      Keys use dot-path notation matching projection_config.yaml structure.
+      Values are the new settings. Only changed parameters are listed.
+    constraints:
+      - Must contain at least one key-value pair
+      - Keys should reference valid config paths
+
+  scope:
+    type: string
+    description: >
+      Benchmark scope defining which geographic level to evaluate.
+    constraints:
+      - "enum: [county]"
+
+  benchmark_label:
+    type: string
+    description: >
+      Human-readable label for the benchmark run. Used in reports and logs
+      to identify this experiment's results.
+
+  requested_by:
+    type: string
+    description: >
+      Who initiated this experiment — an autonomous agent or a human operator.
+    constraints:
+      - "enum: [agent, human]"
+
+optional_fields:
+
+  expected_improvement:
+    type: list of strings
+    description: >
+      Metrics expected to improve as a result of this config change.
+      Helps define success criteria for gate evaluation.
+
+  risk_areas:
+    type: list of strings
+    description: >
+      Known risk areas — counties, age groups, or metrics that may degrade.
+      Agents should monitor these closely during evaluation.
+
+  method_id_override:
+    type: string
+    description: >
+      Explicit method_id to use instead of auto-deriving from base_method.
+      Use when the experiment defines a genuinely new method rather than
+      a parameter tweak on an existing one.
+
+  config_id_override:
+    type: string
+    description: >
+      Explicit config_id to use instead of auto-deriving from base_config.
+      Use when the experiment should be tracked under a specific config label.
+
+  notes:
+    type: list of strings
+    description: >
+      Additional context, caveats, or references. Free-form text entries
+      that help future reviewers understand the motivation.
+
+# ---------------------------------------------------------------------------
+# Example: Complete valid experiment spec
+# ---------------------------------------------------------------------------
+example:
+  experiment_id: "exp-20260310-convergence-hold"
+  hypothesis: >
+    Holding convergence rates at their 2030 level (instead of continuing
+    to converge through the full horizon) will reduce overshoot in
+    small-county projections without degrading state-level accuracy.
+  base_method: "m2026r1"
+  base_config: "cfg-20260309-college-fix-v1"
+  config_delta:
+    convergence:
+      hold_after_year: 2030
+      schedule: "freeze"
+  scope: "county"
+  benchmark_label: "convergence-hold-2030"
+  requested_by: "agent"
+  expected_improvement:
+    - "rural county MAPE"
+    - "small-county max APE"
+  risk_areas:
+    - "fast-growth counties (Cass, Burleigh) may under-project"
+  notes:
+    - "Motivated by walk-forward overshoot pattern in m2026 baseline"
+    - "Related to ADR-052 Ward County floor discussion"

@@ -34,7 +34,7 @@ AGE_GROUP_LABELS = [
 YOUTH_CUTOFF = 15   # 0-14
 WORKING_END = 65    # 15-64
 KEY_YEARS = [2025, 2030, 2035, 2040, 2045, 2050, 2055]
-PYRAMID_YEARS = [2025, 2035, 2045, 2055]
+PYRAMID_YEARS = [2025, 2030, 2035, 2040, 2045, 2050, 2055]
 
 
 def _build_kpi_cards(scenarios_data: dict[str, Any], theme: Any) -> str:

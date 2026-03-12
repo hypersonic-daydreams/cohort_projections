@@ -262,7 +262,7 @@ Because stcoreview does not provide age detail finer than these broad groups, th
 
 **Ages 0--17:** Distributed uniformly across 0--4, 5--9, 10--14, and 15--17 (GQ population under 18 consists mainly of juvenile facilities and is small and evenly spread).
 
-**Ages 18--64 (college counties -- Grand Forks, Cass, Ward, Burleigh):** Concentrated in 18--19, 20--24, and 25--29, reflecting the dominance of university dormitories in these counties' GQ populations. The relative weights are 3.0, 5.0, and 2.0 for ages 18--19, 20--24, and 25--29 respectively, tapering to 0.2 for ages 55--64.
+**Ages 18--64 (college counties):** Concentrated in 18--19, 20--24, and 25--29, reflecting the dominance of university dormitories in these counties' GQ populations. The relative weights are 3.0, 5.0, and 2.0 for ages 18--19, 20--24, and 25--29 respectively, tapering to 0.2 for ages 55--64. College counties are those where on-campus face-to-face enrollment exceeds 2.5% of county population: Barnes (VCSU), Bottineau (DCB), Burleigh (BSC + U of Mary), Cass (NDSU), Grand Forks (UND), Ramsey (LRSC), Richland (NDSCS), Stark (DSU), Stutsman (U of Jamestown), Traill (MASU), Ward (MISU), and Williams (WSC). See ADR-061 Decision 4 for the enrollment data and threshold methodology.
 
 **Ages 18--64 (other counties):** More evenly spread across 18--19 through 40--44, reflecting the mix of correctional facilities, group homes, and smaller institutional settings. Relative weights range from 2.0 for ages 20--34 down to 0.4 for ages 60--64.
 
@@ -570,9 +570,9 @@ To address this, the pipeline subtracts historical GQ populations from the six p
 
 **GQ subtraction formula.** For each county, age group, sex, and time point:
 
-$$P_{\text{hh}}(a, t) = \max\bigl(P_{\text{total}}(a, t) - \text{GQ}(a, t),\; 0\bigr)$$
+$$P_{\text{hh}}(a, t) = \max\bigl(P_{\text{total}}(a, t) - f \times \text{GQ}(a, t),\; 0\bigr)$$
 
-where $P_{\text{hh}}$ is the household-only population used in the residual computation. The floor at zero prevents negative household populations in cells where the GQ estimate exceeds the total population (which can occur due to the race-distribution approximation).
+where $P_{\text{hh}}$ is the household-only population used in the residual computation, and $f$ is the GQ correction fraction (ADR-061, default 1.0). The fraction parameter allows calibrating the intensity of the Phase 2 correction: $f = 1.0$ applies full GQ subtraction, $f = 0.5$ applies half, and $f = 0.0$ effectively reverts to Phase 1 only (no subtraction from historical snapshots). This parameterization was introduced because Census Bureau "College Fix" methodology does not modify historical rate computation — it partitions at projection time only — and sensitivity analysis showed the full subtraction has a 37,084-person impact on the 2050 state projection. The floor at zero prevents negative household populations in cells where the GQ estimate exceeds the total population (which can occur due to the race-distribution approximation).
 
 **Historical GQ estimation.** GQ by county, five-year age group, and sex is available from the Census Bureau's PEP stcoreview product for years 2020 and 2024. For earlier time points (2000, 2005, 2010, 2015), the 2020 GQ levels are applied as a backward constant. This assumption is defensible because institutional capacity -- barracks, dormitories, nursing beds -- changes slowly over five- to ten-year windows. The primary goal is removing institutional rotation signals from the rates, not precisely tracking historical GQ changes.
 
@@ -659,14 +659,24 @@ To prevent enrollment-driven spikes from dominating the convergence rates, the p
 
 **Target counties and age groups:**
 
-| County | FIPS | Institution |
-|--------|:----:|-------------|
-| Grand Forks | 38035 | University of North Dakota |
-| Cass | 38017 | North Dakota State University |
-| Ward | 38101 | Minot State University |
-| Burleigh | 38015 | University of Mary, Bismarck State College |
+| County | FIPS | Institution(s) | F2F/Pop |
+|--------|:----:|----------------|:-------:|
+| Grand Forks | 38035 | University of North Dakota | 13.4% |
+| Richland | 38077 | ND State College of Science | 10.6% |
+| Barnes | 38003 | Valley City State University | 7.3% |
+| Traill | 38097 | Mayville State University | 6.1% |
+| Cass | 38017 | North Dakota State University | 5.5% |
+| Bottineau | 38009 | Dakota College at Bottineau | 5.4% |
+| Stutsman | 38093 | University of Jamestown | ~4.2% |
+| Burleigh | 38015 | Bismarck State College + University of Mary | 3.8% |
+| Stark | 38089 | Dickinson State University | 3.0% |
+| Ramsey | 38071 | Lake Region State College | 3.0% |
+| Ward | 38101 | Minot State University | 2.9% |
+| Williams | 38105 | Williston State College | 1.5% |
 
-The smoothing applies to age groups 15-19 and 20-24.
+Counties are identified using on-campus face-to-face enrollment as a percentage of county population, with a general 2.5% inclusion threshold (ADR-061 Decision 4). Williams County (WSC, 1.5%) is included below threshold because WSC enrollment still produces measurable enrollment turnover artifacts in the 15-24 age migration data. Only on-campus students are counted; distance education enrollment is excluded since those students may reside anywhere.
+
+The smoothing applies to age groups 15-19, 20-24, and 25-29 (ADR-061 extended from the original 15-24 range based on Census Bureau "College Fix" research, which found that the departure signal at ages 25-29 is the amplified side of the administrative data asymmetry — IRS data captures graduating students filing independently but misses incoming freshmen who remain dependents on parents' returns).
 
 **Smoothing formula.** For each affected county, age group, sex, and period:
 
@@ -736,12 +746,12 @@ After convergence interpolation, an age-aware rate cap is applied to clip statis
 
 | Age Groups | Cap | Rationale |
 |:----------:|:---:|-----------|
-| 15-19, 20-24 (college ages) | $\pm 15\%$ | Preserves legitimate university enrollment dynamics (peak rates of 13-14%) |
+| 15-19, 20-24, 25-29 (college ages) | $\pm 15\%$ | Preserves legitimate university enrollment dynamics (peak rates of 13-14%); extended to 25-29 per ADR-061 |
 | All other ages | $\pm 8\%$ | Clips small-county noise; sits at the 99th percentile of the medium-term distribution |
 
 **Application formula.** For each cell:
 
-$$r_{\text{capped}} = \begin{cases} \text{clip}(r, -0.15, +0.15) & \text{if } a \in \{15\text{-}19, 20\text{-}24\} \\ \text{clip}(r, -0.08, +0.08) & \text{otherwise} \end{cases}$$
+$$r_{\text{capped}} = \begin{cases} \text{clip}(r, -0.15, +0.15) & \text{if } a \in \{15\text{-}19, 20\text{-}24, 25\text{-}29\} \\ \text{clip}(r, -0.08, +0.08) & \text{otherwise} \end{cases}$$
 
 The cap is applied after the convergence interpolation for each year offset but before storing the result, so it catches all three convergence phases without modifying the underlying window averages. This preserves data lineage while guarding against outlier propagation.
 

@@ -32,7 +32,7 @@ Method
    allocation profiles:
    - **Ages 0-17**: Uniformly distributed across 0-4, 5-9, 10-14, 15-17
      (GQ under 18 is mostly juvenile facilities; small and evenly spread).
-   - **Ages 18-64 (college counties 38035, 38017, 38101, 38015)**:
+   - **Ages 18-64 (college counties -- 12 counties per ADR-061 Decision 4)**:
      Concentrated in 18-19, 20-24, 25-29 (college dorms dominate).
    - **Ages 18-64 (other counties)**: Spread across 18-19 through 40-44
      with moderate concentration in 20-34 (correctional, group homes).
@@ -71,9 +71,10 @@ Key design decisions
   is the least-biased assumption. Military counties skew male (MAFB ~80% male)
   but nursing facilities skew female (~65% female); at the county level these
   partially offset.
-- **College county profiles**: Grand Forks, Cass, Ward, and Burleigh have
-  substantial university dormitory populations that concentrate GQ in the 18-24
-  age range. Other counties have more dispersed GQ (correctional, group homes).
+- **College county profiles**: Counties with on-campus F2F enrollment >2.5% of
+  population (12 counties; see ADR-061 Decision 4) have substantial university
+  dormitory populations that concentrate GQ in the 18-29 age range. Other
+  counties have more dispersed GQ (correctional, group homes).
 
 Inputs
 ------
@@ -112,8 +113,14 @@ FIVE_YEAR_AGE_GROUPS = [
     "60-64", "65-69", "70-74", "75-79", "80-84", "85+",
 ]
 
-# College counties: Grand Forks, Cass, Ward, Burleigh
-COLLEGE_COUNTY_FIPS = {"035", "017", "101", "015"}
+# College counties: on-campus F2F enrollment >2.5% of county population (ADR-061 Decision 4)
+# Barnes(VCSU), Bottineau(DCB), Burleigh(BSC+UMary), Cass(NDSU), Grand Forks(UND),
+# Ramsey(LRSC), Richland(NDSCS), Stark(DSU), Stutsman(UJ), Traill(MASU), Ward(MISU),
+# Williams(WSC)
+COLLEGE_COUNTY_FIPS = {
+    "003", "009", "015", "017", "035",
+    "071", "077", "089", "093", "097", "101", "105",
+}
 
 # -- Allocation profiles --
 # These define how each broad age group's total GQ is distributed across

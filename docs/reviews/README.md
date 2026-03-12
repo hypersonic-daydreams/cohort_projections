@@ -19,6 +19,7 @@ Analytical reviews and quality assurance documents for the North Dakota Populati
 | 2026-02-28 | [Place Data Readiness Note](2026-02-28-place-data-readiness-note.md) | PP3-S02 coverage and readiness assessment for place history (2000-2024) | ADR-033 |
 | 2026-02-28 | [Place-to-County Mapping Strategy Note](2026-02-28-place-county-mapping-strategy-note.md) | PP3-S03 authoritative mapping and boundary/vintage handling rules for place share-trending | ADR-033 |
 | 2026-03-01 | [Publication Output Sign-Off](2026-03-01-publication-output-signoff.md) | PP-001 owner sign-off decision with deferred stakeholder-feedback override | ADR-033 (publication sequencing) |
+| 2026-03-09 | [Benchmark Decisions Index](benchmark_decisions/README.md) | Challenger-vs-champion review records for versioned benchmark bundles | SOP-003, ADR-061 |
 
 ## Conventions
 
@@ -26,7 +27,8 @@ Analytical reviews and quality assurance documents for the North Dakota Populati
 - Each review includes a metadata header (Date, Reviewer, Scope, Status)
 - Reviews that lead to decisions should cross-reference the resulting ADR
 - ADRs that are informed by reviews should back-link in a "Related Reviews" section
+- Benchmark decision records should cross-reference the benchmark `run_id` and immutable method/config IDs
 
 ---
 
-**Last Updated**: 2026-03-01
+**Last Updated**: 2026-03-09

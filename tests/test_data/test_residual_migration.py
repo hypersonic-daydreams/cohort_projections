@@ -432,6 +432,110 @@ class TestCollegeAgeAdjustment:
         ]
         assert (gf_college["migration_rate"] <= 0.20).all()
 
+    def test_smooth_extended_age_groups_25_29(self):
+        """College-age smoothing correctly handles extended 25-29 age group (ADR-061)."""
+        records = []
+        for county in ["38035", "38001"]:  # Grand Forks (college) and Adams
+            for ag in AGE_GROUP_LABELS:
+                for sex in ["Male", "Female"]:
+                    if county == "38035" and ag in ("15-19", "20-24", "25-29"):
+                        rate = 0.50  # Very high in-migration
+                    else:
+                        rate = 0.05
+                    records.append(
+                        {
+                            "county_fips": county,
+                            "age_group": ag,
+                            "sex": sex,
+                            "migration_rate": rate,
+                        }
+                    )
+        rates = pd.DataFrame(records)
+
+        result = apply_college_age_adjustment(
+            rates,
+            college_counties=["38035"],
+            method="smooth",
+            age_groups=["15-19", "20-24", "25-29"],
+            blend_factor=0.5,
+        )
+
+        # All three age groups in college county should be smoothed
+        gf_smoothed = result[
+            (result["county_fips"] == "38035")
+            & (result["age_group"].isin(["15-19", "20-24", "25-29"]))
+        ]
+        assert (gf_smoothed["migration_rate"] < 0.50).all()
+        assert (gf_smoothed["migration_rate"] > 0.05).all()
+
+        # 30-34 should NOT be smoothed
+        gf_30 = result[
+            (result["county_fips"] == "38035") & (result["age_group"] == "30-34")
+        ]
+        assert np.allclose(gf_30["migration_rate"], 0.05)
+
+
+# ---------------------------------------------------------------------------
+# TestGQCorrectionFraction (ADR-061)
+# ---------------------------------------------------------------------------
+
+
+class TestGQCorrectionFraction:
+    """Tests for fractional GQ correction in subtract_gq_from_populations."""
+
+    @pytest.fixture
+    def populations_and_gq(self):
+        """Synthetic population and GQ data for fraction testing."""
+        from cohort_projections.data.process.residual_migration import (
+            subtract_gq_from_populations,
+        )
+        pop_data = pd.DataFrame(
+            {
+                "county_fips": ["38017"] * 4,
+                "age_group": ["15-19", "20-24", "25-29", "30-34"],
+                "sex": ["Male"] * 4,
+                "population": [1000.0, 2000.0, 1500.0, 1200.0],
+            }
+        )
+        gq_data = pd.DataFrame(
+            {
+                "county_fips": ["38017"] * 4,
+                "year": [2020] * 4,
+                "age_group": ["15-19", "20-24", "25-29", "30-34"],
+                "sex": ["Male"] * 4,
+                "gq_population": [200.0, 400.0, 100.0, 50.0],
+            }
+        )
+        return {2020: pop_data}, gq_data, subtract_gq_from_populations
+
+    def test_fraction_1_full_subtraction(self, populations_and_gq):
+        """fraction=1.0 subtracts 100% of GQ (original behavior)."""
+        pops, gq, subtract_fn = populations_and_gq
+        result = subtract_fn(pops, gq, fraction=1.0)
+        total = result[2020]["population"].sum()
+        assert total == pytest.approx(5700.0 - 750.0)
+
+    def test_fraction_0_no_subtraction(self, populations_and_gq):
+        """fraction=0.0 subtracts nothing (Phase 1 only)."""
+        pops, gq, subtract_fn = populations_and_gq
+        result = subtract_fn(pops, gq, fraction=0.0)
+        total = result[2020]["population"].sum()
+        assert total == pytest.approx(5700.0)
+
+    def test_fraction_half(self, populations_and_gq):
+        """fraction=0.5 subtracts half of GQ population."""
+        pops, gq, subtract_fn = populations_and_gq
+        result = subtract_fn(pops, gq, fraction=0.5)
+        total = result[2020]["population"].sum()
+        assert total == pytest.approx(5700.0 - 375.0)
+
+    def test_default_fraction_backward_compatible(self, populations_and_gq):
+        """Default call (no fraction arg) behaves like fraction=1.0."""
+        pops, gq, subtract_fn = populations_and_gq
+        result_default = subtract_fn(pops, gq)
+        result_explicit = subtract_fn(pops, gq, fraction=1.0)
+        assert result_default[2020]["population"].sum() == result_explicit[2020]["population"].sum()
+
 
 # ---------------------------------------------------------------------------
 # TestMaleMigrationDampening
