@@ -11,7 +11,7 @@ import logging
 import panel as pn
 
 from .data_manager import DashboardDataManager
-from .theme import DASHBOARD_CSS, SDC_NAVY, SDC_WHITE
+from .theme import DASHBOARD_CSS, SDC_NAVY, SDC_WHITE, TABS_STYLESHEET
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +57,7 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
         tabs_location="above",
         dynamic=True,
     )
+    tabs.stylesheets = [TABS_STYLESHEET]
 
     # Assemble template -------------------------------------------------
     template = pn.template.FastListTemplate(

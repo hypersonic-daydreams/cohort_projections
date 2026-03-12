@@ -57,6 +57,11 @@ def main() -> None:
 
     import panel as pn
 
+    pn.extension("plotly", "tabulator")
+    pn.config.loading_indicator = True
+    pn.config.loading_spinner = "dots"
+    pn.config.loading_color = "#0563C1"
+
     from cohort_projections.analysis.observatory.dashboard.app import create_app
     from cohort_projections.analysis.observatory.dashboard.data_manager import (
         DashboardDataManager,
@@ -83,6 +88,11 @@ if __name__.startswith("bokeh"):
     # Running via ``panel serve`` — create the template and make it
     # servable so Panel picks it up.
     import panel as pn  # noqa: F811
+
+    pn.extension("plotly", "tabulator")
+    pn.config.loading_indicator = True
+    pn.config.loading_spinner = "dots"
+    pn.config.loading_color = "#0563C1"
 
     from cohort_projections.analysis.observatory.dashboard.app import create_app
     from cohort_projections.analysis.observatory.dashboard.data_manager import (

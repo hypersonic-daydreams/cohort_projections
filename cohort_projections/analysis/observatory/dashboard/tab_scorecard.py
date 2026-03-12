@@ -1,8 +1,8 @@
-"""Scorecard comparison tab for the Observatory Panel dashboard.
+"""Scorecard comparison tab for the Observatory dashboard.
 
-Interactive side-by-side scorecard comparison with MAPE delta bar charts,
-sentinel county analysis, Pareto frontier scatter, and county-group impact
-tables.  All visualizations react to a shared run-selector widget.
+The tab compares selected benchmark bundles against the current champion using
+one comparison row per bundle. This avoids showing repeated champion rows from
+every benchmark run and keeps the charts focused on actual challenger variants.
 """
 
 from __future__ import annotations
@@ -17,9 +17,11 @@ import plotly.graph_objects as go
 from cohort_projections.analysis.observatory.comparator import (
     METRIC_COLUMNS,
     SENTINEL_COLUMNS,
-    _GROUP_TO_SCORECARD_COL,
 )
 from cohort_projections.analysis.observatory.dashboard import theme, widgets
+from cohort_projections.analysis.observatory.dashboard.data_manager import (
+    RUN_SELECTION_PRESETS,
+)
 
 if TYPE_CHECKING:
     from cohort_projections.analysis.observatory.dashboard.data_manager import (
@@ -28,15 +30,12 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Metrics shown in the delta bar chart (scorecard col -> display label).
 _DELTA_METRICS: list[tuple[str, str]] = [
     ("county_mape_overall", "Overall"),
     ("county_mape_urban_college", "College"),
     ("county_mape_rural", "Rural"),
     ("county_mape_bakken", "Bakken"),
 ]
-
-# Sentinel county scorecard columns and their short labels.
 _SENTINEL_LABELS: dict[str, str] = {
     "sentinel_cass_mape": "Cass",
     "sentinel_grand_forks_mape": "Grand Forks",
@@ -47,167 +46,207 @@ _SENTINEL_LABELS: dict[str, str] = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Color helper
-# ---------------------------------------------------------------------------
-
 def _run_color(run_id: str, run_ids: list[str]) -> str:
     """Return a consistent color for a run based on its position."""
     idx = run_ids.index(run_id) if run_id in run_ids else 0
     return theme.EXPERIMENT_COLORS[idx % len(theme.EXPERIMENT_COLORS)]
 
 
-# ---------------------------------------------------------------------------
-# Section builders (bound to widget values via pn.bind)
-# ---------------------------------------------------------------------------
+def _selected_scorecard_rows(
+    selected_runs: list[str],
+    dm: DashboardDataManager,
+    *,
+    include_champion: bool = True,
+) -> pd.DataFrame:
+    """Return one scorecard row per selected bundle plus optional champion."""
+    comparison_rows = dm.comparison_rows.copy()
+    if comparison_rows.empty:
+        return pd.DataFrame()
+
+    chosen_run_ids = list(selected_runs)
+    if include_champion and dm.champion_id is not None:
+        chosen_run_ids = [dm.champion_id, *chosen_run_ids]
+
+    rows = comparison_rows[comparison_rows["run_id"].isin(chosen_run_ids)].copy()
+    if rows.empty:
+        return rows
+
+    metadata = dm.run_metadata.set_index("run_id", drop=False)
+    rows["run"] = rows["run_id"].map(lambda run_id: dm.run_label(str(run_id), short=True))
+    rows["run_long"] = rows["run_id"].map(dm.run_label)
+    rows["status"] = rows["run_id"].map(
+        lambda run_id: (
+            str(metadata.loc[run_id, "status_label"])
+            if run_id in metadata.index
+            else "Unknown"
+        )
+    )
+    rows["role"] = rows["run_id"].map(
+        lambda run_id: "Champion" if run_id == dm.champion_id else "Selected Variant"
+    )
+    rows = rows.drop_duplicates(subset=["run_id", "method_id", "config_id"])
+
+    sort_order: list[str] = []
+    if dm.champion_id is not None:
+        rows["_champion_first"] = (rows["run_id"] != dm.champion_id).astype(int)
+        sort_order.append("_champion_first")
+    if "county_mape_overall" in rows.columns:
+        sort_order.append("county_mape_overall")
+    if sort_order:
+        rows = rows.sort_values(sort_order, ascending=True, na_position="last")
+    return rows.drop(columns=[col for col in ["_champion_first"] if col in rows.columns])
+
 
 def _build_scorecard_table(
     selected_runs: list[str],
-    scorecards: pd.DataFrame,
-    champion_id: str | None,
+    dm: DashboardDataManager,
 ) -> pn.Column:
-    """Filter scorecards to selected runs and render as a Tabulator."""
-    if not selected_runs or scorecards.empty:
-        return pn.Column(widgets.empty_placeholder("Select at least one run."))
+    """Render one comparison row per selected bundle plus the champion row."""
+    if not selected_runs and dm.champion_id is None:
+        return pn.Column(widgets.empty_placeholder("Select at least one benchmark bundle."))
 
-    filtered = scorecards[scorecards["run_id"].isin(selected_runs)].copy()
+    filtered = _selected_scorecard_rows(selected_runs, dm)
     if filtered.empty:
-        return pn.Column(widgets.empty_placeholder("No scorecard data for selected runs."))
+        return pn.Column(widgets.empty_placeholder("No comparison rows found for the current selection."))
 
-    # Identify delta-style columns for highlighting
-    delta_cols = [c for c in filtered.columns if c in METRIC_COLUMNS or c in SENTINEL_COLUMNS]
+    display_cols = [
+        col
+        for col in [
+            "run",
+            "role",
+            "status",
+            "method_id",
+            "config_id",
+            "county_mape_overall",
+            "county_mape_rural",
+            "county_mape_bakken",
+            "county_mape_urban_college",
+            "state_ape_recent_short",
+            "state_ape_recent_medium",
+            "run_id",
+        ]
+        if col in filtered.columns
+    ]
+    display_df = filtered[display_cols].rename(
+        columns={
+            "method_id": "method",
+            "config_id": "config",
+            "run_id": "exact_run_id",
+        }
+    )
 
     return widgets.metric_table(
-        filtered,
-        title="Side-by-Side Scorecard",
-        highlight_cols=delta_cols,
+        display_df,
+        title="Scorecard Comparison",
+        highlight_cols=[
+            col
+            for col in [
+                "county_mape_overall",
+                "county_mape_rural",
+                "county_mape_bakken",
+                "county_mape_urban_college",
+                "state_ape_recent_short",
+                "state_ape_recent_medium",
+            ]
+            if col in display_df.columns
+        ],
         page_size=0,
+        frozen_columns=["run"],
     )
 
 
 def _build_delta_bar_chart(
     selected_runs: list[str],
-    scorecards: pd.DataFrame,
-    champion_id: str | None,
-    all_run_ids: list[str],
+    dm: DashboardDataManager,
 ) -> pn.pane.Plotly:
-    """Grouped bar chart of MAPE deltas vs champion for key metrics."""
-    if not selected_runs or scorecards.empty or champion_id is None:
+    """Grouped bar chart of key MAPE deltas vs the global champion."""
+    comparison = _selected_scorecard_rows(selected_runs, dm)
+    if comparison.empty or dm.champion_id is None:
         return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
 
-    champion_rows = scorecards[scorecards["run_id"] == champion_id]
+    champion_rows = comparison[comparison["run_id"] == dm.champion_id]
     if champion_rows.empty:
         return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
     champion = champion_rows.iloc[0]
 
     fig = go.Figure()
-
-    for run_id in selected_runs:
-        run_rows = scorecards[scorecards["run_id"] == run_id]
-        if run_rows.empty:
-            continue
-        row = run_rows.iloc[0]
-        color = _run_color(run_id, all_run_ids)
-
-        labels = []
-        vals = []
+    challengers = comparison[comparison["run_id"] != dm.champion_id]
+    for _, row in challengers.iterrows():
+        labels: list[str] = []
+        values: list[float] = []
         for col, label in _DELTA_METRICS:
-            if col in scorecards.columns:
-                delta = float(row.get(col, 0)) - float(champion.get(col, 0))
+            if col in comparison.columns and pd.notna(row.get(col)) and pd.notna(champion.get(col)):
                 labels.append(label)
-                vals.append(delta)
+                values.append(float(row[col]) - float(champion[col]))
 
-        # Color bars individually: green for improvement, red for regression
-        bar_colors = [
-            theme.GROWTH_GREEN if v <= 0 else theme.SDC_RED for v in vals
-        ]
+        if not labels:
+            continue
 
+        run_id = str(row["run_id"])
         fig.add_trace(
             go.Bar(
-                name=run_id,
+                name=str(row["run"]),
                 x=labels,
-                y=vals,
-                marker_color=color,
-                text=[f"{v:+.3f}" for v in vals],
+                y=values,
+                marker_color=_run_color(run_id, dm.ordered_run_ids),
+                text=[f"{value:+.3f}" for value in values],
                 textposition="outside",
-                textfont={"size": 10},
-                hovertemplate=(
-                    f"<b>{run_id}</b><br>"
-                    "%{x}: %{y:+.4f} pp<extra></extra>"
-                ),
+                hovertemplate="<b>%{fullData.name}</b><br>%{x}: %{y:+.4f} pp<extra></extra>",
             )
         )
 
-    # Zero reference line
     fig.add_hline(y=0, line_width=1, line_color=theme.SDC_DARK_GRAY)
-
     fig.update_layout(**theme.get_plotly_layout_defaults())
     fig.update_layout(
         title="MAPE Delta vs Champion (negative = improvement)",
         yaxis_title="Delta (percentage points)",
         barmode="group",
-        legend={"orientation": "h", "y": -0.15},
+        legend={"orientation": "h", "y": -0.18},
         height=420,
     )
-
     return pn.pane.Plotly(fig, sizing_mode="stretch_width")
 
 
 def _build_sentinel_chart(
     selected_runs: list[str],
-    scorecards: pd.DataFrame,
-    all_run_ids: list[str],
+    dm: DashboardDataManager,
 ) -> pn.pane.Plotly:
-    """Grouped bar chart of absolute MAPE for the 6 sentinel counties."""
-    if not selected_runs or scorecards.empty:
+    """Grouped sentinel-county chart for the selected challengers."""
+    comparison = _selected_scorecard_rows(selected_runs, dm)
+    if comparison.empty:
         return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
-
-    fig = go.Figure()
 
     available_sentinels = [
         (col, label)
         for col, label in _SENTINEL_LABELS.items()
-        if col in scorecards.columns
+        if col in comparison.columns
     ]
     if not available_sentinels:
         return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
 
-    sentinel_labels = [label for _, label in available_sentinels]
-
-    for run_id in selected_runs:
-        run_rows = scorecards[scorecards["run_id"] == run_id]
-        if run_rows.empty:
-            continue
-        row = run_rows.iloc[0]
-        color = _run_color(run_id, all_run_ids)
-
-        vals = [float(row.get(col, 0)) for col, _ in available_sentinels]
-
+    fig = go.Figure()
+    for _, row in comparison.iterrows():
+        run_id = str(row["run_id"])
         fig.add_trace(
             go.Bar(
-                name=run_id,
-                x=sentinel_labels,
-                y=vals,
-                marker_color=color,
-                text=[f"{v:.2f}" for v in vals],
+                name=str(row["run"]),
+                x=[label for _, label in available_sentinels],
+                y=[float(row.get(col, 0)) for col, _ in available_sentinels],
+                marker_color=_run_color(run_id, dm.ordered_run_ids),
+                text=[f"{float(row.get(col, 0)):.2f}" for col, _ in available_sentinels],
                 textposition="outside",
-                textfont={"size": 10},
-                hovertemplate=(
-                    f"<b>{run_id}</b><br>"
-                    "%{x}: %{y:.3f}%<extra></extra>"
-                ),
+                hovertemplate="<b>%{fullData.name}</b><br>%{x}: %{y:.3f}%<extra></extra>",
             )
         )
 
     fig.update_layout(**theme.get_plotly_layout_defaults())
     fig.update_layout(
-        title="Sentinel County MAPE (absolute)",
+        title="Sentinel County MAPE",
         yaxis_title="MAPE (%)",
         barmode="group",
-        legend={"orientation": "h", "y": -0.15},
+        legend={"orientation": "h", "y": -0.18},
         height=420,
     )
-
     return pn.pane.Plotly(fig, sizing_mode="stretch_width")
 
 
@@ -216,245 +255,223 @@ def _build_pareto_scatter(
     x_metric: str,
     y_metric: str,
     dm: DashboardDataManager,
-    all_run_ids: list[str],
 ) -> pn.pane.Plotly:
-    """Scatter plot with Pareto frontier highlighted."""
-    scorecards = dm.scorecards
-    if not selected_runs or scorecards.empty:
+    """Scatter selected bundles and highlight the local Pareto frontier."""
+    comparison = _selected_scorecard_rows(selected_runs, dm)
+    if comparison.empty or x_metric not in comparison.columns or y_metric not in comparison.columns:
         return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
 
-    if x_metric not in scorecards.columns or y_metric not in scorecards.columns:
-        return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
-
-    filtered = scorecards[scorecards["run_id"].isin(selected_runs)].copy()
+    filtered = comparison.dropna(subset=[x_metric, y_metric]).copy()
     if filtered.empty:
         return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
 
-    # Compute Pareto frontier
-    try:
-        pareto_df = dm.comparator.pareto_frontier(x_metric, y_metric)
-        pareto_run_ids = set(pareto_df["run_id"].tolist()) if "run_id" in pareto_df.columns else set()
-    except (ValueError, KeyError):
-        pareto_run_ids = set()
+    pareto_mask: list[bool] = []
+    xs = filtered[x_metric].tolist()
+    ys = filtered[y_metric].tolist()
+    for i in range(len(filtered)):
+        dominated = False
+        for j in range(len(filtered)):
+            if i == j:
+                continue
+            if xs[j] <= xs[i] and ys[j] <= ys[i] and (xs[j] < xs[i] or ys[j] < ys[i]):
+                dominated = True
+                break
+        pareto_mask.append(not dominated)
 
+    filtered["_pareto"] = pareto_mask
     fig = go.Figure()
 
-    # Non-Pareto points
-    non_pareto = filtered[~filtered["run_id"].isin(pareto_run_ids)]
-    if not non_pareto.empty:
+    others = filtered[~filtered["_pareto"]]
+    if not others.empty:
         fig.add_trace(
             go.Scatter(
-                x=non_pareto[x_metric],
-                y=non_pareto[y_metric],
+                x=others[x_metric],
+                y=others[y_metric],
                 mode="markers+text",
                 marker={
-                    "size": 10,
+                    "size": 11,
                     "color": theme.SDC_MID_GRAY,
                     "line": {"width": 1, "color": theme.SDC_DARK_GRAY},
                 },
-                text=non_pareto["run_id"],
+                text=others["run"],
                 textposition="top center",
-                textfont={"size": 9},
-                name="Other runs",
-                hovertemplate=(
-                    "<b>%{text}</b><br>"
-                    f"{x_metric}: %{{x:.4f}}<br>"
-                    f"{y_metric}: %{{y:.4f}}<extra></extra>"
-                ),
+                name="Other selected runs",
+                hovertemplate="<b>%{text}</b><br>" + f"{x_metric}: %{{x:.4f}}<br>{y_metric}: %{{y:.4f}}<extra></extra>",
             )
         )
 
-    # Pareto-optimal points
-    pareto_filtered = filtered[filtered["run_id"].isin(pareto_run_ids)]
-    if not pareto_filtered.empty:
-        pareto_colors = [
-            _run_color(rid, all_run_ids) for rid in pareto_filtered["run_id"]
-        ]
+    pareto = filtered[filtered["_pareto"]]
+    if not pareto.empty:
         fig.add_trace(
             go.Scatter(
-                x=pareto_filtered[x_metric],
-                y=pareto_filtered[y_metric],
+                x=pareto[x_metric],
+                y=pareto[y_metric],
                 mode="markers+text",
                 marker={
-                    "size": 14,
-                    "color": pareto_colors,
+                    "size": 15,
+                    "color": [
+                        _run_color(str(run_id), dm.ordered_run_ids)
+                        for run_id in pareto["run_id"]
+                    ],
                     "symbol": "star",
                     "line": {"width": 1, "color": theme.SDC_NAVY},
                 },
-                text=pareto_filtered["run_id"],
+                text=pareto["run"],
                 textposition="top center",
-                textfont={"size": 10, "color": theme.SDC_NAVY},
                 name="Pareto-optimal",
-                hovertemplate=(
-                    "<b>%{text}</b> (Pareto)<br>"
-                    f"{x_metric}: %{{x:.4f}}<br>"
-                    f"{y_metric}: %{{y:.4f}}<extra></extra>"
-                ),
+                hovertemplate="<b>%{text}</b><br>" + f"{x_metric}: %{{x:.4f}}<br>{y_metric}: %{{y:.4f}}<extra></extra>",
             )
         )
 
+    fig.update_layout(**theme.get_plotly_layout_defaults())
     fig.update_layout(
-        **theme.get_plotly_layout_defaults(),
         title="Pareto Frontier",
         xaxis_title=x_metric,
         yaxis_title=y_metric,
-        height=480,
+        height=470,
     )
-
     return pn.pane.Plotly(fig, sizing_mode="stretch_width")
 
 
 def _build_county_group_table(dm: DashboardDataManager) -> pn.Column:
-    """Table showing best variant per county group."""
+    """Best variant per county group and delta table."""
     best = dm.comparator.best_variant_per_group()
     if not best:
         return pn.Column(widgets.empty_placeholder("No county group data available."))
 
     rows = []
     for group, info in best.items():
-        rows.append({
-            "County Group": group,
-            "Best Run": info.get("run_id", "?"),
-            "Config": info.get("config_id", "?"),
-        })
-
-    df = pd.DataFrame(rows)
-
-    # Also add the county group impact deltas if available
-    impact = dm.comparator.county_group_impact()
-    if not impact.empty:
-        return pn.Column(
-            widgets.metric_table(
-                df,
-                title="Best Variant per County Group",
-                page_size=0,
-            ),
-            widgets.metric_table(
-                impact,
-                title="County Group Impact (delta vs champion)",
-                highlight_cols=[c for c in impact.columns if c.startswith("delta_")],
-                page_size=0,
-            ),
+        rows.append(
+            {
+                "County Group": group,
+                "Best Run": dm.run_label(str(info.get("run_id", "?")), short=True),
+                "Config": info.get("config_id", "?"),
+            }
         )
 
-    return widgets.metric_table(
-        df,
-        title="Best Variant per County Group",
-        page_size=0,
+    best_df = pd.DataFrame(rows)
+    impact = dm.comparator.county_group_impact().copy()
+    if not impact.empty and "run_id" in impact.columns:
+        impact["run"] = impact["run_id"].map(lambda run_id: dm.run_label(str(run_id), short=True))
+        cols = ["run"] + [col for col in impact.columns if col.startswith("delta_")]
+        impact = impact[cols]
+
+    if impact.empty:
+        return widgets.metric_table(best_df, title="Best Variant per County Group", page_size=0)
+
+    return pn.Column(
+        widgets.metric_table(
+            best_df,
+            title="Best Variant per County Group",
+            page_size=0,
+            frozen_columns=["County Group"],
+        ),
+        widgets.metric_table(
+            impact,
+            title="County Group Impact (delta vs champion)",
+            highlight_cols=[col for col in impact.columns if col.startswith("delta_")],
+            page_size=0,
+            frozen_columns=["run"],
+        ),
     )
 
 
-# ---------------------------------------------------------------------------
-# Main tab builder
-# ---------------------------------------------------------------------------
-
 def build_scorecard_tab(dm: DashboardDataManager) -> pn.Column:
-    """Build the interactive scorecard comparison tab.
-
-    Parameters
-    ----------
-    dm:
-        The dashboard data manager providing access to all observatory data.
-
-    Returns
-    -------
-    pn.Column
-        A Panel Column containing all scorecard sections wired to a shared
-        run-selector widget.
-    """
-    run_ids = dm.run_ids
-    scorecards = dm.scorecards
-    champion_id = dm.champion_id
-
-    if not run_ids:
+    """Build the scorecard comparison tab."""
+    if not dm.run_ids:
         return pn.Column(
-            widgets.section_header(
-                "Scorecard Comparison",
-                "No benchmark runs found.",
-            ),
+            widgets.section_header("Scorecard Comparison", "No benchmark runs found."),
             widgets.empty_placeholder("Run benchmarks first to populate this tab."),
         )
 
-    # ---- Section 1: Run Selector ----
-    run_selector = pn.widgets.MultiSelect(
-        name="Select Runs to Compare",
-        options=run_ids,
-        value=run_ids,
-        size=min(len(run_ids), 8),
+    default_runs = dm.preset_run_ids(RUN_SELECTION_PRESETS[0])
+    run_selector = pn.widgets.MultiChoice(
+        name="Runs",
+        options=dm.run_option_map(),
+        value=default_runs,
+        placeholder="Search benchmark bundles...",
+        delete_button=True,
+        search_option_limit=12,
+        max_items=max(6, len(dm.run_ids)),
         sizing_mode="stretch_width",
     )
+    preset_selector = pn.widgets.Select(
+        name="Comparison Preset",
+        options=list(RUN_SELECTION_PRESETS),
+        value=RUN_SELECTION_PRESETS[0],
+        width=240,
+    )
 
-    # ---- Metric selectors for Pareto scatter ----
-    metric_options = [c for c in METRIC_COLUMNS if c in scorecards.columns]
-    # Add sentinel columns as options too
-    metric_options += [c for c in SENTINEL_COLUMNS if c in scorecards.columns]
+    def _apply_preset(event: object) -> None:
+        del event
+        run_selector.value = dm.preset_run_ids(str(preset_selector.value))
 
+    preset_selector.param.watch(_apply_preset, "value")
+
+    metric_options = [col for col in METRIC_COLUMNS if col in dm.comparison_rows.columns]
+    metric_options += [col for col in SENTINEL_COLUMNS if col in dm.comparison_rows.columns]
+    if not metric_options:
+        metric_options = ["county_mape_overall"]
     pareto_x = pn.widgets.Select(
         name="X Axis Metric",
         options=metric_options,
-        value="county_mape_overall" if "county_mape_overall" in metric_options else (metric_options[0] if metric_options else ""),
+        value="county_mape_overall" if "county_mape_overall" in metric_options else metric_options[0],
         sizing_mode="stretch_width",
     )
     pareto_y = pn.widgets.Select(
         name="Y Axis Metric",
         options=metric_options,
-        value="state_ape_recent_short" if "state_ape_recent_short" in metric_options else (metric_options[1] if len(metric_options) > 1 else metric_options[0] if metric_options else ""),
+        value="state_ape_recent_short" if "state_ape_recent_short" in metric_options else metric_options[min(1, len(metric_options) - 1)],
         sizing_mode="stretch_width",
     )
 
-    # ---- Section 2: Scorecard Table (reactive) ----
-    scorecard_table = pn.bind(
-        _build_scorecard_table,
-        selected_runs=run_selector,
-        scorecards=scorecards,
-        champion_id=champion_id,
+    scorecard_table_bound = pn.panel(
+        pn.bind(_build_scorecard_table, selected_runs=run_selector, dm=dm),
+        loading_indicator=True,
+    )
+    delta_chart = pn.panel(
+        pn.bind(_build_delta_bar_chart, selected_runs=run_selector, dm=dm),
+        loading_indicator=True,
+    )
+    sentinel_chart = pn.panel(
+        pn.bind(_build_sentinel_chart, selected_runs=run_selector, dm=dm),
+        loading_indicator=True,
+    )
+    pareto_chart = pn.panel(
+        pn.bind(
+            _build_pareto_scatter,
+            selected_runs=run_selector,
+            x_metric=pareto_x,
+            y_metric=pareto_y,
+            dm=dm,
+        ),
+        loading_indicator=True,
     )
 
-    # ---- Section 3: MAPE Delta Bar Chart (reactive) ----
-    delta_chart = pn.bind(
-        _build_delta_bar_chart,
-        selected_runs=run_selector,
-        scorecards=scorecards,
-        champion_id=champion_id,
-        all_run_ids=run_ids,
-    )
-
-    # ---- Section 4: Sentinel County Comparison (reactive) ----
-    sentinel_chart = pn.bind(
-        _build_sentinel_chart,
-        selected_runs=run_selector,
-        scorecards=scorecards,
-        all_run_ids=run_ids,
-    )
-
-    # ---- Section 5: Pareto Frontier (reactive) ----
-    pareto_chart = pn.bind(
-        _build_pareto_scatter,
-        selected_runs=run_selector,
-        x_metric=pareto_x,
-        y_metric=pareto_y,
-        dm=dm,
-        all_run_ids=run_ids,
-    )
-
-    # ---- Section 6: County Group Impact (static) ----
-    county_group_section = _build_county_group_table(dm)
-
-    # ---- Assemble ----
     return pn.Column(
         widgets.section_header(
             "Scorecard Comparison",
-            f"Comparing {len(run_ids)} benchmark runs"
-            + (f" | Champion: {champion_id}" if champion_id else ""),
+            "Focused challenger comparison against the current champion.",
         ),
         pn.Card(
+            pn.pane.HTML(
+                '<div class="filters-help">Presets start from readable experiment bundles instead of raw run IDs. The champion reference row stays visible in the scorecard views.</div>',
+                sizing_mode="stretch_width",
+                stylesheets=[theme.DASHBOARD_CSS],
+            ),
+            pn.FlexBox(
+                preset_selector,
+                flex_wrap="wrap",
+                sizing_mode="stretch_width",
+                styles={"gap": "10px"},
+            ),
             run_selector,
-            title="Run Selector",
+            title="Comparison Selector",
             collapsed=False,
             sizing_mode="stretch_width",
         ),
         pn.Card(
-            scorecard_table,
+            scorecard_table_bound,
             title="Side-by-Side Scorecard",
             collapsed=False,
             sizing_mode="stretch_width",
@@ -472,14 +489,20 @@ def build_scorecard_tab(dm: DashboardDataManager) -> pn.Column:
             sizing_mode="stretch_width",
         ),
         pn.Card(
-            pn.Row(pareto_x, pareto_y, sizing_mode="stretch_width"),
+            pn.FlexBox(
+                pareto_x,
+                pareto_y,
+                flex_wrap="wrap",
+                sizing_mode="stretch_width",
+                styles={"gap": "10px"},
+            ),
             pareto_chart,
             title="Pareto Frontier",
             collapsed=False,
             sizing_mode="stretch_width",
         ),
         pn.Card(
-            county_group_section,
+            _build_county_group_table(dm),
             title="County Group Impact",
             collapsed=False,
             sizing_mode="stretch_width",

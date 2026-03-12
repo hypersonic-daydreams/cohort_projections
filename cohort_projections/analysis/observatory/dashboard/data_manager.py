@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import functools
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,6 @@ from cohort_projections.analysis.observatory.comparator import ObservatoryCompar
 from cohort_projections.analysis.observatory.recommender import ObservatoryRecommender
 from cohort_projections.analysis.observatory.results_store import (
     ResultsStore,
-    load_observatory_config,
 )
 from cohort_projections.analysis.observatory.variant_catalog import VariantCatalog
 
@@ -36,6 +36,409 @@ _EXTRA_CSVS: dict[str, str] = {
     "residual_diagnostics": "residual_diagnostics.csv",
     "uncertainty_summary": "uncertainty_summary.csv",
 }
+
+_STATUS_LABELS: dict[str, str] = {
+    "champion": "Champion",
+    "passed_all_gates": "Passed",
+    "needs_human_review": "Review",
+    "failed_hard_gate": "Failed",
+    "pending": "Pending",
+    "experiment": "Experiment",
+    "candidate": "Candidate",
+    "untested": "Untested",
+}
+_STATUS_PRIORITY: dict[str, int] = {
+    "champion": 0,
+    "passed_all_gates": 1,
+    "needs_human_review": 2,
+    "failed_hard_gate": 3,
+    "pending": 4,
+    "experiment": 5,
+    "candidate": 6,
+    "untested": 7,
+}
+_PRESET_TOP_CHALLENGERS = "Champion vs top challengers"
+_PRESET_NEEDS_REVIEW = "Needs review"
+_PRESET_PASSED_ONLY = "Passed only"
+_PRESET_LATEST = "Latest 3"
+_PRESET_ALL = "All runs"
+RUN_SELECTION_PRESETS: tuple[str, ...] = (
+    _PRESET_TOP_CHALLENGERS,
+    _PRESET_NEEDS_REVIEW,
+    _PRESET_PASSED_ONLY,
+    _PRESET_LATEST,
+    _PRESET_ALL,
+)
+
+
+def _normalize_status(value: object) -> str:
+    """Return a lower-case status code or ``"untested"``."""
+    if value is None or pd.isna(value):
+        return "untested"
+    status = str(value).strip().lower()
+    return status or "untested"
+
+
+def _status_label(value: object) -> str:
+    """Return a short, human-readable label for a status code."""
+    status = _normalize_status(value)
+    return _STATUS_LABELS.get(status, status.replace("_", " ").title())
+
+
+def _format_run_date(value: object) -> str:
+    """Format YYYYMMDD-ish run dates as ISO dates for display."""
+    if value is None or pd.isna(value):
+        return ""
+    raw = str(value).strip()
+    match = re.fullmatch(r"(\d{4})(\d{2})(\d{2})", raw)
+    if match:
+        return f"{match.group(1)}-{match.group(2)}-{match.group(3)}"
+    return raw
+
+
+def _short_config_label(value: object) -> str:
+    """Convert verbose config IDs to a short, readable label."""
+    if value is None or pd.isna(value):
+        return ""
+    config_id = str(value).strip()
+    config_id = re.sub(r"^cfg-\d{8}-", "", config_id)
+    config_id = re.sub(r"-v\d+$", "", config_id)
+    config_id = config_id.replace("_", " ").replace("-", " ")
+    config_id = re.sub(r"\s+", " ", config_id).strip()
+    return config_id.title()
+
+
+def _humanize_identifier(value: object) -> str:
+    """Convert slugs and experiment IDs to title-cased display text."""
+    if value is None or pd.isna(value):
+        return ""
+    text = str(value).strip()
+    text = re.sub(r"^exp-\d{8}-", "", text)
+    text = text.replace("_", " ").replace("-", " ")
+    text = re.sub(r"\s+", " ", text).strip()
+    return text.title()
+
+
+def _contains_text(base: object, candidate: object) -> bool:
+    """Return True if *candidate* already appears in *base* (case-insensitive)."""
+    if base is None or candidate is None or pd.isna(base) or pd.isna(candidate):
+        return False
+    return str(candidate).strip().lower() in str(base).strip().lower()
+
+
+def _has_text(value: object) -> bool:
+    """Return True if a value is a non-empty string-like scalar."""
+    if value is None or pd.isna(value):
+        return False
+    return str(value).strip() != ""
+
+
+def _sort_by_metric(df: pd.DataFrame) -> pd.DataFrame:
+    """Sort metadata by metric first, then newest date."""
+    sort_cols: list[str] = []
+    ascending: list[bool] = []
+    if "selected_county_mape_overall" in df.columns:
+        sort_cols.append("selected_county_mape_overall")
+        ascending.append(True)
+    if "run_date_sort" in df.columns:
+        sort_cols.append("run_date_sort")
+        ascending.append(False)
+    if "run_id" in df.columns:
+        sort_cols.append("run_id")
+        ascending.append(True)
+    if not sort_cols:
+        return df
+    return df.sort_values(sort_cols, ascending=ascending, na_position="last")
+
+
+def build_comparison_rows(
+    scorecards: pd.DataFrame,
+    champion_id: str | None,
+) -> pd.DataFrame:
+    """Select one comparison row per benchmark bundle.
+
+    For most bundles this prefers the non-champion experiment/candidate row.
+    For the current champion bundle it prefers the champion baseline row so the
+    dashboard has a stable reference model.
+    """
+    if scorecards.empty or "run_id" not in scorecards.columns:
+        return pd.DataFrame()
+
+    rows: list[pd.Series] = []
+    for run_id, group in scorecards.groupby("run_id", sort=False):
+        work = group.copy()
+        status = (
+            work["status_at_run"].fillna("").astype(str).str.lower()
+            if "status_at_run" in work.columns
+            else pd.Series("", index=work.index)
+        )
+        if champion_id is not None and str(run_id) == champion_id:
+            work["_selection_priority"] = (status != "champion").astype(int)
+        else:
+            work["_selection_priority"] = (status == "champion").astype(int)
+        sort_cols = ["_selection_priority"]
+        if "county_mape_overall" in work.columns:
+            sort_cols.append("county_mape_overall")
+        selected = work.sort_values(sort_cols, na_position="last").iloc[0].drop(
+            labels="_selection_priority"
+        )
+        rows.append(selected)
+
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows).reset_index(drop=True)
+
+
+def _build_reference_rows(scorecards: pd.DataFrame) -> pd.DataFrame:
+    """Select the champion/reference row for each benchmark bundle."""
+    if scorecards.empty or "run_id" not in scorecards.columns:
+        return pd.DataFrame()
+
+    rows: list[pd.Series] = []
+    for _, group in scorecards.groupby("run_id", sort=False):
+        work = group.copy()
+        status = (
+            work["status_at_run"].fillna("").astype(str).str.lower()
+            if "status_at_run" in work.columns
+            else pd.Series("", index=work.index)
+        )
+        work["_selection_priority"] = (status != "champion").astype(int)
+        sort_cols = ["_selection_priority"]
+        if "county_mape_overall" in work.columns:
+            sort_cols.append("county_mape_overall")
+        selected = work.sort_values(sort_cols, na_position="last").iloc[0].drop(
+            labels="_selection_priority"
+        )
+        rows.append(selected)
+
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows).reset_index(drop=True)
+
+
+def build_run_metadata_frame(
+    index: pd.DataFrame,
+    scorecards: pd.DataFrame,
+    experiment_log: pd.DataFrame,
+    champion_id: str | None,
+) -> pd.DataFrame:
+    """Build one metadata row per benchmark bundle for UI controls."""
+    run_ids = sorted(
+        {
+            *index.get("run_id", pd.Series(dtype=str)).dropna().astype(str).tolist(),
+            *scorecards.get("run_id", pd.Series(dtype=str)).dropna().astype(str).tolist(),
+            *experiment_log.get("run_id", pd.Series(dtype=str)).dropna().astype(str).tolist(),
+        }
+    )
+    if not run_ids:
+        return pd.DataFrame(columns=["run_id", "selector_label", "legend_label"])
+
+    metadata = pd.DataFrame({"run_id": run_ids})
+
+    if not index.empty and "run_id" in index.columns:
+        idx_cols = [
+            col
+            for col in ["run_id", "run_date", "benchmark_label", "decision_status"]
+            if col in index.columns
+        ]
+        idx_unique = index[idx_cols].drop_duplicates(subset=["run_id"])
+        metadata = metadata.merge(idx_unique, on="run_id", how="left")
+
+    comparison_rows = build_comparison_rows(scorecards, champion_id)
+    if not comparison_rows.empty:
+        selected_cols = [
+            col
+            for col in [
+                "run_id",
+                "method_id",
+                "config_id",
+                "status_at_run",
+                "county_mape_overall",
+                "state_ape_recent_short",
+                "state_ape_recent_medium",
+            ]
+            if col in comparison_rows.columns
+        ]
+        selected = comparison_rows[selected_cols].rename(
+            columns={
+                "method_id": "selected_method_id",
+                "config_id": "selected_config_id",
+                "status_at_run": "selected_status_at_run",
+                "county_mape_overall": "selected_county_mape_overall",
+                "state_ape_recent_short": "selected_state_ape_recent_short",
+                "state_ape_recent_medium": "selected_state_ape_recent_medium",
+            }
+        )
+        metadata = metadata.merge(selected, on="run_id", how="left")
+
+    reference_rows = _build_reference_rows(scorecards)
+    if not reference_rows.empty:
+        ref_cols = [
+            col
+            for col in [
+                "run_id",
+                "method_id",
+                "config_id",
+                "county_mape_overall",
+                "state_ape_recent_short",
+            ]
+            if col in reference_rows.columns
+        ]
+        reference = reference_rows[ref_cols].rename(
+            columns={
+                "method_id": "reference_method_id",
+                "config_id": "reference_config_id",
+                "county_mape_overall": "reference_county_mape_overall",
+                "state_ape_recent_short": "reference_state_ape_recent_short",
+            }
+        )
+        metadata = metadata.merge(reference, on="run_id", how="left")
+
+    if not experiment_log.empty and "run_id" in experiment_log.columns:
+        log_cols = [
+            col
+            for col in [
+                "run_id",
+                "experiment_id",
+                "outcome",
+                "next_action",
+                "hypothesis",
+            ]
+            if col in experiment_log.columns
+        ]
+        log_unique = experiment_log[log_cols].drop_duplicates(subset=["run_id"])
+        metadata = metadata.merge(log_unique, on="run_id", how="left")
+
+    metadata["run_date_label"] = metadata.get("run_date", pd.Series(dtype=object)).map(
+        _format_run_date
+    )
+    metadata["display_name"] = ""
+    if "experiment_id" in metadata.columns:
+        metadata["display_name"] = metadata["experiment_id"].map(_humanize_identifier)
+    if "benchmark_label" in metadata.columns:
+        metadata["display_name"] = metadata["display_name"].mask(
+            metadata["display_name"].eq(""),
+            metadata["benchmark_label"].map(_humanize_identifier),
+        )
+    if "selected_config_id" in metadata.columns:
+        metadata["display_name"] = metadata["display_name"].mask(
+            metadata["display_name"].eq(""),
+            metadata["selected_config_id"].map(_short_config_label),
+        )
+    metadata["display_name"] = metadata["display_name"].mask(
+        metadata["display_name"].eq(""),
+        metadata["run_id"].map(_humanize_identifier),
+    )
+    metadata["short_config"] = metadata.get(
+        "selected_config_id", pd.Series(dtype=object)
+    ).map(_short_config_label)
+
+    status_series = metadata.get("outcome", pd.Series(dtype=object)).map(_normalize_status)
+    if "decision_status" in metadata.columns:
+        status_series = status_series.mask(
+            status_series.eq("untested"),
+            metadata["decision_status"].map(_normalize_status),
+        )
+    if "selected_status_at_run" in metadata.columns:
+        status_series = status_series.mask(
+            status_series.eq("untested"),
+            metadata["selected_status_at_run"].map(_normalize_status),
+        )
+    if champion_id is not None:
+        status_series = status_series.mask(metadata["run_id"] == champion_id, "champion")
+    metadata["status_code"] = status_series.fillna("untested")
+    metadata["status_label"] = metadata["status_code"].map(_status_label)
+    metadata["status_priority"] = metadata["status_code"].map(
+        lambda status: _STATUS_PRIORITY.get(status, 99)
+    )
+
+    metadata["legend_label"] = metadata["display_name"]
+    use_short = metadata.apply(
+        lambda row: _has_text(row.get("short_config"))
+        and not _contains_text(row.get("display_name"), row.get("short_config")),
+        axis=1,
+    )
+    metadata.loc[use_short, "legend_label"] = metadata.loc[use_short, "short_config"]
+    if champion_id is not None:
+        metadata.loc[metadata["run_id"] == champion_id, "legend_label"] = "Champion"
+
+    metadata["selector_label"] = metadata["display_name"]
+    with_config = metadata.apply(
+        lambda row: _has_text(row.get("short_config"))
+        and not _contains_text(row.get("selector_label"), row.get("short_config")),
+        axis=1,
+    )
+    metadata.loc[with_config, "selector_label"] = (
+        metadata.loc[with_config, "selector_label"]
+        + " | "
+        + metadata.loc[with_config, "short_config"]
+    )
+    with_date = metadata["run_date_label"].ne("")
+    metadata.loc[with_date, "selector_label"] = (
+        metadata.loc[with_date, "selector_label"]
+        + " | "
+        + metadata.loc[with_date, "run_date_label"]
+    )
+    metadata["selector_label"] = (
+        "[" + metadata["status_label"] + "] " + metadata["selector_label"]
+    )
+
+    metadata["run_date_sort"] = pd.to_datetime(
+        metadata.get("run_date", pd.Series(dtype=object)).astype(str),
+        format="%Y%m%d",
+        errors="coerce",
+    )
+
+    sort_cols = ["status_priority"]
+    ascending = [True]
+    if "run_date_sort" in metadata.columns:
+        sort_cols.append("run_date_sort")
+        ascending.append(False)
+    if "selected_county_mape_overall" in metadata.columns:
+        sort_cols.append("selected_county_mape_overall")
+        ascending.append(True)
+    sort_cols.append("run_id")
+    ascending.append(True)
+    metadata = metadata.sort_values(
+        sort_cols,
+        ascending=ascending,
+        na_position="last",
+    ).reset_index(drop=True)
+    return metadata
+
+
+def select_run_preset(
+    run_metadata: pd.DataFrame,
+    preset: str,
+    champion_id: str | None,
+    limit: int = 3,
+) -> list[str]:
+    """Return run IDs for a named selector preset."""
+    if run_metadata.empty:
+        return []
+
+    ordered = run_metadata["run_id"].astype(str).tolist()
+    if preset == _PRESET_ALL:
+        return ordered
+
+    if preset == _PRESET_LATEST:
+        latest = run_metadata.sort_values("run_date_sort", ascending=False, na_position="last")
+        return latest["run_id"].head(limit).astype(str).tolist()
+
+    if preset == _PRESET_PASSED_ONLY:
+        passed = run_metadata[run_metadata["status_code"] == "passed_all_gates"]
+        return passed["run_id"].astype(str).tolist()
+
+    if preset == _PRESET_NEEDS_REVIEW:
+        review = run_metadata[run_metadata["status_code"] == "needs_human_review"]
+        return review["run_id"].astype(str).tolist()
+
+    challengers = run_metadata.copy()
+    if champion_id is not None:
+        challengers = challengers[challengers["run_id"] != champion_id]
+    challengers = _sort_by_metric(challengers)
+    top = challengers["run_id"].head(limit).astype(str).tolist()
+    return top or ordered[:limit]
 
 
 class DashboardDataManager:
@@ -179,6 +582,74 @@ class DashboardDataManager:
         return self._comparator._resolve_champion(scorecards)  # noqa: SLF001
 
     @functools.cached_property
+    def comparison_rows(self) -> pd.DataFrame:
+        """One selected comparison row per benchmark bundle."""
+        return build_comparison_rows(self.scorecards, self.champion_id)
+
+    @functools.cached_property
+    def run_metadata(self) -> pd.DataFrame:
+        """Human-readable benchmark metadata used by selectors and tables."""
+        return build_run_metadata_frame(
+            index=self.index,
+            scorecards=self.scorecards,
+            experiment_log=self.experiment_log,
+            champion_id=self.champion_id,
+        )
+
+    @functools.cached_property
+    def ordered_run_ids(self) -> list[str]:
+        """Run IDs ordered for UI display and presets."""
+        if self.run_metadata.empty:
+            return self.run_ids
+        return self.run_metadata["run_id"].astype(str).tolist()
+
+    @functools.cached_property
+    def champion_method_id(self) -> str | None:
+        """Method ID used for the global champion reference line."""
+        champion_id = self.champion_id
+        if champion_id is None or self.run_metadata.empty:
+            return None
+        row = self.run_metadata[self.run_metadata["run_id"] == champion_id]
+        if row.empty:
+            return None
+        reference_method = row.iloc[0].get("reference_method_id")
+        if pd.notna(reference_method):
+            return str(reference_method)
+        selected_method = row.iloc[0].get("selected_method_id")
+        if pd.notna(selected_method):
+            return str(selected_method)
+        return None
+
+    def run_label(self, run_id: str, *, short: bool = False) -> str:
+        """Return a human-readable label for a run ID."""
+        if self.run_metadata.empty:
+            return run_id
+        row = self.run_metadata[self.run_metadata["run_id"] == run_id]
+        if row.empty:
+            return run_id
+        column = "legend_label" if short else "selector_label"
+        value = row.iloc[0].get(column)
+        return str(value) if pd.notna(value) else run_id
+
+    def run_option_map(self) -> dict[str, str]:
+        """Return ordered selector options mapping label -> run ID."""
+        if self.run_metadata.empty:
+            return {run_id: run_id for run_id in self.run_ids}
+        return {
+            str(row["selector_label"]): str(row["run_id"])
+            for _, row in self.run_metadata.iterrows()
+        }
+
+    def preset_run_ids(self, preset: str, limit: int = 3) -> list[str]:
+        """Resolve a named preset to benchmark run IDs."""
+        return select_run_preset(
+            run_metadata=self.run_metadata,
+            preset=preset,
+            champion_id=self.champion_id,
+            limit=limit,
+        )
+
+    @functools.cached_property
     def index(self) -> pd.DataFrame:
         """The benchmark index DataFrame."""
         return self._store.get_index()
@@ -268,6 +739,10 @@ class DashboardDataManager:
         # instance __dict__ — they will be recomputed on next access.
         cached_attrs = [
             "champion_id",
+            "comparison_rows",
+            "run_metadata",
+            "ordered_run_ids",
+            "champion_method_id",
             "index",
             "experiment_log",
             "scorecards",

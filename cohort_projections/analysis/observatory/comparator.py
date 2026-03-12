@@ -76,7 +76,7 @@ class ComparisonResult:
     deltas: pd.DataFrame = field(default_factory=pd.DataFrame)
     county_group_impact: pd.DataFrame = field(default_factory=pd.DataFrame)
     pareto_runs: list[str] = field(default_factory=list)
-    best_per_group: dict[str, str] = field(default_factory=dict)
+    best_per_group: dict[str, dict[str, str]] = field(default_factory=dict)
     summary: dict[str, Any] = field(default_factory=dict)
 
 

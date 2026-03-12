@@ -15,7 +15,7 @@ from cohort_projections.analysis.observatory.dashboard.theme import (
     DASHBOARD_CSS,
     SDC_DARK_GRAY,
     SDC_NAVY,
-    STATUS_COLORS,
+    TABULATOR_STYLESHEET,
 )
 
 # ---------------------------------------------------------------------------
@@ -76,7 +76,12 @@ def kpi_card(
         f"  {delta_html}"
         f"</div>"
     )
-    return pn.pane.HTML(html, sizing_mode="stretch_width")
+    return pn.pane.HTML(
+        html,
+        width=180,
+        min_width=180,
+        stylesheets=[DASHBOARD_CSS],
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -107,7 +112,7 @@ def status_badge(status: str) -> pn.pane.HTML:
         (status.upper(), "badge-untested"),
     )
     html = f'<span class="badge {css_class}">{label}</span>'
-    return pn.pane.HTML(html)
+    return pn.pane.HTML(html, stylesheets=[DASHBOARD_CSS])
 
 
 # ---------------------------------------------------------------------------
@@ -152,6 +157,8 @@ def metric_table(
     title: str = "",
     highlight_cols: list[str] | None = None,
     page_size: int = 15,
+    frozen_columns: list[str] | None = None,
+    formatters: dict[str, Any] | None = None,
 ) -> pn.Column:
     """Wrap a DataFrame in a styled :class:`pn.widgets.Tabulator`.
 
@@ -170,23 +177,42 @@ def metric_table(
     if df.empty:
         return pn.Column(empty_placeholder("No data available for this table."))
 
-    formatters: dict[str, Any] = {}
+    table_formatters: dict[str, Any] = dict(formatters or {})
     if highlight_cols:
         for col in highlight_cols:
             if col in df.columns:
-                formatters[col] = {
+                table_formatters[col] = {
                     "type": "progress",
                     "min": float(df[col].min()) if not df[col].empty else -1,
                     "max": float(df[col].max()) if not df[col].empty else 1,
                     "color": ["#00B050", "#C00000"],
                 }
 
+    resolved_frozen_columns = frozen_columns
+    if resolved_frozen_columns is None:
+        candidates = [
+            "run",
+            "run_id",
+            "variant_id",
+            "county_name",
+            "metric",
+            "parameter",
+        ]
+        resolved_frozen_columns = [col for col in candidates if col in df.columns][:2]
+
     tabulator_kwargs: dict[str, Any] = {
         "sizing_mode": "stretch_width",
-        "theme": "midnight",
+        "theme": "simple",
         "header_filters": True,
         "show_index": False,
+        "layout": "fit_data_stretch",
+        "stylesheets": [TABULATOR_STYLESHEET],
+        "row_height": 34,
     }
+    if table_formatters:
+        tabulator_kwargs["formatters"] = table_formatters
+    if resolved_frozen_columns:
+        tabulator_kwargs["frozen_columns"] = resolved_frozen_columns
     if page_size > 0:
         tabulator_kwargs["pagination"] = "remote"
         tabulator_kwargs["page_size"] = page_size
@@ -214,7 +240,11 @@ def empty_placeholder(message: str = "No data available.") -> pn.pane.HTML:
         Text to display in the empty state.
     """
     html = f'<div class="empty-placeholder">{message}</div>'
-    return pn.pane.HTML(html, sizing_mode="stretch_width")
+    return pn.pane.HTML(
+        html,
+        sizing_mode="stretch_width",
+        stylesheets=[DASHBOARD_CSS],
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -241,4 +271,8 @@ def section_header(title: str, subtitle: str = "") -> pn.pane.HTML:
         f"  {subtitle_html}"
         f"</div>"
     )
-    return pn.pane.HTML(html, sizing_mode="stretch_width")
+    return pn.pane.HTML(
+        html,
+        sizing_mode="stretch_width",
+        stylesheets=[DASHBOARD_CSS],
+    )

@@ -19,6 +19,7 @@ from cohort_projections.analysis.observatory.dashboard.data_manager import (
 from cohort_projections.analysis.observatory.dashboard.theme import (
     SDC_NAVY,
     STATUS_COLORS,
+    TABULATOR_STYLESHEET,
 )
 from cohort_projections.analysis.observatory.dashboard.widgets import (
     empty_placeholder,
@@ -32,36 +33,16 @@ logger = logging.getLogger(__name__)
 # Tabulator formatters for status badges
 # ---------------------------------------------------------------------------
 
-_STATUS_BADGE_TEMPLATE = """
-<span style="
-  display:inline-block;
-  padding:2px 10px;
-  border-radius:12px;
-  font-size:0.82em;
-  font-weight:600;
-  text-transform:uppercase;
-  letter-spacing:0.03em;
-  background-color:<%= STATUS_MAP[value] || '#A0A0A0' %>;
-  color:<%= (value === 'needs_human_review') ? '#1F3864' : '#FFFFFF' %>;
-"><%= value || 'untested' %></span>
-"""
-
-# Tabulator JS-compatible color map for inline badge rendering.
-_STATUS_MAP_JS = (
-    "{"
-    + ",".join(
-        f"'{k}':'{v}'"
-        for k, v in {
-            "passed_all_gates": STATUS_COLORS["passed_all_gates"],
-            "needs_human_review": STATUS_COLORS["needs_human_review"],
-            "failed_hard_gate": STATUS_COLORS["failed_hard_gate"],
-            "untested": STATUS_COLORS["untested"],
-            "champion": STATUS_COLORS["champion"],
-            "": STATUS_COLORS["untested"],
-        }.items()
+def _status_badge_html(status: object) -> str:
+    """Render a small inline status pill for tables."""
+    value = str(status or "untested").strip() or "untested"
+    color = STATUS_COLORS.get(value, STATUS_COLORS["untested"])
+    text_color = "#1F3864" if value == "needs_human_review" else "#FFFFFF"
+    return (
+        '<span style="display:inline-block;padding:2px 10px;border-radius:999px;'
+        f'font-size:0.82em;font-weight:600;text-transform:uppercase;'
+        f'background:{color};color:{text_color}">{value.replace("_", " ")}</span>'
     )
-    + "}"
-)
 
 
 # ---------------------------------------------------------------------------
@@ -109,6 +90,7 @@ def _build_variant_catalog(dm: DashboardDataManager) -> tuple[pn.Column, pn.widg
     # Fill empty status for display
     if "status" in catalog_df.columns:
         catalog_df["status"] = catalog_df["status"].fillna("").replace("", "untested")
+        catalog_df["status"] = catalog_df["status"].map(_status_badge_html)
 
     # --- Filter widgets ---
     tier_options = ["All"]
@@ -133,12 +115,19 @@ def _build_variant_catalog(dm: DashboardDataManager) -> tuple[pn.Column, pn.widg
     tabulator = pn.widgets.Tabulator(
         catalog_df,
         sizing_mode="stretch_width",
-        theme="midnight",
+        theme="simple",
+        stylesheets=[TABULATOR_STYLESHEET],
         show_index=False,
         selectable=1,
         pagination="remote",
         page_size=15,
         header_filters=False,
+        frozen_columns=["variant_id"],
+        formatters={
+            "status": "html",
+            "tested": {"type": "tickCross"},
+            "config_only": {"type": "tickCross"},
+        },
     )
 
     # Keep a reference to the full DataFrame for filtering
@@ -231,6 +220,13 @@ def _build_detail_panel(
 
         variant_id = current_df.iloc[row_idx].get("variant_id", "")
         if not variant_id:
+            return
+
+        if dm.catalog is None:
+            detail_pane.object = (
+                '<div style="padding:10px;color:#C00000">'
+                "Variant catalog is not available.</div>"
+            )
             return
 
         try:
@@ -394,15 +390,21 @@ def _build_experiment_log(dm: DashboardDataManager) -> pn.Card:
         display_cols = list(log_df.columns)
 
     display_df = log_df[display_cols].copy()
+    if "outcome" in display_df.columns:
+        display_df["status"] = display_df["outcome"].map(_status_badge_html)
+        display_df = display_df.drop(columns=["outcome"])
 
     tabulator = pn.widgets.Tabulator(
         display_df,
         sizing_mode="stretch_width",
-        theme="midnight",
+        theme="simple",
+        stylesheets=[TABULATOR_STYLESHEET],
         show_index=False,
         pagination="remote",
         page_size=15,
         header_filters=True,
+        frozen_columns=["experiment_id"],
+        formatters={"status": "html"},
     )
 
     return pn.Card(
@@ -479,11 +481,13 @@ def _build_grid_definitions(dm: DashboardDataManager) -> pn.Card:
     tabulator = pn.widgets.Tabulator(
         grid_df,
         sizing_mode="stretch_width",
-        theme="midnight",
+        theme="simple",
+        stylesheets=[TABULATOR_STYLESHEET],
         show_index=False,
         pagination="remote",
         page_size=20,
         header_filters=True,
+        frozen_columns=["grid_id", "parameter"],
     )
 
     return pn.Card(

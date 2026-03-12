@@ -53,9 +53,9 @@ _GRADE_COLORS: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 
-def _run_options(dm: DashboardDataManager) -> list[str]:
-    """Return available run IDs with an 'All Runs' option prepended."""
-    return ["All Runs", *dm.run_ids]
+def _run_options(dm: DashboardDataManager) -> dict[str, str]:
+    """Return selector options with readable labels."""
+    return {"All Runs": "All Runs", **dm.run_option_map()}
 
 
 def _filter_by_category(
@@ -497,6 +497,8 @@ def _build_bias_heatmap(
             "(category, horizon, mean_signed_pct_error)."
         )
 
+    method_col = "method" if "method" in ba.columns else None
+
     if selected_run != "All Runs":
         ba = ba[ba["run_id"] == selected_run]
         if ba.empty:
@@ -505,7 +507,10 @@ def _build_bias_heatmap(
             )
 
     runs_to_plot = (
-        [selected_run] if selected_run != "All Runs" else sorted(ba["run_id"].unique())
+        sorted(ba[method_col].dropna().astype(str).unique())
+        if selected_run != "All Runs" and method_col is not None
+        else [selected_run] if selected_run != "All Runs"
+        else sorted(ba["run_id"].unique())
     )
     n_runs = len(runs_to_plot)
 
@@ -520,7 +525,10 @@ def _build_bias_heatmap(
     )
 
     for col_idx, run_id in enumerate(runs_to_plot, start=1):
-        run_ba = ba[ba["run_id"] == run_id]
+        if selected_run != "All Runs" and method_col is not None:
+            run_ba = ba[ba[method_col].astype(str) == str(run_id)]
+        else:
+            run_ba = ba[ba["run_id"] == run_id]
         if run_ba.empty:
             continue
 
@@ -586,6 +594,59 @@ def _build_bias_heatmap(
     )
 
     return pn.pane.Plotly(fig, sizing_mode="stretch_width")
+
+
+def _build_top_counties_table(
+    dm: DashboardDataManager,
+    selected_run: str,
+    category: str,
+) -> pn.Column:
+    """Build a ranked county table to pair with the dense heatmaps."""
+    crc = dm.county_report_cards
+    if crc.empty:
+        return pn.Column(empty_placeholder("No county report card data available."))
+
+    if selected_run != "All Runs":
+        crc = crc[crc["run_id"] == selected_run]
+    crc = _filter_by_category(crc, category)
+    if crc.empty:
+        return pn.Column(empty_placeholder("No counties match the current filters."))
+
+    sort_col = "mape" if "mape" in crc.columns else "worst_case_abs_error"
+    if sort_col not in crc.columns:
+        return pn.Column(empty_placeholder("County report cards are missing a sortable error column."))
+
+    display_cols = [
+        col
+        for col in [
+            "county_name",
+            "method",
+            "category",
+            "grade",
+            "mape",
+            "worst_case_error",
+            "bias_direction",
+            "run_id",
+        ]
+        if col in crc.columns
+    ]
+    display_df = (
+        crc.sort_values(sort_col, ascending=False, na_position="last")
+        .head(12)[display_cols]
+        .copy()
+    )
+    if "run_id" in display_df.columns:
+        display_df["run"] = display_df["run_id"].map(lambda run_id: dm.run_label(str(run_id), short=True))
+        display_df = display_df.drop(columns=["run_id"])
+        ordered_cols = ["county_name", "method", "category", "grade", "mape", "worst_case_error", "bias_direction", "run"]
+        display_df = display_df[[col for col in ordered_cols if col in display_df.columns]]
+
+    return metric_table(
+        display_df,
+        title="Highest-MAPE Counties",
+        page_size=0,
+        frozen_columns=["county_name"],
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -729,7 +790,7 @@ def _build_outlier_scatter(
         )
 
     # Build hover text
-    hover_parts = []
+    hover_parts: list[str] = []
     for col in ["county_name", "origin_year", "horizon"]:
         if col in of.columns:
             hover_parts.append(f"{col}: %{{customdata[{len(hover_parts)}]}}")
@@ -817,7 +878,7 @@ def build_horizon_bias_tab(dm: DashboardDataManager) -> pn.Column:
     run_selector = pn.widgets.Select(
         name="Run",
         options=_run_options(dm),
-        value="All Runs",
+        value=dm.champion_id or "All Runs",
         width=250,
     )
     category_selector = pn.widgets.Select(
@@ -826,49 +887,58 @@ def build_horizon_bias_tab(dm: DashboardDataManager) -> pn.Column:
         value="All",
         width=200,
     )
-    selector_row = pn.Row(
+    selector_row = pn.FlexBox(
         run_selector,
         category_selector,
+        flex_wrap="wrap",
         sizing_mode="stretch_width",
+        styles={"gap": "10px"},
     )
 
     # Section 2: Horizon Profile (reactive)
-    horizon_profile = pn.bind(
+    horizon_profile = pn.panel(pn.bind(
         _build_horizon_profile,
         dm=dm,
         selected_run=run_selector,
         category=category_selector,
-    )
+    ), loading_indicator=True)
 
     # Section 3: County Heatmap (reactive on category only)
-    county_heatmap = pn.bind(
+    county_heatmap = pn.panel(pn.bind(
         _build_county_heatmap,
         dm=dm,
         category=category_selector,
-    )
+    ), loading_indicator=True)
 
     # Section 4: Bias Analysis (reactive on run)
-    bias_heatmap = pn.bind(
+    bias_heatmap = pn.panel(pn.bind(
         _build_bias_heatmap,
         dm=dm,
         selected_run=run_selector,
-    )
+    ), loading_indicator=True)
 
     # Section 5: County Report Cards (reactive)
-    report_cards = pn.bind(
+    report_cards = pn.panel(pn.bind(
         _build_county_report_cards,
         dm=dm,
         selected_run=run_selector,
         category=category_selector,
-    )
+    ), loading_indicator=True)
+
+    top_counties = pn.panel(pn.bind(
+        _build_top_counties_table,
+        dm=dm,
+        selected_run=run_selector,
+        category=category_selector,
+    ), loading_indicator=True)
 
     # Section 6: Outlier Flags (reactive)
-    outlier_scatter = pn.bind(
+    outlier_scatter = pn.panel(pn.bind(
         _build_outlier_scatter,
         dm=dm,
         selected_run=run_selector,
         category=category_selector,
-    )
+    ), loading_indicator=True)
 
     return pn.Column(
         section_header(
@@ -882,6 +952,7 @@ def build_horizon_bias_tab(dm: DashboardDataManager) -> pn.Column:
         pn.layout.Divider(),
         section_header("County MAPE Heatmap"),
         county_heatmap,
+        top_counties,
         pn.layout.Divider(),
         section_header(
             "Bias Direction",

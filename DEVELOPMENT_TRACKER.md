@@ -375,6 +375,8 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 **Integration with BM-001:** Observatory delegates execution to the experiment sweep runner. `run-pending` generates specs from the variant catalog via `catalog.generate_spec()`. Shared dedup logic lives in `experiment_log.py`. The experiment dashboard reads variant definitions from the catalog dynamically.
 
+**Dashboard UX refresh:** Completed 2026-03-12. Observatory dashboard updated with eager Plotly loading states, readable experiment bundle selectors and presets, lighter Tabulator styling, decision-oriented command-center cards, mobile horizontal tab scrolling, and browser-verified scorecard/projection/horizon views.
+
 ## Near-Term Next Actions
 
 1. Incorporate deferred stakeholder feedback in the next publication update cycle.

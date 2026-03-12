@@ -32,7 +32,7 @@ PURPLE = "#7030A0"
 # ---------------------------------------------------------------------------
 # Font Stack
 # ---------------------------------------------------------------------------
-FONT_FAMILY = "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+FONT_FAMILY = "'Aptos', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
 
 # ---------------------------------------------------------------------------
 # Status badge colors
@@ -99,16 +99,17 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
 
 /* Main content area */
 :host(.pn-main), .pn-main {
-    background-color: #F2F2F2 !important;
+    background: linear-gradient(180deg, #EDF3FB 0%, #F6F8FC 100%) !important;
 }
 
 /* Card styling */
 .card-container, .bk-Card {
     background-color: #FFFFFF;
-    border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);
-    padding: 12px;
-    margin-bottom: 10px;
+    border: 1px solid #D9E3F0;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(31, 56, 100, 0.06);
+    padding: 14px;
+    margin-bottom: 14px;
 }
 
 /* Status badges */
@@ -131,9 +132,11 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
 .kpi-card {
     text-align: center;
     padding: 16px 12px;
-    border-radius: 6px;
+    min-width: 160px;
+    border-radius: 10px;
     background: #FFFFFF;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    border: 1px solid #D9E3F0;
+    box-shadow: 0 6px 20px rgba(31, 56, 100, 0.06);
 }
 .kpi-card .kpi-value {
     font-size: 2.0em;
@@ -169,6 +172,50 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     font-weight: 400;
 }
 
+.summary-card {
+    min-width: 220px;
+    padding: 16px 18px;
+    border-radius: 12px;
+    border: 1px solid #D9E3F0;
+    background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%);
+    box-shadow: 0 6px 18px rgba(31, 56, 100, 0.06);
+}
+.summary-card .eyebrow {
+    color: #5A6C84;
+    font-size: 0.78em;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.summary-card .headline {
+    margin-top: 6px;
+    color: #1F3864;
+    font-size: 1.2em;
+    font-weight: 700;
+    line-height: 1.25;
+}
+.summary-card .detail {
+    margin-top: 8px;
+    color: #4F5F74;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+.summary-card.primary {
+    background: linear-gradient(180deg, #F8FBFF 0%, #E9F1FC 100%);
+}
+.summary-card.warning {
+    background: linear-gradient(180deg, #FFF9E8 0%, #FFF3CC 100%);
+}
+.summary-card.success {
+    background: linear-gradient(180deg, #F3FBF6 0%, #E2F3E8 100%);
+}
+
+.filters-help {
+    color: #5A6C84;
+    font-size: 0.88em;
+    margin-bottom: 6px;
+}
+
 /* Empty placeholder */
 .empty-placeholder {
     text-align: center;
@@ -186,6 +233,97 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
 .tabulator .tabulator-header .tabulator-col {
     background-color: #1F3864 !important;
     color: #FFFFFF !important;
+}
+
+@media (max-width: 700px) {
+    .bk-Card {
+        padding: 10px;
+    }
+    .kpi-card {
+        min-width: calc(50% - 12px);
+    }
+    .summary-card {
+        min-width: 100%;
+    }
+    .section-header h2 {
+        font-size: 1.1em;
+    }
+}
+"""
+
+TABS_STYLESHEET = """
+:host {
+    overflow: visible;
+}
+
+.bk-header {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 0 4px 0;
+    scrollbar-width: thin;
+}
+
+.bk-tab {
+    white-space: nowrap;
+    min-width: max-content;
+    padding: 10px 14px;
+    border-radius: 999px 999px 0 0;
+    font-weight: 600;
+    color: #41566F;
+}
+
+.bk-tab.bk-active {
+    color: #1F3864;
+    background: linear-gradient(180deg, #FFFFFF 0%, #EDF3FB 100%);
+}
+
+@media (max-width: 700px) {
+    .bk-header {
+        gap: 8px;
+        padding-bottom: 8px;
+    }
+
+    .bk-tab {
+        font-size: 12px;
+        padding: 10px 16px;
+    }
+}
+"""
+
+TABULATOR_STYLESHEET = """
+.tabulator {
+    background: #FFFFFF;
+    border: 1px solid #D9E3F0;
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 12px;
+}
+
+.tabulator .tabulator-header {
+    background: linear-gradient(180deg, #34588E 0%, #1F3864 100%) !important;
+}
+
+.tabulator-row {
+    background: #FFFFFF;
+}
+
+.tabulator-row:nth-child(even) {
+    background: #F8FBFF;
+}
+
+.tabulator-row:hover {
+    background: #EAF2FD !important;
+}
+
+.tabulator-cell {
+    border-right: 1px solid #E6EEF8 !important;
+}
+
+.tabulator-footer {
+    background: #F8FBFF;
+    border-top: 1px solid #D9E3F0;
 }
 """
 
