@@ -45,6 +45,19 @@ python scripts/analysis/run_experiment_sweep.py --grid grid.yaml         # Param
 python scripts/analysis/run_experiment_sweep.py --pending                # Run all pending specs
 ```
 
+### Projection Observatory
+
+```bash
+python scripts/analysis/observatory.py status          # Run inventory & catalog status
+python scripts/analysis/observatory.py compare         # Full N-way comparison report
+python scripts/analysis/observatory.py rank <metric>   # Rank by specific metric
+python scripts/analysis/observatory.py recommend       # Next-experiment suggestions
+python scripts/analysis/observatory.py run-pending     # Run all untested variants
+python scripts/analysis/observatory.py run-pending --dry-run  # Preview what would run
+python scripts/analysis/observatory.py report          # Generate HTML observatory report
+python scripts/analysis/observatory.py refresh         # Rebuild results cache
+```
+
 ---
 
 ## Session Workflow

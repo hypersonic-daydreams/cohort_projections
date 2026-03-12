@@ -1,0 +1,300 @@
+# Projection Observatory — Variant Catalog
+# Machine-readable experiment definitions for automated sweep execution.
+#
+# This file is the single source of truth for what variants can be tested.
+# Each variant modifies the base method (m2026r1) by overriding one or more
+# parameters in MethodConfig.  The variant_catalog.py module reads this file
+# and can generate experiment spec YAML files for any variant or grid.
+#
+# Last updated: 2026-03-12
+
+base_method: m2026r1
+base_config: cfg-20260309-college-fix-v1
+
+# ---------------------------------------------------------------------------
+# Individual Variants
+# ---------------------------------------------------------------------------
+
+variants:
+
+  exp-a:
+    name: Convergence Medium Hold Extension (5)
+    slug: convergence-medium-hold-5
+    parameter: convergence_medium_hold
+    value: 5
+    hypothesis: >
+      Extending medium-rate hold from 3 to 5 years will reduce long-horizon
+      overshoot in rural counties by keeping rates closer to the medium-term
+      average before transitioning to the (noisier) long-term rate.
+    expected_improvement:
+      - county_mape_rural
+      - county_mape_overall
+    risk_areas:
+      - county_mape_bakken
+    tier: 1
+    config_only: true
+    results:
+      status: needs_human_review
+      run_id: br-20260309-182103-m2026r1-201f5eb
+      deltas:
+        county_mape_overall: -0.02
+        county_mape_rural: +0.02
+        county_mape_bakken: +0.52
+
+  exp-b:
+    name: College Blend Factor 0.7
+    slug: college-blend-70
+    parameter: college_blend_factor
+    value: 0.7
+    hypothesis: >
+      Increasing smoothing weight from 50% to 70% for college-age migration
+      in the 12 college counties will reduce volatility in 15-19, 20-24,
+      25-29 age groups and improve college-county MAPE.
+    expected_improvement:
+      - county_mape_urban_college
+    risk_areas:
+      - over_smoothing_enrollment_shifts
+    tier: 1
+    config_only: true
+    results:
+      status: passed_all_gates
+      run_id: br-20260309-182528-m2026r1-201f5eb
+      deltas:
+        county_mape_overall: -0.09
+        county_mape_rural: +0.02
+        county_mape_bakken: +0.33
+        county_mape_urban_college: -1.78
+      notes: >
+        Original failed_hard_gate was a rounding artifact (1.1 person drift
+        on 662K; tolerance widened from 1.0 to 2.0 per ADR-062).
+
+  exp-c:
+    name: GQ Fraction Sensitivity (0.75)
+    slug: gq-fraction-75
+    parameter: gq_correction_fraction
+    value: 0.75
+    hypothesis: >
+      Partial GQ subtraction (75% instead of 100%) will better fit counties
+      where GQ and household populations co-move, improving college-county
+      accuracy without degrading Bakken/rural MAPE.
+    expected_improvement:
+      - county_mape_urban_college
+    risk_areas:
+      - cass_county_over_projection
+    tier: 1
+    config_only: true
+
+  exp-d:
+    name: Rate Cap Tightening (General 6%)
+    slug: rate-cap-general-6pct
+    parameter: rate_cap_general
+    value: 0.06
+    hypothesis: >
+      Tightening the general migration rate cap from 8% to 6% will clip
+      more statistical noise in small counties, improving rural MAPE
+      without affecting urban counties (which stay within 6% anyway).
+    expected_improvement:
+      - county_mape_rural
+    risk_areas:
+      - rapidly_growing_small_counties
+    tier: 2
+    config_only: true
+
+  exp-e:
+    name: Boom Dampening 2010-2015 at 0.30
+    slug: boom-dampening-peak-30
+    parameter: boom_period_dampening
+    value:
+      "2005-2010": 0.50
+      "2010-2015": 0.30
+    hypothesis: >
+      Further dampening peak boom-era (2010-2015) migration from 40% to 30%
+      will reduce Bakken county overshoot at 10-15yr horizons without
+      affecting non-Bakken counties.
+    expected_improvement:
+      - county_mape_bakken
+    risk_areas:
+      - bakken_renewed_growth
+    tier: 2
+    config_only: true
+    results:
+      status: needs_human_review
+      run_id: br-20260309-182946-m2026r1-201f5eb
+      deltas:
+        county_mape_overall: -0.02
+        county_mape_rural: +0.02
+        county_mape_bakken: +0.55
+      notes: >
+        Bakken regression is the largest of the sweep. 0.30 dampening
+        is too aggressive; try 0.35.
+
+  exp-f:
+    name: Recent Period Window Expansion
+    slug: recent-period-2020-2025
+    parameter: recent_period
+    value:
+      - 2020
+      - 2025
+    hypothesis: >
+      Widening the recent convergence window from 2 years to 5 years will
+      smooth COVID-recovery noise and provide a more stable short-term
+      migration signal, improving early-horizon accuracy.
+    expected_improvement:
+      - county_mape_overall
+    risk_areas:
+      - dilutes_current_trend_signal
+    tier: 2
+    config_only: false
+    notes: >
+      Recent periods are hard-coded per origin year in walk_forward_validation.py.
+      This requires code changes, not just config injection.
+
+  exp-g:
+    name: Mortality Improvement Factor 0.3%
+    slug: mortality-improvement-03pct
+    parameter: mortality_improvement_factor
+    value: 0.003
+    hypothesis: >
+      Reducing the mortality improvement assumption from 0.5%/yr to 0.3%/yr
+      will produce more conservative elderly population growth in rural
+      counties, improving rural MAPE for long horizons.
+    expected_improvement:
+      - county_mape_rural
+    risk_areas:
+      - state_total_under_projection
+    tier: 3
+    config_only: true
+
+  exp-h:
+    name: Add Billings County to Bakken FIPS
+    slug: billings-bakken-fips
+    parameter: bakken_fips
+    value:
+      - "38105"
+      - "38053"
+      - "38061"
+      - "38025"
+      - "38089"
+      - "38007"
+    hypothesis: >
+      Including Billings County (FIPS 38007) in boom dampening will reduce
+      its overshoot, as it experienced +88% undampened growth in 2010-2015.
+    expected_improvement:
+      - billings_county_ape
+    risk_areas:
+      - small_county_instability
+    tier: 3
+    config_only: true
+
+  exp-i:
+    name: College Blend Factor 0.3
+    slug: college-blend-30
+    parameter: college_blend_factor
+    value: 0.3
+    hypothesis: >
+      Reducing smoothing weight to 30% preserves more of the raw college-age
+      migration signal, which may improve accuracy for counties where
+      enrollment trends are the dominant population driver.
+    expected_improvement:
+      - county_mape_urban_college
+    risk_areas:
+      - higher_volatility_noisy_enrollment
+    tier: 3
+    config_only: true
+    results:
+      status: needs_human_review
+      run_id: br-20260309-203948-m2026r1-26afd75
+      deltas:
+        county_mape_overall: +0.03
+        county_mape_rural: +0.02
+        county_mape_bakken: +0.71
+      notes: Worst result of sweep. Both overall and Bakken regressed.
+
+  exp-j:
+    name: Convergence Medium Hold Extension (4)
+    slug: convergence-medium-hold-4
+    parameter: convergence_medium_hold
+    value: 4
+    hypothesis: >
+      Setting medium-rate hold to 4 years (between the current 3 and tested 5)
+      will capture most of the long-horizon overshoot reduction seen in EXP-A
+      while avoiding the Bakken MAPE regression that breached the 0.50 threshold
+      at hold=5.
+    expected_improvement:
+      - county_mape_rural
+      - county_mape_overall
+    risk_areas:
+      - county_mape_bakken
+    tier: 1
+    config_only: true
+    results:
+      status: needs_human_review
+      run_id: br-20260309-203023-m2026r1-26afd75
+      deltas:
+        county_mape_overall: -0.02
+        county_mape_rural: +0.02
+        county_mape_bakken: +0.52
+      notes: >
+        Identical to EXP-A — walk-forward 5yr steps make hold=4 and hold=5
+        equivalent. Next meaningful test would be hold=6.
+
+  exp-k:
+    name: Boom Dampening 2010-2015 at 0.35
+    slug: boom-dampening-peak-35
+    parameter: boom_period_dampening
+    value:
+      "2005-2010": 0.50
+      "2010-2015": 0.35
+    hypothesis: >
+      Setting 2010-2015 boom dampening to 0.35 (midpoint between current 0.40
+      and tested 0.30) will reduce Bakken overshoot while staying within the
+      0.50 Bakken MAPE regression threshold that EXP-E breached at 0.30.
+    expected_improvement:
+      - county_mape_bakken
+    risk_areas:
+      - county_mape_bakken
+    tier: 2
+    config_only: true
+    results:
+      status: needs_human_review
+      run_id: br-20260309-203530-m2026r1-26afd75
+      deltas:
+        county_mape_overall: -0.02
+        county_mape_rural: +0.02
+        county_mape_bakken: +0.54
+      notes: Marginal improvement over EXP-E but still breaches 0.50 threshold.
+
+# ---------------------------------------------------------------------------
+# Grid Definitions (cartesian product sweeps)
+# ---------------------------------------------------------------------------
+
+grids:
+
+  blend-factor-sweep:
+    parameters:
+      college_blend_factor: [0.3, 0.5, 0.7, 0.8, 0.9]
+    hypothesis: Find optimal college blend factor across the full range.
+
+  blend-convergence-interaction:
+    parameters:
+      college_blend_factor: [0.5, 0.7, 0.9]
+      convergence_medium_hold: [3, 4, 5]
+    mode: cartesian
+    hypothesis: >
+      Blend factor and convergence hold may interact in college counties.
+      Higher blend with longer hold could compound conservatism.
+
+  gq-fraction-sweep:
+    parameters:
+      gq_correction_fraction: [0.0, 0.25, 0.5, 0.75, 1.0]
+    hypothesis: Test GQ correction sensitivity across the full range.
+
+  rate-cap-sweep:
+    parameters:
+      rate_cap_general: [0.04, 0.05, 0.06, 0.07, 0.08]
+    hypothesis: Tighter rate caps may help small counties without harming large ones.
+
+  dampening-sweep:
+    parameters:
+      boom_period_dampening_2010_2015: [0.20, 0.25, 0.30, 0.35, 0.40, 0.50]
+    hypothesis: Find optimal Bakken dampening level for the peak boom period.

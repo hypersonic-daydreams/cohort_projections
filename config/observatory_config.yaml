@@ -1,0 +1,18 @@
+observatory:
+  history_dir: data/analysis/benchmark_history
+  cache_dir: data/analysis/observatory
+  experiment_log: data/analysis/experiments/experiment_log.csv
+  variant_catalog: config/observatory_variants.yaml
+  champion_method: m2026
+  challenger_base_method: m2026r1
+
+  comparison:
+    primary_metric: county_mape_overall
+    secondary_metrics:
+      - county_mape_rural
+      - county_mape_bakken
+      - county_mape_urban_college
+
+  recommendation:
+    max_suggestions: 5
+    min_improvement_threshold: 0.02
