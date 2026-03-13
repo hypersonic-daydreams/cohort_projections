@@ -2,7 +2,7 @@
 
 Canonical instruction set for all AI agents working on this codebase.
 
-**Last Updated:** 2026-03-13 | **Version:** 1.8.1 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
+**Last Updated:** 2026-03-13 | **Version:** 1.8.2 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
 
 ---
 
@@ -81,7 +81,7 @@ Data deletion, security changes, breaking output formats, **methodology changes 
 - **Projections**: Use `scripts/projections/run_all_projections.py` for full pipeline runs.
 - **Backups**: Use `scripts/bisync.sh`. NEVER run raw `rclone` commands for syncing.
 - **Maintenance**: Use provided scripts in `scripts/maintenance/`.
-- **Benchmarking**: Use `scripts/analysis/run_benchmark_suite.py` for champion-vs-challenger runs. Use `scripts/analysis/run_experiment.py --spec <path>` for the full experiment pipeline (spec → profile → benchmark → evaluate → log). Use `scripts/analysis/build_experiment_dashboard.py` to generate an interactive HTML dashboard comparing all experiment results. Use `scripts/analysis/run_experiment_sweep.py` for batch sweeps (spec list, parameter grid, or pending queue). See `docs/guides/benchmarking-workflow.md` for the complete workflow and `config/benchmark_evaluation_policy.yaml` for gate thresholds.
+- **Benchmarking**: Use `scripts/analysis/run_benchmark_suite.py` for champion-vs-challenger runs. Use `scripts/analysis/run_experiment.py --spec <path>` for the full experiment pipeline (spec → profile → benchmark → evaluate → log). Use `scripts/analysis/build_experiment_dashboard.py` to generate an interactive HTML dashboard comparing all experiment results. Use `scripts/analysis/run_experiment_sweep.py` for batch sweeps (spec list, parameter grid, or pending queue). See `docs/guides/benchmarking-workflow.md` for the complete workflow, `docs/guides/observatory-start-here.md` for the Observatory entry point and follow-on backlog, and `config/benchmark_evaluation_policy.yaml` for gate thresholds.
 - **Observatory**: Use `scripts/analysis/observatory.py` as the unified entry point for variant comparison and experiment execution. Key commands: `status`, `compare`, `rank`, `recommend`, `run-pending`, `run-recommended`, `diff`, `history`, `report`. Config files: `config/observatory_config.yaml` (paths, metrics, thresholds), `config/observatory_variants.yaml` (variant definitions and grid sweeps). Package: `cohort_projections/analysis/observatory/`.
 
 ### Projection Observatory Naming
@@ -295,6 +295,9 @@ uv sync               # Install dependencies
 |-------|---------|
 | [docs/guides/testing-workflow.md](./docs/guides/testing-workflow.md) | Test commands and patterns |
 | [docs/guides/environment-setup.md](./docs/guides/environment-setup.md) | Environment and tooling setup |
+| [docs/guides/benchmarking-workflow.md](./docs/guides/benchmarking-workflow.md) | Benchmark, review, and promotion workflow under SOP-003 |
+| [docs/guides/observatory-start-here.md](./docs/guides/observatory-start-here.md) | Projection Observatory entry point for status, reading order, and backlog |
+| [docs/guides/observatory-search-loop.md](./docs/guides/observatory-search-loop.md) | Safe bounded queue operation for the Projection Observatory |
 | [docs/guides/configuration-reference.md](./docs/guides/configuration-reference.md) | Configuration options |
 | [docs/guides/data-sources-workflow.md](./docs/guides/data-sources-workflow.md) | Data acquisition and processing |
 | [docs/guides/troubleshooting.md](./docs/guides/troubleshooting.md) | Common issues and solutions |
@@ -350,6 +353,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.8.2 | 2026-03-13 | Added Projection Observatory start-here and workflow-guide references to improve discoverability of Observatory status, operations, and follow-on backlog |
 | 1.8.1 | 2026-03-13 | Added canonical Projection Observatory naming, purpose, and prompt shorthand for future agent instructions |
 | 1.8.0 | 2026-03-01 | Updated project focus to post-development publication/maintenance mode after PP-001 through PP-004 closeout |
 | 1.7.0 | 2026-02-28 | Established `DEVELOPMENT_TRACKER.md` as explicit status-entry source of truth; added fast-path session-start guidance for status/remaining-work queries |
@@ -366,6 +370,6 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 | Attribute | Value |
 |-----------|-------|
 | **Last Updated** | 2026-03-13 |
-| **Version** | 1.8.1 |
+| **Version** | 1.8.2 |
 | **Status** | Current |
 | **Applies To** | All AI Agents |

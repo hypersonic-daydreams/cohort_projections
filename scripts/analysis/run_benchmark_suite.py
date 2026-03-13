@@ -38,7 +38,6 @@ from cohort_projections.analysis.benchmarking import (  # noqa: E402
 )
 from cohort_projections.utils.reproducibility import log_execution  # noqa: E402
 
-
 # ---------------------------------------------------------------------------
 # Config injection: bridge method profiles → METHOD_DISPATCH
 # ---------------------------------------------------------------------------
@@ -133,7 +132,8 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         default=1,
         help=(
-            "Number of parallel workers for walk-forward validation. "
+            "Number of parallel workers for walk-forward validation and "
+            "sensitivity analysis. "
             "0 = auto-detect min(len(ORIGIN_YEARS), cpu_count). "
             "1 = sequential (default)."
         ),
@@ -271,6 +271,7 @@ def main() -> None:
             survival,
             fertility,
             methods=methods,
+            workers=args.workers,
         )
         sensitivity_tornado = sa.compute_tornado_data(sensitivity_results)
 

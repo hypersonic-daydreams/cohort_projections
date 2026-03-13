@@ -70,6 +70,20 @@ See [ADR-016](./docs/governance/adrs/016-raw-data-management-strategy.md) for da
 python scripts/projections/run_all_projections.py
 ```
 
+### 4. Compare Variants With The Projection Observatory
+
+```bash
+source .venv/bin/activate
+python scripts/analysis/observatory.py status
+python scripts/analysis/observatory_dashboard.py --no-open
+```
+
+Start with [Projection Observatory Start Here](./docs/guides/observatory-start-here.md)
+for the current status, recommended reading order, and the follow-on
+improvement backlog. Use
+[Projection Observatory Search-Loop Guide](./docs/guides/observatory-search-loop.md)
+when running bounded unattended queues.
+
 ## Multi-Computer Sync (rclone bisync)
 
 This project uses **rclone bisync** to sync data files between development computers via Google Drive. Code is synced via git; data files are synced via rclone.

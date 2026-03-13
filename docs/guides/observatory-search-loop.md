@@ -4,6 +4,10 @@ Short operator guide for running the Projection Observatory as a bounded,
 resumable search loop without drifting from the governance rules in
 [SOP-003](../governance/sops/SOP-003-method-benchmarking-versioning-promotion.md).
 
+Start with [Projection Observatory Start Here](./observatory-start-here.md) if
+you need the current status, reading order, or the full follow-on backlog. This
+guide only covers safe queue operation.
+
 ## Use This When
 
 Use this guide when you want the Observatory to queue and run multiple

@@ -460,6 +460,10 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 **Dashboard UX refresh:** Completed 2026-03-12. Observatory dashboard updated with eager Plotly loading states, readable experiment bundle selectors and presets, lighter Tabulator styling, decision-oriented command-center cards, mobile horizontal tab scrolling, and browser-verified scorecard/projection/horizon views.
 
+**Follow-on entry point:** Use `docs/guides/observatory-start-here.md` to navigate current Observatory status, operating guides, and the remaining follow-on backlog.
+
+**Runtime optimization progress:** Initial `P6` slice landed on 2026-03-13. `scripts/analysis/sensitivity_analysis.py` now supports worker-based parallel execution with deterministic merge order and sequential fallback on worker failure, and `scripts/analysis/run_benchmark_suite.py` now threads the shared `--workers` flag into sensitivity analysis. Broader runtime optimization remains tracked in the roadmap.
+
 ## Near-Term Next Actions
 
 1. Incorporate deferred stakeholder feedback in the next publication update cycle.
@@ -475,7 +479,7 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 - Housing-unit method: update methodology docs with HU cross-validation narrative.
 - Benchmark/versioning follow-on work from SOP-003: latest-pointer refresh and broader scope coverage beyond county benchmarks.
 - ~~Richer comparison dashboards~~ — completed 2026-03-12: interactive experiment dashboard (`scripts/analysis/build_experiment_dashboard.py`) with 5 tabs (tracker, spaghetti plot, scorecard, horizon analysis, county heatmap), 19 tests.
-- Benchmarking process improvement roadmap P2-P10 tracked in `docs/plans/benchmarking-process-improvement-roadmap.md` (hard-gate split, schema enforcement, runtime optimization, post-promotion revalidation, segmentation, place-scope extension, operational quality).
+- Projection Observatory follow-on backlog and reading order tracked in `docs/guides/observatory-start-here.md` and `docs/plans/benchmarking-process-improvement-roadmap.md` (promotion thresholds, hard-gate split, schema enforcement, runtime optimization, longitudinal dashboard, promotion package builder, post-promotion revalidation, segmentation, place-scope extension, operational quality).
 
 ## References
 

@@ -7,6 +7,8 @@ This guide is the operator-facing companion to SOP-003:
 
 - SOP-003 defines the governance rules, schemas, and required artifacts.
 - This guide shows the day-to-day commands and decision flow.
+- If you are continuing Projection Observatory work, start with
+  [Projection Observatory Start Here](./observatory-start-here.md).
 - For bounded multi-variant queueing in the Projection Observatory, also read
   [Projection Observatory Search-Loop Guide](./observatory-search-loop.md).
 
@@ -24,6 +26,15 @@ Do not use this guide for:
 - routine code cleanup that does not affect results,
 - publication-only reruns under an unchanged champion,
 - ADR drafting without benchmark execution.
+
+## Related Observatory Docs
+
+- [Projection Observatory Start Here](./observatory-start-here.md) for status,
+  reading order, and the follow-on backlog
+- [Projection Observatory Search-Loop Guide](./observatory-search-loop.md) for
+  bounded unattended queueing
+- [Benchmarking Process Improvement Roadmap](../plans/benchmarking-process-improvement-roadmap.md)
+  for the remaining multi-session implementation queue
 
 ## Preflight Checklist
 

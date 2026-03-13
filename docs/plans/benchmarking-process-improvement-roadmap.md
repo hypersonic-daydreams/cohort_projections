@@ -8,6 +8,8 @@ purpose: >
   future sessions can extend the process without re-deriving the design.
 related_docs:
   - docs/governance/sops/SOP-003-method-benchmarking-versioning-promotion.md
+  - docs/guides/observatory-start-here.md
+  - docs/guides/observatory-search-loop.md
   - docs/guides/benchmarking-workflow.md
   - docs/reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md
 related_adrs:
@@ -48,6 +50,30 @@ The workflow already does the important things correctly:
 - the first real benchmark run has been completed and archived.
 
 That means future process improvements should optimize usability and rigor, not redesign the core model.
+
+## How To Use This Roadmap
+
+Use this document for the full follow-on backlog after the Observatory
+foundation work. If you need a quicker entry point, start with
+`docs/guides/observatory-start-here.md` and then return here for the full item
+descriptions.
+
+## Status Snapshot (2026-03-13)
+
+The roadmap below spans both completed foundation work and remaining follow-on
+items. Current state:
+
+- Implemented: `P0` agent experiment orchestration via `BM-001`
+- Implemented: `P0.5` experiment log via `BM-001`
+- Implemented: `P1` stub evaluation policy via `BM-001`
+- Implemented: Observatory baseline package (`OBS-001`) with CLI, dashboard,
+  recommender, comparator, report generation, and variant catalog
+- Implemented: operational hardening (`OBS-01` through `OBS-09`) for bounded
+  unattended queueing under SOP-003 governance
+- Implemented: interactive experiment dashboard on 2026-03-12
+
+The remaining roadmap starts with completing the full `P1` promotion-threshold
+formalization and the follow-on items from `P2` onward.
 
 ## Priority Roadmap
 
@@ -301,6 +327,12 @@ This prevents silent benchmark drift and protects longitudinal comparability.
 
 The data exists, but comparing many runs still requires manual inspection of multiple files.
 
+Related delivered capability: the interactive experiment dashboard already
+exists and covers experiment tracking, scorecards, horizon analysis, and county
+heatmaps. The remaining gap here is a benchmark-history-centric longitudinal
+view over champion changes, accepted/rejected challengers, and metric deltas
+through time.
+
 ### Improvement
 
 Build a lightweight dashboard or report over `data/analysis/benchmark_history/index.csv`.
@@ -379,6 +411,25 @@ Shared data (snapshots, rates) loads once at startup; each worker receives its `
 | Walk-forward (636 runs) | ~2-3 min | ~20-30 sec | ~5-8x |
 | Sensitivity (5,400+ runs) | ~10-15 min | ~1.5-2.5 min | ~5-8x |
 | Full benchmark suite | ~15-25 min | ~3-5 min | ~5-8x |
+
+This roadmap item is intentionally about benchmark-internal throughput, not
+Observatory queue concurrency. The queue runner remains deliberately sequential
+unless faster benchmark internals still leave throughput as the main bottleneck.
+
+Implemented slice on 2026-03-13:
+
+- `scripts/analysis/sensitivity_analysis.py` now supports worker-based parallel
+  execution with deterministic result ordering and sequential fallback on
+  worker failure.
+- `scripts/analysis/run_benchmark_suite.py` now passes the shared `--workers`
+  control through to sensitivity analysis.
+
+Remaining gap:
+
+- Broader walk-forward internal parallelism beyond the current origin-level
+  annual-validation path.
+- End-to-end runtime measurement to quantify which benchmark stages remain the
+  dominant bottleneck after the sensitivity parallelization slice.
 
 #### Tier 2: Cache county-level data extracts (2-3x additional)
 
@@ -491,32 +542,31 @@ Track:
 
 A method that is slightly more accurate but much more fragile should not be judged only on projection metrics.
 
-## Recommended Implementation Order
+## Recommended Remaining Implementation Order (2026-03-13)
 
-Recommended sequence (revised to prioritize agent-driven iteration):
+Completed foundation work is intentionally removed from the ordering below.
+What remains:
 
-1. **P0 agent experiment orchestration** — highest-leverage improvement; transforms the workflow from human-threaded CLI commands to declarative experiment specs that agents can process semi-autonomously
-2. **P0.5 experiment log** — lightweight companion to P0; without it, rapid agent iteration produces results with no reasoning trail
-3. **P6 runtime optimization** — unlocks faster iteration; 5-8x speedup compounds with every benchmark cycle
-4. **P1 promotion thresholds** — required by P0's evaluation policy; defines the machine-readable gates that agents use to classify results
-5. P2 hard-gates vs tradeoffs split
-6. P3 schema enforcement
-7. P8 post-promotion revalidation
-8. P4 dashboard (enhanced by P0.5 experiment log as a data source)
-9. P5 promotion package builder
-10. P9 segmentation refinement
-11. P7 place-scope extension
-12. P10 operational quality tracking
+1. **P6 runtime optimization** — highest immediate leverage for faster iteration across every future benchmark cycle
+2. **P1 promotion thresholds** — finish the full machine-readable thresholds beyond the current stub policy
+3. **P2 hard-gates vs tradeoffs split** — clarify classification semantics before adding more automation and UI
+4. **P3 schema enforcement** — protect longitudinal comparability and prevent silent drift
+5. **P8 post-promotion revalidation** — make promotions leave behind a clean new baseline
+6. **P4 longitudinal dashboard** — turn benchmark history into a first-class decision surface
+7. **P5 promotion package builder** — shorten the human review loop
+8. **P9 segmentation refinement** — make tradeoffs easier to interpret in the right county groups
+9. **P7 place-scope extension** — expand the same governance and comparison pattern to place methods
+10. **P10 operational quality tracking** — round out accuracy-first evaluation with robustness and operability signals
 
-> **Rationale for P0/P0.5 at the top:** The original ordering assumed a human operator running benchmarks occasionally. With AI agents available to iterate on model improvements, the bottleneck shifts from "how fast does the benchmark run" to "how autonomously can an agent go from hypothesis to logged result." P0 and P0.5 remove the manual command-threading overhead and create the reasoning trail needed for post-hoc review. P6 (runtime) remains critical but is most valuable *after* the agent can actually use the faster runs without human intervention at each step.
->
-> **Implementation note:** P0 and P1 are mutually reinforcing — the orchestrator's evaluation step (P0 §3) depends on having machine-readable thresholds (P1). A minimal P1 stub (hard gates only) should ship with P0, with the full tradeoff thresholds completed as a fast follow.
+> **Foundation already in place:** `P0`, `P0.5`, and the `P1` stub are delivered through `BM-001`; the Observatory baseline and bounded unattended queue hardening are delivered through `OBS-001` and `PP-007`.
 
 ## Session-Start Shortcut
 
-When future sessions ask how to improve the benchmarking process, start here:
+When future sessions ask how to improve the benchmarking process or the
+Projection Observatory:
 
-- `docs/plans/benchmarking-process-improvement-roadmap.md`
+- Start with `docs/guides/observatory-start-here.md` for the navigation path.
+- Use `docs/plans/benchmarking-process-improvement-roadmap.md` for the full backlog details.
 
 Then confirm whether the work should be treated as:
 
@@ -524,12 +574,12 @@ Then confirm whether the work should be treated as:
 - automation implementation,
 - policy tightening,
 - scope expansion beyond county benchmarks,
-- or agent experiment infrastructure (P0/P0.5).
+- or Observatory UI/UX and decision-support improvements.
 
 When an agent session is tasked with running experiments:
 
 1. Check `data/analysis/experiments/pending/` for queued experiment specs.
 2. Check `data/analysis/experiments/experiment_log.csv` for what has already been tried.
-3. Run the next pending experiment via `scripts/analysis/run_experiment.py` (once P0 is implemented), or manually thread the CLI commands per `docs/guides/benchmarking-workflow.md`.
+3. Run the next pending experiment via `scripts/analysis/run_experiment.py`, or manually thread the CLI commands per `docs/guides/benchmarking-workflow.md` when the session needs direct control.
 4. Log the result in the experiment log before moving to the next experiment.
 5. Flag any `needs_human_review` results and stop on that line of inquiry until reviewed.

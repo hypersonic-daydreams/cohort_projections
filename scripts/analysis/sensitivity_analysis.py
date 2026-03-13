@@ -58,9 +58,12 @@ Usage
 
 from __future__ import annotations
 
+import os
 import sys
 from collections.abc import Callable
+from concurrent.futures import Future, ProcessPoolExecutor
 from pathlib import Path
+from typing import TypedDict, cast
 
 import numpy as np
 import pandas as pd
@@ -181,6 +184,22 @@ PERTURBATIONS: dict[str, list[dict]] = {
         {"label": "all_longterm", "window": "longterm"},
     ],
 }
+
+
+class SensitivityTask(TypedDict):
+    """One sensitivity scenario queued for sequential or parallel execution."""
+
+    method: str
+    param_name: str
+    level: dict[str, object]
+    origin_year: int
+    base_pop: pd.DataFrame
+    survival: dict[tuple[str, str], float]
+    fertility: dict[str, float]
+    mig_raw: pd.DataFrame
+    actual_county_totals: dict[str, float]
+    actual_state_total: float
+    method_config: dict[str, object] | None
 
 
 # ---------------------------------------------------------------------------
@@ -390,6 +409,85 @@ def run_scenario(
     }
 
 
+def _run_single_sensitivity_task(
+    *,
+    method: str,
+    param_name: str,
+    level: dict[str, object],
+    origin_year: int,
+    base_pop: pd.DataFrame,
+    survival: dict[tuple[str, str], float],
+    fertility: dict[str, float],
+    mig_raw: pd.DataFrame,
+    actual_county_totals: dict[str, float],
+    actual_state_total: float,
+    method_config: dict[str, object] | None = None,
+) -> dict[str, object]:
+    """Run one sensitivity scenario and return its result record."""
+    original_config: object | None = None
+    if method_config is not None:
+        original_config = METHOD_DISPATCH[method]["config"]  # type: ignore[index]
+        METHOD_DISPATCH[method]["config"] = method_config  # type: ignore[index]
+
+    try:
+        perturbed_mig = mig_raw
+        perturbed_survival = survival
+        perturbed_fertility = fertility
+        sdc_damp = BASELINE_SDC_DAMPENING
+        mort_imp = BASELINE_MORTALITY_IMPROVEMENT
+        conv_override = None
+
+        if param_name == "migration_rate":
+            perturbed_mig = perturb_migration_rates(
+                mig_raw, cast(float, level["factor"])
+            )
+        elif param_name == "fertility_rate":
+            perturbed_fertility = perturb_fertility(
+                fertility, cast(float, level["factor"])
+            )
+        elif param_name == "survival_rate":
+            perturbed_survival = perturb_survival(
+                survival, cast(float, level["delta_q_pct"])
+            )
+        elif param_name == "sdc_bakken_dampening":
+            sdc_damp = cast(float, level["value"])
+        elif param_name == "mortality_improvement":
+            mort_imp = cast(float, level["value"])
+        elif (
+            param_name == "convergence_schedule"
+            and str(level["window"]) != "baseline"
+        ):
+            conv_override = str(level["window"])
+
+        result = run_scenario(
+            method=method,
+            origin_year=origin_year,
+            base_pop=base_pop,
+            survival=perturbed_survival,
+            fertility=perturbed_fertility,
+            mig_raw=perturbed_mig,
+            actual_county_totals=actual_county_totals,
+            actual_state_total=actual_state_total,
+            sdc_dampening=sdc_damp,
+            mortality_improvement=mort_imp,
+            convergence_override=conv_override,
+        )
+
+        return {
+            "method": method,
+            "parameter": param_name,
+            "perturbation_level": str(level["label"]),
+            "origin_year": origin_year,
+            "state_pct_error": result["state_pct_error"],
+            "county_mape": result["county_mape"],
+            "projected_state": result["projected_state"],
+            "actual_state": result["actual_state"],
+        }
+    finally:
+        if original_config is not None:
+            METHOD_DISPATCH[method]["config"] = original_config  # type: ignore[index]
+
+
 # ---------------------------------------------------------------------------
 # Main sensitivity analysis runner
 # ---------------------------------------------------------------------------
@@ -401,6 +499,7 @@ def run_sensitivity_analysis(
     survival: dict[tuple[str, str], float],
     fertility: dict[str, float],
     methods: list[str] | None = None,
+    workers: int = 1,
 ) -> pd.DataFrame:
     """Run the full sensitivity analysis across all parameters and methods.
 
@@ -411,14 +510,14 @@ def run_sensitivity_analysis(
         fertility: Annual ASFRs.
         methods: List of method keys from METHOD_DISPATCH. Defaults to
             DEFAULT_METHODS for backward compatibility.
+        workers: Number of parallel workers. ``1`` runs sequentially.
+            ``0`` auto-detects ``min(total_scenarios, cpu_count)``.
 
     Returns DataFrame with columns:
     [method, parameter, perturbation_level, origin_year, state_pct_error, county_mape]
     """
     if methods is None:
         methods = list(DEFAULT_METHODS)
-
-    records: list[dict] = []
 
     # Pre-compute actual county totals and state totals for each origin's validation
     actual_data: dict[int, tuple[dict[str, float], float]] = {}
@@ -430,94 +529,101 @@ def run_sensitivity_analysis(
         state_total = sum(county_tots.values())
         actual_data[origin_year] = (county_tots, state_total)
 
-    total_scenarios = 0
-    # Count total scenarios for progress tracking
-    for method in methods:
-        dispatch = METHOD_DISPATCH[method]
-        for param_name, levels in PERTURBATIONS.items():
-            # Skip parameters that don't apply to this method type
-            applicability = METHOD_PARAM_APPLICABILITY.get(param_name)
-            if applicability is not None and not applicability(dispatch):
-                continue
-            total_scenarios += len(levels) * len(SENSITIVITY_ORIGINS)
-
-    print(f"\n  Total scenarios to run: {total_scenarios}")
-    scenario_count = 0
+    method_configs: dict[str, dict[str, object]] = {
+        method: METHOD_DISPATCH[method]["config"]  # type: ignore[index]
+        for method in methods
+    }
+    tasks: list[SensitivityTask] = []
 
     for method in methods:
         dispatch = METHOD_DISPATCH[method]
         print(f"\n  Method: {method}")
-
         for param_name, levels in PERTURBATIONS.items():
             # Skip parameters that don't apply to this method type
             applicability = METHOD_PARAM_APPLICABILITY.get(param_name)
             if applicability is not None and not applicability(dispatch):
                 continue
-
             print(f"    Parameter: {param_name} ({len(levels)} levels)")
-
             for level in levels:
                 for origin_year in SENSITIVITY_ORIGINS:
-                    scenario_count += 1
                     county_tots, state_total = actual_data[origin_year]
-                    base_pop = snapshots[origin_year]
-
-                    # Apply perturbations
-                    perturbed_mig = mig_raw
-                    perturbed_survival = survival
-                    perturbed_fertility = fertility
-                    sdc_damp = BASELINE_SDC_DAMPENING
-                    mort_imp = BASELINE_MORTALITY_IMPROVEMENT
-                    conv_override = None
-
-                    if param_name == "migration_rate":
-                        perturbed_mig = perturb_migration_rates(mig_raw, level["factor"])
-                    elif param_name == "fertility_rate":
-                        perturbed_fertility = perturb_fertility(fertility, level["factor"])
-                    elif param_name == "survival_rate":
-                        perturbed_survival = perturb_survival(survival, level["delta_q_pct"])
-                    elif param_name == "sdc_bakken_dampening":
-                        sdc_damp = level["value"]
-                    elif param_name == "mortality_improvement":
-                        mort_imp = level["value"]
-                    elif (
-                        param_name == "convergence_schedule"
-                        and level["window"] != "baseline"
-                    ):
-                        conv_override = level["window"]
-
-                    result = run_scenario(
-                        method=method,
-                        origin_year=origin_year,
-                        base_pop=base_pop,
-                        survival=perturbed_survival,
-                        fertility=perturbed_fertility,
-                        mig_raw=perturbed_mig,
-                        actual_county_totals=county_tots,
-                        actual_state_total=state_total,
-                        sdc_dampening=sdc_damp,
-                        mortality_improvement=mort_imp,
-                        convergence_override=conv_override,
-                    )
-
-                    records.append(
+                    tasks.append(
                         {
                             "method": method,
-                            "parameter": param_name,
-                            "perturbation_level": level["label"],
+                            "param_name": param_name,
+                            "level": level,
                             "origin_year": origin_year,
-                            "state_pct_error": result["state_pct_error"],
-                            "county_mape": result["county_mape"],
-                            "projected_state": result["projected_state"],
-                            "actual_state": result["actual_state"],
+                            "base_pop": snapshots[origin_year],
+                            "survival": survival,
+                            "fertility": fertility,
+                            "mig_raw": mig_raw,
+                            "actual_county_totals": county_tots,
+                            "actual_state_total": state_total,
+                            "method_config": method_configs[method],
                         }
                     )
 
-                    if scenario_count % 10 == 0:
-                        print(
-                            f"      Progress: {scenario_count}/{total_scenarios} "
-                            f"({100 * scenario_count / total_scenarios:.0f}%)"
-                        )
+    total_scenarios = len(tasks)
+    print(f"\n  Total scenarios to run: {total_scenarios}")
+    if total_scenarios == 0:
+        return pd.DataFrame(
+            columns=[
+                "method",
+                "parameter",
+                "perturbation_level",
+                "origin_year",
+                "state_pct_error",
+                "county_mape",
+                "projected_state",
+                "actual_state",
+            ]
+        )
+
+    if workers == 0:
+        effective_workers = min(total_scenarios, os.cpu_count() or 1)
+    else:
+        effective_workers = max(1, min(workers, total_scenarios))
+
+    records: list[dict[str, object]] = []
+    scenario_count = 0
+
+    if effective_workers <= 1:
+        for task in tasks:
+            records.append(_run_single_sensitivity_task(**task))
+            scenario_count += 1
+            if scenario_count % 10 == 0 or scenario_count == total_scenarios:
+                print(
+                    f"      Progress: {scenario_count}/{total_scenarios} "
+                    f"({100 * scenario_count / total_scenarios:.0f}%)"
+                )
+    else:
+        print(
+            f"  Running {total_scenarios} sensitivity scenarios with "
+            f"{effective_workers} workers..."
+        )
+        futures: dict[int, Future[dict[str, object]]] = {}
+        with ProcessPoolExecutor(max_workers=effective_workers) as executor:
+            for idx, task in enumerate(tasks):
+                futures[idx] = executor.submit(_run_single_sensitivity_task, **task)
+
+        for idx, task in enumerate(tasks):
+            fut = futures[idx]
+            try:
+                record = fut.result()
+            except Exception as exc:
+                print(
+                    "      WARNING: Worker for sensitivity task "
+                    f"{idx + 1}/{total_scenarios} failed ({exc!r}), "
+                    "retrying sequentially..."
+                )
+                record = _run_single_sensitivity_task(**task)
+            records.append(record)
+            scenario_count += 1
+            if scenario_count % 10 == 0 or scenario_count == total_scenarios:
+                print(
+                    f"      Progress: {scenario_count}/{total_scenarios} "
+                    f"({100 * scenario_count / total_scenarios:.0f}%)"
+                )
 
     print(f"\n  Completed {scenario_count} scenarios.")
     return pd.DataFrame(records)
@@ -1387,6 +1493,16 @@ def main() -> None:
             f"Available: {list(METHOD_DISPATCH.keys())}"
         ),
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=1,
+        help=(
+            "Number of parallel workers for sensitivity scenarios. "
+            "0 = auto-detect min(total_scenarios, cpu_count). "
+            "1 = sequential (default)."
+        ),
+    )
     args = parser.parse_args()
     label = args.run_label
     methods: list[str] = args.methods
@@ -1406,6 +1522,7 @@ def main() -> None:
     print(f"  Methods: {methods}")
     if label:
         print(f"  Run label: {label}")
+    print(f"  Workers: {args.workers}")
 
     # 1. Load data (reusing walk-forward validation infrastructure)
     print("\nLoading population snapshots...")
@@ -1431,7 +1548,7 @@ def main() -> None:
     print("Running sensitivity analysis...")
     print("-" * 80)
     results = run_sensitivity_analysis(
-        snapshots, mig_raw, survival, fertility, methods=methods
+        snapshots, mig_raw, survival, fertility, methods=methods, workers=args.workers
     )
 
     # 3. Compute tornado data
