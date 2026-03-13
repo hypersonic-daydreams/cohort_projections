@@ -2,7 +2,7 @@
 
 Canonical instruction set for all AI agents working on this codebase.
 
-**Last Updated:** 2026-03-01 | **Version:** 1.8.0 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
+**Last Updated:** 2026-03-13 | **Version:** 1.8.1 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
 
 ---
 
@@ -83,6 +83,16 @@ Data deletion, security changes, breaking output formats, **methodology changes 
 - **Maintenance**: Use provided scripts in `scripts/maintenance/`.
 - **Benchmarking**: Use `scripts/analysis/run_benchmark_suite.py` for champion-vs-challenger runs. Use `scripts/analysis/run_experiment.py --spec <path>` for the full experiment pipeline (spec → profile → benchmark → evaluate → log). Use `scripts/analysis/build_experiment_dashboard.py` to generate an interactive HTML dashboard comparing all experiment results. Use `scripts/analysis/run_experiment_sweep.py` for batch sweeps (spec list, parameter grid, or pending queue). See `docs/guides/benchmarking-workflow.md` for the complete workflow and `config/benchmark_evaluation_policy.yaml` for gate thresholds.
 - **Observatory**: Use `scripts/analysis/observatory.py` as the unified entry point for variant comparison and experiment execution. Key commands: `status`, `compare`, `rank`, `recommend`, `run-pending`, `run-recommended`, `diff`, `history`, `report`. Config files: `config/observatory_config.yaml` (paths, metrics, thresholds), `config/observatory_variants.yaml` (variant definitions and grid sweeps). Package: `cohort_projections/analysis/observatory/`.
+
+### Projection Observatory Naming
+
+Use `Projection Observatory` as the canonical full name for the dashboard and analysis system around projection-variant testing.
+
+- Accept `Observatory` as the short form in user prompts and internal notes.
+- Treat it as the dashboard and analysis layer for testing cohort-projection variants, comparing outputs and quality metrics, and deciding what to run or promote next.
+- If a user says "use the Observatory," assume they mean this system unless they explicitly refer to some other tool.
+- Preferred one-line definition: `The Projection Observatory is the dashboard and analysis layer for testing cohort-projection variants, comparing their outputs and quality metrics, and deciding what to run or promote next.`
+- Preferred prompt shorthand: `Use the Observatory to compare cohort-projection variants and evaluate which one performs best.`
 
 ### SDC 2024 Journal Article (Reference Only)
 If asked to work with the SDC 2024 journal article:
@@ -340,6 +350,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.8.1 | 2026-03-13 | Added canonical Projection Observatory naming, purpose, and prompt shorthand for future agent instructions |
 | 1.8.0 | 2026-03-01 | Updated project focus to post-development publication/maintenance mode after PP-001 through PP-004 closeout |
 | 1.7.0 | 2026-02-28 | Established `DEVELOPMENT_TRACKER.md` as explicit status-entry source of truth; added fast-path session-start guidance for status/remaining-work queries |
 | 1.6.0 | 2026-02-23 | Added data processing documentation standards (Section 5); added ALWAYS items 6-8; references SOP-002 |
@@ -354,7 +365,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-03-01 |
-| **Version** | 1.8.0 |
+| **Last Updated** | 2026-03-13 |
+| **Version** | 1.8.1 |
 | **Status** | Current |
 | **Applies To** | All AI Agents |
