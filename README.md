@@ -83,6 +83,8 @@ for the current status, recommended reading order, and the follow-on
 improvement backlog. Use
 [Projection Observatory Search-Loop Guide](./docs/guides/observatory-search-loop.md)
 when running bounded unattended queues.
+On Windows/WSL, run `scripts/windows/install_projection_observatory_shortcuts.cmd`
+once to create Desktop and Start Menu launchers.
 
 ## Multi-Computer Sync (rclone bisync)
 

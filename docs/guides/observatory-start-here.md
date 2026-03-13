@@ -37,6 +37,9 @@ path from multiple documents.
 
 - CLI: `scripts/analysis/observatory.py`
 - Interactive Panel dashboard: `scripts/analysis/observatory_dashboard.py`
+- Windows/WSL one-click launcher: `scripts/windows/launch_projection_observatory.cmd`
+- Windows shortcut installer:
+  `scripts/windows/install_projection_observatory_shortcuts.cmd`
 - Static experiment dashboard builder:
   `scripts/analysis/build_experiment_dashboard.py`
 - Search-loop operator guide: `docs/guides/observatory-search-loop.md`
