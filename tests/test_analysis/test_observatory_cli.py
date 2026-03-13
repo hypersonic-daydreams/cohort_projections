@@ -7,8 +7,10 @@ store/comparator/recommender/catalog components.
 
 from __future__ import annotations
 
+import importlib
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -19,7 +21,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "scripts" / "analysis"))
 
-import observatory as cli_mod  # noqa: E402
+cli_mod = importlib.import_module("observatory")
 
 
 # ---------------------------------------------------------------------------
@@ -49,17 +51,21 @@ def history_dir(tmp_path: Path) -> Path:
 
     rd = hdir / "run-001"
     rd.mkdir()
-    sc = pd.DataFrame([{
-        "method_id": "m2026",
-        "config_id": "cfg-base",
-        "status_at_run": "champion",
-        "county_mape_overall": 8.5,
-        "county_mape_rural": 7.0,
-        "county_mape_bakken": 19.0,
-        "county_mape_urban_college": 12.0,
-        "state_ape_recent_short": 1.0,
-        "state_ape_recent_medium": 2.5,
-    }])
+    sc = pd.DataFrame(
+        [
+            {
+                "method_id": "m2026",
+                "config_id": "cfg-base",
+                "status_at_run": "champion",
+                "county_mape_overall": 8.5,
+                "county_mape_rural": 7.0,
+                "county_mape_bakken": 19.0,
+                "county_mape_urban_college": 12.0,
+                "state_ape_recent_short": 1.0,
+                "state_ape_recent_medium": 2.5,
+            }
+        ]
+    )
     sc.to_csv(rd / "summary_scorecard.csv", index=False)
     return hdir
 
@@ -110,12 +116,35 @@ class TestBuildParser:
         args = parser.parse_args(["run-pending", "--dry-run"])
         assert args.command == "run-pending"
         assert args.dry_run is True
+        assert args.priority == "tier"
 
     def test_report_subcommand(self) -> None:
         parser = cli_mod.build_parser()
         args = parser.parse_args(["report", "--output", "/tmp/report.html"])
         assert args.command == "report"
         assert args.output == Path("/tmp/report.html")
+
+    def test_format_flag_after_subcommand(self) -> None:
+        parser = cli_mod.build_parser()
+        args = parser.parse_args(["status", "--format", "json"])
+        assert args.output_format == "json"
+
+    def test_run_recommended_queue_flags(self) -> None:
+        parser = cli_mod.build_parser()
+        args = parser.parse_args(
+            [
+                "run-recommended",
+                "--run-budget",
+                "2",
+                "--retry-failures",
+                "1",
+                "--resume-file",
+                "state.json",
+            ]
+        )
+        assert args.run_budget == 2
+        assert args.retry_failures == 1
+        assert args.resume_file == Path("state.json")
 
     def test_refresh_subcommand(self) -> None:
         parser = cli_mod.build_parser()
@@ -149,10 +178,12 @@ class TestCmdStatus:
 
     def test_status_with_store(self, capsys: pytest.CaptureFixture[str]) -> None:
         store = MagicMock()
-        store.get_index.return_value = pd.DataFrame({
-            "run_id": ["run-001"],
-            "run_date": ["2026-03-01"],
-        })
+        store.get_index.return_value = pd.DataFrame(
+            {
+                "run_id": ["run-001"],
+                "run_date": ["2026-03-01"],
+            }
+        )
         store.get_run_ids.return_value = ["run-001"]
         args = cli_mod.build_parser().parse_args(["status"])
 
@@ -166,6 +197,9 @@ class TestCmdStatus:
             "untested_ids": ["EXP-A", "EXP-B"],
             "untested_runnable_ids": ["EXP-A"],
             "untested_requires_code_change_ids": ["EXP-B"],
+            "grid_total": 2,
+            "grid_blocked": 1,
+            "grid_blocked_ids": ["dampening-sweep"],
         }
 
         with patch.object(cli_mod, "_load_variant_catalog", return_value=catalog):
@@ -176,6 +210,7 @@ class TestCmdStatus:
         assert "Completed runs: 1" in out
         assert "Untested runnable: 1" in out
         assert "Untested requiring code changes: 1" in out
+        assert "Blocked grids: 1" in out
 
 
 # ---------------------------------------------------------------------------
@@ -233,11 +268,13 @@ class TestCmdRank:
     def test_rank_success(self, capsys: pytest.CaptureFixture[str]) -> None:
         store = MagicMock()
         comparator = MagicMock()
-        rank_df = pd.DataFrame({
-            "run_id": ["r1", "r2"],
-            "county_mape_overall": [8.0, 9.0],
-            "rank": [1, 2],
-        })
+        rank_df = pd.DataFrame(
+            {
+                "run_id": ["r1", "r2"],
+                "county_mape_overall": [8.0, 9.0],
+                "rank": [1, 2],
+            }
+        )
         comparator.rank_by.return_value = rank_df
 
         args = cli_mod.build_parser().parse_args(["rank", "county_mape_overall"])
@@ -288,6 +325,29 @@ class TestCmdRecommend:
         assert "No recommendations" in capsys.readouterr().out
 
 
+class TestRecommendationArtifacts:
+    """Tests for recommendation spec naming and hygiene helpers."""
+
+    def test_build_recommendation_spec_uses_safe_combo_slug(self) -> None:
+        rec = SimpleNamespace(
+            parameter="combined",
+            suggested_value={
+                "college_blend_factor": 0.9,
+                "convergence_medium_hold": 5,
+            },
+            rationale="Test a combination.",
+            priority=1,
+            grid_suggestion=None,
+        )
+
+        spec = cli_mod._build_recommendation_spec(rec, config={})
+        assert spec is not None
+        assert spec["requested_by"] == "agent"
+        assert spec["experiment_id"].startswith("exp-")
+        assert "college-blend-factor-0p9" in spec["experiment_id"]
+        assert spec["benchmark_label"].startswith("rec-")
+
+
 # ---------------------------------------------------------------------------
 # TestCmdRunPending
 # ---------------------------------------------------------------------------
@@ -305,6 +365,7 @@ class TestCmdRunPending:
     def test_run_pending_nothing_untested(self, capsys: pytest.CaptureFixture[str]) -> None:
         catalog = MagicMock()
         catalog.get_untested.return_value = []
+        catalog.get_inventory_summary.return_value = {}
 
         args = cli_mod.build_parser().parse_args(["run-pending"])
         with patch.object(cli_mod, "_load_variant_catalog", return_value=catalog):
@@ -318,9 +379,13 @@ class TestCmdRunPending:
         catalog.get_untested.return_value = [
             {"variant_id": "exp-x", "parameter": "alpha", "value": 0.5, "hypothesis": "test"},
         ]
+        catalog.get_inventory_summary.return_value = {
+            "untested_requires_code_change": 1,
+            "grid_blocked": 0,
+        }
 
         # generate_spec must write a real file in the temp directory
-        def _mock_generate_spec(variant_id: str, output_dir: Path) -> Path:
+        def _mock_generate_spec(variant_id: str, output_dir: Path, **_kwargs: object) -> Path:
             import yaml as _yaml
 
             output_dir.mkdir(parents=True, exist_ok=True)
@@ -347,6 +412,48 @@ class TestCmdRunPending:
         assert rc == 0
         out = capsys.readouterr().out
         assert "Dry run" in out
+        assert "Resume file" in out
+
+    def test_run_pending_passes_queue_controls_to_sweep(self) -> None:
+        catalog = MagicMock()
+        catalog.get_untested.return_value = [{"variant_id": "exp-x", "tier": 1}]
+        catalog.get_inventory_summary.return_value = {
+            "untested_requires_code_change": 0,
+            "grid_blocked": 0,
+        }
+
+        def _mock_generate_spec(variant_id: str, output_dir: Path, **_kwargs: object) -> Path:
+            path = output_dir / f"{variant_id}.yaml"
+            path.write_text(
+                yaml.safe_dump({"experiment_id": variant_id, "config_delta": {"x": 1}}),
+                encoding="utf-8",
+            )
+            return path
+
+        catalog.generate_spec.side_effect = _mock_generate_spec
+        args = cli_mod.build_parser().parse_args(
+            [
+                "run-pending",
+                "--run-budget",
+                "2",
+                "--retry-failures",
+                "1",
+                "--resume-file",
+                "state.json",
+            ]
+        )
+        with (
+            patch.object(cli_mod, "_load_variant_catalog", return_value=catalog),
+            patch.object(cli_mod, "_run_sweep_command", return_value=0) as run_sweep,
+        ):
+            rc = cli_mod.cmd_run_pending(store=MagicMock(), config={}, args=args)
+
+        assert rc == 0
+        run_sweep.assert_called_once()
+        kwargs = run_sweep.call_args.kwargs
+        assert kwargs["run_budget"] == 2
+        assert kwargs["retry_failures"] == 1
+        assert kwargs["resume_file"] == PROJECT_ROOT / "state.json"
 
 
 # ---------------------------------------------------------------------------
@@ -398,11 +505,15 @@ class TestRunPendingSpecFormat:
         catalog.get_untested.return_value = [
             {"variant_id": "exp-test"},
         ]
+        catalog.get_inventory_summary.return_value = {
+            "untested_requires_code_change": 0,
+            "grid_blocked": 0,
+        }
 
         import yaml as _yaml
 
         # Simulate generate_spec writing a proper spec file
-        def _mock_generate_spec(variant_id: str, output_dir: Path) -> Path:
+        def _mock_generate_spec(variant_id: str, output_dir: Path, **_kwargs: object) -> Path:
             output_dir.mkdir(parents=True, exist_ok=True)
             spec = {
                 "experiment_id": f"exp-20260312-{variant_id}",
@@ -490,12 +601,101 @@ class TestCmdRunRecommended:
         assert rc == 0
         out = capsys.readouterr().out
         assert "Dry run" in out
+        assert "Resume file" in out
 
     def test_run_recommended_parser(self) -> None:
         parser = cli_mod.build_parser()
-        args = parser.parse_args(["run-recommended", "--dry-run"])
+        args = parser.parse_args(
+            [
+                "run-recommended",
+                "--dry-run",
+                "--run-budget",
+                "2",
+                "--retry-failures",
+                "1",
+            ]
+        )
         assert args.command == "run-recommended"
         assert args.dry_run is True
+        assert args.run_budget == 2
+        assert args.retry_failures == 1
+
+
+class TestCmdReport:
+    """Tests for report output path handling."""
+
+    def test_report_resolves_project_relative_output(
+        self,
+        capsys: pytest.CaptureFixture[str],
+        tmp_path: Path,
+    ) -> None:
+        store = MagicMock()
+        received_paths: list[Path | None] = []
+
+        class FakeReport:
+            def __init__(
+                self, comparator_result: object, recommendations: list[object], store: object
+            ) -> None:
+                self._store = store
+
+            def generate_html_report(self, output_path: Path | None = None) -> Path:
+                received_paths.append(output_path)
+                assert output_path is not None
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_text("<html></html>", encoding="utf-8")
+                return output_path
+
+            def generate_summary(self) -> str:
+                return "summary"
+
+        args = cli_mod.build_parser().parse_args(["report", "--output", "reports/test.html"])
+        with (
+            patch.object(cli_mod, "PROJECT_ROOT", tmp_path),
+            patch.object(cli_mod, "_load_report_class", return_value=FakeReport),
+            patch.object(cli_mod, "_load_comparator", return_value=None),
+            patch.object(cli_mod, "_load_recommender", return_value=None),
+            patch.object(cli_mod, "_load_variant_catalog", return_value=None),
+        ):
+            rc = cli_mod.cmd_report(store=store, config={}, args=args)
+
+        assert rc == 0
+        assert received_paths == [tmp_path / "reports" / "test.html"]
+        assert "Observatory report written to" in capsys.readouterr().out
+
+    def test_report_preserves_absolute_output(
+        self,
+        tmp_path: Path,
+    ) -> None:
+        store = MagicMock()
+        absolute_path = tmp_path / "absolute-report.html"
+        received_paths: list[Path | None] = []
+
+        class FakeReport:
+            def __init__(
+                self, comparator_result: object, recommendations: list[object], store: object
+            ) -> None:
+                self._store = store
+
+            def generate_html_report(self, output_path: Path | None = None) -> Path:
+                received_paths.append(output_path)
+                assert output_path is not None
+                output_path.write_text("<html></html>", encoding="utf-8")
+                return output_path
+
+            def generate_summary(self) -> str:
+                return "summary"
+
+        args = cli_mod.build_parser().parse_args(["report", "--output", str(absolute_path)])
+        with (
+            patch.object(cli_mod, "_load_report_class", return_value=FakeReport),
+            patch.object(cli_mod, "_load_comparator", return_value=None),
+            patch.object(cli_mod, "_load_recommender", return_value=None),
+            patch.object(cli_mod, "_load_variant_catalog", return_value=None),
+        ):
+            rc = cli_mod.cmd_report(store=store, config={}, args=args)
+
+        assert rc == 0
+        assert received_paths == [absolute_path]
 
 
 class TestMainDispatch:

@@ -7,6 +7,8 @@ This guide is the operator-facing companion to SOP-003:
 
 - SOP-003 defines the governance rules, schemas, and required artifacts.
 - This guide shows the day-to-day commands and decision flow.
+- For bounded multi-variant queueing in the Projection Observatory, also read
+  [Projection Observatory Search-Loop Guide](./observatory-search-loop.md).
 
 ## When To Use This Guide
 

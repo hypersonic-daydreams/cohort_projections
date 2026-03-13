@@ -9,6 +9,9 @@ Purpose:
     ``run_experiment.py`` orchestrator, accumulating results and regenerating
     the experiment dashboard at the end. Supports three input modes:
     individual spec files, a parameter grid definition, or all pending specs.
+    Queue controls support bounded unattended execution through explicit
+    run budgets, deterministic prioritization, resumable checkpoints, and
+    bounded retry of previously failed specs.
 
 Method:
     1. Parse CLI arguments to determine mode (spec list, grid, or pending).
@@ -16,9 +19,12 @@ Method:
        grid definition (cartesian product or zip pairing).
     3. For each spec, check the experiment log for duplicates and skip
        already-tested experiment IDs.
-    4. Run each spec via subprocess call to ``run_experiment.py --spec <path>``.
-    5. Capture stdout/stderr and exit code; continue on failure.
-    6. After all specs complete, print a summary table and regenerate the
+    4. Apply the requested queue priority, run budget, and resume checkpoint.
+    5. Run each eligible spec via subprocess call to
+       ``run_experiment.py --spec <path>``.
+    6. Capture stdout/stderr and exit code; continue on failure while
+       checkpointing attempts for future resume/retry.
+    7. After all specs complete, print a summary table and regenerate the
        experiment dashboard.
 
 Inputs:
@@ -76,6 +82,7 @@ logger = logging.getLogger(__name__)
 # Directories
 DEFAULT_PENDING_DIR = PROJECT_ROOT / "data" / "analysis" / "experiments" / "pending"
 DEFAULT_COMPLETED_DIR = PROJECT_ROOT / "data" / "analysis" / "experiments" / "completed"
+DEFAULT_SWEEP_STATE_DIR = PROJECT_ROOT / "data" / "analysis" / "experiments" / "sweeps"
 
 
 # ---------------------------------------------------------------------------
@@ -122,6 +129,41 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         type=Path,
         default=DEFAULT_PENDING_DIR,
         help="Override the pending specs directory (default: data/analysis/experiments/pending/).",
+    )
+    parser.add_argument(
+        "--run-budget",
+        type=int,
+        default=None,
+        help="Maximum number of experiments to launch in this invocation.",
+    )
+    parser.add_argument(
+        "--priority",
+        choices=["as-listed", "experiment-id", "modified-time"],
+        default="as-listed",
+        help=(
+            "Queue ordering strategy before execution. "
+            "'as-listed' preserves input order; 'modified-time' sorts oldest first."
+        ),
+    )
+    parser.add_argument(
+        "--reverse-priority",
+        action="store_true",
+        help="Reverse the chosen priority order after sorting.",
+    )
+    parser.add_argument(
+        "--retry-failures",
+        type=int,
+        default=0,
+        help="Number of additional attempts allowed for specs that previously failed in the resume file.",
+    )
+    parser.add_argument(
+        "--resume-file",
+        type=Path,
+        default=None,
+        help=(
+            "JSON checkpoint path used to resume bounded sweeps. "
+            "Relative paths resolve from the project root."
+        ),
     )
     return parser.parse_args(argv)
 
@@ -193,10 +235,7 @@ def generate_grid_combinations(
     if mode == "cartesian":
         keys = list(parameters.keys())
         values = [parameters[k] for k in keys]
-        return [
-            dict(zip(keys, combo, strict=True))
-            for combo in itertools.product(*values)
-        ]
+        return [dict(zip(keys, combo, strict=True)) for combo in itertools.product(*values)]
 
     if mode == "zip":
         keys = list(parameters.keys())
@@ -207,10 +246,7 @@ def generate_grid_combinations(
                 f"Zip mode requires all parameter lists to have equal length. "
                 f"Got lengths: {[len(v) for v in values]}"
             )
-        return [
-            dict(zip(keys, combo, strict=True))
-            for combo in zip(*values, strict=True)
-        ]
+        return [dict(zip(keys, combo, strict=True)) for combo in zip(*values, strict=True)]
 
     raise ValueError(f"Unknown grid mode: {mode!r}. Must be 'cartesian' or 'zip'.")
 
@@ -286,8 +322,7 @@ def generate_specs_from_grid(
         # Build hypothesis from parameter names and values
         param_desc = ", ".join(f"{k}={v}" for k, v in combo.items())
         hypothesis = (
-            f"Grid sweep testing {param_desc} on {grid['base_method']} "
-            f"/ {grid['base_config']}."
+            f"Grid sweep testing {param_desc} on {grid['base_method']} / {grid['base_config']}."
         )
 
         # Build config delta
@@ -346,6 +381,118 @@ def collect_pending_specs(pending_dir: Path) -> list[Path]:
     if not specs:
         logger.info("No pending specs found in %s", pending_dir)
     return specs
+
+
+def resolve_project_path(path: Path | None) -> Path | None:
+    """Resolve *path* relative to the project root when needed."""
+    if path is None:
+        return None
+    if path.is_absolute():
+        return path
+    return PROJECT_ROOT / path
+
+
+def default_resume_file() -> Path:
+    """Return a timestamped default resume checkpoint path."""
+    stamp = dt.datetime.now(tz=dt.UTC).strftime("%Y%m%dT%H%M%SZ")
+    return DEFAULT_SWEEP_STATE_DIR / f"sweep_state_{stamp}.json"
+
+
+def order_spec_paths(
+    spec_paths: list[Path],
+    *,
+    priority: str = "as-listed",
+    reverse: bool = False,
+) -> list[Path]:
+    """Order spec paths according to the requested priority strategy."""
+    ordered = list(spec_paths)
+    if priority == "experiment-id":
+        ordered = sorted(ordered, key=_extract_experiment_id)
+    elif priority == "modified-time":
+        ordered = sorted(ordered, key=lambda path: path.stat().st_mtime)
+
+    if reverse:
+        ordered.reverse()
+    return ordered
+
+
+def load_resume_state(resume_file: Path | None) -> dict[str, Any]:
+    """Load the sweep checkpoint file, returning an empty state when absent."""
+    if resume_file is None or not resume_file.exists():
+        return {"entries": {}}
+    state = json.loads(resume_file.read_text(encoding="utf-8"))
+    if not isinstance(state, dict):
+        raise ValueError(f"Resume file must contain a JSON object: {resume_file}")
+    entries = state.get("entries")
+    if not isinstance(entries, dict):
+        state["entries"] = {}
+    return state
+
+
+def persist_resume_state(
+    resume_file: Path | None,
+    state: dict[str, Any],
+) -> None:
+    """Write the current checkpoint state to disk."""
+    if resume_file is None:
+        return
+    resume_file.parent.mkdir(parents=True, exist_ok=True)
+    state["updated_at_utc"] = dt.datetime.now(tz=dt.UTC).isoformat()
+    resume_file.write_text(
+        json.dumps(state, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+
+def _resume_skip_result(
+    experiment_id: str,
+    spec_path: Path,
+    *,
+    outcome: str,
+    key_delta: str = "-",
+) -> dict[str, Any]:
+    """Build a synthetic result row for skipped checkpoint entries."""
+    return {
+        "experiment_id": experiment_id,
+        "spec_path": str(spec_path),
+        "exit_code": -1,
+        "outcome": outcome,
+        "key_delta": key_delta,
+        "stdout": "",
+        "stderr": "",
+    }
+
+
+def _resume_entry(
+    state: dict[str, Any],
+    experiment_id: str,
+) -> dict[str, Any] | None:
+    """Return the checkpoint entry for *experiment_id* when present."""
+    entries = state.get("entries", {})
+    if not isinstance(entries, dict):
+        return None
+    entry = entries.get(experiment_id)
+    return entry if isinstance(entry, dict) else None
+
+
+def _record_resume_result(
+    state: dict[str, Any],
+    result: dict[str, Any],
+) -> None:
+    """Persist the latest execution result into the checkpoint state."""
+    entries = state.setdefault("entries", {})
+    experiment_id = str(result["experiment_id"])
+    previous = entries.get(experiment_id, {})
+    attempts = int(previous.get("attempts", 0)) + 1
+    entries[experiment_id] = {
+        "experiment_id": experiment_id,
+        "attempts": attempts,
+        "last_exit_code": int(result.get("exit_code", 0)),
+        "last_outcome": str(result.get("outcome", "unknown")),
+        "last_key_delta": str(result.get("key_delta", "-")),
+        "last_spec_path": str(result.get("spec_path", "")),
+        "updated_at_utc": dt.datetime.now(tz=dt.UTC).isoformat(),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -435,9 +582,7 @@ def _parse_outcome_from_stdout(stdout: str) -> str:
         line = line.strip()
         if line.startswith("{"):
             try:
-                data = json.loads(
-                    _extract_json_block(stdout)
-                )
+                data = json.loads(_extract_json_block(stdout))
                 return str(data.get("outcome", "unknown"))
             except (json.JSONDecodeError, ValueError):
                 pass
@@ -531,11 +676,7 @@ def format_summary_table(results: list[dict[str, Any]]) -> str:
     delta_width = max(delta_width, len("Key Delta"))
 
     # Build table
-    sep_line = (
-        f"+{'-' * (id_width + 2)}"
-        f"+{'-' * (outcome_width + 2)}"
-        f"+{'-' * (delta_width + 2)}+"
-    )
+    sep_line = f"+{'-' * (id_width + 2)}+{'-' * (outcome_width + 2)}+{'-' * (delta_width + 2)}+"
     header = (
         f"| {'Experiment':<{id_width}} "
         f"| {'Outcome':<{outcome_width}} "
@@ -555,12 +696,16 @@ def format_summary_table(results: list[dict[str, Any]]) -> str:
         outcome = r.get("outcome", "-")
         key_delta = r.get("key_delta", "-")
         lines.append(
-            f"| {exp_id:<{id_width}} "
-            f"| {outcome:<{outcome_width}} "
-            f"| {key_delta:<{delta_width}} |"
+            f"| {exp_id:<{id_width}} | {outcome:<{outcome_width}} | {key_delta:<{delta_width}} |"
         )
 
     lines.append(sep_line)
+    outcome_counts: dict[str, int] = {}
+    for row in results:
+        outcome = str(row.get("outcome", "-"))
+        outcome_counts[outcome] = outcome_counts.get(outcome, 0) + 1
+    counts = ", ".join(f"{outcome}={count}" for outcome, count in sorted(outcome_counts.items()))
+    lines.append(f"Outcome counts: {counts}")
     lines.append("")
 
     return "\n".join(lines)
@@ -610,18 +755,31 @@ def regenerate_dashboard() -> bool:
 def run_sweep(
     spec_paths: list[Path],
     dry_run: bool = False,
+    run_budget: int | None = None,
+    retry_failures: int = 0,
+    resume_file: Path | None = None,
 ) -> list[dict[str, Any]]:
     """Run a sweep of experiments with dedup checking.
 
     Args:
         spec_paths: Ordered list of spec file paths to process.
         dry_run: If True, validate and display without running.
+        run_budget: Optional cap on launched experiments in this invocation.
+        retry_failures: Number of additional attempts allowed for prior failures.
+        resume_file: Optional checkpoint path for resumable bounded sweeps.
 
     Returns:
         List of result dicts, one per spec (including skipped entries).
     """
+    if run_budget is not None and run_budget <= 0:
+        raise ValueError("run_budget must be positive when provided.")
+    if retry_failures < 0:
+        raise ValueError("retry_failures must be zero or greater.")
+
     tested = get_tested_hypotheses()
+    resume_state = load_resume_state(resume_file)
     results: list[dict[str, Any]] = []
+    launched = 0
 
     total = len(spec_paths)
     logger.info("Sweep contains %d experiment(s).", total)
@@ -636,34 +794,77 @@ def run_sweep(
             spec_path.name,
         )
 
+        entry = _resume_entry(resume_state, experiment_id)
+        if entry is not None:
+            last_exit_code = int(entry.get("last_exit_code", 1))
+            attempts = int(entry.get("attempts", 0))
+            last_key_delta = str(entry.get("last_key_delta", "-"))
+            if last_exit_code == 0:
+                logger.info(
+                    "Skipping %s — already completed in resume file %s.",
+                    experiment_id,
+                    resume_file,
+                )
+                results.append(
+                    _resume_skip_result(
+                        experiment_id,
+                        spec_path,
+                        outcome="(resume-skip)",
+                        key_delta=last_key_delta,
+                    )
+                )
+                continue
+            if attempts > retry_failures:
+                logger.info(
+                    "Skipping %s — retry budget exhausted (%d prior attempt(s), %d retry allowed).",
+                    experiment_id,
+                    attempts,
+                    retry_failures,
+                )
+                results.append(
+                    _resume_skip_result(
+                        experiment_id,
+                        spec_path,
+                        outcome="(retry-exhausted)",
+                        key_delta=last_key_delta,
+                    )
+                )
+                continue
+
         # Dedup check — experiment ID level
         if experiment_id in tested:
             logger.info(
                 "Skipping %s — already tested (found in experiment log).",
                 experiment_id,
             )
-            results.append({
-                "experiment_id": experiment_id,
-                "spec_path": str(spec_path),
-                "exit_code": -1,
-                "outcome": "(skipped)",
-                "key_delta": "-",
-                "stdout": "",
-                "stderr": "",
-            })
+            results.append(
+                {
+                    "experiment_id": experiment_id,
+                    "spec_path": str(spec_path),
+                    "exit_code": -1,
+                    "outcome": "(skipped)",
+                    "key_delta": "-",
+                    "stdout": "",
+                    "stderr": "",
+                }
+            )
             continue
 
         # Dedup check — parameter-level matching
         try:
             spec_data = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
             config_delta = spec_data.get("config_delta") if isinstance(spec_data, dict) else None
-            if isinstance(config_delta, dict) and config_delta:
-                if is_config_delta_tested(config_delta):
-                    logger.info(
-                        "Skipping %s — config delta already tested (parameter-level match).",
-                        experiment_id,
-                    )
-                    results.append({
+            if (
+                isinstance(config_delta, dict)
+                and config_delta
+                and is_config_delta_tested(config_delta)
+            ):
+                logger.info(
+                    "Skipping %s — config delta already tested (parameter-level match).",
+                    experiment_id,
+                )
+                results.append(
+                    {
                         "experiment_id": experiment_id,
                         "spec_path": str(spec_path),
                         "exit_code": -1,
@@ -671,21 +872,39 @@ def run_sweep(
                         "key_delta": "-",
                         "stdout": "",
                         "stderr": "",
-                    })
-                    continue
+                    }
+                )
+                continue
         except Exception:
             pass  # If we can't read the spec, proceed to run it
+
+        if run_budget is not None and launched >= run_budget:
+            logger.info(
+                "Deferring %s — run budget of %d reached.",
+                experiment_id,
+                run_budget,
+            )
+            results.append(
+                _resume_skip_result(
+                    experiment_id,
+                    spec_path,
+                    outcome="(deferred-budget)",
+                )
+            )
+            continue
 
         if dry_run:
             logger.info("  [dry-run] Would run: %s", spec_path)
             result = run_single_experiment(spec_path, dry_run=True)
             result["outcome"] = "(dry-run)"
             result["key_delta"] = "-"
+            launched += 1
             results.append(result)
             continue
 
         # Execute
         result = run_single_experiment(spec_path, dry_run=False)
+        launched += 1
 
         if result["exit_code"] != 0:
             logger.warning(
@@ -704,6 +923,8 @@ def run_sweep(
 
         # Add to tested set so subsequent duplicate IDs in this sweep are skipped
         tested.add(experiment_id)
+        _record_resume_result(resume_state, result)
+        persist_resume_state(resume_file, resume_state)
         results.append(result)
 
     return results
@@ -722,6 +943,10 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     args = parse_args(argv)
+    if args.run_budget is not None and args.run_budget <= 0:
+        raise ValueError("--run-budget must be positive when provided.")
+    if args.retry_failures < 0:
+        raise ValueError("--retry-failures must be zero or greater.")
 
     # Determine spec paths based on mode
     if args.specs:
@@ -747,8 +972,34 @@ def main(argv: list[str] | None = None) -> None:
         logger.info("No specs to process. Exiting.")
         return
 
+    spec_paths = order_spec_paths(
+        spec_paths,
+        priority=args.priority,
+        reverse=args.reverse_priority,
+    )
+
+    resume_file = resolve_project_path(args.resume_file)
+    if resume_file is None and not args.dry_run:
+        resume_file = default_resume_file()
+
+    logger.info(
+        "Queue controls: priority=%s, reverse=%s, run_budget=%s, retry_failures=%d, concurrency=sequential",
+        args.priority,
+        args.reverse_priority,
+        args.run_budget if args.run_budget is not None else "unbounded",
+        args.retry_failures,
+    )
+    if resume_file is not None:
+        logger.info("Resume checkpoint: %s", resume_file)
+
     # Run the sweep
-    results = run_sweep(spec_paths, dry_run=args.dry_run)
+    results = run_sweep(
+        spec_paths,
+        dry_run=args.dry_run,
+        run_budget=args.run_budget,
+        retry_failures=args.retry_failures,
+        resume_file=resume_file,
+    )
 
     # Print summary table
     summary = format_summary_table(results)

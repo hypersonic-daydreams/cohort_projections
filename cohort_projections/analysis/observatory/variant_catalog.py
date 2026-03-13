@@ -29,7 +29,9 @@ Outputs:
 from __future__ import annotations
 
 import datetime as dt
+import hashlib
 import itertools
+import re
 from pathlib import Path
 from typing import Any
 
@@ -50,9 +52,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 DEFAULT_CATALOG_PATH = PROJECT_ROOT / "config" / "observatory_variants.yaml"
 DEFAULT_PENDING_DIR = PROJECT_ROOT / "data" / "analysis" / "experiments" / "pending"
-DEFAULT_LOG_PATH = (
-    PROJECT_ROOT / "data" / "analysis" / "experiments" / "experiment_log.csv"
-)
+DEFAULT_LOG_PATH = PROJECT_ROOT / "data" / "analysis" / "experiments" / "experiment_log.csv"
 
 
 # ---------------------------------------------------------------------------
@@ -69,8 +69,25 @@ def _slugify_value(value: Any) -> str:
     Returns:
         Lowercase string safe for use in filenames and experiment IDs.
     """
-    s = str(value).lower().replace(".", "p").replace(" ", "-")
-    return "".join(c for c in s if c.isalnum() or c in ("-", "_"))
+    if isinstance(value, dict):
+        parts = [
+            f"{_slugify_value(key)}-{_slugify_value(subvalue)}"
+            for key, subvalue in sorted(value.items(), key=lambda item: str(item[0]))
+        ]
+        s = "-".join(part for part in parts if part)
+    elif isinstance(value, (list, tuple, set)):
+        s = "-".join(_slugify_value(item) for item in value)
+    else:
+        s = str(value).lower().replace(".", "p").replace(" ", "-")
+
+    slug = "".join(c for c in s if c.isalnum() or c in ("-", "_"))
+    slug = re.sub(r"-{2,}", "-", slug).strip("-_")
+    if not slug:
+        return "value"
+    if len(slug) <= 64:
+        return slug
+    digest = hashlib.sha1(slug.encode("utf-8")).hexdigest()[:8]
+    return f"{slug[:48].rstrip('-_')}-{digest}"
 
 
 def _normalize_config_delta(parameter: str, value: Any) -> dict[str, Any]:
@@ -87,6 +104,41 @@ def _normalize_config_delta(parameter: str, value: Any) -> dict[str, Any]:
         A dict suitable for the ``config_delta`` field in a spec file.
     """
     return {parameter: value}
+
+
+def _apply_grid_template(template: Any, value: Any) -> Any:
+    """Replace ``$value`` placeholders in grid templates recursively."""
+    if isinstance(template, dict):
+        return {key: _apply_grid_template(subvalue, value) for key, subvalue in template.items()}
+    if isinstance(template, list):
+        return [_apply_grid_template(item, value) for item in template]
+    if template == "$value":
+        return value
+    return template
+
+
+def _expand_grid_parameters(
+    parameters: dict[str, Any],
+) -> dict[str, list[Any]]:
+    """Expand raw grid parameter definitions into runtime-ready value lists.
+
+    Supports the original ``parameter: [values...]`` form plus a templated form:
+
+    ``parameter: {values: [...], template: {... "$value" ...}}``
+    """
+    expanded: dict[str, list[Any]] = {}
+    for parameter, values in parameters.items():
+        if isinstance(values, list):
+            expanded[parameter] = list(values)
+            continue
+        if isinstance(values, dict) and isinstance(values.get("values"), list):
+            template = values.get("template", "$value")
+            expanded[parameter] = [
+                _apply_grid_template(template, candidate) for candidate in values["values"]
+            ]
+            continue
+        raise ValueError(f"Grid parameter '{parameter}' must be a list or a mapping with 'values'.")
+    return expanded
 
 
 # ---------------------------------------------------------------------------
@@ -128,9 +180,7 @@ class VariantCatalog:
         self._base_config: str = raw.get("base_config", "cfg-20260309-college-fix-v1")
         self._variants: dict[str, dict[str, Any]] = raw.get("variants", {})
         self._grids: dict[str, dict[str, Any]] = raw.get("grids", {})
-        self._parameter_bounds: dict[str, dict[str, Any]] = raw.get(
-            "parameter_bounds", {}
-        )
+        self._parameter_bounds: dict[str, dict[str, Any]] = raw.get("parameter_bounds", {})
         self._runtime_params: frozenset[str] = get_runtime_injectable_parameters()
 
         # Load or accept the experiment log
@@ -158,8 +208,10 @@ class VariantCatalog:
         """Return experiment-log rows that match a given config delta."""
         if self._log.empty or "config_delta_summary" not in self._log.columns:
             return pd.DataFrame()
-        mask = self._log["config_delta_summary"].fillna("").map(
-            lambda summary: _match_config_delta(summary, config_delta)
+        mask = (
+            self._log["config_delta_summary"]
+            .fillna("")
+            .map(lambda summary: _match_config_delta(summary, config_delta))
         )
         return self._log.loc[mask].copy()
 
@@ -169,10 +221,7 @@ class VariantCatalog:
             return True, ""
         return (
             False,
-            (
-                f"Parameter '{parameter}' is not present in the live MethodConfig "
-                "runtime contract."
-            ),
+            (f"Parameter '{parameter}' is not present in the live MethodConfig runtime contract."),
         )
 
     def _variant_record(self, variant_id: str, vdef: dict[str, Any]) -> dict[str, Any]:
@@ -223,16 +272,12 @@ class VariantCatalog:
     def validate_grid(self, grid_id: str) -> None:
         """Validate that every parameter in a grid is runtime-injectable."""
         gdef = self.get_grid(grid_id)
+        parameters = _expand_grid_parameters(gdef.get("parameters", {}))
         invalid = sorted(
-            parameter
-            for parameter in gdef.get("parameters", {})
-            if parameter not in self._runtime_params
+            parameter for parameter in parameters if parameter not in self._runtime_params
         )
         if invalid:
-            raise ValueError(
-                "Grid contains non-injectable parameter(s): "
-                + ", ".join(invalid)
-            )
+            raise ValueError("Grid contains non-injectable parameter(s): " + ", ".join(invalid))
 
     # -----------------------------------------------------------------
     # Query methods
@@ -326,8 +371,7 @@ class VariantCatalog:
         """
         if variant_id not in self._variants:
             raise KeyError(
-                f"Variant '{variant_id}' not found. "
-                f"Available: {sorted(self._variants.keys())}"
+                f"Variant '{variant_id}' not found. Available: {sorted(self._variants.keys())}"
             )
         vdef = self._variants[variant_id]
         return self._variant_record(variant_id, vdef)
@@ -345,15 +389,41 @@ class VariantCatalog:
             KeyError: If the grid ID is not found in the catalog.
         """
         if grid_id not in self._grids:
-            raise KeyError(
-                f"Grid '{grid_id}' not found. "
-                f"Available: {sorted(self._grids.keys())}"
-            )
+            raise KeyError(f"Grid '{grid_id}' not found. Available: {sorted(self._grids.keys())}")
         return {"grid_id": grid_id, **self._grids[grid_id]}
+
+    def list_grids(self) -> pd.DataFrame:
+        """Return runtime-validation status for all defined grids."""
+        rows: list[dict[str, Any]] = []
+        for grid_id in self.grid_ids:
+            grid = self.get_grid(grid_id)
+            try:
+                self.validate_grid(grid_id)
+                valid = True
+                validation_error = ""
+            except Exception as exc:
+                valid = False
+                validation_error = str(exc)
+            rows.append(
+                {
+                    "grid_id": grid_id,
+                    "mode": grid.get("mode", "cartesian"),
+                    "parameter_count": len(grid.get("parameters", {})),
+                    "runtime_valid": valid,
+                    "validation_error": validation_error,
+                }
+            )
+
+        df = pd.DataFrame(rows)
+        if not df.empty:
+            df = df.sort_values("grid_id").reset_index(drop=True)
+        return df
 
     def get_inventory_summary(self) -> dict[str, Any]:
         """Return tested/untested inventory counts for CLI status reporting."""
         variants = self.list_variants()
+        grids = self.list_grids()
+        blocked_grids = grids[~grids["runtime_valid"]] if not grids.empty else grids
         if variants.empty:
             return {
                 "total": 0,
@@ -364,6 +434,14 @@ class VariantCatalog:
                 "untested_ids": [],
                 "untested_runnable_ids": [],
                 "untested_requires_code_change_ids": [],
+                "grid_total": int(len(grids)),
+                "grid_runnable": int(grids["runtime_valid"].fillna(False).sum())
+                if not grids.empty
+                else 0,
+                "grid_blocked": int(len(blocked_grids)),
+                "grid_blocked_ids": []
+                if blocked_grids.empty
+                else sorted(blocked_grids["grid_id"].astype(str).tolist()),
             }
 
         untested = variants[variants["resolved_status"] == "untested"]
@@ -382,6 +460,14 @@ class VariantCatalog:
             "untested_requires_code_change_ids": sorted(
                 requires_code["variant_id"].astype(str).str.upper().tolist()
             ),
+            "grid_total": int(len(grids)),
+            "grid_runnable": int(grids["runtime_valid"].fillna(False).sum())
+            if not grids.empty
+            else 0,
+            "grid_blocked": int(len(blocked_grids)),
+            "grid_blocked_ids": []
+            if blocked_grids.empty
+            else sorted(blocked_grids["grid_id"].astype(str).tolist()),
         }
 
     # -----------------------------------------------------------------
@@ -439,6 +525,7 @@ class VariantCatalog:
         expected_improvement: list[str] | None = None,
         risk_areas: list[str] | None = None,
         notes: list[str] | None = None,
+        requested_by: str = "agent",
     ) -> dict[str, Any]:
         """Build an experiment spec dict following the canonical schema.
 
@@ -450,6 +537,7 @@ class VariantCatalog:
             expected_improvement: Metrics expected to improve.
             risk_areas: Known risk areas.
             notes: Additional context.
+            requested_by: Queue originator recorded in the spec metadata.
 
         Returns:
             A dict ready to be serialized to YAML as an experiment spec.
@@ -462,7 +550,7 @@ class VariantCatalog:
             "config_delta": config_delta,
             "scope": "county",
             "benchmark_label": benchmark_label,
-            "requested_by": "agent",
+            "requested_by": requested_by,
         }
         if expected_improvement:
             spec["expected_improvement"] = expected_improvement
@@ -476,12 +564,20 @@ class VariantCatalog:
         self,
         variant_id: str,
         output_dir: Path = DEFAULT_PENDING_DIR,
+        experiment_id: str | None = None,
+        benchmark_label: str | None = None,
+        requested_by: str = "agent",
+        extra_notes: list[str] | None = None,
     ) -> Path:
         """Write a single experiment spec YAML for the given variant.
 
         Args:
             variant_id: The variant ID from the catalog.
             output_dir: Directory where the spec YAML will be written.
+            experiment_id: Optional explicit experiment identifier.
+            benchmark_label: Optional explicit benchmark label override.
+            requested_by: Queue originator stored in the spec metadata.
+            extra_notes: Additional note lines appended to the generated spec.
 
         Returns:
             Path to the written spec file.
@@ -497,26 +593,28 @@ class VariantCatalog:
                     f"Variant '{variant_id}' is not runnable without code changes.",
                 )
             )
-        slug = vdef.get("slug", variant_id)
+        slug = str(vdef.get("slug", variant_id))
         today = dt.datetime.now(tz=dt.UTC).date().strftime("%Y%m%d")
-        experiment_id = f"exp-{today}-{slug}"
+        resolved_experiment_id = experiment_id or f"exp-{today}-{slug}"
 
         config_delta = _normalize_config_delta(vdef["parameter"], vdef["value"])
+        notes = [f"Catalog variant {variant_id} - Tier {vdef.get('tier', '?')}"]
+        if extra_notes:
+            notes.extend(extra_notes)
 
         spec = self._build_spec(
-            experiment_id=experiment_id,
+            experiment_id=resolved_experiment_id,
             hypothesis=vdef.get("hypothesis", ""),
             config_delta=config_delta,
-            benchmark_label=slug,
+            benchmark_label=benchmark_label or slug,
             expected_improvement=vdef.get("expected_improvement"),
             risk_areas=vdef.get("risk_areas"),
-            notes=[
-                f"Catalog variant {variant_id} - Tier {vdef.get('tier', '?')}",
-            ],
+            notes=notes,
+            requested_by=requested_by,
         )
 
         output_dir.mkdir(parents=True, exist_ok=True)
-        spec_path = output_dir / f"{experiment_id}.yaml"
+        spec_path = output_dir / f"{resolved_experiment_id}.yaml"
         spec_path.write_text(
             yaml.safe_dump(spec, sort_keys=False, default_flow_style=False),
             encoding="utf-8",
@@ -545,7 +643,7 @@ class VariantCatalog:
         """
         self.validate_grid(grid_id)
         gdef = self.get_grid(grid_id)
-        parameters: dict[str, list[Any]] = gdef["parameters"]
+        parameters = _expand_grid_parameters(gdef["parameters"])
         mode = gdef.get("mode", "cartesian")
         hypothesis_base = gdef.get("hypothesis", "Grid sweep")
 

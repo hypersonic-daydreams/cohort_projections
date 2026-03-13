@@ -10,6 +10,8 @@ Ticket: BM-001
 
 from __future__ import annotations
 
+import importlib
+import json
 import sys
 from pathlib import Path
 
@@ -19,7 +21,7 @@ import yaml
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "scripts" / "analysis"))
 
-import run_experiment_sweep as sweep_mod  # noqa: E402
+sweep_mod = importlib.import_module("run_experiment_sweep")
 
 
 # ---------------------------------------------------------------------------
@@ -224,21 +226,15 @@ class TestExperimentIdGeneration:
         import datetime as _dt
 
         today = _dt.datetime.now(tz=_dt.UTC).date().strftime("%Y%m%d")
-        eid = sweep_mod.generate_experiment_id(
-            "blend", {"college_blend_factor": 0.7}, 0
-        )
+        eid = sweep_mod.generate_experiment_id("blend", {"college_blend_factor": 0.7}, 0)
         assert today in eid
 
     def test_id_contains_sweep_prefix(self) -> None:
-        eid = sweep_mod.generate_experiment_id(
-            "blend", {"college_blend_factor": 0.7}, 0
-        )
+        eid = sweep_mod.generate_experiment_id("blend", {"college_blend_factor": 0.7}, 0)
         assert "sweep-blend" in eid
 
     def test_id_contains_value_slug(self) -> None:
-        eid = sweep_mod.generate_experiment_id(
-            "blend", {"college_blend_factor": 0.7}, 0
-        )
+        eid = sweep_mod.generate_experiment_id("blend", {"college_blend_factor": 0.7}, 0)
         # 0.7 becomes "0p7"
         assert "0p7" in eid
 
@@ -256,9 +252,7 @@ class TestExperimentIdGeneration:
 class TestCollectPendingSpecs:
     """Tests for pending spec collection."""
 
-    def test_collect_existing_specs(
-        self, pending_dir_with_specs: Path
-    ) -> None:
+    def test_collect_existing_specs(self, pending_dir_with_specs: Path) -> None:
         specs = sweep_mod.collect_pending_specs(pending_dir_with_specs)
         assert len(specs) == 2
         assert all(p.suffix == ".yaml" for p in specs)
@@ -354,6 +348,7 @@ class TestDedupChecking:
             "get_tested_hypotheses",
             lambda: {"exp-already-done"},
         )
+        monkeypatch.setattr(sweep_mod, "is_config_delta_tested", lambda _delta: False)
         # Mock run_single_experiment to track calls
         calls: list[Path] = []
 
@@ -430,6 +425,25 @@ class TestParseArgs:
         args = sweep_mod.parse_args(["--pending", "--dry-run"])
         assert args.dry_run is True
 
+    def test_queue_control_flags(self) -> None:
+        args = sweep_mod.parse_args(
+            [
+                "--pending",
+                "--run-budget",
+                "2",
+                "--priority",
+                "experiment-id",
+                "--retry-failures",
+                "1",
+                "--resume-file",
+                "state.json",
+            ]
+        )
+        assert args.run_budget == 2
+        assert args.priority == "experiment-id"
+        assert args.retry_failures == 1
+        assert args.resume_file == Path("state.json")
+
     def test_mutually_exclusive(self) -> None:
         with pytest.raises(SystemExit):
             sweep_mod.parse_args(["--specs", "a.yaml", "--pending"])
@@ -466,12 +480,12 @@ class TestJsonParsing:
 
     def test_parse_outcome_from_json(self) -> None:
         stdout = (
-            'Running experiment...\n'
-            '{\n'
+            "Running experiment...\n"
+            "{\n"
             '  "outcome": "passed_all_gates",\n'
             '  "run_id": "br-123",\n'
             '  "experiment_id": "exp-test"\n'
-            '}'
+            "}"
         )
         assert sweep_mod._parse_outcome_from_stdout(stdout) == "passed_all_gates"
 
@@ -487,3 +501,183 @@ class TestJsonParsing:
     def test_extract_json_block_no_json(self) -> None:
         with pytest.raises(ValueError, match="No JSON block"):
             sweep_mod._extract_json_block("no json here")
+
+
+class TestQueueControls:
+    """Tests for queue ordering, budgeting, and resume checkpoints."""
+
+    def test_order_spec_paths_by_experiment_id(self, tmp_path: Path) -> None:
+        paths = []
+        for experiment_id in ["exp-b", "exp-a"]:
+            path = tmp_path / f"{experiment_id}.yaml"
+            path.write_text(
+                yaml.safe_dump({"experiment_id": experiment_id}),
+                encoding="utf-8",
+            )
+            paths.append(path)
+
+        ordered = sweep_mod.order_spec_paths(paths, priority="experiment-id")
+        assert [path.stem for path in ordered] == ["exp-a", "exp-b"]
+
+    def test_run_sweep_respects_run_budget(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(sweep_mod, "get_tested_hypotheses", lambda: set())
+        monkeypatch.setattr(sweep_mod, "is_config_delta_tested", lambda _delta: False)
+
+        calls: list[str] = []
+
+        def mock_run(spec_path: Path, dry_run: bool = False) -> dict:
+            calls.append(spec_path.stem)
+            return {
+                "experiment_id": spec_path.stem,
+                "spec_path": str(spec_path),
+                "exit_code": 0,
+                "outcome": "passed_all_gates",
+                "key_delta": "-",
+                "stdout": "",
+                "stderr": "",
+            }
+
+        monkeypatch.setattr(sweep_mod, "run_single_experiment", mock_run)
+
+        spec_paths = []
+        for idx in range(3):
+            path = tmp_path / f"exp-{idx}.yaml"
+            path.write_text(
+                yaml.safe_dump({"experiment_id": f"exp-{idx}", "config_delta": {"x": idx}}),
+                encoding="utf-8",
+            )
+            spec_paths.append(path)
+
+        results = sweep_mod.run_sweep(spec_paths, run_budget=1)
+        assert calls == ["exp-0"]
+        assert [row["outcome"] for row in results].count("(deferred-budget)") == 2
+
+    def test_run_sweep_skips_completed_resume_entries(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(sweep_mod, "get_tested_hypotheses", lambda: set())
+        monkeypatch.setattr(sweep_mod, "is_config_delta_tested", lambda _delta: False)
+        monkeypatch.setattr(
+            sweep_mod,
+            "run_single_experiment",
+            lambda *_args, **_kwargs: pytest.fail("should not execute resumed run"),
+        )
+
+        spec_path = tmp_path / "exp-resume.yaml"
+        spec_path.write_text(
+            yaml.safe_dump({"experiment_id": "exp-resume", "config_delta": {"x": 1}}),
+            encoding="utf-8",
+        )
+        resume_file = tmp_path / "resume.json"
+        resume_file.write_text(
+            json.dumps(
+                {
+                    "entries": {
+                        "exp-resume": {
+                            "attempts": 1,
+                            "last_exit_code": 0,
+                            "last_outcome": "passed_all_gates",
+                            "last_key_delta": "overall: -0.10",
+                        }
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        results = sweep_mod.run_sweep([spec_path], resume_file=resume_file)
+        assert results[0]["outcome"] == "(resume-skip)"
+        assert results[0]["key_delta"] == "overall: -0.10"
+
+    def test_run_sweep_allows_retry_within_retry_budget(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(sweep_mod, "get_tested_hypotheses", lambda: set())
+        monkeypatch.setattr(sweep_mod, "is_config_delta_tested", lambda _delta: False)
+
+        calls: list[str] = []
+
+        def mock_run(spec_path: Path, dry_run: bool = False) -> dict:
+            calls.append(spec_path.stem)
+            return {
+                "experiment_id": spec_path.stem,
+                "spec_path": str(spec_path),
+                "exit_code": 0,
+                "outcome": "passed_all_gates",
+                "key_delta": "overall: -0.02",
+                "stdout": "",
+                "stderr": "",
+            }
+
+        monkeypatch.setattr(sweep_mod, "run_single_experiment", mock_run)
+
+        spec_path = tmp_path / "exp-retry.yaml"
+        spec_path.write_text(
+            yaml.safe_dump({"experiment_id": "exp-retry", "config_delta": {"x": 1}}),
+            encoding="utf-8",
+        )
+        resume_file = tmp_path / "resume.json"
+        resume_file.write_text(
+            json.dumps(
+                {
+                    "entries": {
+                        "exp-retry": {
+                            "attempts": 1,
+                            "last_exit_code": 1,
+                            "last_outcome": "error",
+                            "last_key_delta": "-",
+                        }
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        results = sweep_mod.run_sweep(
+            [spec_path],
+            retry_failures=1,
+            resume_file=resume_file,
+        )
+        assert calls == ["exp-retry"]
+        assert results[0]["outcome"] == "passed_all_gates"
+
+    def test_run_sweep_persists_resume_state(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(sweep_mod, "get_tested_hypotheses", lambda: set())
+        monkeypatch.setattr(sweep_mod, "is_config_delta_tested", lambda _delta: False)
+        monkeypatch.setattr(
+            sweep_mod,
+            "run_single_experiment",
+            lambda spec_path, dry_run=False: {
+                "experiment_id": spec_path.stem,
+                "spec_path": str(spec_path),
+                "exit_code": 0,
+                "outcome": "passed_all_gates",
+                "key_delta": "overall: -0.01",
+                "stdout": "",
+                "stderr": "",
+            },
+        )
+
+        spec_path = tmp_path / "exp-state.yaml"
+        spec_path.write_text(
+            yaml.safe_dump({"experiment_id": "exp-state", "config_delta": {"x": 1}}),
+            encoding="utf-8",
+        )
+        resume_file = tmp_path / "resume.json"
+
+        sweep_mod.run_sweep([spec_path], resume_file=resume_file)
+        state = json.loads(resume_file.read_text(encoding="utf-8"))
+        assert state["entries"]["exp-state"]["attempts"] == 1
+        assert state["entries"]["exp-state"]["last_outcome"] == "passed_all_gates"

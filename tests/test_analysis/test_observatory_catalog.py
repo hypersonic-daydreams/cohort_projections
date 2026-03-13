@@ -15,6 +15,8 @@ import yaml
 
 from cohort_projections.analysis.experiment_log import (
     _match_config_delta,
+)
+from cohort_projections.analysis.experiment_log import (
     config_delta_summary as _config_delta_summary,
 )
 from cohort_projections.analysis.observatory.variant_catalog import (
@@ -22,7 +24,6 @@ from cohort_projections.analysis.observatory.variant_catalog import (
     _normalize_config_delta,
     _slugify_value,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -97,20 +98,20 @@ def catalog_path(tmp_path: Path) -> Path:
 def catalog_with_results_path(tmp_path: Path) -> Path:
     """Catalog YAML where exp-b has inline results."""
     p = tmp_path / "observatory_variants.yaml"
-    p.write_text(
-        yaml.safe_dump(_catalog_with_results(), sort_keys=False), encoding="utf-8"
-    )
+    p.write_text(yaml.safe_dump(_catalog_with_results(), sort_keys=False), encoding="utf-8")
     return p
 
 
 @pytest.fixture()
 def experiment_log() -> pd.DataFrame:
     """An experiment log marking exp-b as tested."""
-    return pd.DataFrame({
-        "experiment_id": ["exp-20260310-blend-70"],
-        "config_delta_summary": ["college_blend_factor=0.7"],
-        "outcome": ["passed_all_gates"],
-    })
+    return pd.DataFrame(
+        {
+            "experiment_id": ["exp-20260310-blend-70"],
+            "config_delta_summary": ["college_blend_factor=0.7"],
+            "outcome": ["passed_all_gates"],
+        }
+    )
 
 
 @pytest.fixture()
@@ -479,6 +480,36 @@ class TestGenerateGridSpecs:
         specs = cat.generate_grid_specs("multi", output_dir=out)
         assert len(specs) == 4  # 2 x 2
 
+    def test_templated_grid_expands_runtime_parameter(self, tmp_path: Path) -> None:
+        cat_data = {
+            "base_method": "m2026r1",
+            "base_config": "cfg-test",
+            "variants": {},
+            "grids": {
+                "dampening-sweep": {
+                    "parameters": {
+                        "boom_period_dampening": {
+                            "values": [0.3, 0.4],
+                            "template": {
+                                "2005-2010": 0.5,
+                                "2010-2015": "$value",
+                            },
+                        }
+                    },
+                    "hypothesis": "Template expansion test.",
+                },
+            },
+        }
+        p = tmp_path / "cat.yaml"
+        p.write_text(yaml.safe_dump(cat_data), encoding="utf-8")
+        cat = VariantCatalog(catalog_path=p, experiment_log=pd.DataFrame())
+
+        specs = cat.generate_grid_specs("dampening-sweep", output_dir=tmp_path / "specs")
+        assert len(specs) == 2
+        first = yaml.safe_load(specs[0].read_text(encoding="utf-8"))
+        assert first["config_delta"]["boom_period_dampening"]["2005-2010"] == 0.5
+        assert first["config_delta"]["boom_period_dampening"]["2010-2015"] == 0.3
+
 
 # ---------------------------------------------------------------------------
 # TestGenerateAllPending
@@ -488,7 +519,9 @@ class TestGenerateGridSpecs:
 class TestGenerateAllPending:
     """Tests for generate_all_pending_specs."""
 
-    def test_generates_for_untested_config_only(self, catalog: VariantCatalog, tmp_path: Path) -> None:
+    def test_generates_for_untested_config_only(
+        self, catalog: VariantCatalog, tmp_path: Path
+    ) -> None:
         specs = catalog.generate_all_pending_specs(output_dir=tmp_path)
         # exp-b and exp-g are config_only and untested; exp-d is not config_only
         assert len(specs) == 2
@@ -522,3 +555,29 @@ class TestInventorySummary:
         assert summary["untested_total"] == 2
         assert summary["untested_runnable"] == 1
         assert summary["untested_requires_code_change"] == 1
+        assert summary["grid_total"] == 1
+        assert summary["grid_blocked"] == 0
+
+    def test_list_grids_reports_blocked_entries(self, tmp_path: Path) -> None:
+        cat_data = {
+            "base_method": "m2026r1",
+            "base_config": "cfg-test",
+            "variants": {},
+            "grids": {
+                "bad-grid": {
+                    "parameters": {
+                        "boom_period_dampening_2010_2015": [0.2, 0.3],
+                    },
+                    "hypothesis": "Should fail.",
+                },
+            },
+        }
+        p = tmp_path / "cat.yaml"
+        p.write_text(yaml.safe_dump(cat_data), encoding="utf-8")
+        cat = VariantCatalog(catalog_path=p, experiment_log=pd.DataFrame())
+
+        grids = cat.list_grids()
+        assert bool(grids.iloc[0]["runtime_valid"]) is False
+        summary = cat.get_inventory_summary()
+        assert summary["grid_blocked"] == 1
+        assert summary["grid_blocked_ids"] == ["bad-grid"]

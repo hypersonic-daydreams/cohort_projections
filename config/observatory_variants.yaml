@@ -336,5 +336,9 @@ grids:
 
   dampening-sweep:
     parameters:
-      boom_period_dampening_2010_2015: [0.20, 0.25, 0.30, 0.35, 0.40, 0.50]
+      boom_period_dampening:
+        values: [0.20, 0.25, 0.30, 0.35, 0.40, 0.50]
+        template:
+          "2005-2010": 0.50
+          "2010-2015": "$value"
     hypothesis: Find optimal Bakken dampening level for the peak boom period.

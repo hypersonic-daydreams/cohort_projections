@@ -1,10 +1,14 @@
 """Tests for Observatory dashboard helper logic.
 
 These tests cover the run-metadata layer that powers readable selectors,
-bundle presets, and comparison-row selection in the Panel dashboard.
+bundle presets, comparison-row selection, and queue-health summaries in the
+Panel dashboard.
 """
 
 from __future__ import annotations
+
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pandas as pd
 
@@ -12,6 +16,9 @@ from cohort_projections.analysis.observatory.dashboard.data_manager import (
     build_comparison_rows,
     build_run_metadata_frame,
     select_run_preset,
+)
+from cohort_projections.analysis.observatory.dashboard.tab_command_center import (
+    _queue_health_snapshot,
 )
 
 
@@ -162,3 +169,33 @@ def test_select_run_preset_returns_expected_groups() -> None:
     assert select_run_preset(metadata, "Needs review", "br-champion") == ["br-review"]
     assert select_run_preset(metadata, "Passed only", "br-champion") == ["br-passed"]
     assert select_run_preset(metadata, "Latest 3", "br-champion", limit=1) == ["br-passed"]
+
+
+def test_queue_health_snapshot_reports_runnable_and_blocked_work() -> None:
+    """Queue health should surface runnable variants, blocked grids, and review load."""
+    catalog = MagicMock()
+    catalog.get_inventory_summary.return_value = {
+        "untested_runnable": 3,
+        "untested_requires_code_change": 2,
+        "grid_blocked": 1,
+        "grid_blocked_ids": ["dampening-sweep"],
+    }
+    recommender = MagicMock()
+    recommender.suggest_next_experiments.return_value = [
+        SimpleNamespace(requires_code_change=False),
+        SimpleNamespace(requires_code_change=True),
+        SimpleNamespace(requires_code_change=False),
+    ]
+    dm = SimpleNamespace(
+        catalog=catalog,
+        recommender=recommender,
+        run_metadata=pd.DataFrame({"status_code": ["needs_human_review", "passed_all_gates"]}),
+    )
+
+    snapshot = _queue_health_snapshot(dm)
+    assert snapshot["untested_runnable"] == 3
+    assert snapshot["untested_requires_code_change"] == 2
+    assert snapshot["grid_blocked"] == 1
+    assert snapshot["grid_blocked_ids"] == ["dampening-sweep"]
+    assert snapshot["review_queue"] == 1
+    assert snapshot["runnable_recommendations"] == 2

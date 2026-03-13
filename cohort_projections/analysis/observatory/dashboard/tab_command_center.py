@@ -130,9 +130,7 @@ def _best_tested_challenger(dm: DashboardDataManager) -> pd.Series | None:
     challengers = dm.run_metadata.copy()
     if dm.champion_id is not None:
         challengers = challengers[challengers["run_id"] != dm.champion_id]
-    challengers = challengers[
-        challengers["selected_county_mape_overall"].notna()
-    ]
+    challengers = challengers[challengers["selected_county_mape_overall"].notna()]
     if challengers.empty:
         return None
     return challengers.sort_values(
@@ -174,9 +172,7 @@ def _build_kpi_row(dm: DashboardDataManager) -> pn.FlexBox:
         ),
         kpi_card(
             "Champion MAPE",
-            f"{_champion_mape(dm):.2f}%"
-            if _champion_mape(dm) is not None
-            else "N/A",
+            f"{_champion_mape(dm):.2f}%" if _champion_mape(dm) is not None else "N/A",
             color=SDC_NAVY,
         ),
     ]
@@ -282,6 +278,85 @@ def _build_decision_strip(dm: DashboardDataManager) -> pn.FlexBox:
     )
 
 
+def _queue_health_snapshot(dm: DashboardDataManager) -> dict[str, Any]:
+    """Return the queue-health metrics surfaced on the command center."""
+    inventory = {}
+    if dm.catalog is not None:
+        try:
+            inventory = dm.catalog.get_inventory_summary()
+        except Exception:  # pragma: no cover - defensive UI guard
+            logger.exception("Failed to read catalog inventory summary.")
+            inventory = {}
+
+    review_queue = (
+        int((dm.run_metadata["status_code"] == "needs_human_review").sum())
+        if not dm.run_metadata.empty and "status_code" in dm.run_metadata.columns
+        else 0
+    )
+
+    recommendations = []
+    try:
+        recommendations = dm.recommender.suggest_next_experiments(5)
+    except Exception:  # pragma: no cover - defensive UI guard
+        logger.exception("Failed to read recommendation queue.")
+
+    runnable_recommendations = sum(
+        1 for rec in recommendations if not getattr(rec, "requires_code_change", False)
+    )
+
+    return {
+        "untested_runnable": int(inventory.get("untested_runnable", 0) or 0),
+        "untested_requires_code_change": int(
+            inventory.get("untested_requires_code_change", 0) or 0
+        ),
+        "grid_blocked": int(inventory.get("grid_blocked", 0) or 0),
+        "grid_blocked_ids": list(inventory.get("grid_blocked_ids", []) or []),
+        "review_queue": review_queue,
+        "runnable_recommendations": runnable_recommendations,
+    }
+
+
+def _build_queue_health_card(dm: DashboardDataManager) -> pn.Card:
+    """Queue readiness panel for unattended-run planning."""
+    snapshot = _queue_health_snapshot(dm)
+    blocked_grids = snapshot["grid_blocked_ids"]
+
+    lines = [
+        f"Runnable catalog variants: {snapshot['untested_runnable']}",
+        f"Blocked variants requiring code changes: {snapshot['untested_requires_code_change']}",
+        f"Review queue: {snapshot['review_queue']}",
+        f"Runnable recommendations: {snapshot['runnable_recommendations']}",
+    ]
+    if blocked_grids:
+        lines.append(f"Blocked grids: {', '.join(blocked_grids)}")
+    else:
+        lines.append("Blocked grids: none")
+
+    command_md = (
+        "Recommended loop:\n"
+        "1. `python scripts/analysis/observatory.py status`\n"
+        "2. `python scripts/analysis/observatory.py run-pending --dry-run --run-budget 3 --resume-file data/analysis/experiments/sweeps/observatory_pending_resume.json`\n"
+        "3. Re-run without `--dry-run` once the queue looks correct.\n"
+        "4. Review `needs_human_review` runs before any SOP-003 promotion decision."
+    )
+
+    tone = "warning" if blocked_grids or snapshot["review_queue"] else "success"
+    alert_type = "warning" if tone == "warning" else "success"
+    headline = (
+        "Attention needed before unattended queueing."
+        if tone == "warning"
+        else "Queue looks runnable within current guardrails."
+    )
+
+    return pn.Card(
+        pn.pane.Alert(headline, alert_type=alert_type),
+        pn.pane.Markdown("\n".join(f"- {line}" for line in lines)),
+        pn.pane.Markdown(command_md),
+        title="Queue Health",
+        sizing_mode="stretch_width",
+    )
+
+
 def _build_champion_card(dm: DashboardDataManager) -> pn.Card:
     """Detailed champion snapshot for quick inspection."""
     champion_id = dm.champion_id
@@ -301,9 +376,7 @@ def _build_champion_card(dm: DashboardDataManager) -> pn.Card:
             sizing_mode="stretch_width",
         )
 
-    champion_row = champ_rows[
-        champ_rows["status_at_run"].fillna("").str.lower() == "champion"
-    ]
+    champion_row = champ_rows[champ_rows["status_at_run"].fillna("").str.lower() == "champion"]
     champion = champion_row.iloc[0] if not champion_row.empty else champ_rows.iloc[0]
 
     sentinel_cols = [c for c in champion.index if c.startswith("sentinel_")]
@@ -311,12 +384,7 @@ def _build_champion_card(dm: DashboardDataManager) -> pn.Card:
     for col in sentinel_cols:
         value = champion.get(col)
         if pd.notna(value):
-            label = (
-                col.replace("sentinel_", "")
-                .replace("_mape", "")
-                .replace("_", " ")
-                .title()
-            )
+            label = col.replace("sentinel_", "").replace("_mape", "").replace("_", " ").title()
             sentinel_rows.append((label, float(value)))
     sentinel_rows = sorted(sentinel_rows, key=lambda item: item[1], reverse=True)
 
@@ -339,11 +407,11 @@ def _build_champion_card(dm: DashboardDataManager) -> pn.Card:
     <div style="font-family:'Aptos','Segoe UI',Arial,sans-serif">
       <table style="width:100%;border-collapse:collapse">
         <tr><td style="padding:4px 12px 4px 0;color:#5A6C84;width:150px">Run</td><td style="padding:4px 0;font-weight:600">{dm.run_label(champion_id)}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Method</td><td style="padding:4px 0;font-weight:600">{champion.get('method_id', 'N/A')}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Config</td><td style="padding:4px 0;font-weight:600">{champion.get('config_id', 'N/A')}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Overall MAPE</td><td style="padding:4px 0;font-weight:700;color:{SDC_NAVY}">{_fmt_metric(champion.get('county_mape_overall'))}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">State APE (short)</td><td style="padding:4px 0;font-weight:600">{_fmt_metric(champion.get('state_ape_recent_short'))}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">State APE (medium)</td><td style="padding:4px 0;font-weight:600">{_fmt_metric(champion.get('state_ape_recent_medium'))}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Method</td><td style="padding:4px 0;font-weight:600">{champion.get("method_id", "N/A")}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Config</td><td style="padding:4px 0;font-weight:600">{champion.get("config_id", "N/A")}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Overall MAPE</td><td style="padding:4px 0;font-weight:700;color:{SDC_NAVY}">{_fmt_metric(champion.get("county_mape_overall"))}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">State APE (short)</td><td style="padding:4px 0;font-weight:600">{_fmt_metric(champion.get("state_ape_recent_short"))}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">State APE (medium)</td><td style="padding:4px 0;font-weight:600">{_fmt_metric(champion.get("state_ape_recent_medium"))}</td></tr>
       </table>
       {sentinel_html}
     </div>
@@ -421,12 +489,36 @@ def _build_action_buttons(dm: DashboardDataManager) -> pn.Card:
         output_pane.value = "Data refreshed successfully."
 
     def on_run_pending(event: Any) -> None:
-        output_pane.value = "Running 'run-pending --dry-run'...\n"
-        output_pane.value = _run_observatory_command(["run-pending", "--dry-run"])
+        output_pane.value = (
+            "Running 'run-pending --dry-run --run-budget 3 --resume-file "
+            "data/analysis/experiments/sweeps/observatory_pending_resume.json'...\n"
+        )
+        output_pane.value = _run_observatory_command(
+            [
+                "run-pending",
+                "--dry-run",
+                "--run-budget",
+                "3",
+                "--resume-file",
+                "data/analysis/experiments/sweeps/observatory_pending_resume.json",
+            ]
+        )
 
     def on_run_recommended(event: Any) -> None:
-        output_pane.value = "Running 'run-recommended --dry-run'...\n"
-        output_pane.value = _run_observatory_command(["run-recommended", "--dry-run"])
+        output_pane.value = (
+            "Running 'run-recommended --dry-run --run-budget 2 --resume-file "
+            "data/analysis/experiments/sweeps/observatory_recommended_resume.json'...\n"
+        )
+        output_pane.value = _run_observatory_command(
+            [
+                "run-recommended",
+                "--dry-run",
+                "--run-budget",
+                "2",
+                "--resume-file",
+                "data/analysis/experiments/sweeps/observatory_recommended_resume.json",
+            ]
+        )
 
     btn_refresh = pn.widgets.Button(
         name="Refresh Data",
@@ -458,7 +550,18 @@ def _build_action_buttons(dm: DashboardDataManager) -> pn.Card:
         styles={"gap": "10px"},
     )
 
-    return pn.Card(buttons, output_pane, title="Actions", sizing_mode="stretch_width")
+    guidance = pn.pane.Markdown(
+        "Preview actions keep the queue bounded and resumable. "
+        "Use the matching `--resume-file` command from Queue Health for real unattended runs."
+    )
+
+    return pn.Card(
+        buttons,
+        guidance,
+        output_pane,
+        title="Actions",
+        sizing_mode="stretch_width",
+    )
 
 
 def _build_weaknesses_panel(dm: DashboardDataManager) -> pn.Card:
@@ -484,8 +587,7 @@ def _build_weaknesses_panel(dm: DashboardDataManager) -> pn.Card:
         )
 
     persistent = weaknesses[
-        weaknesses["best_challenger_delta"].notna()
-        & (weaknesses["best_challenger_delta"] >= 0)
+        weaknesses["best_challenger_delta"].notna() & (weaknesses["best_challenger_delta"] >= 0)
     ]
     if persistent.empty:
         return pn.Card(
@@ -533,6 +635,7 @@ def build_command_center(dm: DashboardDataManager) -> pn.Column:
         ),
         _build_kpi_row(dm),
         _build_decision_strip(dm),
+        _build_queue_health_card(dm),
         _build_champion_card(dm),
         _build_index_table(dm),
         _build_action_buttons(dm),

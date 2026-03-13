@@ -45,19 +45,25 @@ from __future__ import annotations
 
 import argparse
 import csv
-import io
+import hashlib
 import json
 import logging
+import re
 import subprocess
 import sys
 import tempfile
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+
+import pandas as pd
+import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 logger = logging.getLogger(__name__)
+DEFAULT_SWEEP_STATE_DIR = PROJECT_ROOT / "data" / "analysis" / "experiments" / "sweeps"
 
 
 # ---------------------------------------------------------------------------
@@ -112,6 +118,7 @@ def _try_import(name: str) -> Any:
         return None
     try:
         import importlib
+
         return importlib.import_module(name)
     except ImportError as e:
         _IMPORT_ERRORS[name] = str(e)
@@ -125,6 +132,7 @@ def _load_results_store(config_path: Path) -> Any:
         from cohort_projections.analysis.observatory.results_store import (
             ResultsStore,
         )
+
         return ResultsStore.from_config(config_path)
     except Exception as e:
         logger.error("Failed to load ResultsStore: %s", e)
@@ -137,7 +145,7 @@ def _load_comparator(store: Any, config: dict[str, Any]) -> Any:
     if mod is None:
         return None
     try:
-        cls = getattr(mod, "ObservatoryComparator")
+        cls = mod.ObservatoryComparator
         return cls(store=store, config=config)
     except Exception as e:
         logger.warning("Failed to construct ObservatoryComparator: %s", e)
@@ -160,7 +168,7 @@ def _load_recommender(
             comparator = _load_comparator(store, config)
         if comparator is None:
             return None
-        cls = getattr(mod, "ObservatoryRecommender")
+        cls = mod.ObservatoryRecommender
         return cls(
             store=store,
             comparator=comparator,
@@ -178,7 +186,7 @@ def _load_variant_catalog(config: dict[str, Any]) -> Any:
     if mod is None:
         return None
     try:
-        cls = getattr(mod, "VariantCatalog")
+        cls = mod.VariantCatalog
         catalog_path_rel = config.get("variant_catalog", "config/observatory_variants.yaml")
         catalog_path = PROJECT_ROOT / catalog_path_rel
         return cls(catalog_path)
@@ -191,6 +199,7 @@ def _load_report_class() -> Any:
     """Load ObservatoryReport class, or None if not available."""
     try:
         from cohort_projections.analysis.observatory.report import ObservatoryReport
+
         return ObservatoryReport
     except ImportError as e:
         logger.error("Failed to import ObservatoryReport: %s", e)
@@ -203,6 +212,7 @@ def _load_config(config_path: Path) -> dict[str, Any]:
         from cohort_projections.analysis.observatory.results_store import (
             load_observatory_config,
         )
+
         return load_observatory_config(config_path)
     except Exception as e:
         logger.error("Failed to load observatory config from %s: %s", config_path, e)
@@ -214,6 +224,232 @@ def _load_config(config_path: Path) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config" / "observatory_config.yaml"
+
+
+def _add_common_cli_options(
+    parser: argparse.ArgumentParser,
+    *,
+    suppress_defaults: bool = False,
+) -> None:
+    """Attach shared global options to the main parser or a subparser."""
+    default_config: Path | str = argparse.SUPPRESS if suppress_defaults else DEFAULT_CONFIG_PATH
+    default_verbose: bool | str = argparse.SUPPRESS if suppress_defaults else False
+    default_format: str = argparse.SUPPRESS if suppress_defaults else "table"
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=default_config,
+        help="Path to observatory config YAML (default: config/observatory_config.yaml).",
+    )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        default=default_verbose,
+        help="Enable verbose (DEBUG) logging.",
+    )
+    parser.add_argument(
+        "--format",
+        choices=["table", "csv", "json"],
+        default=default_format,
+        dest="output_format",
+        help="Output format: table (default, human-readable), csv, or json (machine-readable).",
+    )
+
+
+def _resolve_project_path(path: Path | None) -> Path | None:
+    """Resolve project-relative paths to absolute filesystem paths."""
+    if path is None:
+        return None
+    if path.is_absolute():
+        return path
+    return PROJECT_ROOT / path
+
+
+def _default_observatory_resume_file(prefix: str) -> Path:
+    """Return the canonical Observatory checkpoint file for a queue."""
+    return DEFAULT_SWEEP_STATE_DIR / f"{prefix}_resume.json"
+
+
+def _slugify_fragment(value: Any) -> str:
+    """Convert a value to a concise filesystem-safe slug fragment."""
+    if isinstance(value, dict):
+        parts = [
+            f"{_slugify_fragment(key)}-{_slugify_fragment(subvalue)}"
+            for key, subvalue in sorted(value.items(), key=lambda item: str(item[0]))
+        ]
+        raw = "-".join(part for part in parts if part)
+    elif isinstance(value, (list, tuple, set)):
+        raw = "-".join(_slugify_fragment(item) for item in value)
+    else:
+        raw = str(value).lower().replace(".", "p").replace(" ", "-").replace("_", "-")
+
+    slug = "".join(c for c in raw if c.isalnum() or c in ("-", "_"))
+    slug = re.sub(r"-{2,}", "-", slug).strip("-_")
+    if not slug:
+        return "value"
+    if len(slug) <= 56:
+        return slug
+    digest = hashlib.sha1(slug.encode("utf-8")).hexdigest()[:8]
+    return f"{slug[:40].rstrip('-_')}-{digest}"
+
+
+def _recommendation_config_delta(rec: Any) -> dict[str, Any] | None:
+    """Build a config delta from a recommendation object."""
+    suggested_value = getattr(rec, "suggested_value", None)
+    parameter = getattr(rec, "parameter", "")
+    if isinstance(suggested_value, dict):
+        return dict(suggested_value)
+    if suggested_value is None or not parameter:
+        return None
+    return {str(parameter): suggested_value}
+
+
+def _recommendation_identifiers(rec: Any) -> tuple[str, str]:
+    """Return normalized experiment and benchmark labels for a recommendation."""
+    today = datetime.now(tz=UTC).date().strftime("%Y%m%d")
+    config_delta = _recommendation_config_delta(rec) or {}
+    if config_delta:
+        fragments = [
+            f"{_slugify_fragment(key)}-{_slugify_fragment(value)}"
+            for key, value in sorted(config_delta.items(), key=lambda item: str(item[0]))
+        ]
+    else:
+        fragments = ["recommendation"]
+    slug = _slugify_fragment("-".join(fragments))
+    return (f"exp-{today}-rec-{slug}", f"rec-{slug}")
+
+
+def _build_recommendation_spec(
+    rec: Any,
+    config: dict[str, Any],
+    catalog: Any | None = None,
+) -> dict[str, Any] | None:
+    """Build a canonical experiment spec for a config-only recommendation."""
+    config_delta = _recommendation_config_delta(rec)
+    if not config_delta:
+        return None
+
+    experiment_id, benchmark_label = _recommendation_identifiers(rec)
+    priority = getattr(rec, "priority", None)
+    notes = [
+        "Generated from Observatory recommender.",
+        f"Recommendation parameter: {getattr(rec, 'parameter', 'unknown')}",
+    ]
+    if isinstance(priority, int):
+        notes.append(f"Recommendation priority: {priority}")
+    grid_suggestion = getattr(rec, "grid_suggestion", None)
+    if isinstance(grid_suggestion, dict):
+        notes.append(f"Suggested follow-up grid: {json.dumps(grid_suggestion, sort_keys=True)}")
+
+    base_method = getattr(
+        catalog,
+        "base_method",
+        config.get("challenger_base_method", "m2026r1"),
+    )
+    base_config = getattr(
+        catalog,
+        "base_config",
+        config.get("base_config", "cfg-20260309-college-fix-v1"),
+    )
+
+    return {
+        "experiment_id": experiment_id,
+        "hypothesis": str(getattr(rec, "rationale", "")).strip()[:200]
+        or "Observatory recommendation generated from prior benchmark results.",
+        "base_method": base_method,
+        "base_config": base_config,
+        "config_delta": config_delta,
+        "scope": "county",
+        "benchmark_label": benchmark_label,
+        "requested_by": "agent",
+        "notes": notes,
+    }
+
+
+def _print_queue_controls(
+    *,
+    queue_name: str,
+    dry_run: bool,
+    priority: str,
+    run_budget: int | None,
+    retry_failures: int,
+    resume_file: Path | None,
+) -> None:
+    """Print the queue-control settings for an Observatory run command."""
+    print(f"{queue_name} queue controls:")  # noqa: T201
+    print(f"  Priority: {priority}")  # noqa: T201
+    print(f"  Run budget: {run_budget if run_budget is not None else 'unbounded'}")  # noqa: T201
+    print(f"  Retry failures: {retry_failures}")  # noqa: T201
+    print("  Concurrency: sequential")  # noqa: T201
+    if resume_file is not None:
+        print(f"  Resume file: {resume_file}")  # noqa: T201
+    if dry_run:
+        print("  Mode: dry-run preview")  # noqa: T201
+
+
+def _run_sweep_command(
+    *,
+    spec_paths: list[str],
+    run_budget: int | None,
+    retry_failures: int,
+    resume_file: Path | None,
+) -> int:
+    """Delegate the prepared spec list to ``run_experiment_sweep.py``."""
+    sweep_script = PROJECT_ROOT / "scripts" / "analysis" / "run_experiment_sweep.py"
+    if not sweep_script.exists():
+        print(f"Error: sweep script not found at {sweep_script}")  # noqa: T201
+        return 1
+
+    cmd = [sys.executable, str(sweep_script), "--specs", *spec_paths]
+    if run_budget is not None:
+        cmd.extend(["--run-budget", str(run_budget)])
+    if retry_failures:
+        cmd.extend(["--retry-failures", str(retry_failures)])
+    if resume_file is not None:
+        cmd.extend(["--resume-file", str(resume_file)])
+
+    print(f"Running: {' '.join(cmd[:4])} ... ({len(spec_paths)} specs)")  # noqa: T201
+    result = subprocess.run(cmd, cwd=str(PROJECT_ROOT))
+    return result.returncode
+
+
+def _sort_pending_variants(
+    variants: list[dict[str, Any]],
+    priority: str,
+) -> list[dict[str, Any]]:
+    """Return runnable pending variants in the desired queue order."""
+    if priority == "variant-id":
+        return sorted(
+            variants,
+            key=lambda variant: str(variant.get("variant_id", "")),
+        )
+    return sorted(
+        variants,
+        key=lambda variant: (
+            int(variant.get("tier", 999)),
+            str(variant.get("variant_id", "")),
+        ),
+    )
+
+
+def _sort_recommendations(
+    recommendations: list[Any],
+    priority: str,
+) -> list[Any]:
+    """Return recommendations in the desired queue order."""
+    if priority == "parameter":
+        return sorted(
+            recommendations,
+            key=lambda rec: str(getattr(rec, "parameter", "")),
+        )
+    return sorted(
+        recommendations,
+        key=lambda rec: (
+            int(getattr(rec, "priority", 999)),
+            str(getattr(rec, "parameter", "")),
+        ),
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -231,36 +467,23 @@ def build_parser() -> argparse.ArgumentParser:
             "comparison, recommendation, and report generation."
         ),
     )
-    parser.add_argument(
-        "--config",
-        type=Path,
-        default=DEFAULT_CONFIG_PATH,
-        help="Path to observatory config YAML (default: config/observatory_config.yaml).",
-    )
-    parser.add_argument(
-        "--verbose", "-v",
-        action="store_true",
-        help="Enable verbose (DEBUG) logging.",
-    )
-    parser.add_argument(
-        "--format",
-        choices=["table", "csv", "json"],
-        default="table",
-        dest="output_format",
-        help="Output format: table (default, human-readable), csv, or json (machine-readable).",
-    )
+    _add_common_cli_options(parser)
+    common = argparse.ArgumentParser(add_help=False)
+    _add_common_cli_options(common, suppress_defaults=True)
 
     sub = parser.add_subparsers(dest="command", help="Subcommand to run.")
 
     # --- status ---
     sub.add_parser(
         "status",
+        parents=[common],
         help="Display run inventory and variant catalog status.",
     )
 
     # --- compare ---
     compare_parser = sub.add_parser(
         "compare",
+        parents=[common],
         help="Run full N-way comparison across all benchmark runs.",
     )
     compare_parser.add_argument(
@@ -273,6 +496,7 @@ def build_parser() -> argparse.ArgumentParser:
     # --- rank ---
     rank_parser = sub.add_parser(
         "rank",
+        parents=[common],
         help="Rank variants by a specific metric.",
     )
     rank_parser.add_argument(
@@ -289,12 +513,14 @@ def build_parser() -> argparse.ArgumentParser:
     # --- recommend ---
     sub.add_parser(
         "recommend",
+        parents=[common],
         help="Generate next-experiment recommendations.",
     )
 
     # --- run-pending ---
     pending_parser = sub.add_parser(
         "run-pending",
+        parents=[common],
         help="Run all untested variants from the catalog.",
     )
     pending_parser.add_argument(
@@ -302,10 +528,35 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Show what would run without executing experiments.",
     )
+    pending_parser.add_argument(
+        "--run-budget",
+        type=int,
+        default=None,
+        help="Maximum number of runnable catalog variants to launch in this invocation.",
+    )
+    pending_parser.add_argument(
+        "--retry-failures",
+        type=int,
+        default=0,
+        help="Number of extra attempts allowed for prior failed entries in the resume file.",
+    )
+    pending_parser.add_argument(
+        "--resume-file",
+        type=Path,
+        default=None,
+        help="Checkpoint file for resumable bounded queue runs (project-relative or absolute).",
+    )
+    pending_parser.add_argument(
+        "--priority",
+        choices=["tier", "variant-id"],
+        default="tier",
+        help="Ordering strategy for runnable variants before queue submission.",
+    )
 
     # --- report ---
     report_parser = sub.add_parser(
         "report",
+        parents=[common],
         help="Generate full HTML observatory report.",
     )
     report_parser.add_argument(
@@ -318,6 +569,7 @@ def build_parser() -> argparse.ArgumentParser:
     # --- diff ---
     diff_parser = sub.add_parser(
         "diff",
+        parents=[common],
         help="Head-to-head comparison of two runs (by run_id or config_id).",
     )
     diff_parser.add_argument(
@@ -332,6 +584,7 @@ def build_parser() -> argparse.ArgumentParser:
     # --- history ---
     history_parser = sub.add_parser(
         "history",
+        parents=[common],
         help="Show chronological progression of experiments with key metrics.",
     )
     history_parser.add_argument(
@@ -343,6 +596,7 @@ def build_parser() -> argparse.ArgumentParser:
     # --- run-recommended ---
     recommended_parser = sub.add_parser(
         "run-recommended",
+        parents=[common],
         help="Run config-only recommendations from the recommender.",
     )
     recommended_parser.add_argument(
@@ -350,10 +604,35 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Show what would run without executing experiments.",
     )
+    recommended_parser.add_argument(
+        "--run-budget",
+        type=int,
+        default=None,
+        help="Maximum number of recommendations to launch in this invocation.",
+    )
+    recommended_parser.add_argument(
+        "--retry-failures",
+        type=int,
+        default=0,
+        help="Number of extra attempts allowed for prior failed entries in the resume file.",
+    )
+    recommended_parser.add_argument(
+        "--resume-file",
+        type=Path,
+        default=None,
+        help="Checkpoint file for resumable recommendation queues (project-relative or absolute).",
+    )
+    recommended_parser.add_argument(
+        "--priority",
+        choices=["recommendation", "parameter"],
+        default="recommendation",
+        help="Ordering strategy for config-only recommendations before queue submission.",
+    )
 
     # --- refresh ---
     sub.add_parser(
         "refresh",
+        parents=[common],
         help="Rebuild the results cache from benchmark history.",
     )
 
@@ -426,9 +705,7 @@ def cmd_status(
     status_data["methods"] = methods
 
     # Champion and best challenger
-    primary_metric = config.get("comparison", {}).get(
-        "primary_metric", "county_mape_overall"
-    )
+    primary_metric = config.get("comparison", {}).get("primary_metric", "county_mape_overall")
     champ_info = _get_champion_challenger(store, primary_metric)
     status_data["champion"] = champ_info.get("champion", {})
     status_data["best_challenger"] = champ_info.get("best_challenger", {})
@@ -474,6 +751,10 @@ def cmd_status(
             "catalog_untested_requires_code_change_ids": ";".join(
                 catalog_data.get("untested_requires_code_change_ids", [])
             ),
+            "grid_total": catalog_data.get("grid_total", ""),
+            "grid_runnable": catalog_data.get("grid_runnable", ""),
+            "grid_blocked": catalog_data.get("grid_blocked", ""),
+            "grid_blocked_ids": ";".join(catalog_data.get("grid_blocked_ids", [])),
         }
         writer = csv.DictWriter(sys.stdout, fieldnames=list(flat.keys()))
         writer.writeheader()
@@ -509,23 +790,24 @@ def cmd_status(
             print(f"  Untested: {untested_count} — {', '.join(untested_ids_list)}")  # noqa: T201
         else:
             print(f"  Untested: {untested_count}")  # noqa: T201
-        print(
-            f"  Untested runnable: {catalog_data.get('untested_runnable', 0)}"
-        )  # noqa: T201
+        print(f"  Untested runnable: {catalog_data.get('untested_runnable', 0)}")  # noqa: T201
         blocked_ids = catalog_data.get("untested_requires_code_change_ids", [])
         blocked_count = catalog_data.get("untested_requires_code_change", 0)
         if blocked_ids:
+            print(f"  Untested requiring code changes: {blocked_count} — {', '.join(blocked_ids)}")  # noqa: T201
+        else:
+            print(f"  Untested requiring code changes: {blocked_count}")  # noqa: T201
+
+        print(f"  Defined grids: {catalog_data.get('grid_total', 0)}")  # noqa: T201
+        blocked_grids = catalog_data.get("grid_blocked_ids", [])
+        if blocked_grids:
             print(
-                "  Untested requiring code changes: "
-                f"{blocked_count} — {', '.join(blocked_ids)}"
+                "  Blocked grids: "
+                f"{catalog_data.get('grid_blocked', len(blocked_grids))} — "
+                f"{', '.join(blocked_grids)}"
             )  # noqa: T201
         else:
-            print(
-                f"  Untested requiring code changes: {blocked_count}"
-            )  # noqa: T201
-
-        grids = catalog._grids if hasattr(catalog, "_grids") else {}
-        print(f"  Defined grids: {len(grids)}")  # noqa: T201
+            print("  Blocked grids: 0")  # noqa: T201
 
     return 0
 
@@ -583,25 +865,31 @@ def cmd_compare(
             if fmt == "csv":
                 ranking_df.to_csv(sys.stdout, index=False)
             else:
-                print(json.dumps(  # noqa: T201
-                    json.loads(ranking_df.to_json(orient="records", default_handler=str)),
-                    indent=2,
-                ))
+                print(
+                    json.dumps(  # noqa: T201
+                        json.loads(ranking_df.to_json(orient="records", default_handler=str)),
+                        indent=2,
+                    )
+                )
         else:
             # Fallback: serialize the result as-is
             if fmt == "json":
-                print(json.dumps({"error": "No ranking DataFrame available in comparison result"}, indent=2))  # noqa: T201
+                print(
+                    json.dumps(
+                        {"error": "No ranking DataFrame available in comparison result"}, indent=2
+                    )
+                )  # noqa: T201
             else:
                 print("No ranking DataFrame available in comparison result")  # noqa: T201
         return 0
 
-    ReportClass = _load_report_class()
-    if ReportClass is None:
+    report_class = _load_report_class()
+    if report_class is None:
         # Fallback to comparator's own formatting
         print(comparator.format_comparison_summary(result))  # noqa: T201
         return 0
 
-    report = ReportClass(
+    report = report_class(
         comparator_result=result,
         recommendations=recommendations,
         store=store,
@@ -646,7 +934,7 @@ def cmd_rank(
         if fmt == "json":
             print(json.dumps([], indent=2))  # noqa: T201
         elif fmt == "csv":
-            print("")  # noqa: T201
+            print()  # noqa: T201
         else:
             print("No results to rank.")  # noqa: T201
         return 0
@@ -657,10 +945,12 @@ def cmd_rank(
         if fmt == "csv":
             display.to_csv(sys.stdout, index=False)
         else:
-            print(json.dumps(  # noqa: T201
-                json.loads(display.to_json(orient="records", default_handler=str)),
-                indent=2,
-            ))
+            print(
+                json.dumps(  # noqa: T201
+                    json.loads(display.to_json(orient="records", default_handler=str)),
+                    indent=2,
+                )
+            )
         return 0
 
     print(_c_bold(f"Ranking by {args.metric} (top {args.top}):"))  # noqa: T201
@@ -714,7 +1004,7 @@ def cmd_recommend(
         if fmt == "json":
             print(json.dumps([], indent=2))  # noqa: T201
         elif fmt == "csv":
-            print("")  # noqa: T201
+            print()  # noqa: T201
         else:
             print("No recommendations generated.")  # noqa: T201
         return 0
@@ -724,6 +1014,7 @@ def cmd_recommend(
         for rec in recommendations:
             if hasattr(rec, "__dataclass_fields__"):
                 import dataclasses
+
                 d = dataclasses.asdict(rec)
             elif hasattr(rec, "__dict__"):
                 d = dict(rec.__dict__)
@@ -738,6 +1029,7 @@ def cmd_recommend(
         else:
             # CSV: flatten grid_suggestion dict to string
             import pandas as pd
+
             df = pd.DataFrame(rec_dicts)
             if "grid_suggestion" in df.columns:
                 df["grid_suggestion"] = df["grid_suggestion"].apply(
@@ -765,6 +1057,13 @@ def cmd_run_pending(
     int
         Exit code.
     """
+    if args.run_budget is not None and args.run_budget <= 0:
+        print("Error: --run-budget must be positive when provided.")  # noqa: T201
+        return 1
+    if args.retry_failures < 0:
+        print("Error: --retry-failures must be zero or greater.")  # noqa: T201
+        return 1
+
     catalog = _load_variant_catalog(config)
     if catalog is None:
         print("Error: VariantCatalog is not available.")  # noqa: T201
@@ -774,6 +1073,7 @@ def cmd_run_pending(
     # Get untested variants
     try:
         untested = catalog.get_untested()
+        inventory = catalog.get_inventory_summary()
     except Exception as e:
         print(f"Error loading untested variants: {e}")  # noqa: T201
         return 1
@@ -785,18 +1085,41 @@ def cmd_run_pending(
         )  # noqa: T201
         return 0
 
-    print(f"Found {len(untested)} untested runnable variant(s).")  # noqa: T201
+    ordered = _sort_pending_variants(untested, priority=args.priority)
+    resume_file = _resolve_project_path(args.resume_file) or _default_observatory_resume_file(
+        "observatory_pending"
+    )
+
+    print(f"Found {len(ordered)} untested runnable variant(s).")  # noqa: T201
+    print(
+        "Blocked from unattended queueing: "
+        f"{inventory.get('untested_requires_code_change', 0)} variant(s), "
+        f"{inventory.get('grid_blocked', 0)} grid(s)."
+    )  # noqa: T201
+    _print_queue_controls(
+        queue_name="Pending",
+        dry_run=args.dry_run,
+        priority=args.priority,
+        run_budget=args.run_budget,
+        retry_failures=args.retry_failures,
+        resume_file=resume_file,
+    )
 
     with tempfile.TemporaryDirectory(prefix="observatory_pending_") as tmpdir:
         tmpdir_path = Path(tmpdir)
         spec_paths: list[str] = []
 
-        for variant in untested:
+        for variant in ordered:
             vid = variant.get("variant_id")
             if vid is None:
                 continue
             try:
-                spec_path = catalog.generate_spec(vid, output_dir=tmpdir_path)
+                spec_path = catalog.generate_spec(
+                    vid,
+                    output_dir=tmpdir_path,
+                    requested_by="agent",
+                    extra_notes=["Generated from Observatory run-pending queue."],
+                )
                 spec_paths.append(str(spec_path))
             except Exception as e:
                 logger.warning("Failed to generate spec for %s: %s", vid, e)
@@ -809,24 +1132,19 @@ def cmd_run_pending(
 
         if args.dry_run:
             print("Dry run -- would execute:")  # noqa: T201
-            for sp in spec_paths:
+            preview_paths = spec_paths[: args.run_budget] if args.run_budget else spec_paths
+            for sp in preview_paths:
                 print(f"  {sp}")  # noqa: T201
+            if args.run_budget is not None and len(spec_paths) > len(preview_paths):
+                print(f"  ... {len(spec_paths) - len(preview_paths)} more deferred by run budget")  # noqa: T201
             return 0
 
-        # Delegate to run_experiment_sweep.py
-        sweep_script = PROJECT_ROOT / "scripts" / "analysis" / "run_experiment_sweep.py"
-        if not sweep_script.exists():
-            print(f"Error: sweep script not found at {sweep_script}")  # noqa: T201
-            return 1
-
-        cmd = [sys.executable, str(sweep_script), "--specs", *spec_paths]
-        print(f"Running: {' '.join(cmd[:4])} ... ({len(spec_paths)} specs)")  # noqa: T201
-
-        result = subprocess.run(
-            cmd,
-            cwd=str(PROJECT_ROOT),
+        return _run_sweep_command(
+            spec_paths=spec_paths,
+            run_budget=args.run_budget,
+            retry_failures=args.retry_failures,
+            resume_file=resume_file,
         )
-        return result.returncode
 
 
 def cmd_run_recommended(
@@ -845,6 +1163,13 @@ def cmd_run_recommended(
     int
         Exit code.
     """
+    if args.run_budget is not None and args.run_budget <= 0:
+        print("Error: --run-budget must be positive when provided.")  # noqa: T201
+        return 1
+    if args.retry_failures < 0:
+        print("Error: --retry-failures must be zero or greater.")  # noqa: T201
+        return 1
+
     if store is None:
         print("Error: ResultsStore unavailable.")  # noqa: T201
         return 1
@@ -872,28 +1197,43 @@ def cmd_run_recommended(
         print("No config-only recommendations available.")  # noqa: T201
         return 0
 
-    print(f"Found {len(config_only_recs)} config-only recommendation(s).")  # noqa: T201
+    ordered_recs = _sort_recommendations(config_only_recs, priority=args.priority)
+    resume_file = _resolve_project_path(args.resume_file) or _default_observatory_resume_file(
+        "observatory_recommended"
+    )
+
+    print(f"Found {len(ordered_recs)} config-only recommendation(s).")  # noqa: T201
+    _print_queue_controls(
+        queue_name="Recommended",
+        dry_run=args.dry_run,
+        priority=args.priority,
+        run_budget=args.run_budget,
+        retry_failures=args.retry_failures,
+        resume_file=resume_file,
+    )
 
     with tempfile.TemporaryDirectory(prefix="observatory_recommended_") as tmpdir:
         tmpdir_path = Path(tmpdir)
         spec_paths: list[str] = []
 
-        for rec in config_only_recs:
+        variants_df = None
+        if catalog is not None:
             try:
-                # Build a config_delta from the recommendation
-                if isinstance(rec.suggested_value, dict):
-                    config_delta = dict(rec.suggested_value)
-                elif rec.suggested_value is not None:
-                    config_delta = {rec.parameter: rec.suggested_value}
-                else:
+                variants_df = catalog.list_variants()
+            except Exception:
+                variants_df = None
+
+        for rec in ordered_recs:
+            try:
+                config_delta = _recommendation_config_delta(rec)
+                if not config_delta:
                     continue
 
                 # Try to use catalog.generate_spec if the recommendation
                 # matches a catalog variant
                 generated = False
-                if catalog is not None:
+                if catalog is not None and variants_df is not None:
                     try:
-                        variants_df = catalog.list_variants()
                         for _, row in variants_df.iterrows():
                             if (
                                 row["parameter"] == rec.parameter
@@ -903,6 +1243,10 @@ def cmd_run_recommended(
                                 sp = catalog.generate_spec(
                                     row["variant_id"],
                                     output_dir=tmpdir_path,
+                                    requested_by="agent",
+                                    extra_notes=[
+                                        "Generated from Observatory recommendation queue.",
+                                    ],
                                 )
                                 spec_paths.append(str(sp))
                                 generated = True
@@ -911,39 +1255,12 @@ def cmd_run_recommended(
                         pass
 
                 if not generated:
-                    # Fall back to building a spec directly
-                    import datetime as _dt
-                    import yaml as _yaml
-
-                    today = _dt.datetime.now(tz=_dt.UTC).date().strftime("%Y%m%d")
-                    param_slug = rec.parameter.replace("_", "-")
-                    if isinstance(rec.suggested_value, dict):
-                        val_slug = "combo"
-                    else:
-                        val_s = str(rec.suggested_value).replace(".", "p")
-                        val_slug = "".join(
-                            c for c in val_s if c.isalnum() or c in ("-", "_")
-                        )
-                    exp_id = f"exp-{today}-rec-{param_slug}-{val_slug}"
-
-                    spec: dict[str, Any] = {
-                        "experiment_id": exp_id,
-                        "hypothesis": rec.rationale[:200],
-                        "base_method": config.get("challenger_base_method", "m2026r1"),
-                        "base_config": config.get(
-                            "base_config", "cfg-20260309-college-fix-v1"
-                        ),
-                        "config_delta": config_delta,
-                        "scope": "county",
-                        "benchmark_label": f"rec-{param_slug}-{val_slug}",
-                        "requested_by": "observatory-recommender",
-                    }
-
-                    spec_path = tmpdir_path / f"{exp_id}.yaml"
+                    spec = _build_recommendation_spec(rec, config, catalog=catalog)
+                    if spec is None:
+                        continue
+                    spec_path = tmpdir_path / f"{spec['experiment_id']}.yaml"
                     spec_path.write_text(
-                        _yaml.safe_dump(
-                            spec, sort_keys=False, default_flow_style=False
-                        ),
+                        yaml.safe_dump(spec, sort_keys=False, default_flow_style=False),
                         encoding="utf-8",
                     )
                     spec_paths.append(str(spec_path))
@@ -964,28 +1281,19 @@ def cmd_run_recommended(
 
         if args.dry_run:
             print("Dry run -- would execute:")  # noqa: T201
-            for sp in spec_paths:
+            preview_paths = spec_paths[: args.run_budget] if args.run_budget else spec_paths
+            for sp in preview_paths:
                 print(f"  {sp}")  # noqa: T201
+            if args.run_budget is not None and len(spec_paths) > len(preview_paths):
+                print(f"  ... {len(spec_paths) - len(preview_paths)} more deferred by run budget")  # noqa: T201
             return 0
 
-        # Delegate to run_experiment_sweep.py
-        sweep_script = (
-            PROJECT_ROOT / "scripts" / "analysis" / "run_experiment_sweep.py"
+        return _run_sweep_command(
+            spec_paths=spec_paths,
+            run_budget=args.run_budget,
+            retry_failures=args.retry_failures,
+            resume_file=resume_file,
         )
-        if not sweep_script.exists():
-            print(f"Error: sweep script not found at {sweep_script}")  # noqa: T201
-            return 1
-
-        cmd = [sys.executable, str(sweep_script), "--specs", *spec_paths]
-        print(  # noqa: T201
-            f"Running: {' '.join(cmd[:4])} ... ({len(spec_paths)} specs)"
-        )
-
-        result = subprocess.run(
-            cmd,
-            cwd=str(PROJECT_ROOT),
-        )
-        return result.returncode
 
 
 def cmd_report(
@@ -1006,8 +1314,8 @@ def cmd_report(
         print("Error: ResultsStore unavailable.")  # noqa: T201
         return 1
 
-    ReportClass = _load_report_class()
-    if ReportClass is None:
+    report_class = _load_report_class()
+    if report_class is None:
         print("Error: ObservatoryReport is not available.")  # noqa: T201
         return 1
 
@@ -1032,13 +1340,14 @@ def cmd_report(
         except Exception as e:
             logger.warning("Recommender failed: %s", e)
 
-    report = ReportClass(
+    report = report_class(
         comparator_result=comparator_result,
         recommendations=recommendations,
         store=store,
     )
 
-    output_path = report.generate_html_report(output_path=args.output)
+    output_target = _resolve_project_path(args.output)
+    output_path = report.generate_html_report(output_path=output_target)
     print(f"Observatory report written to: {output_path}")  # noqa: T201
 
     # Also print the summary to console
@@ -1144,7 +1453,11 @@ def cmd_history(
 
     if metric not in scorecards.columns:
         print(f"Error: Metric '{metric}' not found in scorecards.")  # noqa: T201
-        available = [c for c in scorecards.columns if c not in ("run_id", "config_id", "method_id", "status_at_run")]
+        available = [
+            c
+            for c in scorecards.columns
+            if c not in ("run_id", "config_id", "method_id", "status_at_run")
+        ]
         if available:
             print(f"Available metrics: {', '.join(sorted(available))}")  # noqa: T201
         return 1
@@ -1183,10 +1496,7 @@ def cmd_history(
         run_id = str(row["run_id"])
         date_str = _extract_date(run_id)
 
-        if prev_val is not None:
-            delta = val - prev_val
-        else:
-            delta = None
+        delta = val - prev_val if prev_val is not None else None
 
         # Trend arrow: lower is better for error metrics
         if delta is None:
@@ -1202,14 +1512,16 @@ def cmd_history(
             best_val = val
             best_config = config_id
 
-        history_rows.append({
-            "seq": i,
-            "date": date_str,
-            "config_id": config_id,
-            "value": val,
-            "delta": delta,
-            "trend": trend,
-        })
+        history_rows.append(
+            {
+                "seq": i,
+                "date": date_str,
+                "config_id": config_id,
+                "value": val,
+                "delta": delta,
+                "trend": trend,
+            }
+        )
         prev_val = val
 
     # --- Output ---
@@ -1221,7 +1533,9 @@ def cmd_history(
             "history": history_rows,
             "best_config": best_config,
             "best_value": best_val,
-            "improvement_range": round((history_rows[0]["value"] - best_val), 3) if best_val is not None and history_rows else None,
+            "improvement_range": round((history_rows[0]["value"] - best_val), 3)
+            if best_val is not None and history_rows
+            else None,
         }
         print(json.dumps(payload, indent=2, default=str))  # noqa: T201
         return 0
@@ -1231,14 +1545,16 @@ def cmd_history(
         writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames)
         writer.writeheader()
         for row_data in history_rows:
-            writer.writerow({
-                "seq": row_data["seq"],
-                "date": row_data["date"],
-                "config_id": row_data["config_id"],
-                metric: f"{row_data['value']:.3f}",
-                "delta": f"{row_data['delta']:+.3f}" if row_data["delta"] is not None else "",
-                "trend": row_data["trend"],
-            })
+            writer.writerow(
+                {
+                    "seq": row_data["seq"],
+                    "date": row_data["date"],
+                    "config_id": row_data["config_id"],
+                    metric: f"{row_data['value']:.3f}",
+                    "delta": f"{row_data['delta']:+.3f}" if row_data["delta"] is not None else "",
+                    "trend": row_data["trend"],
+                }
+            )
         return 0
 
     # --- table format ---
@@ -1261,7 +1577,7 @@ def cmd_history(
     for row_data in history_rows:
         config_display = row_data["config_id"]
         if len(config_display) > config_w:
-            config_display = config_display[:config_w - 1] + "\u2026"
+            config_display = config_display[: config_w - 1] + "\u2026"
 
         if row_data["delta"] is not None:
             delta_raw = f"{row_data['delta']:+.3f}"
@@ -1269,7 +1585,7 @@ def cmd_history(
             # Right-pad to 8 visible chars, then apply color
             delta_str = " " * (8 - len(delta_raw)) + delta_colored
         else:
-            delta_str = f"{'\u2014':>8}"
+            delta_str = "\u2014".rjust(8)
 
         trend_raw = row_data["trend"] if row_data["trend"] else "\u2014"
         if trend_raw == "\u2193":  # ↓ better
@@ -1363,9 +1679,7 @@ def cmd_diff(
         val_a = float(row_a[metric])
         val_b = float(row_b[metric])
         delta = val_a - val_b
-        metric_rows.append(
-            {"metric": metric, "a": val_a, "b": val_b, "delta": delta}
-        )
+        metric_rows.append({"metric": metric, "a": val_a, "b": val_b, "delta": delta})
 
     # Load config differences
     config_diffs: dict[str, tuple[Any, Any]] = {}
@@ -1383,9 +1697,7 @@ def cmd_diff(
             "run_a": {"id": id_a, "label": label_a, "run_id": run_id_a},
             "run_b": {"id": id_b, "label": label_b, "run_id": run_id_b},
             "metrics": metric_rows,
-            "config_diffs": {
-                k: {"a": v[0], "b": v[1]} for k, v in config_diffs.items()
-            },
+            "config_diffs": {k: {"a": v[0], "b": v[1]} for k, v in config_diffs.items()},
         }
         print(json.dumps(payload, indent=2, default=str))  # noqa: T201
         return 0
@@ -1397,12 +1709,14 @@ def cmd_diff(
         )
         writer.writeheader()
         for row in metric_rows:
-            writer.writerow({
-                "metric": row["metric"],
-                label_a: f"{row['a']:.3f}",
-                label_b: f"{row['b']:.3f}",
-                "delta": f"{row['delta']:+.3f}",
-            })
+            writer.writerow(
+                {
+                    "metric": row["metric"],
+                    label_a: f"{row['a']:.3f}",
+                    label_b: f"{row['b']:.3f}",
+                    "delta": f"{row['delta']:+.3f}",
+                }
+            )
         return 0
 
     # --- table format ---
@@ -1420,12 +1734,7 @@ def cmd_diff(
     delta_w = 10
 
     # Header
-    hdr = (
-        f"{'Metric':<{metric_w}}"
-        f"{short_a:>{val_w}}"
-        f"{short_b:>{val_w}}"
-        f"{'Delta':>{delta_w}}"
-    )
+    hdr = f"{'Metric':<{metric_w}}{short_a:>{val_w}}{short_b:>{val_w}}{'Delta':>{delta_w}}"
     print(hdr)  # noqa: T201
     print("\u2500" * len(hdr))  # noqa: T201
 
@@ -1438,10 +1747,7 @@ def cmd_diff(
         delta_colored = _c_delta(row["delta"])
         delta_padded = " " * (delta_w - len(delta_raw)) + delta_colored
         print(  # noqa: T201
-            f"{row['metric']:<{metric_w}}"
-            f"{row['a']:>{val_w}.3f}"
-            f"{row['b']:>{val_w}.3f}"
-            f"{delta_padded}"
+            f"{row['metric']:<{metric_w}}{row['a']:>{val_w}.3f}{row['b']:>{val_w}.3f}{delta_padded}"
         )
 
     if sentinel_metrics:
@@ -1473,9 +1779,9 @@ def cmd_diff(
 
 
 def _resolve_scorecard_row(
-    scorecards: "pd.DataFrame",
+    scorecards: pd.DataFrame,
     identifier: str,
-) -> "pd.Series | None":
+) -> pd.Series | None:
     """Resolve an identifier (run_id or config_id) to a scorecard row.
 
     If *identifier* matches a ``run_id`` exactly, that row is returned.
@@ -1595,9 +1901,7 @@ def _get_champion_challenger(store: Any, primary_metric: str) -> dict[str, Any]:
 
     if not champion_df.empty:
         champ_config = (
-            champion_df["config_id"].iloc[0]
-            if "config_id" in champion_df.columns
-            else "unknown"
+            champion_df["config_id"].iloc[0] if "config_id" in champion_df.columns else "unknown"
         )
         champ_value = float(champion_df[primary_metric].iloc[0])
     else:
@@ -1661,7 +1965,9 @@ def _print_champion_challenger(store: Any, primary_metric: str) -> None:
     )
 
     if not champion_df.empty:
-        champ_config = champion_df["config_id"].iloc[0] if "config_id" in champion_df.columns else "unknown"
+        champ_config = (
+            champion_df["config_id"].iloc[0] if "config_id" in champion_df.columns else "unknown"
+        )
         champ_value = champion_df[primary_metric].iloc[0]
         print(f"Champion: {champ_config} ({primary_metric}: {champ_value:.3f})")  # noqa: T201
     else:
