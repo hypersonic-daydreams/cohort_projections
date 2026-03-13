@@ -132,9 +132,10 @@ def _parse_args() -> argparse.Namespace:
         type=int,
         default=1,
         help=(
-            "Number of parallel workers for walk-forward validation and "
-            "sensitivity analysis. "
-            "0 = auto-detect min(len(ORIGIN_YEARS), cpu_count). "
+            "Number of parallel workers for benchmark-internal projection "
+            "stages. Annual walk-forward validation uses county-level "
+            "projection workers, and sensitivity analysis uses perturbation "
+            "workers. 0 = auto-detect a stage-appropriate worker cap. "
             "1 = sequential (default)."
         ),
     )
@@ -259,7 +260,8 @@ def main() -> None:
             survival,
             fertility,
             methods=methods,
-            workers=args.workers,
+            workers=1,
+            projection_workers=args.workers,
         )
         annual_horizon = wfv.compute_annual_horizon_summary(annual_state, annual_county)
         annual_comparison = wfv.compute_annual_method_comparison(annual_state, annual_county)

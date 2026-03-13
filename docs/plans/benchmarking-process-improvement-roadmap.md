@@ -416,20 +416,25 @@ This roadmap item is intentionally about benchmark-internal throughput, not
 Observatory queue concurrency. The queue runner remains deliberately sequential
 unless faster benchmark internals still leave throughput as the main bottleneck.
 
-Implemented slice on 2026-03-13:
+Implemented slices on 2026-03-13:
 
 - `scripts/analysis/sensitivity_analysis.py` now supports worker-based parallel
   execution with deterministic result ordering and sequential fallback on
   worker failure.
-- `scripts/analysis/run_benchmark_suite.py` now passes the shared `--workers`
-  control through to sensitivity analysis.
+- `scripts/analysis/walk_forward_validation.py` now supports county-level
+  annual-validation parallelism with deterministic merge order and per-county
+  sequential fallback on worker failure, while preserving the older
+  origin-level worker path for direct callers.
+- `scripts/analysis/run_benchmark_suite.py` now routes the shared `--workers`
+  control into both sensitivity analysis and county-level annual validation.
 
 Remaining gap:
 
-- Broader walk-forward internal parallelism beyond the current origin-level
-  annual-validation path.
 - End-to-end runtime measurement to quantify which benchmark stages remain the
-  dominant bottleneck after the sensitivity parallelization slice.
+  dominant bottleneck after the sensitivity and annual-validation
+  parallelization slices.
+- County-level data extract caching and any remaining walk-forward hot spots
+  beyond the annual benchmark path.
 
 #### Tier 2: Cache county-level data extracts (2-3x additional)
 

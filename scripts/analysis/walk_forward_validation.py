@@ -110,15 +110,16 @@ Usage
 from __future__ import annotations
 
 import os
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import Future, ProcessPoolExecutor
 from pathlib import Path
+from typing import TypedDict, cast
 
 import numpy as np
 import pandas as pd
 
 from cohort_projections.data.load.census_age_sex_population import (
-    AGE_GROUP_LABELS,
     _ND_COUNTY_NAME_TO_FIPS,
+    AGE_GROUP_LABELS,
     load_census_2000_county_age_sex,
     load_pep_2010_2019_county_age_sex,
     load_pep_2020_2024_county_age_sex,
@@ -232,8 +233,6 @@ STEP = 5
 #
 # To create a new variant, copy a base config and override specific keys:
 #     M2026R2_CONFIG = {**M2026R1_CONFIG, "college_fips": {"38017", "38035"}}
-
-from typing import TypedDict
 
 
 class MethodConfig(TypedDict, total=False):
@@ -1539,7 +1538,7 @@ def run_walk_forward_validation(
         method_rates: dict[str, object] = {}
         for method_name in methods:
             dispatch = METHOD_DISPATCH[method_name]
-            cfg = dispatch["config"]  # type: ignore[index]
+            cfg = cast(MethodConfig, dispatch["config"])  # type: ignore[index]
             method_mig = maybe_recompute_mig_raw(mig_raw, snapshots, cfg)
             method_rates[method_name] = dispatch["prepare"](method_mig, origin_year, cfg)  # type: ignore[operator]
 
@@ -1547,7 +1546,7 @@ def run_walk_forward_validation(
         for fips in counties:
             for method_name in methods:
                 dispatch = METHOD_DISPATCH[method_name]
-                cfg = dispatch["config"]  # type: ignore[index]
+                cfg = cast(MethodConfig, dispatch["config"])  # type: ignore[index]
                 rates = method_rates[method_name]
 
                 if dispatch["is_annual"]:
@@ -1994,6 +1993,43 @@ _IS_ANNUAL: dict[str, bool] = {
 }
 
 
+def _project_single_county_annual(
+    *,
+    county_fips: str,
+    methods: list[str],
+    base_pop: pd.DataFrame,
+    survival: dict[tuple[str, str], float],
+    fertility: dict[str, float],
+    method_rates: dict[str, object],
+    method_configs: dict[str, MethodConfig],
+    origin_year: int,
+    n_steps: int,
+    n_years: int,
+) -> tuple[str, dict[str, dict[int, float]]]:
+    """Project one county across all methods for a single origin year."""
+    county_results: dict[str, dict[int, float]] = {}
+
+    for method_name in methods:
+        cfg = method_configs[method_name]
+        rates = method_rates[method_name]
+        is_annual = _IS_ANNUAL[method_name]
+        project_fn = _PROJECT_DISPATCH[method_name]
+
+        if is_annual:
+            county_annual = project_fn(  # type: ignore[operator]
+                base_pop, survival, fertility, rates, county_fips, n_years, origin_year, cfg
+            )
+        else:
+            step_proj = project_fn(  # type: ignore[operator]
+                base_pop, survival, fertility, rates, county_fips, n_steps, origin_year, cfg
+            )
+            county_annual = interpolate_county_annual(step_proj, origin_year)
+
+        county_results[method_name] = county_annual
+
+    return county_fips, county_results
+
+
 def _run_single_origin_annual(
     *,
     origin_year: int,
@@ -2007,6 +2043,7 @@ def _run_single_origin_annual(
     actual_county_totals: dict[int, dict[str, float]],
     max_validation_year: int,
     method_mig_raw: dict[str, pd.DataFrame] | None = None,
+    projection_workers: int = 1,
 ) -> tuple[list[dict], list[dict], list[dict]]:
     """Run walk-forward validation for a single origin year.
 
@@ -2029,6 +2066,8 @@ def _run_single_origin_annual(
         method_mig_raw: Optional per-method migration rate overrides.
             Maps method_id -> migration DataFrame.  If absent or a method
             is not in this dict, ``mig_raw`` is used.
+        projection_workers: Number of county-level worker processes within
+            this origin year. ``1`` runs sequentially.
 
     Returns:
         Tuple of (county_records, state_records, curve_records).
@@ -2051,24 +2090,66 @@ def _run_single_origin_annual(
         m: {} for m in methods
     }
 
-    for fips in counties:
-        for method_name in methods:
-            cfg = method_configs[method_name]
-            rates = method_rates[method_name]
-            is_annual = _IS_ANNUAL[method_name]
-            project_fn = _PROJECT_DISPATCH[method_name]
+    effective_projection_workers = max(1, min(projection_workers, len(counties)))
 
-            if is_annual:
-                county_annual = project_fn(  # type: ignore[operator]
-                    base_pop, survival, fertility, rates, fips, n_years, origin_year, cfg
+    if effective_projection_workers <= 1:
+        for fips in counties:
+            county_fips, county_results = _project_single_county_annual(
+                county_fips=fips,
+                methods=methods,
+                base_pop=base_pop,
+                survival=survival,
+                fertility=fertility,
+                method_rates=method_rates,
+                method_configs=method_configs,
+                origin_year=origin_year,
+                n_steps=n_steps,
+                n_years=n_years,
+            )
+            for method_name, county_annual in county_results.items():
+                method_county_annual[method_name][county_fips] = county_annual
+    else:
+        futures: dict[str, Future[tuple[str, dict[str, dict[int, float]]]]] = {}
+        with ProcessPoolExecutor(max_workers=effective_projection_workers) as executor:
+            for fips in counties:
+                futures[fips] = executor.submit(
+                    _project_single_county_annual,
+                    county_fips=fips,
+                    methods=methods,
+                    base_pop=base_pop,
+                    survival=survival,
+                    fertility=fertility,
+                    method_rates=method_rates,
+                    method_configs=method_configs,
+                    origin_year=origin_year,
+                    n_steps=n_steps,
+                    n_years=n_years,
                 )
-            else:
-                step_proj = project_fn(  # type: ignore[operator]
-                    base_pop, survival, fertility, rates, fips, n_steps, origin_year, cfg
-                )
-                county_annual = interpolate_county_annual(step_proj, origin_year)
 
-            method_county_annual[method_name][fips] = county_annual
+        for fips in counties:
+            fut = futures[fips]
+            try:
+                county_fips, county_results = fut.result()
+            except Exception as exc:
+                print(
+                    f"  WARNING: County worker for origin {origin_year}, "
+                    f"county {fips} failed ({exc!r}), retrying sequentially..."
+                )
+                county_fips, county_results = _project_single_county_annual(
+                    county_fips=fips,
+                    methods=methods,
+                    base_pop=base_pop,
+                    survival=survival,
+                    fertility=fertility,
+                    method_rates=method_rates,
+                    method_configs=method_configs,
+                    origin_year=origin_year,
+                    n_steps=n_steps,
+                    n_years=n_years,
+                )
+
+            for method_name, county_annual in county_results.items():
+                method_county_annual[method_name][county_fips] = county_annual
 
     # Build curve records
     curve_records: list[dict] = []
@@ -2165,6 +2246,7 @@ def run_annual_validation(
     max_validation_year: int = 2024,
     methods: list[str] | None = None,
     workers: int = 1,
+    projection_workers: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Run annual-granularity walk-forward validation for all origins and methods.
 
@@ -2187,6 +2269,10 @@ def run_annual_validation(
             sequentially on the main process.  ``0`` auto-detects
             ``min(len(ORIGIN_YEARS), cpu_count)``.  Values > 1 use a
             ``ProcessPoolExecutor`` with origin years as work units.
+        projection_workers: Optional county-level worker count for projection
+            tasks within each origin year. If provided and > 1 (or ``0`` for
+            auto-detect), origins are processed sequentially and counties are
+            parallelized within each origin.
 
     Returns:
         annual_state_results: DataFrame with state-level annual error metrics
@@ -2213,7 +2299,7 @@ def run_annual_validation(
     # Build method_configs from METHOD_DISPATCH
     method_configs: dict[str, MethodConfig] = {}
     for m in methods:
-        method_configs[m] = METHOD_DISPATCH[m]["config"]  # type: ignore[index]
+        method_configs[m] = cast(MethodConfig, METHOD_DISPATCH[m]["config"])  # type: ignore[index]
 
     # Pre-compute per-method migration rate overrides (GQ recomputation)
     method_mig_raw: dict[str, pd.DataFrame] = {}
@@ -2248,7 +2334,30 @@ def run_annual_validation(
     annual_state_records: list[dict] = []
     curve_records: list[dict] = []
 
-    if effective_workers <= 1:
+    effective_projection_workers = 1
+    if projection_workers is not None:
+        if projection_workers == 0:
+            effective_projection_workers = min(len(counties), os.cpu_count() or 1)
+        else:
+            effective_projection_workers = max(1, min(projection_workers, len(counties)))
+
+    if effective_projection_workers > 1:
+        print(
+            f"\n  Running {n_origins} origin years sequentially with "
+            f"{effective_projection_workers} county workers per origin..."
+        )
+        for origin_year in ORIGIN_YEARS:
+            print(f"\n  Origin {origin_year} (annual):")
+            county_recs, state_recs, crv_recs = _run_single_origin_annual(
+                origin_year=origin_year,
+                base_pop=snapshots[origin_year],
+                projection_workers=effective_projection_workers,
+                **shared_kwargs,  # type: ignore[arg-type]
+            )
+            annual_county_records.extend(county_recs)
+            annual_state_records.extend(state_recs)
+            curve_records.extend(crv_recs)
+    elif effective_workers <= 1:
         # Sequential execution — same code path as before
         for origin_year in ORIGIN_YEARS:
             print(f"\n  Origin {origin_year} (annual):")
@@ -2263,7 +2372,7 @@ def run_annual_validation(
     else:
         # Parallel execution using ProcessPoolExecutor
         print(f"\n  Running {n_origins} origin years with {effective_workers} workers...")
-        futures: dict[int, object] = {}  # origin_year -> Future
+        futures: dict[int, Future[tuple[list[dict], list[dict], list[dict]]]] = {}
 
         with ProcessPoolExecutor(max_workers=effective_workers) as executor:
             for origin_year in ORIGIN_YEARS:
@@ -2279,7 +2388,7 @@ def run_annual_validation(
         for origin_year in ORIGIN_YEARS:
             fut = futures[origin_year]
             try:
-                county_recs, state_recs, crv_recs = fut.result()  # type: ignore[union-attr]
+                county_recs, state_recs, crv_recs = fut.result()
             except Exception as exc:
                 # Graceful fallback: re-run this origin year sequentially
                 print(f"  WARNING: Worker for origin {origin_year} failed "

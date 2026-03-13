@@ -462,7 +462,7 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 **Follow-on entry point:** Use `docs/guides/observatory-start-here.md` to navigate current Observatory status, operating guides, and the remaining follow-on backlog.
 
-**Runtime optimization progress:** Initial `P6` slice landed on 2026-03-13. `scripts/analysis/sensitivity_analysis.py` now supports worker-based parallel execution with deterministic merge order and sequential fallback on worker failure, and `scripts/analysis/run_benchmark_suite.py` now threads the shared `--workers` flag into sensitivity analysis. Broader runtime optimization remains tracked in the roadmap.
+**Runtime optimization progress:** Two `P6` slices landed on 2026-03-13. `scripts/analysis/sensitivity_analysis.py` now supports worker-based parallel execution with deterministic merge order and sequential fallback on worker failure. `scripts/analysis/walk_forward_validation.py` now also supports county-level annual-validation parallelism with deterministic merge order and per-county sequential fallback on worker failure, while preserving the existing origin-level worker path for direct callers. `scripts/analysis/run_benchmark_suite.py` now routes the shared `--workers` control into both sensitivity analysis and the deeper county-worker annual validation path. Remaining runtime work is tracked in the roadmap.
 
 ## Near-Term Next Actions
 

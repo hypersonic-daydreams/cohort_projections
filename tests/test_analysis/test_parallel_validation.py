@@ -317,3 +317,134 @@ class TestWorkerCountDefaults:
         """workers=1 must result in sequential execution (effective_workers <= 1)."""
         effective = max(1, min(1, 4))
         assert effective == 1
+
+
+class TestProjectionWorkerPath:
+    """Verify county-level projection workers preserve correctness."""
+
+    @pytest.fixture()
+    def shared_inputs(self) -> dict[str, Any]:
+        """Build shared inputs for projection-worker comparisons."""
+        counties = ["38001", "38003", "38005"]
+        snapshots = {
+            yr: _make_population_df(counties, yr)
+            for yr in [2000, 2005, 2010, 2015, 2020, 2024]
+        }
+        return {
+            "snapshots": snapshots,
+            "mig_raw": _make_migration_df(counties),
+            "survival": _make_survival(),
+            "fertility": _make_fertility(),
+        }
+
+    def test_projection_workers_1_vs_2_identical(
+        self, shared_inputs: dict[str, Any]
+    ) -> None:
+        """County-worker path must match sequential results exactly."""
+        from scripts.analysis.walk_forward_validation import run_annual_validation
+
+        counties = ["38001", "38003", "38005"]
+        mock_actuals: dict[int, pd.DataFrame] = {}
+        for yr in range(2006, 2025):
+            mock_actuals[yr] = _make_population_df(counties, yr)
+
+        with patch(
+            "scripts.analysis.walk_forward_validation.load_annual_validation_actuals",
+            return_value=mock_actuals,
+        ), patch(
+            "scripts.analysis.walk_forward_validation.maybe_recompute_mig_raw",
+            side_effect=lambda mig, snap, cfg: mig,
+        ):
+            state_seq, county_seq, curves_seq = run_annual_validation(
+                shared_inputs["snapshots"],
+                shared_inputs["mig_raw"],
+                shared_inputs["survival"],
+                shared_inputs["fertility"],
+                methods=["m2026r1"],
+                workers=1,
+                projection_workers=1,
+            )
+
+            state_par, county_par, curves_par = run_annual_validation(
+                shared_inputs["snapshots"],
+                shared_inputs["mig_raw"],
+                shared_inputs["survival"],
+                shared_inputs["fertility"],
+                methods=["m2026r1"],
+                workers=1,
+                projection_workers=2,
+            )
+
+        pd.testing.assert_frame_equal(
+            state_seq.reset_index(drop=True),
+            state_par.reset_index(drop=True),
+        )
+        pd.testing.assert_frame_equal(
+            county_seq.reset_index(drop=True),
+            county_par.reset_index(drop=True),
+        )
+        pd.testing.assert_frame_equal(
+            curves_seq.reset_index(drop=True),
+            curves_par.reset_index(drop=True),
+        )
+
+    def test_projection_worker_fallback_on_error(
+        self, shared_inputs: dict[str, Any]
+    ) -> None:
+        """A failed county worker should be retried sequentially."""
+        from concurrent.futures import Future
+
+        from scripts.analysis.walk_forward_validation import run_annual_validation
+
+        counties = ["38001", "38003"]
+        mock_actuals: dict[int, pd.DataFrame] = {}
+        for yr in range(2006, 2025):
+            mock_actuals[yr] = _make_population_df(counties, yr)
+
+        class _FakeExecutor:
+            """Executor that fails on the first submitted county task."""
+
+            def __init__(self, **kwargs: Any) -> None:
+                self._call_count = 0
+
+            def __enter__(self) -> _FakeExecutor:
+                return self
+
+            def __exit__(self, *args: Any) -> None:
+                pass
+
+            def submit(self, fn: Any, **kwargs: Any) -> Future:  # type: ignore[type-arg]
+                fut: Future = Future()  # type: ignore[type-arg]
+                self._call_count += 1
+                if self._call_count == 1 and "county_fips" in kwargs:
+                    fut.set_exception(RuntimeError("Simulated county worker failure"))
+                else:
+                    try:
+                        fut.set_result(fn(**kwargs))
+                    except Exception as exc:
+                        fut.set_exception(exc)
+                return fut
+
+        with patch(
+            "scripts.analysis.walk_forward_validation.load_annual_validation_actuals",
+            return_value=mock_actuals,
+        ), patch(
+            "scripts.analysis.walk_forward_validation.maybe_recompute_mig_raw",
+            side_effect=lambda mig, snap, cfg: mig,
+        ), patch(
+            "scripts.analysis.walk_forward_validation.ProcessPoolExecutor",
+            _FakeExecutor,
+        ):
+            state_df, county_df, curves_df = run_annual_validation(
+                shared_inputs["snapshots"],
+                shared_inputs["mig_raw"],
+                shared_inputs["survival"],
+                shared_inputs["fertility"],
+                methods=["m2026r1"],
+                workers=1,
+                projection_workers=3,
+            )
+
+        assert set(state_df["origin_year"].unique()) == {2005, 2010, 2015, 2020}
+        assert not county_df.empty
+        assert not curves_df.empty
