@@ -2,9 +2,9 @@
 
 Canonical, current-state tracker for the North Dakota cohort projections repository.
 
-**Last Updated:** 2026-03-12
+**Last Updated:** 2026-03-13
 **Projection Horizon:** 2025-2055  
-**Status:** Core projection development complete; PP-001 publication sign-off and PP-002 cadence closeout completed on 2026-03-01; PP-005 Phase 2+ enhancements implemented (rolling-origin backtests, multi-county splitting, TIGER/geospatial exports, housing-unit method).
+**Status:** Core projection development complete; PP-001 publication sign-off and PP-002 cadence closeout completed on 2026-03-01; PP-005 Phase 2+ enhancements implemented (rolling-origin backtests, multi-county splitting, TIGER/geospatial exports, housing-unit method); PP-007 Projection Observatory operational hardening opened on 2026-03-13.
 
 ## Purpose
 
@@ -29,6 +29,7 @@ Use this file for active status only. Historical session detail is archived to:
 | Repo-hygiene program | complete | B00-B06 implemented; full adjudicated replay `27/27` passing; RB-003 and RB-004 remediated and closed. |
 | Test health baseline | stable | Latest recorded baseline: `1570 passed, 5 skipped` (`pytest tests/ -q`, 2026-03-01 PP-005 production validation). ADR-056 accepted; PP4-01 through PP4-06 complete; PP-005 adds 129 tests. |
 | Claim replay health | stable | `27/27` adjudicated claims passing (latest full replay: 2026-02-27T18:14:03Z). |
+| Projection Observatory readiness | in_progress | First trust/correctness hardening phase complete (`OBS-01` through `OBS-05`); still not trusted for large unattended search loops until batch orchestration, artifact hygiene, and report-output reliability are closed. |
 
 ## Projection Development Backlog (Canonical)
 
@@ -40,7 +41,85 @@ Use this file for active status only. Historical session detail is archived to:
 | PP-004 | Test coverage gap closure (ADR-056) | completed_2026-02-28 | Closed: PP4-01 through PP4-06 complete; periodic coverage checks now roll into future PP-002-style cadence events when material changes occur | `docs/governance/adrs/056-testing-strategy-maturation.md`, `docs/guides/test-maintenance-practices.md`, `docs/reviews/2026-02-28-pp4-06-periodic-coverage-review.md` |
 | PP-005 | Phase 2+ place projection enhancements | completed_2026-03-01 | Four parallel workstreams implemented: rolling-origin backtests (WS-A, 34 tests), multi-county place splitting (WS-B, 38 tests), TIGER/geospatial exports (WS-C, 23 tests), housing-unit method (WS-D, 32 tests). Full suite: 1568 passed, 5 skipped; ruff + mypy clean | ADR-057, ADR-058, ADR-059, ADR-060 |
 | PP-006 | Evaluation framework | completed_2026-03-11 | 5-module evaluation framework (forecast accuracy, structural realism, sensitivity, benchmark comparison, reporting) with scorecard, 13 Python files (~4,800 LOC), 154 tests across 8 test files, DRY refactor extracting shared utils/schemas | `docs/plans/evaluation-blueprint.md`, `cohort_projections/analysis/evaluation/`, `tests/test_analysis/test_evaluation/`, `config/evaluation_config.yaml` |
+| PP-007 | Projection Observatory operational hardening | in_progress | Convert the Observatory from a supervised comparison/reporting tool into a reliable experimentation system the owner can "let loose on many variants and trust the search loop." Immediate milestone: `OBS-06` batch orchestration hardening, `OBS-07` recommendation artifact hygiene, and `OBS-08` report-output reliability after first-phase trust/correctness closure on 2026-03-13 | `scripts/analysis/observatory.py`, `cohort_projections/analysis/observatory/`, `config/observatory_variants.yaml`, `data/analysis/benchmark_history/`, `data/analysis/experiments/experiment_log.csv` |
 | CF-001 | College Fix model revision (m2026r1) | in_progress | SOP-003 P0 benchmark/versioning scaffold implemented and first head-to-head benchmark bundle completed (`br-20260309-160948-m2026r1-ecb4498`). Results: improved recent-origin state APE and urban/college county MAPE; no hard-constraint regression. Pending: human review of benchmark decision record, Tier 3 approval of production config changes, re-run production projections if promoted | ADR-061, `docs/reviews/2026-03-04-college-fix-research-implications.md`, `docs/reviews/2026-03-04-projection-accuracy-analysis.md`, `docs/governance/sops/SOP-003-method-benchmarking-versioning-promotion.md`, `docs/reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md` |
+
+## PP-007 Projection Observatory Operational Hardening (Canonical)
+
+### Owner Goal
+
+The target operating mode for the Projection Observatory is not just human-assisted review. The owner wants it to be a system they can "let loose on many variants and trust the search loop" to run a large number of experiments, compare them coherently, and identify the best methods to promote or implement.
+
+### Readiness Assessment (2026-03-13)
+
+Current conclusion: the Observatory has now cleared the first trust/correctness hardening phase (`OBS-01` through `OBS-05`), but it is **still not fully ready for high-trust unattended search** because batch orchestration, artifact hygiene, and report-output reliability remain open in `OBS-06` through `OBS-08`.
+
+Verified current state from live repository inspection on 2026-03-13:
+
+- Observatory CLI is present and functional for `status`, `compare`, `recommend`, `diff`, `history`, and `report`.
+- Observatory dashboard, store, comparator, recommender, and catalog modules are implemented under `cohort_projections/analysis/observatory/`.
+- Observatory-focused test slice passes: `209 passed` across CLI, catalog, store, comparator, recommender, dashboard, runtime-contract, and status tests.
+- Live experiment corpus is still small: `8` benchmark runs, `11` catalog variants, `5` catalog entries currently untested, `3` of those runnable via `run-pending`, and `2` correctly classified as requiring code changes.
+
+### Implementation Update (2026-03-13)
+
+- `OBS-01` completed. Comparator ranking, Pareto analysis, and summaries now operate on a canonical candidate view with explicit `config_id` → `run_id` fallback policy, deduplicating repeated baseline/champion rows across benchmark bundles.
+- `OBS-02` completed. Recommender boundary/interaction/plateau heuristics now only use gate-clean runs (`champion` or `passed_all_gates`), with an explicit policy note in formatted output.
+- `OBS-03` completed. The catalog now validates parameters against the live `MethodConfig` runtime contract parsed from `scripts/analysis/walk_forward_validation.py`; non-injectable items are blocked from spec generation. `exp-g` (`mortality_improvement_factor`) was reclassified to `config_only: false`.
+- `OBS-04` completed. `status` now reports `untested_total`, `untested_runnable`, and `untested_requires_code_change`, and `run-pending` explicitly operates on runnable untested variants only.
+- `OBS-05` completed. Catalog metadata, experiment-log outcomes, recommender filtering, CLI summaries, and dashboard run metadata now share one resolved-status interpretation path.
+
+### Key Findings To Preserve Across Sessions
+
+1. Batch execution is still small-scale rather than operations-grade.
+   - `run_experiment_sweep.py` currently executes sequentially.
+   - There is no first-class concurrency control, resume checkpointing, retry policy, run budget, or queue prioritization suitable for large unattended sweeps.
+
+2. One grid definition is still blocked by the runtime contract.
+   - `dampening-sweep` currently uses `boom_period_dampening_2010_2015`, which is not a live `MethodConfig` parameter.
+   - The grid is now rejected with a clear error instead of silently generating invalid specs, but it still needs a proper runtime-expressible representation.
+
+3. There are still UX/operability defects that should be closed before treating the system as trustworthy automation.
+   - `--format` only works before the subcommand in the CLI, which is valid argparse behavior but easy to misuse in practice.
+   - `report --output <path>` reported success during smoke testing, but the expected file path was not present afterward and needs explicit investigation.
+   - Auto-generated recommendation spec IDs can include awkward labels for combination experiments and should be normalized for cleaner unattended operation.
+
+### PP-007 Work Checklist
+
+| Step ID | Task | Status | Definition of Done | Evidence Target |
+|------|------|------|------|------|
+| OBS-01 | Candidate identity normalization | completed_2026-03-13 | Rankings, Pareto frontier, and summaries deduplicate repeated champion/baseline rows and operate on a clean candidate view (`run_id`/`config_id` policy explicitly documented) | Comparator output + tests |
+| OBS-02 | Gate-aware recommendation policy | completed_2026-03-13 | Recommender filters or downweights unresolved / failed / review-only runs using explicit policy rules before surfacing next experiments | Recommender tests + policy note |
+| OBS-03 | Catalog-to-runtime parameter validation | completed_2026-03-13 | Every `config_only` catalog entry is validated against the actual injectable runtime contract; non-injectable items are reclassified or blocked with a clear error | Catalog validation tests + config cleanup |
+| OBS-04 | Untested/runnable inventory clarity | completed_2026-03-13 | Observatory status distinguishes total untested variants from runnable config-only variants and code-change-required variants | CLI status output + tests |
+| OBS-05 | Result-status reconciliation | completed_2026-03-13 | Experiment log, catalog metadata, and Observatory status model share a single resolved interpretation path for pass/review/fail states | Status mapping tests + backfilled metadata if needed |
+| OBS-06 | Batch orchestration hardening | pending | Sweep runner supports at minimum resumable execution plus explicit run budgeting/prioritization; concurrency/retry behavior documented and tested | Sweep runner update + workflow note |
+| OBS-07 | Recommendation artifact hygiene | pending | Auto-generated spec IDs / labels / paths are normalized and safe for unattended queue generation | CLI tests |
+| OBS-08 | Report-output bug investigation | pending | `report --output` writes exactly where reported, with a regression test covering absolute and project-relative paths | CLI/report tests |
+| OBS-09 | Search-loop operating guide | pending | Short operator guidance explains how to safely run many variants, review results, and decide promotion thresholds without drifting from SOP-003 governance | Guide or tracker-linked note |
+
+### Sequencing Guidance
+
+Recommended implementation order:
+
+1. OBS-01 through OBS-05 first.
+   - These are trust and correctness prerequisites.
+   - Do not treat the Observatory as a reliable autonomous search loop before these are closed.
+
+2. OBS-06 through OBS-08 second.
+   - These are operational hardening items for larger unattended sweeps.
+
+3. OBS-09 last.
+   - Write the operator workflow after the actual system behavior is stabilized.
+
+### Session Handling Rule For Agents
+
+When asked whether the Projection Observatory is "ready," "production-ready," or suitable to run many variants unattended, answer from this section first.
+
+With OBS-01 through OBS-05 completed on 2026-03-13, the canonical answer is:
+
+- The Observatory is ready for supervised comparison, reconciled status review, and guarded runnable-variant generation.
+- It is **not yet ready** to be trusted as a high-autonomy search loop for many variants until OBS-06 through OBS-08 are closed.
 
 ## PP-005 Phase 2+ Workstream Checklist (Canonical)
 

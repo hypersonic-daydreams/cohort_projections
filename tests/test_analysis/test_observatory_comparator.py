@@ -123,6 +123,7 @@ class TestRanking:
     def test_rank_all_returns_all_runs(self, comparator_3run: ObservatoryComparator) -> None:
         ranked = comparator_3run.rank_all()
         assert len(ranked) == 3
+        assert "candidate_id" in ranked.columns
         assert "run_id" in ranked.columns
 
     def test_rank_all_sorted_by_primary(self, comparator_3run: ObservatoryComparator) -> None:
@@ -237,8 +238,20 @@ class TestPareto:
     def test_pareto_with_dominated_point(self) -> None:
         """One run strictly dominates another."""
         rows = [
-            {**CHAMPION_ROW, "run_id": "good", "county_mape_overall": 5.0, "county_mape_rural": 5.0},
-            {**CHAMPION_ROW, "run_id": "bad", "county_mape_overall": 6.0, "county_mape_rural": 6.0},
+            {
+                **CHAMPION_ROW,
+                "run_id": "good",
+                "config_id": "cfg-good",
+                "county_mape_overall": 5.0,
+                "county_mape_rural": 5.0,
+            },
+            {
+                **CHAMPION_ROW,
+                "run_id": "bad",
+                "config_id": "cfg-bad",
+                "county_mape_overall": 6.0,
+                "county_mape_rural": 6.0,
+            },
         ]
         sc = _make_scorecards(rows)
         store = _make_store(sc)
@@ -305,6 +318,7 @@ class TestFullComparison:
         assert not result.ranking.empty
         assert not result.deltas.empty
         assert result.summary["n_runs"] == 3
+        assert result.summary["candidate_identity_policy"] == "config_id_or_run_id_fallback"
 
     def test_full_comparison_summary_has_champion(
         self, comparator_3run: ObservatoryComparator
@@ -343,7 +357,7 @@ class TestFormatting:
         result = comparator_3run.full_comparison()
         output = comparator_3run.format_comparison_summary(result)
         assert "OBSERVATORY COMPARISON SUMMARY" in output
-        assert "Runs compared" in output
+        assert "Candidates" in output
         assert "Champion" in output
         assert "METRIC RANGES" in output
 
@@ -357,9 +371,9 @@ class TestChampionDetection:
     """Tests for champion auto-detection."""
 
     def test_detects_champion_by_status(self, comparator_3run: ObservatoryComparator) -> None:
-        sc = comparator_3run._load_all_scorecards()
+        sc = comparator_3run._load_candidate_scorecards()
         champ = comparator_3run._detect_champion(sc)
-        assert champ == "run-champ"
+        assert champ == "cfg-baseline"
 
     def test_fallback_to_best_primary_metric(self) -> None:
         """When no status_at_run == champion, uses best primary metric."""
@@ -379,5 +393,20 @@ class TestChampionDetection:
         store = _make_store(sc)
         config = {"comparison": {"champion_run_id": "run-a"}}
         comp = ObservatoryComparator(store=store, config=config)
-        resolved = comp._resolve_champion(sc)
-        assert resolved == "run-a"
+        resolved = comp._resolve_champion(comp._load_candidate_scorecards())
+        assert resolved == "cfg-a"
+
+    def test_rank_all_deduplicates_repeated_candidates(self) -> None:
+        repeated = _make_scorecards(
+            [
+                CHAMPION_ROW,
+                {**CHAMPION_ROW, "run_id": "run-champ-2"},
+                CHALLENGER_A,
+                {**CHALLENGER_A, "run_id": "run-a-2"},
+            ]
+        )
+        store = _make_store(repeated)
+        comp = ObservatoryComparator(store=store)
+        ranked = comp.rank_all()
+        assert len(ranked) == 2
+        assert set(ranked["candidate_id"]) == {"cfg-baseline", "cfg-a"}

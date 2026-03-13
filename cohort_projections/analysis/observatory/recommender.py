@@ -20,26 +20,21 @@ import pandas as pd
 
 from cohort_projections.analysis.observatory.comparator import ObservatoryComparator
 from cohort_projections.analysis.observatory.results_store import ResultsStore
+from cohort_projections.analysis.observatory.runtime_contract import (
+    get_runtime_injectable_parameters,
+)
+from cohort_projections.analysis.observatory.status import (
+    GATE_CLEAN_STATUSES,
+    is_gate_clean,
+    resolve_observatory_status,
+)
 from cohort_projections.analysis.observatory.variant_catalog import VariantCatalog
 
 # ---------------------------------------------------------------------------
 # MethodConfig parameters that can be injected at runtime (config-only).
 # Parameters NOT in this set require upstream code changes.
 # ---------------------------------------------------------------------------
-CONFIG_ONLY_PARAMS: frozenset[str] = frozenset(
-    {
-        "bakken_fips",
-        "boom_period_dampening",
-        "boom_male_dampening",
-        "college_blend_factor",
-        "sdc_bakken_dampening",
-        "convergence_recent_hold",
-        "convergence_medium_hold",
-        "convergence_transition_hold",
-        "gq_correction_fraction",
-        "rate_cap_general",
-    }
-)
+CONFIG_ONLY_PARAMS: frozenset[str] = get_runtime_injectable_parameters()
 
 # Scorecard metrics used for sensitivity analysis (lower is better).
 TRADEOFF_METRICS: list[str] = [
@@ -165,10 +160,13 @@ class ObservatoryRecommender:
     ) -> None:
         self.store = store
         self.comparator = comparator
-        self.variant_catalog = variant_catalog or []
+        self.variant_catalog = variant_catalog if variant_catalog is not None else []
         self._config = config or {}
         self._plateau_threshold: float = self._config.get("plateau_threshold", 0.02)
         self._bounds_catalog: VariantCatalog | None = bounds_catalog
+        self._gate_clean_statuses: frozenset[str] = frozenset(
+            self._config.get("gate_clean_statuses", sorted(GATE_CLEAN_STATUSES))
+        )
 
     # ------------------------------------------------------------------
     # Public API
@@ -284,7 +282,12 @@ class ObservatoryRecommender:
         param_rows = self._collect_param_value_rows()
         if not param_rows:
             return pd.DataFrame()
-        return pd.DataFrame(param_rows)
+        result = pd.DataFrame(param_rows)
+        if "resolved_status" in result.columns:
+            result = result[
+                result["resolved_status"].isin(self._gate_clean_statuses)
+            ].reset_index(drop=True)
+        return result
 
     def format_recommendations(self, recommendations: list[Recommendation]) -> str:
         """Render a human-readable recommendation report."""
@@ -295,6 +298,11 @@ class ObservatoryRecommender:
             "=" * 72,
             "  EXPERIMENT RECOMMENDATIONS",
             "=" * 72,
+            (
+                "  Policy: boundary, interaction, and plateau heuristics only use "
+                "gate-clean runs (champion or passed_all_gates)."
+            ),
+            "  Review-only, failed, and unresolved runs are excluded from search signals.",
             "",
         ]
         for i, rec in enumerate(recommendations, 1):
@@ -332,6 +340,76 @@ class ObservatoryRecommender:
     # Internal heuristics
     # ------------------------------------------------------------------
 
+    def _run_status_map(self) -> dict[str, str]:
+        """Resolve one canonical status per run from log + scorecard evidence."""
+        status_by_run: dict[str, str] = {}
+
+        scorecards = self.store.get_consolidated_scorecards()
+        if not scorecards.empty and "run_id" in scorecards.columns:
+            for run_id, group in scorecards.groupby("run_id", sort=False):
+                scorecard_status = ""
+                is_champion = False
+                if "status_at_run" in group.columns:
+                    statuses = group["status_at_run"].fillna("").astype(str).str.lower()
+                    is_champion = statuses.eq("champion").any()
+                    non_empty = statuses[statuses.ne("")]
+                    if not non_empty.empty:
+                        scorecard_status = str(non_empty.iloc[0])
+                status_by_run[str(run_id)] = resolve_observatory_status(
+                    scorecard_status=scorecard_status,
+                    is_champion=is_champion,
+                )
+
+        try:
+            experiment_log = self.store.get_experiment_log()
+        except Exception:
+            experiment_log = pd.DataFrame()
+
+        if not experiment_log.empty and {"run_id", "outcome"}.issubset(experiment_log.columns):
+            for run_id, group in experiment_log.groupby("run_id", sort=False):
+                outcomes = group["outcome"].dropna().astype(str)
+                outcome = outcomes.iloc[-1] if not outcomes.empty else None
+                prior = status_by_run.get(str(run_id))
+                status_by_run[str(run_id)] = resolve_observatory_status(
+                    experiment_outcome=outcome,
+                    scorecard_status=prior,
+                    is_champion=(prior == "champion"),
+                )
+
+        return status_by_run
+
+    def _is_gate_clean_status(self, status: object) -> bool:
+        """Return True when a status is eligible for automated search signals."""
+        normalized = resolve_observatory_status(scorecard_status=status)
+        return is_gate_clean(normalized) or normalized in self._gate_clean_statuses
+
+    def _raw_run_deltas(self) -> pd.DataFrame:
+        """Compute raw per-run deltas against the benchmark champion row."""
+        scorecards = self.store.get_consolidated_scorecards()
+        if scorecards.empty:
+            return pd.DataFrame()
+
+        if "status_at_run" in scorecards.columns:
+            champion_rows = scorecards[
+                scorecards["status_at_run"].fillna("").astype(str).str.lower() == "champion"
+            ]
+        else:
+            champion_rows = scorecards.head(0)
+
+        if champion_rows.empty:
+            best_idx = scorecards["county_mape_overall"].idxmin()
+            champion = scorecards.loc[best_idx]
+        else:
+            best_idx = champion_rows["county_mape_overall"].idxmin()
+            champion = champion_rows.loc[best_idx]
+
+        id_cols = [c for c in ("run_id", "method_id", "config_id") if c in scorecards.columns]
+        result = scorecards[id_cols].copy()
+        for metric in TRADEOFF_METRICS:
+            if metric in scorecards.columns:
+                result[f"delta_{metric}"] = scorecards[metric] - float(champion[metric])
+        return result
+
     def _collect_param_value_rows(self) -> list[dict[str, Any]]:
         """Walk all runs and extract per-parameter deltas.
 
@@ -344,13 +422,17 @@ class ObservatoryRecommender:
         """
         run_ids = self.store.get_run_ids()
         rows: list[dict[str, Any]] = []
+        run_status_map = self._run_status_map()
 
-        # Pre-compute deltas across all runs
-        deltas_df = self.comparator.compute_deltas()
+        # Pre-compute raw run-level deltas across all runs.
+        deltas_df = self._raw_run_deltas()
         if deltas_df.empty:
             return rows
 
         for run_id in run_ids:
+            resolved_status = run_status_map.get(str(run_id), "untested")
+            if not self._is_gate_clean_status(resolved_status):
+                continue
             try:
                 manifest = self.store.get_run_manifest(run_id)
             except FileNotFoundError:
@@ -398,6 +480,7 @@ class ObservatoryRecommender:
                         "champion_value": champion_config.get(param),
                         "classification": "unknown",
                         "run_id": run_id,
+                        "resolved_status": resolved_status,
                     }
                     for metric in TRADEOFF_METRICS:
                         row[f"{metric}_delta"] = delta_dict.get(metric)
@@ -563,15 +646,21 @@ class ObservatoryRecommender:
             return recs
 
         for entry in catalog:
-            status = str(entry.get("status", "untested")).lower()
-            if status not in ("untested", ""):
+            status = resolve_observatory_status(
+                experiment_outcome=entry.get("log_outcome"),
+                catalog_status=entry.get("resolved_status", entry.get("status")),
+            )
+            if status != "untested":
                 continue
             tier = int(entry.get("tier", 3))
             param = str(entry.get("parameter", "unknown"))
             slug = str(entry.get("slug", ""))
             hypothesis = str(entry.get("hypothesis", ""))
             value = entry.get("suggested_value", entry.get("value"))
+            runnable = entry.get("runnable_without_code_change")
             requires_code = entry.get("requires_code_change", False)
+            if isinstance(runnable, bool):
+                requires_code = not runnable
             if not isinstance(requires_code, bool):
                 requires_code = param not in CONFIG_ONLY_PARAMS
 

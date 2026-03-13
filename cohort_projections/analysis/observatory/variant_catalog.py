@@ -38,7 +38,12 @@ import yaml
 
 from cohort_projections.analysis.experiment_log import (
     _match_config_delta,
-    config_delta_summary as _config_delta_summary,
+)
+from cohort_projections.analysis.observatory.runtime_contract import (
+    get_runtime_injectable_parameters,
+)
+from cohort_projections.analysis.observatory.status import (
+    resolve_observatory_status,
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -126,19 +131,13 @@ class VariantCatalog:
         self._parameter_bounds: dict[str, dict[str, Any]] = raw.get(
             "parameter_bounds", {}
         )
+        self._runtime_params: frozenset[str] = get_runtime_injectable_parameters()
 
         # Load or accept the experiment log
         if experiment_log is not None:
             self._log = experiment_log
         else:
             self._log = self._load_default_log()
-
-        # Pre-compute tested status by parameter matching
-        self._tested_deltas: list[str] = []
-        if not self._log.empty and "config_delta_summary" in self._log.columns:
-            self._tested_deltas = (
-                self._log["config_delta_summary"].dropna().tolist()
-            )
 
     @staticmethod
     def _load_default_log() -> pd.DataFrame:
@@ -154,6 +153,86 @@ class VariantCatalog:
             return pd.read_csv(DEFAULT_LOG_PATH, dtype=str)
         except Exception:
             return pd.DataFrame()
+
+    def _matching_log_rows(self, config_delta: dict[str, Any]) -> pd.DataFrame:
+        """Return experiment-log rows that match a given config delta."""
+        if self._log.empty or "config_delta_summary" not in self._log.columns:
+            return pd.DataFrame()
+        mask = self._log["config_delta_summary"].fillna("").map(
+            lambda summary: _match_config_delta(summary, config_delta)
+        )
+        return self._log.loc[mask].copy()
+
+    def _runtime_validation(self, parameter: str) -> tuple[bool, str]:
+        """Validate that a catalog parameter is injectable at runtime."""
+        if parameter in self._runtime_params:
+            return True, ""
+        return (
+            False,
+            (
+                f"Parameter '{parameter}' is not present in the live MethodConfig "
+                "runtime contract."
+            ),
+        )
+
+    def _variant_record(self, variant_id: str, vdef: dict[str, Any]) -> dict[str, Any]:
+        """Build the normalized record used by list/query methods."""
+        config_delta = _normalize_config_delta(vdef["parameter"], vdef["value"])
+        matching_log = self._matching_log_rows(config_delta)
+        log_outcome = ""
+        if not matching_log.empty and "outcome" in matching_log.columns:
+            outcomes = matching_log["outcome"].dropna().astype(str)
+            if not outcomes.empty:
+                log_outcome = outcomes.iloc[-1]
+
+        catalog_status = ""
+        if "results" in vdef:
+            catalog_status = str(vdef["results"].get("status", "") or "")
+
+        tested = bool(catalog_status) or not matching_log.empty
+        runtime_injectable, validation_error = self._runtime_validation(
+            str(vdef.get("parameter", ""))
+        )
+        config_only = bool(vdef.get("config_only", True))
+        runnable_without_code_change = config_only and runtime_injectable
+        requires_code_change = not runnable_without_code_change
+        resolved_status = resolve_observatory_status(
+            experiment_outcome=log_outcome,
+            catalog_status=catalog_status,
+        )
+
+        return {
+            "variant_id": variant_id,
+            "name": vdef.get("name", ""),
+            "parameter": vdef.get("parameter", ""),
+            "value": vdef.get("value"),
+            "tier": vdef.get("tier", 99),
+            "config_only": config_only,
+            "runtime_injectable": runtime_injectable,
+            "runnable_without_code_change": runnable_without_code_change,
+            "requires_code_change": requires_code_change,
+            "tested": tested,
+            "status": catalog_status,
+            "resolved_status": resolved_status,
+            "log_outcome": log_outcome,
+            "validation_error": validation_error,
+            "hypothesis": (vdef.get("hypothesis", "") or "").strip(),
+            **vdef,
+        }
+
+    def validate_grid(self, grid_id: str) -> None:
+        """Validate that every parameter in a grid is runtime-injectable."""
+        gdef = self.get_grid(grid_id)
+        invalid = sorted(
+            parameter
+            for parameter in gdef.get("parameters", {})
+            if parameter not in self._runtime_params
+        )
+        if invalid:
+            raise ValueError(
+                "Grid contains non-injectable parameter(s): "
+                + ", ".join(invalid)
+            )
 
     # -----------------------------------------------------------------
     # Query methods
@@ -193,41 +272,20 @@ class VariantCatalog:
         if "results" in variant and variant["results"].get("status"):
             return True
 
-        config_delta = _normalize_config_delta(
-            variant["parameter"], variant["value"]
-        )
-        return any(
-            _match_config_delta(summary, config_delta)
-            for summary in self._tested_deltas
-        )
+        config_delta = _normalize_config_delta(variant["parameter"], variant["value"])
+        return not self._matching_log_rows(config_delta).empty
 
     def list_variants(self) -> pd.DataFrame:
         """Return all variants as a DataFrame.
 
-        Columns: variant_id, name, parameter, value, tier, config_only,
-        tested, status, hypothesis.
+        Columns include candidate metadata, reconciled status, and runtime
+        validation fields used to distinguish total untested entries from
+        runnable config-only variants.
 
         Returns:
             DataFrame with one row per variant, sorted by tier then ID.
         """
-        rows: list[dict[str, Any]] = []
-        for vid, vdef in self._variants.items():
-            tested = self._is_tested(vdef)
-            status = ""
-            if "results" in vdef:
-                status = vdef["results"].get("status", "")
-
-            rows.append({
-                "variant_id": vid,
-                "name": vdef.get("name", ""),
-                "parameter": vdef.get("parameter", ""),
-                "value": vdef.get("value"),
-                "tier": vdef.get("tier", 99),
-                "config_only": vdef.get("config_only", True),
-                "tested": tested,
-                "status": status,
-                "hypothesis": (vdef.get("hypothesis", "") or "").strip(),
-            })
+        rows = [self._variant_record(vid, vdef) for vid, vdef in self._variants.items()]
 
         df = pd.DataFrame(rows)
         if not df.empty:
@@ -237,19 +295,21 @@ class VariantCatalog:
     def get_untested(self) -> list[dict[str, Any]]:
         """Return variant definitions that have not been tested.
 
-        Only includes config-only variants (those that do not require
-        code changes to test).
+        Only includes variants that are both untested and runnable via the
+        current runtime injection contract.
 
         Returns:
-            List of variant definition dicts for untested, config-only variants.
+            List of variant definition dicts for untested, runnable variants.
         """
-        untested: list[dict[str, Any]] = []
-        for vid, vdef in sorted(self._variants.items()):
-            if not vdef.get("config_only", True):
-                continue
-            if not self._is_tested(vdef):
-                untested.append({"variant_id": vid, **vdef})
-        return untested
+        variants_df = self.list_variants()
+        if variants_df.empty:
+            return []
+
+        runnable = variants_df[
+            variants_df["resolved_status"].eq("untested")
+            & variants_df["runnable_without_code_change"].eq(True)
+        ]
+        return runnable.to_dict("records")
 
     def get_variant(self, variant_id: str) -> dict[str, Any]:
         """Return the full definition for a single variant.
@@ -270,11 +330,7 @@ class VariantCatalog:
                 f"Available: {sorted(self._variants.keys())}"
             )
         vdef = self._variants[variant_id]
-        return {
-            "variant_id": variant_id,
-            "tested": self._is_tested(vdef),
-            **vdef,
-        }
+        return self._variant_record(variant_id, vdef)
 
     def get_grid(self, grid_id: str) -> dict[str, Any]:
         """Return the full definition for a grid.
@@ -294,6 +350,39 @@ class VariantCatalog:
                 f"Available: {sorted(self._grids.keys())}"
             )
         return {"grid_id": grid_id, **self._grids[grid_id]}
+
+    def get_inventory_summary(self) -> dict[str, Any]:
+        """Return tested/untested inventory counts for CLI status reporting."""
+        variants = self.list_variants()
+        if variants.empty:
+            return {
+                "total": 0,
+                "tested": 0,
+                "untested_total": 0,
+                "untested_runnable": 0,
+                "untested_requires_code_change": 0,
+                "untested_ids": [],
+                "untested_runnable_ids": [],
+                "untested_requires_code_change_ids": [],
+            }
+
+        untested = variants[variants["resolved_status"] == "untested"]
+        runnable = untested[untested["runnable_without_code_change"]]
+        requires_code = untested[~untested["runnable_without_code_change"]]
+        return {
+            "total": int(len(variants)),
+            "tested": int((variants["resolved_status"] != "untested").sum()),
+            "untested_total": int(len(untested)),
+            "untested_runnable": int(len(runnable)),
+            "untested_requires_code_change": int(len(requires_code)),
+            "untested_ids": sorted(untested["variant_id"].astype(str).str.upper().tolist()),
+            "untested_runnable_ids": sorted(
+                runnable["variant_id"].astype(str).str.upper().tolist()
+            ),
+            "untested_requires_code_change_ids": sorted(
+                requires_code["variant_id"].astype(str).str.upper().tolist()
+            ),
+        }
 
     # -----------------------------------------------------------------
     # Parameter bounds
@@ -401,6 +490,13 @@ class VariantCatalog:
             KeyError: If the variant ID is not found.
         """
         vdef = self.get_variant(variant_id)
+        if not vdef.get("runnable_without_code_change", False):
+            raise ValueError(
+                vdef.get(
+                    "validation_error",
+                    f"Variant '{variant_id}' is not runnable without code changes.",
+                )
+            )
         slug = vdef.get("slug", variant_id)
         today = dt.datetime.now(tz=dt.UTC).date().strftime("%Y%m%d")
         experiment_id = f"exp-{today}-{slug}"
@@ -447,6 +543,7 @@ class VariantCatalog:
         Raises:
             KeyError: If the grid ID is not found.
         """
+        self.validate_grid(grid_id)
         gdef = self.get_grid(grid_id)
         parameters: dict[str, list[Any]] = gdef["parameters"]
         mode = gdef.get("mode", "cartesian")

@@ -35,6 +35,7 @@ def _make_store_and_comparator(
     scorecards: pd.DataFrame,
     manifests: dict[str, dict] | None = None,
     run_configs: dict[str, dict] | None = None,
+    experiment_log: pd.DataFrame | None = None,
 ) -> tuple[MagicMock, ObservatoryComparator]:
     """Build a mock store + real comparator for testing."""
     store = MagicMock()
@@ -57,6 +58,9 @@ def _make_store_and_comparator(
 
     store.get_run_manifest.side_effect = _get_manifest
     store.get_run_config.side_effect = _get_config
+    store.get_experiment_log.return_value = (
+        experiment_log if experiment_log is not None else pd.DataFrame()
+    )
 
     comparator = ObservatoryComparator(store=store)
     return store, comparator
@@ -161,7 +165,15 @@ def recommender(
     manifests: dict,
     run_configs: dict,
 ) -> ObservatoryRecommender:
-    store, comparator = _make_store_and_comparator(scorecards, manifests, run_configs)
+    experiment_log = pd.DataFrame(
+        [
+            {"run_id": "run-a", "outcome": "passed_all_gates"},
+            {"run_id": "run-b", "outcome": "passed_all_gates"},
+        ]
+    )
+    store, comparator = _make_store_and_comparator(
+        scorecards, manifests, run_configs, experiment_log
+    )
     return ObservatoryRecommender(store=store, comparator=comparator)
 
 
@@ -275,6 +287,8 @@ class TestParameterSensitivity:
     def test_returns_dataframe(self, recommender: ObservatoryRecommender) -> None:
         result = recommender.parameter_sensitivity_summary()
         assert isinstance(result, pd.DataFrame)
+        assert not result.empty
+        assert set(result["resolved_status"]) == {"passed_all_gates"}
 
     def test_empty_store(self) -> None:
         store, comparator = _make_store_and_comparator(pd.DataFrame())
@@ -311,6 +325,31 @@ class TestSuggestNextExperiments:
         if len(recs) >= 2:
             priorities = [r.priority for r in recs]
             assert priorities == sorted(priorities)
+
+    def test_excludes_review_only_runs_from_sensitivity(self) -> None:
+        scorecards = pd.DataFrame([CHAMPION, EXP_A, EXP_B])
+        manifests = {
+            "run-champ": {"champion_method_id": "m2026", "methods": [{"method_id": "m2026"}]},
+            "run-a": {"champion_method_id": "m2026", "methods": [{"method_id": "m2026"}, {"method_id": "m2026r1"}]},
+            "run-b": {"champion_method_id": "m2026", "methods": [{"method_id": "m2026"}, {"method_id": "m2026r1"}]},
+        }
+        run_configs = {
+            "run-champ": {"m2026": {"college_blend_factor": 0.5}},
+            "run-a": {"m2026": {"college_blend_factor": 0.5}, "m2026r1": {"college_blend_factor": 0.7}},
+            "run-b": {"m2026": {"college_blend_factor": 0.5}, "m2026r1": {"college_blend_factor": 0.9}},
+        }
+        experiment_log = pd.DataFrame(
+            [
+                {"run_id": "run-a", "outcome": "needs_human_review"},
+                {"run_id": "run-b", "outcome": "passed_all_gates"},
+            ]
+        )
+        store, comparator = _make_store_and_comparator(
+            scorecards, manifests, run_configs, experiment_log
+        )
+        rec = ObservatoryRecommender(store=store, comparator=comparator)
+        sensitivity = rec.parameter_sensitivity_summary()
+        assert set(sensitivity["run_id"]) == {"run-b"}
 
 
 # ---------------------------------------------------------------------------
@@ -352,6 +391,34 @@ class TestUntestedCatalog:
         recs = rec._untested_catalog_recommendations()
         assert len(recs) == 1
         assert recs[0].parameter == "alpha"
+
+    def test_uses_resolved_status_and_runnable_flags(self) -> None:
+        store, comparator = _make_store_and_comparator(pd.DataFrame())
+        catalog = [
+            {
+                "slug": "exp-x",
+                "parameter": "alpha",
+                "resolved_status": "untested",
+                "runnable_without_code_change": False,
+                "tier": 1,
+                "hypothesis": "test",
+            },
+            {
+                "slug": "exp-y",
+                "parameter": "college_blend_factor",
+                "resolved_status": "untested",
+                "runnable_without_code_change": True,
+                "tier": 1,
+                "hypothesis": "test",
+                "value": 0.7,
+            },
+        ]
+        rec = ObservatoryRecommender(
+            store=store, comparator=comparator, variant_catalog=catalog
+        )
+        recs = rec._untested_catalog_recommendations()
+        assert len(recs) == 2
+        assert {r.requires_code_change for r in recs} == {False, True}
 
 
 # ---------------------------------------------------------------------------
@@ -500,6 +567,7 @@ class TestFormatRecommendations:
         ]
         output = recommender.format_recommendations(recs)
         assert "EXPERIMENT RECOMMENDATIONS" in output
+        assert "gate-clean runs" in output
         assert "college_blend_factor" in output
         assert "0.8" in output
         assert "increase" in output

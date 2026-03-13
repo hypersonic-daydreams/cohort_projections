@@ -13,6 +13,7 @@ from typing import Any
 
 import pandas as pd
 
+from cohort_projections.analysis.observatory.candidates import build_candidate_view
 from cohort_projections.analysis.observatory.results_store import ResultsStore
 
 logger = logging.getLogger(__name__)
@@ -125,8 +126,17 @@ class ObservatoryComparator:
         """
         return self.store.get_consolidated_scorecards()
 
+    def _load_candidate_scorecards(self) -> pd.DataFrame:
+        """Load the canonical candidate view used for rankings.
+
+        Candidate identity resolves to ``config_id`` when available and falls
+        back to ``run_id`` otherwise. This deduplicates repeated baseline or
+        champion rows that appear across multiple benchmark bundles.
+        """
+        return build_candidate_view(self._load_all_scorecards())
+
     def _detect_champion(self, scorecards: pd.DataFrame) -> str | None:
-        """Auto-detect the champion run_id from the scorecard data.
+        """Auto-detect the champion candidate ID from the scorecard data.
 
         Heuristic: the champion is the run whose ``status_at_run`` is
         ``'champion'``.  If multiple exist, pick the one with the lowest
@@ -141,10 +151,14 @@ class ObservatoryComparator:
         ]
         if not champions.empty:
             best_idx = champions[self.primary_metric].idxmin()
+            if "candidate_id" in champions.columns:
+                return str(champions.loc[best_idx, "candidate_id"])
             return str(champions.loc[best_idx, "run_id"])
 
         # Fallback: best primary metric across all rows.
         best_idx = scorecards[self.primary_metric].idxmin()
+        if "candidate_id" in scorecards.columns:
+            return str(scorecards.loc[best_idx, "candidate_id"])
         return str(scorecards.loc[best_idx, "run_id"])
 
     def _resolve_champion(
@@ -152,8 +166,29 @@ class ObservatoryComparator:
     ) -> str | None:
         """Return the champion run_id, resolving from config/auto-detect."""
         if champion_run_id is not None:
+            if "candidate_id" in scorecards.columns:
+                matched = scorecards[scorecards["candidate_id"] == champion_run_id]
+                if not matched.empty:
+                    return str(champion_run_id)
+            if "run_id" in scorecards.columns:
+                matched = scorecards[scorecards["run_id"] == champion_run_id]
+                if not matched.empty:
+                    if "candidate_id" in matched.columns:
+                        return str(matched.iloc[0]["candidate_id"])
+                    return str(champion_run_id)
             return champion_run_id
+
         if self._champion_run_id is not None:
+            if "candidate_id" in scorecards.columns:
+                matched = scorecards[scorecards["candidate_id"] == self._champion_run_id]
+                if not matched.empty:
+                    return str(self._champion_run_id)
+            if "run_id" in scorecards.columns:
+                matched = scorecards[scorecards["run_id"] == self._champion_run_id]
+                if not matched.empty:
+                    if "candidate_id" in matched.columns:
+                        return str(matched.iloc[0]["candidate_id"])
+                    return str(self._champion_run_id)
             return self._champion_run_id
         return self._detect_champion(scorecards)
 
@@ -166,17 +201,18 @@ class ObservatoryComparator:
     # ------------------------------------------------------------------
 
     def rank_all(self) -> pd.DataFrame:
-        """Rank all runs by every available metric.
+        """Rank all canonical candidates by every available metric.
 
-        Returns a DataFrame with ``run_id``, ``method_id``, ``config_id``,
-        each metric column, and a ``rank_<metric>`` column for each metric.
+        Returns a DataFrame with one row per candidate, including
+        ``candidate_id``, representative ``run_id``, ``method_id``,
+        ``config_id``, each metric column, and a ``rank_<metric>`` column.
         """
-        scorecards = self._load_all_scorecards()
+        scorecards = self._load_candidate_scorecards()
         if scorecards.empty:
             return pd.DataFrame()
 
         metrics = self._available_metrics(scorecards)
-        id_cols = ["run_id", "method_id", "config_id"]
+        id_cols = ["candidate_id", "candidate_source", "run_id", "method_id", "config_id"]
         present_id_cols = [c for c in id_cols if c in scorecards.columns]
         result = scorecards[present_id_cols + metrics].copy()
 
@@ -202,7 +238,7 @@ class ObservatoryComparator:
 
         Returns a DataFrame sorted by the metric with a ``rank`` column.
         """
-        scorecards = self._load_all_scorecards()
+        scorecards = self._load_candidate_scorecards()
         if scorecards.empty:
             return pd.DataFrame()
 
@@ -212,7 +248,7 @@ class ObservatoryComparator:
                 f"Available: {list(scorecards.columns)}"
             )
 
-        id_cols = ["run_id", "method_id", "config_id"]
+        id_cols = ["candidate_id", "candidate_source", "run_id", "method_id", "config_id"]
         present_id_cols = [c for c in id_cols if c in scorecards.columns]
         result = scorecards[present_id_cols + [metric]].copy()
         result["rank"] = result[metric].rank(ascending=ascending, method="min").astype(int)
@@ -232,7 +268,7 @@ class ObservatoryComparator:
         Returns a DataFrame with ``run_id``, ``method_id``, ``config_id``,
         and ``delta_<metric>`` columns for each metric.
         """
-        scorecards = self._load_all_scorecards()
+        scorecards = self._load_candidate_scorecards()
         if scorecards.empty:
             return pd.DataFrame()
 
@@ -241,16 +277,19 @@ class ObservatoryComparator:
             logger.warning("No champion could be resolved; returning empty deltas.")
             return pd.DataFrame()
 
-        champion_rows = scorecards[scorecards["run_id"] == champion_id]
+        id_col = "candidate_id" if "candidate_id" in scorecards.columns else "run_id"
+        champion_rows = scorecards[scorecards[id_col] == champion_id]
         if champion_rows.empty:
-            raise ValueError(f"Champion run_id not found in scorecards: {champion_id}")
+            raise ValueError(
+                f"Champion candidate/run ID not found in scorecards: {champion_id}"
+            )
 
         # Use the first champion row (there should typically be one per method
         # family, but the champion baseline is the reference).
         champion = champion_rows.iloc[0]
         metrics = self._available_metrics(scorecards)
 
-        id_cols = ["run_id", "method_id", "config_id"]
+        id_cols = ["candidate_id", "candidate_source", "run_id", "method_id", "config_id"]
         present_id_cols = [c for c in id_cols if c in scorecards.columns]
         result = scorecards[present_id_cols].copy()
 
@@ -276,7 +315,7 @@ class ObservatoryComparator:
         Returns a DataFrame containing only the Pareto-optimal rows,
         sorted by ``x_metric``.
         """
-        scorecards = self._load_all_scorecards()
+        scorecards = self._load_candidate_scorecards()
         if scorecards.empty:
             return pd.DataFrame()
 
@@ -314,7 +353,7 @@ class ObservatoryComparator:
         and one column per county group containing the MAPE delta
         (negative = improvement).
         """
-        scorecards = self._load_all_scorecards()
+        scorecards = self._load_candidate_scorecards()
         if scorecards.empty:
             return pd.DataFrame()
 
@@ -322,12 +361,13 @@ class ObservatoryComparator:
         if champion_id is None:
             return pd.DataFrame()
 
-        champion_rows = scorecards[scorecards["run_id"] == champion_id]
+        id_col = "candidate_id" if "candidate_id" in scorecards.columns else "run_id"
+        champion_rows = scorecards[scorecards[id_col] == champion_id]
         if champion_rows.empty:
             return pd.DataFrame()
         champion = champion_rows.iloc[0]
 
-        id_cols = ["run_id", "method_id", "config_id"]
+        id_cols = ["candidate_id", "candidate_source", "run_id", "method_id", "config_id"]
         present_id_cols = [c for c in id_cols if c in scorecards.columns]
         result = scorecards[present_id_cols].copy()
 
@@ -342,10 +382,10 @@ class ObservatoryComparator:
         """Identify which run is best for each county group.
 
         Returns a dict mapping county group name to a dict with
-        ``run_id`` and ``config_id`` for the variant with the lowest
-        MAPE for that group.
+        representative ``run_id``, ``config_id``, and canonical
+        ``candidate_id`` for the variant with the lowest MAPE for that group.
         """
-        scorecards = self._load_all_scorecards()
+        scorecards = self._load_candidate_scorecards()
         if scorecards.empty:
             return {}
 
@@ -357,7 +397,14 @@ class ObservatoryComparator:
                 config_id = str(
                     scorecards.loc[best_idx, "config_id"]
                 ) if "config_id" in scorecards.columns else run_id
-                best[group] = {"run_id": run_id, "config_id": config_id}
+                candidate_id = str(
+                    scorecards.loc[best_idx, "candidate_id"]
+                ) if "candidate_id" in scorecards.columns else run_id
+                best[group] = {
+                    "run_id": run_id,
+                    "config_id": config_id,
+                    "candidate_id": candidate_id,
+                }
         return best
 
     def full_comparison(
@@ -376,7 +423,8 @@ class ObservatoryComparator:
         if ranking.empty:
             return ComparisonResult()
 
-        scorecards = self._load_all_scorecards()
+        raw_scorecards = self._load_all_scorecards()
+        scorecards = self._load_candidate_scorecards()
         champion_id = self._resolve_champion(scorecards, champion_run_id)
         deltas = self.compute_deltas(champion_id)
         group_impact = self.county_group_impact()
@@ -391,19 +439,32 @@ class ObservatoryComparator:
         )
         try:
             pareto_df = self.pareto_frontier(pareto_x, pareto_y)
-            pareto_run_ids = pareto_df["run_id"].tolist() if "run_id" in pareto_df.columns else []
+            pareto_run_ids = (
+                pareto_df["run_id"].tolist() if "run_id" in pareto_df.columns else []
+            )
+            pareto_candidate_ids = (
+                pareto_df["candidate_id"].tolist()
+                if "candidate_id" in pareto_df.columns
+                else pareto_run_ids
+            )
         except ValueError:
             pareto_run_ids = []
+            pareto_candidate_ids = []
 
         # Summary statistics.
-        n_runs = len(scorecards)
+        n_candidates = len(scorecards)
         metrics = self._available_metrics(scorecards)
         summary: dict[str, Any] = {
-            "n_runs": n_runs,
+            "n_runs": n_candidates,
+            "n_candidates": n_candidates,
+            "n_raw_scorecard_rows": len(raw_scorecards),
             "champion_run_id": champion_id,
+            "champion_candidate_id": champion_id,
+            "candidate_identity_policy": "config_id_or_run_id_fallback",
             "pareto_metric_x": pareto_x,
             "pareto_metric_y": pareto_y,
             "n_pareto_optimal": len(pareto_run_ids),
+            "pareto_candidate_ids": pareto_candidate_ids,
         }
         for metric in metrics:
             vals = scorecards[metric].dropna()
@@ -443,6 +504,8 @@ class ObservatoryComparator:
 
         # Build column specs: id columns + primary metric + rank.
         display_cols: list[str] = []
+        if "candidate_id" in ranking.columns:
+            display_cols.append("candidate_id")
         if "run_id" in ranking.columns:
             display_cols.append("run_id")
         if "method_id" in ranking.columns:
@@ -510,9 +573,15 @@ class ObservatoryComparator:
         # Summary stats.
         n_runs = result.summary.get("n_runs", 0)
         champion = result.summary.get("champion_run_id", "unknown")
-        lines.append(f"  Runs compared:    {n_runs}")
+        lines.append(f"  Candidates:       {n_runs}")
+        raw_rows = result.summary.get("n_raw_scorecard_rows")
+        if raw_rows is not None:
+            lines.append(f"  Raw scorecard rows:{raw_rows:>10}")
         lines.append(f"  Champion:         {champion}")
         lines.append(f"  Pareto-optimal:   {result.summary.get('n_pareto_optimal', 0)}")
+        policy = result.summary.get("candidate_identity_policy")
+        if policy:
+            lines.append(f"  Identity policy:  {policy}")
         lines.append("")
 
         # Metric ranges.

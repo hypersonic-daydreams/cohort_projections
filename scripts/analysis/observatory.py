@@ -438,27 +438,7 @@ def cmd_status(
     catalog_data: dict[str, Any] = {}
     if catalog is not None:
         try:
-            variants_df = catalog.list_variants()
-            total = len(variants_df)
-            tested = int(variants_df["tested"].sum()) if "tested" in variants_df.columns else 0
-            untested = total - tested
-            catalog_data["total"] = total
-            catalog_data["tested"] = tested
-            catalog_data["untested"] = untested
-
-            if (
-                untested > 0
-                and "tested" in variants_df.columns
-                and "variant_id" in variants_df.columns
-            ):
-                untested_ids = sorted(
-                    variants_df.loc[~variants_df["tested"], "variant_id"]
-                    .str.upper()
-                    .tolist()
-                )
-                catalog_data["untested_ids"] = untested_ids
-            else:
-                catalog_data["untested_ids"] = []
+            catalog_data = catalog.get_inventory_summary()
         except Exception as e:
             catalog_data["error"] = str(e)
 
@@ -482,8 +462,18 @@ def cmd_status(
             "best_challenger_delta": status_data["best_challenger"].get("delta", ""),
             "catalog_total": catalog_data.get("total", ""),
             "catalog_tested": catalog_data.get("tested", ""),
-            "catalog_untested": catalog_data.get("untested", ""),
+            "catalog_untested_total": catalog_data.get("untested_total", ""),
+            "catalog_untested_runnable": catalog_data.get("untested_runnable", ""),
+            "catalog_untested_requires_code_change": catalog_data.get(
+                "untested_requires_code_change", ""
+            ),
             "catalog_untested_ids": ";".join(catalog_data.get("untested_ids", [])),
+            "catalog_untested_runnable_ids": ";".join(
+                catalog_data.get("untested_runnable_ids", [])
+            ),
+            "catalog_untested_requires_code_change_ids": ";".join(
+                catalog_data.get("untested_requires_code_change_ids", [])
+            ),
         }
         writer = csv.DictWriter(sys.stdout, fieldnames=list(flat.keys()))
         writer.writeheader()
@@ -513,12 +503,26 @@ def cmd_status(
     else:
         print(f"  Total variants: {catalog_data.get('total', 0)}")  # noqa: T201
         print(f"  Tested: {catalog_data.get('tested', 0)}")  # noqa: T201
-        untested_count = catalog_data.get("untested", 0)
+        untested_count = catalog_data.get("untested_total", 0)
         untested_ids_list = catalog_data.get("untested_ids", [])
         if untested_ids_list:
             print(f"  Untested: {untested_count} — {', '.join(untested_ids_list)}")  # noqa: T201
         else:
             print(f"  Untested: {untested_count}")  # noqa: T201
+        print(
+            f"  Untested runnable: {catalog_data.get('untested_runnable', 0)}"
+        )  # noqa: T201
+        blocked_ids = catalog_data.get("untested_requires_code_change_ids", [])
+        blocked_count = catalog_data.get("untested_requires_code_change", 0)
+        if blocked_ids:
+            print(
+                "  Untested requiring code changes: "
+                f"{blocked_count} — {', '.join(blocked_ids)}"
+            )  # noqa: T201
+        else:
+            print(
+                f"  Untested requiring code changes: {blocked_count}"
+            )  # noqa: T201
 
         grids = catalog._grids if hasattr(catalog, "_grids") else {}
         print(f"  Defined grids: {len(grids)}")  # noqa: T201
@@ -775,10 +779,13 @@ def cmd_run_pending(
         return 1
 
     if not untested:
-        print("No untested variants found. All catalog entries have been tested.")  # noqa: T201
+        print(
+            "No untested runnable variants found. All config-only catalog entries "
+            "have either been tested already or require code changes."
+        )  # noqa: T201
         return 0
 
-    print(f"Found {len(untested)} untested variant(s).")  # noqa: T201
+    print(f"Found {len(untested)} untested runnable variant(s).")  # noqa: T201
 
     with tempfile.TemporaryDirectory(prefix="observatory_pending_") as tmpdir:
         tmpdir_path = Path(tmpdir)
@@ -1574,37 +1581,42 @@ def _get_champion_challenger(store: Any, primary_metric: str) -> dict[str, Any]:
     if scorecards.empty or primary_metric not in scorecards.columns:
         return result
 
+    from cohort_projections.analysis.observatory.candidates import build_candidate_view
+
+    candidates = build_candidate_view(scorecards)
+    if candidates.empty or primary_metric not in candidates.columns:
+        return result
+
     champion_df = (
-        scorecards[scorecards.get("status_at_run") == "champion"]
-        if "status_at_run" in scorecards.columns
-        else scorecards.head(0)
+        candidates[candidates.get("status_at_run") == "champion"]
+        if "status_at_run" in candidates.columns
+        else candidates.head(0)
     )
 
     if not champion_df.empty:
-        champ_config = champion_df["config_id"].iloc[0] if "config_id" in champion_df.columns else "unknown"
+        champ_config = (
+            champion_df["config_id"].iloc[0]
+            if "config_id" in champion_df.columns
+            else "unknown"
+        )
         champ_value = float(champion_df[primary_metric].iloc[0])
     else:
-        best_idx = scorecards[primary_metric].idxmin()
-        best_row = scorecards.loc[best_idx]
+        best_idx = candidates[primary_metric].idxmin()
+        best_row = candidates.loc[best_idx]
         champ_config = best_row.get("config_id", "unknown")
         champ_value = float(best_row[primary_metric])
 
     result["champion"] = {"config_id": str(champ_config), "metric": champ_value}
 
     non_champion = (
-        scorecards[scorecards.get("status_at_run") != "champion"]
-        if "status_at_run" in scorecards.columns
-        else scorecards.head(0)
+        candidates[candidates.get("status_at_run") != "champion"]
+        if "status_at_run" in candidates.columns
+        else candidates.head(0)
     )
     if not non_champion.empty:
-        if "config_id" in non_champion.columns:
-            grouped = non_champion.groupby("config_id")[primary_metric].mean()
-            best_challenger_id = grouped.idxmin()
-            best_challenger_val = float(grouped.min())
-        else:
-            best_idx = non_champion[primary_metric].idxmin()
-            best_challenger_id = non_champion.loc[best_idx].get("config_id", "unknown")
-            best_challenger_val = float(non_champion.loc[best_idx][primary_metric])
+        best_idx = non_champion[primary_metric].idxmin()
+        best_challenger_id = non_champion.loc[best_idx].get("config_id", "unknown")
+        best_challenger_val = float(non_champion.loc[best_idx][primary_metric])
 
         delta = best_challenger_val - champ_value
         result["best_challenger"] = {
@@ -1633,36 +1645,42 @@ def _print_champion_challenger(store: Any, primary_metric: str) -> None:
     if scorecards.empty or primary_metric not in scorecards.columns:
         return
 
+    from cohort_projections.analysis.observatory.candidates import build_candidate_view
+
+    candidates = build_candidate_view(scorecards)
+    if candidates.empty or primary_metric not in candidates.columns:
+        return
+
     print()  # noqa: T201
 
     # Identify champion: rows where status_at_run == "champion"
-    champion_df = scorecards[scorecards.get("status_at_run") == "champion"] if "status_at_run" in scorecards.columns else scorecards.head(0)
+    champion_df = (
+        candidates[candidates.get("status_at_run") == "champion"]
+        if "status_at_run" in candidates.columns
+        else candidates.head(0)
+    )
 
     if not champion_df.empty:
-        # Deduplicate — all champion rows should share the same config_id
         champ_config = champion_df["config_id"].iloc[0] if "config_id" in champion_df.columns else "unknown"
         champ_value = champion_df[primary_metric].iloc[0]
         print(f"Champion: {champ_config} ({primary_metric}: {champ_value:.3f})")  # noqa: T201
     else:
-        # Fall back to best overall
-        best_idx = scorecards[primary_metric].idxmin()
-        best_row = scorecards.loc[best_idx]
+        best_idx = candidates[primary_metric].idxmin()
+        best_row = candidates.loc[best_idx]
         champ_config = best_row.get("config_id", "unknown")
         champ_value = best_row[primary_metric]
         print(f"Best config: {champ_config} ({primary_metric}: {champ_value:.3f})")  # noqa: T201
 
     # Best challenger: best non-champion config
-    non_champion = scorecards[scorecards.get("status_at_run") != "champion"] if "status_at_run" in scorecards.columns else scorecards.head(0)
+    non_champion = (
+        candidates[candidates.get("status_at_run") != "champion"]
+        if "status_at_run" in candidates.columns
+        else candidates.head(0)
+    )
     if not non_champion.empty:
-        # Group by config_id and take the mean metric (handles repeated runs)
-        if "config_id" in non_champion.columns:
-            grouped = non_champion.groupby("config_id")[primary_metric].mean()
-            best_challenger_id = grouped.idxmin()
-            best_challenger_val = grouped.min()
-        else:
-            best_idx = non_champion[primary_metric].idxmin()
-            best_challenger_id = non_champion.loc[best_idx].get("config_id", "unknown")
-            best_challenger_val = non_champion.loc[best_idx][primary_metric]
+        best_idx = non_champion[primary_metric].idxmin()
+        best_challenger_id = non_champion.loc[best_idx].get("config_id", "unknown")
+        best_challenger_val = non_champion.loc[best_idx][primary_metric]
 
         delta = best_challenger_val - champ_value
         delta_str = _c_delta(delta)

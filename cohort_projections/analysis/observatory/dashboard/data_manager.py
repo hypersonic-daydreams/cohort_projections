@@ -21,6 +21,12 @@ from cohort_projections.analysis.observatory.recommender import ObservatoryRecom
 from cohort_projections.analysis.observatory.results_store import (
     ResultsStore,
 )
+from cohort_projections.analysis.observatory.status import (
+    STATUS_PRIORITY,
+    normalize_status,
+    resolve_observatory_status,
+    status_label,
+)
 from cohort_projections.analysis.observatory.variant_catalog import VariantCatalog
 
 logger = logging.getLogger(__name__)
@@ -37,26 +43,6 @@ _EXTRA_CSVS: dict[str, str] = {
     "uncertainty_summary": "uncertainty_summary.csv",
 }
 
-_STATUS_LABELS: dict[str, str] = {
-    "champion": "Champion",
-    "passed_all_gates": "Passed",
-    "needs_human_review": "Review",
-    "failed_hard_gate": "Failed",
-    "pending": "Pending",
-    "experiment": "Experiment",
-    "candidate": "Candidate",
-    "untested": "Untested",
-}
-_STATUS_PRIORITY: dict[str, int] = {
-    "champion": 0,
-    "passed_all_gates": 1,
-    "needs_human_review": 2,
-    "failed_hard_gate": 3,
-    "pending": 4,
-    "experiment": 5,
-    "candidate": 6,
-    "untested": 7,
-}
 _PRESET_TOP_CHALLENGERS = "Champion vs top challengers"
 _PRESET_NEEDS_REVIEW = "Needs review"
 _PRESET_PASSED_ONLY = "Passed only"
@@ -71,18 +57,9 @@ RUN_SELECTION_PRESETS: tuple[str, ...] = (
 )
 
 
-def _normalize_status(value: object) -> str:
-    """Return a lower-case status code or ``"untested"``."""
-    if value is None or pd.isna(value):
-        return "untested"
-    status = str(value).strip().lower()
-    return status or "untested"
-
-
 def _status_label(value: object) -> str:
     """Return a short, human-readable label for a status code."""
-    status = _normalize_status(value)
-    return _STATUS_LABELS.get(status, status.replace("_", " ").title())
+    return status_label(value)
 
 
 def _format_run_date(value: object) -> str:
@@ -333,23 +310,18 @@ def build_run_metadata_frame(
         "selected_config_id", pd.Series(dtype=object)
     ).map(_short_config_label)
 
-    status_series = metadata.get("outcome", pd.Series(dtype=object)).map(_normalize_status)
-    if "decision_status" in metadata.columns:
-        status_series = status_series.mask(
-            status_series.eq("untested"),
-            metadata["decision_status"].map(_normalize_status),
-        )
-    if "selected_status_at_run" in metadata.columns:
-        status_series = status_series.mask(
-            status_series.eq("untested"),
-            metadata["selected_status_at_run"].map(_normalize_status),
-        )
-    if champion_id is not None:
-        status_series = status_series.mask(metadata["run_id"] == champion_id, "champion")
-    metadata["status_code"] = status_series.fillna("untested")
+    metadata["status_code"] = metadata.apply(
+        lambda row: resolve_observatory_status(
+            experiment_outcome=row.get("outcome"),
+            catalog_status=row.get("decision_status"),
+            scorecard_status=row.get("selected_status_at_run"),
+            is_champion=(champion_id is not None and row.get("run_id") == champion_id),
+        ),
+        axis=1,
+    )
     metadata["status_label"] = metadata["status_code"].map(_status_label)
     metadata["status_priority"] = metadata["status_code"].map(
-        lambda status: _STATUS_PRIORITY.get(status, 99)
+        lambda status: STATUS_PRIORITY.get(normalize_status(status), 99)
     )
 
     metadata["legend_label"] = metadata["display_name"]

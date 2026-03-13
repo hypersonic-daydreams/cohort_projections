@@ -225,7 +225,18 @@ class TestListVariants:
 
     def test_has_expected_columns(self, catalog: VariantCatalog) -> None:
         df = catalog.list_variants()
-        for col in ("variant_id", "name", "parameter", "value", "tier", "config_only", "tested"):
+        for col in (
+            "variant_id",
+            "name",
+            "parameter",
+            "value",
+            "tier",
+            "config_only",
+            "tested",
+            "resolved_status",
+            "runtime_injectable",
+            "runnable_without_code_change",
+        ):
             assert col in df.columns
 
     def test_sorted_by_tier(self, catalog: VariantCatalog) -> None:
@@ -289,6 +300,7 @@ class TestGetVariantAndGrid:
     def test_get_variant_includes_tested_flag(self, catalog: VariantCatalog) -> None:
         v = catalog.get_variant("exp-b")
         assert "tested" in v
+        assert "resolved_status" in v
 
     def test_get_variant_not_found(self, catalog: VariantCatalog) -> None:
         with pytest.raises(KeyError, match="not found"):
@@ -336,6 +348,27 @@ class TestGenerateSpec:
         catalog.generate_spec("exp-b", output_dir=out)
         assert out.exists()
 
+    def test_generate_spec_blocks_non_runnable_variant(self, tmp_path: Path) -> None:
+        cat_data = {
+            "base_method": "m2026r1",
+            "base_config": "cfg-test",
+            "variants": {
+                "exp-x": {
+                    "parameter": "mortality_improvement_factor",
+                    "value": 0.003,
+                    "tier": 3,
+                    "config_only": True,
+                    "slug": "mortality-03",
+                }
+            },
+            "grids": {},
+        }
+        p = tmp_path / "cat.yaml"
+        p.write_text(yaml.safe_dump(cat_data), encoding="utf-8")
+        cat = VariantCatalog(catalog_path=p, experiment_log=pd.DataFrame())
+        with pytest.raises(ValueError, match="not present in the live MethodConfig"):
+            cat.generate_spec("exp-x", output_dir=tmp_path / "out")
+
 
 # ---------------------------------------------------------------------------
 # TestGenerateGridSpecs
@@ -365,8 +398,8 @@ class TestGenerateGridSpecs:
             "grids": {
                 "zip-grid": {
                     "parameters": {
-                        "alpha": [0.1, 0.2],
-                        "beta": [10, 20],
+                        "college_blend_factor": [0.1, 0.2],
+                        "convergence_medium_hold": [4, 5],
                     },
                     "mode": "zip",
                     "hypothesis": "Zip test.",
@@ -389,8 +422,8 @@ class TestGenerateGridSpecs:
             "grids": {
                 "bad-zip": {
                     "parameters": {
-                        "alpha": [0.1, 0.2],
-                        "beta": [10],
+                        "college_blend_factor": [0.1, 0.2],
+                        "convergence_medium_hold": [4],
                     },
                     "mode": "zip",
                     "hypothesis": "Should fail.",
@@ -403,6 +436,26 @@ class TestGenerateGridSpecs:
         with pytest.raises(ValueError, match="equal-length"):
             cat.generate_grid_specs("bad-zip", output_dir=tmp_path / "specs")
 
+    def test_invalid_grid_parameter_raises(self, tmp_path: Path) -> None:
+        cat_data = {
+            "base_method": "m2026r1",
+            "base_config": "cfg-test",
+            "variants": {},
+            "grids": {
+                "bad-grid": {
+                    "parameters": {
+                        "boom_period_dampening_2010_2015": [0.2, 0.3],
+                    },
+                    "hypothesis": "Should fail.",
+                },
+            },
+        }
+        p = tmp_path / "cat.yaml"
+        p.write_text(yaml.safe_dump(cat_data), encoding="utf-8")
+        cat = VariantCatalog(catalog_path=p, experiment_log=pd.DataFrame())
+        with pytest.raises(ValueError, match="non-injectable parameter"):
+            cat.generate_grid_specs("bad-grid", output_dir=tmp_path / "specs")
+
     def test_multi_param_cartesian(self, tmp_path: Path) -> None:
         cat_data = {
             "base_method": "m2026r1",
@@ -411,8 +464,8 @@ class TestGenerateGridSpecs:
             "grids": {
                 "multi": {
                     "parameters": {
-                        "alpha": [0.1, 0.2],
-                        "beta": [10, 20],
+                        "college_blend_factor": [0.1, 0.2],
+                        "gq_correction_fraction": [0.25, 0.5],
                     },
                     "hypothesis": "Cartesian product.",
                 },
@@ -457,3 +510,15 @@ class TestGenerateAllPending:
         cat = VariantCatalog(catalog_path=p, experiment_log=pd.DataFrame())
         specs = cat.generate_all_pending_specs(output_dir=tmp_path / "out")
         assert specs == []
+
+
+class TestInventorySummary:
+    """Tests for get_inventory_summary."""
+
+    def test_inventory_counts(self, catalog_with_log: VariantCatalog) -> None:
+        summary = catalog_with_log.get_inventory_summary()
+        assert summary["total"] == 3
+        assert summary["tested"] == 1
+        assert summary["untested_total"] == 2
+        assert summary["untested_runnable"] == 1
+        assert summary["untested_requires_code_change"] == 1

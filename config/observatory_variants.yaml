@@ -199,7 +199,11 @@ variants:
     risk_areas:
       - state_total_under_projection
     tier: 3
-    config_only: true
+    config_only: false
+    notes: >
+      Reclassified on 2026-03-13 during PP-007 hardening. The current runtime
+      MethodConfig contract does not expose mortality_improvement_factor for
+      injection, so this variant requires code changes before it can run.
 
   exp-h:
     name: Add Billings County to Bakken FIPS

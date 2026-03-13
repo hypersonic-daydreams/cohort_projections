@@ -82,15 +82,17 @@ def _build_variant_catalog(dm: DashboardDataManager) -> tuple[pn.Column, pn.widg
     # Ensure consistent columns for display
     display_cols = [
         "variant_id", "name", "parameter", "value",
-        "tier", "config_only", "tested", "status",
+        "tier", "config_only", "tested", "resolved_status",
     ]
     display_cols = [c for c in display_cols if c in variants_df.columns]
     catalog_df = variants_df[display_cols].copy()
 
     # Fill empty status for display
-    if "status" in catalog_df.columns:
-        catalog_df["status"] = catalog_df["status"].fillna("").replace("", "untested")
-        catalog_df["status"] = catalog_df["status"].map(_status_badge_html)
+    if "resolved_status" in catalog_df.columns:
+        catalog_df["resolved_status"] = (
+            catalog_df["resolved_status"].fillna("").replace("", "untested")
+        )
+        catalog_df["resolved_status"] = catalog_df["resolved_status"].map(_status_badge_html)
 
     # --- Filter widgets ---
     tier_options = ["All"]
@@ -124,7 +126,7 @@ def _build_variant_catalog(dm: DashboardDataManager) -> tuple[pn.Column, pn.widg
         header_filters=False,
         frozen_columns=["variant_id"],
         formatters={
-            "status": "html",
+            "resolved_status": "html",
             "tested": {"type": "tickCross"},
             "config_only": {"type": "tickCross"},
         },

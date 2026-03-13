@@ -156,12 +156,26 @@ class TestCmdStatus:
         store.get_run_ids.return_value = ["run-001"]
         args = cli_mod.build_parser().parse_args(["status"])
 
-        with patch.object(cli_mod, "_load_variant_catalog", return_value=None):
+        catalog = MagicMock()
+        catalog.get_inventory_summary.return_value = {
+            "total": 3,
+            "tested": 1,
+            "untested_total": 2,
+            "untested_runnable": 1,
+            "untested_requires_code_change": 1,
+            "untested_ids": ["EXP-A", "EXP-B"],
+            "untested_runnable_ids": ["EXP-A"],
+            "untested_requires_code_change_ids": ["EXP-B"],
+        }
+
+        with patch.object(cli_mod, "_load_variant_catalog", return_value=catalog):
             rc = cli_mod.cmd_status(store=store, config={}, _args=args)
 
         assert rc == 0
         out = capsys.readouterr().out
         assert "Completed runs: 1" in out
+        assert "Untested runnable: 1" in out
+        assert "Untested requiring code changes: 1" in out
 
 
 # ---------------------------------------------------------------------------
