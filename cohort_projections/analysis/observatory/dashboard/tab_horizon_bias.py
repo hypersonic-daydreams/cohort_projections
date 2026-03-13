@@ -28,6 +28,7 @@ from cohort_projections.analysis.observatory.dashboard.theme import (
 )
 from cohort_projections.analysis.observatory.dashboard.widgets import (
     empty_placeholder,
+    markdown_card,
     metric_table,
     section_header,
 )
@@ -72,6 +73,96 @@ def _filter_by_category(
 def _color_for_run(idx: int) -> str:
     """Return a color from the experiment palette by index."""
     return EXPERIMENT_COLORS[idx % len(EXPERIMENT_COLORS)]
+
+
+def _preferred_method_id(dm: DashboardDataManager, run_id: str) -> str | None:
+    """Return the preferred method ID for a selected run."""
+    meta = dm.run_metadata[dm.run_metadata["run_id"] == run_id]
+    if meta.empty:
+        return None
+    if run_id == dm.champion_id and dm.champion_method_id is not None:
+        return dm.champion_method_id
+    selected = meta.iloc[0].get("selected_method_id")
+    if pd.notna(selected):
+        return str(selected)
+    reference = meta.iloc[0].get("reference_method_id")
+    return str(reference) if pd.notna(reference) else None
+
+
+def _horizon_takeaway_text(
+    dm: DashboardDataManager,
+    selected_run: str,
+    category: str,
+) -> str:
+    """Return a plain-language summary of the horizon and bias view."""
+    ahs = dm.annual_horizon_summary
+    if ahs.empty:
+        return "No annual horizon summary is available yet for this dashboard."
+
+    run_id = selected_run
+    if run_id == "All Runs":
+        run_id = dm.champion_id or (dm.run_ids[0] if dm.run_ids else "All Runs")
+    if run_id == "All Runs":
+        return "No benchmark run is available to summarize."
+
+    run_data = ahs[ahs["run_id"] == run_id].copy()
+    if run_data.empty:
+        return "No horizon summary is available for the selected run."
+
+    method = _preferred_method_id(dm, run_id)
+    if method is not None and "method" in run_data.columns:
+        method_data = run_data[run_data["method"] == method]
+        if not method_data.empty:
+            run_data = method_data
+
+    run_data = run_data.sort_values("horizon")
+    latest = run_data.iloc[-1]
+    run_label = dm.run_label(run_id, short=True)
+    horizon = int(latest["horizon"]) if pd.notna(latest.get("horizon")) else None
+    mape = latest.get("mean_county_mape")
+    mpe = latest.get("mean_county_mpe")
+
+    parts = [
+        f"**Current focus:** {run_label}."
+        + (f" Category filter: {category}." if category != "All" else "")
+    ]
+    if pd.notna(mape) and horizon is not None:
+        parts.append(
+            f"Average county error rises to {float(mape):.1f}% by horizon {horizon}."
+        )
+    if pd.notna(mpe):
+        bias = float(mpe)
+        if bias <= -0.5:
+            direction = "under-projects"
+        elif bias >= 0.5:
+            direction = "over-projects"
+        else:
+            direction = "is close to unbiased"
+        parts.append(f"At the long horizon, the run {direction} on average ({bias:+.1f}%).")
+
+    parts.append(
+        "**Recommended read order:** Start with the horizon profile, then the county heatmap. "
+        "Open the collapsed diagnostic sections only if you need to explain where the long-horizon "
+        "problems come from."
+    )
+    return "\n\n".join(parts)
+
+
+def _build_horizon_takeaway(
+    dm: DashboardDataManager,
+    selected_run: str,
+    category: str,
+) -> pn.Card:
+    """Render the executive summary card for the horizon tab."""
+    return pn.Card(
+        pn.pane.Markdown(
+            _horizon_takeaway_text(dm, selected_run, category),
+            sizing_mode="stretch_width",
+        ),
+        title="At A Glance",
+        sizing_mode="stretch_width",
+        min_width=420,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -902,6 +993,12 @@ def build_horizon_bias_tab(dm: DashboardDataManager) -> pn.Column:
         selected_run=run_selector,
         category=category_selector,
     ), loading_indicator=True)
+    takeaway_card = pn.panel(pn.bind(
+        _build_horizon_takeaway,
+        dm=dm,
+        selected_run=run_selector,
+        category=category_selector,
+    ), loading_indicator=True)
 
     # Section 3: County Heatmap (reactive on category only)
     county_heatmap = pn.panel(pn.bind(
@@ -943,27 +1040,58 @@ def build_horizon_bias_tab(dm: DashboardDataManager) -> pn.Column:
     return pn.Column(
         section_header(
             "Horizon & Bias Analysis",
-            subtitle="Accuracy by forecast horizon, county-level deep dives, and outlier detection",
+            subtitle="Use this tab to understand where forecast error grows over time and which places drive it.",
         ),
-        selector_row,
-        pn.layout.Divider(),
-        section_header("Horizon Accuracy Profile"),
-        horizon_profile,
-        pn.layout.Divider(),
-        section_header("County MAPE Heatmap"),
-        county_heatmap,
-        top_counties,
-        pn.layout.Divider(),
-        section_header(
-            "Bias Direction",
-            subtitle="Blue = under-projection, Red = over-projection",
+        pn.FlexBox(
+            markdown_card(
+                "Use This Tab To",
+                "Use `Horizon & Bias` after `Projections` when you need to know whether a promising "
+                "run stays credible as the forecast gets longer.\n\n"
+                "Start with the horizon profile and county heatmap. The collapsed sections below are "
+                "for deeper diagnostic work once you already know which run you are investigating.",
+                min_width=420,
+            ),
+            takeaway_card,
+            flex_wrap="wrap",
+            sizing_mode="stretch_width",
+            styles={"gap": "12px"},
         ),
-        bias_heatmap,
-        pn.layout.Divider(),
-        section_header("County Report Cards"),
-        report_cards,
-        pn.layout.Divider(),
-        section_header("Outlier Flags"),
-        outlier_scatter,
+        pn.Card(
+            selector_row,
+            title="Filters",
+            collapsed=False,
+            sizing_mode="stretch_width",
+        ),
+        pn.Card(
+            horizon_profile,
+            title="Horizon Accuracy Profile",
+            collapsed=False,
+            sizing_mode="stretch_width",
+        ),
+        pn.Card(
+            county_heatmap,
+            top_counties,
+            title="County MAPE Heatmap",
+            collapsed=False,
+            sizing_mode="stretch_width",
+        ),
+        pn.Card(
+            bias_heatmap,
+            title="Advanced Diagnostic: Bias Direction",
+            collapsed=True,
+            sizing_mode="stretch_width",
+        ),
+        pn.Card(
+            report_cards,
+            title="Advanced Diagnostic: County Report Cards",
+            collapsed=True,
+            sizing_mode="stretch_width",
+        ),
+        pn.Card(
+            outlier_scatter,
+            title="Advanced Diagnostic: Outlier Flags",
+            collapsed=True,
+            sizing_mode="stretch_width",
+        ),
         sizing_mode="stretch_width",
     )

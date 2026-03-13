@@ -68,9 +68,9 @@ What needed improvement:
 | OBS-UX-03 | Add plain-language current-state summary | P0 | implemented_2026-03-13 | First screen explains champion, best challenger, review load, and next suggested experiment in one paragraph | `tab_command_center.py` |
 | OBS-UX-04 | Add cross-tab navigation shortcuts from `Command Center` | P0 | implemented_2026-03-13 | User can jump directly from the landing page to variants, scorecards, projections, diagnostics, and recommendations | `app.py`, `tab_command_center.py` |
 | OBS-UX-05 | Replace Command Center jargon with decision language | P0 | implemented_2026-03-13 | Queue health, champion snapshot, action buttons, and run index use plainer labels | `tab_command_center.py` |
-| OBS-UX-06 | Add task-oriented framing to every major tab | P1 | pending | Each tab begins with a short `Use this tab to...` explanation in plain language | `tab_experiment_tracker.py`, `tab_scorecard.py`, `tab_projection_ensemble.py`, `tab_horizon_bias.py`, `tab_sensitivity.py` |
-| OBS-UX-07 | Add executive summaries above dense comparison views | P1 | pending | `Scorecards` and `Projections` start with a concise takeaway before charts/tables | `tab_scorecard.py`, `tab_projection_ensemble.py` |
-| OBS-UX-08 | Push advanced diagnostics behind progressive disclosure | P1 | pending | Residual tests, outlier scatter, and deeper QA live below clear summaries or in collapsible sections | `tab_horizon_bias.py`, `tab_sensitivity.py` |
+| OBS-UX-06 | Add task-oriented framing to every major tab | P1 | implemented_2026-03-13 | Each tab begins with a short `Use this tab to...` explanation in plain language | `tab_experiment_tracker.py`, `tab_scorecard.py`, `tab_projection_ensemble.py`, `tab_horizon_bias.py`, `tab_sensitivity.py` |
+| OBS-UX-07 | Add executive summaries above dense comparison views | P1 | implemented_2026-03-13 | `Scorecards` and `Projections` start with a concise takeaway before charts/tables | `tab_scorecard.py`, `tab_projection_ensemble.py` |
+| OBS-UX-08 | Push advanced diagnostics behind progressive disclosure | P1 | implemented_2026-03-13 | Residual tests, outlier scatter, and deeper QA live below clear summaries or in collapsible sections | `tab_horizon_bias.py`, `tab_sensitivity.py` |
 | OBS-UX-09 | Preserve shortlist context across tabs | P1 | pending | Selected bundles/runs remain aligned when moving between comparison, projection, and diagnostic tabs | dashboard tab modules + shared data manager |
 | OBS-UX-10 | Improve scanability of dense tables | P2 | pending | Internal-only fields are hidden by default, labels are friendlier, and review-action columns remain visible | `tab_command_center.py`, `tab_experiment_tracker.py`, `widgets.py` |
 
@@ -86,14 +86,17 @@ Implemented in this session:
 - `OBS-UX-04`: wired `Command Center` buttons to the corresponding tabs.
 - `OBS-UX-05`: renamed several `Command Center` labels to make the decision
   context easier to read.
+- `OBS-UX-06`: added task-oriented framing to `Experiments`, `Scorecards`,
+  `Projections`, `Horizon & Bias`, and `Sensitivity`.
+- `OBS-UX-07`: added executive summaries above the dense `Scorecards` and
+  `Projections` comparison views.
+- `OBS-UX-08`: moved advanced diagnostics behind collapsible cards in
+  `Horizon & Bias` and `Sensitivity`.
 
 ## Recommended Next Implementation Order
 
-1. `OBS-UX-06` task-oriented framing on the technical tabs.
-2. `OBS-UX-07` executive summaries on `Scorecards` and `Projections`.
-3. `OBS-UX-08` progressive disclosure for advanced diagnostics.
-4. `OBS-UX-09` cross-tab shortlist persistence.
-5. `OBS-UX-10` table scanability cleanup.
+1. `OBS-UX-09` cross-tab shortlist persistence.
+2. `OBS-UX-10` table scanability cleanup.
 
 ## Verification Notes
 

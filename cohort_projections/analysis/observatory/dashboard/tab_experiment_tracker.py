@@ -23,6 +23,7 @@ from cohort_projections.analysis.observatory.dashboard.theme import (
 )
 from cohort_projections.analysis.observatory.dashboard.widgets import (
     empty_placeholder,
+    markdown_card,
     section_header,
 )
 
@@ -528,7 +529,15 @@ def build_experiment_tracker(dm: DashboardDataManager) -> pn.Column:
     return pn.Column(
         section_header(
             "Experiment Tracker",
-            subtitle="Catalog, history, and grid definitions",
+            subtitle="Use this tab to inspect the catalog, runnable status, and experiment history before comparing candidates.",
+        ),
+        markdown_card(
+            "Use This Tab To",
+            "Open `Experiments` when you need to answer operational questions: which variants exist, "
+            "which ones have already been tested, which ones are config-only, and which grids or ideas "
+            "still need attention.\n\n"
+            "Start with the catalog, click a row to inspect its definition, then use the experiment log "
+            "to see what happened when similar ideas were tried.",
         ),
         catalog_layout,
         detail_panel,

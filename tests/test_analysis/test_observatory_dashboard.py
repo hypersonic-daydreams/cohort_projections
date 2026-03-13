@@ -24,6 +24,18 @@ from cohort_projections.analysis.observatory.dashboard.tab_command_center import
     _command_center_summary,
     _queue_health_snapshot,
 )
+from cohort_projections.analysis.observatory.dashboard.tab_horizon_bias import (
+    _horizon_takeaway_text,
+)
+from cohort_projections.analysis.observatory.dashboard.tab_projection_ensemble import (
+    _projection_takeaway_text,
+)
+from cohort_projections.analysis.observatory.dashboard.tab_scorecard import (
+    _scorecard_takeaway_text,
+)
+from cohort_projections.analysis.observatory.dashboard.tab_sensitivity import (
+    _sensitivity_takeaway_text,
+)
 
 
 def _build_fixture_frames() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -122,6 +134,14 @@ def _build_fixture_frames() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     )
 
     return index, scorecards, experiment_log
+
+
+def _run_label_factory(metadata: pd.DataFrame) -> dict[str, str]:
+    """Return short run labels keyed by run ID."""
+    return {
+        str(row["run_id"]): str(row["legend_label"])
+        for _, row in metadata.iterrows()
+    }
 
 
 def test_build_comparison_rows_prefers_variant_rows_except_for_champion_bundle() -> None:
@@ -260,3 +280,161 @@ def test_build_dashboard_returns_fresh_instances(monkeypatch) -> None:
     assert first is not second
     assert len(created_dms) == 2
     assert created_dms[0] is not created_dms[1]
+
+
+def test_scorecard_takeaway_prefers_best_selected_challenger() -> None:
+    """Scorecard summary should highlight the strongest selected challenger."""
+    index, scorecards, experiment_log = _build_fixture_frames()
+    metadata = build_run_metadata_frame(
+        index=index,
+        scorecards=scorecards,
+        experiment_log=experiment_log,
+        champion_id="br-champion",
+    )
+    labels = _run_label_factory(metadata)
+    dm = SimpleNamespace(
+        champion_id="br-champion",
+        comparison_rows=build_comparison_rows(scorecards, "br-champion"),
+        run_metadata=metadata,
+        ordered_run_ids=list(labels),
+        run_label=lambda run_id, short=False: labels[str(run_id)],
+    )
+
+    summary = _scorecard_takeaway_text(
+        ["br-review", "br-passed"],
+        cast(DashboardDataManager, dm),
+    )
+
+    assert "**Best selected challenger:** College Blend 70" in summary
+    assert "Recommended next step" in summary
+
+
+def test_projection_takeaway_reports_endpoint_difference_vs_champion() -> None:
+    """Projection summary should translate the curve comparison into a final-year delta."""
+    index, scorecards, experiment_log = _build_fixture_frames()
+    metadata = build_run_metadata_frame(
+        index=index,
+        scorecards=scorecards,
+        experiment_log=experiment_log,
+        champion_id="br-champion",
+    )
+    labels = _run_label_factory(metadata)
+    projection_curves = pd.DataFrame(
+        [
+            {
+                "origin_year": 2020,
+                "method": "m2026",
+                "year": 2055,
+                "projected_state": 900000.0,
+                "run_id": "br-champion",
+            },
+            {
+                "origin_year": 2020,
+                "method": "m2026r1",
+                "year": 2055,
+                "projected_state": 920000.0,
+                "run_id": "br-passed",
+            },
+        ]
+    )
+    dm = SimpleNamespace(
+        champion_id="br-champion",
+        champion_method_id="m2026",
+        projection_curves=projection_curves,
+        run_metadata=metadata,
+        run_label=lambda run_id, short=False: labels[str(run_id)],
+    )
+
+    summary = _projection_takeaway_text(
+        "2020",
+        ["br-passed"],
+        True,
+        cast(DashboardDataManager, dm),
+    )
+
+    assert "**Spotlight run:** College Blend 70" in summary
+    assert "20,000 people higher than the champion" in summary
+
+
+def test_horizon_takeaway_summarizes_long_horizon_error_and_bias() -> None:
+    """Horizon summary should explain long-horizon error growth and bias direction."""
+    annual_horizon_summary = pd.DataFrame(
+        [
+            {
+                "horizon": 5,
+                "method": "m2026",
+                "mean_county_mape": 4.5,
+                "mean_county_mpe": -0.2,
+                "run_id": "br-champion",
+            },
+            {
+                "horizon": 20,
+                "method": "m2026",
+                "mean_county_mape": 12.3,
+                "mean_county_mpe": -1.4,
+                "run_id": "br-champion",
+            },
+        ]
+    )
+    metadata = pd.DataFrame(
+        [
+            {
+                "run_id": "br-champion",
+                "selected_method_id": "m2026",
+                "reference_method_id": "m2026",
+                "legend_label": "Champion",
+            }
+        ]
+    )
+    dm = SimpleNamespace(
+        annual_horizon_summary=annual_horizon_summary,
+        champion_id="br-champion",
+        champion_method_id="m2026",
+        run_ids=["br-champion"],
+        run_metadata=metadata,
+        run_label=lambda run_id, short=False: "Champion",
+    )
+
+    summary = _horizon_takeaway_text(
+        cast(DashboardDataManager, dm),
+        "br-champion",
+        "All",
+    )
+
+    assert "Average county error rises to 12.3% by horizon 20." in summary
+    assert "under-projects on average" in summary
+
+
+def test_sensitivity_takeaway_surfaces_recommendation_and_weakness_state() -> None:
+    """Sensitivity summary should highlight the top recommendation and weakness status."""
+    recommender = MagicMock()
+    recommender.suggest_next_experiments.return_value = [
+        SimpleNamespace(
+            parameter="college_blend_factor",
+            suggested_value=1.0,
+            rationale="Largest tested improvement in college counties.",
+        )
+    ]
+    recommender.identify_persistent_weaknesses.return_value = pd.DataFrame(
+        [
+            {
+                "metric": "county_mape_rural",
+                "best_challenger_delta": 0.12,
+            }
+        ]
+    )
+    dm = SimpleNamespace(
+        recommender=recommender,
+        sensitivity_summary=pd.DataFrame(
+            [
+                {"parameter": "college_blend_factor", "mape_swing": 0.8},
+                {"parameter": "convergence_medium_hold", "mape_swing": 0.2},
+            ]
+        ),
+    )
+
+    summary = _sensitivity_takeaway_text(cast(DashboardDataManager, dm))
+
+    assert "**Top recommended next experiment:** college_blend_factor -> 1.0." in summary
+    assert "1 tracked metric(s) still have no improving challenger." in summary
+    assert "Most influential tested parameter so far: `college_blend_factor`." in summary

@@ -48,6 +48,141 @@ def _selected_method(dm: DashboardDataManager, run_id: str) -> str | None:
     return str(reference) if pd.notna(reference) else None
 
 
+def _projection_endpoint(
+    dm: DashboardDataManager,
+    run_id: str,
+    *,
+    method: str | None,
+    origin_year: str,
+) -> tuple[int, float] | None:
+    """Return the final plotted year and population for a selected bundle."""
+    curves = _filter_plot_frame(
+        dm.projection_curves,
+        run_id=run_id,
+        method=method,
+        origin_year=origin_year,
+        method_col="method",
+    )
+    if curves.empty:
+        return None
+
+    if origin_year == "All" and "origin_year" in curves.columns:
+        curves = (
+            curves.groupby("year")["projected_state"]
+            .mean()
+            .reset_index()
+            .sort_values("year")
+        )
+    else:
+        curves = curves.sort_values("year")[["year", "projected_state"]]
+    if curves.empty:
+        return None
+
+    endpoint = curves.iloc[-1]
+    return int(endpoint["year"]), float(endpoint["projected_state"])
+
+
+def _projection_takeaway_text(
+    origin_year: str,
+    selected_runs: list[str],
+    show_champion_reference: bool,
+    dm: DashboardDataManager,
+) -> str:
+    """Return a plain-language summary of the current projection selection."""
+    if not selected_runs:
+        return (
+            "Select at least one challenger bundle to compare its projection path "
+            "against the current champion."
+        )
+
+    selected_meta = dm.run_metadata[dm.run_metadata["run_id"].isin(selected_runs)].copy()
+    if selected_meta.empty:
+        return "No readable metadata is available for the selected bundles."
+
+    spotlight = selected_meta.sort_values(
+        "selected_county_mape_overall",
+        ascending=True,
+        na_position="last",
+    ).iloc[0]
+    run_id = str(spotlight["run_id"])
+    label = dm.run_label(run_id, short=True)
+    county_error = spotlight.get("selected_county_mape_overall")
+    state_error = spotlight.get("selected_state_ape_recent_short")
+    origin_label = "mean across origins" if origin_year == "All" else f"origin {origin_year}"
+
+    parts = [f"**Spotlight run:** {label}."]
+    if pd.notna(county_error):
+        parts[0] = f"**Spotlight run:** {label} at {float(county_error):.2f}% county error."
+    if pd.notna(state_error):
+        parts.append(f"Recent state error for this run is {float(state_error):.2f}%.")
+
+    endpoint = _projection_endpoint(
+        dm,
+        run_id,
+        method=_selected_method(dm, run_id),
+        origin_year=origin_year,
+    )
+    champion_endpoint = None
+    if show_champion_reference and dm.champion_id is not None and dm.champion_method_id is not None:
+        champion_endpoint = _projection_endpoint(
+            dm,
+            dm.champion_id,
+            method=dm.champion_method_id,
+            origin_year=origin_year,
+        )
+
+    if endpoint is not None and champion_endpoint is not None:
+        end_year, end_pop = endpoint
+        _, champion_pop = champion_endpoint
+        delta = end_pop - champion_pop
+        direction = "higher" if delta > 0 else "lower" if delta < 0 else "the same as"
+        comparison_phrase = (
+            "the same as" if delta == 0 else f"{direction} than"
+        )
+        if delta == 0:
+            parts.append(
+                f"At {end_year}, the spotlight run ends at roughly {end_pop:,.0f}, "
+                f"about {comparison_phrase} the champion in {origin_label}."
+            )
+        else:
+            parts.append(
+                f"At {end_year}, it ends {abs(delta):,.0f} people {comparison_phrase} the champion "
+                f"in {origin_label}."
+            )
+        parts.append(
+            "**Recommended next step:** If that path looks plausible, open `Horizon & Bias` "
+            "to see where the gain holds up and where it breaks down."
+        )
+    elif endpoint is not None:
+        end_year, end_pop = endpoint
+        parts.append(
+            f"The spotlight run ends near {end_pop:,.0f} in {end_year} ({origin_label})."
+        )
+        if not show_champion_reference:
+            parts.append(
+                "Turn on the champion reference to see whether that path is materially higher "
+                "or lower than the current production baseline."
+            )
+    else:
+        parts.append("Projection endpoint data is not available for the current selection.")
+
+    return "\n\n".join(parts)
+
+
+def _build_projection_takeaway(
+    origin_year: str,
+    selected_runs: list[str],
+    show_champion_reference: bool,
+    dm: DashboardDataManager,
+) -> pn.Card:
+    """Render the executive summary card for the projection tab."""
+    return widgets.markdown_card(
+        "Executive Summary",
+        _projection_takeaway_text(origin_year, selected_runs, show_champion_reference, dm),
+        min_width=420,
+    )
+
+
 def _filter_plot_frame(
     df: pd.DataFrame,
     *,
@@ -491,6 +626,16 @@ def build_projection_ensemble(dm: DashboardDataManager) -> pn.Column:
         ),
         loading_indicator=True,
     )
+    takeaway_card = pn.panel(
+        pn.bind(
+            _build_projection_takeaway,
+            origin_year=origin_selector,
+            selected_runs=run_selector,
+            show_champion_reference=show_champion_reference,
+            dm=dm,
+        ),
+        loading_indicator=True,
+    )
     spaghetti = pn.panel(
         pn.bind(
             _build_spaghetti_plot,
@@ -529,7 +674,22 @@ def build_projection_ensemble(dm: DashboardDataManager) -> pn.Column:
     return pn.Column(
         widgets.section_header(
             "Projection Ensemble",
-            "Focused variant curves with champion reference and latest-origin defaults.",
+            "Use this tab to judge whether a stronger scorecard also produces a plausible population path.",
+        ),
+        pn.FlexBox(
+            widgets.markdown_card(
+                "Use This Tab To",
+                "Start here after `Scorecards` when you need to see what the shortlist actually "
+                "does to the state population path.\n\n"
+                "Read the executive summary first, then compare the curve and horizon-error "
+                "charts. Keep the champion reference on unless you intentionally want to review "
+                "challengers only against each other.",
+                min_width=420,
+            ),
+            takeaway_card,
+            flex_wrap="wrap",
+            sizing_mode="stretch_width",
+            styles={"gap": "12px"},
         ),
         pn.Card(
             pn.pane.HTML(

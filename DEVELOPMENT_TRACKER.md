@@ -29,7 +29,7 @@ Use this file for active status only. Historical session detail is archived to:
 | Repo-hygiene program | complete | B00-B06 implemented; full adjudicated replay `27/27` passing; RB-003 and RB-004 remediated and closed. |
 | Test health baseline | stable | Latest recorded baseline: `1570 passed, 5 skipped` (`pytest tests/ -q`, 2026-03-01 PP-005 production validation). ADR-056 accepted; PP4-01 through PP4-06 complete; PP-005 adds 129 tests. |
 | Claim replay health | stable | `27/27` adjudicated claims passing (latest full replay: 2026-02-27T18:14:03Z). |
-| Projection Observatory readiness | stable | Trust/correctness and operational hardening complete (`OBS-01` through `OBS-09`); bounded unattended queueing is now supported under sequential execution plus SOP-003 review governance. |
+| Projection Observatory readiness | stable | Trust/correctness and operational hardening complete (`OBS-01` through `OBS-09`); bounded unattended queueing is now supported under sequential execution plus SOP-003 review governance. First-run dashboard UX improvements `OBS-UX-01` through `OBS-UX-08` are implemented; `OBS-UX-09` and `OBS-UX-10` remain in `docs/plans/observatory-ui-ux-backlog.md`. |
 
 ## Projection Development Backlog (Canonical)
 
@@ -73,6 +73,7 @@ Verified current state from live repository inspection on 2026-03-13:
 - `OBS-08` completed. `report --output` now resolves project-relative paths explicitly, preserves absolute paths, and has regression coverage for both cases.
 - `OBS-09` completed. Added `docs/guides/observatory-search-loop.md` as the operator guide for bounded unattended queueing, review checkpoints, and SOP-003 promotion boundaries.
 - Follow-up closure: `dampening-sweep` no longer relies on the non-injectable `boom_period_dampening_2010_2015` alias. It now uses a templated runtime-expressible `boom_period_dampening` grid definition.
+- Follow-up UX slice: `OBS-UX-06` through `OBS-UX-08` are now implemented in the Panel dashboard. The major analytical tabs start with task-oriented framing, `Scorecards` and `Projections` lead with executive summaries, and advanced diagnostics are collapsed by default in `Horizon & Bias` and `Sensitivity`. Remaining lower-priority backlog items are `OBS-UX-09` cross-tab shortlist persistence and `OBS-UX-10` dense-table scanability cleanup. See `docs/plans/observatory-ui-ux-backlog.md`.
 
 ### Key Findings To Preserve Across Sessions
 

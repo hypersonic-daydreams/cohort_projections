@@ -276,3 +276,32 @@ def section_header(title: str, subtitle: str = "") -> pn.pane.HTML:
         sizing_mode="stretch_width",
         stylesheets=[DASHBOARD_CSS],
     )
+
+
+def markdown_card(
+    title: str,
+    body: str,
+    *,
+    collapsed: bool = False,
+    min_width: int | None = None,
+) -> pn.Card:
+    """Render a simple Markdown-based card with shared dashboard styling.
+
+    Parameters
+    ----------
+    title:
+        Card title shown in the header.
+    body:
+        Markdown body content.
+    collapsed:
+        Whether the card should start collapsed.
+    min_width:
+        Optional minimum width to help side-by-side dashboard layouts.
+    """
+    return pn.Card(
+        pn.pane.Markdown(body, sizing_mode="stretch_width"),
+        title=title,
+        collapsed=collapsed,
+        sizing_mode="stretch_width",
+        min_width=min_width,
+    )

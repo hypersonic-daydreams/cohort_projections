@@ -52,6 +52,99 @@ def _run_color(run_id: str, run_ids: list[str]) -> str:
     return theme.EXPERIMENT_COLORS[idx % len(theme.EXPERIMENT_COLORS)]
 
 
+def _scorecard_takeaway_text(
+    selected_runs: list[str],
+    dm: DashboardDataManager,
+) -> str:
+    """Return a plain-language takeaway for the current scorecard selection."""
+    comparison = _selected_scorecard_rows(selected_runs, dm)
+    if comparison.empty:
+        return (
+            "Select at least one challenger bundle to see whether it beats the "
+            "current champion on the tracked scorecard metrics."
+        )
+
+    champion = (
+        comparison[comparison["run_id"] == dm.champion_id].iloc[0]
+        if dm.champion_id is not None
+        and not comparison[comparison["run_id"] == dm.champion_id].empty
+        else None
+    )
+    challengers = comparison
+    if dm.champion_id is not None:
+        challengers = challengers[challengers["run_id"] != dm.champion_id]
+    if challengers.empty:
+        return (
+            "Only the champion is visible right now. Add one or more challenger "
+            "bundles above to compare county-group error side by side."
+        )
+
+    best = challengers.sort_values("county_mape_overall", ascending=True, na_position="last").iloc[0]
+    best_label = str(best.get("run", dm.run_label(str(best["run_id"]), short=True)))
+    best_mape = best.get("county_mape_overall")
+    status = str(best.get("status", "Unknown")).strip() or "Unknown"
+
+    details: list[str] = [f"**Best selected challenger:** {best_label}."]
+    if pd.notna(best_mape):
+        details[0] = f"**Best selected challenger:** {best_label} at {float(best_mape):.2f}% county error."
+
+    if champion is not None and pd.notna(champion.get("county_mape_overall")) and pd.notna(best_mape):
+        delta = float(best_mape) - float(champion["county_mape_overall"])
+        details.append(f"That is {delta:+.2f} percentage points versus the champion.")
+
+        improved = [
+            label
+            for col, label in _DELTA_METRICS
+            if pd.notna(best.get(col)) and pd.notna(champion.get(col)) and float(best[col]) < float(champion[col])
+        ]
+        worse = [
+            label
+            for col, label in _DELTA_METRICS
+            if pd.notna(best.get(col)) and pd.notna(champion.get(col)) and float(best[col]) > float(champion[col])
+        ]
+        details.append(
+            f"**Where it improves:** {', '.join(improved) if improved else 'none of the tracked county groups'}."
+        )
+        details.append(
+            f"**Where it slips:** {', '.join(worse) if worse else 'no tracked county groups'}."
+        )
+        if delta <= 0:
+            details.append(
+                "**Recommended next step:** Open `Projections` to check whether the "
+                "stronger scorecard produces a plausible population path."
+            )
+        else:
+            details.append(
+                "**Recommended next step:** Keep comparing bundles here or inspect "
+                "whether the challenger still helps a county group that matters enough "
+                "to justify the regression."
+            )
+    else:
+        details.append(
+            "A champion reference row is not available for the current selection, so "
+            "this view can only rank the selected challengers against each other."
+        )
+
+    if status.lower() == "review":
+        details.append("**Governance note:** This bundle still needs human review before promotion.")
+    elif status.lower() == "failed":
+        details.append("**Governance note:** This bundle failed a hard gate and is not promotion-ready.")
+
+    return "\n\n".join(details)
+
+
+def _build_scorecard_takeaway(
+    selected_runs: list[str],
+    dm: DashboardDataManager,
+) -> pn.Card:
+    """Render the executive summary card for the scorecard tab."""
+    return widgets.markdown_card(
+        "Executive Summary",
+        _scorecard_takeaway_text(selected_runs, dm),
+        min_width=420,
+    )
+
+
 def _selected_scorecard_rows(
     selected_runs: list[str],
     dm: DashboardDataManager,
@@ -429,6 +522,10 @@ def build_scorecard_tab(dm: DashboardDataManager) -> pn.Column:
         pn.bind(_build_scorecard_table, selected_runs=run_selector, dm=dm),
         loading_indicator=True,
     )
+    takeaway_card = pn.panel(
+        pn.bind(_build_scorecard_takeaway, selected_runs=run_selector, dm=dm),
+        loading_indicator=True,
+    )
     delta_chart = pn.panel(
         pn.bind(_build_delta_bar_chart, selected_runs=run_selector, dm=dm),
         loading_indicator=True,
@@ -451,7 +548,21 @@ def build_scorecard_tab(dm: DashboardDataManager) -> pn.Column:
     return pn.Column(
         widgets.section_header(
             "Scorecard Comparison",
-            "Focused challenger comparison against the current champion.",
+            "Use this tab to decide whether a challenger truly beats the current champion.",
+        ),
+        pn.FlexBox(
+            widgets.markdown_card(
+                "Use This Tab To",
+                "Start here after `Command Center` when you need to answer one question: "
+                "does a shortlisted challenger actually beat the champion on the scorecard.\n\n"
+                "Read the executive summary first, then check the side-by-side table, then use "
+                "the charts to see whether the gain is broad or concentrated in one county group.",
+                min_width=420,
+            ),
+            takeaway_card,
+            flex_wrap="wrap",
+            sizing_mode="stretch_width",
+            styles={"gap": "12px"},
         ),
         pn.Card(
             pn.pane.HTML(

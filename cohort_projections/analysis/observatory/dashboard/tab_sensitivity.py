@@ -28,6 +28,7 @@ from cohort_projections.analysis.observatory.dashboard.theme import (
 )
 from cohort_projections.analysis.observatory.dashboard.widgets import (
     empty_placeholder,
+    markdown_card,
     metric_table,
     section_header,
 )
@@ -38,6 +39,80 @@ logger = logging.getLogger(__name__)
 _AUTOCORR_THRESHOLD = 0.3
 _HET_R2_THRESHOLD = 0.3
 _SHAPIRO_ALPHA = 0.05
+
+
+def _sensitivity_takeaway_text(dm: DashboardDataManager) -> str:
+    """Return a plain-language sensitivity and recommendation summary."""
+    summary_parts: list[str] = []
+
+    try:
+        recommendations = dm.recommender.suggest_next_experiments(3)
+    except Exception:
+        logger.exception("Failed to compute experiment recommendations.")
+        recommendations = []
+
+    if recommendations:
+        top = recommendations[0]
+        summary_parts.append(
+            f"**Top recommended next experiment:** {top.parameter} -> {top.suggested_value}."
+        )
+        summary_parts.append(top.rationale)
+    else:
+        summary_parts.append(
+            "No recommendation is available yet because the recommender needs more tested history."
+        )
+
+    try:
+        weaknesses = dm.recommender.identify_persistent_weaknesses()
+    except Exception:
+        logger.exception("Failed to compute persistent weaknesses.")
+        weaknesses = pd.DataFrame()
+
+    if weaknesses.empty:
+        summary_parts.append(
+            "No persistent weaknesses are currently flagged across the tracked county groups."
+        )
+    else:
+        persistent = weaknesses[
+            weaknesses["best_challenger_delta"].notna()
+            & (weaknesses["best_challenger_delta"] >= 0)
+        ]
+        if persistent.empty:
+            summary_parts.append(
+                "Every tracked county group has at least one tested variant that improves over the champion."
+            )
+        else:
+            summary_parts.append(
+                f"{len(persistent)} tracked metric(s) still have no improving challenger."
+            )
+
+    if not dm.sensitivity_summary.empty:
+        swing_col = "mape_swing" if "mape_swing" in dm.sensitivity_summary.columns else None
+        if swing_col is not None and "parameter" in dm.sensitivity_summary.columns:
+            ranked = (
+                dm.sensitivity_summary.groupby("parameter")[swing_col]
+                .sum()
+                .sort_values(ascending=False)
+            )
+            if not ranked.empty:
+                summary_parts.append(
+                    f"Most influential tested parameter so far: `{ranked.index[0]}`."
+                )
+
+    summary_parts.append(
+        "**Recommended next step:** Review the recommendation and persistent-weakness sections first. "
+        "Open residual diagnostics only when a candidate still looks promising and you need QA evidence."
+    )
+    return "\n\n".join(summary_parts)
+
+
+def _build_sensitivity_takeaway(dm: DashboardDataManager) -> pn.Card:
+    """Render the executive summary card for the sensitivity tab."""
+    return markdown_card(
+        "At A Glance",
+        _sensitivity_takeaway_text(dm),
+        min_width=420,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -602,7 +677,22 @@ def build_sensitivity_tab(dm: DashboardDataManager) -> pn.Column:
     return pn.Column(
         section_header(
             "Sensitivity & Recommendations",
-            subtitle="Parameter exploration, sensitivity analysis, and next-experiment guidance",
+            subtitle="Use this tab to decide what to test next and whether the remaining weaknesses are methodological or operational.",
+        ),
+        pn.FlexBox(
+            markdown_card(
+                "Use This Tab To",
+                "Open `Sensitivity & Recommendations` when you want to know which parameters matter most, "
+                "which experiments the recommender wants to run next, and whether any county-group weakness "
+                "still lacks an improving challenger.\n\n"
+                "The residual diagnostics section is collapsed by default because it is mainly for QA review "
+                "after a candidate already looks promising.",
+                min_width=420,
+            ),
+            _build_sensitivity_takeaway(dm),
+            flex_wrap="wrap",
+            sizing_mode="stretch_width",
+            styles={"gap": "12px"},
         ),
         # Section 1: Tornado Chart
         pn.layout.Divider(),
@@ -634,10 +724,11 @@ def build_sensitivity_tab(dm: DashboardDataManager) -> pn.Column:
         _build_weakness_cards(dm),
         # Section 5: Residual Diagnostics
         pn.layout.Divider(),
-        section_header(
-            "Residual Diagnostics",
-            subtitle="Statistical health checks on projection residuals by horizon",
+        pn.Card(
+            _build_residual_diagnostics(dm),
+            title="Advanced Diagnostic: Residual Health",
+            collapsed=True,
+            sizing_mode="stretch_width",
         ),
-        _build_residual_diagnostics(dm),
         sizing_mode="stretch_width",
     )
