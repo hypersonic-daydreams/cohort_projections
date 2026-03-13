@@ -111,6 +111,7 @@ from __future__ import annotations
 
 import os
 from concurrent.futures import Future, ProcessPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict, cast
 
@@ -268,6 +269,27 @@ class MethodConfig(TypedDict, total=False):
 # Defaults for upstream parameters — used to detect overrides
 _DEFAULT_GQ_CORRECTION_FRACTION: float = 1.0
 _DEFAULT_RATE_CAP_GENERAL: float = 0.08
+
+PopulationLookup = dict[tuple[str, str], float]
+MigrationLookup = dict[tuple[str, str], float]
+SurvivalLookup = dict[tuple[str, str], float]
+
+
+@dataclass(frozen=True)
+class StepCountyProjectionInputs:
+    """Precomputed per-county inputs for a step-based projection method."""
+
+    migration_lookup: MigrationLookup
+
+
+@dataclass(frozen=True)
+class AnnualCountyProjectionInputs:
+    """Precomputed per-county inputs for an annual projection method."""
+
+    annual_migration_lookups: tuple[MigrationLookup, ...]
+
+
+CountyProjectionInputs = StepCountyProjectionInputs | AnnualCountyProjectionInputs
 
 
 # Shared Bakken county set (used by all methods)
@@ -990,6 +1012,115 @@ def _build_mig_annual_lookup(
     return lookup
 
 
+def _normalize_population_lookup(pop: PopulationLookup) -> PopulationLookup:
+    """Ensure a population lookup contains every age-sex cell."""
+    normalized = dict(pop)
+    for ag in AGE_GROUP_LABELS:
+        for sex in ["Male", "Female"]:
+            normalized.setdefault((ag, sex), 0.0)
+    return normalized
+
+
+def _build_county_population_lookups(
+    base_pop: pd.DataFrame,
+    counties: list[str],
+) -> dict[str, PopulationLookup]:
+    """Materialize one population lookup per county for repeated projections."""
+    county_pops: dict[str, PopulationLookup] = {fips: {} for fips in counties}
+    for row in base_pop.itertuples(index=False):
+        county_lookup = county_pops.setdefault(str(row.county_fips), {})
+        county_lookup[(str(row.age_group), str(row.sex))] = float(row.population)
+    return {
+        fips: _normalize_population_lookup(county_pops.get(fips, {}))
+        for fips in counties
+    }
+
+
+def _build_county_migration_lookups(
+    mig_df: pd.DataFrame,
+    *,
+    value_column: str,
+    counties: list[str],
+) -> dict[str, MigrationLookup]:
+    """Materialize one migration lookup per county for repeated projections."""
+    county_lookups: dict[str, MigrationLookup] = {fips: {} for fips in counties}
+    for row in mig_df.itertuples(index=False):
+        county_lookup = county_lookups.setdefault(str(row.county_fips), {})
+        county_lookup[(str(row.age_group), str(row.sex))] = float(
+            getattr(row, value_column)
+        )
+    return county_lookups
+
+
+def _build_annual_survival_lookups(
+    base_survival: dict[tuple[str, str], float],
+    n_years: int,
+) -> tuple[SurvivalLookup, ...]:
+    """Precompute annual survival schedules shared across county projections."""
+    return ({},) + tuple(
+        _get_improved_survival_annual(base_survival, yr_offset)
+        for yr_offset in range(1, n_years + 1)
+    )
+
+
+def _project_sdc_core(
+    base_pop_lookup: PopulationLookup,
+    survival: dict[tuple[str, str], float],
+    fertility: dict[str, float],
+    mig_lookup: MigrationLookup,
+    n_steps: int,
+    origin_year: int,
+) -> dict[int, float]:
+    """Run the SDC projection math from precomputed county lookups."""
+    pop = dict(base_pop_lookup)
+    results: dict[int, float] = {origin_year: sum(pop.values())}
+
+    for step_idx in range(1, n_steps + 1):
+        year = origin_year + step_idx * STEP
+        new_pop: dict[tuple[str, str], float] = {}
+
+        for sex in ["Male", "Female"]:
+            for i in range(1, N_AGE_GROUPS - 1):
+                prev_ag = AGE_GROUP_LABELS[i - 1]
+                curr_ag = AGE_GROUP_LABELS[i]
+                surv = survival.get((prev_ag, sex), 0.0)
+                new_pop[(curr_ag, sex)] = pop[(prev_ag, sex)] * surv
+
+            surv_80_84 = survival.get(("80-84", sex), 0.0)
+            surv_85p = survival.get(("85+", sex), 0.0)
+            new_pop[("85+", sex)] = (
+                pop[("80-84", sex)] * surv_80_84 + pop[("85+", sex)] * surv_85p
+            )
+
+            for i in range(1, N_AGE_GROUPS):
+                ag = AGE_GROUP_LABELS[i]
+                mig_rate = mig_lookup.get((ag, sex), 0.0)
+                new_pop[(ag, sex)] *= 1 + mig_rate
+
+        total_births_5yr = 0.0
+        for fert_ag, asfr in fertility.items():
+            fem_pop = pop.get((fert_ag, "Female"), 0.0)
+            total_births_5yr += fem_pop * asfr * 5
+
+        male_births = total_births_5yr * MALE_BIRTH_FRACTION
+        female_births = total_births_5yr * FEMALE_BIRTH_FRACTION
+
+        new_pop[("0-4", "Male")] = male_births * survival.get(("0-4", "Male"), 0.0)
+        new_pop[("0-4", "Female")] = female_births * survival.get(("0-4", "Female"), 0.0)
+
+        for sex in ["Male", "Female"]:
+            mig_rate = mig_lookup.get(("0-4", sex), 0.0)
+            new_pop[("0-4", sex)] *= 1 + mig_rate
+
+        for key in new_pop:
+            new_pop[key] = max(0.0, new_pop[key])
+
+        results[year] = sum(new_pop.values())
+        pop = new_pop
+
+    return results
+
+
 
 
 
@@ -1015,16 +1146,10 @@ def _init_pop(
 ) -> dict[tuple[str, str], float]:
     """Initialize population dict for a county from snapshot data."""
     county_base = base_pop[base_pop["county_fips"] == county_fips]
-    pop: dict[tuple[str, str], float] = {}
+    pop: PopulationLookup = {}
     for _, row in county_base.iterrows():
         pop[(row["age_group"], row["sex"])] = row["population"]
-
-    # Ensure all age-sex combinations exist
-    for ag in AGE_GROUP_LABELS:
-        for sex in ["Male", "Female"]:
-            if (ag, sex) not in pop:
-                pop[(ag, sex)] = 0.0
-    return pop
+    return _normalize_population_lookup(pop)
 
 
 def project_sdc(
@@ -1040,62 +1165,14 @@ def project_sdc(
 
     Returns dict mapping year -> total population.
     """
-    pop = _init_pop(base_pop, county_fips)
-    mig_lookup = _build_mig_lookup(mig_rates, county_fips)
-
-    results: dict[int, float] = {origin_year: sum(pop.values())}
-
-    for step_idx in range(1, n_steps + 1):
-        year = origin_year + step_idx * STEP
-        new_pop: dict[tuple[str, str], float] = {}
-
-        for sex in ["Male", "Female"]:
-            # Survive ages 5-9 through 80-84
-            for i in range(1, N_AGE_GROUPS - 1):
-                prev_ag = AGE_GROUP_LABELS[i - 1]
-                curr_ag = AGE_GROUP_LABELS[i]
-                surv = survival.get((prev_ag, sex), 0.0)
-                new_pop[(curr_ag, sex)] = pop[(prev_ag, sex)] * surv
-
-            # Open-ended 85+
-            surv_80_84 = survival.get(("80-84", sex), 0.0)
-            surv_85p = survival.get(("85+", sex), 0.0)
-            new_pop[("85+", sex)] = (
-                pop[("80-84", sex)] * surv_80_84 + pop[("85+", sex)] * surv_85p
-            )
-
-            # Migrate ages 5-9 through 85+
-            for i in range(1, N_AGE_GROUPS):
-                ag = AGE_GROUP_LABELS[i]
-                mig_rate = mig_lookup.get((ag, sex), 0.0)
-                new_pop[(ag, sex)] *= 1 + mig_rate
-
-        # Births
-        total_births_5yr = 0.0
-        for fert_ag, asfr in fertility.items():
-            fem_pop = pop.get((fert_ag, "Female"), 0.0)
-            total_births_5yr += fem_pop * asfr * 5
-
-        male_births = total_births_5yr * MALE_BIRTH_FRACTION
-        female_births = total_births_5yr * FEMALE_BIRTH_FRACTION
-
-        # Birth survival
-        new_pop[("0-4", "Male")] = male_births * survival.get(("0-4", "Male"), 0.0)
-        new_pop[("0-4", "Female")] = female_births * survival.get(("0-4", "Female"), 0.0)
-
-        # Migrate 0-4
-        for sex in ["Male", "Female"]:
-            mig_rate = mig_lookup.get(("0-4", sex), 0.0)
-            new_pop[("0-4", sex)] *= 1 + mig_rate
-
-        # Floor at 0
-        for key in new_pop:
-            new_pop[key] = max(0.0, new_pop[key])
-
-        results[year] = sum(new_pop.values())
-        pop = new_pop
-
-    return results
+    return _project_sdc_core(
+        _init_pop(base_pop, county_fips),
+        survival,
+        fertility,
+        _build_mig_lookup(mig_rates, county_fips),
+        n_steps,
+        origin_year,
+    )
 
 
 def _get_improved_survival(
@@ -1238,6 +1315,77 @@ def _get_improved_survival_annual(
     return improved
 
 
+def _project_annual_core_from_lookups(
+    base_pop_lookup: PopulationLookup,
+    annual_survival_lookups: tuple[SurvivalLookup, ...],
+    fertility: dict[str, float],
+    annual_migration_lookups: tuple[MigrationLookup, ...],
+    origin_year: int,
+) -> dict[int, float]:
+    """Run the annual projection math from precomputed county lookups."""
+    pop = dict(base_pop_lookup)
+    results: dict[int, float] = {origin_year: sum(pop.values())}
+
+    for yr_offset, mig_lookup in enumerate(annual_migration_lookups, start=1):
+        year = origin_year + yr_offset
+        s1 = annual_survival_lookups[yr_offset]
+        new_pop: dict[tuple[str, str], float] = {}
+
+        for sex in ["Male", "Female"]:
+            survived: dict[str, float] = {}
+            for i in range(N_AGE_GROUPS):
+                ag = AGE_GROUP_LABELS[i]
+                survived[ag] = s1.get((ag, sex), 0.0) * pop.get((ag, sex), 0.0)
+
+            for i in range(1, N_AGE_GROUPS - 1):
+                curr_ag = AGE_GROUP_LABELS[i]
+                prev_ag = AGE_GROUP_LABELS[i - 1]
+                new_pop[(curr_ag, sex)] = (
+                    (4.0 / 5.0) * survived[curr_ag]
+                    + (1.0 / 5.0) * survived[prev_ag]
+                )
+
+            new_pop[("85+", sex)] = (
+                survived["85+"]
+                + (1.0 / 5.0) * survived["80-84"]
+            )
+
+            for i in range(1, N_AGE_GROUPS):
+                ag = AGE_GROUP_LABELS[i]
+                mig_rate = mig_lookup.get((ag, sex), 0.0)
+                new_pop[(ag, sex)] += mig_rate * new_pop[(ag, sex)]
+
+        total_births = 0.0
+        for fert_ag, asfr in fertility.items():
+            fem_pop = pop.get((fert_ag, "Female"), 0.0)
+            total_births += fem_pop * asfr
+
+        male_births = total_births * MALE_BIRTH_FRACTION
+        female_births = total_births * FEMALE_BIRTH_FRACTION
+
+        infant_surv_m = s1.get(("0-4", "Male"), 0.0)
+        infant_surv_f = s1.get(("0-4", "Female"), 0.0)
+        male_births_survived = male_births * infant_surv_m
+        female_births_survived = female_births * infant_surv_f
+
+        for sex in ["Male", "Female"]:
+            survived_04 = s1.get(("0-4", sex), 0.0) * pop.get(("0-4", sex), 0.0)
+            births_surv = male_births_survived if sex == "Male" else female_births_survived
+            new_pop[("0-4", sex)] = (4.0 / 5.0) * survived_04 + births_surv
+
+        for sex in ["Male", "Female"]:
+            mig_rate = mig_lookup.get(("0-4", sex), 0.0)
+            new_pop[("0-4", sex)] += mig_rate * new_pop[("0-4", sex)]
+
+        for key in new_pop:
+            new_pop[key] = max(0.0, new_pop[key])
+
+        results[year] = sum(new_pop.values())
+        pop = new_pop
+
+    return results
+
+
 def _project_annual_core(
     base_pop: pd.DataFrame,
     survival: dict[tuple[str, str], float],
@@ -1264,92 +1412,21 @@ def _project_annual_core(
     Returns:
         dict mapping year -> total county population.
     """
-    pop = _init_pop(base_pop, county_fips)
-
-    results: dict[int, float] = {origin_year: sum(pop.values())}
-
-    for yr_offset in range(1, n_years + 1):
-        year = origin_year + yr_offset
-
-        # Get convergence-scheduled annualized migration rates for this year
-        year_mig = get_convergence_rate_for_year(yr_offset, convergence_windows, config)
-        mig_lookup = _build_mig_annual_lookup(year_mig, county_fips)
-
-        # Get mortality-improved 1-year survival rates
-        s1 = _get_improved_survival_annual(survival, yr_offset)
-
-        new_pop: dict[tuple[str, str], float] = {}
-
-        for sex in ["Male", "Female"]:
-            # --- A. Aging + Survival using 1/5 approximation ---
-
-            # Survive each cohort first (store survived values for aging calc)
-            survived: dict[str, float] = {}
-            for i in range(N_AGE_GROUPS):
-                ag = AGE_GROUP_LABELS[i]
-                survived[ag] = s1.get((ag, sex), 0.0) * pop.get((ag, sex), 0.0)
-
-            # Age groups 5-9 through 80-84 (indices 1..16):
-            #   pop(a, t+1) = (4/5)*survived(a) + (1/5)*survived(a-5)
-            for i in range(1, N_AGE_GROUPS - 1):
-                curr_ag = AGE_GROUP_LABELS[i]
-                prev_ag = AGE_GROUP_LABELS[i - 1]
-                new_pop[(curr_ag, sex)] = (
-                    (4.0 / 5.0) * survived[curr_ag]
-                    + (1.0 / 5.0) * survived[prev_ag]
-                )
-
-            # Terminal group 85+:
-            #   pop(85+, t+1) = survived(85+) + (1/5)*survived(80-84)
-            new_pop[("85+", sex)] = (
-                survived["85+"]
-                + (1.0 / 5.0) * survived["80-84"]
-            )
-
-            # 0-4 will be handled below after births
-
-            # --- C. Migration for ages 5-9 through 85+ ---
-            for i in range(1, N_AGE_GROUPS):
-                ag = AGE_GROUP_LABELS[i]
-                mig_rate = mig_lookup.get((ag, sex), 0.0)
-                new_pop[(ag, sex)] += mig_rate * new_pop[(ag, sex)]
-
-        # --- B. Births ---
-        # Use beginning-of-period female population; fertility is already annual
-        total_births = 0.0
-        for fert_ag, asfr in fertility.items():
-            fem_pop = pop.get((fert_ag, "Female"), 0.0)
-            total_births += fem_pop * asfr
-
-        male_births = total_births * MALE_BIRTH_FRACTION
-        female_births = total_births * FEMALE_BIRTH_FRACTION
-
-        # Birth survival: survive one year as infant using S_1yr(0-4)
-        infant_surv_m = s1.get(("0-4", "Male"), 0.0)
-        infant_surv_f = s1.get(("0-4", "Female"), 0.0)
-        male_births_survived = male_births * infant_surv_m
-        female_births_survived = female_births * infant_surv_f
-
-        # 0-4 age group:
-        #   pop(0-4, t+1) = (4/5)*survived(0-4) + births_survived
-        for sex in ["Male", "Female"]:
-            survived_04 = s1.get(("0-4", sex), 0.0) * pop.get(("0-4", sex), 0.0)
-            births_surv = male_births_survived if sex == "Male" else female_births_survived
-            new_pop[("0-4", sex)] = (4.0 / 5.0) * survived_04 + births_surv
-
-        # Migrate 0-4
-        for sex in ["Male", "Female"]:
-            mig_rate = mig_lookup.get(("0-4", sex), 0.0)
-            new_pop[("0-4", sex)] += mig_rate * new_pop[("0-4", sex)]
-
-        # --- E. Floor at zero ---
-        for key in new_pop:
-            new_pop[key] = max(0.0, new_pop[key])
-
-        results[year] = sum(new_pop.values())
-        pop = new_pop
-
-    return results
+    annual_survival_lookups = _build_annual_survival_lookups(survival, n_years)
+    annual_migration_lookups = tuple(
+        _build_mig_annual_lookup(
+            get_convergence_rate_for_year(yr_offset, convergence_windows, config),
+            county_fips,
+        )
+        for yr_offset in range(1, n_years + 1)
+    )
+    return _project_annual_core_from_lookups(
+        _init_pop(base_pop, county_fips),
+        annual_survival_lookups,
+        fertility,
+        annual_migration_lookups,
+        origin_year,
+    )
 
 
 def project_2026_annual(
@@ -1993,35 +2070,89 @@ _IS_ANNUAL: dict[str, bool] = {
 }
 
 
+def _build_method_county_projection_inputs(
+    *,
+    method_name: str,
+    rates: object,
+    config: MethodConfig,
+    counties: list[str],
+    n_years: int,
+) -> dict[str, CountyProjectionInputs]:
+    """Precompute per-county migration inputs for one prepared method."""
+    if _IS_ANNUAL[method_name]:
+        annual_windows = cast(dict[str, pd.DataFrame], rates)
+        county_yearly_lookups: dict[str, list[MigrationLookup]] = {
+            fips: [] for fips in counties
+        }
+        for yr_offset in range(1, n_years + 1):
+            year_mig = get_convergence_rate_for_year(
+                yr_offset,
+                annual_windows,
+                config,
+            )
+            county_lookups = _build_county_migration_lookups(
+                year_mig,
+                value_column="migration_rate_annual",
+                counties=counties,
+            )
+            for fips in counties:
+                county_yearly_lookups[fips].append(county_lookups[fips])
+        return {
+            fips: AnnualCountyProjectionInputs(tuple(lookups))
+            for fips, lookups in county_yearly_lookups.items()
+        }
+
+    if method_name != "sdc_2024":
+        raise ValueError(
+            "County projection caching currently supports 'sdc_2024' as the "
+            "only step-based annual-validation method."
+        )
+
+    county_lookups = _build_county_migration_lookups(
+        cast(pd.DataFrame, rates),
+        value_column="migration_rate_5yr",
+        counties=counties,
+    )
+    return {
+        fips: StepCountyProjectionInputs(county_lookups[fips])
+        for fips in counties
+    }
+
+
 def _project_single_county_annual(
     *,
     county_fips: str,
     methods: list[str],
-    base_pop: pd.DataFrame,
+    county_base_pop: PopulationLookup,
     survival: dict[tuple[str, str], float],
+    annual_survival_lookups: tuple[SurvivalLookup, ...],
     fertility: dict[str, float],
-    method_rates: dict[str, object],
-    method_configs: dict[str, MethodConfig],
+    county_method_inputs: dict[str, CountyProjectionInputs],
     origin_year: int,
     n_steps: int,
-    n_years: int,
 ) -> tuple[str, dict[str, dict[int, float]]]:
     """Project one county across all methods for a single origin year."""
     county_results: dict[str, dict[int, float]] = {}
 
     for method_name in methods:
-        cfg = method_configs[method_name]
-        rates = method_rates[method_name]
-        is_annual = _IS_ANNUAL[method_name]
-        project_fn = _PROJECT_DISPATCH[method_name]
+        method_inputs = county_method_inputs[method_name]
 
-        if is_annual:
-            county_annual = project_fn(  # type: ignore[operator]
-                base_pop, survival, fertility, rates, county_fips, n_years, origin_year, cfg
+        if isinstance(method_inputs, AnnualCountyProjectionInputs):
+            county_annual = _project_annual_core_from_lookups(
+                county_base_pop,
+                annual_survival_lookups,
+                fertility,
+                method_inputs.annual_migration_lookups,
+                origin_year,
             )
         else:
-            step_proj = project_fn(  # type: ignore[operator]
-                base_pop, survival, fertility, rates, county_fips, n_steps, origin_year, cfg
+            step_proj = _project_sdc_core(
+                county_base_pop,
+                survival,
+                fertility,
+                method_inputs.migration_lookup,
+                n_steps,
+                origin_year,
             )
             county_annual = interpolate_county_annual(step_proj, origin_year)
 
@@ -2085,6 +2216,19 @@ def _run_single_origin_annual(
         prepare_fn = _PREPARE_DISPATCH[method_name]
         method_rates[method_name] = prepare_fn(effective_mig, origin_year, cfg)  # type: ignore[operator]
 
+    county_base_pops = _build_county_population_lookups(base_pop, counties)
+    annual_survival_lookups = _build_annual_survival_lookups(survival, n_years)
+    method_projection_inputs = {
+        method_name: _build_method_county_projection_inputs(
+            method_name=method_name,
+            rates=method_rates[method_name],
+            config=method_configs[method_name],
+            counties=counties,
+            n_years=n_years,
+        )
+        for method_name in methods
+    }
+
     # Project all counties with each method
     method_county_annual: dict[str, dict[str, dict[int, float]]] = {
         m: {} for m in methods
@@ -2097,14 +2241,16 @@ def _run_single_origin_annual(
             county_fips, county_results = _project_single_county_annual(
                 county_fips=fips,
                 methods=methods,
-                base_pop=base_pop,
+                county_base_pop=county_base_pops[fips],
                 survival=survival,
+                annual_survival_lookups=annual_survival_lookups,
                 fertility=fertility,
-                method_rates=method_rates,
-                method_configs=method_configs,
+                county_method_inputs={
+                    method_name: method_projection_inputs[method_name][fips]
+                    for method_name in methods
+                },
                 origin_year=origin_year,
                 n_steps=n_steps,
-                n_years=n_years,
             )
             for method_name, county_annual in county_results.items():
                 method_county_annual[method_name][county_fips] = county_annual
@@ -2116,14 +2262,16 @@ def _run_single_origin_annual(
                     _project_single_county_annual,
                     county_fips=fips,
                     methods=methods,
-                    base_pop=base_pop,
+                    county_base_pop=county_base_pops[fips],
                     survival=survival,
+                    annual_survival_lookups=annual_survival_lookups,
                     fertility=fertility,
-                    method_rates=method_rates,
-                    method_configs=method_configs,
+                    county_method_inputs={
+                        method_name: method_projection_inputs[method_name][fips]
+                        for method_name in methods
+                    },
                     origin_year=origin_year,
                     n_steps=n_steps,
-                    n_years=n_years,
                 )
 
         for fips in counties:
@@ -2138,14 +2286,16 @@ def _run_single_origin_annual(
                 county_fips, county_results = _project_single_county_annual(
                     county_fips=fips,
                     methods=methods,
-                    base_pop=base_pop,
+                    county_base_pop=county_base_pops[fips],
                     survival=survival,
+                    annual_survival_lookups=annual_survival_lookups,
                     fertility=fertility,
-                    method_rates=method_rates,
-                    method_configs=method_configs,
+                    county_method_inputs={
+                        method_name: method_projection_inputs[method_name][fips]
+                        for method_name in methods
+                    },
                     origin_year=origin_year,
                     n_steps=n_steps,
-                    n_years=n_years,
                 )
 
             for method_name, county_annual in county_results.items():

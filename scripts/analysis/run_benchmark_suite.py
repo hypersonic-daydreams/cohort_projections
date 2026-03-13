@@ -179,6 +179,52 @@ def _build_qc_summary(
     }
 
 
+def _build_runtime_summary(
+    *,
+    stage_timings: dict[str, float],
+    total_duration_seconds: float,
+    workers_arg: int,
+) -> dict[str, Any]:
+    """Summarize benchmark runtime for manifest and sidecar output."""
+    stage_timings_out = dict(stage_timings)
+    accounted_duration = round(sum(stage_timings_out.values()), 3)
+    other_overhead = round(max(0.0, total_duration_seconds - accounted_duration), 3)
+    if other_overhead > 0:
+        stage_timings_out["other_overhead"] = other_overhead
+
+    if stage_timings_out:
+        slowest_stage, slowest_seconds = max(
+            stage_timings_out.items(),
+            key=lambda item: item[1],
+        )
+    else:
+        slowest_stage, slowest_seconds = None, 0.0
+
+    if total_duration_seconds > 0:
+        stage_shares = {
+            stage: round(seconds / total_duration_seconds, 4)
+            for stage, seconds in stage_timings_out.items()
+        }
+    else:
+        stage_shares = dict.fromkeys(stage_timings_out, 0.0)
+
+    return {
+        "total_duration_seconds": total_duration_seconds,
+        "accounted_duration_seconds": accounted_duration,
+        "stage_timings_seconds": stage_timings_out,
+        "stage_shares": stage_shares,
+        "slowest_stage": slowest_stage,
+        "slowest_stage_seconds": round(slowest_seconds, 3),
+        "worker_config": {
+            "shared_workers_arg": workers_arg,
+            "annual_validation_strategy": "county_projection_parallelism",
+            "annual_validation_origin_workers_requested": 1,
+            "annual_validation_county_workers_requested": workers_arg,
+            "sensitivity_workers_requested": workers_arg,
+        },
+    }
+
+
 def main() -> None:
     args = _parse_args()
     if args.scope != "county":
@@ -238,22 +284,30 @@ def main() -> None:
         run_dir / "manifest.json",
         run_dir / "summary_scorecard.csv",
         run_dir / "summary_scorecard.json",
+        run_dir / "runtime_summary.json",
     ]
 
     with log_execution(__file__, parameters=parameters, outputs=output_paths) as execution_log_run_id:
+        stage_timings: dict[str, float] = {}
+
         # Inject profile resolved_configs into METHOD_DISPATCH so that
         # config-only experiments (config_delta from experiment specs)
         # actually affect the computation.  Restore originals when done.
         print("Injecting profile configs into METHOD_DISPATCH...")
+        stage_start = time.perf_counter()
         saved_configs = _inject_profile_configs(profile_map)
+        stage_timings["config_injection"] = round(time.perf_counter() - stage_start, 3)
 
         print("Loading shared benchmark inputs...")
+        stage_start = time.perf_counter()
         snapshots = wfv.load_all_snapshots()
         mig_raw = wfv.load_migration_rates_raw()
         survival = wfv.load_survival_rates()
         fertility = wfv.load_fertility_rates()
+        stage_timings["load_shared_inputs"] = round(time.perf_counter() - stage_start, 3)
 
         print("Running annual walk-forward validation...")
+        stage_start = time.perf_counter()
         annual_state, annual_county, projection_curves = wfv.run_annual_validation(
             snapshots,
             mig_raw,
@@ -265,8 +319,10 @@ def main() -> None:
         )
         annual_horizon = wfv.compute_annual_horizon_summary(annual_state, annual_county)
         annual_comparison = wfv.compute_annual_method_comparison(annual_state, annual_county)
+        stage_timings["annual_validation"] = round(time.perf_counter() - stage_start, 3)
 
         print("Running sensitivity analysis...")
+        stage_start = time.perf_counter()
         sensitivity_results = sa.run_sensitivity_analysis(
             snapshots,
             mig_raw,
@@ -276,22 +332,28 @@ def main() -> None:
             workers=args.workers,
         )
         sensitivity_tornado = sa.compute_tornado_data(sensitivity_results)
+        stage_timings["sensitivity_analysis"] = round(time.perf_counter() - stage_start, 3)
 
         print("Computing QC summaries...")
+        stage_start = time.perf_counter()
         county_with_categories = with_county_categories(annual_county)
         bias_df = qcd.compute_bias_analysis(county_with_categories)
         residual_df = qcd.compute_residual_diagnostics(county_with_categories)
         outlier_df = qcd.detect_outliers(county_with_categories)
         report_cards = qcd.compute_county_report_cards(county_with_categories)
         qc_summary = _build_qc_summary(bias_df, residual_df, outlier_df, report_cards)
+        stage_timings["qc_summaries"] = round(time.perf_counter() - stage_start, 3)
 
         print("Computing uncertainty summaries...")
+        stage_start = time.perf_counter()
         prediction_intervals = compute_prediction_intervals_generic(
             county_with_categories,
             annual_state,
         )
+        stage_timings["uncertainty_summaries"] = round(time.perf_counter() - stage_start, 3)
 
         print("Building scorecard and manifest...")
+        stage_start = time.perf_counter()
         scorecard = build_summary_scorecard(
             annual_state=annual_state,
             annual_county=annual_county,
@@ -301,7 +363,9 @@ def main() -> None:
             run_id=run_id,
         )
         comparison = build_comparison_to_champion(scorecard, args.champion_method)
+        stage_timings["scorecard_build"] = round(time.perf_counter() - stage_start, 3)
 
+        stage_start = time.perf_counter()
         annual_state.to_csv(run_dir / "state_metrics.csv", index=False)
         county_with_categories.to_csv(run_dir / "county_metrics.csv", index=False)
         annual_horizon.to_csv(run_dir / "annual_horizon_summary.csv", index=False)
@@ -327,8 +391,18 @@ def main() -> None:
             json.dumps(qc_summary, indent=2, sort_keys=True),
             encoding="utf-8",
         )
+        stage_timings["artifact_writes"] = round(time.perf_counter() - stage_start, 3)
 
         duration_seconds = round(time.perf_counter() - start, 3)
+        runtime_summary = _build_runtime_summary(
+            stage_timings=stage_timings,
+            total_duration_seconds=duration_seconds,
+            workers_arg=args.workers,
+        )
+        (run_dir / "runtime_summary.json").write_text(
+            json.dumps(runtime_summary, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
         run_date = run_id.split("-")[1]
         manifest = {
             "run_id": run_id,
@@ -375,6 +449,7 @@ def main() -> None:
             },
             "execution_log_run_id": execution_log_run_id,
             "duration_seconds": duration_seconds,
+            "runtime_summary": runtime_summary,
         }
         manifest_path = write_manifest(run_dir, manifest)
         (run_dir / "execution_log.json").write_text(
@@ -382,6 +457,7 @@ def main() -> None:
                 {
                     "execution_log_run_id": execution_log_run_id,
                     "duration_seconds": duration_seconds,
+                    "runtime_summary": runtime_summary,
                     "git_commit": git_commit,
                     "git_dirty": git_dirty,
                 },

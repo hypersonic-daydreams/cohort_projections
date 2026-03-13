@@ -425,16 +425,23 @@ Implemented slices on 2026-03-13:
   annual-validation parallelism with deterministic merge order and per-county
   sequential fallback on worker failure, while preserving the older
   origin-level worker path for direct callers.
+- `scripts/analysis/walk_forward_validation.py` now also precomputes
+  county-level base-population and migration lookups for the annual benchmark
+  path, removing repeated DataFrame slicing and repeated convergence-window
+  expansion inside every county projection.
 - `scripts/analysis/run_benchmark_suite.py` now routes the shared `--workers`
-  control into both sensitivity analysis and county-level annual validation.
+  control into both sensitivity analysis and county-level annual validation,
+  and now writes per-stage runtime metadata (`runtime_summary.json` plus
+  embedded manifest/execution-log summaries) so real benchmark bundles reveal
+  the current bottleneck.
 
 Remaining gap:
 
-- End-to-end runtime measurement to quantify which benchmark stages remain the
-  dominant bottleneck after the sensitivity and annual-validation
-  parallelization slices.
-- County-level data extract caching and any remaining walk-forward hot spots
-  beyond the annual benchmark path.
+- Use the new runtime metadata from real benchmark bundles to quantify which
+  stage now dominates wall-clock time after the sensitivity and
+  annual-validation parallelization/caching slices.
+- Extend caching or deeper internal parallelism only where the measured runtime
+  summaries still show meaningful bottlenecks.
 
 #### Tier 2: Cache county-level data extracts (2-3x additional)
 

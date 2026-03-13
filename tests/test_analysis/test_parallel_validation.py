@@ -388,6 +388,57 @@ class TestProjectionWorkerPath:
             curves_par.reset_index(drop=True),
         )
 
+    def test_projection_workers_mixed_methods_identical(
+        self, shared_inputs: dict[str, Any]
+    ) -> None:
+        """County-worker path must preserve mixed annual and step-method output."""
+        from scripts.analysis.walk_forward_validation import run_annual_validation
+
+        counties = ["38001", "38003", "38005"]
+        mock_actuals: dict[int, pd.DataFrame] = {}
+        for yr in range(2006, 2025):
+            mock_actuals[yr] = _make_population_df(counties, yr)
+
+        with patch(
+            "scripts.analysis.walk_forward_validation.load_annual_validation_actuals",
+            return_value=mock_actuals,
+        ), patch(
+            "scripts.analysis.walk_forward_validation.maybe_recompute_mig_raw",
+            side_effect=lambda mig, snap, cfg: mig,
+        ):
+            state_seq, county_seq, curves_seq = run_annual_validation(
+                shared_inputs["snapshots"],
+                shared_inputs["mig_raw"],
+                shared_inputs["survival"],
+                shared_inputs["fertility"],
+                methods=["sdc_2024", "m2026r1"],
+                workers=1,
+                projection_workers=1,
+            )
+
+            state_par, county_par, curves_par = run_annual_validation(
+                shared_inputs["snapshots"],
+                shared_inputs["mig_raw"],
+                shared_inputs["survival"],
+                shared_inputs["fertility"],
+                methods=["sdc_2024", "m2026r1"],
+                workers=1,
+                projection_workers=2,
+            )
+
+        pd.testing.assert_frame_equal(
+            state_seq.reset_index(drop=True),
+            state_par.reset_index(drop=True),
+        )
+        pd.testing.assert_frame_equal(
+            county_seq.reset_index(drop=True),
+            county_par.reset_index(drop=True),
+        )
+        pd.testing.assert_frame_equal(
+            curves_seq.reset_index(drop=True),
+            curves_par.reset_index(drop=True),
+        )
+
     def test_projection_worker_fallback_on_error(
         self, shared_inputs: dict[str, Any]
     ) -> None:
