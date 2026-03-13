@@ -45,6 +45,7 @@ path from multiple documents.
 - Search-loop operator guide: `docs/guides/observatory-search-loop.md`
 - Full benchmark workflow guide: `docs/guides/benchmarking-workflow.md`
 - Full backlog roadmap: `docs/plans/benchmarking-process-improvement-roadmap.md`
+- Concrete UI/UX review + backlog: `docs/plans/observatory-ui-ux-backlog.md`
 - Runtime config: `config/observatory_config.yaml`
 - Variant catalog: `config/observatory_variants.yaml`
 
@@ -60,6 +61,7 @@ path from multiple documents.
 
 ### UI/UX And Decision Support
 
+- `OBS-UX` first-time-user review and backlog
 - `P4` longitudinal benchmark-history dashboard views
 - `P5` promotion package builder
 - `P9` finer methodological segmentation lenses

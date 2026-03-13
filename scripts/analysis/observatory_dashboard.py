@@ -18,11 +18,46 @@ import argparse
 import logging
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import panel as pn
 
 # Ensure the project root is importable when running as a script
 _project_root = Path(__file__).resolve().parents[2]
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
+
+
+def _configure_panel_runtime() -> None:
+    """Enable the Panel extensions and loading indicators used by the dashboard."""
+    import panel as pn
+
+    pn.extension("plotly", "tabulator")
+    pn.config.loading_indicator = True
+    pn.config.loading_spinner = "dots"
+    pn.config.loading_color = "#0563C1"
+
+
+def build_dashboard() -> pn.template.FastListTemplate:
+    """Build and return a fresh Observatory dashboard instance.
+
+    Returns
+    -------
+    pn.template.FastListTemplate
+        A new dashboard template backed by a newly created data manager.
+    """
+    _configure_panel_runtime()
+
+    from cohort_projections.analysis.observatory.dashboard.app import create_app
+    from cohort_projections.analysis.observatory.dashboard.data_manager import (
+        DashboardDataManager,
+    )
+
+    logging.getLogger(__name__).info("Initialising data manager …")
+    dm = DashboardDataManager()
+    logging.getLogger(__name__).info("Building dashboard …")
+    return create_app(dm)
 
 
 def main() -> None:
@@ -57,23 +92,8 @@ def main() -> None:
 
     import panel as pn
 
-    pn.extension("plotly", "tabulator")
-    pn.config.loading_indicator = True
-    pn.config.loading_spinner = "dots"
-    pn.config.loading_color = "#0563C1"
-
-    from cohort_projections.analysis.observatory.dashboard.app import create_app
-    from cohort_projections.analysis.observatory.dashboard.data_manager import (
-        DashboardDataManager,
-    )
-
-    logging.getLogger(__name__).info("Initialising data manager …")
-    dm = DashboardDataManager()
-    logging.getLogger(__name__).info("Building dashboard …")
-    app = create_app(dm)
-
     pn.serve(
-        {"/": app},
+        {"/": build_dashboard},
         port=args.port,
         show=not args.no_open,
         title="Projection Observatory",
@@ -87,20 +107,7 @@ def main() -> None:
 if __name__.startswith("bokeh"):
     # Running via ``panel serve`` — create the template and make it
     # servable so Panel picks it up.
-    import panel as pn  # noqa: F811
-
-    pn.extension("plotly", "tabulator")
-    pn.config.loading_indicator = True
-    pn.config.loading_spinner = "dots"
-    pn.config.loading_color = "#0563C1"
-
-    from cohort_projections.analysis.observatory.dashboard.app import create_app
-    from cohort_projections.analysis.observatory.dashboard.data_manager import (
-        DashboardDataManager,
-    )
-
-    _dm = DashboardDataManager()
-    _app = create_app(_dm)
+    _app = build_dashboard()
     _app.servable()
 
 elif __name__ == "__main__":

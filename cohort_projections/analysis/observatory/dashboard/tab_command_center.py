@@ -140,6 +140,151 @@ def _best_tested_challenger(dm: DashboardDataManager) -> pd.Series | None:
     ).iloc[0]
 
 
+def _command_center_summary(dm: DashboardDataManager) -> str:
+    """Return a plain-language summary of the current decision state."""
+    champion_row = (
+        dm.run_metadata[dm.run_metadata["run_id"] == dm.champion_id].iloc[0]
+        if dm.champion_id is not None
+        and not dm.run_metadata[dm.run_metadata["run_id"] == dm.champion_id].empty
+        else None
+    )
+    champion_mape = _champion_mape(dm)
+    best_variant = _best_tested_challenger(dm)
+    review_queue = dm.run_metadata[dm.run_metadata["status_code"] == "needs_human_review"]
+
+    recommendations = dm.recommender.suggest_next_experiments(1)
+    top_recommendation = recommendations[0] if recommendations else None
+
+    summary_parts: list[str] = []
+    if champion_row is not None and champion_mape is not None:
+        summary_parts.append(
+            f"Current champion: {champion_row['display_name']} at {champion_mape:.2f}% county error."
+        )
+    elif champion_row is not None:
+        summary_parts.append(f"Current champion: {champion_row['display_name']}.")
+
+    best_variant_mape = (
+        _as_float(best_variant.get("selected_county_mape_overall"))
+        if best_variant is not None
+        else None
+    )
+    if best_variant is not None and best_variant_mape is not None and champion_mape is not None:
+        delta = best_variant_mape - champion_mape
+        summary_parts.append(
+            f"Best tested challenger: {best_variant['display_name']} at "
+            f"{best_variant_mape:.2f}% ({delta:+.2f} vs champion)."
+        )
+    elif best_variant is not None:
+        summary_parts.append(f"Best tested challenger: {best_variant['display_name']}.")
+
+    if review_queue.empty:
+        summary_parts.append("No completed runs are waiting for human review.")
+    else:
+        summary_parts.append(f"{len(review_queue)} run(s) currently need human review.")
+
+    if top_recommendation is not None:
+        summary_parts.append(
+            "Top suggested next experiment: "
+            f"{top_recommendation.parameter} -> {top_recommendation.suggested_value}."
+        )
+
+    return " ".join(summary_parts) or "No completed Observatory run history is available yet."
+
+
+def _make_tab_button(
+    *,
+    name: str,
+    button_type: str,
+    width: int,
+    target_index: int,
+    tabs: pn.Tabs | None,
+) -> pn.widgets.Button:
+    """Create a button that activates a dashboard tab when clicked."""
+    button = pn.widgets.Button(
+        name=name,
+        button_type=button_type,
+        width=width,
+        disabled=tabs is None,
+    )
+
+    if tabs is not None:
+        def _activate_tab(event: Any) -> None:
+            tabs.active = target_index
+
+        button.on_click(_activate_tab)
+
+    return button
+
+
+def _build_start_here_card(dm: DashboardDataManager, tabs: pn.Tabs | None) -> pn.Card:
+    """Render a first-run orientation panel with a plain-language workflow."""
+    intro = pn.pane.Markdown(
+        "The Projection Observatory is the dashboard and analysis layer for "
+        "testing projection variants, comparing their quality metrics, and "
+        "deciding what to run or promote next."
+    )
+    current_state = pn.pane.Markdown(
+        f"**Current situation:** {_command_center_summary(dm)}"
+    )
+    workflow = pn.pane.Markdown(
+        "Use this order:\n"
+        "1. Review the queue health and champion snapshot on this page.\n"
+        "2. Open **Scorecards** to see whether a challenger materially beats the champion.\n"
+        "3. Open **Projections** to inspect what the shortlist does to the population path.\n"
+        "4. Open **Horizon & Bias** or **Sensitivity** only after you have a shortlist or need diagnostics.\n"
+        "5. Return here to preview pending or recommended runs."
+    )
+    buttons = pn.FlexBox(
+        _make_tab_button(
+            name="Review Variants",
+            button_type="default",
+            width=150,
+            target_index=1,
+            tabs=tabs,
+        ),
+        _make_tab_button(
+            name="Compare Challengers",
+            button_type="primary",
+            width=180,
+            target_index=2,
+            tabs=tabs,
+        ),
+        _make_tab_button(
+            name="Inspect Projections",
+            button_type="default",
+            width=170,
+            target_index=3,
+            tabs=tabs,
+        ),
+        _make_tab_button(
+            name="Check Diagnostics",
+            button_type="default",
+            width=170,
+            target_index=4,
+            tabs=tabs,
+        ),
+        _make_tab_button(
+            name="See Recommendations",
+            button_type="default",
+            width=180,
+            target_index=5,
+            tabs=tabs,
+        ),
+        flex_wrap="wrap",
+        sizing_mode="stretch_width",
+        styles={"gap": "10px"},
+    )
+
+    return pn.Card(
+        intro,
+        current_state,
+        workflow,
+        buttons,
+        title="Start Here",
+        sizing_mode="stretch_width",
+    )
+
+
 def _build_kpi_row(dm: DashboardDataManager) -> pn.FlexBox:
     """Top-line KPI strip with mobile-safe wrapping."""
     total_runs = len(dm.run_ids)
@@ -171,7 +316,7 @@ def _build_kpi_row(dm: DashboardDataManager) -> pn.FlexBox:
             color=STATUS_COLORS["untested"],
         ),
         kpi_card(
-            "Champion MAPE",
+            "Champion Error (MAPE)",
             f"{_champion_mape(dm):.2f}%" if _champion_mape(dm) is not None else "N/A",
             color=SDC_NAVY,
         ),
@@ -201,7 +346,7 @@ def _build_decision_strip(dm: DashboardDataManager) -> pn.FlexBox:
 
     champion_card = _summary_card(
         "Current Champion",
-        f"{champion_mape:.2f}% overall MAPE"
+        f"{champion_mape:.2f}% county error"
         if champion_mape is not None
         else "Champion unavailable",
         (
@@ -223,7 +368,7 @@ def _build_decision_strip(dm: DashboardDataManager) -> pn.FlexBox:
         best_card = _summary_card(
             "Best Challenger",
             str(best_variant["display_name"]),
-            f"{best_variant_mape:.2f}% overall MAPE ({delta:+.2f} vs champion)",
+            f"{best_variant_mape:.2f}% county error ({delta:+.2f} vs champion)",
             tone="success" if delta <= 0 else "warning",
         )
     else:
@@ -322,10 +467,10 @@ def _build_queue_health_card(dm: DashboardDataManager) -> pn.Card:
     blocked_grids = snapshot["grid_blocked_ids"]
 
     lines = [
-        f"Runnable catalog variants: {snapshot['untested_runnable']}",
-        f"Blocked variants requiring code changes: {snapshot['untested_requires_code_change']}",
-        f"Review queue: {snapshot['review_queue']}",
-        f"Runnable recommendations: {snapshot['runnable_recommendations']}",
+        f"Variants you can run now: {snapshot['untested_runnable']}",
+        f"Variants still blocked by code changes: {snapshot['untested_requires_code_change']}",
+        f"Runs waiting for human review: {snapshot['review_queue']}",
+        f"Config-only recommendations ready to preview: {snapshot['runnable_recommendations']}",
     ]
     if blocked_grids:
         lines.append(f"Blocked grids: {', '.join(blocked_grids)}")
@@ -333,7 +478,7 @@ def _build_queue_health_card(dm: DashboardDataManager) -> pn.Card:
         lines.append("Blocked grids: none")
 
     command_md = (
-        "Recommended loop:\n"
+        "Advanced CLI loop:\n"
         "1. `python scripts/analysis/observatory.py status`\n"
         "2. `python scripts/analysis/observatory.py run-pending --dry-run --run-budget 3 --resume-file data/analysis/experiments/sweeps/observatory_pending_resume.json`\n"
         "3. Re-run without `--dry-run` once the queue looks correct.\n"
@@ -350,6 +495,10 @@ def _build_queue_health_card(dm: DashboardDataManager) -> pn.Card:
 
     return pn.Card(
         pn.pane.Alert(headline, alert_type=alert_type),
+        pn.pane.Markdown(
+            "Use this section when deciding whether the unattended queue is safe to run. "
+            "If you only need to inspect what would happen next, the preview buttons below do not execute experiments."
+        ),
         pn.pane.Markdown("\n".join(f"- {line}" for line in lines)),
         pn.pane.Markdown(command_md),
         title="Queue Health",
@@ -391,7 +540,7 @@ def _build_champion_card(dm: DashboardDataManager) -> pn.Card:
     sentinel_html = ""
     if sentinel_rows:
         sentinel_html = (
-            '<h4 style="margin:12px 0 6px 0;color:#1F3864">Highest Sentinel MAPEs</h4>'
+            '<h4 style="margin:12px 0 6px 0;color:#1F3864">Highest Sentinel County Errors (MAPE)</h4>'
             '<table style="width:100%;border-collapse:collapse">'
             + "".join(
                 (
@@ -409,9 +558,9 @@ def _build_champion_card(dm: DashboardDataManager) -> pn.Card:
         <tr><td style="padding:4px 12px 4px 0;color:#5A6C84;width:150px">Run</td><td style="padding:4px 0;font-weight:600">{dm.run_label(champion_id)}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Method</td><td style="padding:4px 0;font-weight:600">{champion.get("method_id", "N/A")}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Config</td><td style="padding:4px 0;font-weight:600">{champion.get("config_id", "N/A")}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Overall MAPE</td><td style="padding:4px 0;font-weight:700;color:{SDC_NAVY}">{_fmt_metric(champion.get("county_mape_overall"))}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">State APE (short)</td><td style="padding:4px 0;font-weight:600">{_fmt_metric(champion.get("state_ape_recent_short"))}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">State APE (medium)</td><td style="padding:4px 0;font-weight:600">{_fmt_metric(champion.get("state_ape_recent_medium"))}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">County Error (MAPE)</td><td style="padding:4px 0;font-weight:700;color:{SDC_NAVY}">{_fmt_metric(champion.get("county_mape_overall"))}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Recent State Error (APE, short)</td><td style="padding:4px 0;font-weight:600">{_fmt_metric(champion.get("state_ape_recent_short"))}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Recent State Error (APE, medium)</td><td style="padding:4px 0;font-weight:600">{_fmt_metric(champion.get("state_ape_recent_medium"))}</td></tr>
       </table>
       {sentinel_html}
     </div>
@@ -434,22 +583,22 @@ def _build_index_table(dm: DashboardDataManager) -> pn.Card:
 
     display_df = dm.run_metadata.copy()
     display_df["run"] = display_df["display_name"]
-    display_df["status"] = display_df["status_label"]
+    display_df["review_status"] = display_df["status_label"]
     display_df["config"] = display_df["short_config"].replace("", pd.NA)
-    display_df["overall_mape"] = display_df["selected_county_mape_overall"].round(3)
-    display_df["state_ape_short"] = display_df["selected_state_ape_recent_short"].round(3)
+    display_df["county_error_mape"] = display_df["selected_county_mape_overall"].round(3)
+    display_df["recent_state_error_ape"] = display_df["selected_state_ape_recent_short"].round(3)
     display_df["run_date"] = display_df["run_date_label"]
 
     columns = [
         column
         for column in [
             "run",
-            "status",
+            "review_status",
             "run_date",
             "selected_method_id",
             "config",
-            "overall_mape",
-            "state_ape_short",
+            "county_error_mape",
+            "recent_state_error_ape",
             "next_action",
             "run_id",
         ]
@@ -458,8 +607,8 @@ def _build_index_table(dm: DashboardDataManager) -> pn.Card:
     display_df = display_df[columns].rename(
         columns={
             "selected_method_id": "method",
-            "next_action": "next_action",
-            "run_id": "exact_run_id",
+            "next_action": "recommended_next_step",
+            "run_id": "run_id",
         }
     )
 
@@ -477,7 +626,7 @@ def _build_index_table(dm: DashboardDataManager) -> pn.Card:
 def _build_action_buttons(dm: DashboardDataManager) -> pn.Card:
     """Action row and output console."""
     output_pane = pn.widgets.TextAreaInput(
-        value="Use the preview actions below to inspect pending or recommended runs.",
+        value="Use the preview actions below to inspect what would run next. These previews do not execute experiments.",
         disabled=True,
         height=220,
         sizing_mode="stretch_width",
@@ -528,16 +677,16 @@ def _build_action_buttons(dm: DashboardDataManager) -> pn.Card:
     btn_refresh.on_click(on_refresh)
 
     btn_pending = pn.widgets.Button(
-        name="Preview Pending",
+        name="Preview Runnable Queue",
         button_type="warning",
-        width=160,
+        width=190,
     )
     btn_pending.on_click(on_run_pending)
 
     btn_recommended = pn.widgets.Button(
-        name="Preview Recommended",
+        name="Preview Recommended Queue",
         button_type="warning",
-        width=190,
+        width=220,
     )
     btn_recommended.on_click(on_run_recommended)
 
@@ -552,6 +701,7 @@ def _build_action_buttons(dm: DashboardDataManager) -> pn.Card:
 
     guidance = pn.pane.Markdown(
         "Preview actions keep the queue bounded and resumable. "
+        "Use them to inspect the next runnable work without launching experiments. "
         "Use the matching `--resume-file` command from Queue Health for real unattended runs."
     )
 
@@ -626,13 +776,35 @@ def _build_weaknesses_panel(dm: DashboardDataManager) -> pn.Card:
     )
 
 
-def build_command_center(dm: DashboardDataManager) -> pn.Column:
-    """Build the dashboard home page."""
+def build_command_center(
+    dm: DashboardDataManager,
+    tabs: pn.Tabs | None = None,
+) -> pn.Column:
+    """Build the dashboard home page.
+
+    Parameters
+    ----------
+    dm:
+        Dashboard data manager supplying run metadata, scorecards, and
+        recommendations.
+    tabs:
+        Optional parent tab layout. When provided, the start-here buttons can
+        switch directly to the related dashboard tabs.
+
+    Returns
+    -------
+    pn.Column
+        The assembled command-center layout.
+    """
     return pn.Column(
         section_header(
             "Command Center",
-            subtitle="Current state, decision context, and quick actions",
+            subtitle=(
+                "Compare projection variants, inspect decision evidence, and "
+                "decide what to run or promote next."
+            ),
         ),
+        _build_start_here_card(dm, tabs),
         _build_kpi_row(dm),
         _build_decision_strip(dm),
         _build_queue_health_card(dm),

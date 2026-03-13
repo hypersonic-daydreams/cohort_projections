@@ -8,16 +8,20 @@ Panel dashboard.
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import MagicMock
 
 import pandas as pd
 
+import scripts.analysis.observatory_dashboard as dashboard_launcher
 from cohort_projections.analysis.observatory.dashboard.data_manager import (
+    DashboardDataManager,
     build_comparison_rows,
     build_run_metadata_frame,
     select_run_preset,
 )
 from cohort_projections.analysis.observatory.dashboard.tab_command_center import (
+    _command_center_summary,
     _queue_health_snapshot,
 )
 
@@ -192,10 +196,67 @@ def test_queue_health_snapshot_reports_runnable_and_blocked_work() -> None:
         run_metadata=pd.DataFrame({"status_code": ["needs_human_review", "passed_all_gates"]}),
     )
 
-    snapshot = _queue_health_snapshot(dm)
+    snapshot = _queue_health_snapshot(cast(DashboardDataManager, dm))
     assert snapshot["untested_runnable"] == 3
     assert snapshot["untested_requires_code_change"] == 2
     assert snapshot["grid_blocked"] == 1
     assert snapshot["grid_blocked_ids"] == ["dampening-sweep"]
     assert snapshot["review_queue"] == 1
     assert snapshot["runnable_recommendations"] == 2
+
+
+def test_command_center_summary_surfaces_current_decision_context() -> None:
+    """The first-run summary should explain champion, challenger, review load, and next step."""
+    index, scorecards, experiment_log = _build_fixture_frames()
+    metadata = build_run_metadata_frame(
+        index=index,
+        scorecards=scorecards,
+        experiment_log=experiment_log,
+        champion_id="br-champion",
+    )
+    recommender = MagicMock()
+    recommender.suggest_next_experiments.return_value = [
+        SimpleNamespace(
+            parameter="college_blend_factor",
+            suggested_value=1.0,
+        )
+    ]
+    dm = SimpleNamespace(
+        champion_id="br-champion",
+        recommender=recommender,
+        run_metadata=metadata,
+    )
+
+    summary = _command_center_summary(cast(DashboardDataManager, dm))
+
+    assert "Current champion:" in summary
+    assert "Best tested challenger: College Blend 70" in summary
+    assert "1 run(s) currently need human review." in summary
+    assert "college_blend_factor -> 1.0" in summary
+
+
+def test_build_dashboard_returns_fresh_instances(monkeypatch) -> None:
+    """Dashboard builder should return a fresh app instance for each session."""
+    created_dms: list[object] = []
+
+    class DummyDM:
+        pass
+
+    def fake_create_app(dm: object) -> object:
+        created_dms.append(dm)
+        return {"dm_id": id(dm)}
+
+    monkeypatch.setattr(dashboard_launcher, "_configure_panel_runtime", lambda: None)
+
+    import cohort_projections.analysis.observatory.dashboard.app as app_module
+    import cohort_projections.analysis.observatory.dashboard.data_manager as dm_module
+
+    monkeypatch.setattr(app_module, "create_app", fake_create_app)
+    monkeypatch.setattr(dm_module, "DashboardDataManager", DummyDM)
+
+    first = dashboard_launcher.build_dashboard()
+    second = dashboard_launcher.build_dashboard()
+
+    assert first is not second
+    assert len(created_dms) == 2
+    assert created_dms[0] is not created_dms[1]

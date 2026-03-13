@@ -481,7 +481,7 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 - Housing-unit method: update methodology docs with HU cross-validation narrative.
 - Benchmark/versioning follow-on work from SOP-003: latest-pointer refresh and broader scope coverage beyond county benchmarks.
 - ~~Richer comparison dashboards~~ — completed 2026-03-12: interactive experiment dashboard (`scripts/analysis/build_experiment_dashboard.py`) with 5 tabs (tracker, spaghetti plot, scorecard, horizon analysis, county heatmap), 19 tests.
-- Projection Observatory follow-on backlog and reading order tracked in `docs/guides/observatory-start-here.md` and `docs/plans/benchmarking-process-improvement-roadmap.md` (promotion thresholds, hard-gate split, schema enforcement, runtime optimization, longitudinal dashboard, promotion package builder, post-promotion revalidation, segmentation, place-scope extension, operational quality).
+- Projection Observatory follow-on backlog and reading order tracked in `docs/guides/observatory-start-here.md`, `docs/plans/benchmarking-process-improvement-roadmap.md`, and `docs/plans/observatory-ui-ux-backlog.md` (promotion thresholds, hard-gate split, schema enforcement, runtime optimization, first-open orientation, decision-summary consolidation, progressive disclosure for diagnostics, longitudinal dashboard, promotion package builder, post-promotion revalidation, segmentation, place-scope extension, operational quality).
 
 ## References
 

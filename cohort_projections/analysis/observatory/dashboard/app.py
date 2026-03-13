@@ -48,15 +48,20 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
     logger.info("Building dashboard tabs …")
 
     tabs = pn.Tabs(
-        ("Command Center", build_command_center(dm)),
-        ("Experiments", build_experiment_tracker(dm)),
-        ("Scorecards", build_scorecard_tab(dm)),
-        ("Projections", build_projection_ensemble(dm)),
-        ("Horizon & Bias", build_horizon_bias_tab(dm)),
-        ("Sensitivity", build_sensitivity_tab(dm)),
         tabs_location="above",
         dynamic=True,
     )
+    tabs.extend(
+        [
+            ("Command Center", build_command_center(dm, tabs=tabs)),
+            ("Experiments", build_experiment_tracker(dm)),
+            ("Scorecards", build_scorecard_tab(dm)),
+            ("Projections", build_projection_ensemble(dm)),
+            ("Horizon & Bias", build_horizon_bias_tab(dm)),
+            ("Sensitivity", build_sensitivity_tab(dm)),
+        ]
+    )
+    tabs.active = 0
     tabs.stylesheets = [TABS_STYLESHEET]
 
     # Assemble template -------------------------------------------------
