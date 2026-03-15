@@ -52,6 +52,18 @@ This will:
 - write a full Observatory HTML report into the same session directory unless
   `--skip-observatory-report` is used.
 
+The current enabled recipe catalog is intentionally broader than the original
+three-point pilot. It now covers:
+
+- a convergence-window family (`recent/medium` = `2/2`, `2/3`, `3/3`),
+- a mortality-improvement family (`0.003`, `0.004`, `0.006`),
+- three interaction recipes that combine the most informative window and
+  mortality settings.
+
+That gives the autonomous search a small but usable lattice around the current
+`m2026r1` baseline, which is enough to estimate directionality and rough local
+shape instead of only testing one-sided point moves.
+
 ### 1. Plan a session
 
 ```bash

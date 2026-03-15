@@ -433,3 +433,52 @@ class TestSearchController:
         assert session["summary"]["total"] == 0
         assert session["summary"]["planned"] == 0
         assert session["candidates"] == []
+
+
+def test_repo_recipe_catalog_has_unique_search_lattice() -> None:
+    project_root = Path(__file__).resolve().parents[2]
+    registry = RecipeRegistry(project_root / "config" / "observatory_recipes.yaml")
+    enabled = registry.list_enabled()
+
+    assert len(enabled) >= 9
+
+    candidate_ids: set[str] = set()
+    method_ids: set[str] = set()
+    saw_recent_window = False
+    saw_mortality = False
+    saw_interaction = False
+
+    for _, recipe in enabled:
+        candidate_id = str(recipe["candidate_id"])
+        method_id = str(recipe["method_id_override"])
+
+        assert candidate_id not in candidate_ids
+        assert method_id not in method_ids
+        assert recipe["execution_mode"] == "code_recipe"
+        assert recipe["base_method"] == "m2026r1"
+        assert recipe["base_config"] == "cfg-20260309-college-fix-v1"
+        assert recipe.get("steps", []) == []
+
+        candidate_ids.add(candidate_id)
+        method_ids.add(method_id)
+
+        config_delta = recipe.get("config_delta", {})
+        if {
+            "convergence_recent_period_count",
+            "convergence_medium_period_count",
+        }.issubset(config_delta):
+            saw_recent_window = True
+        if "mortality_improvement_rate" in config_delta:
+            saw_mortality = True
+        if (
+            {
+                "convergence_recent_period_count",
+                "convergence_medium_period_count",
+                "mortality_improvement_rate",
+            }.issubset(config_delta)
+        ):
+            saw_interaction = True
+
+    assert saw_recent_window is True
+    assert saw_mortality is True
+    assert saw_interaction is True

@@ -61,6 +61,9 @@ path from multiple documents.
 - Variant catalog: `config/observatory_variants.yaml`
 - One-command unattended launcher:
   `python scripts/analysis/observatory.py search-auto`
+- Enabled search-only recipe families now cover convergence-window widening,
+  mortality-improvement sensitivity, and selected interaction terms around
+  `m2026r1` without touching production aliases.
 
 ## Remaining Improvement Tracks
 

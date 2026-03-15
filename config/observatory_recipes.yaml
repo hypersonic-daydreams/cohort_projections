@@ -2,34 +2,82 @@ recipes:
   RX-101:
     enabled: true
     execution_mode: code_recipe
-    candidate_id: recipe-search-recent-window-2
-    experiment_id: exp-{date}-recipe-search-recent-window-2
+    candidate_id: recipe-search-recent-window-2-medium-2
+    experiment_id: exp-{date}-recipe-search-recent-window-2-medium-2
+    hypothesis: >
+      Clone the current challenger into a search-only method that widens the
+      short-term convergence window to two observed periods while holding the
+      medium window at two periods, isolating whether a less reactive recent
+      signal improves benchmark accuracy without making the medium trend more
+      conservative.
+    base_method: m2026r1
+    base_config: cfg-20260309-college-fix-v1
+    config_delta:
+      convergence_recent_period_count: 2
+      convergence_medium_period_count: 2
+    scope: county
+    benchmark_label: recipe-search-recent-window-2-medium-2
+    method_id_override: m2026r1_search_recent2_medium2
+    notes:
+      - Search-only benchmark method. Uses a unique method ID and never touches production aliases.
+      - Designed to isolate recent-window widening from broader medium-window changes.
+    steps: []
+
+  RX-102:
+    enabled: true
+    execution_mode: code_recipe
+    candidate_id: recipe-search-recent-window-2-medium-3
+    experiment_id: exp-{date}-recipe-search-recent-window-2-medium-3
     hypothesis: >
       Clone the current challenger into a search-only method with a wider
-      recent-period migration window so the sandbox can test whether a less
-      reactive short-term convergence signal improves benchmark accuracy.
+      recent-period migration window and a slightly wider medium window so the
+      sandbox can test whether a less reactive convergence signal improves
+      overall benchmark stability.
     base_method: m2026r1
     base_config: cfg-20260309-college-fix-v1
     config_delta:
       convergence_recent_period_count: 2
       convergence_medium_period_count: 3
     scope: county
-    benchmark_label: recipe-search-recent-window-2
-    method_id_override: m2026r1_search_recent_window_2
+    benchmark_label: recipe-search-recent-window-2-medium-3
+    method_id_override: m2026r1_search_recent2_medium3
     notes:
       - Search-only benchmark method. Uses a unique method ID and never touches production aliases.
-      - The benchmark runtime clones dispatch behavior from the base method profile.
+      - Serves as the central widened-window benchmark against the default one/two-period mix.
     steps: []
 
-  RX-102:
+  RX-103:
+    enabled: true
+    execution_mode: code_recipe
+    candidate_id: recipe-search-recent-window-3-medium-3
+    experiment_id: exp-{date}-recipe-search-recent-window-3-medium-3
+    hypothesis: >
+      Test a stronger smoothing move by using three observed recent periods and
+      three medium periods, checking whether a broader convergence memory
+      reduces early-horizon volatility enough to offset slower reaction to
+      turning points.
+    base_method: m2026r1
+    base_config: cfg-20260309-college-fix-v1
+    config_delta:
+      convergence_recent_period_count: 3
+      convergence_medium_period_count: 3
+    scope: county
+    benchmark_label: recipe-search-recent-window-3-medium-3
+    method_id_override: m2026r1_search_recent3_medium3
+    notes:
+      - Search-only benchmark method. Uses a unique method ID and never touches production aliases.
+      - Provides the upper end of the current convergence-window search family.
+    steps: []
+
+  RX-111:
     enabled: true
     execution_mode: code_recipe
     candidate_id: recipe-search-mortality-003
     experiment_id: exp-{date}-recipe-search-mortality-003
     hypothesis: >
-      Clone the current challenger into a search-only method with a lower
-      mortality-improvement factor to test whether rural long-horizon elderly
-      projections become less optimistic without broad regressions.
+      Clone the current challenger into a search-only method with a materially
+      lower mortality-improvement factor to test whether rural long-horizon
+      elderly projections become less optimistic without broad regressions.
     base_method: m2026r1
     base_config: cfg-20260309-college-fix-v1
     config_delta:
@@ -39,18 +87,83 @@ recipes:
     method_id_override: m2026r1_search_mortality_003
     notes:
       - Search-only benchmark method. Uses a unique method ID and never touches production aliases.
-      - Kept in the recipe catalog rather than the production variant catalog because it is intended for autonomous sandbox exploration first.
+      - Represents the conservative end of the currently enabled mortality search family.
     steps: []
 
-  RX-103:
+  RX-112:
     enabled: true
     execution_mode: code_recipe
-    candidate_id: recipe-search-recent-window-2-mortality-003
-    experiment_id: exp-{date}-recipe-search-recent-window-2-mortality-003
+    candidate_id: recipe-search-mortality-004
+    experiment_id: exp-{date}-recipe-search-mortality-004
     hypothesis: >
-      Test a combined search-only method that widens the recent convergence
-      window and lowers mortality improvement, capturing interaction effects
-      that the config-only recommendation loop would not queue on its own.
+      Test a slightly more conservative mortality-improvement factor than the
+      baseline to see whether the benefit of lower elderly optimism appears
+      before the stronger 0.3% recipe and with fewer state-total side effects.
+    base_method: m2026r1
+    base_config: cfg-20260309-college-fix-v1
+    config_delta:
+      mortality_improvement_rate: 0.004
+    scope: county
+    benchmark_label: recipe-search-mortality-004
+    method_id_override: m2026r1_search_mortality_004
+    notes:
+      - Search-only benchmark method. Uses a unique method ID and never touches production aliases.
+      - Supplies a near-baseline interior point for estimating the mortality response curve.
+    steps: []
+
+  RX-113:
+    enabled: true
+    execution_mode: code_recipe
+    candidate_id: recipe-search-mortality-006
+    experiment_id: exp-{date}-recipe-search-mortality-006
+    hypothesis: >
+      Test a slightly faster mortality-improvement factor than the baseline to
+      bound the response on the optimistic side and help determine whether the
+      search surface is monotone or U-shaped around the current assumption.
+    base_method: m2026r1
+    base_config: cfg-20260309-college-fix-v1
+    config_delta:
+      mortality_improvement_rate: 0.006
+    scope: county
+    benchmark_label: recipe-search-mortality-006
+    method_id_override: m2026r1_search_mortality_006
+    notes:
+      - Search-only benchmark method. Uses a unique method ID and never touches production aliases.
+      - Adds an above-baseline bound so the recipe family yields more interpretable statistics than one-sided tests.
+    steps: []
+
+  RX-121:
+    enabled: true
+    execution_mode: code_recipe
+    candidate_id: recipe-search-recent-window-2-medium-3-mortality-004
+    experiment_id: exp-{date}-recipe-search-recent-window-2-medium-3-mortality-004
+    hypothesis: >
+      Combine the central widened-window recipe with a modestly conservative
+      mortality factor to test whether the two changes reinforce each other
+      without pushing the search too far from the current champion.
+    base_method: m2026r1
+    base_config: cfg-20260309-college-fix-v1
+    config_delta:
+      convergence_recent_period_count: 2
+      convergence_medium_period_count: 3
+      mortality_improvement_rate: 0.004
+    scope: county
+    benchmark_label: recipe-search-recent-window-2-medium-3-mortality-004
+    method_id_override: m2026r1_search_recent2_medium3_mortality_004
+    notes:
+      - Search-only benchmark method. Uses a unique method ID and never touches production aliases.
+      - Designed as the first interaction term around the two most plausible non-production search axes.
+    steps: []
+
+  RX-122:
+    enabled: true
+    execution_mode: code_recipe
+    candidate_id: recipe-search-recent-window-2-medium-3-mortality-003
+    experiment_id: exp-{date}-recipe-search-recent-window-2-medium-3-mortality-003
+    hypothesis: >
+      Test a combined search-only method that widens convergence windows and
+      moves to the conservative end of the mortality family, capturing whether
+      the best single-axis moves compound or over-correct when paired.
     base_method: m2026r1
     base_config: cfg-20260309-college-fix-v1
     config_delta:
@@ -58,9 +171,32 @@ recipes:
       convergence_medium_period_count: 3
       mortality_improvement_rate: 0.003
     scope: county
-    benchmark_label: recipe-search-recent-window-2-mortality-003
-    method_id_override: m2026r1_search_recent_window_2_mortality_003
+    benchmark_label: recipe-search-recent-window-2-medium-3-mortality-003
+    method_id_override: m2026r1_search_recent2_medium3_mortality_003
     notes:
       - Search-only benchmark method. Uses a unique method ID and never touches production aliases.
-      - Designed for autonomous search sessions, not direct promotion.
+      - Retains the original strong interaction candidate for direct comparison with the milder 0.4% combo.
+    steps: []
+
+  RX-123:
+    enabled: true
+    execution_mode: code_recipe
+    candidate_id: recipe-search-recent-window-3-medium-3-mortality-004
+    experiment_id: exp-{date}-recipe-search-recent-window-3-medium-3-mortality-004
+    hypothesis: >
+      Pair the strongest widened-window recipe with the milder conservative
+      mortality factor to see whether broader convergence smoothing only works
+      when combined with a restrained mortality adjustment.
+    base_method: m2026r1
+    base_config: cfg-20260309-college-fix-v1
+    config_delta:
+      convergence_recent_period_count: 3
+      convergence_medium_period_count: 3
+      mortality_improvement_rate: 0.004
+    scope: county
+    benchmark_label: recipe-search-recent-window-3-medium-3-mortality-004
+    method_id_override: m2026r1_search_recent3_medium3_mortality_004
+    notes:
+      - Search-only benchmark method. Uses a unique method ID and never touches production aliases.
+      - Gives the interaction family an upper-window-width comparison point without jumping to a more extreme mortality value.
     steps: []
