@@ -163,6 +163,12 @@ class TestBuildParser:
         assert args.command == "search-status"
         assert args.search_id == "search-one"
 
+    def test_search_auto_subcommand(self) -> None:
+        parser = cli_mod.build_parser()
+        args = parser.parse_args(["search-auto", "--batch-run-budget", "4"])
+        assert args.command == "search-auto"
+        assert args.batch_run_budget == 4
+
     def test_verbose_flag(self) -> None:
         parser = cli_mod.build_parser()
         args = parser.parse_args(["-v", "status"])
@@ -269,6 +275,43 @@ class TestSearchCommands:
         out = capsys.readouterr().out
         assert "Search session created: search-one" in out
         assert "Total candidates: 3" in out
+
+    def test_search_auto_with_mocked_controller(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        controller = MagicMock()
+        controller.policy.session_root = PROJECT_ROOT / "data" / "analysis" / "experiments" / "search_runs"
+        controller.run_to_completion.return_value = {
+            "search_id": "search-auto-one",
+            "status": "finished",
+            "executed_total": 3,
+            "batches": [
+                {"batch": 1, "executed": 2, "completed": 2, "failed": 0, "planned_remaining": 1},
+                {"batch": 2, "executed": 1, "completed": 3, "failed": 0, "planned_remaining": 0},
+            ],
+            "summary": {"planned": 0, "completed": 3, "failed": 0},
+            "artifacts": {
+                "candidate_summary_csv": "data/analysis/experiments/search_runs/search-auto-one/candidate_summary.csv",
+                "search_report_markdown": "data/analysis/experiments/search_runs/search-auto-one/search_report.md",
+            },
+        }
+        store = MagicMock()
+        args = cli_mod.build_parser().parse_args(["search-auto", "--search-id", "search-auto-one"])
+        with (
+            patch.object(cli_mod, "_load_search_controller", return_value=controller),
+            patch.object(
+                cli_mod,
+                "_generate_observatory_report",
+                return_value=(PROJECT_ROOT / "report.html", "summary text"),
+            ),
+        ):
+            rc = cli_mod.cmd_search_auto(store=store, config={}, args=args)
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "Autonomous search complete: search-auto-one" in out
+        assert "candidate_summary_csv" in out
+        store.refresh.assert_called_once()
+        store.write_cache.assert_called_once()
 
 
 # ---------------------------------------------------------------------------

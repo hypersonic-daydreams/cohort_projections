@@ -768,6 +768,80 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to the autonomous search policy YAML.",
     )
 
+    # --- search-auto ---
+    search_auto_parser = sub.add_parser(
+        "search-auto",
+        parents=[common],
+        help="Plan, run, refresh, and report an autonomous-search session end-to-end.",
+    )
+    search_auto_parser.add_argument(
+        "--search-id",
+        default=None,
+        help="Optional search session identifier. Defaults to a UTC timestamped ID.",
+    )
+    search_auto_parser.add_argument(
+        "--base-revision",
+        default="HEAD",
+        help="Git revision to use as the sandbox base (default: HEAD).",
+    )
+    search_auto_parser.add_argument(
+        "--max-pending",
+        type=int,
+        default=None,
+        help="Maximum number of untested catalog variants to include.",
+    )
+    search_auto_parser.add_argument(
+        "--max-recommended",
+        type=int,
+        default=None,
+        help="Maximum number of config-only recommendations to include.",
+    )
+    search_auto_parser.add_argument(
+        "--include-recipe-catalog",
+        action="store_true",
+        default=None,
+        help="Include enabled code-recipe candidates from the recipe catalog.",
+    )
+    search_auto_parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace an existing search session with the same identifier.",
+    )
+    search_auto_parser.add_argument(
+        "--batch-run-budget",
+        type=int,
+        default=None,
+        help="Per-batch execution budget. Defaults to the search-policy run budget.",
+    )
+    search_auto_parser.add_argument(
+        "--max-batches",
+        type=int,
+        default=None,
+        help="Optional cap on the number of autonomous execution batches.",
+    )
+    search_auto_parser.add_argument(
+        "--max-total-runs",
+        type=int,
+        default=None,
+        help="Optional cap on the total number of candidates to execute.",
+    )
+    search_auto_parser.add_argument(
+        "--keep-worktrees",
+        action="store_true",
+        help="Keep worktrees on disk after execution for inspection.",
+    )
+    search_auto_parser.add_argument(
+        "--skip-observatory-report",
+        action="store_true",
+        help="Skip generating the full Observatory HTML report at the end.",
+    )
+    search_auto_parser.add_argument(
+        "--search-policy",
+        type=Path,
+        default=None,
+        help="Path to the autonomous search policy YAML.",
+    )
+
     return parser
 
 
@@ -1446,45 +1520,19 @@ def cmd_report(
         print("Error: ResultsStore unavailable.")  # noqa: T201
         return 1
 
-    report_class = _load_report_class()
-    if report_class is None:
-        print("Error: ObservatoryReport is not available.")  # noqa: T201
+    try:
+        output_path, summary = _generate_observatory_report(
+            store=store,
+            config=config,
+            output_path=_resolve_project_path(args.output),
+        )
+    except RuntimeError as e:
+        print(f"Error: {e}")  # noqa: T201
         return 1
 
-    # Run comparison if available
-    comparator_result = None
-    comparator = _load_comparator(store, config)
-    if comparator is not None:
-        try:
-            comparator_result = comparator.full_comparison()
-        except Exception as e:
-            logger.warning("Comparison failed, report will have limited content: %s", e)
-
-    # Get recommendations if available
-    recommendations: list[Any] = []
-    bounds_catalog = _load_variant_catalog(config)
-    recommender = _load_recommender(
-        store, config, comparator=comparator, bounds_catalog=bounds_catalog
-    )
-    if recommender is not None:
-        try:
-            recommendations = recommender.suggest_next_experiments()
-        except Exception as e:
-            logger.warning("Recommender failed: %s", e)
-
-    report = report_class(
-        comparator_result=comparator_result,
-        recommendations=recommendations,
-        store=store,
-    )
-
-    output_target = _resolve_project_path(args.output)
-    output_path = report.generate_html_report(output_path=output_target)
     print(f"Observatory report written to: {output_path}")  # noqa: T201
-
-    # Also print the summary to console
     print()  # noqa: T201
-    print(report.generate_summary())  # noqa: T201
+    print(summary)  # noqa: T201
 
     return 0
 
@@ -1793,6 +1841,150 @@ def cmd_search_report(
         return 0
 
     print(report)  # noqa: T201
+    return 0
+
+
+def _generate_observatory_report(
+    *,
+    store: Any,
+    config: dict[str, Any],
+    output_path: Path | None,
+) -> tuple[Path, str]:
+    """Generate the full Observatory HTML report and return path + summary."""
+    report_class = _load_report_class()
+    if report_class is None:
+        raise RuntimeError("ObservatoryReport is not available.")
+
+    comparator_result = None
+    comparator = _load_comparator(store, config)
+    if comparator is not None:
+        try:
+            comparator_result = comparator.full_comparison()
+        except Exception as e:
+            logger.warning("Comparison failed, report will have limited content: %s", e)
+
+    recommendations: list[Any] = []
+    bounds_catalog = _load_variant_catalog(config)
+    recommender = _load_recommender(
+        store, config, comparator=comparator, bounds_catalog=bounds_catalog
+    )
+    if recommender is not None:
+        try:
+            recommendations = recommender.suggest_next_experiments()
+        except Exception as e:
+            logger.warning("Recommender failed: %s", e)
+
+    report = report_class(
+        comparator_result=comparator_result,
+        recommendations=recommendations,
+        store=store,
+    )
+    final_output_path = report.generate_html_report(output_path=output_path)
+    return final_output_path, report.generate_summary()
+
+
+def _default_search_id() -> str:
+    """Build a UTC timestamped autonomous-search session identifier."""
+    return f"search-{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}"
+
+
+def cmd_search_auto(
+    store: Any,
+    config: dict[str, Any],
+    args: argparse.Namespace,
+) -> int:
+    """Handle the ``search-auto`` subcommand."""
+    if args.batch_run_budget is not None and args.batch_run_budget <= 0:
+        print("Error: --batch-run-budget must be positive when provided.")  # noqa: T201
+        return 1
+    if args.max_batches is not None and args.max_batches <= 0:
+        print("Error: --max-batches must be positive when provided.")  # noqa: T201
+        return 1
+    if args.max_total_runs is not None and args.max_total_runs <= 0:
+        print("Error: --max-total-runs must be positive when provided.")  # noqa: T201
+        return 1
+
+    controller = _load_search_controller(
+        store,
+        config,
+        policy_path=_resolve_project_path(args.search_policy),
+    )
+    if controller is None:
+        print("Error: AutonomousSearchController is not available.")  # noqa: T201
+        return 1
+
+    search_id = args.search_id or _default_search_id()
+    try:
+        result = controller.run_to_completion(
+            search_id=search_id,
+            base_revision=args.base_revision,
+            max_pending=args.max_pending,
+            max_recommended=args.max_recommended,
+            include_recipe_catalog=args.include_recipe_catalog,
+            overwrite=args.overwrite,
+            batch_run_budget=args.batch_run_budget,
+            max_batches=args.max_batches,
+            max_total_runs=args.max_total_runs,
+            keep_worktrees=args.keep_worktrees,
+        )
+    except Exception as e:
+        print(f"Error running autonomous search: {e}")  # noqa: T201
+        return 1
+
+    observatory_report_path = ""
+    observatory_report_summary = ""
+    if store is not None:
+        try:
+            store.refresh()
+            store.write_cache()
+        except Exception as e:
+            logger.warning("Failed to refresh/write Observatory cache after search: %s", e)
+
+        if not args.skip_observatory_report:
+            session_dir = controller.policy.session_root / search_id
+            try:
+                output_path, summary = _generate_observatory_report(
+                    store=store,
+                    config=config,
+                    output_path=session_dir / "observatory_report.html",
+                )
+                observatory_report_path = str(output_path)
+                observatory_report_summary = summary
+            except RuntimeError as e:
+                logger.warning("Skipping Observatory HTML report: %s", e)
+
+    fmt = getattr(args, "output_format", "table")
+    payload = {
+        **result,
+        "search_id": search_id,
+        "observatory_report_path": observatory_report_path,
+    }
+    if fmt == "json":
+        print(json.dumps(payload, indent=2, default=str))  # noqa: T201
+        return 0
+
+    print(f"Autonomous search complete: {search_id}")  # noqa: T201
+    print(f"  Status: {result['status']}")  # noqa: T201
+    print(f"  Executed total: {result['executed_total']}")  # noqa: T201
+    print(f"  Completed: {result['summary']['completed']}")  # noqa: T201
+    print(f"  Failed: {result['summary']['failed']}")  # noqa: T201
+    print(f"  Remaining planned: {result['summary']['planned']}")  # noqa: T201
+    if result.get("batches"):
+        print("  Batches:")  # noqa: T201
+        for batch in result["batches"]:
+            print(  # noqa: T201
+                f"    #{batch['batch']}: executed={batch['executed']}, "
+                f"completed={batch['completed']}, failed={batch['failed']}, "
+                f"planned_remaining={batch['planned_remaining']}"
+            )
+    print("  Session artifacts:")  # noqa: T201
+    for key, value in result.get("artifacts", {}).items():
+        print(f"    {key}: {value}")  # noqa: T201
+    if observatory_report_path:
+        print(f"  Observatory report: {observatory_report_path}")  # noqa: T201
+    if observatory_report_summary:
+        print()  # noqa: T201
+        print(observatory_report_summary)  # noqa: T201
     return 0
 
 
@@ -2448,6 +2640,7 @@ _COMMANDS: dict[str, Any] = {
     "search-run": cmd_search_run,
     "search-status": cmd_search_status,
     "search-report": cmd_search_report,
+    "search-auto": cmd_search_auto,
 }
 
 

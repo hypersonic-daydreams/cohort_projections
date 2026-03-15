@@ -22,13 +22,35 @@ not mutated by the search run itself.
 
 ## Files
 
-- CLI: `python scripts/analysis/observatory.py search-plan|search-run|search-status|search-report`
+- CLI: `python scripts/analysis/observatory.py search-plan|search-run|search-status|search-report|search-auto`
 - Policy: `config/observatory_search_policy.yaml`
 - Recipe catalog: `config/observatory_recipes.yaml`
 - Session state: `data/analysis/experiments/search_runs/<search_id>/`
 - Runtime mirror/worktrees: `data/analysis/observatory_runtime/`
 
 ## Safe Loop
+
+### Fastest Hands-Off Launch
+
+If you want the most straightforward unattended run, use `search-auto`:
+
+```bash
+source .venv/bin/activate
+python scripts/analysis/observatory.py search-auto \
+  --search-id search-20260315-a \
+  --batch-run-budget 5
+```
+
+This will:
+
+- create or overwrite the autonomous-search session,
+- plan pending variants, recommendations, and enabled recipe candidates,
+- run the session in repeated batches until it is exhausted or hits your caps,
+- refresh the Observatory cache,
+- write a per-candidate summary CSV/JSON plus a Markdown search report into the
+  session directory,
+- write a full Observatory HTML report into the same session directory unless
+  `--skip-observatory-report` is used.
 
 ### 1. Plan a session
 

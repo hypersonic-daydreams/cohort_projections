@@ -308,3 +308,128 @@ class TestSearchController:
         assert result["mode"] == "dry-run"
         assert result["runnable"] == 2
         assert len(result["preview"]) == 1
+
+    def test_write_session_artifacts_creates_candidate_summary(
+        self, search_project: Path
+    ) -> None:
+        controller = AutonomousSearchController(
+            store=None,
+            observatory_config={
+                "history_dir": "data/analysis/benchmark_history",
+                "experiment_log": "data/analysis/experiments/experiment_log.csv",
+                "variant_catalog": "config/observatory_variants.yaml",
+            },
+            policy_path=search_project / "config" / "observatory_search_policy.yaml",
+            project_root=search_project,
+            source_repo=search_project,
+        )
+        controller.plan_session(search_id="search-artifacts")
+        session = controller.load_session("search-artifacts")
+        session["candidates"][0]["status"] = "completed"
+        session["candidates"][0]["result"] = {
+            "outcome": "passed_all_gates",
+            "run_id": "br-test",
+            "method_id": "m2026r1",
+            "config_id": "cfg-test",
+            "benchmark_summary": {
+                "primary_metric": "county_mape_overall",
+                "metrics": {"county_mape_overall": 8.1},
+                "deltas": {"county_mape_overall": -0.2},
+            },
+        }
+        controller._write_session("search-artifacts", session)
+
+        artifacts = controller.write_session_artifacts(search_id="search-artifacts")
+        summary_csv = search_project / artifacts["candidate_summary_csv"]
+        report_md = search_project / artifacts["search_report_markdown"]
+        assert summary_csv.exists()
+        assert report_md.exists()
+        summary_text = summary_csv.read_text(encoding="utf-8")
+        assert "candidate_id" in summary_text
+        assert "delta_county_mape_overall" in summary_text
+        assert "Best Completed Candidates" in report_md.read_text(encoding="utf-8")
+
+    def test_run_to_completion_batches_until_finished(self, search_project: Path) -> None:
+        controller = AutonomousSearchController(
+            store=None,
+            observatory_config={
+                "history_dir": "data/analysis/benchmark_history",
+                "experiment_log": "data/analysis/experiments/experiment_log.csv",
+                "variant_catalog": "config/observatory_variants.yaml",
+            },
+            policy_path=search_project / "config" / "observatory_search_policy.yaml",
+            project_root=search_project,
+            source_repo=search_project,
+        )
+
+        call_count = {"n": 0}
+
+        def _fake_run_session(
+            *,
+            search_id: str,
+            run_budget: int | None = None,
+            dry_run: bool = False,
+            keep_worktrees: bool | None = None,
+        ) -> dict[str, object]:
+            del dry_run, keep_worktrees, run_budget
+            session = controller.load_session(search_id)
+            planned = [c for c in session["candidates"] if c["status"] == "planned"]
+            if planned:
+                planned[0]["status"] = "completed"
+                planned[0]["result"] = {
+                    "outcome": "passed_all_gates",
+                    "run_id": f"run-{call_count['n']}",
+                    "method_id": "m2026r1",
+                    "config_id": f"cfg-{call_count['n']}",
+                    "benchmark_summary": {
+                        "primary_metric": "county_mape_overall",
+                        "metrics": {"county_mape_overall": 8.0 - call_count["n"]},
+                        "deltas": {"county_mape_overall": -0.1},
+                    },
+                }
+            call_count["n"] += 1
+            session["summary"] = controller._summarize_candidates(session["candidates"])
+            if session["summary"]["planned"] == 0:
+                session["status"] = "finished"
+            controller._write_session(search_id, session)
+            return {
+                "search_id": search_id,
+                "executed": 1 if planned else 0,
+                "summary": session["summary"],
+            }
+
+        controller.run_session = _fake_run_session  # type: ignore[method-assign]
+        result = controller.run_to_completion(
+            search_id="search-loop",
+            overwrite=True,
+            batch_run_budget=1,
+            max_total_runs=2,
+        )
+        assert result["executed_total"] == 2
+        assert len(result["batches"]) == 2
+        assert "candidate_summary_csv" in result["artifacts"]
+
+    def test_plan_session_respects_zero_limits(self, search_project: Path) -> None:
+        controller = AutonomousSearchController(
+            store=None,
+            observatory_config={
+                "history_dir": "data/analysis/benchmark_history",
+                "experiment_log": "data/analysis/experiments/experiment_log.csv",
+                "variant_catalog": "config/observatory_variants.yaml",
+            },
+            policy_path=search_project / "config" / "observatory_search_policy.yaml",
+            project_root=search_project,
+            source_repo=search_project,
+        )
+
+        session = controller.plan_session(
+            search_id="search-zero-limits",
+            max_pending=0,
+            max_recommended=0,
+            include_recipe_catalog=False,
+        )
+
+        assert session["status"] == "finished"
+        assert session["summary"]["total"] == 0
+        assert session["summary"]["planned"] == 0
+        assert session["candidates"] == []

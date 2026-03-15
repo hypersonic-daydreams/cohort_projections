@@ -194,8 +194,14 @@ class AutonomousSearchController:
         requested_by = "system"
 
         resolved_base_revision = self._resolve_git_revision(base_revision)
-        pending_limit = max_pending or self.policy.default_max_pending
-        recommended_limit = max_recommended or self.policy.default_max_recommended
+        pending_limit = (
+            self.policy.default_max_pending if max_pending is None else max_pending
+        )
+        recommended_limit = (
+            self.policy.default_max_recommended
+            if max_recommended is None
+            else max_recommended
+        )
         include_recipes = (
             self.policy.include_recipe_catalog
             if include_recipe_catalog is None
@@ -334,11 +340,11 @@ class AutonomousSearchController:
                     )
                 )
 
+        summary = self._summarize_candidates(candidates)
         session = {
             "search_id": search_id,
             "created_at": _utc_now(),
             "updated_at": _utc_now(),
-            "status": "planned",
             "base_revision": base_revision,
             "resolved_base_revision": resolved_base_revision,
             "policy_path": str(self.policy.policy_path),
@@ -350,8 +356,9 @@ class AutonomousSearchController:
                 "include_recipe_catalog": include_recipes,
             },
             "candidates": candidates,
-            "summary": self._summarize_candidates(candidates),
+            "summary": summary,
         }
+        session["status"] = "finished" if int(summary.get("planned", 0)) == 0 else "planned"
         self._write_session(search_id, session)
         return session
 
@@ -461,6 +468,86 @@ class AutonomousSearchController:
             "summary": session["summary"],
         }
 
+    def run_to_completion(
+        self,
+        *,
+        search_id: str,
+        base_revision: str = "HEAD",
+        max_pending: int | None = None,
+        max_recommended: int | None = None,
+        include_recipe_catalog: bool | None = None,
+        overwrite: bool = False,
+        batch_run_budget: int | None = None,
+        max_batches: int | None = None,
+        max_total_runs: int | None = None,
+        keep_worktrees: bool | None = None,
+    ) -> dict[str, Any]:
+        """Plan and execute a search session until exhausted or budget-limited."""
+        self.plan_session(
+            search_id=search_id,
+            base_revision=base_revision,
+            max_pending=max_pending,
+            max_recommended=max_recommended,
+            include_recipe_catalog=include_recipe_catalog,
+            overwrite=overwrite,
+        )
+
+        run_budget = (
+            batch_run_budget if batch_run_budget is not None else self.policy.default_run_budget
+        )
+        total_executed = 0
+        rounds: list[dict[str, Any]] = []
+        batch_number = 0
+
+        while True:
+            current = self.load_session(search_id)
+            planned_remaining = int(current["summary"]["planned"])
+            if planned_remaining <= 0:
+                break
+            if max_batches is not None and batch_number >= max_batches:
+                break
+            if max_total_runs is not None and total_executed >= max_total_runs:
+                break
+
+            this_budget = run_budget
+            if max_total_runs is not None:
+                remaining_budget = max_total_runs - total_executed
+                this_budget = min(this_budget, remaining_budget)
+            if this_budget <= 0:
+                break
+
+            batch_number += 1
+            result = self.run_session(
+                search_id=search_id,
+                run_budget=this_budget,
+                dry_run=False,
+                keep_worktrees=keep_worktrees,
+            )
+            executed = int(result.get("executed", 0))
+            total_executed += executed
+            rounds.append(
+                {
+                    "batch": batch_number,
+                    "executed": executed,
+                    "planned_remaining": int(result["summary"]["planned"]),
+                    "completed": int(result["summary"]["completed"]),
+                    "failed": int(result["summary"]["failed"]),
+                }
+            )
+            if executed <= 0:
+                break
+
+        final_session = self.load_session(search_id)
+        artifacts = self.write_session_artifacts(search_id=search_id)
+        return {
+            "search_id": search_id,
+            "status": final_session["status"],
+            "executed_total": total_executed,
+            "batches": rounds,
+            "summary": final_session["summary"],
+            "artifacts": artifacts,
+        }
+
     def status(self, *, search_id: str | None = None) -> dict[str, Any]:
         """Return one session summary or a summary across all sessions."""
         if search_id is not None:
@@ -488,6 +575,14 @@ class AutonomousSearchController:
     def render_report(self, *, search_id: str) -> str:
         """Render a Markdown report for one search session."""
         session = self.load_session(search_id)
+        candidate_rows = self._candidate_summary_rows(session)
+        completed_rows = [row for row in candidate_rows if row["status"] == "completed"]
+        primary_metric = str(
+            self.observatory_config.get("comparison", {}).get(
+                "primary_metric",
+                "county_mape_overall",
+            )
+        )
         lines = [
             f"# Autonomous Search Report: {search_id}",
             "",
@@ -504,15 +599,74 @@ class AutonomousSearchController:
             f"- {key.replace('_', ' ').title()}: `{summary.get(key, 0)}`"
             for key in ("total", "planned", "running", "completed", "failed")
         )
+        outcome_counts: dict[str, int] = {}
+        for row in completed_rows:
+            outcome = str(row.get("outcome", "") or "unknown")
+            outcome_counts[outcome] = outcome_counts.get(outcome, 0) + 1
+        if outcome_counts:
+            lines.extend(["", "## Outcomes", ""])
+            for outcome, count in sorted(outcome_counts.items()):
+                lines.append(f"- `{outcome}`: `{count}`")
+
+        sortable_rows = [
+            row
+            for row in completed_rows
+            if isinstance(row.get(f"delta_{primary_metric}"), (int, float))
+        ]
+        sortable_rows.sort(key=lambda row: float(row.get(f"delta_{primary_metric}", 0.0)))
+        if sortable_rows:
+            lines.extend(["", "## Best Completed Candidates", ""])
+            for row in sortable_rows[:5]:
+                delta_value = float(row.get(f"delta_{primary_metric}", 0.0))
+                metric_value = row.get(primary_metric, "")
+                lines.append(
+                    f"- `{row['candidate_id']}` | outcome=`{row.get('outcome', '')}` | "
+                    f"{primary_metric}=`{metric_value}` | "
+                    f"delta_vs_champion=`{delta_value:+.4f}` | "
+                    f"run_id=`{row.get('run_id', '')}`"
+                )
         lines.extend(["", "## Candidates", ""])
-        for candidate in session["candidates"]:
-            result = candidate.get("result", {})
-            lines.append(
-                f"- `{candidate['candidate_id']}` | `{candidate['status']}` | "
-                f"source=`{candidate['source']}` | outcome=`{result.get('outcome', '')}` | "
-                f"run_id=`{result.get('run_id', '')}`"
-            )
+        lines.extend(
+            f"- `{row['candidate_id']}` | `{row['status']}` | "
+            f"source=`{row['source']}` | outcome=`{row.get('outcome', '')}` | "
+            f"run_id=`{row.get('run_id', '')}`"
+            for row in candidate_rows
+        )
         return "\n".join(lines).rstrip() + "\n"
+
+    def candidate_summary_frame(self, *, search_id: str) -> pd.DataFrame:
+        """Return a flat per-candidate summary for one search session."""
+        session = self.load_session(search_id)
+        rows = self._candidate_summary_rows(session)
+        if not rows:
+            return pd.DataFrame()
+        return pd.DataFrame(rows)
+
+    def write_session_artifacts(self, *, search_id: str) -> dict[str, str]:
+        """Write session-level summary artifacts and return their paths."""
+        session_dir = self._session_dir(search_id)
+        session_dir.mkdir(parents=True, exist_ok=True)
+
+        summary_frame = self.candidate_summary_frame(search_id=search_id)
+        summary_csv = session_dir / "candidate_summary.csv"
+        summary_json = session_dir / "candidate_summary.json"
+        report_path = session_dir / "search_report.md"
+
+        if summary_frame.empty:
+            summary_frame = pd.DataFrame(
+                columns=["candidate_id", "source", "execution_mode", "status"]
+            )
+        summary_frame.to_csv(summary_csv, index=False)
+        summary_json.write_text(
+            summary_frame.to_json(orient="records", indent=2),
+            encoding="utf-8",
+        )
+        report_path.write_text(self.render_report(search_id=search_id), encoding="utf-8")
+        return {
+            "candidate_summary_csv": str(summary_csv.relative_to(self.project_root)),
+            "candidate_summary_json": str(summary_json.relative_to(self.project_root)),
+            "search_report_markdown": str(report_path.relative_to(self.project_root)),
+        }
 
     def load_session(self, search_id: str) -> dict[str, Any]:
         """Load a persisted session YAML file."""
@@ -655,9 +809,18 @@ class AutonomousSearchController:
             shutil.copy2(local_profile, copied_profile)
             profile_artifact = str(copied_profile.relative_to(self.project_root))
 
+        benchmark_summary = self._extract_benchmark_summary(
+            worktree_path=context.worktree_path,
+            run_id=run_id,
+            method_id=predicted_method,
+            config_id=predicted_config,
+        )
+
         return {
             "outcome": row.get("outcome", ""),
             "run_id": run_id,
+            "method_id": predicted_method,
+            "config_id": predicted_config,
             "spec_path": str(copied_spec_relative),
             "patch_path": str(patch_path.relative_to(self.project_root)),
             "patch_manifest_path": str(manifest_path.relative_to(self.project_root)),
@@ -665,6 +828,7 @@ class AutonomousSearchController:
             "stderr_log": str(stderr_path.relative_to(self.project_root)),
             "profile_path": profile_artifact,
             "changed_files": changed_files,
+            "benchmark_summary": benchmark_summary,
         }
 
     def _harvest_run_bundle(self, worktree_path: Path, run_id: str) -> None:
@@ -771,3 +935,143 @@ class AutonomousSearchController:
             if status in summary:
                 summary[status] += 1
         return summary
+
+    def _extract_benchmark_summary(
+        self,
+        *,
+        worktree_path: Path,
+        run_id: str,
+        method_id: str,
+        config_id: str,
+    ) -> dict[str, Any]:
+        """Extract decision-useful metrics for one completed benchmark run."""
+        if not run_id:
+            return {}
+        run_dir = worktree_path / "data" / "analysis" / "benchmark_history" / run_id
+        scorecard_path = run_dir / "summary_scorecard.csv"
+        comparison_path = run_dir / "comparison_to_champion.json"
+        if not scorecard_path.exists():
+            return {}
+
+        scorecard = pd.read_csv(scorecard_path)
+        method_rows = scorecard[scorecard["method_id"].astype(str) == method_id]
+        if "config_id" in scorecard.columns:
+            exact_rows = method_rows[method_rows["config_id"].astype(str) == config_id]
+            if not exact_rows.empty:
+                method_rows = exact_rows
+        if method_rows.empty:
+            return {}
+        row = method_rows.iloc[-1].to_dict()
+
+        comparison_cfg = dict(self.observatory_config.get("comparison", {}))
+        metric_names: list[str] = []
+        primary_metric = str(comparison_cfg.get("primary_metric", "county_mape_overall"))
+        metric_names.append(primary_metric)
+        for metric in comparison_cfg.get("secondary_metrics", []):
+            metric_str = str(metric)
+            if metric_str not in metric_names:
+                metric_names.append(metric_str)
+        for metric in (
+            "state_ape_recent_short",
+            "state_ape_recent_medium",
+            "county_mape_overall",
+            "county_mape_urban_college",
+            "county_mape_rural",
+            "county_mape_bakken",
+        ):
+            if metric not in metric_names:
+                metric_names.append(metric)
+
+        metric_summary = {
+            metric: float(row[metric])
+            for metric in metric_names
+            if metric in row and pd.notna(row[metric])
+        }
+        for flag in (
+            "negative_population_violations",
+            "scenario_order_violations",
+            "aggregation_violations",
+            "sensitivity_instability_flag",
+        ):
+            if flag in row and pd.notna(row[flag]):
+                metric_summary[flag] = row[flag]
+
+        delta_summary: dict[str, Any] = {}
+        champion_method_id = ""
+        champion_config_id = ""
+        hard_constraint_regression: bool | None = None
+        if comparison_path.exists():
+            comparison = json.loads(comparison_path.read_text(encoding="utf-8"))
+            champion_method_id = str(comparison.get("champion_method_id", "") or "")
+            champion_config_id = str(comparison.get("champion_config_id", "") or "")
+            for challenger in comparison.get("challengers", []):
+                if not isinstance(challenger, dict):
+                    continue
+                if str(challenger.get("method_id", "")) != method_id:
+                    continue
+                if str(challenger.get("config_id", "")) != config_id:
+                    continue
+                raw_deltas = challenger.get("deltas", {})
+                if isinstance(raw_deltas, dict):
+                    delta_summary = {
+                        str(metric): float(value)
+                        for metric, value in raw_deltas.items()
+                        if pd.notna(value)
+                    }
+                hard_constraint_regression = bool(
+                    challenger.get("hard_constraint_regression", False)
+                )
+                break
+
+        return {
+            "primary_metric": primary_metric,
+            "metrics": metric_summary,
+            "deltas": delta_summary,
+            "hard_constraint_regression": hard_constraint_regression,
+            "champion_method_id": champion_method_id,
+            "champion_config_id": champion_config_id,
+        }
+
+    @staticmethod
+    def _candidate_summary_rows(session: dict[str, Any]) -> list[dict[str, Any]]:
+        """Flatten candidate/session data into one row per candidate."""
+        rows: list[dict[str, Any]] = []
+        for candidate in session.get("candidates", []):
+            result = dict(candidate.get("result") or {})
+            benchmark_summary = dict(result.get("benchmark_summary") or {})
+            row: dict[str, Any] = {
+                "candidate_id": str(candidate.get("candidate_id", "")),
+                "source": str(candidate.get("source", "")),
+                "source_id": str(candidate.get("source_id", "")),
+                "execution_mode": str(candidate.get("execution_mode", "")),
+                "status": str(candidate.get("status", "")),
+                "attempts": int(candidate.get("attempts", 0) or 0),
+                "recipe_id": str(candidate.get("recipe_id", "")),
+                "experiment_id": str(candidate.get("spec", {}).get("experiment_id", "")),
+                "method_id": str(result.get("method_id", "")),
+                "config_id": str(result.get("config_id", "")),
+                "outcome": str(result.get("outcome", "")),
+                "run_id": str(result.get("run_id", "")),
+                "primary_metric_name": str(benchmark_summary.get("primary_metric", "")),
+                "hard_constraint_regression": benchmark_summary.get(
+                    "hard_constraint_regression"
+                ),
+                "champion_method_id": str(
+                    benchmark_summary.get("champion_method_id", "") or ""
+                ),
+                "champion_config_id": str(
+                    benchmark_summary.get("champion_config_id", "") or ""
+                ),
+                "patch_path": str(result.get("patch_path", "")),
+                "profile_path": str(result.get("profile_path", "")),
+            }
+            metrics = benchmark_summary.get("metrics", {})
+            if isinstance(metrics, dict):
+                for metric, value in metrics.items():
+                    row[str(metric)] = value
+            deltas = benchmark_summary.get("deltas", {})
+            if isinstance(deltas, dict):
+                for metric, value in deltas.items():
+                    row[f"delta_{metric}"] = value
+            rows.append(row)
+        return rows

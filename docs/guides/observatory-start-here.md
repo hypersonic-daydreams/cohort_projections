@@ -59,6 +59,8 @@ path from multiple documents.
 - Autonomous search policy: `config/observatory_search_policy.yaml`
 - Deterministic recipe catalog: `config/observatory_recipes.yaml`
 - Variant catalog: `config/observatory_variants.yaml`
+- One-command unattended launcher:
+  `python scripts/analysis/observatory.py search-auto`
 
 ## Remaining Improvement Tracks
 
