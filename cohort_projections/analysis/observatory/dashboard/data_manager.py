@@ -15,12 +15,14 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+import yaml
 
 from cohort_projections.analysis.observatory.comparator import ObservatoryComparator
 from cohort_projections.analysis.observatory.recommender import ObservatoryRecommender
 from cohort_projections.analysis.observatory.results_store import (
     ResultsStore,
 )
+from cohort_projections.analysis.observatory.search_policy import load_search_policy
 from cohort_projections.analysis.observatory.status import (
     STATUS_PRIORITY,
     normalize_status,
@@ -55,6 +57,29 @@ RUN_SELECTION_PRESETS: tuple[str, ...] = (
     _PRESET_LATEST,
     _PRESET_ALL,
 )
+
+_SEARCH_SESSION_COLUMNS = [
+    "search_id",
+    "status",
+    "created_at",
+    "updated_at",
+    "base_revision",
+    "resolved_base_revision",
+    "total",
+    "planned",
+    "running",
+    "completed",
+    "failed",
+    "progress_count",
+    "progress_pct",
+    "session_dir",
+    "selector_label",
+    "candidate_summary_csv",
+    "candidate_summary_json",
+    "search_report_markdown",
+    "observatory_report_html",
+    "dashboard_launch_log",
+]
 
 
 def _status_label(value: object) -> str:
@@ -108,6 +133,82 @@ def _has_text(value: object) -> bool:
     if value is None or pd.isna(value):
         return False
     return str(value).strip() != ""
+
+
+def _read_yaml_mapping(path: Path) -> dict[str, Any] | None:
+    """Read one YAML mapping from disk, returning ``None`` on invalid data."""
+    try:
+        raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except Exception:
+        logger.warning("Failed to read YAML from %s", path)
+        return None
+    if not isinstance(raw, dict):
+        logger.warning("Expected YAML mapping in %s", path)
+        return None
+    return raw
+
+
+def build_search_session_frame(session_root: Path) -> pd.DataFrame:
+    """Build one summary row per autonomous-search session on disk."""
+    if not session_root.exists():
+        return pd.DataFrame(columns=_SEARCH_SESSION_COLUMNS)
+
+    rows: list[dict[str, Any]] = []
+    for session_path in sorted(session_root.glob("*/session.yaml")):
+        session = _read_yaml_mapping(session_path)
+        if session is None:
+            continue
+        summary = session.get("summary", {})
+        if not isinstance(summary, dict):
+            summary = {}
+        session_dir = session_path.parent
+        total = int(summary.get("total", len(session.get("candidates", []))) or 0)
+        planned = int(summary.get("planned", 0) or 0)
+        running = int(summary.get("running", 0) or 0)
+        completed = int(summary.get("completed", 0) or 0)
+        failed = int(summary.get("failed", 0) or 0)
+        progress_count = completed + failed
+        progress_pct = 0.0 if total <= 0 else (progress_count / total) * 100.0
+        search_id = str(session.get("search_id", session_dir.name))
+        status = str(session.get("status", "") or "unknown")
+
+        def _artifact_path(name: str, base_dir: Path = session_dir) -> str:
+            candidate = base_dir / name
+            return str(candidate) if candidate.exists() else ""
+
+        rows.append(
+            {
+                "search_id": search_id,
+                "status": status,
+                "created_at": str(session.get("created_at", "") or ""),
+                "updated_at": str(session.get("updated_at", "") or ""),
+                "base_revision": str(session.get("base_revision", "") or ""),
+                "resolved_base_revision": str(session.get("resolved_base_revision", "") or ""),
+                "total": total,
+                "planned": planned,
+                "running": running,
+                "completed": completed,
+                "failed": failed,
+                "progress_count": progress_count,
+                "progress_pct": progress_pct,
+                "session_dir": str(session_dir),
+                "selector_label": f"[{status}] {search_id} ({progress_count}/{total})",
+                "candidate_summary_csv": _artifact_path("candidate_summary.csv"),
+                "candidate_summary_json": _artifact_path("candidate_summary.json"),
+                "search_report_markdown": _artifact_path("search_report.md"),
+                "observatory_report_html": _artifact_path("observatory_report.html"),
+                "dashboard_launch_log": _artifact_path("dashboard_search.log"),
+            }
+        )
+
+    if not rows:
+        return pd.DataFrame(columns=_SEARCH_SESSION_COLUMNS)
+
+    sessions = pd.DataFrame(rows)
+    sort_cols = [col for col in ["updated_at", "created_at", "search_id"] if col in sessions.columns]
+    if sort_cols:
+        sessions = sessions.sort_values(sort_cols, ascending=[False] * len(sort_cols))
+    return sessions.reset_index(drop=True)
 
 
 def _sort_by_metric(df: pd.DataFrame) -> pd.DataFrame:
@@ -449,6 +550,7 @@ class DashboardDataManager:
             bounds_catalog=self._try_build_catalog(),
         )
         self._catalog = self._try_build_catalog()
+        self._search_policy = load_search_policy()
 
     # ------------------------------------------------------------------
     # Helpers
@@ -535,6 +637,16 @@ class DashboardDataManager:
     def catalog(self) -> VariantCatalog | None:
         """The :class:`VariantCatalog`, or ``None`` if unavailable."""
         return self._catalog
+
+    @property
+    def search_policy(self) -> Any:
+        """Resolved autonomous-search policy."""
+        return self._search_policy
+
+    @property
+    def search_session_root(self) -> Path:
+        """Directory holding persisted autonomous-search sessions."""
+        return self._search_policy.session_root
 
     # ------------------------------------------------------------------
     # Convenience index properties
@@ -694,6 +806,85 @@ class DashboardDataManager:
         """Concatenated ``uncertainty_summary.csv`` across runs."""
         return self._load_extra_csv(_EXTRA_CSVS["uncertainty_summary"])
 
+    @functools.cached_property
+    def search_sessions(self) -> pd.DataFrame:
+        """One summary row per autonomous-search session."""
+        return build_search_session_frame(self.search_session_root)
+
+    @functools.cached_property
+    def active_search_id(self) -> str | None:
+        """Most recent in-progress or latest autonomous-search session ID."""
+        sessions = self.search_sessions
+        if sessions.empty:
+            return None
+        active = sessions[sessions["status"].isin(["planned", "running"])]
+        source = active if not active.empty else sessions
+        if source.empty:
+            return None
+        return str(source.iloc[0]["search_id"])
+
+    def search_session_option_map(self) -> dict[str, str]:
+        """Return selector labels for autonomous-search sessions."""
+        sessions = self.search_sessions
+        if sessions.empty:
+            return {}
+        return {
+            str(row["selector_label"]): str(row["search_id"])
+            for _, row in sessions.iterrows()
+        }
+
+    def load_search_session(self, search_id: str) -> dict[str, Any] | None:
+        """Load one autonomous-search session YAML payload from disk."""
+        session_path = self.search_session_root / search_id / "session.yaml"
+        if not session_path.exists():
+            return None
+        return _read_yaml_mapping(session_path)
+
+    def search_session_candidates(self, search_id: str) -> pd.DataFrame:
+        """Return candidate-level rows for one autonomous-search session."""
+        session_dir = self.search_session_root / search_id
+        summary_csv = session_dir / "candidate_summary.csv"
+        if summary_csv.exists():
+            try:
+                return pd.read_csv(summary_csv)
+            except Exception:
+                logger.warning("Failed to read %s", summary_csv)
+
+        session = self.load_search_session(search_id)
+        if not session:
+            return pd.DataFrame()
+
+        rows: list[dict[str, Any]] = []
+        for candidate in session.get("candidates", []):
+            if not isinstance(candidate, dict):
+                continue
+            result = candidate.get("result", {})
+            spec = candidate.get("spec", {})
+            if not isinstance(result, dict):
+                result = {}
+            if not isinstance(spec, dict):
+                spec = {}
+            rows.append(
+                {
+                    "candidate_id": str(candidate.get("candidate_id", "") or ""),
+                    "source": str(candidate.get("source", "") or ""),
+                    "execution_mode": str(candidate.get("execution_mode", "") or ""),
+                    "status": str(candidate.get("status", "") or ""),
+                    "recipe_id": str(candidate.get("recipe_id", "") or ""),
+                    "experiment_id": str(spec.get("experiment_id", "") or ""),
+                    "method_id": str(result.get("method_id", "") or ""),
+                    "config_id": str(result.get("config_id", "") or ""),
+                    "outcome": str(result.get("outcome", "") or ""),
+                    "run_id": str(result.get("run_id", "") or ""),
+                }
+            )
+        return pd.DataFrame(rows)
+
+    def refresh_search_sessions(self) -> None:
+        """Clear cached autonomous-search session views without reloading run history."""
+        for attr in ["search_sessions", "active_search_id"]:
+            self.__dict__.pop(attr, None)
+
     # ------------------------------------------------------------------
     # Cache management
     # ------------------------------------------------------------------
@@ -728,6 +919,8 @@ class DashboardDataManager:
             "outlier_flags",
             "residual_diagnostics",
             "uncertainty_summary",
+            "search_sessions",
+            "active_search_id",
         ]
         for attr in cached_attrs:
             self.__dict__.pop(attr, None)
@@ -743,6 +936,7 @@ class DashboardDataManager:
             config=self._config.get("recommender"),
             bounds_catalog=self._catalog,
         )
+        self._search_policy = load_search_policy()
 
         logger.info("DashboardDataManager refreshed.")
 

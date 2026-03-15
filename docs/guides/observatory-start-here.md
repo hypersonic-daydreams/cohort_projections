@@ -64,6 +64,9 @@ path from multiple documents.
 - Enabled search-only recipe families now cover convergence-window widening,
   mortality-improvement sensitivity, and selected interaction terms around
   `m2026r1` without touching production aliases.
+- The dashboard `Command Center` now includes an `Autonomous Search` panel for
+  previewing search plans, launching `search-auto`, tracking session progress,
+  and inspecting candidate/result summaries from persisted search sessions.
 
 ## Remaining Improvement Tracks
 

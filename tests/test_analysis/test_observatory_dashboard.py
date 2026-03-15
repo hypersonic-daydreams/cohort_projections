@@ -18,11 +18,13 @@ from cohort_projections.analysis.observatory.dashboard.data_manager import (
     DashboardDataManager,
     build_comparison_rows,
     build_run_metadata_frame,
+    build_search_session_frame,
     select_run_preset,
 )
 from cohort_projections.analysis.observatory.dashboard.tab_command_center import (
     _command_center_summary,
     _queue_health_snapshot,
+    _search_progress_html,
 )
 from cohort_projections.analysis.observatory.dashboard.tab_horizon_bias import (
     _horizon_takeaway_text,
@@ -253,6 +255,64 @@ def test_command_center_summary_surfaces_current_decision_context() -> None:
     assert "Best tested challenger: College Blend 70" in summary
     assert "1 run(s) currently need human review." in summary
     assert "college_blend_factor -> 1.0" in summary
+
+
+def test_build_search_session_frame_summarizes_progress(tmp_path) -> None:
+    """Autonomous-search session summaries should expose progress and artifacts."""
+    session_dir = tmp_path / "search-one"
+    session_dir.mkdir(parents=True)
+    (session_dir / "session.yaml").write_text(
+        """
+search_id: search-one
+created_at: 2026-03-15T10:00:00+00:00
+updated_at: 2026-03-15T10:15:00+00:00
+status: running
+base_revision: HEAD
+resolved_base_revision: abc123
+summary:
+  total: 10
+  planned: 4
+  running: 1
+  completed: 4
+  failed: 1
+        """.strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    (session_dir / "candidate_summary.csv").write_text("candidate_id,status\ncand-1,completed\n", encoding="utf-8")
+    (session_dir / "search_report.md").write_text("# report\n", encoding="utf-8")
+
+    frame = build_search_session_frame(tmp_path)
+
+    assert len(frame) == 1
+    row = frame.iloc[0]
+    assert row["search_id"] == "search-one"
+    assert row["progress_count"] == 5
+    assert row["progress_pct"] == 50.0
+    assert row["candidate_summary_csv"].endswith("candidate_summary.csv")
+    assert row["search_report_markdown"].endswith("search_report.md")
+
+
+def test_search_progress_html_shows_selected_session_metrics() -> None:
+    """Search progress HTML should surface counts and progress values."""
+    row = pd.Series(
+        {
+            "search_id": "search-one",
+            "status": "running",
+            "progress_pct": 60.0,
+            "total": 10,
+            "planned": 3,
+            "running": 1,
+            "completed": 5,
+            "failed": 1,
+        }
+    )
+
+    html = _search_progress_html(row)
+
+    assert "search-one" in html
+    assert "Progress: 6/10" in html
+    assert "width:60.0%" in html
 
 
 def test_build_dashboard_returns_fresh_instances(monkeypatch) -> None:

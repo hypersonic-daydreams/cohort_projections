@@ -6,6 +6,7 @@ run health, and next actions before exposing the lower-level benchmark index.
 
 from __future__ import annotations
 
+import datetime as dt
 import logging
 import subprocess
 import sys
@@ -121,6 +122,84 @@ def _run_observatory_command(args: list[str]) -> str:
     if result.stderr:
         output += "\n--- stderr ---\n" + result.stderr
     return output or "(no output)"
+
+
+def _default_search_id() -> str:
+    """Build a timestamped search ID for dashboard launches."""
+    return f"search-{dt.datetime.now(tz=dt.UTC).strftime('%Y%m%d-%H%M%S')}"
+
+
+def _search_progress_html(session_row: pd.Series | None) -> str:
+    """Render a simple HTML progress bar for one autonomous-search session."""
+    if session_row is None:
+        return (
+            "<div><strong>No autonomous-search session selected.</strong></div>"
+        )
+
+    progress_pct = float(session_row.get("progress_pct", 0.0) or 0.0)
+    status = str(session_row.get("status", "unknown") or "unknown")
+    total = int(session_row.get("total", 0) or 0)
+    planned = int(session_row.get("planned", 0) or 0)
+    running = int(session_row.get("running", 0) or 0)
+    completed = int(session_row.get("completed", 0) or 0)
+    failed = int(session_row.get("failed", 0) or 0)
+    tone = STATUS_COLORS.get(
+        "needs_human_review" if failed else status,
+        SDC_BLUE,
+    )
+    return f"""
+    <div style="font-family:'Aptos','Segoe UI',Arial,sans-serif">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <strong>{session_row.get("search_id", "")}</strong>
+        <span style="color:#5A6C84;text-transform:uppercase;font-size:12px">{status}</span>
+      </div>
+      <div style="width:100%;height:14px;background:#E7ECF3;border-radius:999px;overflow:hidden">
+        <div style="width:{progress_pct:.1f}%;height:14px;background:{tone};border-radius:999px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:13px;color:#334E68">
+        <span>Progress: {completed + failed}/{total}</span>
+        <span>Completed: {completed}</span>
+        <span>Failed: {failed}</span>
+        <span>Running: {running}</span>
+        <span>Planned: {planned}</span>
+      </div>
+    </div>
+    """
+
+
+def _search_session_detail_html(session_row: pd.Series | None) -> str:
+    """Render search-session metadata and artifact availability."""
+    if session_row is None:
+        return "<div style='color:#5A6C84'>No autonomous-search sessions found yet.</div>"
+
+    artifact_lines = []
+    for label, key in [
+        ("Candidate summary CSV", "candidate_summary_csv"),
+        ("Candidate summary JSON", "candidate_summary_json"),
+        ("Search report", "search_report_markdown"),
+        ("Observatory report", "observatory_report_html"),
+    ]:
+        value = str(session_row.get(key, "") or "")
+        artifact_lines.append(
+            f"<li><strong>{label}:</strong> {value if value else 'not written yet'}</li>"
+        )
+
+    return f"""
+    <div style="font-family:'Aptos','Segoe UI',Arial,sans-serif">
+      <table style="width:100%;border-collapse:collapse">
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84;width:160px">Created</td><td>{session_row.get("created_at", "")}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Updated</td><td>{session_row.get("updated_at", "")}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Base revision</td><td>{session_row.get("resolved_base_revision", session_row.get("base_revision", ""))}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Session directory</td><td>{session_row.get("session_dir", "")}</td></tr>
+      </table>
+      <div style="margin-top:10px">
+        <strong>Artifacts</strong>
+        <ul style="margin:6px 0 0 18px;padding:0">
+          {''.join(artifact_lines)}
+        </ul>
+      </div>
+    </div>
+    """
 
 
 def _best_tested_challenger(dm: DashboardDataManager) -> pd.Series | None:
@@ -714,6 +793,324 @@ def _build_action_buttons(dm: DashboardDataManager) -> pn.Card:
     )
 
 
+def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
+    """Render dashboard controls and status for autonomous-search sessions."""
+    session_select = pn.widgets.Select(
+        name="Search Session",
+        options=dm.search_session_option_map() or {"No sessions yet": ""},
+        value=dm.active_search_id or "",
+        sizing_mode="stretch_width",
+    )
+    search_id_input = pn.widgets.TextInput(
+        name="Launch Search ID",
+        value=_default_search_id(),
+        sizing_mode="stretch_width",
+    )
+    batch_run_budget = pn.widgets.IntInput(
+        name="Batch Run Budget",
+        value=int(dm.search_policy.default_run_budget),
+        step=1,
+        start=1,
+        sizing_mode="stretch_width",
+    )
+    max_total_runs = pn.widgets.IntInput(
+        name="Max Total Runs",
+        value=20,
+        step=1,
+        start=1,
+        sizing_mode="stretch_width",
+    )
+    max_pending = pn.widgets.IntInput(
+        name="Max Pending",
+        value=int(dm.search_policy.default_max_pending),
+        step=1,
+        start=0,
+        sizing_mode="stretch_width",
+    )
+    max_recommended = pn.widgets.IntInput(
+        name="Max Recommended",
+        value=int(dm.search_policy.default_max_recommended),
+        step=1,
+        start=0,
+        sizing_mode="stretch_width",
+    )
+    overwrite_box = pn.widgets.Checkbox(name="Overwrite existing session", value=False)
+    include_recipes_box = pn.widgets.Checkbox(
+        name="Include recipe catalog",
+        value=bool(dm.search_policy.include_recipe_catalog),
+    )
+    auto_refresh_box = pn.widgets.Checkbox(name="Auto-refresh every 5s", value=True)
+
+    progress_pane = pn.pane.HTML(sizing_mode="stretch_width")
+    detail_pane = pn.pane.HTML(sizing_mode="stretch_width")
+    sessions_table_box = pn.Column(sizing_mode="stretch_width")
+    candidates_table_box = pn.Column(sizing_mode="stretch_width")
+    output_pane = pn.widgets.TextAreaInput(
+        value=(
+            "Use Preview Plan to create or overwrite a search session without running it. "
+            "Use Preview Next Batch to see what would execute next. Launch runs "
+            "search-auto in the background and progress updates from persisted session state."
+        ),
+        disabled=True,
+        height=220,
+        sizing_mode="stretch_width",
+        name="Autonomous Search Output",
+    )
+
+    def _planner_args() -> list[str]:
+        return [
+            "--max-pending",
+            str(max_pending.value),
+            "--max-recommended",
+            str(max_recommended.value),
+        ]
+
+    def _selected_session_row() -> pd.Series | None:
+        sessions = dm.search_sessions
+        if sessions.empty:
+            return None
+        search_id = session_select.value or dm.active_search_id
+        if search_id:
+            matches = sessions[sessions["search_id"] == search_id]
+            if not matches.empty:
+                return matches.iloc[0]
+        return sessions.iloc[0]
+
+    def _refresh_search_views(*, prefer_search_id: str | None = None) -> None:
+        dm.refresh_search_sessions()
+        sessions = dm.search_sessions
+
+        options = dm.search_session_option_map()
+        if not options:
+            session_select.options = {"No sessions yet": ""}
+            session_select.value = ""
+            progress_pane.value = _search_progress_html(None)
+            detail_pane.value = _search_session_detail_html(None)
+            sessions_table_box[:] = [empty_placeholder("No autonomous-search sessions found.")]
+            candidates_table_box[:] = [empty_placeholder("No candidate preview available yet.")]
+            return
+
+        session_select.options = options
+        desired = prefer_search_id or session_select.value or dm.active_search_id or next(iter(options.values()))
+        if desired not in options.values():
+            desired = next(iter(options.values()))
+        session_select.value = desired
+
+        selected = _selected_session_row()
+        progress_pane.value = _search_progress_html(selected)
+        detail_pane.value = _search_session_detail_html(selected)
+
+        display_sessions = sessions.copy()
+        display_sessions["progress"] = (
+            display_sessions["progress_count"].astype(int).astype(str)
+            + "/"
+            + display_sessions["total"].astype(int).astype(str)
+        )
+        display_sessions["progress_pct"] = display_sessions["progress_pct"].round(1)
+        session_cols = [
+            col
+            for col in [
+                "search_id",
+                "status",
+                "progress",
+                "progress_pct",
+                "running",
+                "planned",
+                "failed",
+                "updated_at",
+            ]
+            if col in display_sessions.columns
+        ]
+        sessions_table_box[:] = [
+            metric_table(
+                display_sessions[session_cols].rename(
+                    columns={
+                        "search_id": "search",
+                        "progress_pct": "progress_pct",
+                        "updated_at": "updated",
+                    }
+                ),
+                page_size=5,
+                frozen_columns=["search"],
+            )
+        ]
+
+        selected_search_id = str(selected["search_id"]) if selected is not None else ""
+        candidates = (
+            dm.search_session_candidates(selected_search_id)
+            if selected_search_id
+            else pd.DataFrame()
+        )
+        if candidates.empty:
+            candidates_table_box[:] = [
+                empty_placeholder("No candidate summary is available for the selected search session yet.")
+            ]
+        else:
+            candidate_cols = [
+                col
+                for col in [
+                    "candidate_id",
+                    "source",
+                    "execution_mode",
+                    "status",
+                    "outcome",
+                    "run_id",
+                    "primary_metric_name",
+                    "county_mape_overall",
+                    "delta_county_mape_overall",
+                ]
+                if col in candidates.columns
+            ]
+            candidates_table_box[:] = [
+                metric_table(
+                    candidates[candidate_cols],
+                    page_size=8,
+                    frozen_columns=["candidate_id"],
+                )
+            ]
+
+    def _preview_plan(event: Any) -> None:
+        search_id = search_id_input.value.strip() or _default_search_id()
+        args = ["search-plan", "--search-id", search_id, *_planner_args()]
+        if include_recipes_box.value:
+            args.append("--include-recipe-catalog")
+        if overwrite_box.value:
+            args.append("--overwrite")
+        output_pane.value = _run_observatory_command(args)
+        _refresh_search_views(prefer_search_id=search_id)
+
+    def _preview_next_batch(event: Any) -> None:
+        search_id = (session_select.value or search_id_input.value).strip()
+        if not search_id:
+            output_pane.value = "Select or create a search session first."
+            return
+        output_pane.value = _run_observatory_command(
+            [
+                "search-run",
+                "--search-id",
+                search_id,
+                "--run-budget",
+                str(batch_run_budget.value),
+                "--dry-run",
+            ]
+        )
+        _refresh_search_views(prefer_search_id=search_id)
+
+    def _launch_search(event: Any) -> None:
+        search_id = search_id_input.value.strip() or _default_search_id()
+        cmd = [
+            sys.executable,
+            str(_OBSERVATORY_SCRIPT),
+            "search-auto",
+            "--search-id",
+            search_id,
+            "--batch-run-budget",
+            str(batch_run_budget.value),
+            "--max-total-runs",
+            str(max_total_runs.value),
+            *_planner_args(),
+        ]
+        if include_recipes_box.value:
+            cmd.append("--include-recipe-catalog")
+        if overwrite_box.value:
+            cmd.append("--overwrite")
+        subprocess.Popen(  # noqa: S603
+            cmd,
+            cwd=str(_PROJECT_ROOT),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        output_pane.value = (
+            f"Launched autonomous search in the background: {search_id}\n"
+            f"Command: {' '.join(cmd[2:])}\n"
+            "Use auto-refresh or the Refresh Search Views button to watch progress."
+        )
+        session_select.value = search_id
+        _refresh_search_views(prefer_search_id=search_id)
+        search_id_input.value = _default_search_id()
+
+    def _refresh_only(event: Any) -> None:
+        _refresh_search_views()
+        output_pane.value = "Autonomous-search views refreshed from session files."
+
+    btn_refresh = pn.widgets.Button(name="Refresh Search Views", button_type="primary", width=180)
+    btn_refresh.on_click(_refresh_only)
+    btn_preview_plan = pn.widgets.Button(name="Preview Plan", button_type="warning", width=140)
+    btn_preview_plan.on_click(_preview_plan)
+    btn_preview_batch = pn.widgets.Button(name="Preview Next Batch", button_type="warning", width=170)
+    btn_preview_batch.on_click(_preview_next_batch)
+    btn_launch = pn.widgets.Button(name="Launch Search-Auto", button_type="success", width=180)
+    btn_launch.on_click(_launch_search)
+
+    periodic = None
+    if pn.state.curdoc is not None:
+        periodic = pn.state.add_periodic_callback(_refresh_search_views, period=5000, start=False)
+        if auto_refresh_box.value:
+            periodic.start()
+
+    def _toggle_auto_refresh(event: Any) -> None:
+        if periodic is None:
+            return
+        if event.new:
+            periodic.start()
+        else:
+            periodic.stop()
+
+    auto_refresh_box.param.watch(_toggle_auto_refresh, "value")
+    session_select.param.watch(lambda event: _refresh_search_views(prefer_search_id=str(event.new)), "value")
+
+    _refresh_search_views(prefer_search_id=dm.active_search_id)
+
+    controls = pn.FlexBox(
+        search_id_input,
+        batch_run_budget,
+        max_total_runs,
+        max_pending,
+        max_recommended,
+        flex_wrap="wrap",
+        sizing_mode="stretch_width",
+        styles={"gap": "10px"},
+    )
+    toggles = pn.FlexBox(
+        overwrite_box,
+        include_recipes_box,
+        auto_refresh_box,
+        flex_wrap="wrap",
+        sizing_mode="stretch_width",
+        styles={"gap": "18px"},
+    )
+    buttons = pn.FlexBox(
+        btn_refresh,
+        btn_preview_plan,
+        btn_preview_batch,
+        btn_launch,
+        flex_wrap="wrap",
+        sizing_mode="stretch_width",
+        styles={"gap": "10px"},
+    )
+
+    return pn.Card(
+        pn.pane.Markdown(
+            "Observe and control deterministic autonomous-search sessions from the dashboard. "
+            "Preview planning and dry-run execution first, then launch `search-auto` in the background "
+            "and watch persisted session progress update here."
+        ),
+        session_select,
+        progress_pane,
+        detail_pane,
+        controls,
+        toggles,
+        buttons,
+        section_header("Search Sessions", subtitle="Recent autonomous-search sessions and their progress."),
+        sessions_table_box,
+        section_header("Candidate Preview", subtitle="Selected session candidates and harvested benchmark summaries."),
+        candidates_table_box,
+        output_pane,
+        title="Autonomous Search",
+        sizing_mode="stretch_width",
+    )
+
+
 def _build_weaknesses_panel(dm: DashboardDataManager) -> pn.Card:
     """Persistent weaknesses from the recommender."""
     try:
@@ -808,6 +1205,7 @@ def build_command_center(
         _build_kpi_row(dm),
         _build_decision_strip(dm),
         _build_queue_health_card(dm),
+        _build_autonomous_search_card(dm),
         _build_champion_card(dm),
         _build_index_table(dm),
         _build_action_buttons(dm),

@@ -52,6 +52,16 @@ This will:
 - write a full Observatory HTML report into the same session directory unless
   `--skip-observatory-report` is used.
 
+If you prefer to operate from the dashboard, open the Projection Observatory
+`Command Center` tab and use the `Autonomous Search` card. It can:
+
+- preview a `search-plan`,
+- preview the next `search-run --dry-run` batch,
+- launch `search-auto` in the background,
+- auto-refresh against persisted `session.yaml` state,
+- show progress bars, session counts, and candidate/result tables for the
+  selected search session.
+
 The current enabled recipe catalog is intentionally broader than the original
 three-point pilot. It now covers:
 
