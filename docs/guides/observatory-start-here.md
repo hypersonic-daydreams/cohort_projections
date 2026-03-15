@@ -25,7 +25,7 @@ path from multiple documents.
    - Read the Observatory config sections when changing thresholds, paths, or
      variant-catalog behavior.
 
-## Current State (2026-03-13)
+## Current State (2026-03-15)
 
 - BM-001 experiment infrastructure is implemented.
 - OBS-001 Observatory analysis, CLI, dashboard, and reporting layer is
@@ -68,6 +68,9 @@ path from multiple documents.
   previewing search plans, launching `search-auto`, stopping dashboard-launched
   searches, tracking session progress, previewing search reports/log tails, and
   inspecting candidate/result summaries from persisted search sessions.
+- A dedicated `History` tab now provides longitudinal benchmark-history views
+  across all runs, champion-at-run baselines, metric delta heatmaps,
+  category-level trend lines, and accepted/rejected challenger history.
 
 ## Remaining Improvement Tracks
 
@@ -82,13 +85,13 @@ path from multiple documents.
 ### UI/UX And Decision Support
 
 - `OBS-UX` first-time-user review and backlog
-- `P4` longitudinal benchmark-history dashboard views
 - `P5` promotion package builder
 - `P9` finer methodological segmentation lenses
 
 Related delivered capability: the interactive experiment dashboard already
-exists. The remaining gap is making longitudinal benchmark history and review
-artifacts easier to interpret over time.
+exists, and the longitudinal benchmark-history view is now implemented. The
+remaining gap is packaging review artifacts and adding finer segmentation lenses
+over time.
 
 ### Throughput And Search-Loop Scale
 
@@ -113,11 +116,10 @@ the already-completed BM-001 and PP-007 foundation work:
 3. `P2` hard-gates versus tradeoffs split
 4. `P3` schema enforcement
 5. `P8` post-promotion revalidation
-6. `P4` longitudinal dashboard
-7. `P5` promotion package builder
-8. `P9` segmentation refinement
-9. `P7` place-scope extension
-10. `P10` operational-quality tracking
+6. `P5` promotion package builder
+7. `P9` segmentation refinement
+8. `P7` place-scope extension
+9. `P10` operational-quality tracking
 
 ## Session Start Shortcut
 

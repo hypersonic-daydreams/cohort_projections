@@ -58,7 +58,7 @@ foundation work. If you need a quicker entry point, start with
 `docs/guides/observatory-start-here.md` and then return here for the full item
 descriptions.
 
-## Status Snapshot (2026-03-13)
+## Status Snapshot (2026-03-15)
 
 The roadmap below spans both completed foundation work and remaining follow-on
 items. Current state:
@@ -71,9 +71,10 @@ items. Current state:
 - Implemented: operational hardening (`OBS-01` through `OBS-09`) for bounded
   unattended queueing under SOP-003 governance
 - Implemented: interactive experiment dashboard on 2026-03-12
+- Implemented: `P4` longitudinal benchmark-history dashboard on 2026-03-15
 
 The remaining roadmap starts with completing the full `P1` promotion-threshold
-formalization and the follow-on items from `P2` onward.
+formalization and the follow-on items from `P2` onward, excluding `P4`.
 
 ## Priority Roadmap
 
@@ -323,6 +324,8 @@ This prevents silent benchmark drift and protects longitudinal comparability.
 
 ## P4: Add a Longitudinal Dashboard
 
+Status: implemented_2026-03-15
+
 ### Problem
 
 The data exists, but comparing many runs still requires manual inspection of multiple files.
@@ -348,6 +351,23 @@ Minimum views:
 ### Why This Matters
 
 This turns the archive into an actual decision-support system rather than a file store.
+
+### Implementation Result (2026-03-15)
+
+Delivered in the interactive Projection Observatory dashboard as a dedicated
+`History` tab. The implementation adds:
+
+- all historical runs by date in a searchable timeline table,
+- champion-at-run county-MAPE history over time,
+- metric delta heatmaps across benchmark bundles,
+- category-level delta trend charts,
+- accepted vs rejected challenger history by date/status.
+
+Primary implementation files:
+
+- `cohort_projections/analysis/observatory/dashboard/tab_history.py`
+- `cohort_projections/analysis/observatory/dashboard/data_manager.py`
+- `cohort_projections/analysis/observatory/dashboard/app.py`
 
 ---
 

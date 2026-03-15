@@ -19,14 +19,20 @@ from cohort_projections.analysis.observatory.dashboard.data_manager import (
     DashboardDataManager,
     _search_sidecar_path,
     build_comparison_rows,
+    build_longitudinal_run_history,
+    build_metric_delta_history,
     build_run_metadata_frame,
     build_search_session_frame,
+    build_status_timeline,
     select_run_preset,
 )
 from cohort_projections.analysis.observatory.dashboard.tab_command_center import (
     _command_center_summary,
     _queue_health_snapshot,
     _search_progress_html,
+)
+from cohort_projections.analysis.observatory.dashboard.tab_history import (
+    _history_takeaway_text,
 )
 from cohort_projections.analysis.observatory.dashboard.tab_horizon_bias import (
     _horizon_takeaway_text,
@@ -257,6 +263,81 @@ def test_command_center_summary_surfaces_current_decision_context() -> None:
     assert "Best tested challenger: College Blend 70" in summary
     assert "1 run(s) currently need human review." in summary
     assert "college_blend_factor -> 1.0" in summary
+
+
+def test_build_longitudinal_run_history_adds_delta_columns() -> None:
+    """Run-history view should include selected-vs-reference headline deltas."""
+    index, scorecards, experiment_log = _build_fixture_frames()
+    metadata = build_run_metadata_frame(
+        index=index,
+        scorecards=scorecards,
+        experiment_log=experiment_log,
+        champion_id="br-champion",
+    )
+
+    history = build_longitudinal_run_history(metadata)
+    by_run = history.set_index("run_id")
+
+    assert "delta_county_mape_overall" in history.columns
+    assert by_run.loc["br-passed", "delta_county_mape_overall"] == pytest.approx(-0.36)
+    assert bool(by_run.loc["br-review", "review_flag"]) is True
+
+
+def test_build_metric_delta_history_captures_long_metrics() -> None:
+    """Long metric history should contain one row per run/metric delta."""
+    index, scorecards, experiment_log = _build_fixture_frames()
+    metadata = build_run_metadata_frame(
+        index=index,
+        scorecards=scorecards,
+        experiment_log=experiment_log,
+        champion_id="br-champion",
+    )
+
+    metric_history = build_metric_delta_history(scorecards, metadata, "br-champion")
+
+    review_rows = metric_history[metric_history["run_id"] == "br-review"]
+    overall = review_rows[review_rows["metric"] == "county_mape_overall"].iloc[0]
+    assert overall["delta_value"] == pytest.approx(-0.02)
+    assert "state_ape_recent_short" in metric_history["metric"].tolist()
+
+
+def test_build_status_timeline_aggregates_outcomes_by_date() -> None:
+    """Status timeline should count benchmark bundles by date and resolved status."""
+    index, scorecards, experiment_log = _build_fixture_frames()
+    metadata = build_run_metadata_frame(
+        index=index,
+        scorecards=scorecards,
+        experiment_log=experiment_log,
+        champion_id="br-champion",
+    )
+
+    timeline = build_status_timeline(metadata)
+    counts = {
+        (row["run_date_display"], row["status_code"]): row["run_count"]
+        for _, row in timeline.iterrows()
+    }
+
+    assert counts[("2026-03-09", "champion")] == 1
+    assert counts[("2026-03-09", "needs_human_review")] == 1
+    assert counts[("2026-03-10", "passed_all_gates")] == 1
+
+
+def test_history_takeaway_summarizes_longitudinal_state() -> None:
+    """History summary should describe coverage, accepted challengers, and queue state."""
+    index, scorecards, experiment_log = _build_fixture_frames()
+    metadata = build_run_metadata_frame(
+        index=index,
+        scorecards=scorecards,
+        experiment_log=experiment_log,
+        champion_id="br-champion",
+    )
+    dm = SimpleNamespace(longitudinal_run_history=build_longitudinal_run_history(metadata))
+
+    summary = _history_takeaway_text(cast(DashboardDataManager, dm))
+
+    assert "**History coverage:** 3 benchmark bundles" in summary
+    assert "**Best accepted challenger:** College Blend 70" in summary
+    assert "**Champion baseline drift:**" in summary
 
 
 def test_build_search_session_frame_summarizes_progress(tmp_path) -> None:

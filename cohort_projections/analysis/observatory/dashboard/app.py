@@ -39,6 +39,7 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
     # ------------------------------------------------------------------
     from .tab_command_center import build_command_center
     from .tab_experiment_tracker import build_experiment_tracker
+    from .tab_history import build_history_tab
     from .tab_horizon_bias import build_horizon_bias_tab
     from .tab_projection_ensemble import build_projection_ensemble
     from .tab_scorecard import build_scorecard_tab
@@ -55,6 +56,7 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
         [
             ("Command Center", build_command_center(dm, tabs=tabs)),
             ("Experiments", build_experiment_tracker(dm)),
+            ("History", build_history_tab(dm)),
             ("Scorecards", build_scorecard_tab(dm)),
             ("Projections", build_projection_ensemble(dm)),
             ("Horizon & Bias", build_horizon_bias_tab(dm)),

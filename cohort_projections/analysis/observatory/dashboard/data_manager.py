@@ -88,6 +88,15 @@ _SEARCH_SESSION_COLUMNS = [
     "dashboard_process_running",
 ]
 
+_LONGITUDINAL_METRICS: tuple[str, ...] = (
+    "county_mape_overall",
+    "county_mape_rural",
+    "county_mape_bakken",
+    "county_mape_urban_college",
+    "state_ape_recent_short",
+    "state_ape_recent_medium",
+)
+
 
 def _status_label(value: object) -> str:
     """Return a short, human-readable label for a status code."""
@@ -330,6 +339,130 @@ def _sort_by_metric(df: pd.DataFrame) -> pd.DataFrame:
     if not sort_cols:
         return df
     return df.sort_values(sort_cols, ascending=ascending, na_position="last")
+
+
+def build_longitudinal_run_history(run_metadata: pd.DataFrame) -> pd.DataFrame:
+    """Build a run-history frame with deltas vs the champion-at-run baseline."""
+    if run_metadata.empty:
+        return pd.DataFrame()
+
+    history = run_metadata.copy()
+    metric_pairs = [
+        ("selected_county_mape_overall", "reference_county_mape_overall", "delta_county_mape_overall"),
+        ("selected_state_ape_recent_short", "reference_state_ape_recent_short", "delta_state_ape_recent_short"),
+    ]
+    for selected_col, reference_col, delta_col in metric_pairs:
+        if selected_col in history.columns and reference_col in history.columns:
+            history[delta_col] = history[selected_col] - history[reference_col]
+
+    history["run_date_display"] = history.get("run_date_sort", pd.Series(dtype="datetime64[ns]")).dt.strftime(
+        "%Y-%m-%d"
+    ).fillna("")
+    history["accepted_flag"] = history.get("status_code", pd.Series(dtype=object)).isin(
+        ["champion", "passed_all_gates"]
+    )
+    history["rejected_flag"] = history.get("status_code", pd.Series(dtype=object)).isin(
+        ["failed_hard_gate"]
+    )
+    history["review_flag"] = history.get("status_code", pd.Series(dtype=object)).isin(
+        ["needs_human_review"]
+    )
+    sort_cols = [col for col in ["run_date_sort", "selected_county_mape_overall", "run_id"] if col in history.columns]
+    if sort_cols:
+        history = history.sort_values(sort_cols, ascending=[False, True, True][: len(sort_cols)], na_position="last")
+    return history.reset_index(drop=True)
+
+
+def build_metric_delta_history(
+    scorecards: pd.DataFrame,
+    run_metadata: pd.DataFrame,
+    champion_id: str | None,
+) -> pd.DataFrame:
+    """Build a long metric-delta history across all benchmark bundles."""
+    if scorecards.empty or run_metadata.empty or "run_id" not in scorecards.columns:
+        return pd.DataFrame()
+
+    comparison_rows = build_comparison_rows(scorecards, champion_id)
+    reference_rows = _build_reference_rows(scorecards)
+    if comparison_rows.empty or reference_rows.empty:
+        return pd.DataFrame()
+
+    selected_cols = ["run_id", *[metric for metric in _LONGITUDINAL_METRICS if metric in comparison_rows.columns]]
+    reference_cols = ["run_id", *[metric for metric in _LONGITUDINAL_METRICS if metric in reference_rows.columns]]
+    selected = comparison_rows[selected_cols].rename(
+        columns={metric: f"selected_{metric}" for metric in selected_cols if metric != "run_id"}
+    )
+    reference = reference_rows[reference_cols].rename(
+        columns={metric: f"reference_{metric}" for metric in reference_cols if metric != "run_id"}
+    )
+    merged = selected.merge(reference, on="run_id", how="inner")
+    if merged.empty:
+        return pd.DataFrame()
+
+    metadata_cols = [
+        col
+        for col in [
+            "run_id",
+            "run_date",
+            "run_date_sort",
+            "display_name",
+            "status_code",
+            "status_label",
+            "next_action",
+            "selected_method_id",
+            "reference_method_id",
+        ]
+        if col in run_metadata.columns
+    ]
+    merged = merged.merge(run_metadata[metadata_cols], on="run_id", how="left")
+
+    rows: list[dict[str, Any]] = []
+    for _, row in merged.iterrows():
+        for metric in _LONGITUDINAL_METRICS:
+            selected_col = f"selected_{metric}"
+            reference_col = f"reference_{metric}"
+            if selected_col not in merged.columns or reference_col not in merged.columns:
+                continue
+            selected_value = row.get(selected_col)
+            reference_value = row.get(reference_col)
+            if pd.isna(selected_value) or pd.isna(reference_value):
+                continue
+            rows.append(
+                {
+                    "run_id": str(row.get("run_id", "")),
+                    "run_date": row.get("run_date"),
+                    "run_date_sort": row.get("run_date_sort"),
+                    "display_name": row.get("display_name"),
+                    "status_code": row.get("status_code"),
+                    "status_label": row.get("status_label"),
+                    "next_action": row.get("next_action"),
+                    "selected_method_id": row.get("selected_method_id"),
+                    "reference_method_id": row.get("reference_method_id"),
+                    "metric": metric,
+                    "selected_value": float(selected_value),
+                    "reference_value": float(reference_value),
+                    "delta_value": float(selected_value) - float(reference_value),
+                }
+            )
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows)
+
+
+def build_status_timeline(run_metadata: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate benchmark-bundle counts by date and resolved status."""
+    if run_metadata.empty or "run_date_sort" not in run_metadata.columns:
+        return pd.DataFrame()
+    timeline = run_metadata.copy()
+    timeline["run_date_display"] = timeline["run_date_sort"].dt.strftime("%Y-%m-%d")
+    counts = (
+        timeline.groupby(["run_date_display", "status_code"], dropna=False)
+        .size()
+        .reset_index(name="run_count")
+    )
+    if counts.empty:
+        return counts
+    return counts.sort_values(["run_date_display", "status_code"]).reset_index(drop=True)
 
 
 def build_comparison_rows(
@@ -910,6 +1043,25 @@ class DashboardDataManager:
         return self._load_extra_csv(_EXTRA_CSVS["uncertainty_summary"])
 
     @functools.cached_property
+    def longitudinal_run_history(self) -> pd.DataFrame:
+        """Run-history view enriched with headline deltas vs champion-at-run."""
+        return build_longitudinal_run_history(self.run_metadata)
+
+    @functools.cached_property
+    def metric_delta_history(self) -> pd.DataFrame:
+        """Long metric-delta history across all benchmark bundles."""
+        return build_metric_delta_history(
+            self.scorecards,
+            self.run_metadata,
+            self.champion_id,
+        )
+
+    @functools.cached_property
+    def status_timeline(self) -> pd.DataFrame:
+        """Historical counts by run date and resolved status."""
+        return build_status_timeline(self.run_metadata)
+
+    @functools.cached_property
     def search_sessions(self) -> pd.DataFrame:
         """One summary row per autonomous-search session."""
         return build_search_session_frame(self.search_session_root)
@@ -1109,6 +1261,9 @@ class DashboardDataManager:
             "outlier_flags",
             "residual_diagnostics",
             "uncertainty_summary",
+            "longitudinal_run_history",
+            "metric_delta_history",
+            "status_timeline",
             "search_sessions",
             "active_search_id",
         ]
