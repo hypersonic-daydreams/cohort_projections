@@ -12,10 +12,12 @@ from typing import cast
 from unittest.mock import MagicMock
 
 import pandas as pd
+import pytest
 
 import scripts.analysis.observatory_dashboard as dashboard_launcher
 from cohort_projections.analysis.observatory.dashboard.data_manager import (
     DashboardDataManager,
+    _search_sidecar_path,
     build_comparison_rows,
     build_run_metadata_frame,
     build_search_session_frame,
@@ -291,6 +293,35 @@ summary:
     assert row["progress_pct"] == 50.0
     assert row["candidate_summary_csv"].endswith("candidate_summary.csv")
     assert row["search_report_markdown"].endswith("search_report.md")
+    assert row["process_status"] == "stopped"
+
+
+def test_build_search_session_frame_includes_launch_sidecars(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Dashboard sidecars should surface launching sessions before session.yaml exists."""
+    search_id = "search-launching"
+    meta_path = _search_sidecar_path(tmp_path, search_id, "dashboard_meta.yaml")
+    meta_path.write_text(
+        "search_id: search-launching\nlaunched_at: 2026-03-15T10:20:00+00:00\n",
+        encoding="utf-8",
+    )
+    pid_path = _search_sidecar_path(tmp_path, search_id, "dashboard.pid")
+    pid_path.write_text("43210\n", encoding="utf-8")
+    log_path = _search_sidecar_path(tmp_path, search_id, "dashboard.log")
+    log_path.write_text("launch output\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        "cohort_projections.analysis.observatory.dashboard.data_manager._is_search_process_running",
+        lambda pid, sid: pid == 43210 and sid == search_id,
+    )
+
+    frame = build_search_session_frame(tmp_path)
+
+    assert len(frame) == 1
+    row = frame.iloc[0]
+    assert row["search_id"] == search_id
+    assert row["status"] == "launching"
+    assert bool(row["dashboard_process_running"]) is True
+    assert row["dashboard_launch_log"].endswith("dashboard.log")
 
 
 def test_search_progress_html_shows_selected_session_metrics() -> None:
@@ -313,6 +344,34 @@ def test_search_progress_html_shows_selected_session_metrics() -> None:
     assert "search-one" in html
     assert "Progress: 6/10" in html
     assert "width:60.0%" in html
+
+
+def test_stop_search_session_terminates_process_group(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Stopping a search session should target the recorded process group."""
+    dm = SimpleNamespace(
+        search_session_row=lambda search_id: pd.Series(
+            {
+                "dashboard_pid": 43210,
+            }
+        )
+    )
+    monkeypatch.setattr(
+        "cohort_projections.analysis.observatory.dashboard.data_manager._is_search_process_running",
+        lambda pid, sid: pid == 43210 and sid == "search-one",
+    )
+    killed: list[tuple[int, int]] = []
+    monkeypatch.setattr(
+        "cohort_projections.analysis.observatory.dashboard.data_manager.os.killpg",
+        lambda pid, sig: killed.append((pid, sig)),
+    )
+
+    message = DashboardDataManager.stop_search_session(
+        cast(DashboardDataManager, dm),
+        "search-one",
+    )
+
+    assert "Sent SIGTERM" in message
+    assert killed
 
 
 def test_build_dashboard_returns_fresh_instances(monkeypatch) -> None:

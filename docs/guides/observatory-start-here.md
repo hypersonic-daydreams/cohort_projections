@@ -65,8 +65,9 @@ path from multiple documents.
   mortality-improvement sensitivity, and selected interaction terms around
   `m2026r1` without touching production aliases.
 - The dashboard `Command Center` now includes an `Autonomous Search` panel for
-  previewing search plans, launching `search-auto`, tracking session progress,
-  and inspecting candidate/result summaries from persisted search sessions.
+  previewing search plans, launching `search-auto`, stopping dashboard-launched
+  searches, tracking session progress, previewing search reports/log tails, and
+  inspecting candidate/result summaries from persisted search sessions.
 
 ## Remaining Improvement Tracks
 

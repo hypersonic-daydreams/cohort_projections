@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import functools
 import logging
+import os
 import re
+import signal
 from pathlib import Path
 from typing import Any
 
@@ -61,6 +63,7 @@ RUN_SELECTION_PRESETS: tuple[str, ...] = (
 _SEARCH_SESSION_COLUMNS = [
     "search_id",
     "status",
+    "process_status",
     "created_at",
     "updated_at",
     "base_revision",
@@ -79,6 +82,10 @@ _SEARCH_SESSION_COLUMNS = [
     "search_report_markdown",
     "observatory_report_html",
     "dashboard_launch_log",
+    "dashboard_pid_file",
+    "dashboard_meta_file",
+    "dashboard_pid",
+    "dashboard_process_running",
 ]
 
 
@@ -148,20 +155,95 @@ def _read_yaml_mapping(path: Path) -> dict[str, Any] | None:
     return raw
 
 
+def _search_sidecar_path(session_root: Path, search_id: str, suffix: str) -> Path:
+    """Return a deterministic dashboard sidecar path for one search session."""
+    return session_root / f".{search_id}.{suffix}"
+
+
+def _read_pid_file(path: Path) -> int | None:
+    """Read a PID file as an integer when present and valid."""
+    if not path.exists():
+        return None
+    try:
+        return int(path.read_text(encoding="utf-8").strip())
+    except Exception:
+        logger.warning("Failed to parse PID file %s", path)
+        return None
+
+
+def _process_cmdline(pid: int) -> str:
+    """Return a Linux process command line when available."""
+    proc_path = Path("/proc") / str(pid) / "cmdline"
+    if not proc_path.exists():
+        return ""
+    try:
+        raw = proc_path.read_bytes()
+    except Exception:
+        return ""
+    parts = [part for part in raw.decode("utf-8", errors="ignore").split("\x00") if part]
+    return " ".join(parts)
+
+
+def _pid_matches_search_process(pid: int, search_id: str) -> bool:
+    """Return whether *pid* appears to be the matching search-auto process."""
+    cmdline = _process_cmdline(pid)
+    if not cmdline:
+        return True
+    lowered = cmdline.lower()
+    return (
+        "observatory.py" in lowered
+        and "search-auto" in lowered
+        and search_id.lower() in lowered
+    )
+
+
+def _is_search_process_running(pid: int | None, search_id: str) -> bool:
+    """Return whether a recorded PID still corresponds to a live search process."""
+    if pid is None or pid <= 0:
+        return False
+    if not _pid_matches_search_process(pid, search_id):
+        return False
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
 def build_search_session_frame(session_root: Path) -> pd.DataFrame:
     """Build one summary row per autonomous-search session on disk."""
     if not session_root.exists():
         return pd.DataFrame(columns=_SEARCH_SESSION_COLUMNS)
 
+    search_ids = {
+        path.parent.name
+        for path in session_root.glob("*/session.yaml")
+    }
+    search_ids.update(
+        path.name.removeprefix(".").removesuffix(".dashboard_meta.yaml")
+        for path in session_root.glob(".*.dashboard_meta.yaml")
+    )
+
     rows: list[dict[str, Any]] = []
-    for session_path in sorted(session_root.glob("*/session.yaml")):
-        session = _read_yaml_mapping(session_path)
+    for search_id in sorted(search_ids):
+        session_dir = session_root / search_id
+        session_path = session_dir / "session.yaml"
+        session = _read_yaml_mapping(session_path) if session_path.exists() else {}
         if session is None:
-            continue
+            session = {}
         summary = session.get("summary", {})
         if not isinstance(summary, dict):
             summary = {}
-        session_dir = session_path.parent
+
+        meta_path = _search_sidecar_path(session_root, search_id, "dashboard_meta.yaml")
+        meta = _read_yaml_mapping(meta_path) if meta_path.exists() else {}
+        if meta is None:
+            meta = {}
+        pid_path = _search_sidecar_path(session_root, search_id, "dashboard.pid")
+        log_path = _search_sidecar_path(session_root, search_id, "dashboard.log")
+        pid = _read_pid_file(pid_path)
+        process_running = _is_search_process_running(pid, search_id)
+
         total = int(summary.get("total", len(session.get("candidates", []))) or 0)
         planned = int(summary.get("planned", 0) or 0)
         running = int(summary.get("running", 0) or 0)
@@ -169,8 +251,24 @@ def build_search_session_frame(session_root: Path) -> pd.DataFrame:
         failed = int(summary.get("failed", 0) or 0)
         progress_count = completed + failed
         progress_pct = 0.0 if total <= 0 else (progress_count / total) * 100.0
-        search_id = str(session.get("search_id", session_dir.name))
-        status = str(session.get("status", "") or "unknown")
+        created_at = str(
+            session.get("created_at")
+            or meta.get("launched_at")
+            or ""
+        )
+        updated_at = str(
+            session.get("updated_at")
+            or meta.get("launched_at")
+            or ""
+        )
+        raw_status = str(session.get("status", "") or "")
+        if raw_status:
+            status = raw_status
+        elif process_running:
+            status = "launching"
+        else:
+            status = "unknown"
+        process_status = "running" if process_running else "stopped"
 
         def _artifact_path(name: str, base_dir: Path = session_dir) -> str:
             candidate = base_dir / name
@@ -180,9 +278,10 @@ def build_search_session_frame(session_root: Path) -> pd.DataFrame:
             {
                 "search_id": search_id,
                 "status": status,
-                "created_at": str(session.get("created_at", "") or ""),
-                "updated_at": str(session.get("updated_at", "") or ""),
-                "base_revision": str(session.get("base_revision", "") or ""),
+                "process_status": process_status,
+                "created_at": created_at,
+                "updated_at": updated_at,
+                "base_revision": str(session.get("base_revision") or meta.get("base_revision") or ""),
                 "resolved_base_revision": str(session.get("resolved_base_revision", "") or ""),
                 "total": total,
                 "planned": planned,
@@ -197,7 +296,11 @@ def build_search_session_frame(session_root: Path) -> pd.DataFrame:
                 "candidate_summary_json": _artifact_path("candidate_summary.json"),
                 "search_report_markdown": _artifact_path("search_report.md"),
                 "observatory_report_html": _artifact_path("observatory_report.html"),
-                "dashboard_launch_log": _artifact_path("dashboard_search.log"),
+                "dashboard_launch_log": str(log_path) if log_path.exists() else "",
+                "dashboard_pid_file": str(pid_path) if pid_path.exists() else "",
+                "dashboard_meta_file": str(meta_path) if meta_path.exists() else "",
+                "dashboard_pid": pid,
+                "dashboard_process_running": process_running,
             }
         )
 
@@ -817,7 +920,7 @@ class DashboardDataManager:
         sessions = self.search_sessions
         if sessions.empty:
             return None
-        active = sessions[sessions["status"].isin(["planned", "running"])]
+        active = sessions[sessions["status"].isin(["launching", "planned", "running"])]
         source = active if not active.empty else sessions
         if source.empty:
             return None
@@ -879,6 +982,93 @@ class DashboardDataManager:
                 }
             )
         return pd.DataFrame(rows)
+
+    def search_session_row(self, search_id: str) -> pd.Series | None:
+        """Return one autonomous-search summary row by ID."""
+        sessions = self.search_sessions
+        if sessions.empty:
+            return None
+        matches = sessions[sessions["search_id"] == search_id]
+        if matches.empty:
+            return None
+        return matches.iloc[0]
+
+    def search_session_best_candidates(self, search_id: str, limit: int = 5) -> pd.DataFrame:
+        """Return the strongest completed candidates for one search session."""
+        candidates = self.search_session_candidates(search_id)
+        if candidates.empty:
+            return pd.DataFrame()
+        completed = candidates[candidates.get("status", pd.Series(dtype=str)).astype(str) == "completed"]
+        if completed.empty:
+            return pd.DataFrame()
+        sort_cols: list[str] = []
+        ascending: list[bool] = []
+        if "delta_county_mape_overall" in completed.columns:
+            sort_cols.append("delta_county_mape_overall")
+            ascending.append(True)
+        if "county_mape_overall" in completed.columns:
+            sort_cols.append("county_mape_overall")
+            ascending.append(True)
+        if sort_cols:
+            completed = completed.sort_values(sort_cols, ascending=ascending, na_position="last")
+        return completed.head(limit).reset_index(drop=True)
+
+    def search_session_report_markdown(self, search_id: str) -> str:
+        """Return the Markdown search report for one session when available."""
+        row = self.search_session_row(search_id)
+        if row is None:
+            return ""
+        raw_path = str(row.get("search_report_markdown", "") or "").strip()
+        if not raw_path:
+            return ""
+        report_path = Path(raw_path)
+        if not report_path.exists() or report_path.is_dir():
+            return ""
+        try:
+            return report_path.read_text(encoding="utf-8")
+        except Exception:
+            logger.warning("Failed to read %s", report_path)
+            return ""
+
+    def search_session_log_tail(self, search_id: str, max_chars: int = 8000) -> str:
+        """Return the tail of the dashboard launch log for one search session."""
+        row = self.search_session_row(search_id)
+        if row is None:
+            return ""
+        raw_path = str(row.get("dashboard_launch_log", "") or "").strip()
+        if not raw_path:
+            return ""
+        log_path = Path(raw_path)
+        if not log_path.exists() or log_path.is_dir():
+            return ""
+        try:
+            text = log_path.read_text(encoding="utf-8")
+        except Exception:
+            logger.warning("Failed to read %s", log_path)
+            return ""
+        return text[-max_chars:]
+
+    def stop_search_session(self, search_id: str) -> str:
+        """Send ``SIGTERM`` to a dashboard-launched autonomous-search process."""
+        row = self.search_session_row(search_id)
+        if row is None:
+            return f"Search session not found: {search_id}"
+        raw_pid = row.get("dashboard_pid")
+        try:
+            pid = int(raw_pid)
+        except (TypeError, ValueError):
+            return f"No dashboard-managed process PID is recorded for {search_id}."
+        if pid <= 0:
+            return f"No dashboard-managed process PID is recorded for {search_id}."
+        if not _is_search_process_running(pid, search_id):
+            return f"Search process is not running for {search_id}."
+        try:
+            os.killpg(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            return f"Search process already exited for {search_id}."
+        except Exception as exc:
+            return f"Failed to stop search process {pid} for {search_id}: {exc}"
+        return f"Sent SIGTERM to autonomous-search process group {pid} for {search_id}."
 
     def refresh_search_sessions(self) -> None:
         """Clear cached autonomous-search session views without reloading run history."""

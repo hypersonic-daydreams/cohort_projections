@@ -15,6 +15,7 @@ from typing import Any
 
 import pandas as pd
 import panel as pn
+import yaml
 
 from cohort_projections.analysis.observatory.dashboard.data_manager import (
     DashboardDataManager,
@@ -190,6 +191,7 @@ def _search_session_detail_html(session_row: pd.Series | None) -> str:
         <tr><td style="padding:4px 12px 4px 0;color:#5A6C84;width:160px">Created</td><td>{session_row.get("created_at", "")}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Updated</td><td>{session_row.get("updated_at", "")}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Base revision</td><td>{session_row.get("resolved_base_revision", session_row.get("base_revision", ""))}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Process</td><td>{session_row.get("process_status", "unknown")} (pid: {session_row.get("dashboard_pid", "n/a")})</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Session directory</td><td>{session_row.get("session_dir", "")}</td></tr>
       </table>
       <div style="margin-top:10px">
@@ -845,6 +847,15 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
     detail_pane = pn.pane.HTML(sizing_mode="stretch_width")
     sessions_table_box = pn.Column(sizing_mode="stretch_width")
     candidates_table_box = pn.Column(sizing_mode="stretch_width")
+    best_candidates_box = pn.Column(sizing_mode="stretch_width")
+    report_preview_box = pn.Column(sizing_mode="stretch_width")
+    log_preview = pn.widgets.TextAreaInput(
+        value="",
+        disabled=True,
+        height=220,
+        sizing_mode="stretch_width",
+        name="Launch Log Tail",
+    )
     output_pane = pn.widgets.TextAreaInput(
         value=(
             "Use Preview Plan to create or overwrite a search session without running it. "
@@ -888,6 +899,9 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
             detail_pane.value = _search_session_detail_html(None)
             sessions_table_box[:] = [empty_placeholder("No autonomous-search sessions found.")]
             candidates_table_box[:] = [empty_placeholder("No candidate preview available yet.")]
+            best_candidates_box[:] = [empty_placeholder("No completed candidates are available yet.")]
+            report_preview_box[:] = [empty_placeholder("No search report is available yet.")]
+            log_preview.value = ""
             return
 
         session_select.options = options
@@ -969,6 +983,64 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
                 )
             ]
 
+        best_candidates = (
+            dm.search_session_best_candidates(selected_search_id)
+            if selected_search_id
+            else pd.DataFrame()
+        )
+        if best_candidates.empty:
+            best_candidates_box[:] = [
+                empty_placeholder("No completed candidates with harvested metrics are available yet.")
+            ]
+        else:
+            best_cols = [
+                col
+                for col in [
+                    "candidate_id",
+                    "outcome",
+                    "run_id",
+                    "county_mape_overall",
+                    "delta_county_mape_overall",
+                    "state_ape_recent_short",
+                    "state_ape_recent_medium",
+                ]
+                if col in best_candidates.columns
+            ]
+            best_candidates_box[:] = [
+                metric_table(
+                    best_candidates[best_cols],
+                    page_size=5,
+                    frozen_columns=["candidate_id"],
+                )
+            ]
+
+        report_text = dm.search_session_report_markdown(selected_search_id) if selected_search_id else ""
+        observatory_report_path = (
+            str(selected.get("observatory_report_html", "") or "")
+            if selected is not None
+            else ""
+        )
+        if report_text:
+            report_preview_box[:] = [
+                pn.pane.Markdown(report_text, sizing_mode="stretch_width"),
+                pn.pane.Markdown(
+                    f"Observatory HTML report: `{observatory_report_path or 'not written yet'}`"
+                ),
+            ]
+        else:
+            report_preview_box[:] = [
+                empty_placeholder("No Markdown search report is available for the selected session yet."),
+                pn.pane.Markdown(
+                    f"Observatory HTML report: `{observatory_report_path or 'not written yet'}`"
+                ),
+            ]
+
+        log_preview.value = (
+            dm.search_session_log_tail(selected_search_id)
+            if selected_search_id
+            else ""
+        )
+
     def _preview_plan(event: Any) -> None:
         search_id = search_id_input.value.strip() or _default_search_id()
         args = ["search-plan", "--search-id", search_id, *_planner_args()]
@@ -998,6 +1070,11 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
 
     def _launch_search(event: Any) -> None:
         search_id = search_id_input.value.strip() or _default_search_id()
+        session_root = dm.search_session_root
+        session_root.mkdir(parents=True, exist_ok=True)
+        pid_path = session_root / f".{search_id}.dashboard.pid"
+        log_path = session_root / f".{search_id}.dashboard.log"
+        meta_path = session_root / f".{search_id}.dashboard_meta.yaml"
         cmd = [
             sys.executable,
             str(_OBSERVATORY_SCRIPT),
@@ -1014,12 +1091,27 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
             cmd.append("--include-recipe-catalog")
         if overwrite_box.value:
             cmd.append("--overwrite")
-        subprocess.Popen(  # noqa: S603
-            cmd,
-            cwd=str(_PROJECT_ROOT),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+        meta_path.write_text(
+            yaml.safe_dump(
+                {
+                    "search_id": search_id,
+                    "launched_at": dt.datetime.now(tz=dt.UTC).isoformat(),
+                    "base_revision": "HEAD",
+                    "command": " ".join(cmd[2:]),
+                },
+                sort_keys=False,
+            ),
+            encoding="utf-8",
         )
+        with log_path.open("a", encoding="utf-8") as handle:
+            process = subprocess.Popen(  # noqa: S603
+                cmd,
+                cwd=str(_PROJECT_ROOT),
+                stdout=handle,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+        pid_path.write_text(str(process.pid), encoding="utf-8")
         output_pane.value = (
             f"Launched autonomous search in the background: {search_id}\n"
             f"Command: {' '.join(cmd[2:])}\n"
@@ -1033,6 +1125,14 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
         _refresh_search_views()
         output_pane.value = "Autonomous-search views refreshed from session files."
 
+    def _stop_search(event: Any) -> None:
+        search_id = (session_select.value or "").strip()
+        if not search_id:
+            output_pane.value = "Select a dashboard-launched search session first."
+            return
+        output_pane.value = dm.stop_search_session(search_id)
+        _refresh_search_views(prefer_search_id=search_id)
+
     btn_refresh = pn.widgets.Button(name="Refresh Search Views", button_type="primary", width=180)
     btn_refresh.on_click(_refresh_only)
     btn_preview_plan = pn.widgets.Button(name="Preview Plan", button_type="warning", width=140)
@@ -1041,6 +1141,8 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
     btn_preview_batch.on_click(_preview_next_batch)
     btn_launch = pn.widgets.Button(name="Launch Search-Auto", button_type="success", width=180)
     btn_launch.on_click(_launch_search)
+    btn_stop = pn.widgets.Button(name="Stop Search", button_type="danger", width=140)
+    btn_stop.on_click(_stop_search)
 
     periodic = None
     if pn.state.curdoc is not None:
@@ -1084,6 +1186,7 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
         btn_preview_plan,
         btn_preview_batch,
         btn_launch,
+        btn_stop,
         flex_wrap="wrap",
         sizing_mode="stretch_width",
         styles={"gap": "10px"},
@@ -1105,6 +1208,12 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
         sessions_table_box,
         section_header("Candidate Preview", subtitle="Selected session candidates and harvested benchmark summaries."),
         candidates_table_box,
+        section_header("Best Completed Candidates", subtitle="Fast shortlist of the strongest completed search results."),
+        best_candidates_box,
+        section_header("Search Report Preview", subtitle="Embedded Markdown report for the selected search session."),
+        report_preview_box,
+        section_header("Launch Log Tail", subtitle="Dashboard-captured stdout/stderr from the background search process."),
+        log_preview,
         output_pane,
         title="Autonomous Search",
         sizing_mode="stretch_width",

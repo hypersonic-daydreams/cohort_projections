@@ -58,9 +58,12 @@ If you prefer to operate from the dashboard, open the Projection Observatory
 - preview a `search-plan`,
 - preview the next `search-run --dry-run` batch,
 - launch `search-auto` in the background,
+- stop dashboard-launched `search-auto` processes with `SIGTERM`,
 - auto-refresh against persisted `session.yaml` state,
 - show progress bars, session counts, and candidate/result tables for the
-  selected search session.
+  selected search session,
+- preview the selected session's Markdown search report, best completed
+  candidates, and dashboard-captured launch log tail.
 
 The current enabled recipe catalog is intentionally broader than the original
 three-point pilot. It now covers:
