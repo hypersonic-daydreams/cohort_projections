@@ -103,9 +103,10 @@ fields:
     type: string
     required: true
     description: >
-      Who ran the experiment — an autonomous agent or a human operator.
+      Who ran the experiment — a deterministic system, an autonomous agent,
+      or a human operator.
     constraints:
-      - "enum: [agent, human]"
+      - "enum: [system, agent, human]"
 
   spec_path:
     type: string

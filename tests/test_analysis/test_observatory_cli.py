@@ -151,6 +151,18 @@ class TestBuildParser:
         args = parser.parse_args(["refresh"])
         assert args.command == "refresh"
 
+    def test_search_plan_subcommand(self) -> None:
+        parser = cli_mod.build_parser()
+        args = parser.parse_args(["search-plan", "--search-id", "search-one"])
+        assert args.command == "search-plan"
+        assert args.search_id == "search-one"
+
+    def test_search_status_subcommand(self) -> None:
+        parser = cli_mod.build_parser()
+        args = parser.parse_args(["search-status", "--search-id", "search-one"])
+        assert args.command == "search-status"
+        assert args.search_id == "search-one"
+
     def test_verbose_flag(self) -> None:
         parser = cli_mod.build_parser()
         args = parser.parse_args(["-v", "status"])
@@ -211,6 +223,52 @@ class TestCmdStatus:
         assert "Untested runnable: 1" in out
         assert "Untested requiring code changes: 1" in out
         assert "Blocked grids: 1" in out
+
+
+class TestSearchCommands:
+    """Tests for the autonomous-search command handlers."""
+
+    def test_search_status_with_mocked_controller(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        controller = MagicMock()
+        controller.status.return_value = {
+            "search_id": "search-one",
+            "status": "planned",
+            "updated_at": "2026-03-15T12:00:00+00:00",
+            "summary": {
+                "total": 4,
+                "planned": 2,
+                "running": 0,
+                "completed": 1,
+                "failed": 1,
+            },
+        }
+        args = cli_mod.build_parser().parse_args(["search-status", "--search-id", "search-one"])
+        with patch.object(cli_mod, "_load_search_controller", return_value=controller):
+            rc = cli_mod.cmd_search_status(store=None, config={}, args=args)
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "Search session: search-one" in out
+        assert "Completed: 1" in out
+
+    def test_search_plan_with_mocked_controller(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        controller = MagicMock()
+        controller.plan_session.return_value = {
+            "search_id": "search-one",
+            "status": "planned",
+            "resolved_base_revision": "abc123",
+            "summary": {"total": 3, "planned": 3},
+        }
+        args = cli_mod.build_parser().parse_args(["search-plan", "--search-id", "search-one"])
+        with patch.object(cli_mod, "_load_search_controller", return_value=controller):
+            rc = cli_mod.cmd_search_plan(store=None, config={}, args=args)
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "Search session created: search-one" in out
+        assert "Total candidates: 3" in out
 
 
 # ---------------------------------------------------------------------------

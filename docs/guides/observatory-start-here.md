@@ -13,12 +13,15 @@ path from multiple documents.
      findings.
 2. `docs/guides/observatory-search-loop.md`
    - Read this before running bounded unattended queues.
-3. `docs/guides/benchmarking-workflow.md`
+3. `docs/guides/observatory-autonomous-search.md`
+   - Read this before running deterministic autonomous search in isolated
+     worktrees.
+4. `docs/guides/benchmarking-workflow.md`
    - Read this for challenger review, decision records, and alias-promotion
      workflow under SOP-003.
-4. `docs/plans/benchmarking-process-improvement-roadmap.md`
+5. `docs/plans/benchmarking-process-improvement-roadmap.md`
    - Read this for the full follow-on improvement backlog and rationale.
-5. `docs/guides/configuration-reference.md`
+6. `docs/guides/configuration-reference.md`
    - Read the Observatory config sections when changing thresholds, paths, or
      variant-catalog behavior.
 
@@ -28,6 +31,8 @@ path from multiple documents.
 - OBS-001 Observatory analysis, CLI, dashboard, and reporting layer is
   implemented.
 - PP-007 operational hardening is complete.
+- Deterministic autonomous search with isolated mirror/worktree execution is
+  implemented.
 - The Observatory is ready for supervised comparison and bounded unattended
   search-loop execution with resume files and run budgets.
 - The Observatory is not an auto-promotion system. Promotion still requires
@@ -43,10 +48,13 @@ path from multiple documents.
 - Static experiment dashboard builder:
   `scripts/analysis/build_experiment_dashboard.py`
 - Search-loop operator guide: `docs/guides/observatory-search-loop.md`
+- Autonomous search guide: `docs/guides/observatory-autonomous-search.md`
 - Full benchmark workflow guide: `docs/guides/benchmarking-workflow.md`
 - Full backlog roadmap: `docs/plans/benchmarking-process-improvement-roadmap.md`
 - Concrete UI/UX review + backlog: `docs/plans/observatory-ui-ux-backlog.md`
 - Runtime config: `config/observatory_config.yaml`
+- Autonomous search policy: `config/observatory_search_policy.yaml`
+- Deterministic recipe catalog: `config/observatory_recipes.yaml`
 - Variant catalog: `config/observatory_variants.yaml`
 
 ## Remaining Improvement Tracks

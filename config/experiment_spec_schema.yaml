@@ -68,9 +68,10 @@ required_fields:
   requested_by:
     type: string
     description: >
-      Who initiated this experiment — an autonomous agent or a human operator.
+      Who initiated this experiment — a deterministic system, an autonomous
+      agent, or a human operator.
     constraints:
-      - "enum: [agent, human]"
+      - "enum: [system, agent, human]"
 
 optional_fields:
 

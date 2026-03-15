@@ -1,0 +1,26 @@
+recipes:
+  RX-001:
+    enabled: false
+    execution_mode: code_recipe
+    candidate_id: recipe-dispatch-clone
+    experiment_id: exp-{date}-recipe-dispatch-clone
+    hypothesis: >
+      Clone the current challenger into an isolated search-only method ID so
+      future deterministic code recipes can benchmark without mutating the
+      production champion alias.
+    base_method: m2026r1
+    base_config: cfg-20260309-college-fix-v1
+    scope: county
+    benchmark_label: recipe-dispatch-clone
+    method_id_override: m2026r1_search_base
+    notes:
+      - Disabled by default until a specific code-search recipe is approved.
+      - Recipes must supply a distinct method_id_override unless shared-method patching is explicitly allowed.
+    steps:
+      - type: append_text
+        path: scripts/analysis/walk_forward_validation.py
+        after: |
+          }
+        content: |
+
+          # Search-only recipe placeholder; disabled by default.

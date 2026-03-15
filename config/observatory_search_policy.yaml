@@ -1,0 +1,25 @@
+search:
+  runtime_root: data/analysis/observatory_runtime
+  session_root: data/analysis/experiments/search_runs
+  mirror_repo: data/analysis/observatory_runtime/repos/cohort_projections.git
+  worktree_root: data/analysis/observatory_runtime/worktrees
+  recipe_catalog: config/observatory_recipes.yaml
+
+  compile_changed_python: true
+  keep_worktrees: false
+  default_run_budget: 3
+
+  protected_paths:
+    - config/method_profiles/aliases.yaml
+    - DEVELOPMENT_TRACKER.md
+    - docs/governance/adrs
+
+  allowed_recipe_roots:
+    - cohort_projections
+    - scripts/analysis
+    - config/method_profiles
+
+  planner:
+    max_pending: 3
+    max_recommended: 5
+    include_recipe_catalog: true

@@ -1,0 +1,107 @@
+# Projection Observatory Autonomous Search
+
+Deterministic operating guide for running the Projection Observatory as a
+code-driven search process in isolated git worktrees.
+
+This guide extends the bounded queue workflow in
+[Projection Observatory Search-Loop Guide](./observatory-search-loop.md).
+Use this when you want the system to plan and run many candidates with minimal
+supervision while guaranteeing that the live checkout and production aliases are
+not mutated by the search run itself.
+
+## Design Boundary
+
+- Search execution is deterministic and code-driven.
+- The controller runs candidates in disposable worktrees created from a bare
+  mirror, not in the live checkout.
+- The controller can write append-only artifacts and reports.
+- The controller cannot promote a champion, update aliases, or merge branches.
+
+## Files
+
+- CLI: `python scripts/analysis/observatory.py search-plan|search-run|search-status|search-report`
+- Policy: `config/observatory_search_policy.yaml`
+- Recipe catalog: `config/observatory_recipes.yaml`
+- Session state: `data/analysis/experiments/search_runs/<search_id>/`
+- Runtime mirror/worktrees: `data/analysis/observatory_runtime/`
+
+## Safe Loop
+
+### 1. Plan a session
+
+```bash
+source .venv/bin/activate
+python scripts/analysis/observatory.py search-plan \
+  --search-id search-20260315-a \
+  --base-revision HEAD \
+  --max-pending 3 \
+  --max-recommended 5
+```
+
+This creates a persisted session with planned specs under
+`data/analysis/experiments/search_runs/<search_id>/planned_specs/`.
+
+### 2. Preview the run
+
+```bash
+source .venv/bin/activate
+python scripts/analysis/observatory.py search-run \
+  --search-id search-20260315-a \
+  --run-budget 3 \
+  --dry-run
+```
+
+### 3. Execute the run
+
+```bash
+source .venv/bin/activate
+python scripts/analysis/observatory.py search-run \
+  --search-id search-20260315-a \
+  --run-budget 3
+```
+
+The controller will:
+
+- assert the live checkout is clean,
+- create disposable worktrees from the bare mirror,
+- apply any approved deterministic code recipes,
+- run the experiment orchestrator inside the worktree,
+- harvest benchmark bundles and experiment-log entries back into the canonical
+  Observatory stores,
+- write patches, logs, and copied specs into the session directory.
+
+### 4. Inspect status and report
+
+```bash
+source .venv/bin/activate
+python scripts/analysis/observatory.py search-status --search-id search-20260315-a
+python scripts/analysis/observatory.py search-report --search-id search-20260315-a
+```
+
+## Guardrails
+
+- The live checkout must be clean before `search-run`.
+- Protected files such as `config/method_profiles/aliases.yaml` are blocked
+  from recipe mutation by policy.
+- Recipe mutations are restricted to allowlisted roots.
+- Changed Python files are syntax-checked with `py_compile` before the
+  experiment runs.
+- Worktrees are removed automatically unless `--keep-worktrees` is used.
+- Promotion remains a separate human action through SOP-003.
+
+## Current Intended Use
+
+Use autonomous search for:
+
+- config-only exploration at larger scale than the bounded pending queue,
+- deterministic code recipes that have explicit file targets and a distinct
+  experiment method ID,
+- unattended experimentation where you want to come back later to benchmark
+  evidence rather than to merged code.
+
+Do not use autonomous search for:
+
+- free-form code generation,
+- automatic promotion,
+- direct edits in the live checkout,
+- recipe definitions that silently change the current champion method in place.

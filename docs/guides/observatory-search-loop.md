@@ -8,6 +8,10 @@ Start with [Projection Observatory Start Here](./observatory-start-here.md) if
 you need the current status, reading order, or the full follow-on backlog. This
 guide only covers safe queue operation.
 
+If you want deterministic code-driven search in isolated worktrees rather than
+the bounded config-only queue, use
+[Projection Observatory Autonomous Search](./observatory-autonomous-search.md).
+
 ## Use This When
 
 Use this guide when you want the Observatory to queue and run multiple

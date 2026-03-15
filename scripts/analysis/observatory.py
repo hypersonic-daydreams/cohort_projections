@@ -206,6 +206,28 @@ def _load_report_class() -> Any:
         return None
 
 
+def _load_search_controller(
+    store: Any,
+    config: dict[str, Any],
+    *,
+    policy_path: Path | None = None,
+) -> Any:
+    """Load the deterministic autonomous search controller."""
+    try:
+        from cohort_projections.analysis.observatory.search_controller import (
+            AutonomousSearchController,
+        )
+
+        return AutonomousSearchController(
+            store=store,
+            observatory_config=config,
+            policy_path=policy_path,
+        )
+    except Exception as e:
+        logger.warning("Failed to construct AutonomousSearchController: %s", e)
+        return None
+
+
 def _load_config(config_path: Path) -> dict[str, Any]:
     """Load the observatory config section from YAML."""
     try:
@@ -634,6 +656,116 @@ def build_parser() -> argparse.ArgumentParser:
         "refresh",
         parents=[common],
         help="Rebuild the results cache from benchmark history.",
+    )
+
+    # --- search-plan ---
+    search_plan_parser = sub.add_parser(
+        "search-plan",
+        parents=[common],
+        help="Create a deterministic autonomous-search session.",
+    )
+    search_plan_parser.add_argument("--search-id", required=True, help="Search session identifier.")
+    search_plan_parser.add_argument(
+        "--base-revision",
+        default="HEAD",
+        help="Git revision to use as the sandbox base (default: HEAD).",
+    )
+    search_plan_parser.add_argument(
+        "--max-pending",
+        type=int,
+        default=None,
+        help="Maximum number of untested catalog variants to include.",
+    )
+    search_plan_parser.add_argument(
+        "--max-recommended",
+        type=int,
+        default=None,
+        help="Maximum number of config-only recommendations to include.",
+    )
+    search_plan_parser.add_argument(
+        "--include-recipe-catalog",
+        action="store_true",
+        default=None,
+        help="Include enabled code-recipe candidates from the recipe catalog.",
+    )
+    search_plan_parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace an existing search session with the same identifier.",
+    )
+    search_plan_parser.add_argument(
+        "--search-policy",
+        type=Path,
+        default=None,
+        help="Path to the autonomous search policy YAML.",
+    )
+
+    # --- search-run ---
+    search_run_parser = sub.add_parser(
+        "search-run",
+        parents=[common],
+        help="Execute a deterministic autonomous-search session in isolated worktrees.",
+    )
+    search_run_parser.add_argument("--search-id", required=True, help="Search session identifier.")
+    search_run_parser.add_argument(
+        "--run-budget",
+        type=int,
+        default=None,
+        help="Maximum number of planned candidates to execute in this invocation.",
+    )
+    search_run_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview which candidates would execute without creating worktrees.",
+    )
+    search_run_parser.add_argument(
+        "--keep-worktrees",
+        action="store_true",
+        help="Keep worktrees on disk after execution for inspection.",
+    )
+    search_run_parser.add_argument(
+        "--search-policy",
+        type=Path,
+        default=None,
+        help="Path to the autonomous search policy YAML.",
+    )
+
+    # --- search-status ---
+    search_status_parser = sub.add_parser(
+        "search-status",
+        parents=[common],
+        help="Show autonomous-search session status.",
+    )
+    search_status_parser.add_argument(
+        "--search-id",
+        default=None,
+        help="Optional search session identifier. Omit to list all sessions.",
+    )
+    search_status_parser.add_argument(
+        "--search-policy",
+        type=Path,
+        default=None,
+        help="Path to the autonomous search policy YAML.",
+    )
+
+    # --- search-report ---
+    search_report_parser = sub.add_parser(
+        "search-report",
+        parents=[common],
+        help="Render a Markdown report for one autonomous-search session.",
+    )
+    search_report_parser.add_argument("--search-id", required=True, help="Search session identifier.")
+    search_report_parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Optional output path for the generated Markdown report.",
+    )
+    search_report_parser.add_argument(
+        "--search-policy",
+        type=Path,
+        default=None,
+        help="Path to the autonomous search policy YAML.",
     )
 
     return parser
@@ -1419,6 +1551,251 @@ def cmd_refresh(
     return 0
 
 
+def cmd_search_plan(
+    store: Any,
+    config: dict[str, Any],
+    args: argparse.Namespace,
+) -> int:
+    """Handle the ``search-plan`` subcommand."""
+    controller = _load_search_controller(
+        store,
+        config,
+        policy_path=_resolve_project_path(args.search_policy),
+    )
+    if controller is None:
+        print("Error: AutonomousSearchController is not available.")  # noqa: T201
+        return 1
+
+    try:
+        session = controller.plan_session(
+            search_id=args.search_id,
+            base_revision=args.base_revision,
+            max_pending=args.max_pending,
+            max_recommended=args.max_recommended,
+            include_recipe_catalog=args.include_recipe_catalog,
+            overwrite=args.overwrite,
+        )
+    except Exception as e:
+        print(f"Error planning search session: {e}")  # noqa: T201
+        return 1
+
+    fmt = getattr(args, "output_format", "table")
+    if fmt == "json":
+        print(json.dumps(session, indent=2, default=str))  # noqa: T201
+        return 0
+
+    if fmt == "csv":
+        flat = {
+            "search_id": session["search_id"],
+            "status": session["status"],
+            "base_revision": session["resolved_base_revision"],
+            "total_candidates": session["summary"]["total"],
+            "planned_candidates": session["summary"]["planned"],
+        }
+        writer = csv.DictWriter(sys.stdout, fieldnames=list(flat.keys()))
+        writer.writeheader()
+        writer.writerow(flat)
+        return 0
+
+    print(f"Search session created: {session['search_id']}")  # noqa: T201
+    print(f"  Base revision: {session['resolved_base_revision']}")  # noqa: T201
+    print(f"  Total candidates: {session['summary']['total']}")  # noqa: T201
+    print(f"  Planned specs: {session['summary']['planned']}")  # noqa: T201
+    return 0
+
+
+def cmd_search_run(
+    store: Any,
+    config: dict[str, Any],
+    args: argparse.Namespace,
+) -> int:
+    """Handle the ``search-run`` subcommand."""
+    if args.run_budget is not None and args.run_budget <= 0:
+        print("Error: --run-budget must be positive when provided.")  # noqa: T201
+        return 1
+
+    controller = _load_search_controller(
+        store,
+        config,
+        policy_path=_resolve_project_path(args.search_policy),
+    )
+    if controller is None:
+        print("Error: AutonomousSearchController is not available.")  # noqa: T201
+        return 1
+
+    try:
+        result = controller.run_session(
+            search_id=args.search_id,
+            run_budget=args.run_budget,
+            dry_run=args.dry_run,
+            keep_worktrees=args.keep_worktrees,
+        )
+    except Exception as e:
+        print(f"Error running search session: {e}")  # noqa: T201
+        return 1
+
+    fmt = getattr(args, "output_format", "table")
+    if fmt == "json":
+        print(json.dumps(result, indent=2, default=str))  # noqa: T201
+        return 0
+
+    if fmt == "csv":
+        flat = {
+            "search_id": result["search_id"],
+            "mode": result.get("mode", "run"),
+            "executed": result.get("executed", 0),
+            "planned_remaining": result["summary"]["planned"],
+            "completed": result["summary"]["completed"],
+            "failed": result["summary"]["failed"],
+        }
+        writer = csv.DictWriter(sys.stdout, fieldnames=list(flat.keys()))
+        writer.writeheader()
+        writer.writerow(flat)
+        return 0
+
+    if result.get("mode") == "dry-run":
+        print(f"Search session dry run: {result['search_id']}")  # noqa: T201
+        print(f"  Runnable candidates: {result['runnable']}")  # noqa: T201
+        print(f"  Run budget: {result['run_budget']}")  # noqa: T201
+        print("  Preview:")  # noqa: T201
+        for candidate_id in result.get("preview", []):
+            print(f"    {candidate_id}")  # noqa: T201
+        return 0
+
+    print(f"Search session executed: {result['search_id']}")  # noqa: T201
+    print(f"  Candidates executed: {result['executed']}")  # noqa: T201
+    print(f"  Completed: {result['summary']['completed']}")  # noqa: T201
+    print(f"  Failed: {result['summary']['failed']}")  # noqa: T201
+    print(f"  Remaining planned: {result['summary']['planned']}")  # noqa: T201
+    return 0
+
+
+def cmd_search_status(
+    store: Any,
+    config: dict[str, Any],
+    args: argparse.Namespace,
+) -> int:
+    """Handle the ``search-status`` subcommand."""
+    controller = _load_search_controller(
+        store,
+        config,
+        policy_path=_resolve_project_path(args.search_policy),
+    )
+    if controller is None:
+        print("Error: AutonomousSearchController is not available.")  # noqa: T201
+        return 1
+
+    try:
+        status = controller.status(search_id=args.search_id)
+    except Exception as e:
+        print(f"Error reading search status: {e}")  # noqa: T201
+        return 1
+
+    fmt = getattr(args, "output_format", "table")
+    if fmt == "json":
+        print(json.dumps(status, indent=2, default=str))  # noqa: T201
+        return 0
+
+    if args.search_id is None:
+        sessions = status.get("sessions", [])
+        if fmt == "csv":
+            writer = csv.DictWriter(
+                sys.stdout,
+                fieldnames=[
+                    "search_id",
+                    "status",
+                    "updated_at",
+                    "total",
+                    "planned",
+                    "completed",
+                    "failed",
+                ],
+            )
+            writer.writeheader()
+            for session in sessions:
+                writer.writerow(
+                    {
+                        "search_id": session["search_id"],
+                        "status": session["status"],
+                        "updated_at": session["updated_at"],
+                        "total": session["summary"]["total"],
+                        "planned": session["summary"]["planned"],
+                        "completed": session["summary"]["completed"],
+                        "failed": session["summary"]["failed"],
+                    }
+                )
+            return 0
+
+        print("Autonomous Search Sessions")  # noqa: T201
+        print("=" * 26)  # noqa: T201
+        if not sessions:
+            print("No search sessions found.")  # noqa: T201
+            return 0
+        for session in sessions:
+            print(  # noqa: T201
+                f"{session['search_id']}: status={session['status']}, "
+                f"planned={session['summary']['planned']}, "
+                f"completed={session['summary']['completed']}, "
+                f"failed={session['summary']['failed']}"
+            )
+        return 0
+
+    if fmt == "csv":
+        flat = {
+            "search_id": status["search_id"],
+            "status": status["status"],
+            "updated_at": status["updated_at"],
+            "total": status["summary"]["total"],
+            "planned": status["summary"]["planned"],
+            "completed": status["summary"]["completed"],
+            "failed": status["summary"]["failed"],
+        }
+        writer = csv.DictWriter(sys.stdout, fieldnames=list(flat.keys()))
+        writer.writeheader()
+        writer.writerow(flat)
+        return 0
+
+    print(f"Search session: {status['search_id']}")  # noqa: T201
+    print(f"  Status: {status['status']}")  # noqa: T201
+    print(f"  Updated: {status['updated_at']}")  # noqa: T201
+    print(f"  Planned: {status['summary']['planned']}")  # noqa: T201
+    print(f"  Completed: {status['summary']['completed']}")  # noqa: T201
+    print(f"  Failed: {status['summary']['failed']}")  # noqa: T201
+    return 0
+
+
+def cmd_search_report(
+    store: Any,
+    config: dict[str, Any],
+    args: argparse.Namespace,
+) -> int:
+    """Handle the ``search-report`` subcommand."""
+    controller = _load_search_controller(
+        store,
+        config,
+        policy_path=_resolve_project_path(args.search_policy),
+    )
+    if controller is None:
+        print("Error: AutonomousSearchController is not available.")  # noqa: T201
+        return 1
+
+    try:
+        report = controller.render_report(search_id=args.search_id)
+    except Exception as e:
+        print(f"Error rendering search report: {e}")  # noqa: T201
+        return 1
+
+    output_path = _resolve_project_path(args.output)
+    if output_path is not None:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(report, encoding="utf-8")
+        print(f"Search report written to: {output_path}")  # noqa: T201
+        return 0
+
+    print(report)  # noqa: T201
+    return 0
+
+
 def cmd_history(
     store: Any,
     config: dict[str, Any],
@@ -2067,6 +2444,10 @@ _COMMANDS: dict[str, Any] = {
     "refresh": cmd_refresh,
     "diff": cmd_diff,
     "history": cmd_history,
+    "search-plan": cmd_search_plan,
+    "search-run": cmd_search_run,
+    "search-status": cmd_search_status,
+    "search-report": cmd_search_report,
 }
 
 
