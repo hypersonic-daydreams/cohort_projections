@@ -91,6 +91,11 @@ _CLASSIFICATION_TO_ACTION: dict[str, str] = {
 }
 
 
+def _today_utc() -> dt.date:
+    """Return the current UTC date."""
+    return dt.datetime.now(dt.UTC).date()
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -170,7 +175,7 @@ def _derive_config_id(spec: dict[str, Any]) -> str:
     """Derive config_id from spec, using override or auto-generating."""
     if spec.get("config_id_override"):
         return str(spec["config_id_override"])
-    today = dt.date.today().strftime("%Y%m%d")
+    today = _today_utc().strftime("%Y%m%d")
     experiment_id = str(spec["experiment_id"])
     # Strip "exp-YYYYMMDD-" prefix to create slug
     parts = experiment_id.split("-", 3)
@@ -183,11 +188,13 @@ def _derive_config_id(spec: dict[str, Any]) -> str:
     return f"cfg-{today}-{slug}"
 
 
-def _check_method_dispatch(method_id: str) -> bool:
-    """Check if method_id is registered in METHOD_DISPATCH."""
+def _check_method_dispatch(method_id: str, *, base_method: str | None = None) -> bool:
+    """Check if a method can be benchmarked via the current runtime dispatch."""
     import walk_forward_validation as wfv  # noqa: E402
 
-    return method_id in wfv.METHOD_DISPATCH
+    return method_id in wfv.METHOD_DISPATCH or (
+        base_method is not None and base_method in wfv.METHOD_DISPATCH
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -228,7 +235,8 @@ def _create_method_profile(
     new_profile["method_id"] = method_id
     new_profile["config_id"] = config_id
     new_profile["status"] = "experiment"
-    new_profile["created_date"] = dt.date.today().isoformat()
+    new_profile["created_date"] = _today_utc().isoformat()
+    new_profile["dispatch_base_method"] = str(spec["base_method"])
 
     # Remove transient keys that should not be persisted
     new_profile.pop("profile_path", None)
@@ -439,7 +447,7 @@ def _write_experiment_log(
 
     entry = {
         "experiment_id": spec["experiment_id"],
-        "run_date": dt.date.today().isoformat(),
+        "run_date": _today_utc().isoformat(),
         "hypothesis": spec["hypothesis"],
         "base_method": spec["base_method"],
         "config_delta_summary": _config_delta_summary(config_delta),
@@ -481,7 +489,7 @@ def main() -> None:
     print(f"Derived config_id: {config_id}")
 
     # --- Step 3: Check METHOD_DISPATCH ---
-    if not _check_method_dispatch(method_id):
+    if not _check_method_dispatch(method_id, base_method=str(spec["base_method"])):
         print(
             f"Method '{method_id}' is not registered in METHOD_DISPATCH. "
             "This experiment requires code changes — classifying as inconclusive."

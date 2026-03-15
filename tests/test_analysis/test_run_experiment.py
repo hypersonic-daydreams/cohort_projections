@@ -6,6 +6,8 @@ summary formatting, METHOD_DISPATCH checking, and method profile creation.
 Ticket: BM-001-07
 """
 
+# ruff: noqa: I001
+
 from __future__ import annotations
 
 import sys
@@ -130,7 +132,7 @@ class TestDeriveConfigId:
         # slug = parts[3] = "smoothing"
         import datetime as dt
 
-        today = dt.date.today().strftime("%Y%m%d")
+        today = dt.datetime.now(dt.UTC).date().strftime("%Y%m%d")
         assert result == f"cfg-{today}-smoothing"
 
     def test_derive_config_id_with_override(self) -> None:
@@ -191,6 +193,15 @@ class TestCheckMethodDispatch:
     def test_check_method_dispatch_invalid(self) -> None:
         assert re_mod._check_method_dispatch("nonexistent_method") is False
 
+    def test_check_method_dispatch_accepts_search_only_clone_of_known_base(self) -> None:
+        assert (
+            re_mod._check_method_dispatch(
+                "m2026r1_search_recent_window_2",
+                base_method="m2026r1",
+            )
+            is True
+        )
+
 
 # ---------------------------------------------------------------------------
 # _create_method_profile
@@ -214,6 +225,7 @@ class TestCreateMethodProfile:
         assert profile["method_id"] == method_id
         assert profile["config_id"] == config_id
         assert profile["status"] == "experiment"
+        assert profile["dispatch_base_method"] == "m2026"
         # config_delta should have been merged into resolved_config
         assert profile["resolved_config"]["alpha"] == 0.5
         assert profile["resolved_config"]["nested"]["beta"] == 1.0
@@ -258,6 +270,6 @@ class TestClassificationToAction:
         }
         assert set(re_mod._CLASSIFICATION_TO_ACTION.keys()) == expected_keys
         # All values should be non-empty strings
-        for key, value in re_mod._CLASSIFICATION_TO_ACTION.items():
+        for _key, value in re_mod._CLASSIFICATION_TO_ACTION.items():
             assert isinstance(value, str)
             assert len(value) > 0

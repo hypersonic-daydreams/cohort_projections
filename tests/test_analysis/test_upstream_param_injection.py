@@ -8,6 +8,8 @@ Verifies that:
 5. GQ correction recomputation is triggered only when fraction differs from 1.0.
 """
 
+# ruff: noqa: I001
+
 from __future__ import annotations
 
 import sys
@@ -257,6 +259,59 @@ class TestConfigInjectionRoundTrip:
         assert result["gq_correction_fraction"] == 0.75
         assert result["rate_cap_general"] == 0.06
         assert result["college_blend_factor"] == 0.7
+
+
+class TestSearchOnlyBenchmarkKnobs:
+    """Tests for sandbox-only benchmark knobs exposed through MethodConfig."""
+
+    def test_default_period_sets_match_current_behavior(self) -> None:
+        assert wfv._resolve_convergence_period_sets(2005) == {
+            "recent": [(2000, 2005)],
+            "medium": [(2000, 2005)],
+            "longterm": [(2000, 2005)],
+        }
+        assert wfv._resolve_convergence_period_sets(2015) == {
+            "recent": [(2010, 2015)],
+            "medium": [(2005, 2010), (2010, 2015)],
+            "longterm": [(2000, 2005), (2005, 2010), (2010, 2015)],
+        }
+        assert wfv._resolve_convergence_period_sets(2020) == {
+            "recent": [(2015, 2020)],
+            "medium": [(2010, 2015), (2015, 2020)],
+            "longterm": [
+                (2000, 2005),
+                (2005, 2010),
+                (2010, 2015),
+                (2015, 2020),
+            ],
+        }
+
+    def test_recent_window_override_expands_period_sets(self) -> None:
+        cfg: wfv.MethodConfig = {
+            "convergence_recent_period_count": 2,
+            "convergence_medium_period_count": 3,
+        }
+        assert wfv._resolve_convergence_period_sets(2020, cfg) == {
+            "recent": [(2010, 2015), (2015, 2020)],
+            "medium": [(2005, 2010), (2010, 2015), (2015, 2020)],
+            "longterm": [
+                (2000, 2005),
+                (2005, 2010),
+                (2010, 2015),
+                (2015, 2020),
+            ],
+        }
+
+    def test_custom_mortality_improvement_rate_changes_survival_schedule(self) -> None:
+        base_survival = {("0-4", "Male"): 0.99}
+        default_schedule = wfv._get_improved_survival_annual(base_survival, 5)
+        conservative_cfg: wfv.MethodConfig = {"mortality_improvement_rate": 0.003}
+        conservative_schedule = wfv._get_improved_survival_annual(
+            base_survival,
+            5,
+            conservative_cfg,
+        )
+        assert conservative_schedule[("0-4", "Male")] < default_schedule[("0-4", "Male")]
 
     def test_set_keys_still_converted(self) -> None:
         """Set keys should still be converted from lists to sets."""

@@ -45,3 +45,29 @@ def test_build_runtime_summary_handles_empty_timings() -> None:
     assert summary["stage_shares"] == {}
     assert summary["slowest_stage"] is None
     assert summary["slowest_stage_seconds"] == 0.0
+
+
+def test_register_dynamic_profile_methods_clones_search_only_dispatch() -> None:
+    profile_map = {
+        "m2026r1_search_recent_window_2": {
+            "dispatch_base_method": "m2026r1",
+            "resolved_config": {
+                "convergence_recent_period_count": 2,
+            },
+        }
+    }
+
+    registered = rbs._register_dynamic_profile_methods(profile_map)
+    try:
+        assert registered == ["m2026r1_search_recent_window_2"]
+        assert "m2026r1_search_recent_window_2" in rbs.wfv.METHOD_DISPATCH
+        assert (
+            rbs.wfv._PREPARE_DISPATCH["m2026r1_search_recent_window_2"]
+            is rbs.wfv._PREPARE_DISPATCH["m2026r1"]
+        )
+        assert (
+            rbs.wfv._PROJECT_DISPATCH["m2026r1_search_recent_window_2"]
+            is rbs.wfv._PROJECT_DISPATCH["m2026r1"]
+        )
+    finally:
+        rbs._unregister_methods(registered)

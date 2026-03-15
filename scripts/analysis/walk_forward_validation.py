@@ -260,15 +260,21 @@ class MethodConfig(TypedDict, total=False):
     convergence_recent_hold: int
     convergence_medium_hold: int
     convergence_transition_hold: int
+    convergence_recent_period_count: int
+    convergence_medium_period_count: int
 
     # Upstream data-processing parameters (EXP-C, EXP-D)
     gq_correction_fraction: float  # 1.0 = full GQ subtraction (default)
     rate_cap_general: float  # 0.08 = current general rate cap (default)
+    mortality_improvement_rate: float  # Annual mortality rate improvement factor
 
 
 # Defaults for upstream parameters — used to detect overrides
 _DEFAULT_GQ_CORRECTION_FRACTION: float = 1.0
 _DEFAULT_RATE_CAP_GENERAL: float = 0.08
+_DEFAULT_CONVERGENCE_RECENT_PERIOD_COUNT: int = 1
+_DEFAULT_CONVERGENCE_MEDIUM_PERIOD_COUNT: int = 2
+_DEFAULT_MORTALITY_IMPROVEMENT_RATE: float = 0.005
 
 PopulationLookup = dict[tuple[str, str], float]
 MigrationLookup = dict[tuple[str, str], float]
@@ -313,9 +319,12 @@ M2026_CONFIG: MethodConfig = {
     "convergence_recent_hold": 1,
     "convergence_medium_hold": 2,
     "convergence_transition_hold": 1,
+    "convergence_recent_period_count": _DEFAULT_CONVERGENCE_RECENT_PERIOD_COUNT,
+    "convergence_medium_period_count": _DEFAULT_CONVERGENCE_MEDIUM_PERIOD_COUNT,
     # Upstream data-processing parameters (defaults = no change from pre-computed rates)
     "gq_correction_fraction": _DEFAULT_GQ_CORRECTION_FRACTION,
     "rate_cap_general": _DEFAULT_RATE_CAP_GENERAL,
+    "mortality_improvement_rate": _DEFAULT_MORTALITY_IMPROVEMENT_RATE,
 }
 
 M2026R1_CONFIG: MethodConfig = {
@@ -837,42 +846,55 @@ def prepare_2026_convergence_rates_annual(
             .mean()
             .rename(columns={"rate_5yr": "migration_rate_annual"})
         )
+    period_sets = _resolve_convergence_period_sets(origin_year, cfg)
+    return {
+        "recent": _avg_periods(dampened, period_sets["recent"]),
+        "medium": _avg_periods(dampened, period_sets["medium"]),
+        "longterm": _avg_periods(dampened, period_sets["longterm"]),
+    }
 
-    if origin_year == 2005:
-        avg = _avg_periods(dampened, periods)
-        return {"recent": avg, "medium": avg.copy(), "longterm": avg.copy()}
 
-    elif origin_year == 2010:
-        recent_periods = [(2005, 2010)]
-        medium_periods = [(2000, 2005), (2005, 2010)]
-        longterm_periods = [(2000, 2005), (2005, 2010)]
-        return {
-            "recent": _avg_periods(dampened, recent_periods),
-            "medium": _avg_periods(dampened, medium_periods),
-            "longterm": _avg_periods(dampened, longterm_periods),
-        }
+def _resolve_convergence_period_sets(
+    origin_year: int,
+    config: MethodConfig | None = None,
+) -> dict[str, list[tuple[int, int]]]:
+    """Resolve recent/medium/long-term period windows for one origin year."""
+    if origin_year not in AVAILABLE_PERIODS:
+        raise ValueError(f"Unknown origin year: {origin_year}")
 
-    elif origin_year == 2015:
-        recent_periods = [(2010, 2015)]
-        medium_periods = [(2005, 2010), (2010, 2015)]
-        longterm_periods = [(2000, 2005), (2005, 2010), (2010, 2015)]
-        return {
-            "recent": _avg_periods(dampened, recent_periods),
-            "medium": _avg_periods(dampened, medium_periods),
-            "longterm": _avg_periods(dampened, longterm_periods),
-        }
+    cfg = config or M2026_CONFIG
+    periods = AVAILABLE_PERIODS[origin_year]
+    recent_count = max(
+        1,
+        int(
+            cfg.get(
+                "convergence_recent_period_count",
+                _DEFAULT_CONVERGENCE_RECENT_PERIOD_COUNT,
+            )
+        ),
+    )
+    medium_count = max(
+        recent_count,
+        int(
+            cfg.get(
+                "convergence_medium_period_count",
+                _DEFAULT_CONVERGENCE_MEDIUM_PERIOD_COUNT,
+            )
+        ),
+    )
+    return {
+        "recent": list(periods[-min(recent_count, len(periods)) :]),
+        "medium": list(periods[-min(medium_count, len(periods)) :]),
+        "longterm": list(periods),
+    }
 
-    elif origin_year == 2020:
-        recent_periods = [(2015, 2020)]
-        medium_periods = [(2010, 2015), (2015, 2020)]
-        longterm_periods = [(2000, 2005), (2005, 2010), (2010, 2015), (2015, 2020)]
-        return {
-            "recent": _avg_periods(dampened, recent_periods),
-            "medium": _avg_periods(dampened, medium_periods),
-            "longterm": _avg_periods(dampened, longterm_periods),
-        }
 
-    raise ValueError(f"Unknown origin year: {origin_year}")
+def _get_mortality_improvement_rate(config: MethodConfig | None = None) -> float:
+    """Return the annual mortality improvement factor for one method config."""
+    cfg = config or M2026_CONFIG
+    return float(
+        cfg.get("mortality_improvement_rate", _DEFAULT_MORTALITY_IMPROVEMENT_RATE)
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1178,6 +1200,7 @@ def project_sdc(
 def _get_improved_survival(
     base_survival: dict[tuple[str, str], float],
     step_number: int,
+    config: MethodConfig | None = None,
 ) -> dict[tuple[str, str], float]:
     """Compute mortality-improved survival rates for a given projection step.
 
@@ -1189,7 +1212,7 @@ def _get_improved_survival(
     survival_improved = 1 - q_improved
     """
     midpoint_year = step_number * 5 - 2.5  # step 1 -> 2.5, step 2 -> 7.5, etc.
-    improvement_factor = (1 - MORTALITY_IMPROVEMENT_RATE) ** midpoint_year
+    improvement_factor = (1 - _get_mortality_improvement_rate(config)) ** midpoint_year
 
     improved: dict[tuple[str, str], float] = {}
     for key, surv in base_survival.items():
@@ -1208,6 +1231,7 @@ def project_2026(
     county_fips: str,
     n_steps: int,
     origin_year: int,
+    config: MethodConfig | None = None,
 ) -> dict[int, float]:
     """Run 2026 method projection for one county.
 
@@ -1225,7 +1249,7 @@ def project_2026(
         mig_lookup = _build_mig_lookup(step_mig, county_fips)
 
         # Get mortality-improved survival rates for this step
-        step_survival = _get_improved_survival(survival, step_idx)
+        step_survival = _get_improved_survival(survival, step_idx, config)
 
         new_pop: dict[tuple[str, str], float] = {}
 
@@ -1283,6 +1307,7 @@ def project_2026(
 def _get_improved_survival_annual(
     base_survival: dict[tuple[str, str], float],
     years_from_origin: int,
+    config: MethodConfig | None = None,
 ) -> dict[tuple[str, str], float]:
     """Compute mortality-improved 1-year survival rates for a given year offset.
 
@@ -1301,7 +1326,7 @@ def _get_improved_survival_annual(
     Returns:
         dict mapping (age_group, sex) -> improved 1-year survival rate.
     """
-    improvement_factor = (1 - MORTALITY_IMPROVEMENT_RATE) ** years_from_origin
+    improvement_factor = (1 - _get_mortality_improvement_rate(config)) ** years_from_origin
 
     improved: dict[tuple[str, str], float] = {}
     for key, surv_5yr in base_survival.items():
@@ -1412,7 +1437,10 @@ def _project_annual_core(
     Returns:
         dict mapping year -> total county population.
     """
-    annual_survival_lookups = _build_annual_survival_lookups(survival, n_years)
+    annual_survival_lookups: tuple[SurvivalLookup, ...] = ({},) + tuple(
+        _get_improved_survival_annual(survival, yr_offset, config)
+        for yr_offset in range(1, n_years + 1)
+    )
     annual_migration_lookups = tuple(
         _build_mig_annual_lookup(
             get_convergence_rate_for_year(yr_offset, convergence_windows, config),
@@ -2068,6 +2096,59 @@ _IS_ANNUAL: dict[str, bool] = {
     "m2026": True,
     "m2026r1": True,
 }
+
+
+def register_method(
+    method_id: str,
+    *,
+    config: MethodConfig,
+    prepare: object,
+    project: object,
+    is_annual: bool,
+    overwrite: bool = False,
+) -> None:
+    """Register a method in all runtime dispatch maps."""
+    if method_id in METHOD_DISPATCH and not overwrite:
+        raise ValueError(f"Method '{method_id}' is already registered.")
+    METHOD_DISPATCH[method_id] = {
+        "config": config,
+        "prepare": prepare,
+        "project": project,
+        "is_annual": is_annual,
+    }
+    _PREPARE_DISPATCH[method_id] = prepare
+    _PROJECT_DISPATCH[method_id] = project
+    _IS_ANNUAL[method_id] = is_annual
+
+
+def unregister_method(method_id: str) -> None:
+    """Remove a method from all runtime dispatch maps if present."""
+    METHOD_DISPATCH.pop(method_id, None)
+    _PREPARE_DISPATCH.pop(method_id, None)
+    _PROJECT_DISPATCH.pop(method_id, None)
+    _IS_ANNUAL.pop(method_id, None)
+
+
+def clone_method_dispatch(
+    method_id: str,
+    *,
+    base_method_id: str,
+    config: MethodConfig | None = None,
+    overwrite: bool = False,
+) -> None:
+    """Clone an existing method dispatch entry under a new method ID."""
+    if base_method_id not in METHOD_DISPATCH:
+        raise ValueError(f"Base method '{base_method_id}' is not registered.")
+    base_entry = METHOD_DISPATCH[base_method_id]
+    base_config = dict(cast(MethodConfig, base_entry["config"]))  # type: ignore[index]
+    register_method(
+        method_id,
+        config=config or cast(MethodConfig, base_config),
+        prepare=_PREPARE_DISPATCH[base_method_id],
+        project=_PROJECT_DISPATCH[base_method_id],
+        is_annual=_IS_ANNUAL[base_method_id],
+        overwrite=overwrite,
+    )
 
 
 def _build_method_county_projection_inputs(

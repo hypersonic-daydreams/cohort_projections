@@ -16,6 +16,9 @@ not mutated by the search run itself.
   mirror, not in the live checkout.
 - The controller can write append-only artifacts and reports.
 - The controller cannot promote a champion, update aliases, or merge branches.
+- Search-only recipe candidates can now clone a registered base method into a
+  unique sandbox-only method ID at benchmark time, so recipe experiments stay
+  separate from production aliases and the live checkout.
 
 ## Files
 
@@ -94,7 +97,7 @@ python scripts/analysis/observatory.py search-report --search-id search-20260315
 Use autonomous search for:
 
 - config-only exploration at larger scale than the bounded pending queue,
-- deterministic code recipes that have explicit file targets and a distinct
+- deterministic code recipes and search-only method clones that have a distinct
   experiment method ID,
 - unattended experimentation where you want to come back later to benchmark
   evidence rather than to merged code.

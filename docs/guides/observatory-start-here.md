@@ -33,6 +33,9 @@ path from multiple documents.
 - PP-007 operational hardening is complete.
 - Deterministic autonomous search with isolated mirror/worktree execution is
   implemented.
+- The recipe catalog now includes enabled search-only benchmark methods that
+  clone the challenger under unique sandbox-only method IDs for recent-window
+  and mortality-factor search.
 - The Observatory is ready for supervised comparison and bounded unattended
   search-loop execution with resume files and run budgets.
 - The Observatory is not an auto-promotion system. Promotion still requires

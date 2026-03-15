@@ -102,6 +102,36 @@ def _restore_configs(originals: dict[str, dict[str, Any] | None]) -> None:
             wfv.METHOD_DISPATCH[method_id]["config"] = original  # type: ignore[index]
 
 
+def _register_dynamic_profile_methods(
+    profile_map: dict[str, dict[str, Any]],
+) -> list[str]:
+    """Register search-only method IDs by cloning their base dispatch entry."""
+    registered: list[str] = []
+    for method_id, profile in profile_map.items():
+        if method_id in wfv.METHOD_DISPATCH:
+            continue
+        base_method = str(profile.get("dispatch_base_method", "")).strip()
+        if not base_method:
+            raise ValueError(
+                f"Profile for '{method_id}' is missing dispatch_base_method."
+            )
+        if base_method not in wfv.METHOD_DISPATCH:
+            raise ValueError(
+                f"Profile for '{method_id}' references unknown base method "
+                f"'{base_method}'."
+            )
+        wfv.clone_method_dispatch(method_id, base_method_id=base_method)
+        registered.append(method_id)
+        print(f"  Registered search-only method '{method_id}' from '{base_method}'")
+    return registered
+
+
+def _unregister_methods(method_ids: list[str]) -> None:
+    """Remove dynamic methods added for one benchmark run."""
+    for method_id in method_ids:
+        wfv.unregister_method(method_id)
+
+
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the versioned benchmark suite.")
     parser.add_argument("--scope", default="county", help="Benchmark scope. Only 'county' is supported today.")
@@ -243,6 +273,12 @@ def main() -> None:
         profile_dir=args.profile_dir,
     )
 
+    profile_map = {
+        args.champion_method: champion_profile,
+        args.challenger_method: challenger_profile,
+    }
+    registered_dynamic_methods = _register_dynamic_profile_methods(profile_map)
+
     for method_id in [args.champion_method, args.challenger_method]:
         if method_id not in wfv.METHOD_DISPATCH:
             raise ValueError(
@@ -258,7 +294,6 @@ def main() -> None:
         return
 
     methods = [args.champion_method, args.challenger_method]
-    profile_map = {args.champion_method: champion_profile, args.challenger_method: challenger_profile}
     git_commit = get_git_commit(PROJECT_ROOT)
     git_dirty = get_git_dirty(PROJECT_ROOT)
     run_id = build_run_id(args.challenger_method, git_commit)
@@ -287,124 +322,124 @@ def main() -> None:
         run_dir / "runtime_summary.json",
     ]
 
-    with log_execution(__file__, parameters=parameters, outputs=output_paths) as execution_log_run_id:
-        stage_timings: dict[str, float] = {}
+    try:
+        with log_execution(__file__, parameters=parameters, outputs=output_paths) as execution_log_run_id:
+            stage_timings: dict[str, float] = {}
 
-        # Inject profile resolved_configs into METHOD_DISPATCH so that
-        # config-only experiments (config_delta from experiment specs)
-        # actually affect the computation.  Restore originals when done.
-        print("Injecting profile configs into METHOD_DISPATCH...")
-        stage_start = time.perf_counter()
-        saved_configs = _inject_profile_configs(profile_map)
-        stage_timings["config_injection"] = round(time.perf_counter() - stage_start, 3)
+            # Inject profile resolved_configs into METHOD_DISPATCH so that
+            # config-only and search-only profile experiments affect the computation.
+            print("Injecting profile configs into METHOD_DISPATCH...")
+            stage_start = time.perf_counter()
+            saved_configs = _inject_profile_configs(profile_map)
+            stage_timings["config_injection"] = round(time.perf_counter() - stage_start, 3)
 
-        print("Loading shared benchmark inputs...")
-        stage_start = time.perf_counter()
-        snapshots = wfv.load_all_snapshots()
-        mig_raw = wfv.load_migration_rates_raw()
-        survival = wfv.load_survival_rates()
-        fertility = wfv.load_fertility_rates()
-        stage_timings["load_shared_inputs"] = round(time.perf_counter() - stage_start, 3)
+            print("Loading shared benchmark inputs...")
+            stage_start = time.perf_counter()
+            snapshots = wfv.load_all_snapshots()
+            mig_raw = wfv.load_migration_rates_raw()
+            survival = wfv.load_survival_rates()
+            fertility = wfv.load_fertility_rates()
+            stage_timings["load_shared_inputs"] = round(time.perf_counter() - stage_start, 3)
 
-        print("Running annual walk-forward validation...")
-        stage_start = time.perf_counter()
-        annual_state, annual_county, projection_curves = wfv.run_annual_validation(
-            snapshots,
-            mig_raw,
-            survival,
-            fertility,
-            methods=methods,
-            workers=1,
-            projection_workers=args.workers,
-        )
-        annual_horizon = wfv.compute_annual_horizon_summary(annual_state, annual_county)
-        annual_comparison = wfv.compute_annual_method_comparison(annual_state, annual_county)
-        stage_timings["annual_validation"] = round(time.perf_counter() - stage_start, 3)
+            print("Running annual walk-forward validation...")
+            stage_start = time.perf_counter()
+            annual_state, annual_county, projection_curves = wfv.run_annual_validation(
+                snapshots,
+                mig_raw,
+                survival,
+                fertility,
+                methods=methods,
+                workers=1,
+                projection_workers=args.workers,
+            )
+            annual_horizon = wfv.compute_annual_horizon_summary(annual_state, annual_county)
+            annual_comparison = wfv.compute_annual_method_comparison(annual_state, annual_county)
+            stage_timings["annual_validation"] = round(time.perf_counter() - stage_start, 3)
 
-        print("Running sensitivity analysis...")
-        stage_start = time.perf_counter()
-        sensitivity_results = sa.run_sensitivity_analysis(
-            snapshots,
-            mig_raw,
-            survival,
-            fertility,
-            methods=methods,
-            workers=args.workers,
-        )
-        sensitivity_tornado = sa.compute_tornado_data(sensitivity_results)
-        stage_timings["sensitivity_analysis"] = round(time.perf_counter() - stage_start, 3)
+            print("Running sensitivity analysis...")
+            stage_start = time.perf_counter()
+            sensitivity_results = sa.run_sensitivity_analysis(
+                snapshots,
+                mig_raw,
+                survival,
+                fertility,
+                methods=methods,
+                workers=args.workers,
+            )
+            sensitivity_tornado = sa.compute_tornado_data(sensitivity_results)
+            stage_timings["sensitivity_analysis"] = round(time.perf_counter() - stage_start, 3)
 
-        print("Computing QC summaries...")
-        stage_start = time.perf_counter()
-        county_with_categories = with_county_categories(annual_county)
-        bias_df = qcd.compute_bias_analysis(county_with_categories)
-        residual_df = qcd.compute_residual_diagnostics(county_with_categories)
-        outlier_df = qcd.detect_outliers(county_with_categories)
-        report_cards = qcd.compute_county_report_cards(county_with_categories)
-        qc_summary = _build_qc_summary(bias_df, residual_df, outlier_df, report_cards)
-        stage_timings["qc_summaries"] = round(time.perf_counter() - stage_start, 3)
+            print("Computing QC summaries...")
+            stage_start = time.perf_counter()
+            county_with_categories = with_county_categories(annual_county)
+            bias_df = qcd.compute_bias_analysis(county_with_categories)
+            residual_df = qcd.compute_residual_diagnostics(county_with_categories)
+            outlier_df = qcd.detect_outliers(county_with_categories)
+            report_cards = qcd.compute_county_report_cards(county_with_categories)
+            qc_summary = _build_qc_summary(bias_df, residual_df, outlier_df, report_cards)
+            stage_timings["qc_summaries"] = round(time.perf_counter() - stage_start, 3)
 
-        print("Computing uncertainty summaries...")
-        stage_start = time.perf_counter()
-        prediction_intervals = compute_prediction_intervals_generic(
-            county_with_categories,
-            annual_state,
-        )
-        stage_timings["uncertainty_summaries"] = round(time.perf_counter() - stage_start, 3)
+            print("Computing uncertainty summaries...")
+            stage_start = time.perf_counter()
+            prediction_intervals = compute_prediction_intervals_generic(
+                county_with_categories,
+                annual_state,
+            )
+            stage_timings["uncertainty_summaries"] = round(time.perf_counter() - stage_start, 3)
 
-        print("Building scorecard and manifest...")
-        stage_start = time.perf_counter()
-        scorecard = build_summary_scorecard(
-            annual_state=annual_state,
-            annual_county=annual_county,
-            sensitivity_tornado=sensitivity_tornado,
-            method_profiles=profile_map,
-            scope=args.scope,
-            run_id=run_id,
-        )
-        comparison = build_comparison_to_champion(scorecard, args.champion_method)
-        stage_timings["scorecard_build"] = round(time.perf_counter() - stage_start, 3)
+            print("Building scorecard and manifest...")
+            stage_start = time.perf_counter()
+            scorecard = build_summary_scorecard(
+                annual_state=annual_state,
+                annual_county=annual_county,
+                sensitivity_tornado=sensitivity_tornado,
+                method_profiles=profile_map,
+                scope=args.scope,
+                run_id=run_id,
+            )
+            comparison = build_comparison_to_champion(scorecard, args.champion_method)
+            stage_timings["scorecard_build"] = round(time.perf_counter() - stage_start, 3)
 
-        stage_start = time.perf_counter()
-        annual_state.to_csv(run_dir / "state_metrics.csv", index=False)
-        county_with_categories.to_csv(run_dir / "county_metrics.csv", index=False)
-        annual_horizon.to_csv(run_dir / "annual_horizon_summary.csv", index=False)
-        annual_comparison.to_csv(run_dir / "annual_method_comparison.csv", index=False)
-        projection_curves.to_csv(run_dir / "projection_curves.csv", index=False)
-        sensitivity_results.to_csv(run_dir / "sensitivity_results.csv", index=False)
-        sensitivity_tornado.to_csv(run_dir / "sensitivity_summary.csv", index=False)
-        bias_df.to_csv(run_dir / "bias_analysis.csv", index=False)
-        residual_df.to_csv(run_dir / "residual_diagnostics.csv", index=False)
-        outlier_df.to_csv(run_dir / "outlier_flags.csv", index=False)
-        report_cards.to_csv(run_dir / "county_report_cards.csv", index=False)
-        prediction_intervals.to_csv(run_dir / "uncertainty_summary.csv", index=False)
-        scorecard.to_csv(run_dir / "summary_scorecard.csv", index=False)
-        (run_dir / "summary_scorecard.json").write_text(
-            scorecard.to_json(orient="records", indent=2),
-            encoding="utf-8",
-        )
-        (run_dir / "comparison_to_champion.json").write_text(
-            json.dumps(comparison, indent=2, sort_keys=True),
-            encoding="utf-8",
-        )
-        (run_dir / "qc_summary.json").write_text(
-            json.dumps(qc_summary, indent=2, sort_keys=True),
-            encoding="utf-8",
-        )
-        stage_timings["artifact_writes"] = round(time.perf_counter() - stage_start, 3)
+            stage_start = time.perf_counter()
+            annual_state.to_csv(run_dir / "state_metrics.csv", index=False)
+            county_with_categories.to_csv(run_dir / "county_metrics.csv", index=False)
+            annual_horizon.to_csv(run_dir / "annual_horizon_summary.csv", index=False)
+            annual_comparison.to_csv(run_dir / "annual_method_comparison.csv", index=False)
+            projection_curves.to_csv(run_dir / "projection_curves.csv", index=False)
+            sensitivity_results.to_csv(run_dir / "sensitivity_results.csv", index=False)
+            sensitivity_tornado.to_csv(run_dir / "sensitivity_summary.csv", index=False)
+            bias_df.to_csv(run_dir / "bias_analysis.csv", index=False)
+            residual_df.to_csv(run_dir / "residual_diagnostics.csv", index=False)
+            outlier_df.to_csv(run_dir / "outlier_flags.csv", index=False)
+            report_cards.to_csv(run_dir / "county_report_cards.csv", index=False)
+            prediction_intervals.to_csv(run_dir / "uncertainty_summary.csv", index=False)
+            scorecard.to_csv(run_dir / "summary_scorecard.csv", index=False)
+            (run_dir / "summary_scorecard.json").write_text(
+                scorecard.to_json(orient="records", indent=2),
+                encoding="utf-8",
+            )
+            (run_dir / "comparison_to_champion.json").write_text(
+                json.dumps(comparison, indent=2, sort_keys=True),
+                encoding="utf-8",
+            )
+            (run_dir / "qc_summary.json").write_text(
+                json.dumps(qc_summary, indent=2, sort_keys=True),
+                encoding="utf-8",
+            )
+            stage_timings["artifact_writes"] = round(time.perf_counter() - stage_start, 3)
 
-        duration_seconds = round(time.perf_counter() - start, 3)
-        runtime_summary = _build_runtime_summary(
-            stage_timings=stage_timings,
-            total_duration_seconds=duration_seconds,
-            workers_arg=args.workers,
-        )
-        (run_dir / "runtime_summary.json").write_text(
-            json.dumps(runtime_summary, indent=2, sort_keys=True),
-            encoding="utf-8",
-        )
-        run_date = run_id.split("-")[1]
-        manifest = {
+            duration_seconds = round(time.perf_counter() - start, 3)
+            runtime_summary = _build_runtime_summary(
+                stage_timings=stage_timings,
+                total_duration_seconds=duration_seconds,
+                workers_arg=args.workers,
+            )
+            (run_dir / "runtime_summary.json").write_text(
+                json.dumps(runtime_summary, indent=2, sort_keys=True),
+                encoding="utf-8",
+            )
+            run_date = run_id.split("-")[1]
+            manifest = {
             "run_id": run_id,
             "run_date": f"{run_date[:4]}-{run_date[4:6]}-{run_date[6:8]}",
             "benchmark_label": args.benchmark_label,
@@ -451,34 +486,35 @@ def main() -> None:
             "duration_seconds": duration_seconds,
             "runtime_summary": runtime_summary,
         }
-        manifest_path = write_manifest(run_dir, manifest)
-        (run_dir / "execution_log.json").write_text(
-            json.dumps(
-                {
-                    "execution_log_run_id": execution_log_run_id,
-                    "duration_seconds": duration_seconds,
-                    "runtime_summary": runtime_summary,
-                    "git_commit": git_commit,
-                    "git_dirty": git_dirty,
-                },
-                indent=2,
-                sort_keys=True,
-            ),
-            encoding="utf-8",
-        )
+            manifest_path = write_manifest(run_dir, manifest)
+            (run_dir / "execution_log.json").write_text(
+                json.dumps(
+                    {
+                        "execution_log_run_id": execution_log_run_id,
+                        "duration_seconds": duration_seconds,
+                        "runtime_summary": runtime_summary,
+                        "git_commit": git_commit,
+                        "git_dirty": git_dirty,
+                    },
+                    indent=2,
+                    sort_keys=True,
+                ),
+                encoding="utf-8",
+            )
 
-        append_benchmark_index(
-            index_path=args.history_dir / "index.csv",
-            scorecard=scorecard,
-            manifest_path=manifest_path,
-            benchmark_label=args.benchmark_label,
-            benchmark_contract_version=BENCHMARK_CONTRACT_VERSION,
-            git_commit=git_commit,
-            champion_method_id=args.champion_method,
-        )
-
-        # Restore original METHOD_DISPATCH configs
-        _restore_configs(saved_configs)
+            append_benchmark_index(
+                index_path=args.history_dir / "index.csv",
+                scorecard=scorecard,
+                manifest_path=manifest_path,
+                benchmark_label=args.benchmark_label,
+                benchmark_contract_version=BENCHMARK_CONTRACT_VERSION,
+                git_commit=git_commit,
+                champion_method_id=args.champion_method,
+            )
+    finally:
+        if "saved_configs" in locals():
+            _restore_configs(saved_configs)
+        _unregister_methods(registered_dynamic_methods)
 
     print(f"Benchmark run complete: {run_dir.relative_to(PROJECT_ROOT)}")
 

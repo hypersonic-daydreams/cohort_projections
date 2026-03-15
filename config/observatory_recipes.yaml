@@ -1,26 +1,66 @@
 recipes:
-  RX-001:
-    enabled: false
+  RX-101:
+    enabled: true
     execution_mode: code_recipe
-    candidate_id: recipe-dispatch-clone
-    experiment_id: exp-{date}-recipe-dispatch-clone
+    candidate_id: recipe-search-recent-window-2
+    experiment_id: exp-{date}-recipe-search-recent-window-2
     hypothesis: >
-      Clone the current challenger into an isolated search-only method ID so
-      future deterministic code recipes can benchmark without mutating the
-      production champion alias.
+      Clone the current challenger into a search-only method with a wider
+      recent-period migration window so the sandbox can test whether a less
+      reactive short-term convergence signal improves benchmark accuracy.
     base_method: m2026r1
     base_config: cfg-20260309-college-fix-v1
+    config_delta:
+      convergence_recent_period_count: 2
+      convergence_medium_period_count: 3
     scope: county
-    benchmark_label: recipe-dispatch-clone
-    method_id_override: m2026r1_search_base
+    benchmark_label: recipe-search-recent-window-2
+    method_id_override: m2026r1_search_recent_window_2
     notes:
-      - Disabled by default until a specific code-search recipe is approved.
-      - Recipes must supply a distinct method_id_override unless shared-method patching is explicitly allowed.
-    steps:
-      - type: append_text
-        path: scripts/analysis/walk_forward_validation.py
-        after: |
-          }
-        content: |
+      - Search-only benchmark method. Uses a unique method ID and never touches production aliases.
+      - The benchmark runtime clones dispatch behavior from the base method profile.
+    steps: []
 
-          # Search-only recipe placeholder; disabled by default.
+  RX-102:
+    enabled: true
+    execution_mode: code_recipe
+    candidate_id: recipe-search-mortality-003
+    experiment_id: exp-{date}-recipe-search-mortality-003
+    hypothesis: >
+      Clone the current challenger into a search-only method with a lower
+      mortality-improvement factor to test whether rural long-horizon elderly
+      projections become less optimistic without broad regressions.
+    base_method: m2026r1
+    base_config: cfg-20260309-college-fix-v1
+    config_delta:
+      mortality_improvement_rate: 0.003
+    scope: county
+    benchmark_label: recipe-search-mortality-003
+    method_id_override: m2026r1_search_mortality_003
+    notes:
+      - Search-only benchmark method. Uses a unique method ID and never touches production aliases.
+      - Kept in the recipe catalog rather than the production variant catalog because it is intended for autonomous sandbox exploration first.
+    steps: []
+
+  RX-103:
+    enabled: true
+    execution_mode: code_recipe
+    candidate_id: recipe-search-recent-window-2-mortality-003
+    experiment_id: exp-{date}-recipe-search-recent-window-2-mortality-003
+    hypothesis: >
+      Test a combined search-only method that widens the recent convergence
+      window and lowers mortality improvement, capturing interaction effects
+      that the config-only recommendation loop would not queue on its own.
+    base_method: m2026r1
+    base_config: cfg-20260309-college-fix-v1
+    config_delta:
+      convergence_recent_period_count: 2
+      convergence_medium_period_count: 3
+      mortality_improvement_rate: 0.003
+    scope: county
+    benchmark_label: recipe-search-recent-window-2-mortality-003
+    method_id_override: m2026r1_search_recent_window_2_mortality_003
+    notes:
+      - Search-only benchmark method. Uses a unique method ID and never touches production aliases.
+      - Designed for autonomous search sessions, not direct promotion.
+    steps: []
