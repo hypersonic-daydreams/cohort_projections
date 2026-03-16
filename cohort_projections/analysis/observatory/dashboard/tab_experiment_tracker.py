@@ -82,23 +82,38 @@ def _build_variant_catalog(dm: DashboardDataManager) -> tuple[pn.Column, pn.widg
 
     # Ensure consistent columns for display
     display_cols = [
-        "variant_id", "name", "parameter", "value",
-        "tier", "config_only", "tested", "resolved_status",
+        "variant_id",
+        "name",
+        "parameter",
+        "value",
+        "tier",
+        "runnable_without_code_change",
+        "resolved_status",
     ]
     display_cols = [c for c in display_cols if c in variants_df.columns]
     catalog_df = variants_df[display_cols].copy()
+    catalog_df = catalog_df.rename(
+        columns={
+            "variant_id": "id",
+            "name": "variant",
+            "value": "setting",
+            "tier": "priority",
+            "runnable_without_code_change": "runnable_now",
+            "resolved_status": "decision_status",
+        }
+    )
 
     # Fill empty status for display
-    if "resolved_status" in catalog_df.columns:
-        catalog_df["resolved_status"] = (
-            catalog_df["resolved_status"].fillna("").replace("", "untested")
+    if "decision_status" in catalog_df.columns:
+        catalog_df["decision_status"] = (
+            catalog_df["decision_status"].fillna("").replace("", "untested")
         )
-        catalog_df["resolved_status"] = catalog_df["resolved_status"].map(_status_badge_html)
+        catalog_df["decision_status"] = catalog_df["decision_status"].map(_status_badge_html)
 
     # --- Filter widgets ---
     tier_options = ["All"]
-    if "tier" in catalog_df.columns:
-        tier_options += sorted(catalog_df["tier"].dropna().unique().tolist())
+    if "priority" in catalog_df.columns:
+        tier_options += sorted(catalog_df["priority"].dropna().unique().tolist())
     tier_select = pn.widgets.Select(
         name="Tier",
         options=tier_options,
@@ -125,11 +140,10 @@ def _build_variant_catalog(dm: DashboardDataManager) -> tuple[pn.Column, pn.widg
         pagination="remote",
         page_size=15,
         header_filters=False,
-        frozen_columns=["variant_id"],
+        frozen_columns=["id", "variant"],
         formatters={
-            "resolved_status": "html",
-            "tested": {"type": "tickCross"},
-            "config_only": {"type": "tickCross"},
+            "decision_status": "html",
+            "runnable_now": {"type": "tickCross"},
         },
     )
 
@@ -142,13 +156,13 @@ def _build_variant_catalog(dm: DashboardDataManager) -> tuple[pn.Column, pn.widg
         tier_val = tier_select.value
         status_val = status_select.value
 
-        if tier_val != "All" and "tier" in filtered.columns:
-            filtered = filtered[filtered["tier"] == tier_val]
+        if tier_val != "All" and "priority" in filtered.columns:
+            filtered = filtered[filtered["priority"] == tier_val]
         if status_val != "All":
-            if status_val == "tested" and "tested" in filtered.columns:
-                filtered = filtered[filtered["tested"]]
-            elif status_val == "untested" and "tested" in filtered.columns:
-                filtered = filtered[~filtered["tested"]]
+            if status_val == "tested" and "decision_status" in filtered.columns:
+                filtered = filtered[~filtered["decision_status"].str.contains("untested", na=False)]
+            elif status_val == "untested" and "decision_status" in filtered.columns:
+                filtered = filtered[filtered["decision_status"].str.contains("untested", na=False)]
 
         tabulator.value = filtered.reset_index(drop=True)
 
@@ -221,7 +235,7 @@ def _build_detail_panel(
         if row_idx >= len(current_df):
             return
 
-        variant_id = current_df.iloc[row_idx].get("variant_id", "")
+        variant_id = current_df.iloc[row_idx].get("id", "")
         if not variant_id:
             return
 
@@ -385,8 +399,13 @@ def _build_experiment_log(dm: DashboardDataManager) -> pn.Card:
 
     # Select relevant columns if available
     preferred_cols = [
-        "experiment_id", "run_date", "hypothesis", "outcome",
-        "key_metrics_summary", "interpretation", "next_action",
+        "experiment_id",
+        "run_date",
+        "outcome",
+        "next_action",
+        "key_metrics_summary",
+        "hypothesis",
+        "interpretation",
     ]
     display_cols = [c for c in preferred_cols if c in log_df.columns]
     if not display_cols:
@@ -396,6 +415,12 @@ def _build_experiment_log(dm: DashboardDataManager) -> pn.Card:
     if "outcome" in display_df.columns:
         display_df["status"] = display_df["outcome"].map(_status_badge_html)
         display_df = display_df.drop(columns=["outcome"])
+    display_df = display_df.rename(
+        columns={
+            "experiment_id": "experiment",
+            "key_metrics_summary": "metric_summary",
+        }
+    )
 
     tabulator = pn.widgets.Tabulator(
         display_df,
@@ -406,7 +431,7 @@ def _build_experiment_log(dm: DashboardDataManager) -> pn.Card:
         pagination="remote",
         page_size=15,
         header_filters=True,
-        frozen_columns=["experiment_id"],
+        frozen_columns=["experiment", "next_action"],
         formatters={"status": "html"},
     )
 
@@ -463,10 +488,10 @@ def _build_grid_definitions(dm: DashboardDataManager) -> pn.Card:
                 max_val = ""
 
             rows.append({
-                "grid_id": grid_id,
+                "grid": grid_id,
                 "parameter": param_name,
                 "values": values_str,
-                "n_values": n_values,
+                "count": n_values,
                 "min": min_val,
                 "max": max_val,
                 "mode": mode,
@@ -490,7 +515,7 @@ def _build_grid_definitions(dm: DashboardDataManager) -> pn.Card:
         pagination="remote",
         page_size=20,
         header_filters=True,
-        frozen_columns=["grid_id", "parameter"],
+        frozen_columns=["grid", "parameter"],
     )
 
     return pn.Card(

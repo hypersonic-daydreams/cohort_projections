@@ -704,10 +704,47 @@ def _build_index_table(dm: DashboardDataManager) -> pn.Card:
     )
 
 
+def _derive_parallelism(core_budget: int) -> tuple[int, int]:
+    """Map a core budget to (parallel_runs, workers_per_run).
+
+    Below 14 cores: single run, all cores as workers.
+    14+ cores: two parallel runs sharing the budget evenly.
+    """
+    parallel_runs = 1 if core_budget < 14 else 2
+    workers_per_run = max(1, core_budget // parallel_runs)
+    return parallel_runs, workers_per_run
+
+
+def _core_alloc_label(core_budget: int) -> str:
+    parallel_runs, workers_per_run = _derive_parallelism(core_budget)
+    if parallel_runs == 1:
+        return f"→ {workers_per_run} workers, 1 run at a time"
+    return f"→ {parallel_runs} parallel runs × {workers_per_run} workers = {parallel_runs * workers_per_run} cores"
+
+
 def _build_action_buttons(dm: DashboardDataManager) -> pn.Card:
     """Action row and output console."""
+    # CPU core allocation slider
+    cpu_budget = pn.widgets.IntSlider(
+        name="CPU Core Budget",
+        start=2,
+        end=24,
+        step=2,
+        value=12,
+        width=320,
+    )
+    alloc_label = pn.pane.Markdown(
+        _core_alloc_label(cpu_budget.value),
+        styles={"color": "#555", "margin-top": "4px"},
+    )
+
+    def _on_cpu_budget_change(event: Any) -> None:
+        alloc_label.object = _core_alloc_label(event.new)
+
+    cpu_budget.param.watch(_on_cpu_budget_change, "value")
+
     output_pane = pn.widgets.TextAreaInput(
-        value="Use the preview actions below to inspect what would run next. These previews do not execute experiments.",
+        value="Use the preview actions below to inspect what would run next. Launch buttons run in the background and return immediately.",
         disabled=True,
         height=220,
         sizing_mode="stretch_width",
@@ -750,6 +787,47 @@ def _build_action_buttons(dm: DashboardDataManager) -> pn.Card:
             ]
         )
 
+    def _launch_sweep(subcommand: str, resume_filename: str) -> None:
+        """Launch run-pending or run-recommended as a background subprocess."""
+        parallel_runs, workers_per_run = _derive_parallelism(cpu_budget.value)
+        sweeps_dir = _PROJECT_ROOT / "data" / "analysis" / "experiments" / "sweeps"
+        sweeps_dir.mkdir(parents=True, exist_ok=True)
+        import datetime as _dt
+        stamp = _dt.datetime.now(tz=_dt.UTC).strftime("%Y%m%dT%H%M%SZ")
+        log_path = sweeps_dir / "logs" / f"{subcommand}_{stamp}.log"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        resume_file = sweeps_dir / resume_filename
+        cmd = [
+            sys.executable,
+            str(_OBSERVATORY_SCRIPT),
+            subcommand,
+            "--parallel-runs", str(parallel_runs),
+            "--workers-per-run", str(workers_per_run),
+            "--resume-file", str(resume_file),
+        ]
+        with log_path.open("a", encoding="utf-8") as handle:
+            process = subprocess.Popen(  # noqa: S603
+                cmd,
+                cwd=str(_PROJECT_ROOT),
+                stdout=handle,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+        output_pane.value = (
+            f"Launched {subcommand} in the background (PID {process.pid}).\n"
+            f"CPU budget: {cpu_budget.value} cores "
+            f"({parallel_runs} parallel run(s) × {workers_per_run} workers)\n"
+            f"Log: {log_path.relative_to(_PROJECT_ROOT)}\n"
+            f"Resume: {resume_file.relative_to(_PROJECT_ROOT)}\n\n"
+            f"Command: {' '.join(cmd[2:])}"
+        )
+
+    def on_launch_pending(event: Any) -> None:
+        _launch_sweep("run-pending", "observatory_pending_resume.json")
+
+    def on_launch_recommended(event: Any) -> None:
+        _launch_sweep("run-recommended", "observatory_recommended_resume.json")
+
     btn_refresh = pn.widgets.Button(
         name="Refresh Data",
         button_type="primary",
@@ -771,7 +849,26 @@ def _build_action_buttons(dm: DashboardDataManager) -> pn.Card:
     )
     btn_recommended.on_click(on_run_recommended)
 
-    buttons = pn.FlexBox(
+    btn_launch_pending = pn.widgets.Button(
+        name="Launch Run-Pending",
+        button_type="success",
+        width=180,
+    )
+    btn_launch_pending.on_click(on_launch_pending)
+
+    btn_launch_recommended = pn.widgets.Button(
+        name="Launch Run-Recommended",
+        button_type="success",
+        width=210,
+    )
+    btn_launch_recommended.on_click(on_launch_recommended)
+
+    cpu_row = pn.Row(
+        pn.Column(cpu_budget, alloc_label),
+        sizing_mode="stretch_width",
+    )
+
+    preview_buttons = pn.FlexBox(
         btn_refresh,
         btn_pending,
         btn_recommended,
@@ -780,14 +877,28 @@ def _build_action_buttons(dm: DashboardDataManager) -> pn.Card:
         styles={"gap": "10px"},
     )
 
+    launch_buttons = pn.FlexBox(
+        btn_launch_pending,
+        btn_launch_recommended,
+        flex_wrap="wrap",
+        sizing_mode="stretch_width",
+        styles={"gap": "10px"},
+    )
+
     guidance = pn.pane.Markdown(
-        "Preview actions keep the queue bounded and resumable. "
-        "Use them to inspect the next runnable work without launching experiments. "
-        "Use the matching `--resume-file` command from Queue Health for real unattended runs."
+        "**Preview** actions show what would run without executing anything. "
+        "**Launch** buttons start a real background sweep using the CPU budget above — "
+        "check the log file and progress JSON in `data/analysis/experiments/sweeps/` to monitor progress. "
+        "Run `observatory.py refresh && observatory.py compare` when done."
     )
 
     return pn.Card(
-        buttons,
+        section_header("CPU Resources"),
+        cpu_row,
+        section_header("Preview"),
+        preview_buttons,
+        section_header("Launch (Background)"),
+        launch_buttons,
         guidance,
         output_pane,
         title="Actions",
@@ -808,6 +919,27 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
         value=_default_search_id(),
         sizing_mode="stretch_width",
     )
+    cpu_budget_search = pn.widgets.IntSlider(
+        name="CPU Core Budget",
+        start=2,
+        end=24,
+        step=2,
+        value=12,
+        width=320,
+    )
+    cpu_budget_search_label = pn.pane.Markdown(
+        f"→ {cpu_budget_search.value} workers per experiment (search-auto runs one experiment at a time)",
+        styles={"color": "#555", "margin-top": "4px"},
+    )
+
+    def _on_cpu_search_change(event: Any) -> None:
+        cpu_budget_search_label.object = (
+            f"→ {event.new} workers per experiment "
+            "(search-auto runs one experiment at a time)"
+        )
+
+    cpu_budget_search.param.watch(_on_cpu_search_change, "value")
+
     batch_run_budget = pn.widgets.IntInput(
         name="Batch Run Budget",
         value=int(dm.search_policy.default_run_budget),
@@ -1085,6 +1217,8 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
             str(batch_run_budget.value),
             "--max-total-runs",
             str(max_total_runs.value),
+            "--workers-per-run",
+            str(cpu_budget_search.value),
             *_planner_args(),
         ]
         if include_recipes_box.value:
@@ -1163,12 +1297,19 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
 
     _refresh_search_views(prefer_search_id=dm.active_search_id)
 
+    cpu_search_row = pn.Column(
+        cpu_budget_search,
+        cpu_budget_search_label,
+        sizing_mode="stretch_width",
+    )
+
     controls = pn.FlexBox(
         search_id_input,
         batch_run_budget,
         max_total_runs,
         max_pending,
         max_recommended,
+        cpu_search_row,
         flex_wrap="wrap",
         sizing_mode="stretch_width",
         styles={"gap": "10px"},

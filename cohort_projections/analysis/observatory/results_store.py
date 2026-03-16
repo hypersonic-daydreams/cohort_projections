@@ -18,6 +18,8 @@ from typing import Any
 import pandas as pd
 import yaml
 
+from cohort_projections.analysis.benchmark_contract import validate_index_columns
+
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -166,7 +168,10 @@ class ResultsStore:
         The index is loaded from ``index.csv`` in the history directory on
         first access.
         """
-        return self._ensure_index().copy()
+        index = self._ensure_index().copy()
+        if not index.empty:
+            validate_index_columns(index)
+        return index
 
     def get_run_manifest(self, run_id: str) -> dict[str, Any]:
         """Load and return the manifest for a single run.
@@ -305,6 +310,26 @@ class ResultsStore:
             logger.warning("Experiment log not found: %s", log_path)
             return pd.DataFrame()
         return pd.read_csv(log_path)
+
+    def get_runtime_history(self) -> pd.DataFrame:
+        """Load runtime summaries from every benchmark bundle."""
+        rows: list[dict[str, Any]] = []
+        for run_id in self.get_run_ids():
+            runtime_path = self._history_dir / run_id / "runtime_summary.json"
+            if not runtime_path.exists():
+                continue
+            try:
+                runtime = json.loads(runtime_path.read_text(encoding="utf-8"))
+            except Exception:
+                logger.warning("Failed to read runtime summary for run %s", run_id)
+                continue
+            row: dict[str, Any] = {"run_id": run_id}
+            row.update(runtime)
+            row["slowest_stage"] = runtime.get("slowest_stage", "")
+            row["slowest_stage_seconds"] = runtime.get("slowest_stage_seconds", 0.0)
+            row["total_duration_seconds"] = runtime.get("total_duration_seconds", 0.0)
+            rows.append(row)
+        return pd.DataFrame(rows)
 
     # ------------------------------------------------------------------
     # Cache management

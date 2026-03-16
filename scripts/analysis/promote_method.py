@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import subprocess
 from pathlib import Path
 
 from cohort_projections.analysis.benchmarking import (
@@ -49,6 +50,11 @@ def _parse_args() -> argparse.Namespace:
         default=DEFAULT_PROMOTION_HISTORY,
         help="CSV file for alias promotion audit history.",
     )
+    parser.add_argument(
+        "--revalidate",
+        action="store_true",
+        help="Run a clean post-promotion baseline benchmark bundle for the promoted alias target.",
+    )
     return parser.parse_args()
 
 
@@ -75,6 +81,31 @@ def main() -> None:
         new_mapping=new_mapping,
         decision_id=args.decision_id,
     )
+
+    if args.revalidate:
+        benchmark_label = f"post_promotion_{args.alias}"
+        cmd = [
+            "python",
+            "scripts/analysis/run_benchmark_suite.py",
+            "--scope",
+            args.scope,
+            "--champion-method",
+            args.method_id,
+            "--champion-config",
+            args.config_id,
+            "--challenger-method",
+            args.method_id,
+            "--challenger-config",
+            args.config_id,
+            "--benchmark-label",
+            benchmark_label,
+            "--baseline-only",
+        ]
+        subprocess.run(
+            cmd,
+            cwd=PROJECT_ROOT,
+            check=True,
+        )
     print(f"Updated {args.alias} -> {args.method_id} / {args.config_id}")
 
 

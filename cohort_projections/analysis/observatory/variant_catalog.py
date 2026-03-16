@@ -178,6 +178,7 @@ class VariantCatalog:
         self._catalog_path = catalog_path
         self._base_method: str = raw.get("base_method", "m2026r1")
         self._base_config: str = raw.get("base_config", "cfg-20260309-college-fix-v1")
+        self._base_scope: str = raw.get("base_scope", "county")
         self._variants: dict[str, dict[str, Any]] = raw.get("variants", {})
         self._grids: dict[str, dict[str, Any]] = raw.get("grids", {})
         self._parameter_bounds: dict[str, dict[str, Any]] = raw.get("parameter_bounds", {})
@@ -292,6 +293,11 @@ class VariantCatalog:
     def base_config(self) -> str:
         """The base config ID that all variants build upon."""
         return self._base_config
+
+    @property
+    def base_scope(self) -> str:
+        """The benchmark scope that generated specs should target."""
+        return self._base_scope
 
     @property
     def variant_ids(self) -> list[str]:
@@ -548,7 +554,7 @@ class VariantCatalog:
             "base_method": self._base_method,
             "base_config": self._base_config,
             "config_delta": config_delta,
-            "scope": "county",
+            "scope": self._base_scope,
             "benchmark_label": benchmark_label,
             "requested_by": requested_by,
         }

@@ -352,7 +352,7 @@ class TestDedupChecking:
         # Mock run_single_experiment to track calls
         calls: list[Path] = []
 
-        def mock_run(spec_path: Path, dry_run: bool = False) -> dict:
+        def mock_run(spec_path: Path, dry_run: bool = False, **kwargs: object) -> dict:
             calls.append(spec_path)
             return {
                 "experiment_id": "exp-new-one",
@@ -529,7 +529,7 @@ class TestQueueControls:
 
         calls: list[str] = []
 
-        def mock_run(spec_path: Path, dry_run: bool = False) -> dict:
+        def mock_run(spec_path: Path, dry_run: bool = False, **kwargs: object) -> dict:
             calls.append(spec_path.stem)
             return {
                 "experiment_id": spec_path.stem,
@@ -605,7 +605,7 @@ class TestQueueControls:
 
         calls: list[str] = []
 
-        def mock_run(spec_path: Path, dry_run: bool = False) -> dict:
+        def mock_run(spec_path: Path, dry_run: bool = False, **kwargs: object) -> dict:
             calls.append(spec_path.stem)
             return {
                 "experiment_id": spec_path.stem,
@@ -659,7 +659,7 @@ class TestQueueControls:
         monkeypatch.setattr(
             sweep_mod,
             "run_single_experiment",
-            lambda spec_path, dry_run=False: {
+            lambda spec_path, dry_run=False, **_kw: {
                 "experiment_id": spec_path.stem,
                 "spec_path": str(spec_path),
                 "exit_code": 0,

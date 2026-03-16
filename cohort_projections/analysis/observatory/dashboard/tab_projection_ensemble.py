@@ -576,12 +576,12 @@ def build_projection_ensemble(dm: DashboardDataManager) -> pn.Column:
         available_origins += [str(year) for year in _ORIGIN_YEARS]
 
     default_origin = available_origins[-1] if len(available_origins) > 1 else available_origins[0]
-    default_runs = dm.preset_run_ids(RUN_SELECTION_PRESETS[0])
+    default_runs = dm.initialize_shortlist(RUN_SELECTION_PRESETS[0])
 
     preset_selector = pn.widgets.Select(
         name="Comparison Preset",
         options=list(RUN_SELECTION_PRESETS),
-        value=RUN_SELECTION_PRESETS[0],
+        value=str(dm.selection_state.shortlist_preset),
         width=240,
     )
     origin_selector = pn.widgets.Select(
@@ -613,9 +613,23 @@ def build_projection_ensemble(dm: DashboardDataManager) -> pn.Column:
 
     def _apply_preset(event: object) -> None:
         del event
+        dm.selection_state.shortlist_preset = str(preset_selector.value)
         run_selector.value = dm.preset_run_ids(str(preset_selector.value))
 
     preset_selector.param.watch(_apply_preset, "value")
+
+    def _persist_shortlist(event: object) -> None:
+        del event
+        dm.selection_state.set_shortlist(list(run_selector.value))
+
+    def _pull_shortlist(event: object) -> None:
+        del event
+        shared = list(dm.selection_state.shortlist_runs)
+        if shared != list(run_selector.value):
+            run_selector.value = shared
+
+    run_selector.param.watch(_persist_shortlist, "value")
+    dm.selection_state.param.watch(_pull_shortlist, "shortlist_runs")
 
     selected_summary = pn.panel(
         pn.bind(

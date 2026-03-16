@@ -369,6 +369,7 @@ class AutonomousSearchController:
         run_budget: int | None = None,
         dry_run: bool = False,
         keep_worktrees: bool | None = None,
+        workers_per_run: int = 0,
     ) -> dict[str, Any]:
         """Execute queued candidates inside isolated worktrees."""
         session = self.load_session(search_id)
@@ -431,6 +432,7 @@ class AutonomousSearchController:
                 command_result = self._run_worktree_experiment(
                     context.worktree_path,
                     spec_path,
+                    workers_per_run=workers_per_run,
                 )
                 artifacts = self._harvest_candidate(
                     search_id=search_id,
@@ -481,6 +483,7 @@ class AutonomousSearchController:
         max_batches: int | None = None,
         max_total_runs: int | None = None,
         keep_worktrees: bool | None = None,
+        workers_per_run: int = 0,
     ) -> dict[str, Any]:
         """Plan and execute a search session until exhausted or budget-limited."""
         self.plan_session(
@@ -522,6 +525,7 @@ class AutonomousSearchController:
                 run_budget=this_budget,
                 dry_run=False,
                 keep_worktrees=keep_worktrees,
+                workers_per_run=workers_per_run,
             )
             executed = int(result.get("executed", 0))
             total_executed += executed
@@ -707,10 +711,14 @@ class AutonomousSearchController:
         self,
         worktree_path: Path,
         spec_path: Path,
+        workers_per_run: int = 0,
     ) -> subprocess.CompletedProcess[str]:
         script_path = worktree_path / "scripts" / "analysis" / "run_experiment.py"
+        cmd = [sys.executable, str(script_path), "--spec", str(spec_path)]
+        if workers_per_run > 0:
+            cmd.extend(["--workers", str(workers_per_run)])
         result = subprocess.run(
-            [sys.executable, str(script_path), "--spec", str(spec_path)],
+            cmd,
             cwd=worktree_path,
             capture_output=True,
             text=True,

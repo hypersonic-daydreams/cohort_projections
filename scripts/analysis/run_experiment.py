@@ -128,6 +128,16 @@ def _parse_args() -> argparse.Namespace:
         default=DEFAULT_PROFILE_DIR,
         help="Override default method profile directory.",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=0,
+        help=(
+            "Workers for benchmark-internal projection parallelism. "
+            "Passed through to run_benchmark_suite.py. "
+            "0 = auto-detect (default)."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -277,6 +287,7 @@ def _run_benchmark_subprocess(
     challenger_config: str,
     benchmark_label: str,
     profile_dir: Path,
+    workers: int = 0,
 ) -> tuple[bool, str, str, str]:
     """Run the benchmark suite as a subprocess.
 
@@ -292,6 +303,7 @@ def _run_benchmark_subprocess(
         "--challenger-config", challenger_config,
         "--benchmark-label", benchmark_label,
         "--profile-dir", str(profile_dir),
+        "--workers", str(workers),
     ]
     print(f"Running benchmark suite: {' '.join(cmd)}")
     result = subprocess.run(
@@ -573,6 +585,7 @@ def main() -> None:
                 challenger_config=config_id,
                 benchmark_label=benchmark_label,
                 profile_dir=args.profile_dir,
+                workers=args.workers,
             )
 
             if not success:

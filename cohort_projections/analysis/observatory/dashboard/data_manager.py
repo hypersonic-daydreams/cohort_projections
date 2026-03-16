@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+import param
 import yaml
 
 from cohort_projections.analysis.observatory.comparator import ObservatoryComparator
@@ -96,6 +97,19 @@ _LONGITUDINAL_METRICS: tuple[str, ...] = (
     "state_ape_recent_short",
     "state_ape_recent_medium",
 )
+
+
+class DashboardSelectionState(param.Parameterized):
+    """Shared selection state used to preserve shortlist context across tabs."""
+
+    shortlist_runs = param.List(default=[])
+    shortlist_preset = param.String(default=_PRESET_TOP_CHALLENGERS)
+
+    def set_shortlist(self, run_ids: list[str]) -> None:
+        """Persist a normalized shortlist."""
+        normalized = [str(run_id) for run_id in run_ids if str(run_id).strip()]
+        if normalized != list(self.shortlist_runs):
+            self.shortlist_runs = normalized
 
 
 def _status_label(value: object) -> str:
@@ -787,6 +801,7 @@ class DashboardDataManager:
         )
         self._catalog = self._try_build_catalog()
         self._search_policy = load_search_policy()
+        self.selection_state = DashboardSelectionState()
 
     # ------------------------------------------------------------------
     # Helpers
@@ -968,6 +983,13 @@ class DashboardDataManager:
             champion_id=self.champion_id,
             limit=limit,
         )
+
+    def initialize_shortlist(self, preset: str = _PRESET_TOP_CHALLENGERS) -> list[str]:
+        """Populate shared shortlist state once and return it."""
+        if not self.selection_state.shortlist_runs:
+            self.selection_state.shortlist_preset = preset
+            self.selection_state.set_shortlist(self.preset_run_ids(preset))
+        return list(self.selection_state.shortlist_runs)
 
     @functools.cached_property
     def index(self) -> pd.DataFrame:

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -21,6 +22,10 @@ import qc_diagnostics as qcd  # noqa: E402
 import sensitivity_analysis as sa  # noqa: E402
 import walk_forward_validation as wfv  # noqa: E402
 
+from cohort_projections.analysis.benchmark_contract import (  # noqa: E402
+    validate_manifest,
+    validate_scorecard_columns,
+)
 from cohort_projections.analysis.benchmarking import (  # noqa: E402
     BENCHMARK_CONTRACT_VERSION,
     DEFAULT_HISTORY_DIR,
@@ -158,15 +163,20 @@ def _parse_args() -> argparse.Namespace:
         help="Validate inputs and print resolved method/config pairs without running the suite.",
     )
     parser.add_argument(
+        "--baseline-only",
+        action="store_true",
+        help="Allow champion and challenger to be the same profile and emit a clean single-method baseline bundle.",
+    )
+    parser.add_argument(
         "--workers",
         type=int,
-        default=1,
+        default=0,
         help=(
             "Number of parallel workers for benchmark-internal projection "
             "stages. Annual walk-forward validation uses county-level "
             "projection workers, and sensitivity analysis uses perturbation "
-            "workers. 0 = auto-detect a stage-appropriate worker cap. "
-            "1 = sequential (default)."
+            "workers. 0 = auto-detect based on available CPU cores (default). "
+            "1 = sequential."
         ),
     )
     return parser.parse_args()
@@ -255,11 +265,45 @@ def _build_runtime_summary(
     }
 
 
+def _artifact_completeness_flag(run_dir: Path) -> bool:
+    """Return whether the expected benchmark artifacts were written."""
+    required = {
+        "summary_scorecard.csv",
+        "summary_scorecard.json",
+        "runtime_summary.json",
+        "state_metrics.csv",
+        "county_metrics.csv",
+    }
+    present = {path.name for path in run_dir.iterdir()}
+    return required.issubset(present)
+
+
+def _resolve_workers(requested: int) -> int:
+    """Resolve the effective worker count.
+
+    0 means auto-detect: use all logical CPU cores, capped at 14 to avoid
+    over-committing when multiple benchmark runs share the machine.
+    """
+    if requested != 0:
+        return max(1, requested)
+    detected = os.cpu_count() or 4
+    # Cap at 14 so that two parallel benchmark runs leave headroom for the OS
+    # and the Observatory dashboard process.
+    return max(1, min(detected, 14))
+
+
 def main() -> None:
     args = _parse_args()
+    if args.workers == 0:
+        args.workers = _resolve_workers(0)
+        print(f"Auto-detected {args.workers} worker(s) for benchmark-internal parallelism.")
     if args.scope != "county":
-        raise ValueError("Only scope='county' is implemented in P0.")
-    if args.champion_method == args.challenger_method and args.champion_config == args.challenger_config:
+        raise ValueError("Only scope='county' is implemented in the automated benchmark runner.")
+    same_profiles = (
+        args.champion_method == args.challenger_method
+        and args.champion_config == args.challenger_config
+    )
+    if same_profiles and not args.baseline_only:
         raise ValueError("Champion and challenger must differ.")
 
     champion_profile = load_method_profile(
@@ -293,7 +337,9 @@ def main() -> None:
         print(f"  Benchmark label: {args.benchmark_label}")
         return
 
-    methods = [args.champion_method, args.challenger_method]
+    methods = [args.champion_method]
+    if not same_profiles:
+        methods.append(args.challenger_method)
     git_commit = get_git_commit(PROJECT_ROOT)
     git_dirty = get_git_dirty(PROJECT_ROOT)
     run_id = build_run_id(args.challenger_method, git_commit)
@@ -397,6 +443,10 @@ def main() -> None:
                 scope=args.scope,
                 run_id=run_id,
             )
+            scorecard["runtime_total_seconds"] = 0.0
+            scorecard["slowest_stage_seconds"] = 0.0
+            scorecard["artifact_completeness_flag"] = False
+            scorecard["reproducibility_logging_flag"] = bool(execution_log_run_id)
             comparison = build_comparison_to_champion(scorecard, args.champion_method)
             stage_timings["scorecard_build"] = round(time.perf_counter() - stage_start, 3)
 
@@ -433,6 +483,10 @@ def main() -> None:
                 stage_timings=stage_timings,
                 total_duration_seconds=duration_seconds,
                 workers_arg=args.workers,
+            )
+            scorecard["runtime_total_seconds"] = duration_seconds
+            scorecard["slowest_stage_seconds"] = float(
+                runtime_summary.get("slowest_stage_seconds", 0.0)
             )
             (run_dir / "runtime_summary.json").write_text(
                 json.dumps(runtime_summary, indent=2, sort_keys=True),
@@ -485,7 +539,23 @@ def main() -> None:
             "execution_log_run_id": execution_log_run_id,
             "duration_seconds": duration_seconds,
             "runtime_summary": runtime_summary,
+            "operational_quality": {
+                "artifact_completeness_flag": False,
+                "reproducibility_logging_flag": bool(execution_log_run_id),
+                "baseline_only": bool(args.baseline_only),
+            },
         }
+            manifest["operational_quality"]["artifact_completeness_flag"] = _artifact_completeness_flag(run_dir)
+            scorecard["artifact_completeness_flag"] = bool(
+                manifest["operational_quality"]["artifact_completeness_flag"]
+            )
+            validate_scorecard_columns(scorecard)
+            validate_manifest(manifest)
+            scorecard.to_csv(run_dir / "summary_scorecard.csv", index=False)
+            (run_dir / "summary_scorecard.json").write_text(
+                scorecard.to_json(orient="records", indent=2),
+                encoding="utf-8",
+            )
             manifest_path = write_manifest(run_dir, manifest)
             (run_dir / "execution_log.json").write_text(
                 json.dumps(

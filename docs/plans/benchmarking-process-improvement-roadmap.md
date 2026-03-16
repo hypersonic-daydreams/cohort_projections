@@ -65,16 +65,25 @@ items. Current state:
 
 - Implemented: `P0` agent experiment orchestration via `BM-001`
 - Implemented: `P0.5` experiment log via `BM-001`
-- Implemented: `P1` stub evaluation policy via `BM-001`
+- Implemented: `P1` full promotion/evaluation policy formalization
 - Implemented: Observatory baseline package (`OBS-001`) with CLI, dashboard,
   recommender, comparator, report generation, and variant catalog
 - Implemented: operational hardening (`OBS-01` through `OBS-09`) for bounded
   unattended queueing under SOP-003 governance
 - Implemented: interactive experiment dashboard on 2026-03-12
 - Implemented: `P4` longitudinal benchmark-history dashboard on 2026-03-15
+- Implemented: `P2` hard-gates vs tradeoff split
+- Implemented: `P3` benchmark contract/schema enforcement
+- Implemented: `P5` promotion package builder
+- Implemented: remaining `P6` runtime-observability slice
+- Implemented: `P7` scope-aware benchmark bundle registration for future
+  place-level bundles
+- Implemented: `P8` post-promotion revalidation
+- Implemented: `P9` segmentation refinement
+- Implemented: `P10` operational-quality tracking
 
-The remaining roadmap starts with completing the full `P1` promotion-threshold
-formalization and the follow-on items from `P2` onward, excluding `P4`.
+The roadmap below is now historical reference plus rationale for the delivered
+follow-on capabilities.
 
 ## Priority Roadmap
 
@@ -574,23 +583,11 @@ Track:
 
 A method that is slightly more accurate but much more fragile should not be judged only on projection metrics.
 
-## Recommended Remaining Implementation Order (2026-03-13)
+## Delivery Update (2026-03-15)
 
-Completed foundation work is intentionally removed from the ordering below.
-What remains:
-
-1. **P6 runtime optimization** — highest immediate leverage for faster iteration across every future benchmark cycle
-2. **P1 promotion thresholds** — finish the full machine-readable thresholds beyond the current stub policy
-3. **P2 hard-gates vs tradeoffs split** — clarify classification semantics before adding more automation and UI
-4. **P3 schema enforcement** — protect longitudinal comparability and prevent silent drift
-5. **P8 post-promotion revalidation** — make promotions leave behind a clean new baseline
-6. **P4 longitudinal dashboard** — turn benchmark history into a first-class decision surface
-7. **P5 promotion package builder** — shorten the human review loop
-8. **P9 segmentation refinement** — make tradeoffs easier to interpret in the right county groups
-9. **P7 place-scope extension** — expand the same governance and comparison pattern to place methods
-10. **P10 operational quality tracking** — round out accuracy-first evaluation with robustness and operability signals
-
-> **Foundation already in place:** `P0`, `P0.5`, and the `P1` stub are delivered through `BM-001`; the Observatory baseline and bounded unattended queue hardening are delivered through `OBS-001` and `PP-007`.
+The previously listed remaining roadmap items are now delivered in the current
+repository state. The roadmap remains useful as design history, but it should
+no longer be treated as an open backlog.
 
 ## Session-Start Shortcut
 

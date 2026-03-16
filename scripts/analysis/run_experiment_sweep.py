@@ -62,6 +62,8 @@ import json
 import logging
 import subprocess
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -163,6 +165,37 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=(
             "JSON checkpoint path used to resume bounded sweeps. "
             "Relative paths resolve from the project root."
+        ),
+    )
+    parser.add_argument(
+        "--parallel-runs",
+        type=int,
+        default=1,
+        help=(
+            "Number of experiment specs to execute concurrently. "
+            "Each run is an isolated subprocess, so this is safe for "
+            "unattended operation. Combine with --workers-per-run to control "
+            "total CPU usage. Default: 1 (sequential)."
+        ),
+    )
+    parser.add_argument(
+        "--workers-per-run",
+        type=int,
+        default=0,
+        help=(
+            "Workers passed to run_experiment.py --workers for benchmark-"
+            "internal projection parallelism. 0 = auto-detect (default)."
+        ),
+    )
+    parser.add_argument(
+        "--log-dir",
+        type=Path,
+        default=None,
+        help=(
+            "Directory for per-experiment log files. "
+            "Defaults to a timestamped directory under "
+            "data/analysis/experiments/sweeps/logs/. "
+            "Pass 'none' to disable log capture."
         ),
     )
     return parser.parse_args(argv)
@@ -503,12 +536,16 @@ def _record_resume_result(
 def run_single_experiment(
     spec_path: Path,
     dry_run: bool = False,
+    workers: int = 0,
+    log_file: Path | None = None,
 ) -> dict[str, Any]:
     """Run a single experiment via subprocess to run_experiment.py.
 
     Args:
         spec_path: Path to the experiment spec YAML.
         dry_run: If True, pass --dry-run flag to the orchestrator.
+        workers: Workers for benchmark-internal parallelism (0 = auto-detect).
+        log_file: Optional file path for capturing combined stdout/stderr.
 
     Returns:
         Dict with keys: experiment_id, spec_path, exit_code, outcome,
@@ -519,6 +556,8 @@ def run_single_experiment(
     cmd = [sys.executable, str(runner_script), "--spec", str(spec_path)]
     if dry_run:
         cmd.append("--dry-run")
+    if workers != 0:
+        cmd.extend(["--workers", str(workers)])
 
     logger.info("Running: %s", " ".join(cmd))
 
@@ -531,6 +570,20 @@ def run_single_experiment(
 
     stdout = result.stdout.strip()
     stderr = result.stderr.strip()
+
+    # Write combined log file when requested
+    if log_file is not None:
+        try:
+            log_file.parent.mkdir(parents=True, exist_ok=True)
+            with log_file.open("w", encoding="utf-8") as fh:
+                fh.write(f"Command: {' '.join(cmd)}\n")
+                fh.write(f"Exit code: {result.returncode}\n")
+                fh.write("--- stdout ---\n")
+                fh.write(result.stdout)
+                fh.write("\n--- stderr ---\n")
+                fh.write(result.stderr)
+        except Exception as exc:
+            logger.warning("Failed to write log file %s: %s", log_file, exc)
 
     # Try to parse the experiment_id from the spec
     experiment_id = _extract_experiment_id(spec_path)
@@ -547,6 +600,7 @@ def run_single_experiment(
         "key_delta": key_delta,
         "stdout": stdout,
         "stderr": stderr,
+        "log_file": str(log_file) if log_file is not None else None,
     }
 
 
@@ -748,6 +802,40 @@ def regenerate_dashboard() -> bool:
 
 
 # ---------------------------------------------------------------------------
+# Progress tracking
+# ---------------------------------------------------------------------------
+
+
+def _write_progress(
+    progress_file: Path,
+    *,
+    total: int,
+    completed: int,
+    running: list[str],
+    results: list[dict[str, Any]],
+    started_at: str,
+) -> None:
+    """Write a JSON progress snapshot for unattended monitoring."""
+    try:
+        progress_file.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "started_at": started_at,
+            "updated_at": dt.datetime.now(tz=dt.UTC).isoformat(),
+            "total": total,
+            "completed": completed,
+            "running": running,
+            "pending": total - completed - len(running),
+            "outcomes": {
+                outcome: sum(1 for r in results if r.get("outcome") == outcome)
+                for outcome in sorted({r.get("outcome", "unknown") for r in results})
+            },
+        }
+        progress_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    except Exception as exc:
+        logger.debug("Progress file write failed: %s", exc)
+
+
+# ---------------------------------------------------------------------------
 # Main orchestration
 # ---------------------------------------------------------------------------
 
@@ -758,6 +846,10 @@ def run_sweep(
     run_budget: int | None = None,
     retry_failures: int = 0,
     resume_file: Path | None = None,
+    parallel_runs: int = 1,
+    workers_per_run: int = 0,
+    log_dir: Path | None = None,
+    progress_file: Path | None = None,
 ) -> list[dict[str, Any]]:
     """Run a sweep of experiments with dedup checking.
 
@@ -767,6 +859,10 @@ def run_sweep(
         run_budget: Optional cap on launched experiments in this invocation.
         retry_failures: Number of additional attempts allowed for prior failures.
         resume_file: Optional checkpoint path for resumable bounded sweeps.
+        parallel_runs: Number of specs to execute concurrently (default 1).
+        workers_per_run: Workers per benchmark run (0 = auto-detect).
+        log_dir: Directory for per-experiment log files (None = disable).
+        progress_file: JSON file updated in real-time during the sweep.
 
     Returns:
         List of result dicts, one per spec (including skipped entries).
@@ -775,24 +871,33 @@ def run_sweep(
         raise ValueError("run_budget must be positive when provided.")
     if retry_failures < 0:
         raise ValueError("retry_failures must be zero or greater.")
+    if parallel_runs < 1:
+        raise ValueError("parallel_runs must be at least 1.")
 
     tested = get_tested_hypotheses()
     resume_state = load_resume_state(resume_file)
+    # Lock protects resume_state and tested when parallel_runs > 1
+    state_lock = threading.Lock()
     results: list[dict[str, Any]] = []
+    results_lock = threading.Lock()
     launched = 0
+    started_at = dt.datetime.now(tz=dt.UTC).isoformat()
 
     total = len(spec_paths)
-    logger.info("Sweep contains %d experiment(s).", total)
+    logger.info(
+        "Sweep contains %d experiment(s) — parallel_runs=%d, workers_per_run=%s.",
+        total,
+        parallel_runs,
+        workers_per_run if workers_per_run != 0 else "auto",
+    )
+
+    # Partition specs into: runnable (to execute) vs skipped (pre-flight decisions)
+    runnable: list[Path] = []
+    skipped_results: list[dict[str, Any]] = []
 
     for i, spec_path in enumerate(spec_paths, 1):
         experiment_id = _extract_experiment_id(spec_path)
-        logger.info(
-            "[%d/%d] Processing: %s (%s)",
-            i,
-            total,
-            experiment_id,
-            spec_path.name,
-        )
+        logger.info("[%d/%d] Pre-flight: %s", i, total, experiment_id)
 
         entry = _resume_entry(resume_state, experiment_id)
         if entry is not None:
@@ -800,28 +905,20 @@ def run_sweep(
             attempts = int(entry.get("attempts", 0))
             last_key_delta = str(entry.get("last_key_delta", "-"))
             if last_exit_code == 0:
-                logger.info(
-                    "Skipping %s — already completed in resume file %s.",
-                    experiment_id,
-                    resume_file,
-                )
-                results.append(
+                logger.info("Skipping %s — already completed in resume file.", experiment_id)
+                skipped_results.append(
                     _resume_skip_result(
-                        experiment_id,
-                        spec_path,
-                        outcome="(resume-skip)",
-                        key_delta=last_key_delta,
+                        experiment_id, spec_path, outcome="(resume-skip)", key_delta=last_key_delta
                     )
                 )
                 continue
             if attempts > retry_failures:
                 logger.info(
-                    "Skipping %s — retry budget exhausted (%d prior attempt(s), %d retry allowed).",
+                    "Skipping %s — retry budget exhausted (%d attempt(s)).",
                     experiment_id,
                     attempts,
-                    retry_failures,
                 )
-                results.append(
+                skipped_results.append(
                     _resume_skip_result(
                         experiment_id,
                         spec_path,
@@ -831,13 +928,9 @@ def run_sweep(
                 )
                 continue
 
-        # Dedup check — experiment ID level
         if experiment_id in tested:
-            logger.info(
-                "Skipping %s — already tested (found in experiment log).",
-                experiment_id,
-            )
-            results.append(
+            logger.info("Skipping %s — already tested (experiment log).", experiment_id)
+            skipped_results.append(
                 {
                     "experiment_id": experiment_id,
                     "spec_path": str(spec_path),
@@ -850,20 +943,15 @@ def run_sweep(
             )
             continue
 
-        # Dedup check — parameter-level matching
         try:
             spec_data = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
             config_delta = spec_data.get("config_delta") if isinstance(spec_data, dict) else None
-            if (
-                isinstance(config_delta, dict)
-                and config_delta
-                and is_config_delta_tested(config_delta)
-            ):
+            if isinstance(config_delta, dict) and config_delta and is_config_delta_tested(config_delta):
                 logger.info(
                     "Skipping %s — config delta already tested (parameter-level match).",
                     experiment_id,
                 )
-                results.append(
+                skipped_results.append(
                     {
                         "experiment_id": experiment_id,
                         "spec_path": str(spec_path),
@@ -876,20 +964,12 @@ def run_sweep(
                 )
                 continue
         except Exception:
-            pass  # If we can't read the spec, proceed to run it
+            pass
 
         if run_budget is not None and launched >= run_budget:
-            logger.info(
-                "Deferring %s — run budget of %d reached.",
-                experiment_id,
-                run_budget,
-            )
-            results.append(
-                _resume_skip_result(
-                    experiment_id,
-                    spec_path,
-                    outcome="(deferred-budget)",
-                )
+            logger.info("Deferring %s — run budget of %d reached.", experiment_id, run_budget)
+            skipped_results.append(
+                _resume_skip_result(experiment_id, spec_path, outcome="(deferred-budget)")
             )
             continue
 
@@ -899,33 +979,115 @@ def run_sweep(
             result["outcome"] = "(dry-run)"
             result["key_delta"] = "-"
             launched += 1
-            results.append(result)
+            skipped_results.append(result)
             continue
 
-        # Execute
-        result = run_single_experiment(spec_path, dry_run=False)
+        runnable.append(spec_path)
         launched += 1
+
+    results.extend(skipped_results)
+
+    if not runnable:
+        return results
+
+    # Track which specs are currently running for the progress file
+    currently_running: list[str] = []
+    running_lock = threading.Lock()
+
+    def _execute_one(spec_path: Path) -> dict[str, Any]:
+        experiment_id = _extract_experiment_id(spec_path)
+        log_file: Path | None = None
+        if log_dir is not None:
+            log_file = log_dir / f"{experiment_id}.log"
+
+        with running_lock:
+            currently_running.append(experiment_id)
+
+        if progress_file is not None:
+            with results_lock:
+                _write_progress(
+                    progress_file,
+                    total=total,
+                    completed=len(results),
+                    running=list(currently_running),
+                    results=results,
+                    started_at=started_at,
+                )
+
+        result = run_single_experiment(spec_path, dry_run=False, workers=workers_per_run, log_file=log_file)
+
+        with running_lock:
+            if experiment_id in currently_running:
+                currently_running.remove(experiment_id)
 
         if result["exit_code"] != 0:
             logger.warning(
-                "Experiment %s failed (exit code %d). Continuing with next spec.",
+                "Experiment %s failed (exit code %d). Continuing.",
                 experiment_id,
                 result["exit_code"],
             )
             if result["outcome"] == "unknown":
                 result["outcome"] = "error"
         else:
-            logger.info(
-                "Experiment %s completed: %s",
-                experiment_id,
-                result["outcome"],
-            )
+            logger.info("Experiment %s completed: %s", experiment_id, result["outcome"])
 
-        # Add to tested set so subsequent duplicate IDs in this sweep are skipped
-        tested.add(experiment_id)
-        _record_resume_result(resume_state, result)
-        persist_resume_state(resume_file, resume_state)
-        results.append(result)
+        with state_lock:
+            tested.add(experiment_id)
+            _record_resume_result(resume_state, result)
+            persist_resume_state(resume_file, resume_state)
+
+        with results_lock:
+            results.append(result)
+            if progress_file is not None:
+                _write_progress(
+                    progress_file,
+                    total=total,
+                    completed=len(results),
+                    running=list(currently_running),
+                    results=results,
+                    started_at=started_at,
+                )
+
+        return result
+
+    if parallel_runs == 1:
+        # Sequential path — simpler for single-run mode
+        for spec_path in runnable:
+            _execute_one(spec_path)
+    else:
+        logger.info("Launching up to %d concurrent benchmark run(s).", parallel_runs)
+        with ThreadPoolExecutor(max_workers=parallel_runs) as pool:
+            futures = {pool.submit(_execute_one, sp): sp for sp in runnable}
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as exc:
+                    sp = futures[future]
+                    experiment_id = _extract_experiment_id(sp)
+                    logger.error("Unhandled error in %s: %s", experiment_id, exc)
+                    with results_lock:
+                        results.append(
+                            {
+                                "experiment_id": experiment_id,
+                                "spec_path": str(sp),
+                                "exit_code": -1,
+                                "outcome": "error",
+                                "key_delta": "-",
+                                "stdout": "",
+                                "stderr": str(exc),
+                            }
+                        )
+
+    # Final progress snapshot
+    if progress_file is not None:
+        _write_progress(
+            progress_file,
+            total=total,
+            completed=len(results),
+            running=[],
+            results=results,
+            started_at=started_at,
+        )
 
     return results
 
@@ -982,15 +1144,45 @@ def main(argv: list[str] | None = None) -> None:
     if resume_file is None and not args.dry_run:
         resume_file = default_resume_file()
 
+    # Resolve log directory
+    log_dir: Path | None = None
+    if not args.dry_run:
+        if args.log_dir is not None and str(args.log_dir).lower() != "none":
+            log_dir = args.log_dir
+            log_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            stamp = dt.datetime.now(tz=dt.UTC).strftime("%Y%m%dT%H%M%SZ")
+            log_dir = DEFAULT_SWEEP_STATE_DIR / "logs" / stamp
+            log_dir.mkdir(parents=True, exist_ok=True)
+
+    # Progress file sits next to the resume file (or a default path)
+    progress_file: Path | None = None
+    if not args.dry_run:
+        if resume_file is not None:
+            progress_file = resume_file.with_suffix(".progress.json")
+        else:
+            stamp = dt.datetime.now(tz=dt.UTC).strftime("%Y%m%dT%H%M%SZ")
+            progress_file = DEFAULT_SWEEP_STATE_DIR / f"sweep_progress_{stamp}.json"
+
+    concurrency_label = (
+        f"parallel ({args.parallel_runs})" if args.parallel_runs > 1 else "sequential"
+    )
     logger.info(
-        "Queue controls: priority=%s, reverse=%s, run_budget=%s, retry_failures=%d, concurrency=sequential",
+        "Queue controls: priority=%s, reverse=%s, run_budget=%s, retry_failures=%d, "
+        "concurrency=%s, workers_per_run=%s",
         args.priority,
         args.reverse_priority,
         args.run_budget if args.run_budget is not None else "unbounded",
         args.retry_failures,
+        concurrency_label,
+        args.workers_per_run if args.workers_per_run != 0 else "auto",
     )
     if resume_file is not None:
         logger.info("Resume checkpoint: %s", resume_file)
+    if log_dir is not None:
+        logger.info("Experiment logs: %s", log_dir)
+    if progress_file is not None:
+        logger.info("Progress file: %s", progress_file)
 
     # Run the sweep
     results = run_sweep(
@@ -999,6 +1191,10 @@ def main(argv: list[str] | None = None) -> None:
         run_budget=args.run_budget,
         retry_failures=args.retry_failures,
         resume_file=resume_file,
+        parallel_runs=args.parallel_runs,
+        workers_per_run=args.workers_per_run,
+        log_dir=log_dir,
+        progress_file=progress_file,
     )
 
     # Print summary table

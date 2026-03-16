@@ -397,13 +397,18 @@ def _print_queue_controls(
     run_budget: int | None,
     retry_failures: int,
     resume_file: Path | None,
+    parallel_runs: int = 1,
+    workers_per_run: int = 0,
 ) -> None:
     """Print the queue-control settings for an Observatory run command."""
+    concurrency = f"parallel ({parallel_runs})" if parallel_runs > 1 else "sequential"
+    workers_label = workers_per_run if workers_per_run != 0 else "auto"
     print(f"{queue_name} queue controls:")  # noqa: T201
     print(f"  Priority: {priority}")  # noqa: T201
     print(f"  Run budget: {run_budget if run_budget is not None else 'unbounded'}")  # noqa: T201
     print(f"  Retry failures: {retry_failures}")  # noqa: T201
-    print("  Concurrency: sequential")  # noqa: T201
+    print(f"  Concurrency: {concurrency}")  # noqa: T201
+    print(f"  Workers per run: {workers_label}")  # noqa: T201
     if resume_file is not None:
         print(f"  Resume file: {resume_file}")  # noqa: T201
     if dry_run:
@@ -416,6 +421,8 @@ def _run_sweep_command(
     run_budget: int | None,
     retry_failures: int,
     resume_file: Path | None,
+    parallel_runs: int = 1,
+    workers_per_run: int = 0,
 ) -> int:
     """Delegate the prepared spec list to ``run_experiment_sweep.py``."""
     sweep_script = PROJECT_ROOT / "scripts" / "analysis" / "run_experiment_sweep.py"
@@ -430,6 +437,10 @@ def _run_sweep_command(
         cmd.extend(["--retry-failures", str(retry_failures)])
     if resume_file is not None:
         cmd.extend(["--resume-file", str(resume_file)])
+    if parallel_runs > 1:
+        cmd.extend(["--parallel-runs", str(parallel_runs)])
+    if workers_per_run != 0:
+        cmd.extend(["--workers-per-run", str(workers_per_run)])
 
     print(f"Running: {' '.join(cmd[:4])} ... ({len(spec_paths)} specs)")  # noqa: T201
     result = subprocess.run(cmd, cwd=str(PROJECT_ROOT))
@@ -574,6 +585,25 @@ def build_parser() -> argparse.ArgumentParser:
         default="tier",
         help="Ordering strategy for runnable variants before queue submission.",
     )
+    pending_parser.add_argument(
+        "--parallel-runs",
+        type=int,
+        default=1,
+        help=(
+            "Number of experiment specs to run concurrently (default: 1). "
+            "Each run is an isolated subprocess. On a 14-core machine, "
+            "--parallel-runs 2 --workers-per-run 12 is a good starting point."
+        ),
+    )
+    pending_parser.add_argument(
+        "--workers-per-run",
+        type=int,
+        default=0,
+        help=(
+            "Benchmark-internal projection workers per run (0 = auto-detect). "
+            "Set lower when using --parallel-runs > 1 to avoid over-committing."
+        ),
+    )
 
     # --- report ---
     report_parser = sub.add_parser(
@@ -649,6 +679,25 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["recommendation", "parameter"],
         default="recommendation",
         help="Ordering strategy for config-only recommendations before queue submission.",
+    )
+    recommended_parser.add_argument(
+        "--parallel-runs",
+        type=int,
+        default=1,
+        help=(
+            "Number of experiment specs to run concurrently (default: 1). "
+            "Each run is an isolated subprocess. On a 14-core machine, "
+            "--parallel-runs 2 --workers-per-run 12 is a good starting point."
+        ),
+    )
+    recommended_parser.add_argument(
+        "--workers-per-run",
+        type=int,
+        default=0,
+        help=(
+            "Benchmark-internal projection workers per run (0 = auto-detect). "
+            "Set lower when using --parallel-runs > 1 to avoid over-committing."
+        ),
     )
 
     # --- refresh ---
@@ -841,6 +890,15 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Path to the autonomous search policy YAML.",
     )
+    search_auto_parser.add_argument(
+        "--workers-per-run",
+        type=int,
+        default=0,
+        help=(
+            "Benchmark-internal projection workers for each candidate experiment. "
+            "0 = auto-detect based on available CPU cores (default)."
+        ),
+    )
 
     return parser
 
@@ -916,6 +974,25 @@ def cmd_status(
     status_data["champion"] = champ_info.get("champion", {})
     status_data["best_challenger"] = champ_info.get("best_challenger", {})
 
+    runtime_data: dict[str, Any] = {}
+    try:
+        runtime_history = store.get_runtime_history()
+        if not runtime_history.empty:
+            runtime_data = {
+                "median_duration_seconds": float(
+                    runtime_history["total_duration_seconds"].median()
+                ),
+                "slowest_stage_mode": str(
+                    runtime_history["slowest_stage"].mode(dropna=True).iloc[0]
+                )
+                if "slowest_stage" in runtime_history.columns
+                and not runtime_history["slowest_stage"].mode(dropna=True).empty
+                else "",
+            }
+    except Exception as e:
+        runtime_data["error"] = str(e)
+    status_data["runtime"] = runtime_data
+
     # Variant catalog
     catalog = _load_variant_catalog(config)
     catalog_data: dict[str, Any] = {}
@@ -961,6 +1038,8 @@ def cmd_status(
             "grid_runnable": catalog_data.get("grid_runnable", ""),
             "grid_blocked": catalog_data.get("grid_blocked", ""),
             "grid_blocked_ids": ";".join(catalog_data.get("grid_blocked_ids", [])),
+            "median_duration_seconds": runtime_data.get("median_duration_seconds", ""),
+            "slowest_stage_mode": runtime_data.get("slowest_stage_mode", ""),
         }
         writer = csv.DictWriter(sys.stdout, fieldnames=list(flat.keys()))
         writer.writeheader()
@@ -979,6 +1058,18 @@ def cmd_status(
 
     _print_champion_challenger(store, primary_metric)
     _print_experiment_log_summary(store)
+    if runtime_data and "error" not in runtime_data:
+        print()  # noqa: T201
+        print(_c_bold("Operational Quality:"))  # noqa: T201
+        print(
+            "  Median benchmark runtime: "
+            f"{runtime_data.get('median_duration_seconds', 0.0):.1f} seconds"
+        )  # noqa: T201
+        if runtime_data.get("slowest_stage_mode"):
+            print(
+                "  Most common bottleneck stage: "
+                f"{runtime_data['slowest_stage_mode']}"
+            )  # noqa: T201
 
     print()  # noqa: T201
     print(_c_bold("Variant Catalog:"))  # noqa: T201
@@ -1309,6 +1400,8 @@ def cmd_run_pending(
         run_budget=args.run_budget,
         retry_failures=args.retry_failures,
         resume_file=resume_file,
+        parallel_runs=getattr(args, "parallel_runs", 1),
+        workers_per_run=getattr(args, "workers_per_run", 0),
     )
 
     with tempfile.TemporaryDirectory(prefix="observatory_pending_") as tmpdir:
@@ -1350,6 +1443,8 @@ def cmd_run_pending(
             run_budget=args.run_budget,
             retry_failures=args.retry_failures,
             resume_file=resume_file,
+            parallel_runs=getattr(args, "parallel_runs", 1),
+            workers_per_run=getattr(args, "workers_per_run", 0),
         )
 
 
@@ -1416,6 +1511,8 @@ def cmd_run_recommended(
         run_budget=args.run_budget,
         retry_failures=args.retry_failures,
         resume_file=resume_file,
+        parallel_runs=getattr(args, "parallel_runs", 1),
+        workers_per_run=getattr(args, "workers_per_run", 0),
     )
 
     with tempfile.TemporaryDirectory(prefix="observatory_recommended_") as tmpdir:
@@ -1499,6 +1596,8 @@ def cmd_run_recommended(
             run_budget=args.run_budget,
             retry_failures=args.retry_failures,
             resume_file=resume_file,
+            parallel_runs=getattr(args, "parallel_runs", 1),
+            workers_per_run=getattr(args, "workers_per_run", 0),
         )
 
 
@@ -1926,6 +2025,7 @@ def cmd_search_auto(
             max_batches=args.max_batches,
             max_total_runs=args.max_total_runs,
             keep_worktrees=args.keep_worktrees,
+            workers_per_run=getattr(args, "workers_per_run", 0),
         )
     except Exception as e:
         print(f"Error running autonomous search: {e}")  # noqa: T201

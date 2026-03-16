@@ -29,6 +29,46 @@ tradeoff_thresholds:
   county_mape_overall:
     max_regression: 0.05
     description: "Overall county MAPE regression limit (percentage points)"
+  county_mape_reservation:
+    max_regression: 0.25
+    description: "Reservation county regression limit (percentage points)"
+  county_mape_volatile_oil:
+    max_regression: 0.35
+    description: "Highly volatile oil county regression limit (percentage points)"
+  county_mape_smallest:
+    max_regression: 0.20
+    description: "Smallest-county regression limit (percentage points)"
+  county_mape_college_heavy_non_core:
+    max_regression: 0.15
+    description: "College-heavy non-core county regression limit (percentage points)"
+
+tradeoff_metrics:
+  # Alias retained for clearer semantics in downstream tooling.
+  county_mape_rural:
+    max_regression: 0.10
+  county_mape_bakken:
+    max_regression: 0.50
+  county_mape_overall:
+    max_regression: 0.05
+  county_mape_reservation:
+    max_regression: 0.25
+  county_mape_volatile_oil:
+    max_regression: 0.35
+  county_mape_smallest:
+    max_regression: 0.20
+  county_mape_college_heavy_non_core:
+    max_regression: 0.15
+
+promotion_policy:
+  state_ape_recent_short_min_improvement: 0.10
+  state_ape_recent_medium_min_improvement: 0.25
+  county_mape_overall_max_regression: 0.00
+  require_zero_hard_constraint_regression: true
+  sentinel_vetoes:
+    sentinel_cass_mape: 0.10
+    sentinel_grand_forks_mape: 0.10
+    sentinel_ward_mape: 0.10
+    sentinel_burleigh_mape: 0.10
 
 agent_classification_rules:
   passed_all_gates:

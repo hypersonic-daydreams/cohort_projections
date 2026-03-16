@@ -19,7 +19,6 @@ from cohort_projections.analysis.observatory.results_store import (
     load_observatory_config,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -39,7 +38,23 @@ SCORECARD_COLUMNS = [
 
 def _write_index(history_dir: Path, run_ids: list[str]) -> None:
     """Write a minimal index.csv for the given run IDs."""
-    df = pd.DataFrame({"run_id": run_ids, "run_date": ["2026-03-01"] * len(run_ids)})
+    df = pd.DataFrame(
+        {
+            "run_id": run_ids,
+            "run_date": ["20260301"] * len(run_ids),
+            "method_id": ["m2026r1"] * len(run_ids),
+            "config_id": ["cfg-test"] * len(run_ids),
+            "scope": ["county"] * len(run_ids),
+            "benchmark_label": ["test"] * len(run_ids),
+            "benchmark_contract_version": ["1.0"] * len(run_ids),
+            "git_commit": ["abcdef0"] * len(run_ids),
+            "decision_id": [""] * len(run_ids),
+            "decision_status": ["pending"] * len(run_ids),
+            "is_champion_at_run": ["true"] * len(run_ids),
+            "summary_scorecard_path": ["summary_scorecard.csv"] * len(run_ids),
+            "manifest_path": ["manifest.json"] * len(run_ids),
+        }
+    )
     df.to_csv(history_dir / "index.csv", index=False)
 
 
@@ -127,6 +142,10 @@ class TestLoadObservatoryConfig:
         p.write_text(yaml.safe_dump(cfg), encoding="utf-8")
         result = load_observatory_config(p)
         assert result["history_dir"] == "data/analysis/benchmark_history"
+
+
+def test_get_runtime_history_empty_when_no_sidecars(store: ResultsStore) -> None:
+    assert store.get_runtime_history().empty
 
     def test_missing_file_raises(self, tmp_path: Path) -> None:
         with pytest.raises(FileNotFoundError):

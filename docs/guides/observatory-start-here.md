@@ -72,54 +72,29 @@ path from multiple documents.
   across all runs, champion-at-run baselines, metric delta heatmaps,
   category-level trend lines, and accepted/rejected challenger history.
 
-## Remaining Improvement Tracks
+## Follow-On Roadmap Status
 
-### Decision Policy And Governance
+The previously documented follow-on roadmap items are now implemented in the
+current codebase:
 
-- `P1` explicit promotion thresholds
-- `P2` hard-gates versus tradeoff metrics split
-- `P3` stricter metric-contract and schema enforcement
-- `P8` automatic post-promotion revalidation
-- `P10` operational-quality tracking alongside accuracy
-
-### UI/UX And Decision Support
-
-- `OBS-UX` first-time-user review and backlog
-- `P5` promotion package builder
-- `P9` finer methodological segmentation lenses
-
-Related delivered capability: the interactive experiment dashboard already
-exists, and the longitudinal benchmark-history view is now implemented. The
-remaining gap is packaging review artifacts and adding finer segmentation lenses
-over time.
-
-### Throughput And Search-Loop Scale
-
-- `P6` benchmark runtime optimization
-
-Current guidance: optimize benchmark internals first. Queue execution remains
-intentionally sequential unless throughput later proves to be the real
-constraint.
-
-### Scope Expansion
-
-- `P7` extend the benchmarking/versioning framework beyond county scope to
-  place-level methods
-
-## Recommended Remaining Implementation Order
-
-This is the practical follow-on order from the active roadmap after removing
-the already-completed BM-001 and PP-007 foundation work:
-
-1. `P6` runtime optimization
-2. `P1` explicit promotion thresholds
-3. `P2` hard-gates versus tradeoffs split
-4. `P3` schema enforcement
-5. `P8` post-promotion revalidation
-6. `P5` promotion package builder
-7. `P9` segmentation refinement
-8. `P7` place-scope extension
-9. `P10` operational-quality tracking
+- `OBS-UX-09` and `OBS-UX-10` are complete.
+- `P1`/`P2` promotion-threshold formalization and hard-gate vs tradeoff split
+  are implemented in the machine-readable evaluation policy.
+- `P3` schema enforcement is implemented through centralized benchmark-contract
+  validation for manifests, scorecards, and the benchmark index.
+- `P5` promotion package building is implemented via
+  `scripts/analysis/build_promotion_package.py`.
+- `P6` runtime evidence is now surfaced from per-run runtime summaries.
+- `P7` scope-aware bundle registration is implemented via
+  `scripts/analysis/register_benchmark_bundle.py` for future place-scope
+  bundles.
+- `P8` post-promotion revalidation is implemented in
+  `scripts/analysis/promote_method.py --revalidate`.
+- `P9` segmentation refinement is implemented in the benchmark scorecard with
+  reservation, smallest-county, volatile-oil, and college-heavy non-core
+  lenses.
+- `P10` operational-quality tracking is now recorded in benchmark artifacts and
+  Observatory status output.
 
 ## Session Start Shortcut
 

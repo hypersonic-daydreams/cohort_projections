@@ -71,8 +71,8 @@ What needed improvement:
 | OBS-UX-06 | Add task-oriented framing to every major tab | P1 | implemented_2026-03-13 | Each tab begins with a short `Use this tab to...` explanation in plain language | `tab_experiment_tracker.py`, `tab_scorecard.py`, `tab_projection_ensemble.py`, `tab_horizon_bias.py`, `tab_sensitivity.py` |
 | OBS-UX-07 | Add executive summaries above dense comparison views | P1 | implemented_2026-03-13 | `Scorecards` and `Projections` start with a concise takeaway before charts/tables | `tab_scorecard.py`, `tab_projection_ensemble.py` |
 | OBS-UX-08 | Push advanced diagnostics behind progressive disclosure | P1 | implemented_2026-03-13 | Residual tests, outlier scatter, and deeper QA live below clear summaries or in collapsible sections | `tab_horizon_bias.py`, `tab_sensitivity.py` |
-| OBS-UX-09 | Preserve shortlist context across tabs | P1 | pending | Selected bundles/runs remain aligned when moving between comparison, projection, and diagnostic tabs | dashboard tab modules + shared data manager |
-| OBS-UX-10 | Improve scanability of dense tables | P2 | pending | Internal-only fields are hidden by default, labels are friendlier, and review-action columns remain visible | `tab_command_center.py`, `tab_experiment_tracker.py`, `widgets.py` |
+| OBS-UX-09 | Preserve shortlist context across tabs | P1 | implemented_2026-03-15 | Selected bundles/runs remain aligned when moving between comparison, projection, and diagnostic tabs | dashboard tab modules + shared data manager |
+| OBS-UX-10 | Improve scanability of dense tables | P2 | implemented_2026-03-15 | Internal-only fields are hidden by default, labels are friendlier, and review-action columns remain visible | `tab_command_center.py`, `tab_experiment_tracker.py`, `widgets.py` |
 
 ## First Implementation Slice Completed On 2026-03-13
 
@@ -93,10 +93,14 @@ Implemented in this session:
 - `OBS-UX-08`: moved advanced diagnostics behind collapsible cards in
   `Horizon & Bias` and `Sensitivity`.
 
-## Recommended Next Implementation Order
+## Completion Update (2026-03-15)
 
-1. `OBS-UX-09` cross-tab shortlist persistence.
-2. `OBS-UX-10` table scanability cleanup.
+- `OBS-UX-09`: added shared shortlist state in the dashboard data manager so
+  `Scorecards`, `Projections`, and `Horizon & Bias` stay aligned when moving
+  between tabs.
+- `OBS-UX-10`: cleaned up dense decision-support tables with friendlier labels,
+  visible action/context columns, and reduced exposure of internal-only fields
+  in the Experiment Tracker.
 
 ## Verification Notes
 

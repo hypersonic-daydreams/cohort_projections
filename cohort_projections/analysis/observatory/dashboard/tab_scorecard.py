@@ -477,7 +477,7 @@ def build_scorecard_tab(dm: DashboardDataManager) -> pn.Column:
             widgets.empty_placeholder("Run benchmarks first to populate this tab."),
         )
 
-    default_runs = dm.preset_run_ids(RUN_SELECTION_PRESETS[0])
+    default_runs = dm.initialize_shortlist(RUN_SELECTION_PRESETS[0])
     run_selector = pn.widgets.MultiChoice(
         name="Runs",
         options=dm.run_option_map(),
@@ -495,11 +495,27 @@ def build_scorecard_tab(dm: DashboardDataManager) -> pn.Column:
         width=240,
     )
 
+    preset_selector.value = str(dm.selection_state.shortlist_preset)
+
     def _apply_preset(event: object) -> None:
         del event
+        dm.selection_state.shortlist_preset = str(preset_selector.value)
         run_selector.value = dm.preset_run_ids(str(preset_selector.value))
 
     preset_selector.param.watch(_apply_preset, "value")
+
+    def _persist_shortlist(event: object) -> None:
+        del event
+        dm.selection_state.set_shortlist(list(run_selector.value))
+
+    def _pull_shortlist(event: object) -> None:
+        del event
+        shared = list(dm.selection_state.shortlist_runs)
+        if shared != list(run_selector.value):
+            run_selector.value = shared
+
+    run_selector.param.watch(_persist_shortlist, "value")
+    dm.selection_state.param.watch(_pull_shortlist, "shortlist_runs")
 
     metric_options = [col for col in METRIC_COLUMNS if col in dm.comparison_rows.columns]
     metric_options += [col for col in SENTINEL_COLUMNS if col in dm.comparison_rows.columns]

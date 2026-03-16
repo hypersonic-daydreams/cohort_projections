@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import datetime as dt
+import fcntl
 import hashlib
 import json
 import subprocess
@@ -12,6 +13,11 @@ from typing import Any
 
 import pandas as pd
 import yaml
+
+from cohort_projections.analysis.benchmark_contract import (
+    BENCHMARK_INDEX_COLUMNS,
+    validate_index_columns,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_PROFILE_DIR = PROJECT_ROOT / "config" / "method_profiles"
@@ -23,6 +29,8 @@ BENCHMARK_CONTRACT_VERSION = "1.0"
 BAKKEN_FIPS = {"38105", "38053", "38061", "38025", "38089"}
 RESERVATION_FIPS = {"38005", "38085", "38079"}
 URBAN_COLLEGE_FIPS = {"38017", "38015", "38035", "38101"}
+COLLEGE_HEAVY_NON_CORE_FIPS = {"38035", "38101"}
+VOLATILE_OIL_FIPS = {"38053", "38105"}
 RECENT_ORIGINS = {2015, 2020}
 SENSITIVITY_SWING_ALERT = 5.0
 SENTINEL_COUNTIES = {
@@ -157,6 +165,33 @@ def assign_county_category(fips: str) -> str:
     return "Rural"
 
 
+def _mean_abs_pct_error_subset(
+    frame: pd.DataFrame,
+    *,
+    county_fips: set[str] | None = None,
+) -> float:
+    """Return mean absolute percent error for an optional county subset."""
+    work = frame
+    if county_fips is not None:
+        work = work[work["county_fips"].astype(str).isin(county_fips)]
+    return _mean_abs_pct_error(work)
+
+
+def _smallest_population_fips(county_method: pd.DataFrame, n_counties: int = 5) -> set[str]:
+    """Return the smallest counties by mean actual population within one benchmark run."""
+    if county_method.empty or "county_fips" not in county_method.columns:
+        return set()
+    pop_col = "actual"
+    if pop_col not in county_method.columns:
+        return set()
+    mean_pop = (
+        county_method.groupby("county_fips", as_index=False)[pop_col]
+        .mean()
+        .sort_values(pop_col, ascending=True)
+    )
+    return set(mean_pop.head(n_counties)["county_fips"].astype(str).tolist())
+
+
 def compute_prediction_intervals_generic(
     annual_county: pd.DataFrame,
     annual_state: pd.DataFrame,
@@ -241,6 +276,7 @@ def build_summary_scorecard(
         profile = method_profiles[method]
         state_method = annual_state[annual_state["method"] == method]
         county_method = county_df[county_df["method"] == method]
+        smallest_fips = _smallest_population_fips(county_method)
         recent_state = state_method[state_method["origin_year"].isin(RECENT_ORIGINS)]
         recent_short = recent_state[recent_state["horizon"] <= 5]
         recent_medium = recent_state[
@@ -269,6 +305,25 @@ def build_summary_scorecard(
             ),
             "county_mape_bakken": round(
                 _mean_abs_pct_error(county_method[county_method["category"] == "Bakken"]),
+                6,
+            ),
+            "county_mape_reservation": round(
+                _mean_abs_pct_error_subset(county_method, county_fips=RESERVATION_FIPS),
+                6,
+            ),
+            "county_mape_smallest": round(
+                _mean_abs_pct_error_subset(county_method, county_fips=smallest_fips),
+                6,
+            ),
+            "county_mape_volatile_oil": round(
+                _mean_abs_pct_error_subset(county_method, county_fips=VOLATILE_OIL_FIPS),
+                6,
+            ),
+            "county_mape_college_heavy_non_core": round(
+                _mean_abs_pct_error_subset(
+                    county_method,
+                    county_fips=COLLEGE_HEAVY_NON_CORE_FIPS,
+                ),
                 6,
             ),
             "negative_population_violations": int((county_method["projected"] < 0).sum()),
@@ -360,46 +415,41 @@ def append_benchmark_index(
     decision_id: str | None = None,
     decision_status: str = "pending",
 ) -> None:
-    """Append one row per method to the benchmark history index."""
+    """Append one row per method to the benchmark history index.
+
+    Uses an exclusive file lock so concurrent benchmark runs can safely
+    write to the same index without corrupting it.
+    """
     index_path.parent.mkdir(parents=True, exist_ok=True)
-    fieldnames = [
-        "run_id",
-        "run_date",
-        "method_id",
-        "config_id",
-        "scope",
-        "benchmark_label",
-        "benchmark_contract_version",
-        "git_commit",
-        "decision_id",
-        "decision_status",
-        "is_champion_at_run",
-        "summary_scorecard_path",
-        "manifest_path",
-    ]
+    fieldnames = list(BENCHMARK_INDEX_COLUMNS)
     write_header = not index_path.exists()
     with index_path.open("a", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
-        if write_header:
-            writer.writeheader()
-        for _, row in scorecard.iterrows():
-            writer.writerow(
-                {
-                    "run_id": row["run_id"],
-                    "run_date": str(row["run_id"]).split("-")[1],
-                    "method_id": row["method_id"],
-                    "config_id": row["config_id"],
-                    "scope": row["scope"],
-                    "benchmark_label": benchmark_label,
-                    "benchmark_contract_version": benchmark_contract_version,
-                    "git_commit": git_commit,
-                    "decision_id": decision_id or "",
-                    "decision_status": decision_status,
-                    "is_champion_at_run": str(row["method_id"] == champion_method_id).lower(),
-                    "summary_scorecard_path": str(manifest_path.parent / "summary_scorecard.csv"),
-                    "manifest_path": str(manifest_path),
-                }
-            )
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        try:
+            writer = csv.DictWriter(handle, fieldnames=fieldnames)
+            if write_header:
+                writer.writeheader()
+            for _, row in scorecard.iterrows():
+                writer.writerow(
+                    {
+                        "run_id": row["run_id"],
+                        "run_date": str(row["run_id"]).split("-")[1],
+                        "method_id": row["method_id"],
+                        "config_id": row["config_id"],
+                        "scope": row["scope"],
+                        "benchmark_label": benchmark_label,
+                        "benchmark_contract_version": benchmark_contract_version,
+                        "git_commit": git_commit,
+                        "decision_id": decision_id or "",
+                        "decision_status": decision_status,
+                        "is_champion_at_run": str(row["method_id"] == champion_method_id).lower(),
+                        "summary_scorecard_path": str(manifest_path.parent / "summary_scorecard.csv"),
+                        "manifest_path": str(manifest_path),
+                    }
+                )
+        finally:
+            fcntl.flock(handle, fcntl.LOCK_UN)
+    validate_index_columns(pd.read_csv(index_path))
 
 
 def render_benchmark_decision_record(

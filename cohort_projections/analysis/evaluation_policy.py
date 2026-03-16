@@ -29,6 +29,11 @@ def load_policy(policy_path: Path = DEFAULT_POLICY_PATH) -> dict[str, Any]:
     if not isinstance(policy, dict):
         raise ValueError(f"Invalid evaluation policy format: {policy_path}")
     # Validate required top-level keys
+    if "tradeoff_thresholds" not in policy and "tradeoff_metrics" in policy:
+        policy["tradeoff_thresholds"] = policy["tradeoff_metrics"]
+    if "tradeoff_metrics" not in policy and "tradeoff_thresholds" in policy:
+        policy["tradeoff_metrics"] = policy["tradeoff_thresholds"]
+
     for key in ("hard_gates", "tradeoff_thresholds", "agent_classification_rules"):
         if key not in policy:
             raise ValueError(f"Policy missing required key: {key}")
@@ -58,7 +63,7 @@ def evaluate_scorecard(
         - classification: one of CLASSIFICATIONS
         - hard_gate_results: dict mapping gate name to
           {passed: bool, value: int/float, max_allowed: int/float}
-        - tradeoff_results: dict mapping metric to
+        - tradeoff_metrics: dict mapping metric to
           {passed: bool, delta: float, max_regression: float}
         - sensitivity_flag: bool
         - reasons: list of strings explaining the classification
@@ -133,7 +138,95 @@ def evaluate_scorecard(
     return {
         "classification": classification,
         "hard_gate_results": hard_gate_results,
+        "tradeoff_metrics": tradeoff_results,
         "tradeoff_results": tradeoff_results,
         "sensitivity_flag": sensitivity_flag,
         "reasons": reasons,
+    }
+
+
+def evaluate_promotion(
+    challenger_row: dict[str, Any],
+    champion_row: dict[str, Any],
+    policy: dict[str, Any],
+) -> dict[str, Any]:
+    """Evaluate whether a classified challenger is promotion-ready.
+
+    Promotion policy is stricter than queue classification. It requires
+    explicit improvements on the recent-state metrics, enforces capped
+    regressions on tradeoff metrics, and optionally gives certain sentinel
+    counties veto power.
+    """
+    evaluation = evaluate_scorecard(challenger_row, champion_row, policy)
+    promotion_policy = policy.get("promotion_policy", {})
+    reasons: list[str] = []
+    checks: dict[str, Any] = {"base_classification": evaluation["classification"]}
+
+    if evaluation["classification"] != "passed_all_gates":
+        reasons.append("Challenger did not pass the baseline gate-aware classification.")
+        return {"promotion_ready": False, "checks": checks, "reasons": reasons}
+
+    required_improvements = {
+        "state_ape_recent_short": promotion_policy.get(
+            "state_ape_recent_short_min_improvement", 0.0
+        ),
+        "state_ape_recent_medium": promotion_policy.get(
+            "state_ape_recent_medium_min_improvement", 0.0
+        ),
+    }
+    for metric, min_improvement in required_improvements.items():
+        challenger_value = float(challenger_row.get(metric, 0.0))
+        champion_value = float(champion_row.get(metric, 0.0))
+        improvement = champion_value - challenger_value
+        passed = improvement >= float(min_improvement)
+        checks[metric] = {
+            "passed": passed,
+            "improvement": round(improvement, 6),
+            "min_improvement": float(min_improvement),
+        }
+        if not passed:
+            reasons.append(
+                f"{metric} improvement {improvement:+.4f} is below the required "
+                f"{float(min_improvement):.4f}."
+            )
+
+    overall_regression_limit = promotion_policy.get("county_mape_overall_max_regression")
+    if overall_regression_limit is not None:
+        delta = float(challenger_row.get("county_mape_overall", 0.0)) - float(
+            champion_row.get("county_mape_overall", 0.0)
+        )
+        passed = delta <= float(overall_regression_limit)
+        checks["county_mape_overall"] = {
+            "passed": passed,
+            "delta": round(delta, 6),
+            "max_regression": float(overall_regression_limit),
+        }
+        if not passed:
+            reasons.append(
+                f"county_mape_overall regression {delta:+.4f} exceeds "
+                f"{float(overall_regression_limit):.4f}."
+            )
+
+    sentinel_vetoes = policy.get("promotion_policy", {}).get("sentinel_vetoes", {})
+    for metric, max_regression in sentinel_vetoes.items():
+        delta = float(challenger_row.get(metric, 0.0)) - float(
+            champion_row.get(metric, 0.0)
+        )
+        passed = delta <= float(max_regression)
+        checks[metric] = {
+            "passed": passed,
+            "delta": round(delta, 6),
+            "max_regression": float(max_regression),
+        }
+        if not passed:
+            reasons.append(
+                f"{metric} regression {delta:+.4f} triggered a sentinel veto "
+                f"(limit {float(max_regression):.4f})."
+            )
+
+    return {
+        "promotion_ready": not reasons,
+        "checks": checks,
+        "reasons": reasons,
+        "classification": evaluation["classification"],
     }

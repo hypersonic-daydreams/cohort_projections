@@ -71,3 +71,16 @@ def test_register_dynamic_profile_methods_clones_search_only_dispatch() -> None:
         )
     finally:
         rbs._unregister_methods(registered)
+
+
+def test_artifact_completeness_flag_requires_core_outputs(tmp_path: Path) -> None:
+    for name in [
+        "summary_scorecard.csv",
+        "summary_scorecard.json",
+        "runtime_summary.json",
+        "state_metrics.csv",
+        "county_metrics.csv",
+    ]:
+        (tmp_path / name).write_text("", encoding="utf-8")
+
+    assert rbs._artifact_completeness_flag(tmp_path) is True

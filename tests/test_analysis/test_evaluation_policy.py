@@ -10,6 +10,7 @@ import yaml
 
 from cohort_projections.analysis.evaluation_policy import (
     DEFAULT_POLICY_PATH,
+    evaluate_promotion,
     evaluate_scorecard,
     load_policy,
 )
@@ -123,6 +124,7 @@ class TestEvaluateScorecard:
         assert result["sensitivity_flag"] is False
         assert all(g["passed"] for g in result["hard_gate_results"].values())
         assert all(t["passed"] for t in result["tradeoff_results"].values())
+        assert result["tradeoff_metrics"] == result["tradeoff_results"]
 
     def test_evaluate_failed_hard_gate_negative_pop(
         self, policy: dict[str, Any]
@@ -232,3 +234,42 @@ class TestEvaluateScorecard:
             assert trade["delta"] == pytest.approx(0.0)
             assert trade["passed"] is True
         assert result["sensitivity_flag"] is False
+
+
+def test_evaluate_promotion_applies_stricter_thresholds() -> None:
+    policy = load_policy(DEFAULT_POLICY_PATH)
+    champion = _make_row(
+        state_ape_recent_short=1.00,
+        state_ape_recent_medium=2.00,
+        county_mape_overall=0.05,
+        sentinel_cass_mape=1.0,
+    )
+    challenger = _make_row(
+        state_ape_recent_short=0.80,
+        state_ape_recent_medium=1.70,
+        county_mape_overall=0.05,
+        sentinel_cass_mape=1.05,
+    )
+
+    result = evaluate_promotion(challenger, champion, policy)
+    assert result["promotion_ready"] is True
+
+
+def test_evaluate_promotion_blocks_sentinel_veto_regression() -> None:
+    policy = load_policy(DEFAULT_POLICY_PATH)
+    champion = _make_row(
+        state_ape_recent_short=1.00,
+        state_ape_recent_medium=2.00,
+        county_mape_overall=0.05,
+        sentinel_cass_mape=1.0,
+    )
+    challenger = _make_row(
+        state_ape_recent_short=0.80,
+        state_ape_recent_medium=1.70,
+        county_mape_overall=0.05,
+        sentinel_cass_mape=1.20,
+    )
+
+    result = evaluate_promotion(challenger, champion, policy)
+    assert result["promotion_ready"] is False
+    assert any("sentinel veto" in reason for reason in result["reasons"])

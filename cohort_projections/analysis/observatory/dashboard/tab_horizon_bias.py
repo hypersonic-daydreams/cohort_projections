@@ -966,10 +966,15 @@ def build_horizon_bias_tab(dm: DashboardDataManager) -> pn.Column:
         A Panel Column containing all horizon bias analysis sections.
     """
     # Section 1: Selectors
+    default_run = (
+        dm.initialize_shortlist()[0]
+        if dm.initialize_shortlist()
+        else dm.champion_id or "All Runs"
+    )
     run_selector = pn.widgets.Select(
         name="Run",
         options=_run_options(dm),
-        value=dm.champion_id or "All Runs",
+        value=default_run,
         width=250,
     )
     category_selector = pn.widgets.Select(
@@ -985,6 +990,14 @@ def build_horizon_bias_tab(dm: DashboardDataManager) -> pn.Column:
         sizing_mode="stretch_width",
         styles={"gap": "10px"},
     )
+
+    def _sync_from_shortlist(event: Any) -> None:
+        del event
+        shortlist = list(dm.selection_state.shortlist_runs)
+        if shortlist and run_selector.value not in shortlist:
+            run_selector.value = shortlist[0]
+
+    dm.selection_state.param.watch(_sync_from_shortlist, "shortlist_runs")
 
     # Section 2: Horizon Profile (reactive)
     horizon_profile = pn.panel(pn.bind(

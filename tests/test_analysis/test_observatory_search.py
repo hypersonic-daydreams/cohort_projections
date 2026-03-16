@@ -370,6 +370,7 @@ class TestSearchController:
             run_budget: int | None = None,
             dry_run: bool = False,
             keep_worktrees: bool | None = None,
+            workers_per_run: int = 0,
         ) -> dict[str, object]:
             del dry_run, keep_worktrees, run_budget
             session = controller.load_session(search_id)
