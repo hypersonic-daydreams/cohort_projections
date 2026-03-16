@@ -1,5 +1,8 @@
 # ADR-020a: Vintage Methodology Investigation Plan
 
+## Status
+Accepted
+
 ## Purpose
 
 This document specifies the rigorous, methodical investigation to be conducted by sub-agents to assess the validity risks of using Census Bureau PEP data across vintage methodology transitions (2009 to 2010 and 2019 to 2020) for the North Dakota international migration time series.

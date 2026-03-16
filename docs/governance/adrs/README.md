@@ -133,7 +133,7 @@ Where:
 |-----|-------|--------|------|---------|
 | [008](008-bigquery-integration-design.md) | BigQuery Integration | Accepted | 2025-12-18 | Supplementary data source, service account auth, graceful degradation |
 | [009](009-logging-error-handling-strategy.md) | Logging and Error Handling | Accepted | 2025-12-18 | Python standard logging, hierarchical levels, defensive programming |
-| [011](011-testing-strategy.md) | Testing Strategy | Accepted | 2025-12-18 | Pragmatic approach, built-in validation, example scripts as tests |
+| [011](011-testing-strategy.md) | Testing Strategy | Superseded by ADR-056 | 2025-12-18 | Pragmatic approach, built-in validation, example scripts as tests |
 | [012](012-output-export-format-strategy.md) | Output and Export Formats | Accepted | 2025-12-18 | Parquet + CSV dual format, JSON metadata, optional Excel export |
 | [013](013-multi-geography-projection-design.md) | Multi-Geography Projections | Accepted | 2025-12-18 | Design for running projections across multiple geographic levels |
 | [014](014-pipeline-orchestration-design.md) | Pipeline Orchestration | Accepted | 2025-12-18 | Complete pipeline orchestration design |
@@ -151,7 +151,7 @@ Where:
 | ADR | Title | Status | Date | Summary |
 |-----|-------|--------|------|---------|
 | [017](017-sdc-2024-methodology-comparison.md) | SDC 2024 Methodology Comparison and Scenario | Accepted | 2025-12-28 | Compare SDC methods to baseline and document divergence drivers |
-| [018](018-immigration-policy-scenario-methodology.md) | Immigration Policy Scenario Methodology | Proposed | 2025-12-28 | Empirical adjustment method for policy-driven migration scenarios |
+| [018](018-immigration-policy-scenario-methodology.md) | Immigration Policy Scenario Methodology | Superseded by ADR-037 | 2025-12-28 | Empirical adjustment method for policy-driven migration scenarios |
 
 ### Review Process
 
@@ -167,7 +167,7 @@ Where:
 | [020a](020a-vintage-methodology-investigation-plan.md) | Vintage Methodology Investigation Plan | Accepted | 2026-01-01 | Sub-agent investigation plan for PEP vintage methodology transitions |
 | [021](021-immigration-status-durability-methodology.md) | Immigration Status Durability and Policy-Regime Methodology | Accepted | 2026-01-02 | Parole cohort durability, two-component estimand, policy-lever scenarios |
 | [022](022-unified-documentation-strategy.md) | Unified Documentation and Reproducibility Strategy | Proposed | 2026-01-01 | Auto-generated documentation index backed by PostgreSQL metadata |
-| [024](024-immigration-data-extension-fusion.md) | Immigration Data Extension and Fusion Strategy | Proposed | 2026-01-04 | Extend refugee/LPR series, align time bases, and incorporate regime-aware modeling |
+| [024](024-immigration-data-extension-fusion.md) | Immigration Data Extension and Fusion Strategy | Accepted | 2026-01-04 | Extend refugee/LPR series, align time bases, and incorporate regime-aware modeling |
 | [025](025-refugee-coverage-missing-state-handling.md) | Post-2020 Refugee Coverage and Missing-State Handling | Accepted | 2026-01-04 | Missing states left unknown; drop missing post-2020 in state panels; official national totals |
 | [026](026-amerasian-siv-handling-forecasting.md) | Amerasian/SIV Handling in Status Decomposition and Scenario Forecasts | Accepted | 2026-01-06 | Keep USRAP exposure strict; treat SIV as separate durable series linked to capacity with default sunset |
 | [027](027-travel-ban-extended-dynamics-supplement.md) | Supplemental Travel Ban Regime-Dynamics Extension | Accepted | 2026-01-06 | Keep pre-COVID Travel Ban DiD primary; add FY2024 regime-dynamics supplement; exclude pseudo-nationalities |
@@ -201,7 +201,7 @@ Where:
 | ADR | Title | Status | Date | Summary |
 |-----|-------|--------|------|---------|
 | [035](035-migration-data-source-census-pep.md) | Census PEP Components of Change for Migration Inputs | Accepted | 2026-02-03 | Replace IRS flows with Census PEP components; addresses 74K-80K projection divergence |
-| [036](036-migration-averaging-methodology.md) | Migration Averaging Methodology | Proposed | 2026-02-12 | Multi-period and interpolation approaches for PEP migration averaging |
+| [036](036-migration-averaging-methodology.md) | Migration Averaging Methodology | Accepted | 2026-02-12 | Multi-period and interpolation approaches for PEP migration averaging |
 | [037](037-cbo-grounded-scenario-methodology.md) | CBO-Grounded Scenario Methodology | Accepted | 2026-02-17 | CBO time-varying migration factor replaces arbitrary scenario multipliers |
 | [039](039-international-only-migration-factor.md) | International-Only Migration Factor | Accepted | 2026-02-17 | CBO migration factor applies to international migration only (intl_share decomposition) |
 | [040](040-extend-boom-dampening-2015-2020.md) | Extend Bakken Boom Dampening to 2015-2020 | Accepted | 2026-02-17 | Adds 2015-2020 to boom dampening periods for oil-impacted counties |
@@ -229,6 +229,7 @@ Where:
 | [042](042-baseline-projection-presentation-requirements.md) | Baseline Projection Presentation Requirements | Accepted | 2026-02-18 | Mandatory caveats and pairing with restricted_growth; baseline is trend-continuation, not forecast |
 | [043](043-migration-rate-cap.md) | Age-Aware Migration Rate Cap | Accepted | 2026-02-18 | Age-aware asymmetric cap (+/-15% for ages 15-24, +/-8% for others) clips statistical noise in convergence rates |
 | [049](049-college-age-smoothing-convergence-pipeline.md) | College-Age Smoothing in Convergence Pipeline | Accepted | 2026-02-18 | Fix bug: propagate college-age migration smoothing to convergence pipeline input; fixes Cass +63% → ~+48% |
+| [063](063-evaluation-framework.md) | Evaluation Framework Architecture | Accepted | 2026-03-11 | Five-module evaluation architecture with composite scorecard for systematic model comparison and selection |
 
 ### Vital Rates Calibration
 
@@ -242,6 +243,7 @@ Where:
 |-----|-------|--------|------|---------|
 | [054](054-state-county-aggregation-reconciliation.md) | State-County Aggregation Reconciliation | Accepted | 2026-02-23 | Align state totals with county rollups and close long-horizon divergence between independent runs. |
 | [055](055-group-quarters-separation.md) | Group Quarters Population Separation | Accepted | 2026-02-23 | Separate institutional and household populations to prevent GQ turnover from distorting migration dynamics. |
+| [062](062-aggregation-tolerance-widening.md) | Aggregation Tolerance Widening | Accepted | 2026-03-09 | Widen aggregation violation tolerance from 1.0 to 2.0 persons to eliminate false positives from rounding drift |
 
 ---
 
@@ -250,12 +252,13 @@ Where:
 | Status | Count |
 |--------|-------|
 | Accepted | 57 |
-| Proposed | 5 |
+| Proposed | 2 |
 | Rejected | 1 |
 | Deprecated | 0 |
-| Superseded | 1 |
+| Superseded | 3 |
+| Child ADRs (no formal status) | 4 |
 
-**Naming Convention Compliance**: All 60 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `020a`, `023a`).
+**Naming Convention Compliance**: All 67 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `020a`, `023a`).
 
 ---
 
@@ -320,8 +323,8 @@ Across all ADRs, these principles guided decisions:
 
 ---
 
-**Last Updated**: 2026-03-04
+**Last Updated**: 2026-03-16
 
-**Total ADRs**: 64 (57 accepted, 5 proposed, 1 rejected, 1 superseded)
+**Total ADRs**: 67 (57 accepted, 2 proposed, 1 rejected, 3 superseded, 4 child ADRs)
 
 **Template**: See [TEMPLATE.md](TEMPLATE.md) for creating new ADRs

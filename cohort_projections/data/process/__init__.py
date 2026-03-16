@@ -14,9 +14,6 @@ Modules:
     - place_housing_unit_projection: Housing-unit method for place projections (ADR-060)
 """
 
-from importlib import import_module
-from types import ModuleType
-
 # Base population processing
 from .base_population import (
     RACE_ETHNICITY_MAP,
@@ -151,11 +148,6 @@ from .survival_rates import (
 )
 
 
-def load_example_usage_module() -> ModuleType:
-    """Lazily load the base population example module."""
-    return import_module("cohort_projections.data.process.example_usage")
-
-
 __all__ = [
     # Base population
     "harmonize_race_categories",
@@ -257,6 +249,4 @@ __all__ = [
     "write_place_outputs",
     "write_places_summary",
     "write_run_level_metadata",
-    # Example entrypoint
-    "load_example_usage_module",
 ]

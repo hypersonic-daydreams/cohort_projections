@@ -12,21 +12,13 @@ from pathlib import Path
 import pandas as pd
 
 from cohort_projections.utils import get_logger_from_config
+from cohort_projections.utils.fips import normalize_fips_optional
 
 logger = get_logger_from_config(__name__)
 
 ND_STATE_FIPS = "38"
 
-
-def _normalize_fips(value: str | int | float | None, width: int) -> str | None:
-    """Normalize values to zero-padded FIPS-like codes."""
-    if value is None or pd.isna(value):
-        return None
-    text = str(value).strip().removesuffix(".0")
-    digits = "".join(ch for ch in text if ch.isdigit())
-    if not digits:
-        return None
-    return digits.zfill(width)[-width:]
+_normalize_fips = normalize_fips_optional
 
 
 def normalize_county_population_history(

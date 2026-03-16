@@ -407,9 +407,9 @@ This SOP defines the workflow for incorporating external AI analysis (e.g., from
 
 | Template | Location | When Used |
 |----------|----------|-----------|
-| ADR Report Structure | `docs/sops/templates/adr-report-structure.md` | Phase A, Step 1 |
-| Planning Synthesis | `docs/sops/templates/planning-synthesis.md` | Phase B Planning, Step 1 |
-| Module Package | `docs/sops/templates/module-package.md` | Phase B Implementation, Step 1 |
+| ADR Report Structure | `docs/governance/sops/templates/adr-report-structure.md` | Phase A, Step 1 |
+| Planning Synthesis | `docs/governance/sops/templates/planning-synthesis.md` | Phase B Planning, Step 1 |
+| Module Package | `docs/governance/sops/templates/module-package.md` | Phase B Implementation, Step 1 |
 
 ---
 

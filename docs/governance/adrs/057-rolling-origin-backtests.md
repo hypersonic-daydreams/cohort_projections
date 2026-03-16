@@ -121,6 +121,40 @@ rolling_origin_backtest:
 2. **IMP-08 (PP-003)**: Original static backtest implementation.
 3. **S04/S05**: Place projection specification documents defining metrics and thresholds.
 
+## Implementation Results (2026-03-01)
+
+Implemented as PP-005 workstream WS-A (completed 2026-03-01).
+
+### Files Created/Modified
+
+| File | Change |
+|------|--------|
+| `cohort_projections/data/process/rolling_origin_backtest.py` | **New** -- Expanding-window orchestration reusing existing backtest functions; 98% coverage |
+| `scripts/backtesting/run_rolling_origin_backtest.py` | **New** -- CLI entrypoint with per-window summaries and aggregate winner |
+| `config/projection_config.yaml` | Added `rolling_origin_backtest` config block under `place_projections` |
+| `docs/methodology.md` | Added section 7.5.1 rolling-origin cross-validation with results table and ADR-057 reference |
+
+### Production Results
+
+4 expanding windows evaluated (min_train_years=5, test_horizon=5):
+
+| Window | Train | Test | Regime |
+|--------|-------|------|--------|
+| 1 | 2000-2004 | 2005-2009 | Pre-boom |
+| 2 | 2000-2009 | 2010-2014 | Boom period |
+| 3 | 2000-2014 | 2015-2019 | Post-boom |
+| 4 | 2000-2019 | 2020-2024 | Recent/COVID |
+
+Winner: B-I (mean score = 2.5858) marginally over B-II (2.6645). Score spread of 0.079 confirms variant equivalence across regimes. B-II retained for production due to boundary behavior properties.
+
+### Test Coverage
+
+34 tests across 6 test classes in `tests/test_data/test_rolling_origin_backtest.py` covering window generation (boundary conditions, expanding property, non-overlap), aggregation (mean/median correctness), winner selection (tie-breaking, invalid criteria), and integration (mocked orchestration).
+
+### Deviations from Original Decision
+
+None. All 3 decisions implemented as specified.
+
 ## Revision History
 
 - **2026-03-01**: Initial version (ADR-057) - Rolling-origin cross-validation for place variant selection.

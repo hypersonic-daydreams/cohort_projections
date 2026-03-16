@@ -66,19 +66,11 @@ from typing import Any
 import pandas as pd
 
 from cohort_projections.utils import get_logger_from_config
+from cohort_projections.utils.fips import normalize_fips_optional
 
 logger = get_logger_from_config(__name__)
 
-
-def _normalize_fips(value: object, width: int) -> str | None:
-    """Normalize a FIPS-like value to zero-padded digit string."""
-    if value is None or pd.isna(value):
-        return None
-    text = str(value).strip().removesuffix(".0")
-    digits = "".join(ch for ch in text if ch.isdigit())
-    if not digits:
-        return None
-    return digits.zfill(width)[-width:]
+_normalize_fips = normalize_fips_optional
 
 
 def identify_multicounty_places(crosswalk: pd.DataFrame) -> list[str]:

@@ -85,6 +85,29 @@ Existing benchmark tests exercise the aggregation check. No new tests needed —
 1. EXP-B benchmark run: `br-20260309-182528-m2026r1-201f5eb`
 2. Empirical analysis: 460 observations across 5 benchmark runs (2 pre-sweep + 3 sweep)
 
+## Implementation Results (2026-03-09)
+
+Implemented as part of BM-001 experiment infrastructure during the 2026-03-09 experiment sweep.
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `cohort_projections/analysis/benchmarking.py` | `_aggregation_violations()` tolerance changed from 1.0 to 2.0 in both projected and actual mismatch checks |
+| `config/benchmark_evaluation_policy.yaml` | `aggregation_violations` description updated to reference 2.0 tolerance and ADR-062 |
+
+### Outcome
+
+EXP-B (`college_blend_factor: 0.7`) reclassified from `failed_hard_gate` to `passed_all_gates` after the tolerance change. EXP-B remains the only experiment in sweep 1 and sweep 2 to pass all gates (overall MAPE -0.09pp, college -1.78pp improvement). Zero false positives observed at the 2.0 threshold across all 460 historical (origin_year, method, validation_year) observations.
+
+### Test Coverage
+
+No new tests required -- the change is a constant in the existing `_aggregation_violations()` function, which is exercised by the benchmark test suite in `tests/test_analysis/test_benchmarking.py`.
+
+### Deviations from Original Decision
+
+None. Single constant changed as specified.
+
 ## Revision History
 
 - **2026-03-09**: Initial version (ADR-062) — widen tolerance based on empirical analysis

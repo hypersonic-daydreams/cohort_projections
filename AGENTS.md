@@ -2,7 +2,7 @@
 
 Canonical instruction set for all AI agents working on this codebase.
 
-**Last Updated:** 2026-03-13 | **Version:** 1.8.2 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
+**Last Updated:** 2026-03-16 | **Version:** 1.9.0 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
 
 ---
 
@@ -10,15 +10,15 @@ Canonical instruction set for all AI agents working on this codebase.
 
 **North Dakota Population Projection System** — Official cohort-component population projections for North Dakota at state, county, and place levels.
 
-### Current Focus: PP-005 Phase 2+ Place Projection Enhancements
+### Current Focus: CF-001 College Fix Model Revision (ADR-061); maintenance mode for completed PP-001 through PP-009
 
-Active development of four parallel workstreams under `PP-005`: rolling-origin backtests (ADR-057), multi-county place splitting (ADR-058), TIGER/geospatial exports (ADR-059), and housing-unit method (ADR-060). See `DEVELOPMENT_TRACKER.md` for workstream checklist status.
+PP-001 through PP-009 are all complete. The sole active work item is `CF-001` (College Fix Model Revision, ADR-061) on branch `feature/cf-001-college-fix-revision`. See `DEVELOPMENT_TRACKER.md` for maintenance-state tasks and any newly opened work.
 
 | Attribute | Value |
 |-----------|-------|
 | Stack | Python 3.12, uv, pandas, polars, YAML configs, pytest, Ruff, MyPy |
 | Methodology | Cohort-component (age × sex × race/ethnicity cohorts) |
-| Geographic Scope | State (1), Counties (53), Places (~400) |
+| Geographic Scope | State (1), Counties (53), Places (355 active, 90 receiving projections) |
 | Projection Horizon | 2025 to 2055 (annual) |
 
 **Philosophy:** Rigor over cleverness. Reproducibility. Linear pipeline design. Every assumption in ADRs.
@@ -98,6 +98,23 @@ Use `Projection Observatory` as the canonical full name for the dashboard and an
 If asked to work with the SDC 2024 journal article:
 - **Latest PDF**: Check `../sdc_2024_replication/scripts/statistical_analysis/journal_article/output/CURRENT_VERSION.txt`
 - **Source files**: `../sdc_2024_replication/scripts/statistical_analysis/journal_article/`
+
+### Code Architecture
+
+```text
+cohort_projections/core/         - Projection engine (cohort_component, fertility, mortality, migration)
+cohort_projections/data/load/    - Data loading (base population, Census age-sex population)
+cohort_projections/data/process/ - Rate computation and data processing (residual migration, survival
+                                   rates, convergence, fertility rates, place shares, housing-unit method)
+cohort_projections/data/fetch/   - Census API client for data retrieval
+cohort_projections/analysis/     - Evaluation framework, benchmarking, experiment logging, and
+                                   Projection Observatory (observatory/ subpackage)
+cohort_projections/geographic/   - Multi-geography handling (counties, places, state aggregation)
+cohort_projections/output/       - Report generation, visualizations, CSV/Excel writers
+cohort_projections/utils/        - Shared utilities (demographic calculations, config loading,
+                                   reproducibility, race mappings)
+cohort_projections/config/       - Configuration loading and race mapping constants
+```
 
 ---
 
@@ -331,6 +348,8 @@ uv sync               # Install dependencies
 
 ## 11. Repository Intelligence (Day 2 Operations)
 
+> **Note:** PostgreSQL access is not required for routine development tasks (coding, testing, projections, benchmarking). The intelligence system below is optional background infrastructure for code inventory and execution tracking.
+
 This repository uses a PostgreSQL-backed intelligence system to track code status, documentation links, and execution history.
 
 ### For AI Agents:
@@ -353,23 +372,16 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.9.0 | 2026-03-16 | Updated current focus to CF-001 / maintenance mode; PP-006 through PP-009 completion; Observatory maturation; updated place count to 355 active |
 | 1.8.2 | 2026-03-13 | Added Projection Observatory start-here and workflow-guide references to improve discoverability of Observatory status, operations, and follow-on backlog |
 | 1.8.1 | 2026-03-13 | Added canonical Projection Observatory naming, purpose, and prompt shorthand for future agent instructions |
-| 1.8.0 | 2026-03-01 | Updated project focus to post-development publication/maintenance mode after PP-001 through PP-004 closeout |
-| 1.7.0 | 2026-02-28 | Established `DEVELOPMENT_TRACKER.md` as explicit status-entry source of truth; added fast-path session-start guidance for status/remaining-work queries |
-| 1.6.0 | 2026-02-23 | Added data processing documentation standards (Section 5); added ALWAYS items 6-8; references SOP-002 |
-| 1.5.0 | 2026-02-18 | Added ADR process guidance; updated horizon to 2055; added reviews reference |
-| 1.4.0 | 2026-02-02 | Refocused on 2026 cohort projections; de-emphasized SDC 2024; fixed section numbering; updated guides index |
-| 1.3.0 | 2026-01-01 | Refactored to ~200 lines; extracted guides and added SOP references |
-| 1.2.0 | 2025-12-31 | Consolidated test workflow and BigQuery content |
-| 1.1.0 | 2025-12-29 | Updated for uv package management |
-| 1.0.0 | 2025-12-28 | Initial AGENTS.md |
+| Earlier | 2025-12-28 to 2026-03-01 | Versions 1.0.0 through 1.8.0: initial creation, uv migration, guide extraction, SOP references, ADR process, data-processing documentation standards, development-tracker source-of-truth rule, post-PP-004 maintenance-mode transition |
 
 ---
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-03-13 |
-| **Version** | 1.8.2 |
+| **Last Updated** | 2026-03-16 |
+| **Version** | 1.9.0 |
 | **Status** | Current |
 | **Applies To** | All AI Agents |

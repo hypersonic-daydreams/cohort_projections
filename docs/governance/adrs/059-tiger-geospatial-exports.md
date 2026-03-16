@@ -182,6 +182,31 @@ is simpler and sufficient.
 2. **GeoJSON RFC 7946**: https://tools.ietf.org/html/rfc7946
 3. **geopandas documentation**: https://geopandas.org/
 
+## Implementation Results (2026-03-01)
+
+Implemented as PP-005 workstream WS-C (completed 2026-03-01).
+
+### Files Created/Modified
+
+| File | Change |
+|------|--------|
+| `cohort_projections/geographic/geography_loader.py` | Added `_load_counties_from_tiger()` and `_load_places_from_tiger()` with geopandas |
+| `cohort_projections/output/writers.py` | Added `write_projection_shapefile()` with GeoJSON and Shapefile support |
+| `scripts/pipeline/03_export_results.py` | Added `geojson` and `shapefile` to `--formats` choices |
+| `config/projection_config.yaml` | Added `tiger_boundaries` paths under `geography.reference_data` |
+
+### Production Results
+
+42 GeoJSON files generated (7 key years x 2 geography levels x 3 scenarios). Each county-level file contains 53 features; each place-level file contains 90 features. Population totals in geospatial output verified to match tabular projection outputs.
+
+### Test Coverage
+
+23 tests total: 18 unit tests in `tests/test_output/test_geospatial_export.py` (TIGER loading, join logic, export formats, geopandas guards, filtering, validation) and 5 integration tests in `tests/test_integration/test_geospatial_pipeline.py` (end-to-end pipeline execution with mock boundaries, dry-run verification, graceful error handling).
+
+### Deviations from Original Decision
+
+None. All 3 decisions implemented as specified. The optional geopandas dependency is guarded throughout; the pipeline continues to work when geopandas is not installed.
+
 ## Revision History
 
 - **2026-03-01**: Initial version (ADR-059) -- TIGER geospatial export implementation

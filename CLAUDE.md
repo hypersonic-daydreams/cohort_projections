@@ -2,7 +2,7 @@
 
 Quick reference for Claude Code. **For complete guidance, see [AGENTS.md](./AGENTS.md).**
 
-Current status: 2026 projection development backlog (`PP-001` through `PP-004`) is closed as of 2026-03-01; use `DEVELOPMENT_TRACKER.md` for maintenance-state tasks and any newly opened work.
+Current status: All projection development packages (`PP-001` through `PP-009`) are complete. Active work item: `CF-001` College Fix Model Revision (ADR-061). Use `DEVELOPMENT_TRACKER.md` for maintenance-state tasks and any newly opened work.
 
 ---
 
@@ -17,11 +17,13 @@ pytest tests/unit/              # Unit tests only
 
 ### Code Quality
 ```bash
-pre-commit run --all-files      # All quality checks
+pre-commit run --all-files      # All quality checks (~3 min, runs ruff + mypy + pytest)
 ruff check cohort_projections/  # Linting
 ruff check --fix cohort_projections/  # Auto-fix
 mypy cohort_projections/        # Type checking
 ```
+
+> **Tip:** For quick verification, run `pytest` directly instead of `pre-commit run --all-files`. Pre-commit triggers ruff, mypy, and the full test suite, taking 3+ minutes.
 
 ### Data Sync
 ```bash
@@ -117,6 +119,6 @@ git add . && git commit -m "..."
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-03-12 |
-| **Version** | 2.5.0 |
+| **Last Updated** | 2026-03-16 |
+| **Version** | 2.6.0 |
 | **Note** | Quick-reference wrapper for Claude Code. See AGENTS.md for complete guidance. |

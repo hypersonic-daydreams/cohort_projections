@@ -92,7 +92,7 @@ Brief description of what this SOP accomplishes and why it exists.
 
 | Template | Location | When Used |
 |----------|----------|-----------|
-| Template 1 | `docs/sops/templates/name.md` | Phase X, Step Y |
+| Template 1 | `docs/governance/sops/templates/name.md` | Phase X, Step Y |
 
 ---
 

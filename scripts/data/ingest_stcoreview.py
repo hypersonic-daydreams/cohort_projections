@@ -2,23 +2,74 @@
 """
 Ingest Census Bureau stcoreview (State/County Review) Vintage 2025 data.
 
-Parses the Excel file from the Census Bureau's Population Estimates Program
-and outputs a tidy parquet file for downstream use. The stcoreview file contains
-county-level population estimates and components of change for North Dakota,
-Vintage 2025 (covering 2020-2025).
+Created: 2026-02-18
+ADR: 035 (Census PEP Components of Change), 055 (Group Quarters Separation)
+Author: nhaarstad
 
-Column naming convention in the source file:
-    {Variable}_{Year}          -- total, e.g., Respop_2025, Births_2024
-    {Variable}_{AgeGroup}_{Year} -- by age group, e.g., Respop_0017_2023
-    {Variable}_census          -- Census 2020 count (often '.' for missing)
-    {Variable}_base            -- Census 2020 base population
+Purpose
+-------
+Parse the pre-release stcoreview Excel file from the Census Bureau's Population
+Estimates Program into a tidy long-format parquet for downstream pipeline use.
+The stcoreview file is the authoritative source for county-level population
+estimates, components of change (births, deaths, domestic/international migration),
+and household/group-quarters population splits for North Dakota Vintage 2025
+(2020-2025). Without this ingestion step, the project cannot compute residual
+migration rates (ADR-035) or separate group quarters from household population
+(ADR-055).
 
-Variables include: Respop, HHpop, GQpop, Births, Deaths, Dommig, Dommigrate,
-Intlmig, Residual, Popturning18, Popturning65, Natrake
+Method
+------
+1. Read the "in" sheet from the stcoreview Excel file, preserving State and
+   County columns as strings for FIPS code construction.
+2. Build 5-digit FIPS codes (state + county) and flag the state-total row
+   (county code 000).
+3. Parse each data column name using a regex pattern that extracts the variable
+   name (e.g., Respop, GQpop, Births), optional age group suffix (0017, 1864,
+   65up), and period (census, base, or 4-digit year).
+4. Unpivot all parsed data columns into long format with one row per
+   geoid x variable x age_group x period combination.
+5. Convert '.' sentinel values (Census missing indicator) to None.
+6. Add an integer year column derived from the period field where possible.
+7. Write the result to a gzip-compressed parquet file.
 
-Age groups: 0017 (0-17), 1864 (18-64), 65up (65+)
+Key design decisions
+--------------------
+- **Long format over wide**: The source file has ~300+ columns in wide format.
+  Converting to long format (geoid, variable, age_group, period, value) makes
+  downstream filtering and joining straightforward without requiring column name
+  parsing at every use site.
+- **All variables preserved**: Rather than extracting only Respop or GQpop, all
+  variables (births, deaths, migration, residual, etc.) are retained so a single
+  parquet file serves multiple downstream consumers (migration pipeline, GQ
+  separation, validation scripts).
+- **String FIPS codes**: State and county codes are stored as zero-padded strings
+  (e.g., "38", "015") to match the project-wide FIPS convention and prevent
+  integer truncation of leading zeros.
 
-Usage:
+Validation results (2026-02-18)
+-------------------------------
+- 54 geographic units parsed (53 counties + 1 state total)
+- 12 variables extracted: Respop, HHpop, GQpop, Births, Deaths, Dommig,
+  Dommigrate, Intlmig, Residual, Popturning18, Popturning65, Natrake
+- 4 age groups: total, 0-17, 18-64, 65+
+- 8 periods: census, base, 2020-2025
+
+Inputs
+------
+- data/raw/population/stcoreview_v2025_ND.xlsx
+    Census Bureau PEP stcoreview pre-release file for North Dakota,
+    Vintage 2025. Contains "in" sheet with wide-format county rows and
+    ~300+ columns. Received 2026-02 from Census pre-release distribution.
+
+Output
+------
+- data/raw/population/stcoreview_v2025_nd_parsed.parquet
+    Long-format parquet, gzip compressed. Columns: geoid, state_fips,
+    county_fips, county_name, is_state_total, variable, age_group, period,
+    value, year.
+
+Usage
+-----
     python scripts/data/ingest_stcoreview.py
     python scripts/data/ingest_stcoreview.py --input /path/to/file.xlsx
     python scripts/data/ingest_stcoreview.py --output data/raw/population/custom_output.parquet

@@ -127,7 +127,7 @@ Projections are available in multiple formats:
 
 ## License
 
-To be determined
+Proprietary -- North Dakota State Data Center
 
 ## Contact
 

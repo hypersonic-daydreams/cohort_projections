@@ -1,12 +1,93 @@
 #!/usr/bin/env python3
 """
-Extract Census PEP (POPEST) technical documentation text + tables.
+Extract Census PEP (POPEST) technical documentation text and tables from PDFs.
 
-This is Phase 4 of ADR-034. It:
-  - extracts per-page text and best-effort tables from PDFs in `raw/docs/`
-  - writes derived artifacts to `derived/docs/` with PDF+page references
-  - generates per-dataset rich metadata JSON files in `metadata/`
-  - links derived artifacts from `catalog.yaml`
+Created: 2026-02-03
+ADR: 034 (Census PEP Data Archive — Phase 4)
+Author: nhaarstad
+
+Purpose
+-------
+Make the Census Bureau's technical documentation (file layouts, methodology PDFs)
+machine-readable and linkable to specific datasets. Raw PDF documentation is
+essential for understanding column semantics, YEAR codes, SUMLEV values, and
+methodology changes across vintages, but PDF format makes it inaccessible to
+programmatic consumers. This script extracts full text and tables from each PDF,
+generates per-dataset metadata JSON files linking data to its documentation, and
+records all artifacts in the shared catalog.
+
+Method
+------
+1. Identify all documentation PDFs in the catalog (datasets with level="docs").
+2. For each PDF:
+   a. Read PDF bytes from raw/ staging directory, or from the vintage ZIP
+      archive if raw files have been cleaned up (Phase 3 archival).
+   b. Extract per-page plain text using pdfplumber and write to
+      derived/docs/{slug}/pages/page_NNNN.txt.
+   c. Extract tables from each page as CSV files in
+      derived/docs/{slug}/tables/page_NNNN_table_NN.csv.
+   d. Write a combined fulltext.txt and an index.json manifest with page
+      references, table dimensions, and source PDF checksums.
+3. For each non-docs dataset in the catalog:
+   a. Match it to relevant documentation PDFs by vintage and dataset ID.
+   b. Generate a metadata JSON file in metadata/{dataset_id}.json containing
+      the dataset's schema summary (from parquet or CSV header), provenance
+      links, and pointers to associated documentation artifacts.
+4. Update catalog.yaml with derived_doc_index_json and metadata_json paths.
+
+Key design decisions
+--------------------
+- **Per-page text files**: Individual page text files enable targeted retrieval
+  (e.g., "what does YEAR code 3 mean?") without loading the full document.
+  The index.json provides the lookup from page number to text file.
+- **Best-effort table extraction**: pdfplumber's table detection is imperfect for
+  Census PDFs (which use inconsistent formatting). Tables are extracted on a
+  best-effort basis as raw CSV, with no post-processing. Consumers should treat
+  them as approximate and verify against page text.
+- **Archive fallback for raw bytes**: After Phase 3 archival, raw PDF files may
+  be deleted from staging. The script transparently reads from the vintage ZIP
+  archive, enabling re-extraction without re-downloading.
+- **Schema from parquet preferred**: Dataset metadata includes column names and
+  Arrow types from the parquet file if available, falling back to CSV header
+  parsing. This ensures metadata reflects the actual data schema.
+
+Validation results (2026-02-03)
+-------------------------------
+- 3 documentation PDFs extracted (file layouts for sub-est2024, co-est2024;
+  2024 subcounty methodology)
+- Per-dataset metadata JSON generated for all non-docs catalog entries
+- Index.json checksums (MD5 + SHA-256) match source PDFs
+
+Inputs
+------
+- $CENSUS_POPEST_DIR/catalog.yaml
+    Shared dataset catalog identifying documentation PDFs and data datasets.
+- $CENSUS_POPEST_DIR/raw/docs/*.pdf (or raw-archives/{vintage}-raw.zip)
+    Census Bureau technical documentation PDFs.
+- $CENSUS_POPEST_DIR/parquet/{vintage}/{level}/*.parquet
+    Parquet files for schema introspection (optional; falls back to CSV header).
+
+Output
+------
+- $CENSUS_POPEST_DIR/derived/docs/{slug}/index.json
+    Per-PDF extraction manifest with page references and checksums.
+- $CENSUS_POPEST_DIR/derived/docs/{slug}/pages/page_NNNN.txt
+    Plain text extraction for each PDF page.
+- $CENSUS_POPEST_DIR/derived/docs/{slug}/tables/page_NNNN_table_NN.csv
+    Best-effort table extractions as CSV.
+- $CENSUS_POPEST_DIR/derived/docs/{slug}/fulltext.txt
+    Concatenated full text of the PDF.
+- $CENSUS_POPEST_DIR/metadata/{dataset_id}.json
+    Per-dataset metadata with schema, provenance, and documentation links.
+- $CENSUS_POPEST_DIR/catalog.yaml (updated)
+    Each dataset entry gains derived_doc_index_json and/or metadata_json paths.
+
+Usage
+-----
+    python scripts/data/extract_popest_docs.py
+    python scripts/data/extract_popest_docs.py --dataset-id co-est2024-alldata
+    python scripts/data/extract_popest_docs.py --overwrite --verbose
+    python scripts/data/extract_popest_docs.py --dry-run
 """
 
 from __future__ import annotations

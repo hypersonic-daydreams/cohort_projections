@@ -1,32 +1,81 @@
 """
 Ingest ND Vital Event Summary (VES) PDFs into structured parquet files.
 
-Extracts county-by-year time-series data from VES PDFs published by the
-ND Dept. of Health & Human Services. Each VES covers a rolling window of
-15-16 years. This script processes all available vintages (2016-2024) and
-merges overlapping years with a latest-vintage-wins deduplication strategy.
+Created: 2026-02-23
+ADR: 053 (ND-Specific Vital Rates — validation context)
+Author: nhaarstad
 
-VES table types (all county × year format):
-  - births, birth_rates, fertility_rates
-  - pregnancies, pregnancy_rates
-  - teenage_births, teenage_birth_rates, teenage_birth_ratios
-  - teenage_pregnancies, teenage_pregnancy_rates, teenage_pregnancy_ratios
-  - out_of_wedlock_births, out_of_wedlock_birth_ratios
-  - out_of_wedlock_pregnancies, out_of_wedlock_pregnancy_ratios
-  - low_weight_births, low_weight_birth_ratios
-  - infant_deaths, infant_death_ratios
-  - neonatal_deaths, neonatal_death_ratios
-  - fetal_deaths, fetal_death_ratios
-  - deaths, death_rates
-  - childhood_adolescent_deaths, childhood_adolescent_death_rates
-  - marriages, marriage_rates
-  - divorces, divorce_rates
-  - census_data (2020 population, different format)
+Purpose
+-------
+Extract county-by-year vital statistics time-series data from PDF reports
+published by the ND Department of Health & Human Services. The VES PDFs are
+the only source of county-level vital event counts (births, deaths, marriages,
+etc.) spanning 2000-2024, which are used for validation of Census PEP
+components and ND-specific fertility/mortality rate calibration (ADR-053).
+Without this script, county-level vital event data would require manual
+transcription from 29 tables across 9 PDF vintages.
 
-Data suppression: Cells with fewer than 5 events are marked "NR" (Not
-Reportable) in the PDFs. These are converted to NaN in the output.
+Method
+------
+1. Discover all VES PDF files in the input directory matching the pattern
+   {YYYY}VES.pdf (vintages 2016 through 2024).
+2. For each PDF, classify every page by matching its title line against a
+   prioritized set of regex patterns (e.g., "Resident Births" -> births,
+   "Teenage Birth Rate" -> teenage_birth_rates). Resolve duplicate/ambiguous
+   page titles using the known expected table ordering within each VES.
+3. For each classified page, detect year column headers by scanning for a
+   row containing 10+ consecutive 4-digit years.
+4. Parse county-by-year tables using a two-pass strategy: first attempt
+   text-based extraction (fast, handles most pages), then fall back to
+   positional character-coordinate parsing for pages with blank cells where
+   text-based parsing underextracts counties.
+5. Convert "NR" (Not Reportable, <5 events) cells to NaN and cast year
+   columns to numeric.
+6. Merge tables across all VES vintages with a latest-vintage-wins strategy:
+   overlapping years are overwritten by the most recent VES publication,
+   ensuring revised counts supersede earlier estimates.
+7. Write one parquet file per table type (e.g., ves_births.parquet,
+   ves_death_rates.parquet) to the output directory.
 
-Usage:
+Key design decisions
+--------------------
+- **Latest-vintage-wins deduplication**: VES PDFs have overlapping year ranges
+  (e.g., 2022VES covers 2007-2022, 2024VES covers 2009-2024). Later vintages
+  may contain revised counts, so we layer vintages chronologically and let the
+  most recent publication overwrite earlier values for the same county-year cell.
+- **Two-pass parsing (text then positional)**: Pure text extraction fails on
+  pages where some county-year cells are genuinely blank (not NR), because
+  splitting by whitespace produces fewer values than year columns. The positional
+  fallback uses character x-coordinates to align values with column headers,
+  correctly handling sparse pages at the cost of slower extraction.
+- **Regex title classification with expected-order fallback**: Some VES PDFs
+  have ambiguous or duplicate page titles (e.g., two pages titled "Resident
+  Deaths"). The expected table ordering list resolves these by assigning the
+  next unmatched label in sequence.
+
+Validation results (2026-02-23)
+-------------------------------
+- 9 VES vintages processed (2016-2024), ~260 pages per vintage
+- 29 table types extracted per vintage (28 county-year + 1 census_data)
+- 53 counties extracted per table (complete coverage)
+- Year range after merging: 2001-2024 (24 years for most table types)
+- NR (suppressed) cells: varies by table, highest in small-county infant/
+  neonatal death tables
+
+Inputs
+------
+- data/raw/{YYYY}VES.pdf (where YYYY = 2016, 2017, ..., 2024)
+    ND DHHS Vital Event Summary PDFs. Each contains ~29 county-by-year tables
+    covering a rolling 15-16 year window. Downloaded from ND DHHS website.
+
+Output
+------
+- data/processed/ves/ves_{table_type}.parquet (29 files)
+    One parquet per table type. Columns: county (str), plus one column per year
+    (numeric, NaN for suppressed cells). 53 county rows + 1 Total row per file.
+
+Usage
+-----
     python scripts/data/ingest_ves_data.py
     python scripts/data/ingest_ves_data.py --verbose
     python scripts/data/ingest_ves_data.py --output-dir data/processed/ves

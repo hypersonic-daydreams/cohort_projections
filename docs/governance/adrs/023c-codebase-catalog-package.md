@@ -1,5 +1,8 @@
 # ADR-023c: Codebase Catalog Package
 
+## Status
+Accepted
+
 ## Purpose
 
 This document specifies the extraction of repository scanning, code inventory, and pre-commit hook utilities into a standalone `codebase-catalog` Python package.

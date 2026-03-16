@@ -37,7 +37,7 @@ This directory contains standard operating procedures for the cohort_projections
 ## Directory Structure
 
 ```
-docs/sops/
+docs/governance/sops/
 ├── README.md                    # This index
 ├── TEMPLATE.md                  # SOP template
 ├── SOP-001-*.md                 # Individual SOPs

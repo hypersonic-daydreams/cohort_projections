@@ -78,7 +78,7 @@ data/metadata/**/*.sql
 
 # Export files (synced via rclone, not git)
 data/exports/**
-data/output/
+data/output/**
 
 # Keep directory structure
 !data/raw/.gitkeep
@@ -87,6 +87,8 @@ data/output/
 !data/projections/.gitkeep
 !data/interim/.gitkeep
 !data/interim/**/.gitkeep
+!data/exports/.gitkeep
+!data/output/.gitkeep
 
 # Logs
 *.log
@@ -107,13 +109,9 @@ htmlcov/
 data/projections/**/*.json
 data/projections/**/*.pdf
 data/projections/**/*.geojson
-!data/projections/.gitkeep
-
-# Analysis outputs (synced via rclone, not git)
-data/analysis/**
-
 # Backtesting outputs (synced via rclone, not git)
 data/backtesting/**
+!data/backtesting/.gitkeep
 
 # Local scratch work (not synced anywhere)
 scratch/**
@@ -189,3 +187,6 @@ docs/governance/adrs/021-reports/
 docs/reviews/**/*.html
 docs/reviews/**/*.json
 docs/reviews/assets/
+
+# Downloaded/generated PDFs in docs (not tracked)
+docs/**/*.pdf

@@ -1,7 +1,7 @@
 # North Dakota Cohort-Component Population Projection Model: Methodology
 
-**Version:** 1.0
-**Date:** February 2026
+**Version:** 1.1
+**Date:** March 2026
 **Base Year:** 2025 (Census PEP Vintage 2025)
 **Projection Horizon:** 2025--2055 (30 years)
 
@@ -1238,4 +1238,8 @@ The following Architecture Decision Records (ADRs) govern the methodological cho
 | ADR-054 | State-County Aggregation Reconciliation | Accepted | 7.4 |
 | ADR-055 | Group Quarters Population Separation | Accepted | 2, 5, 7.3 |
 | ADR-057 | Rolling-Origin Backtests for Place Variant Selection | Accepted | 7.5.1 |
+| ADR-058 | Multi-County Place Splitting | Accepted | 7.5 |
 | ADR-060 | Housing-Unit Method for Place Projections | Accepted | 7.5.2 |
+| ADR-061 | College Fix Model Revision | Proposed | 5 |
+| ADR-062 | Widen Aggregation Violation Tolerance | Accepted | 7.4 |
+| ADR-063 | Evaluation Framework Architecture | Accepted | 8 |

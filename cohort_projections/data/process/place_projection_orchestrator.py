@@ -36,6 +36,7 @@ from cohort_projections.data.process.place_share_trending import (
     trend_all_places_in_county,
 )
 from cohort_projections.utils import get_logger_from_config
+from cohort_projections.utils.fips import normalize_fips
 
 logger = get_logger_from_config(__name__)
 
@@ -87,11 +88,7 @@ def _project_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
-def _normalize_fips(value: object, width: int) -> str:
-    """Normalize FIPS-like values to zero-padded digit strings."""
-    text = str(value).strip().removesuffix(".0")
-    digits = "".join(ch for ch in text if ch.isdigit())
-    return digits.zfill(width)[-width:]
+_normalize_fips = normalize_fips
 
 
 def _as_bool(value: object) -> bool:

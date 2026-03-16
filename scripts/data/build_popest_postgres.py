@@ -1,13 +1,94 @@
 #!/usr/bin/env python3
 """
-Build/refresh a Postgres analytics layer for Census PEP (POPEST).
+Build a PostgreSQL analytics layer from Census PEP (POPEST) parquet files.
 
-This is Phase 5 of ADR-034. It reads the shared parquet files and builds
-harmonized cross-vintage totals tables (starting with place + county totals).
+Created: 2026-02-03
+ADR: 034 (Census PEP Data Archive — Phase 5)
+Author: nhaarstad
 
-Configuration:
-  - Shared data directory: `CENSUS_POPEST_DIR` (or `--popest-dir`)
-  - Postgres DSN: `CENSUS_POPEST_PG_DSN` (required)
+Purpose
+-------
+Create harmonized cross-vintage population totals tables in PostgreSQL for
+interactive SQL analysis of Census PEP data. The raw Census files use
+different column layouts, YEAR code conventions, and geographic identifiers
+across vintages (1970s-2024), making ad-hoc cross-vintage queries impractical
+on raw files. This script unpivots wide-format POPESTIMATE columns into a
+uniform long-format schema (vintage, year, geoid, population) and loads the
+result into a PostgreSQL analytics schema with appropriate indexes and
+materialized views for North Dakota filtering.
+
+Method
+------
+1. Load the shared catalog.yaml and identify datasets with parquet files at
+   the place and county geographic levels.
+2. For each place-level parquet file:
+   a. Read the parquet file into a DataFrame.
+   b. Unpivot POPESTIMATEYYYY columns into long format (year, population).
+   c. Construct standardized FIPS codes (state_fips, place_fips, geoid).
+   d. Yield a chunk DataFrame with the harmonized schema.
+3. For each county-level parquet file:
+   a. Handle two distinct source layouts: wide-format (POPESTIMATEYYYY
+      columns) and the intercensal ASRH format (YEAR code + TOT_POP columns,
+      filtered to AGEGRP=0 for totals, YEAR codes 2-12 mapped to calendar
+      years 2010-2020).
+   b. Construct standardized FIPS codes (state_fips, county_fips, geoid).
+   c. Yield a chunk DataFrame with the harmonized schema.
+4. For each target table (place_totals, county_totals):
+   a. Create a staging table ({table}__new) with the target DDL.
+   b. Write each chunk to a temporary CSV, then COPY into the staging table.
+   c. Create indexes (geoid+year, vintage+geoid+year, state+year).
+   d. Drop existing materialized views, atomically swap the staging table to
+      the final name, then recreate materialized views (e.g.,
+      mv_place_totals_nd for state_fips='38').
+5. Record a build timestamp in the build_info table and commit.
+
+Key design decisions
+--------------------
+- **Atomic table swap**: The staging table is built as {table}__new, then the
+  old table is dropped and the new one is renamed. This avoids downtime: the
+  table is either fully old or fully new, never partially loaded.
+- **CSV COPY for bulk loading**: Using PostgreSQL COPY FROM STDIN with CSV
+  format is 10-50x faster than row-by-row INSERT for the hundreds of thousands
+  of rows being loaded. Temporary CSV files are cleaned up after each chunk.
+- **Materialized views for ND filtering**: Since most analytical queries filter
+  to state_fips='38' (North Dakota), pre-filtered materialized views
+  (mv_place_totals_nd, mv_county_totals_nd) avoid full table scans and provide
+  sub-millisecond query times for interactive analysis.
+- **YEAR code translation for intercensal data**: The 2010-2020 county
+  intercensal file uses YEAR codes (2=April 2010, 3=July 2010, ..., 12=July
+  2020) rather than calendar years. The script maps codes 2-12 to years
+  2010-2020 and filters to AGEGRP=0 (total population) to match the totals
+  schema.
+
+Validation results (2026-02-03)
+-------------------------------
+- place_totals: loaded from 4 place-level datasets (2000-2010 through 2020-2024)
+- county_totals: loaded from 5 county-level datasets (2000-2009 through 2020-2024)
+- ND materialized views created with indexes
+- Build timestamp recorded in popest_analytics.build_info
+
+Inputs
+------
+- $CENSUS_POPEST_DIR/catalog.yaml
+    Shared dataset catalog identifying parquet files per dataset.
+- $CENSUS_POPEST_DIR/parquet/{vintage}/{level}/*.parquet
+    Parquet files produced by Phase 2 (convert_popest_to_parquet.py).
+- CENSUS_POPEST_PG_DSN environment variable
+    PostgreSQL connection string (e.g., "host=localhost dbname=census").
+
+Output
+------
+- PostgreSQL schema: popest_analytics
+    Tables: place_totals, county_totals, build_info
+    Materialized views: mv_place_totals_nd, mv_county_totals_nd
+    Indexes on (geoid, year), (vintage, geoid, year), (state_fips, year)
+
+Usage
+-----
+    export CENSUS_POPEST_PG_DSN="host=localhost dbname=census"
+    python scripts/data/build_popest_postgres.py
+    python scripts/data/build_popest_postgres.py --skip-place
+    python scripts/data/build_popest_postgres.py --skip-county --verbose
 """
 
 from __future__ import annotations

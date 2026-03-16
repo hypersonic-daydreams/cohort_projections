@@ -1,14 +1,85 @@
 #!/usr/bin/env python3
 """
-Archive Census PEP (POPEST) raw staging files by vintage.
+Archive Census PEP (POPEST) raw staging files into per-vintage ZIP archives.
 
-This is Phase 3 of ADR-034. For each vintage in the shared `catalog.yaml`, it
-creates a single ZIP archive in `raw-archives/` containing:
-  - raw source files exactly as downloaded (CSV/ZIP/TXT/PDF)
-  - a machine-readable `manifest.json` with checksums + source URLs
+Created: 2026-02-03
+ADR: 034 (Census PEP Data Archive — Phase 3)
+Author: nhaarstad
 
-After integrity verification, it can delete the uncompressed `raw/` staging
-files.
+Purpose
+-------
+Consolidate raw Census PEP staging files into integrity-verified ZIP archives
+organized by vintage (e.g., 2020-2024-raw.zip). The raw staging directory can
+contain 278+ MB of CSV, ZIP, TXT, and PDF files across multiple vintages; after
+Parquet conversion (Phase 2), the raw files are redundant for day-to-day use but
+must be preserved for reproducibility. Archiving reduces storage consumption on
+the shared data directory and enables safe cleanup of staging files while
+maintaining full provenance via embedded manifest.json checksums.
+
+Method
+------
+1. Load the shared catalog.yaml and group datasets by vintage.
+2. For each target vintage:
+   a. Build a manifest.json containing dataset IDs, raw file paths, file sizes,
+      MD5 checksums, source URLs, and download dates for all files in that
+      vintage.
+   b. Create a ZIP archive (DEFLATED, level 9) containing the manifest and all
+      raw files, preserving their relative paths.
+   c. Verify archive integrity by comparing every file's MD5 and size against
+      the manifest. Also verify the manifest itself is present in the archive.
+   d. Update each dataset's catalog entry with raw_archive path and archive
+      date.
+3. Record archive metadata (vintage, file path, manifest SHA-256, member count,
+   archive size) in the catalog's raw_archives section.
+4. Optionally delete the uncompressed raw staging files after successful
+   verification (requires --delete-staging --yes-delete double confirmation).
+
+Key design decisions
+--------------------
+- **Per-vintage archives**: One ZIP per vintage (not one monolithic archive)
+  enables selective re-extraction and keeps archive sizes manageable. The largest
+  vintage (2010-2020) contains the 169 MB intercensal file.
+- **Manifest-based integrity verification**: Every archive includes a
+  manifest.json with per-file MD5 checksums and sizes. Verification reads each
+  file from the ZIP and recomputes checksums, catching both corruption and
+  accidental file substitution.
+- **Double-confirmation for deletion**: Deleting raw staging files is
+  irreversible (would require re-download from Census FTP). The --delete-staging
+  flag requires --yes-delete as a second confirmation to prevent accidental data
+  loss.
+- **Archive-aware downstream scripts**: Phase 4 (extract_popest_docs.py) can
+  read PDFs directly from the vintage ZIP archive, so documentation extraction
+  continues to work after staging file cleanup.
+
+Validation results (2026-02-03)
+-------------------------------
+- Archives created for all vintages in catalog (1970-1980 through 2020-2024)
+- All archives pass integrity verification (MD5 + size match for every member)
+- Manifest SHA-256 checksums recorded in catalog.yaml
+
+Inputs
+------
+- $CENSUS_POPEST_DIR/catalog.yaml
+    Shared dataset catalog with raw_file paths and MD5 checksums.
+- $CENSUS_POPEST_DIR/raw/{vintage}/{level}/*
+    Raw staging files as downloaded from Census Bureau FTP.
+
+Output
+------
+- $CENSUS_POPEST_DIR/raw-archives/{vintage}-raw.zip
+    Per-vintage ZIP archive containing manifest.json + all raw files.
+    DEFLATED compression, level 9.
+- $CENSUS_POPEST_DIR/catalog.yaml (updated)
+    Each dataset entry gains raw_archive and raw_archived fields.
+    Top-level raw_archives section lists all vintage archives with checksums.
+
+Usage
+-----
+    python scripts/data/archive_popest_raw_by_vintage.py
+    python scripts/data/archive_popest_raw_by_vintage.py --vintage 2020-2024
+    python scripts/data/archive_popest_raw_by_vintage.py --verify-only
+    python scripts/data/archive_popest_raw_by_vintage.py --delete-staging --yes-delete
+    python scripts/data/archive_popest_raw_by_vintage.py --dry-run
 """
 
 from __future__ import annotations

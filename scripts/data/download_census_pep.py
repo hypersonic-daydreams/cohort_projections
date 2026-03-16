@@ -1,29 +1,84 @@
 #!/usr/bin/env python3
 """
-Download Census Population Estimates Program (PEP) data.
+Download Census Population Estimates Program (PEP) data from the Census Bureau.
 
-This script downloads historical population estimates from the Census Bureau's
-FTP server and organizes them in the shared data directory according to ADR-034.
+Created: 2026-02-03
+ADR: 034 (Census PEP Data Archive — Phase 1)
+Author: nhaarstad
 
-Data is stored in a shared workspace location to prevent duplication across
-multiple repositories. The location is configured via the CENSUS_POPEST_DIR
-environment variable.
+Purpose
+-------
+Automate the acquisition of historical Census PEP population estimates covering
+places, counties, and states from the 1970s through 2024. Without this script,
+downloading the full archive (23 datasets, ~278 MB) requires manually navigating
+the Census Bureau's FTP directory structure across 6 decade-based URL patterns.
+The script ensures consistent file organization, records provenance metadata
+(source URLs, download dates, file sizes, MD5 checksums) in a shared
+catalog.yaml, and supports incremental downloads (skipping files that already
+exist).
 
-Usage:
-    # Set environment variable (or add to .env)
+Method
+------
+1. Read the CENSUS_POPEST_DIR environment variable to locate the shared data
+   directory (cross-repository, not stored in git).
+2. Filter the hardcoded DATASETS dictionary by the requested category
+   (places, counties, states, docs, or all) and optional --skip-optional flag.
+3. For each dataset:
+   a. Check if the raw file already exists at the expected path; if so, record
+      its size and skip the download.
+   b. Download the file from the Census Bureau FTP/HTTPS URL using urllib with
+      a custom User-Agent header and 60-second timeout.
+   c. Compute the MD5 checksum of the downloaded content.
+   d. Save to $CENSUS_POPEST_DIR/raw/{vintage}/{level}/{filename}.
+4. Update catalog.yaml with download metadata for all successfully downloaded
+   files (ID, vintage, level, source URL, download date, file size, MD5).
+5. Print a summary of downloaded, skipped, and failed files with total size.
+
+Key design decisions
+--------------------
+- **Shared data directory via environment variable**: Census PEP data is used
+  by multiple projects (cohort_projections, city-level analysis). Storing it in
+  a shared location ($CENSUS_POPEST_DIR) prevents duplication of the 278 MB
+  archive across repositories. The env var is required at import time.
+- **Hardcoded dataset definitions**: URLs and local paths are defined in the
+  script rather than in a config file because the Census FTP structure is
+  stable and changes only when new vintages are released (annually). This makes
+  the full download manifest visible in a single file.
+- **Polite download delay**: A configurable delay (default 0.5s) between
+  downloads avoids overwhelming the Census Bureau's FTP server, which has been
+  known to throttle rapid sequential requests.
+- **Optional dataset flag**: Superseded postcensal datasets (e.g., 2010-2019
+  county estimates, superseded by 2010-2020 intercensal) are marked optional
+  and can be skipped with --skip-optional for faster initial setup.
+
+Validation results (2026-02-03)
+-------------------------------
+- 23 datasets successfully downloaded across 4 categories
+- Total raw archive size: ~278 MB
+- Largest file: cc-est2020int-alldata.csv (169 MB, county intercensal 2010-2020)
+- All MD5 checksums recorded in catalog.yaml
+
+Inputs
+------
+- Census Bureau FTP: https://www2.census.gov/programs-surveys/popest/
+    datasets/ (CSV, ZIP, TXT data files)
+    technical-documentation/ (PDF file layouts and methodology)
+
+Output
+------
+- $CENSUS_POPEST_DIR/raw/{vintage}/{level}/*.csv|zip|txt|pdf
+    Raw files organized by vintage decade and geographic level.
+    23 files across 7 vintages (1970-1980 through 2020-2024).
+- $CENSUS_POPEST_DIR/catalog.yaml
+    Machine-readable catalog of all downloaded datasets with provenance
+    metadata (source URL, download date, file size, MD5).
+
+Usage
+-----
     export CENSUS_POPEST_DIR=~/workspace/shared-data/census/popest
-
-    # Run download
-    python scripts/data/download_census_pep.py [--dry-run] [--category CATEGORY]
-
-Categories:
-    all         Download everything (default)
-    places      Place/city-level estimates (2000-2024)
-    counties    County-level estimates (all decades)
-    states      State-level estimates (all decades)
-    docs        Technical documentation only
-
-See: docs/governance/adrs/034-census-pep-data-archive.md
+    python scripts/data/download_census_pep.py
+    python scripts/data/download_census_pep.py --category counties
+    python scripts/data/download_census_pep.py --skip-optional --dry-run
 """
 
 import argparse

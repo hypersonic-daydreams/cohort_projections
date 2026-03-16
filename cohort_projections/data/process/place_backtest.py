@@ -12,6 +12,7 @@ import pandas as pd
 
 from cohort_projections.data.process.place_share_trending import trend_all_places_in_county
 from cohort_projections.utils import get_logger_from_config
+from cohort_projections.utils.fips import normalize_fips
 
 logger = get_logger_from_config(__name__)
 
@@ -20,12 +21,7 @@ TIER_MODERATE = "MODERATE"
 TIER_LOWER = "LOWER"
 SCORED_TIERS = {TIER_HIGH, TIER_MODERATE, TIER_LOWER}
 
-
-def _normalize_fips(value: object, width: int) -> str:
-    """Normalize FIPS-like values to zero-padded strings."""
-    text = str(value).strip().removesuffix(".0")
-    digits = "".join(ch for ch in text if ch.isdigit())
-    return digits.zfill(width)[-width:]
+_normalize_fips = normalize_fips
 
 
 def _parse_window(window: Sequence[int] | tuple[int, int]) -> tuple[int, int]:

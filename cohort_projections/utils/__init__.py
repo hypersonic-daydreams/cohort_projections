@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .config_loader import ConfigLoader, load_projection_config
+from .fips import normalize_fips, normalize_fips_optional
 from .sdc_paths import (
     get_sdc_replication_candidates,
     resolve_sdc_rate_file,
@@ -142,6 +143,8 @@ __all__ = [
     "setup_logger",
     # Project-specific
     "load_projection_config",
+    "normalize_fips",
+    "normalize_fips_optional",
     "BigQueryClient",
     "get_bigquery_client",
     "get_sdc_replication_candidates",

@@ -149,6 +149,33 @@ housing_unit_method:
 3. **BEBR Housing-Unit Method**: University of Florida Bureau of Economic
    and Business Research methodology documentation.
 
+## Implementation Results (2026-03-01)
+
+Implemented as PP-005 workstream WS-D (completed 2026-03-01).
+
+### Files Created/Modified
+
+| File | Change |
+|------|--------|
+| `scripts/data/fetch_census_housing_data.py` | **New** -- Fetches ACS B25001/B25010 for ND places using CensusDataFetcher patterns |
+| `cohort_projections/data/process/place_housing_unit_projection.py` | **New** -- 6 public functions for trending, PPH, orchestration, cross-validation; 93.6% coverage |
+| `scripts/pipeline/02c_run_housing_unit_projections.py` | **New** -- Pipeline stage following 02a pattern |
+| `scripts/exports/build_place_workbook.py` | Added optional HU Comparison sheet (18 HIGH+MODERATE places compared) |
+| `config/projection_config.yaml` | Added `housing_unit_method` config block |
+| `config/data_sources.yaml` | Added housing data category to manifest |
+
+### Production Results
+
+ACS data fetched: 6,003 rows covering 406 places across 15 vintages (2009-2023). HU projections computed for all places meeting the `min_history_years` threshold. Cross-validation with share-trending implemented via `cross_validate_with_share_trending()`. Place workbook includes optional HU Comparison sheet (22 sheets with HU data, 21 without).
+
+### Test Coverage
+
+34 tests total: 27 unit tests in `tests/test_data/test_housing_unit_projection.py` (loading, trends, PPH, population computation, orchestration, edge cases, cross-validation, config parsing) and 5 integration tests in `tests/test_integration/test_housing_unit_pipeline.py` (end-to-end pipeline, dry-run, output format, config-disabled skipping, multi-scenario). 2 additional tests added in `tests/test_output/test_place_workbook.py` for workbook HU integration.
+
+### Deviations from Original Decision
+
+None. All 4 decisions implemented as specified. The HU method remains advisory (complementary cross-check, not replacement for share-trending).
+
 ## Revision History
 
 - **2026-03-01**: Initial version (ADR-060) - Housing-unit method implementation.

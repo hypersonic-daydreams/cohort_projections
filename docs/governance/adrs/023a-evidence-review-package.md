@@ -1,5 +1,8 @@
 # ADR-023a: Evidence Review Package
 
+## Status
+Accepted
+
 ## Purpose
 
 This document specifies the extraction of citation audit, claims analysis, and argument mapping features into a standalone `evidence-review` Python package.

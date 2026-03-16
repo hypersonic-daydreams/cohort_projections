@@ -1,5 +1,8 @@
 # ADR-023b: Project Utils Package
 
+## Status
+Accepted
+
 ## Purpose
 
 This document specifies the extraction of configuration loading and logging setup utilities into a standalone `project-utils` Python package.
