@@ -49,6 +49,17 @@ python scripts/analysis/run_experiment_sweep.py --pending                # Run a
 
 ### Projection Observatory
 
+**Live Dashboard (preferred starting point):**
+
+```bash
+python scripts/analysis/observatory_dashboard.py       # Launch live Panel dashboard (localhost:5006)
+python scripts/analysis/observatory_dashboard.py --port 8080  # Custom port
+```
+
+The live dashboard is the primary interface for the Observatory. It provides 7 interactive tabs (Command Center, Experiments, History, Scorecards, Projections, Horizon & Bias, Sensitivity) with auto-refreshing progress tracking for autonomous search sessions. Use it to monitor `search-auto` runs in real time, compare variants, and review results.
+
+**CLI (alternative / scripting):**
+
 ```bash
 python scripts/analysis/observatory.py status          # Run inventory & catalog status
 python scripts/analysis/observatory.py compare         # Full N-way comparison report
@@ -58,6 +69,7 @@ python scripts/analysis/observatory.py run-pending     # Run all untested varian
 python scripts/analysis/observatory.py run-pending --dry-run  # Preview what would run
 python scripts/analysis/observatory.py run-recommended     # Run config-only recommendations
 python scripts/analysis/observatory.py run-recommended --dry-run  # Preview recommendations
+python scripts/analysis/observatory.py search-auto     # Unattended: plan → run → report
 python scripts/analysis/observatory.py diff <id1> <id2>  # Head-to-head run comparison
 python scripts/analysis/observatory.py history         # Chronological experiment progression
 python scripts/analysis/observatory.py report          # Generate HTML observatory report
@@ -110,6 +122,7 @@ git add . && git commit -m "..."
 | Document | Purpose |
 |----------|---------|
 | [AGENTS.md](./AGENTS.md) | Complete AI agent guidance |
+| [docs/guides/observatory-start-here.md](./docs/guides/observatory-start-here.md) | Observatory entry point and reading order |
 | [docs/governance/sops/](./docs/governance/sops/) | Standard Operating Procedures |
 | [docs/guides/](./docs/guides/) | Detailed how-to guides |
 | [docs/governance/adrs/](./docs/governance/adrs/) | Architecture decisions |
