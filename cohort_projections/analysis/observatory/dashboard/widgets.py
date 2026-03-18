@@ -584,7 +584,7 @@ def completion_banner(
     best_delta: float = 0.0,
     status: str = "success",
 ) -> pn.pane.HTML:
-    """Render a post-completion status banner with next-step actions.
+    """Render a post-completion status banner with next-step guidance.
 
     Parameters
     ----------
@@ -614,19 +614,51 @@ def completion_banner(
             f"(MAPE {direction} by {abs(best_delta):.2f}pp)"
         )
     elif status == "mixed":
-        detail = "Some experiments succeeded. Review best candidates below, then check the log for errors."
+        detail = (
+            "Some experiments succeeded. Review the candidates table below, "
+            "then expand the Log Output card to diagnose failures."
+        )
     elif status == "failed":
-        detail = "Check the log output below for error details."
+        detail = "Expand the Log Output card below to see error details."
+
+    # Build next-steps guidance based on status
+    if status == "failed":
+        next_steps = (
+            "<strong>Next steps:</strong>"
+            "<ol>"
+            "<li>Expand <em>Log Output</em> below to identify failures</li>"
+            "<li>Fix the underlying issue, then click <em>Start Exploring</em> again</li>"
+            "</ol>"
+        )
+    elif status == "mixed":
+        next_steps = (
+            "<strong>Next steps:</strong>"
+            "<ol>"
+            "<li>Review the <em>candidates table</em> below for successful results</li>"
+            "<li>Expand <em>Log Output</em> to diagnose any failures</li>"
+            "<li>Switch to the <strong>Experiments</strong> tab for detailed scorecards</li>"
+            "<li>Switch to the <strong>History</strong> tab to see how results compare over time</li>"
+            "</ol>"
+        )
+    else:
+        next_steps = (
+            "<strong>Next steps:</strong>"
+            "<ol>"
+            "<li>Review the <em>candidates table</em> below to see all results</li>"
+            "<li>Switch to the <strong>Experiments</strong> tab for detailed scorecards</li>"
+            "<li>Switch to the <strong>History</strong> tab to compare results over time</li>"
+            "<li>Switch to the <strong>Projections</strong> tab to visualise population curves</li>"
+            "<li>Click <em>Start Exploring</em> to search further with different parameters</li>"
+            "</ol>"
+        )
 
     html = (
         f'<div class="obs-completion-banner {status}">'
         f'<div class="obs-cb-icon">{icon}</div>'
         f'<div class="obs-cb-title">{title}</div>'
         f'<div class="obs-cb-detail">{detail}</div>'
-        f'<div class="obs-cb-actions">'
-        f'<span class="obs-btn primary" data-action="review">Review Results</span>'
-        f'<span class="obs-btn secondary" data-action="details">View All Candidates</span>'
-        f"</div></div>"
+        f'<div class="obs-cb-next-steps">{next_steps}</div>'
+        f"</div>"
     )
     return pn.pane.HTML(html, sizing_mode="stretch_width", stylesheets=[DASHBOARD_CSS])
 

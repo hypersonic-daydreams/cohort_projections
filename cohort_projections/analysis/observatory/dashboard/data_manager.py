@@ -217,7 +217,7 @@ def _pid_matches_search_process(pid: int, search_id: str) -> bool:
     """Return whether *pid* appears to be the matching search-auto process."""
     cmdline = _process_cmdline(pid)
     if not cmdline:
-        return True
+        return False  # zombie or unreadable — treat as not matching
     lowered = cmdline.lower()
     return "observatory.py" in lowered and "search-auto" in lowered and search_id.lower() in lowered
 
@@ -226,6 +226,17 @@ def _is_search_process_running(pid: int | None, search_id: str) -> bool:
     """Return whether a recorded PID still corresponds to a live search process."""
     if pid is None or pid <= 0:
         return False
+    # Check /proc status to exclude zombie (defunct) processes
+    try:
+        status_path = Path(f"/proc/{pid}/status")
+        if status_path.exists():
+            for line in status_path.read_text().splitlines():
+                if line.startswith("State:"):
+                    if "Z" in line or "zombie" in line.lower():
+                        return False
+                    break
+    except OSError:
+        pass
     if not _pid_matches_search_process(pid, search_id):
         return False
     try:

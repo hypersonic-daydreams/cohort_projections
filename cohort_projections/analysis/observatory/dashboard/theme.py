@@ -424,6 +424,18 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     line-height: 1.5;
     margin-bottom: 14px;
 }
+.obs-completion-banner .obs-cb-next-steps {
+    font-size: 0.9em;
+    color: #334E68;
+    line-height: 1.6;
+}
+.obs-completion-banner .obs-cb-next-steps ol {
+    margin: 6px 0 0 0;
+    padding-left: 20px;
+}
+.obs-completion-banner .obs-cb-next-steps li {
+    margin-bottom: 4px;
+}
 .obs-completion-banner .obs-cb-actions {
     display: flex;
     gap: 10px;
@@ -569,10 +581,13 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     line-height: 1.5;
     padding: 12px 14px;
     border-radius: 8px;
-    overflow-y: auto;
+    overflow: auto;
     white-space: pre-wrap;
-    word-break: break-all;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
     border: 1px solid #2a2a4a;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 /* --- Step Badge (guided review) --- */

@@ -117,13 +117,10 @@ def _register_dynamic_profile_methods(
             continue
         base_method = str(profile.get("dispatch_base_method", "")).strip()
         if not base_method:
-            raise ValueError(
-                f"Profile for '{method_id}' is missing dispatch_base_method."
-            )
+            raise ValueError(f"Profile for '{method_id}' is missing dispatch_base_method.")
         if base_method not in wfv.METHOD_DISPATCH:
             raise ValueError(
-                f"Profile for '{method_id}' references unknown base method "
-                f"'{base_method}'."
+                f"Profile for '{method_id}' references unknown base method '{base_method}'."
             )
         wfv.clone_method_dispatch(method_id, base_method_id=base_method)
         registered.append(method_id)
@@ -139,7 +136,9 @@ def _unregister_methods(method_ids: list[str]) -> None:
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the versioned benchmark suite.")
-    parser.add_argument("--scope", default="county", help="Benchmark scope. Only 'county' is supported today.")
+    parser.add_argument(
+        "--scope", default="county", help="Benchmark scope. Only 'county' is supported today."
+    )
     parser.add_argument("--champion-method", required=True, help="Champion method ID.")
     parser.add_argument("--champion-config", required=True, help="Champion config ID.")
     parser.add_argument("--challenger-method", required=True, help="Challenger method ID.")
@@ -201,7 +200,9 @@ def _build_qc_summary(
             "grade_a_count": int((method_cards["grade"] == "A").sum()),
             "grade_d_count": int((method_cards["grade"] == "D").sum()),
             "mean_mape": round(float(method_cards["mape"].mean()), 6),
-            "outlier_count": int((outlier_df["method"] == method).sum()) if not outlier_df.empty else 0,
+            "outlier_count": int((outlier_df["method"] == method).sum())
+            if not outlier_df.empty
+            else 0,
             "mean_autocorr_lag1": round(
                 float(method_residual["mean_autocorr_lag1"].mean()),
                 6,
@@ -257,9 +258,11 @@ def _build_runtime_summary(
         "slowest_stage_seconds": round(slowest_seconds, 3),
         "worker_config": {
             "shared_workers_arg": workers_arg,
-            "annual_validation_strategy": "county_projection_parallelism",
-            "annual_validation_origin_workers_requested": 1,
-            "annual_validation_county_workers_requested": workers_arg,
+            "annual_validation_strategy": ("two_level" if workers_arg >= 8 else "county_only"),
+            "annual_validation_origin_workers_requested": (4 if workers_arg >= 8 else 1),
+            "annual_validation_county_workers_requested": (
+                workers_arg // 4 if workers_arg >= 8 else workers_arg
+            ),
             "sensitivity_workers_requested": workers_arg,
         },
     }
@@ -369,7 +372,9 @@ def main() -> None:
     ]
 
     try:
-        with log_execution(__file__, parameters=parameters, outputs=output_paths) as execution_log_run_id:
+        with log_execution(
+            __file__, parameters=parameters, outputs=output_paths
+        ) as execution_log_run_id:
             stage_timings: dict[str, float] = {}
 
             # Inject profile resolved_configs into METHOD_DISPATCH so that
@@ -389,14 +394,24 @@ def main() -> None:
 
             print("Running annual walk-forward validation...")
             stage_start = time.perf_counter()
+            # Use two-level parallelism when enough workers are available:
+            # run multiple origin years concurrently, each with county workers.
+            n_origins = 4  # 2005, 2010, 2015, 2020
+            if args.workers >= n_origins * 2:
+                origin_workers = n_origins
+                county_workers = args.workers // n_origins
+            else:
+                origin_workers = 1
+                county_workers = args.workers
+
             annual_state, annual_county, projection_curves = wfv.run_annual_validation(
                 snapshots,
                 mig_raw,
                 survival,
                 fertility,
                 methods=methods,
-                workers=1,
-                projection_workers=args.workers,
+                workers=origin_workers,
+                projection_workers=county_workers,
             )
             annual_horizon = wfv.compute_annual_horizon_summary(annual_state, annual_county)
             annual_comparison = wfv.compute_annual_method_comparison(annual_state, annual_county)
@@ -494,58 +509,68 @@ def main() -> None:
             )
             run_date = run_id.split("-")[1]
             manifest = {
-            "run_id": run_id,
-            "run_date": f"{run_date[:4]}-{run_date[4:6]}-{run_date[6:8]}",
-            "benchmark_label": args.benchmark_label,
-            "benchmark_contract_version": BENCHMARK_CONTRACT_VERSION,
-            "created_at_utc": pd.Timestamp.utcnow().isoformat(),
-            "git_commit": git_commit,
-            "git_dirty": git_dirty,
-            "command": " ".join(sys.argv),
-            "scope": args.scope,
-            "methods": [
-                {
-                    "method_id": args.champion_method,
-                    "config_id": args.champion_config,
-                    "profile_path": champion_profile["profile_path"],
-                    "profile_hash": champion_profile["profile_hash"],
+                "run_id": run_id,
+                "run_date": f"{run_date[:4]}-{run_date[4:6]}-{run_date[6:8]}",
+                "benchmark_label": args.benchmark_label,
+                "benchmark_contract_version": BENCHMARK_CONTRACT_VERSION,
+                "created_at_utc": pd.Timestamp.utcnow().isoformat(),
+                "git_commit": git_commit,
+                "git_dirty": git_dirty,
+                "command": " ".join(sys.argv),
+                "scope": args.scope,
+                "methods": [
+                    {
+                        "method_id": args.champion_method,
+                        "config_id": args.champion_config,
+                        "profile_path": champion_profile["profile_path"],
+                        "profile_hash": champion_profile["profile_hash"],
+                    },
+                    {
+                        "method_id": args.challenger_method,
+                        "config_id": args.challenger_config,
+                        "profile_path": challenger_profile["profile_path"],
+                        "profile_hash": challenger_profile["profile_hash"],
+                    },
+                ],
+                "champion_method_id": args.champion_method,
+                "challenger_method_ids": [args.challenger_method],
+                "input_artifacts": [
+                    {
+                        "path": champion_profile["profile_path"],
+                        "sha256": champion_profile["profile_hash"],
+                    },
+                    {
+                        "path": challenger_profile["profile_path"],
+                        "sha256": challenger_profile["profile_hash"],
+                    },
+                ],
+                "output_artifacts": sorted(
+                    str(path.relative_to(PROJECT_ROOT)) for path in run_dir.iterdir()
+                ),
+                "script_versions": {
+                    "run_benchmark_suite": str(Path(__file__).relative_to(PROJECT_ROOT)),
+                    "walk_forward_validation": str(
+                        (SCRIPT_DIR / "walk_forward_validation.py").relative_to(PROJECT_ROOT)
+                    ),
+                    "sensitivity_analysis": str(
+                        (SCRIPT_DIR / "sensitivity_analysis.py").relative_to(PROJECT_ROOT)
+                    ),
+                    "qc_diagnostics": str(
+                        (SCRIPT_DIR / "qc_diagnostics.py").relative_to(PROJECT_ROOT)
+                    ),
                 },
-                {
-                    "method_id": args.challenger_method,
-                    "config_id": args.challenger_config,
-                    "profile_path": challenger_profile["profile_path"],
-                    "profile_hash": challenger_profile["profile_hash"],
+                "execution_log_run_id": execution_log_run_id,
+                "duration_seconds": duration_seconds,
+                "runtime_summary": runtime_summary,
+                "operational_quality": {
+                    "artifact_completeness_flag": False,
+                    "reproducibility_logging_flag": bool(execution_log_run_id),
+                    "baseline_only": bool(args.baseline_only),
                 },
-            ],
-            "champion_method_id": args.champion_method,
-            "challenger_method_ids": [args.challenger_method],
-            "input_artifacts": [
-                {
-                    "path": champion_profile["profile_path"],
-                    "sha256": champion_profile["profile_hash"],
-                },
-                {
-                    "path": challenger_profile["profile_path"],
-                    "sha256": challenger_profile["profile_hash"],
-                },
-            ],
-            "output_artifacts": sorted(str(path.relative_to(PROJECT_ROOT)) for path in run_dir.iterdir()),
-            "script_versions": {
-                "run_benchmark_suite": str(Path(__file__).relative_to(PROJECT_ROOT)),
-                "walk_forward_validation": str((SCRIPT_DIR / "walk_forward_validation.py").relative_to(PROJECT_ROOT)),
-                "sensitivity_analysis": str((SCRIPT_DIR / "sensitivity_analysis.py").relative_to(PROJECT_ROOT)),
-                "qc_diagnostics": str((SCRIPT_DIR / "qc_diagnostics.py").relative_to(PROJECT_ROOT)),
-            },
-            "execution_log_run_id": execution_log_run_id,
-            "duration_seconds": duration_seconds,
-            "runtime_summary": runtime_summary,
-            "operational_quality": {
-                "artifact_completeness_flag": False,
-                "reproducibility_logging_flag": bool(execution_log_run_id),
-                "baseline_only": bool(args.baseline_only),
-            },
-        }
-            manifest["operational_quality"]["artifact_completeness_flag"] = _artifact_completeness_flag(run_dir)
+            }
+            manifest["operational_quality"]["artifact_completeness_flag"] = (
+                _artifact_completeness_flag(run_dir)
+            )
             scorecard["artifact_completeness_flag"] = bool(
                 manifest["operational_quality"]["artifact_completeness_flag"]
             )

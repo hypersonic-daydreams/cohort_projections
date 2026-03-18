@@ -1445,12 +1445,14 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
         else:
             log_pane.object = ""
 
-        # Auto-expand log when there are errors
+        # Auto-expand log when there are errors, but never force-collapse
+        # (respect the user's manual expand/collapse choice).
         has_errors = selected is not None and (
             int(selected.get("failed", 0) or 0) > 0
             and not bool(selected.get("dashboard_process_running", False))
         )
-        log_card.collapsed = not has_errors
+        if has_errors and log_card.collapsed:
+            log_card.collapsed = False
 
         # Adaptive polling frequency
         if _periodic_cb is not None:

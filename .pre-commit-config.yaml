@@ -33,7 +33,7 @@ repos:
     rev: v1.19.1
     hooks:
       - id: mypy
-        exclude: ^(examples/|tests/|sdc_2024_replication/|docs/adr/\d{3}-reports/agent.+\.py|docs/governance/)
+        exclude: ^(examples/|tests/|scripts/|sdc_2024_replication/|docs/adr/\d{3}-reports/agent.+\.py|docs/governance/)
         args: ['--ignore-missing-imports']
         additional_dependencies:
           - types-PyYAML

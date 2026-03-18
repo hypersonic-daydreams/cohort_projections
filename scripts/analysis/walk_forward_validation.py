@@ -168,18 +168,10 @@ MIGRATION_PATH = (
     PROJECT_ROOT / "data" / "processed" / "migration" / "residual_migration_rates.parquet"
 )
 SURVIVAL_PATH = (
-    PROJECT_ROOT
-    / "data"
-    / "processed"
-    / "sdc_2024"
-    / "survival_rates_sdc_2024_full.csv"
+    PROJECT_ROOT / "data" / "processed" / "sdc_2024" / "survival_rates_sdc_2024_full.csv"
 )
 FERTILITY_PATH = (
-    PROJECT_ROOT
-    / "data"
-    / "processed"
-    / "sdc_2024"
-    / "fertility_rates_5yr_summary_sdc_2024.csv"
+    PROJECT_ROOT / "data" / "processed" / "sdc_2024" / "fertility_rates_5yr_summary_sdc_2024.csv"
 )
 OUTPUT_DIR = PROJECT_ROOT / "data" / "analysis" / "walk_forward"
 
@@ -331,8 +323,18 @@ M2026R1_CONFIG: MethodConfig = {
     **M2026_CONFIG,
     # Expanded to 12 counties (ADR-061 Decision 4)
     "college_fips": {
-        "38003", "38009", "38015", "38017", "38035",
-        "38071", "38077", "38089", "38093", "38097", "38101", "38105",
+        "38003",
+        "38009",
+        "38015",
+        "38017",
+        "38035",
+        "38071",
+        "38077",
+        "38089",
+        "38093",
+        "38097",
+        "38101",
+        "38105",
     },
     # Extended college-age groups (ADR-061 Decision 1)
     "college_age_groups": {"15-19", "20-24", "25-29"},
@@ -416,11 +418,7 @@ def load_survival_rates() -> dict[tuple[str, str], float]:
     ).astype(str)
 
     # Take one rate per group (first age in each group)
-    rates = (
-        df.groupby(["age_group", "sex"], observed=True)["survival_rate_5yr"]
-        .first()
-        .to_dict()
-    )
+    rates = df.groupby(["age_group", "sex"], observed=True)["survival_rate_5yr"].first().to_dict()
     return rates
 
 
@@ -441,9 +439,7 @@ def load_fertility_rates() -> dict[str, float]:
 # GQ Correction Override — in-memory recomputation (EXP-C)
 # ---------------------------------------------------------------------------
 
-GQ_HISTORICAL_PATH = (
-    PROJECT_ROOT / "data" / "processed" / "gq_county_age_sex_historical.parquet"
-)
+GQ_HISTORICAL_PATH = PROJECT_ROOT / "data" / "processed" / "gq_county_age_sex_historical.parquet"
 
 
 def recompute_migration_with_gq_override(
@@ -546,9 +542,7 @@ def prepare_sdc_rates(
     """
     cfg = config or SDC_2024_CONFIG
     periods = AVAILABLE_PERIODS[origin_year]
-    mask = mig_raw.apply(
-        lambda r: (r["period_start"], r["period_end"]) in periods, axis=1
-    )
+    mask = mig_raw.apply(lambda r: (r["period_start"], r["period_end"]) in periods, axis=1)
     df = mig_raw[mask].copy()
 
     # Convert annualized to 5-year
@@ -630,9 +624,7 @@ def _apply_2026_period_dampening(
     college_age_groups = config.get("college_age_groups", set())
     blend_factor = config.get("college_blend_factor", 0.5)
 
-    mask = mig_raw.apply(
-        lambda r: (r["period_start"], r["period_end"]) in periods, axis=1
-    )
+    mask = mig_raw.apply(lambda r: (r["period_start"], r["period_end"]) in periods, axis=1)
     df = mig_raw[mask].copy()
 
     # Apply boom-era dampening (pre-conversion to 5yr) on annualized rates
@@ -669,10 +661,9 @@ def _apply_2026_period_dampening(
             period_df = period_df.merge(state_avg, on=["age_group", "sex"], how="left")
 
             # Apply college-age smoothing
-            college_mask = (
-                period_df["county_fips"].isin(college_fips)
-                & period_df["age_group"].isin(college_age_groups)
-            )
+            college_mask = period_df["county_fips"].isin(college_fips) & period_df[
+                "age_group"
+            ].isin(college_age_groups)
             period_df.loc[college_mask, "rate_5yr"] = (
                 blend_factor * period_df.loc[college_mask, "rate_5yr"]
                 + (1 - blend_factor) * period_df.loc[college_mask, "state_avg_rate"]
@@ -710,12 +701,8 @@ def prepare_2026_convergence_rates(
     # Apply dampening/smoothing to all available periods
     dampened = _apply_2026_period_dampening(mig_raw, periods, cfg)
 
-    def _avg_periods(
-        df: pd.DataFrame, target_periods: list[tuple[int, int]]
-    ) -> pd.DataFrame:
-        mask = df.apply(
-            lambda r: (r["period_start"], r["period_end"]) in target_periods, axis=1
-        )
+    def _avg_periods(df: pd.DataFrame, target_periods: list[tuple[int, int]]) -> pd.DataFrame:
+        mask = df.apply(lambda r: (r["period_start"], r["period_end"]) in target_periods, axis=1)
         subset = df[mask]
         return (
             subset.groupby(["county_fips", "age_group", "sex"], as_index=False)["rate_5yr"]
@@ -788,8 +775,7 @@ def get_convergence_rate_for_step(
             suffixes=("_recent", "_medium"),
         )
         merged["migration_rate_5yr"] = (
-            0.5 * merged["migration_rate_5yr_recent"]
-            + 0.5 * merged["migration_rate_5yr_medium"]
+            0.5 * merged["migration_rate_5yr_recent"] + 0.5 * merged["migration_rate_5yr_medium"]
         )
         return merged[["county_fips", "age_group", "sex", "migration_rate_5yr"]]
 
@@ -804,8 +790,7 @@ def get_convergence_rate_for_step(
             suffixes=("_medium", "_longterm"),
         )
         merged["migration_rate_5yr"] = (
-            0.5 * merged["migration_rate_5yr_medium"]
-            + 0.5 * merged["migration_rate_5yr_longterm"]
+            0.5 * merged["migration_rate_5yr_medium"] + 0.5 * merged["migration_rate_5yr_longterm"]
         )
         return merged[["county_fips", "age_group", "sex", "migration_rate_5yr"]]
 
@@ -834,18 +819,15 @@ def prepare_2026_convergence_rates_annual(
     # Apply dampening/smoothing but keep rates annualized
     dampened = _apply_2026_period_dampening(mig_raw, periods, cfg, annualize=True)
 
-    def _avg_periods(
-        df: pd.DataFrame, target_periods: list[tuple[int, int]]
-    ) -> pd.DataFrame:
-        mask = df.apply(
-            lambda r: (r["period_start"], r["period_end"]) in target_periods, axis=1
-        )
+    def _avg_periods(df: pd.DataFrame, target_periods: list[tuple[int, int]]) -> pd.DataFrame:
+        mask = df.apply(lambda r: (r["period_start"], r["period_end"]) in target_periods, axis=1)
         subset = df[mask]
         return (
             subset.groupby(["county_fips", "age_group", "sex"], as_index=False)["rate_5yr"]
             .mean()
             .rename(columns={"rate_5yr": "migration_rate_annual"})
         )
+
     period_sets = _resolve_convergence_period_sets(origin_year, cfg)
     return {
         "recent": _avg_periods(dampened, period_sets["recent"]),
@@ -892,9 +874,7 @@ def _resolve_convergence_period_sets(
 def _get_mortality_improvement_rate(config: MethodConfig | None = None) -> float:
     """Return the annual mortality improvement factor for one method config."""
     cfg = config or M2026_CONFIG
-    return float(
-        cfg.get("mortality_improvement_rate", _DEFAULT_MORTALITY_IMPROVEMENT_RATE)
-    )
+    return float(cfg.get("mortality_improvement_rate", _DEFAULT_MORTALITY_IMPROVEMENT_RATE))
 
 
 # ---------------------------------------------------------------------------
@@ -934,9 +914,7 @@ def _apply_annual_rate_cap(
 
     capped = rate_series.copy()
     capped = capped.clip(lower=-general_cap, upper=general_cap)
-    capped[college_mask] = rate_series[college_mask].clip(
-        lower=-college_cap, upper=college_cap
-    )
+    capped[college_mask] = rate_series[college_mask].clip(lower=-college_cap, upper=college_cap)
     return capped
 
 
@@ -1052,10 +1030,7 @@ def _build_county_population_lookups(
     for row in base_pop.itertuples(index=False):
         county_lookup = county_pops.setdefault(str(row.county_fips), {})
         county_lookup[(str(row.age_group), str(row.sex))] = float(row.population)
-    return {
-        fips: _normalize_population_lookup(county_pops.get(fips, {}))
-        for fips in counties
-    }
+    return {fips: _normalize_population_lookup(county_pops.get(fips, {})) for fips in counties}
 
 
 def _build_county_migration_lookups(
@@ -1068,9 +1043,7 @@ def _build_county_migration_lookups(
     county_lookups: dict[str, MigrationLookup] = {fips: {} for fips in counties}
     for row in mig_df.itertuples(index=False):
         county_lookup = county_lookups.setdefault(str(row.county_fips), {})
-        county_lookup[(str(row.age_group), str(row.sex))] = float(
-            getattr(row, value_column)
-        )
+        county_lookup[(str(row.age_group), str(row.sex))] = float(getattr(row, value_column))
     return county_lookups
 
 
@@ -1110,9 +1083,7 @@ def _project_sdc_core(
 
             surv_80_84 = survival.get(("80-84", sex), 0.0)
             surv_85p = survival.get(("85+", sex), 0.0)
-            new_pop[("85+", sex)] = (
-                pop[("80-84", sex)] * surv_80_84 + pop[("85+", sex)] * surv_85p
-            )
+            new_pop[("85+", sex)] = pop[("80-84", sex)] * surv_80_84 + pop[("85+", sex)] * surv_85p
 
             for i in range(1, N_AGE_GROUPS):
                 ag = AGE_GROUP_LABELS[i]
@@ -1143,18 +1114,12 @@ def _project_sdc_core(
     return results
 
 
-
-
-
-
 # ---------------------------------------------------------------------------
 # Projection Engines
 # ---------------------------------------------------------------------------
 
 
-def _build_mig_lookup(
-    mig_df: pd.DataFrame, county_fips: str
-) -> dict[tuple[str, str], float]:
+def _build_mig_lookup(mig_df: pd.DataFrame, county_fips: str) -> dict[tuple[str, str], float]:
     """Build migration rate lookup for a single county."""
     county_mig = mig_df[mig_df["county_fips"] == county_fips]
     lookup: dict[tuple[str, str], float] = {}
@@ -1163,9 +1128,7 @@ def _build_mig_lookup(
     return lookup
 
 
-def _init_pop(
-    base_pop: pd.DataFrame, county_fips: str
-) -> dict[tuple[str, str], float]:
+def _init_pop(base_pop: pd.DataFrame, county_fips: str) -> dict[tuple[str, str], float]:
     """Initialize population dict for a county from snapshot data."""
     county_base = base_pop[base_pop["county_fips"] == county_fips]
     pop: PopulationLookup = {}
@@ -1264,9 +1227,7 @@ def project_2026(
             # Open-ended 85+
             surv_80_84 = step_survival.get(("80-84", sex), 0.0)
             surv_85p = step_survival.get(("85+", sex), 0.0)
-            new_pop[("85+", sex)] = (
-                pop[("80-84", sex)] * surv_80_84 + pop[("85+", sex)] * surv_85p
-            )
+            new_pop[("85+", sex)] = pop[("80-84", sex)] * surv_80_84 + pop[("85+", sex)] * surv_85p
 
             # Migrate ages 5-9 through 85+
             for i in range(1, N_AGE_GROUPS):
@@ -1285,9 +1246,7 @@ def project_2026(
 
         # Birth survival (use improved rates)
         new_pop[("0-4", "Male")] = male_births * step_survival.get(("0-4", "Male"), 0.0)
-        new_pop[("0-4", "Female")] = female_births * step_survival.get(
-            ("0-4", "Female"), 0.0
-        )
+        new_pop[("0-4", "Female")] = female_births * step_survival.get(("0-4", "Female"), 0.0)
 
         # Migrate 0-4
         for sex in ["Male", "Female"]:
@@ -1331,7 +1290,7 @@ def _get_improved_survival_annual(
     improved: dict[tuple[str, str], float] = {}
     for key, surv_5yr in base_survival.items():
         # Convert 5-year survival to 1-year: S_1yr = S_5yr^(1/5)
-        s_1yr = surv_5yr ** 0.2
+        s_1yr = surv_5yr**0.2
         # Apply mortality improvement
         q_1yr = 1 - s_1yr
         q_improved = q_1yr * improvement_factor
@@ -1365,15 +1324,11 @@ def _project_annual_core_from_lookups(
             for i in range(1, N_AGE_GROUPS - 1):
                 curr_ag = AGE_GROUP_LABELS[i]
                 prev_ag = AGE_GROUP_LABELS[i - 1]
-                new_pop[(curr_ag, sex)] = (
-                    (4.0 / 5.0) * survived[curr_ag]
-                    + (1.0 / 5.0) * survived[prev_ag]
-                )
+                new_pop[(curr_ag, sex)] = (4.0 / 5.0) * survived[curr_ag] + (1.0 / 5.0) * survived[
+                    prev_ag
+                ]
 
-            new_pop[("85+", sex)] = (
-                survived["85+"]
-                + (1.0 / 5.0) * survived["80-84"]
-            )
+            new_pop[("85+", sex)] = survived["85+"] + (1.0 / 5.0) * survived["80-84"]
 
             for i in range(1, N_AGE_GROUPS):
                 ag = AGE_GROUP_LABELS[i]
@@ -1490,8 +1445,13 @@ def project_2026_annual(
         dict mapping year -> total county population.
     """
     return _project_annual_core(
-        base_pop, survival, fertility, convergence_windows,
-        county_fips, n_years, origin_year,
+        base_pop,
+        survival,
+        fertility,
+        convergence_windows,
+        county_fips,
+        n_years,
+        origin_year,
         config=config,
     )
 
@@ -1667,7 +1627,9 @@ def run_walk_forward_validation(
                     # Get actual population for this county at target year
                     actual_df = snapshots[target_year]
                     actual_county = actual_df[actual_df["county_fips"] == fips]
-                    actual_pop = actual_county["population"].sum() if len(actual_county) > 0 else 0.0
+                    actual_pop = (
+                        actual_county["population"].sum() if len(actual_county) > 0 else 0.0
+                    )
 
                     if dispatch["is_annual"]:
                         projected_pop = proj.get(target_year, 0.0)
@@ -1722,7 +1684,9 @@ def run_walk_forward_validation(
 
         n_targets = len(targets)
         target_str = ", ".join(f"{t[0]}(h{t[1]})" for t in targets)
-        print(f"    Periods: {len(AVAILABLE_PERIODS[origin_year])}, Targets: {n_targets} [{target_str}]")
+        print(
+            f"    Periods: {len(AVAILABLE_PERIODS[origin_year])}, Targets: {n_targets} [{target_str}]"
+        )
 
     county_detail = pd.DataFrame(county_records)
     state_results = pd.DataFrame(state_records)
@@ -1984,14 +1948,20 @@ def print_report(
         m_state = state_results[state_results["method"] == method]
         m_county = county_metrics[county_metrics["method"] == method]
         print(f"\n  {method}:")
-        print(f"    State APE — Mean: {m_state['abs_pct_error'].mean():.2f}%, "
-              f"Max: {m_state['abs_pct_error'].max():.2f}%, "
-              f"Min: {m_state['abs_pct_error'].min():.2f}%")
-        print(f"    State PE  — Mean: {m_state['pct_error'].mean():+.2f}% "
-              f"({'over-projects' if m_state['pct_error'].mean() > 0 else 'under-projects'} "
-              f"on average)")
-        print(f"    County MAPE — Mean: {m_county['county_mape'].mean():.2f}%, "
-              f"Max: {m_county['county_mape'].max():.2f}%")
+        print(
+            f"    State APE — Mean: {m_state['abs_pct_error'].mean():.2f}%, "
+            f"Max: {m_state['abs_pct_error'].max():.2f}%, "
+            f"Min: {m_state['abs_pct_error'].min():.2f}%"
+        )
+        print(
+            f"    State PE  — Mean: {m_state['pct_error'].mean():+.2f}% "
+            f"({'over-projects' if m_state['pct_error'].mean() > 0 else 'under-projects'} "
+            f"on average)"
+        )
+        print(
+            f"    County MAPE — Mean: {m_county['county_mape'].mean():.2f}%, "
+            f"Max: {m_county['county_mape'].max():.2f}%"
+        )
 
     print("\n" + "=" * 80)
 
@@ -2035,9 +2005,8 @@ def interpolate_county_annual(
                 annual[yr] = step_results[lower_yr]
             else:
                 frac = (yr - lower_yr) / (upper_yr - lower_yr)
-                annual[yr] = (
-                    step_results[lower_yr]
-                    + frac * (step_results[upper_yr] - step_results[lower_yr])
+                annual[yr] = step_results[lower_yr] + frac * (
+                    step_results[upper_yr] - step_results[lower_yr]
                 )
     return annual
 
@@ -2162,9 +2131,7 @@ def _build_method_county_projection_inputs(
     """Precompute per-county migration inputs for one prepared method."""
     if _IS_ANNUAL[method_name]:
         annual_windows = cast(dict[str, pd.DataFrame], rates)
-        county_yearly_lookups: dict[str, list[MigrationLookup]] = {
-            fips: [] for fips in counties
-        }
+        county_yearly_lookups: dict[str, list[MigrationLookup]] = {fips: [] for fips in counties}
         for yr_offset in range(1, n_years + 1):
             year_mig = get_convergence_rate_for_year(
                 yr_offset,
@@ -2194,10 +2161,7 @@ def _build_method_county_projection_inputs(
         value_column="migration_rate_5yr",
         counties=counties,
     )
-    return {
-        fips: StepCountyProjectionInputs(county_lookups[fips])
-        for fips in counties
-    }
+    return {fips: StepCountyProjectionInputs(county_lookups[fips]) for fips in counties}
 
 
 def _project_single_county_annual(
@@ -2311,9 +2275,7 @@ def _run_single_origin_annual(
     }
 
     # Project all counties with each method
-    method_county_annual: dict[str, dict[str, dict[int, float]]] = {
-        m: {} for m in methods
-    }
+    method_county_annual: dict[str, dict[str, dict[int, float]]] = {m: {} for m in methods}
 
     effective_projection_workers = max(1, min(projection_workers, len(counties)))
 
@@ -2386,13 +2348,9 @@ def _run_single_origin_annual(
     curve_records: list[dict] = []
     for method_name in methods:
         county_annuals = method_county_annual[method_name]
-        all_years = sorted(
-            set().union(*(ca.keys() for ca in county_annuals.values()))
-        )
+        all_years = sorted(set().union(*(ca.keys() for ca in county_annuals.values())))
         for yr in all_years:
-            state_total = sum(
-                ca.get(yr, 0.0) for ca in county_annuals.values()
-            )
+            state_total = sum(ca.get(yr, 0.0) for ca in county_annuals.values())
             curve_records.append(
                 {
                     "origin_year": origin_year,
@@ -2404,8 +2362,7 @@ def _run_single_origin_annual(
 
     # Compute annual error metrics
     validation_years = [
-        yr for yr in range(origin_year + 1, max_validation_year + 1)
-        if yr in actual_county_totals
+        yr for yr in range(origin_year + 1, max_validation_year + 1) if yr in actual_county_totals
     ]
 
     county_records: list[dict] = []
@@ -2448,9 +2405,7 @@ def _run_single_origin_annual(
 
             state_error = method_proj_state - method_actual_state
             state_pct_error = (
-                (state_error / method_actual_state * 100)
-                if method_actual_state > 0
-                else 0.0
+                (state_error / method_actual_state * 100) if method_actual_state > 0 else 0.0
             )
             state_records.append(
                 {
@@ -2516,8 +2471,10 @@ def run_annual_validation(
     # Load all annual actuals
     print("\n  Loading annual validation actuals...")
     annual_actuals = load_annual_validation_actuals(ORIGIN_YEARS, max_validation_year)
-    print(f"  Loaded actuals for {len(annual_actuals)} years "
-          f"({min(annual_actuals.keys())}-{max(annual_actuals.keys())})")
+    print(
+        f"  Loaded actuals for {len(annual_actuals)} years "
+        f"({min(annual_actuals.keys())}-{max(annual_actuals.keys())})"
+    )
 
     # Precompute county totals from annual actuals: {year: {fips: total_pop}}
     actual_county_totals: dict[int, dict[str, float]] = {}
@@ -2547,19 +2504,6 @@ def run_annual_validation(
     else:
         effective_workers = max(1, min(workers, n_origins))
 
-    # Build shared keyword arguments for _run_single_origin_annual
-    shared_kwargs: dict[str, object] = {
-        "mig_raw": mig_raw,
-        "survival": survival,
-        "fertility": fertility,
-        "counties": counties,
-        "methods": methods,
-        "method_configs": method_configs,
-        "actual_county_totals": actual_county_totals,
-        "max_validation_year": max_validation_year,
-        "method_mig_raw": method_mig_raw if method_mig_raw else None,
-    }
-
     # Collect results in deterministic ORIGIN_YEARS order
     annual_county_records: list[dict] = []
     annual_state_records: list[dict] = []
@@ -2572,7 +2516,21 @@ def run_annual_validation(
         else:
             effective_projection_workers = max(1, min(projection_workers, len(counties)))
 
-    if effective_projection_workers > 1:
+    # Build shared keyword arguments for _run_single_origin_annual
+    shared_kwargs: dict[str, object] = {
+        "mig_raw": mig_raw,
+        "survival": survival,
+        "fertility": fertility,
+        "counties": counties,
+        "methods": methods,
+        "method_configs": method_configs,
+        "actual_county_totals": actual_county_totals,
+        "max_validation_year": max_validation_year,
+        "method_mig_raw": method_mig_raw if method_mig_raw else None,
+        "projection_workers": effective_projection_workers,
+    }
+
+    if effective_projection_workers > 1 and effective_workers <= 1:
         print(
             f"\n  Running {n_origins} origin years sequentially with "
             f"{effective_projection_workers} county workers per origin..."
@@ -2582,7 +2540,6 @@ def run_annual_validation(
             county_recs, state_recs, crv_recs = _run_single_origin_annual(
                 origin_year=origin_year,
                 base_pop=snapshots[origin_year],
-                projection_workers=effective_projection_workers,
                 **shared_kwargs,  # type: ignore[arg-type]
             )
             annual_county_records.extend(county_recs)
@@ -2602,7 +2559,15 @@ def run_annual_validation(
             curve_records.extend(crv_recs)
     else:
         # Parallel execution using ProcessPoolExecutor
-        print(f"\n  Running {n_origins} origin years with {effective_workers} workers...")
+        county_msg = (
+            f" x {effective_projection_workers} county workers each"
+            if effective_projection_workers > 1
+            else ""
+        )
+        print(
+            f"\n  Running {n_origins} origin years with "
+            f"{effective_workers} origin workers{county_msg}..."
+        )
         futures: dict[int, Future[tuple[list[dict], list[dict], list[dict]]]] = {}
 
         with ProcessPoolExecutor(max_workers=effective_workers) as executor:
@@ -2622,8 +2587,10 @@ def run_annual_validation(
                 county_recs, state_recs, crv_recs = fut.result()
             except Exception as exc:
                 # Graceful fallback: re-run this origin year sequentially
-                print(f"  WARNING: Worker for origin {origin_year} failed "
-                      f"({exc!r}), retrying sequentially...")
+                print(
+                    f"  WARNING: Worker for origin {origin_year} failed "
+                    f"({exc!r}), retrying sequentially..."
+                )
                 county_recs, state_recs, crv_recs = _run_single_origin_annual(
                     origin_year=origin_year,
                     base_pop=snapshots[origin_year],
@@ -2685,13 +2652,9 @@ def compute_annual_horizon_summary(
                     "method": method,
                     "n_origins": n_origins,
                     "mean_state_ape": round(state_h["abs_pct_error"].mean(), 4),
-                    "mean_county_mape": round(
-                        np.mean(county_mapes) if county_mapes else 0.0, 4
-                    ),
+                    "mean_county_mape": round(np.mean(county_mapes) if county_mapes else 0.0, 4),
                     "mean_state_mpe": round(state_h["pct_error"].mean(), 4),
-                    "mean_county_mpe": round(
-                        np.mean(county_mpes) if county_mpes else 0.0, 4
-                    ),
+                    "mean_county_mpe": round(np.mean(county_mpes) if county_mpes else 0.0, 4),
                 }
             )
 
@@ -2765,8 +2728,10 @@ def print_annual_report(
 
     n_state = len(annual_state)
     per_method = n_state // n_methods if n_methods > 0 else 0
-    print(f"\n  Total validation points: {per_method} per method "
-          f"({n_methods} methods x {per_method} = {n_state} rows)")
+    print(
+        f"\n  Total validation points: {per_method} per method "
+        f"({n_methods} methods x {per_method} = {n_state} rows)"
+    )
     print(f"  Methods: {', '.join(all_methods)}")
     print(f"  Horizon range: 1 to {annual_state['horizon'].max()} years")
 
@@ -2774,9 +2739,7 @@ def print_annual_report(
     print("\n" + "-" * 80)
     print("ERROR GROWTH BY HORIZON (averaged across origins)")
     print("-" * 80)
-    print(
-        f"  {'Horizon':>7} {'N':>3} {'Method':>10} {'StateAPE':>9} {'CtyMAPE':>10}"
-    )
+    print(f"  {'Horizon':>7} {'N':>3} {'Method':>10} {'StateAPE':>9} {'CtyMAPE':>10}")
     print("  " + "-" * 45)
 
     for _, row in annual_comparison.sort_values(["horizon", "method"]).iterrows():
@@ -2889,9 +2852,7 @@ def main() -> None:
     # 2. Load migration rates
     print("\nLoading migration rates...")
     mig_raw = load_migration_rates_raw()
-    periods = sorted(
-        mig_raw[["period_start", "period_end"]].drop_duplicates().values.tolist()
-    )
+    periods = sorted(mig_raw[["period_start", "period_end"]].drop_duplicates().values.tolist())
     print(f"  Periods: {len(periods)} — {periods}")
 
     # 3. Load survival and fertility rates
@@ -2947,7 +2908,11 @@ def main() -> None:
     print("=" * 80)
 
     annual_state, annual_county, projection_curves = run_annual_validation(
-        snapshots, mig_raw, survival, fertility, methods=methods,
+        snapshots,
+        mig_raw,
+        survival,
+        fertility,
+        methods=methods,
         workers=n_workers,
     )
 
