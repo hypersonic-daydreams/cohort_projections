@@ -155,6 +155,51 @@ New Command Center layout order (top to bottom):
 10. Manual Sweep Actions (Advanced) — collapsed
 11. Persistent Weaknesses — collapsed
 
+## Dashboard UI/UX Overhaul (2026-03-18)
+
+Comprehensive UI/UX overhaul across all 6 phases. Driven by the observation
+that the dashboard, despite 16 prior UX improvements, still felt scattered
+and text-heavy with no guided workflow.
+
+| ID | Work Item | Priority | Status | Acceptance Criteria | Primary Touch Points |
+|----|-----------|----------|--------|---------------------|----------------------|
+| OBS-UX-17 | New CSS theme classes for stepper, progress ring, two-column layout, tooltips, terminal output | P0 | implemented_2026-03-18 | All new visual components render correctly with SDC branding | `theme.py` |
+| OBS-UX-18 | New widget factories (workflow_stepper, progress_ring, candidate_feed, hero_metric, completion_banner, terminal_output, illustrated_empty_state, info_tooltip, filter_bar) | P0 | implemented_2026-03-18 | 28 new unit tests pass for all widget factories | `widgets.py` |
+| OBS-UX-19 | Command Center two-column layout with metric hierarchy | P0 | implemented_2026-03-18 | Hero metric (champion MAPE) prominent; 2 decision cards instead of 4; 2-column responsive grid that collapses below 900px | `tab_command_center.py` |
+| OBS-UX-20 | Unified launch section (consolidate 3 launch surfaces) | P0 | implemented_2026-03-18 | Single "Launch Experiments" card with simple mode (Start Exploring) and collapsed advanced controls; shared subprocess helper | `tab_command_center.py` |
+| OBS-UX-21 | Polished monitoring experience (progress ring, candidate feed, completion banner) | P0 | implemented_2026-03-18 | CSS circular progress ring with animation; live candidate feed during monitoring; celebratory completion banner with "Review Results" CTA; terminal-styled log output | `tab_command_center.py` |
+| OBS-UX-22 | Workflow stepper above tabs | P0 | implemented_2026-03-18 | 4-step stepper (Launch → Monitor → Review → Decide) updates based on active tab and search state | `app.py` |
+| OBS-UX-23 | Guided review mode with Next Step navigation | P1 | implemented_2026-03-18 | After search completes, analytical tabs show step badges and "Next" buttons navigating Scorecards → Projections → Horizon & Bias → Sensitivity | `app.py`, `data_manager.py`, analytical tabs |
+| OBS-UX-24 | Merge Experiments + History into single tab | P1 | implemented_2026-03-18 | New "Experiment History" tab with 4 nested sub-tabs (Catalog, Timeline, Trends, Log); 7 tabs reduced to 6 | `tab_experiment_history.py`, `app.py` |
+| OBS-UX-25 | Remove "Use This Tab To" explanation cards | P1 | implemented_2026-03-18 | All verbose explanation cards replaced with compact info tooltips on section headers | All analytical tab modules |
+| OBS-UX-26 | Standardize filter bar placement | P2 | implemented_2026-03-18 | All tabs use `filter_bar()` wrapper at the top instead of ad-hoc Card/FlexBox patterns | `tab_scorecard.py`, `tab_projection_ensemble.py`, `tab_horizon_bias.py` |
+| OBS-UX-27 | Illustrated empty states | P2 | implemented_2026-03-18 | First-run empty states show inline SVG illustrations (rocket, search, check) instead of plain gray text | All tabs |
+| OBS-UX-28 | Tabulator column priority | P2 | implemented_2026-03-18 | `metric_table()` supports `priority_columns` parameter to show only key columns by default | `widgets.py` |
+
+Implemented in this session:
+
+- `OBS-UX-17` through `OBS-UX-18`: New theme and widget foundation (12 CSS
+  classes, 10 widget factories, 28 new tests).
+- `OBS-UX-19` through `OBS-UX-21`: Command Center completely restructured from
+  11 vertical sections to a two-column layout. Three launch surfaces merged
+  into one. Monitoring upgraded from raw HTML progress bars to animated CSS
+  rings, live candidate feeds, and celebratory completion banners.
+- `OBS-UX-22` through `OBS-UX-23`: Workflow stepper and guided review mode
+  added, giving users a clear visual path through the analysis workflow.
+- `OBS-UX-24` through `OBS-UX-26`: Experiments and History merged, explanation
+  cards removed, filters standardized across all tabs.
+- `OBS-UX-27` through `OBS-UX-28`: Illustrated empty states and column priority
+  reduce visual clutter and improve first-run experience.
+
+New tab layout (6 tabs):
+
+1. Command Center (two-column: hero metric + decision strip + search progress | KPI grid + launch + reference)
+2. **Experiment History** (merged: Catalog, Timeline, Trends, Log sub-tabs)
+3. Scorecards
+4. Projections
+5. Horizon & Bias
+6. Sensitivity
+
 ## Verification Notes
 
 This review was based on:
@@ -165,3 +210,5 @@ This review was based on:
 - direct code inspection of the dashboard launcher and tab builders.
 - Module import verification and full dashboard test suite (18 tests passing)
   for the 2026-03-17 progressive disclosure changes.
+- 257 observatory tests passing, mypy clean, ruff clean for the 2026-03-18
+  UI/UX overhaul (46 dashboard-specific tests including 28 new widget tests).

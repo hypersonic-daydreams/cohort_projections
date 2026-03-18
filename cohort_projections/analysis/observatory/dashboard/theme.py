@@ -235,6 +235,406 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     color: #FFFFFF !important;
 }
 
+/* --- Workflow Stepper --- */
+.obs-workflow-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 14px 20px;
+    margin-bottom: 10px;
+    background: #FFFFFF;
+    border: 1px solid #D9E3F0;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(31, 56, 100, 0.04);
+}
+.obs-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    font-size: 0.88em;
+    font-weight: 600;
+    color: #A0A0A0;
+    white-space: nowrap;
+}
+.obs-step .obs-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid #D9D9D9;
+    background: #FFFFFF;
+    font-size: 0.85em;
+    font-weight: 700;
+    color: #A0A0A0;
+    transition: all 0.3s ease;
+}
+.obs-step.active .obs-step-num {
+    border-color: #0563C1;
+    background: #0563C1;
+    color: #FFFFFF;
+}
+.obs-step.active {
+    color: #1F3864;
+}
+.obs-step.completed .obs-step-num {
+    border-color: #00B050;
+    background: #00B050;
+    color: #FFFFFF;
+}
+.obs-step.completed {
+    color: #00B050;
+}
+.obs-step-connector {
+    flex: 1;
+    height: 2px;
+    min-width: 30px;
+    max-width: 80px;
+    background: #D9D9D9;
+    transition: background 0.3s ease;
+}
+.obs-step-connector.completed {
+    background: #00B050;
+}
+
+/* --- Progress Ring --- */
+.obs-progress-ring {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: conic-gradient(
+        var(--ring-color, #0563C1) calc(var(--progress, 0) * 1%),
+        #E8EDF4 calc(var(--progress, 0) * 1%)
+    );
+    transition: --progress 0.5s ease;
+    flex-shrink: 0;
+}
+.obs-progress-ring::after {
+    content: '';
+    position: absolute;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: #FFFFFF;
+}
+.obs-progress-ring .obs-ring-label {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    font-weight: 700;
+    color: #1F3864;
+    line-height: 1.2;
+}
+.obs-progress-ring .obs-ring-label .obs-ring-pct {
+    font-size: 1.6em;
+    display: block;
+}
+.obs-progress-ring .obs-ring-label .obs-ring-text {
+    font-size: 0.72em;
+    font-weight: 600;
+    color: #595959;
+    display: block;
+}
+.obs-progress-ring.running {
+    animation: obs-pulse-ring 2s ease-in-out infinite;
+}
+@keyframes obs-pulse-ring {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(5, 99, 193, 0.15); }
+    50% { box-shadow: 0 0 0 8px rgba(5, 99, 193, 0.05); }
+}
+
+/* --- Candidate Feed --- */
+.obs-candidate-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.obs-candidate-feed-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #F8FBFF;
+    border: 1px solid #E6EEF8;
+    font-size: 0.88em;
+    animation: obs-slideIn 0.3s ease-out;
+}
+.obs-candidate-feed-item .obs-cf-name {
+    flex: 1;
+    font-weight: 600;
+    color: #1F3864;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.obs-candidate-feed-item .obs-cf-metric {
+    font-weight: 700;
+    color: #595959;
+}
+.obs-candidate-feed-item .obs-cf-delta {
+    font-weight: 600;
+    font-size: 0.9em;
+}
+.obs-cf-delta.improved { color: #00B050; }
+.obs-cf-delta.regressed { color: #C00000; }
+@keyframes obs-slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Completion Banner --- */
+.obs-completion-banner {
+    padding: 20px 24px;
+    border-radius: 12px;
+    border: 1px solid #D9E3F0;
+}
+.obs-completion-banner.success {
+    background: linear-gradient(135deg, #F0FAF3 0%, #E2F3E8 100%);
+    border-color: #B7E1C4;
+}
+.obs-completion-banner.mixed {
+    background: linear-gradient(135deg, #FFF9E8 0%, #FFF3CC 100%);
+    border-color: #FFE08A;
+}
+.obs-completion-banner.failed {
+    background: linear-gradient(135deg, #FDF0F0 0%, #F9E0E0 100%);
+    border-color: #E6B0B0;
+}
+.obs-completion-banner .obs-cb-icon {
+    font-size: 2.0em;
+    margin-bottom: 8px;
+}
+.obs-completion-banner .obs-cb-title {
+    font-size: 1.15em;
+    font-weight: 700;
+    color: #1F3864;
+    margin-bottom: 6px;
+}
+.obs-completion-banner .obs-cb-detail {
+    font-size: 0.92em;
+    color: #4F5F74;
+    line-height: 1.5;
+    margin-bottom: 14px;
+}
+.obs-completion-banner .obs-cb-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.obs-completion-banner .obs-cb-actions .obs-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 0.88em;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s ease, transform 0.1s ease;
+}
+.obs-btn.primary {
+    background: #0563C1;
+    color: #FFFFFF;
+}
+.obs-btn.primary:hover {
+    background: #044D94;
+    transform: translateY(-1px);
+}
+.obs-btn.secondary {
+    background: #E9F1FC;
+    color: #1F3864;
+}
+.obs-btn.secondary:hover {
+    background: #D4E4F7;
+}
+
+/* --- Two-Column Layout --- */
+.obs-two-col {
+    display: grid;
+    grid-template-columns: 55fr 45fr;
+    gap: 20px;
+    align-items: start;
+}
+@media (max-width: 900px) {
+    .obs-two-col {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- Filter Bar --- */
+.obs-filter-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 8px 0;
+}
+
+/* --- Hero Metric --- */
+.obs-metric-hero {
+    text-align: center;
+    padding: 20px 16px 16px;
+    border-radius: 12px;
+    background: #FFFFFF;
+    border: 1px solid #D9E3F0;
+    box-shadow: 0 8px 24px rgba(31, 56, 100, 0.07);
+}
+.obs-metric-hero .obs-mh-value {
+    font-size: 2.8em;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #1F3864;
+}
+.obs-metric-hero .obs-mh-label {
+    font-size: 0.88em;
+    color: #5A6C84;
+    margin-top: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.obs-metric-hero .obs-mh-delta {
+    font-size: 1.0em;
+    font-weight: 600;
+    margin-top: 6px;
+}
+.obs-metric-hero .obs-mh-underline {
+    width: 50px;
+    height: 3px;
+    margin: 8px auto 0;
+    border-radius: 2px;
+}
+
+/* --- Tooltip --- */
+.obs-tooltip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #E0E7F0;
+    color: #5A6C84;
+    font-size: 0.7em;
+    font-weight: 700;
+    cursor: help;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+.obs-tooltip .obs-tooltip-text {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1F3864;
+    color: #FFFFFF;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.4;
+    white-space: normal;
+    width: 240px;
+    max-width: 320px;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    text-transform: none;
+    letter-spacing: normal;
+}
+.obs-tooltip:hover .obs-tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* --- Terminal Output --- */
+.obs-terminal {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    font-size: 0.78em;
+    line-height: 1.5;
+    padding: 12px 14px;
+    border-radius: 8px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    border: 1px solid #2a2a4a;
+}
+
+/* --- Step Badge (guided review) --- */
+.obs-step-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: #E9F1FC;
+    color: #0563C1;
+    font-size: 0.75em;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+/* --- Next Step Bar --- */
+.obs-next-step-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 14px 18px;
+    margin-top: 16px;
+    background: linear-gradient(180deg, #F8FBFF 0%, #EDF3FB 100%);
+    border: 1px solid #D9E3F0;
+    border-radius: 12px;
+}
+.obs-next-step-bar .obs-nsb-label {
+    font-size: 0.88em;
+    color: #5A6C84;
+    font-weight: 500;
+}
+
+/* --- Illustrated Empty State --- */
+.obs-empty-state {
+    text-align: center;
+    padding: 48px 24px;
+}
+.obs-empty-state svg {
+    margin-bottom: 16px;
+    opacity: 0.7;
+}
+.obs-empty-state .obs-es-message {
+    color: #5A6C84;
+    font-size: 0.95em;
+    line-height: 1.5;
+    max-width: 360px;
+    margin: 0 auto;
+}
+
+/* --- Card hover transitions --- */
+.card-container, .bk-Card {
+    transition: box-shadow 0.2s ease, transform 0.1s ease;
+}
+.card-container:hover, .bk-Card:hover {
+    box-shadow: 0 12px 36px rgba(31, 56, 100, 0.10);
+}
+
 @media (max-width: 700px) {
     .bk-Card {
         padding: 10px;
@@ -247,6 +647,25 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     }
     .section-header h2 {
         font-size: 1.1em;
+    }
+    .obs-workflow-stepper {
+        padding: 10px 12px;
+        gap: 0;
+    }
+    .obs-step {
+        font-size: 0.78em;
+        padding: 4px 8px;
+    }
+    .obs-step .obs-step-num {
+        width: 22px;
+        height: 22px;
+        font-size: 0.75em;
+    }
+    .obs-step-connector {
+        min-width: 16px;
+    }
+    .obs-metric-hero .obs-mh-value {
+        font-size: 2.0em;
     }
 }
 """

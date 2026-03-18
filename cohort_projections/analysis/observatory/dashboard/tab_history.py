@@ -401,7 +401,9 @@ def build_history_tab(dm: DashboardDataManager) -> pn.Column:
     if not dm.run_ids:
         return pn.Column(
             widgets.section_header("History", "No benchmark runs found."),
-            widgets.empty_placeholder("Run benchmarks first to populate longitudinal history."),
+            widgets.illustrated_empty_state(
+                "Run benchmarks to see longitudinal history trends.", "rocket"
+            ),
         )
 
     available_statuses = _selected_statuses(None, dm)

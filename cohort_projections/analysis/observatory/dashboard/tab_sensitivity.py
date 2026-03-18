@@ -27,6 +27,7 @@ from cohort_projections.analysis.observatory.dashboard.theme import (
     get_plotly_layout_defaults,
 )
 from cohort_projections.analysis.observatory.dashboard.widgets import (
+    build_review_step_bar,
     empty_placeholder,
     markdown_card,
     metric_table,
@@ -603,7 +604,10 @@ def _build_residual_diagnostics(dm: DashboardDataManager) -> pn.Column:
 # ---------------------------------------------------------------------------
 
 
-def build_sensitivity_tab(dm: DashboardDataManager) -> pn.Column:
+def build_sensitivity_tab(
+    dm: DashboardDataManager,
+    tabs: pn.Tabs | None = None,
+) -> pn.Column:
     """Build the Sensitivity tab for the Observatory dashboard.
 
     Contains five sections: tornado chart, parameter response plots,
@@ -623,23 +627,9 @@ def build_sensitivity_tab(dm: DashboardDataManager) -> pn.Column:
     return pn.Column(
         section_header(
             "Sensitivity & Recommendations",
-            subtitle="Use this tab to decide what to test next and whether the remaining weaknesses are methodological or operational.",
+            tooltip="Explore parameter sensitivity, review experiment recommendations, and identify persistent weaknesses where no challenger improves on the champion.",
         ),
-        pn.FlexBox(
-            markdown_card(
-                "Use This Tab To",
-                "Open `Sensitivity & Recommendations` when you want to know which parameters matter most, "
-                "which experiments the recommender wants to run next, and whether any county-group weakness "
-                "still lacks an improving challenger.\n\n"
-                "The residual diagnostics section is collapsed by default because it is mainly for QA review "
-                "after a candidate already looks promising.",
-                min_width=420,
-            ),
-            _build_sensitivity_takeaway(dm),
-            flex_wrap="wrap",
-            sizing_mode="stretch_width",
-            styles={"gap": "12px"},
-        ),
+        _build_sensitivity_takeaway(dm),
         # Section 1: Tornado Chart
         pn.layout.Divider(),
         section_header(
@@ -675,6 +665,14 @@ def build_sensitivity_tab(dm: DashboardDataManager) -> pn.Column:
             title="Advanced Diagnostic: Residual Health",
             collapsed=True,
             sizing_mode="stretch_width",
+        ),
+        build_review_step_bar(
+            dm.selection_state,
+            tabs,
+            current_step=4,
+            total_steps=4,
+            next_tab_index=None,
+            next_tab_label="",
         ),
         sizing_mode="stretch_width",
     )

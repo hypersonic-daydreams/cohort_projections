@@ -22,6 +22,10 @@ from cohort_projections.analysis.observatory.dashboard import theme, widgets
 from cohort_projections.analysis.observatory.dashboard.data_manager import (
     RUN_SELECTION_PRESETS,
 )
+from cohort_projections.analysis.observatory.dashboard.widgets import (
+    build_review_step_bar,
+    filter_bar,
+)
 
 if TYPE_CHECKING:
     from cohort_projections.analysis.observatory.dashboard.data_manager import (
@@ -484,12 +488,17 @@ def _build_county_group_table(dm: DashboardDataManager) -> pn.Column:
     )
 
 
-def build_scorecard_tab(dm: DashboardDataManager) -> pn.Column:
+def build_scorecard_tab(
+    dm: DashboardDataManager,
+    tabs: pn.Tabs | None = None,
+) -> pn.Column:
     """Build the scorecard comparison tab."""
     if not dm.run_ids:
         return pn.Column(
             widgets.section_header("Scorecard Comparison", "No benchmark runs found."),
-            widgets.empty_placeholder("Run benchmarks first to populate this tab."),
+            widgets.illustrated_empty_state(
+                "Run your first search to see scorecard comparisons.", "rocket"
+            ),
         )
 
     default_runs = dm.initialize_shortlist(RUN_SELECTION_PRESETS[0])
@@ -583,39 +592,10 @@ def build_scorecard_tab(dm: DashboardDataManager) -> pn.Column:
     return pn.Column(
         widgets.section_header(
             "Scorecard Comparison",
-            "Use this tab to decide whether a challenger truly beats the current champion.",
+            tooltip="Compare selected challengers side-by-side against the current champion. Check accuracy improvements and regressions across county groups.",
         ),
-        pn.FlexBox(
-            widgets.markdown_card(
-                "Use This Tab To",
-                "Start here after `Command Center` when you need to answer one question: "
-                "does a shortlisted challenger actually beat the champion on the scorecard.\n\n"
-                "Read the executive summary first, then check the side-by-side table, then use "
-                "the charts to see whether the gain is broad or concentrated in one county group.",
-                min_width=420,
-            ),
-            takeaway_card,
-            flex_wrap="wrap",
-            sizing_mode="stretch_width",
-            styles={"gap": "12px"},
-        ),
-        pn.Card(
-            pn.pane.HTML(
-                '<div class="filters-help">Presets start from readable experiment bundles instead of raw run IDs. The champion reference row stays visible in the scorecard views.</div>',
-                sizing_mode="stretch_width",
-                stylesheets=[theme.DASHBOARD_CSS],
-            ),
-            pn.FlexBox(
-                preset_selector,
-                flex_wrap="wrap",
-                sizing_mode="stretch_width",
-                styles={"gap": "10px"},
-            ),
-            run_selector,
-            title="Comparison Selector",
-            collapsed=False,
-            sizing_mode="stretch_width",
-        ),
+        takeaway_card,
+        filter_bar(preset_selector, run_selector),
         pn.Card(
             scorecard_table_bound,
             title="Side-by-Side Scorecard",
@@ -652,6 +632,14 @@ def build_scorecard_tab(dm: DashboardDataManager) -> pn.Column:
             title="County Group Impact",
             collapsed=False,
             sizing_mode="stretch_width",
+        ),
+        build_review_step_bar(
+            dm.selection_state,
+            tabs,
+            current_step=1,
+            total_steps=4,
+            next_tab_index=3,
+            next_tab_label="Projections",
         ),
         sizing_mode="stretch_width",
     )

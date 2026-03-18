@@ -639,3 +639,235 @@ def test_sensitivity_takeaway_surfaces_recommendation_and_weakness_state() -> No
     assert "**Top recommended next experiment:** college_blend_factor -> 1.0." in summary
     assert "1 tracked metric(s) still have no improving challenger." in summary
     assert "Most influential tested parameter so far: `college_blend_factor`." in summary
+
+
+# ---------------------------------------------------------------------------
+# New widget factory tests (Phase 1)
+# ---------------------------------------------------------------------------
+
+from cohort_projections.analysis.observatory.dashboard.widgets import (
+    candidate_feed,
+    completion_banner,
+    hero_metric,
+    illustrated_empty_state,
+    info_tooltip,
+    progress_ring,
+    section_header,
+    terminal_output,
+    workflow_stepper,
+)
+
+
+class TestWorkflowStepper:
+    """Tests for the horizontal workflow stepper widget."""
+
+    def test_renders_all_steps(self) -> None:
+        pane = workflow_stepper(["Launch", "Monitor", "Review", "Decide"], active=0)
+        html = pane.object
+        assert "Launch" in html
+        assert "Monitor" in html
+        assert "Review" in html
+        assert "Decide" in html
+        assert "obs-workflow-stepper" in html
+
+    def test_marks_active_step(self) -> None:
+        pane = workflow_stepper(["A", "B", "C"], active=1)
+        html = pane.object
+        # Step B (index 1) should have the active class
+        assert 'class="obs-step active"' in html
+
+    def test_marks_completed_steps(self) -> None:
+        pane = workflow_stepper(["A", "B", "C"], active=2, completed=[0, 1])
+        html = pane.object
+        assert html.count("obs-step completed") == 2
+        # Completed steps show checkmark
+        assert "&#10003;" in html
+
+    def test_connectors_between_steps(self) -> None:
+        pane = workflow_stepper(["A", "B", "C"], active=0)
+        html = pane.object
+        # Should have 2 connectors for 3 steps
+        assert html.count("obs-step-connector") == 2
+
+
+class TestProgressRing:
+    """Tests for the circular progress ring widget."""
+
+    def test_renders_percentage(self) -> None:
+        pane = progress_ring(75.0, "15/20", status="running")
+        html = pane.object
+        assert "75%" in html
+        assert "15/20" in html
+        assert "obs-progress-ring" in html
+
+    def test_running_status_has_animation(self) -> None:
+        pane = progress_ring(50.0, "", status="running")
+        assert " running" in pane.object
+
+    def test_complete_status_no_animation(self) -> None:
+        pane = progress_ring(100.0, "", status="complete")
+        assert " running" not in pane.object
+
+    def test_clamps_percentage(self) -> None:
+        pane = progress_ring(150.0, "")
+        assert "--progress:100" in pane.object
+        pane2 = progress_ring(-10.0, "")
+        assert "--progress:0" in pane2.object
+
+
+class TestCandidateFeed:
+    """Tests for the live candidate results feed."""
+
+    def test_empty_shows_waiting(self) -> None:
+        pane = candidate_feed(pd.DataFrame())
+        assert "Waiting for results" in pane.object
+
+    def test_renders_candidates(self) -> None:
+        df = pd.DataFrame(
+            [
+                {
+                    "candidate_id": "cand-1",
+                    "outcome": "passed_all_gates",
+                    "county_mape_overall": 8.50,
+                    "delta_county_mape_overall": -0.36,
+                },
+                {
+                    "candidate_id": "cand-2",
+                    "outcome": "failed_hard_gate",
+                    "county_mape_overall": 9.10,
+                    "delta_county_mape_overall": 0.24,
+                },
+            ]
+        )
+        pane = candidate_feed(df)
+        html = pane.object
+        assert "cand-1" in html
+        assert "cand-2" in html
+        assert "obs-candidate-feed-item" in html
+        assert "improved" in html  # cand-1 has negative delta
+        assert "regressed" in html  # cand-2 has positive delta
+
+    def test_respects_max_items(self) -> None:
+        df = pd.DataFrame([{"candidate_id": f"c-{i}", "outcome": "untested"} for i in range(10)])
+        pane = candidate_feed(df, max_items=3)
+        assert pane.object.count("obs-candidate-feed-item") == 3
+
+
+class TestHeroMetric:
+    """Tests for the large focal metric display."""
+
+    def test_renders_value_and_label(self) -> None:
+        pane = hero_metric("8.86%", "Champion County Error")
+        html = pane.object
+        assert "8.86%" in html
+        assert "Champion County Error" in html
+        assert "obs-metric-hero" in html
+
+    def test_delta_shown_when_provided(self) -> None:
+        pane = hero_metric("8.86%", "Error", delta=-0.36)
+        html = pane.object
+        assert "&#9660;" in html  # down arrow for improvement
+        assert "-0.36" in html
+
+    def test_no_delta_when_none(self) -> None:
+        pane = hero_metric("8.86%", "Error")
+        assert "obs-mh-delta" not in pane.object
+
+
+class TestCompletionBanner:
+    """Tests for the post-search completion banner."""
+
+    def test_success_variant(self) -> None:
+        pane = completion_banner(20, "cand-best", -0.36, status="success")
+        html = pane.object
+        assert "obs-completion-banner success" in html
+        assert "20 experiment(s) finished" in html
+        assert "cand-best" in html
+        assert "0.36pp" in html
+
+    def test_mixed_variant(self) -> None:
+        pane = completion_banner(15, status="mixed")
+        html = pane.object
+        assert "obs-completion-banner mixed" in html
+        assert "errors" in html.lower()
+
+    def test_failed_variant(self) -> None:
+        pane = completion_banner(5, status="failed")
+        html = pane.object
+        assert "obs-completion-banner failed" in html
+        assert "failed" in html.lower()
+
+
+class TestInfoTooltip:
+    """Tests for the hover tooltip widget."""
+
+    def test_renders_tooltip_text(self) -> None:
+        pane = info_tooltip("Help text here")
+        html = pane.object
+        assert "obs-tooltip" in html
+        assert "Help text here" in html
+
+    def test_escapes_html_in_text(self) -> None:
+        pane = info_tooltip('Text with <script> & "quotes"')
+        html = pane.object
+        assert "<script>" not in html
+        assert "&lt;script&gt;" in html
+        assert "&quot;" in html
+
+
+class TestIllustratedEmptyState:
+    """Tests for the SVG-illustrated empty state."""
+
+    def test_search_illustration(self) -> None:
+        pane = illustrated_empty_state("No data found", "search")
+        html = pane.object
+        assert "obs-empty-state" in html
+        assert "<svg" in html
+        assert "No data found" in html
+
+    def test_rocket_illustration(self) -> None:
+        pane = illustrated_empty_state("Run your first search", "rocket")
+        assert "<svg" in pane.object
+
+    def test_check_illustration(self) -> None:
+        pane = illustrated_empty_state("All done", "check")
+        assert "<svg" in pane.object
+
+    def test_fallback_illustration(self) -> None:
+        pane = illustrated_empty_state("Unknown", "nonexistent")
+        # Falls back to search SVG
+        assert "<svg" in pane.object
+
+
+class TestTerminalOutput:
+    """Tests for the dark-themed terminal log display."""
+
+    def test_renders_text(self) -> None:
+        pane = terminal_output("Hello log output")
+        html = pane.object
+        assert "obs-terminal" in html
+        assert "Hello log output" in html
+
+    def test_escapes_html(self) -> None:
+        pane = terminal_output("<script>alert('xss')</script>")
+        html = pane.object
+        assert "<script>" not in html
+        assert "&lt;script&gt;" in html
+
+    def test_max_height(self) -> None:
+        pane = terminal_output("text", max_height=300)
+        assert "max-height:300px" in pane.object
+
+
+class TestSectionHeaderTooltip:
+    """Tests for the tooltip extension on section_header."""
+
+    def test_no_tooltip_by_default(self) -> None:
+        pane = section_header("Title")
+        assert "obs-tooltip" not in pane.object
+
+    def test_tooltip_when_provided(self) -> None:
+        pane = section_header("Title", tooltip="Helpful info")
+        html = pane.object
+        assert "obs-tooltip" in html
+        assert "Helpful info" in html

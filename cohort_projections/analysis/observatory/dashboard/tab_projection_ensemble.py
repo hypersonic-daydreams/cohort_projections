@@ -19,6 +19,10 @@ from cohort_projections.analysis.observatory.dashboard.data_manager import (
     RUN_SELECTION_PRESETS,
 )
 from cohort_projections.analysis.observatory.dashboard.theme import SDC_NAVY
+from cohort_projections.analysis.observatory.dashboard.widgets import (
+    build_review_step_bar,
+    filter_bar,
+)
 
 if TYPE_CHECKING:
     from cohort_projections.analysis.observatory.dashboard.data_manager import (
@@ -614,12 +618,17 @@ def _build_uncertainty_fan(
     return pn.Column(pn.pane.Plotly(fig, sizing_mode="stretch_width"))
 
 
-def build_projection_ensemble(dm: DashboardDataManager) -> pn.Column:
+def build_projection_ensemble(
+    dm: DashboardDataManager,
+    tabs: pn.Tabs | None = None,
+) -> pn.Column:
     """Build the projection ensemble tab."""
     if not dm.run_ids:
         return pn.Column(
             widgets.section_header("Projection Ensemble", "No benchmark runs found."),
-            widgets.empty_placeholder("Run benchmarks first to populate this tab."),
+            widgets.illustrated_empty_state(
+                "Run your first search to see projection curves.", "rocket"
+            ),
         )
 
     available_origins: list[str] = ["All"]
@@ -745,42 +754,15 @@ def build_projection_ensemble(dm: DashboardDataManager) -> pn.Column:
     return pn.Column(
         widgets.section_header(
             "Projection Ensemble",
-            "Use this tab to judge whether a stronger scorecard also produces a plausible population path.",
+            tooltip="Overlay projection curves across selected runs and origin years. Check forecast path plausibility and endpoint convergence.",
         ),
-        pn.FlexBox(
-            widgets.markdown_card(
-                "Use This Tab To",
-                "Start here after `Scorecards` when you need to see what the shortlist actually "
-                "does to the state population path.\n\n"
-                "Read the executive summary first, then compare the curve and horizon-error "
-                "charts. Keep the champion reference on unless you intentionally want to review "
-                "challengers only against each other.",
-                min_width=420,
-            ),
-            takeaway_card,
-            flex_wrap="wrap",
-            sizing_mode="stretch_width",
-            styles={"gap": "12px"},
-        ),
-        pn.Card(
-            pn.pane.HTML(
-                '<div class="filters-help">The default preset loads the strongest challenger bundles. Keep the champion reference on to compare against the current production baseline.</div>',
-                sizing_mode="stretch_width",
-                stylesheets=[theme.DASHBOARD_CSS],
-            ),
-            pn.FlexBox(
-                preset_selector,
-                origin_selector,
-                emphasis_selector,
-                show_champion_reference,
-                flex_wrap="wrap",
-                sizing_mode="stretch_width",
-                styles={"gap": "10px"},
-            ),
+        takeaway_card,
+        filter_bar(
+            preset_selector,
+            origin_selector,
+            emphasis_selector,
+            show_champion_reference,
             run_selector,
-            title="Filters",
-            collapsed=False,
-            sizing_mode="stretch_width",
         ),
         pn.Card(
             selected_summary,
@@ -805,6 +787,14 @@ def build_projection_ensemble(dm: DashboardDataManager) -> pn.Column:
             title="Uncertainty Bands",
             collapsed=True,
             sizing_mode="stretch_width",
+        ),
+        build_review_step_bar(
+            dm.selection_state,
+            tabs,
+            current_step=2,
+            total_steps=4,
+            next_tab_index=4,
+            next_tab_label="Horizon & Bias",
         ),
         sizing_mode="stretch_width",
     )

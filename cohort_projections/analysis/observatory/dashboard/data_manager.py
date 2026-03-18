@@ -105,6 +105,12 @@ class DashboardSelectionState(param.Parameterized):
     shortlist_runs = param.List(default=[])
     shortlist_preset = param.String(default=_PRESET_TOP_CHALLENGERS)
 
+    # Guided review mode — activated after a search completes and the user
+    # clicks "Review Results".  While active, analytical tabs show step
+    # badges and "Next" navigation buttons.
+    review_mode = param.Boolean(default=False)
+    review_step = param.Integer(default=0)
+
     def set_shortlist(self, run_ids: list[str]) -> None:
         """Persist a normalized shortlist."""
         normalized = [str(run_id) for run_id in run_ids if str(run_id).strip()]

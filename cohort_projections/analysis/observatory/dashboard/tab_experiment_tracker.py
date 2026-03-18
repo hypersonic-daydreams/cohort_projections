@@ -23,6 +23,7 @@ from cohort_projections.analysis.observatory.dashboard.theme import (
 )
 from cohort_projections.analysis.observatory.dashboard.widgets import (
     empty_placeholder,
+    illustrated_empty_state,
     markdown_card,
     section_header,
 )
@@ -66,7 +67,9 @@ def _build_variant_catalog(
         return (
             pn.Column(
                 section_header("Variant Catalog"),
-                empty_placeholder("Variant catalog YAML not available."),
+                illustrated_empty_state(
+                    "Variant catalog not available. Check your configuration.", "search"
+                ),
                 sizing_mode="stretch_width",
             ),
             None,

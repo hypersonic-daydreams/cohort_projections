@@ -27,8 +27,9 @@ from cohort_projections.analysis.observatory.dashboard.theme import (
     get_plotly_layout_defaults,
 )
 from cohort_projections.analysis.observatory.dashboard.widgets import (
+    build_review_step_bar,
     empty_placeholder,
-    markdown_card,
+    filter_bar,
     metric_table,
     section_header,
 )
@@ -896,7 +897,10 @@ def _build_outlier_scatter(
 # ---------------------------------------------------------------------------
 
 
-def build_horizon_bias_tab(dm: DashboardDataManager) -> pn.Column:
+def build_horizon_bias_tab(
+    dm: DashboardDataManager,
+    tabs: pn.Tabs | None = None,
+) -> pn.Column:
     """Build the Horizon Bias tab for the Observatory dashboard.
 
     Contains six sections: run/category selectors, horizon profile chart,
@@ -928,13 +932,6 @@ def build_horizon_bias_tab(dm: DashboardDataManager) -> pn.Column:
         options=_ALL_CATEGORIES,
         value="All",
         width=200,
-    )
-    selector_row = pn.FlexBox(
-        run_selector,
-        category_selector,
-        flex_wrap="wrap",
-        sizing_mode="stretch_width",
-        styles={"gap": "10px"},
     )
 
     def _sync_from_shortlist(event: Any) -> None:
@@ -1020,28 +1017,10 @@ def build_horizon_bias_tab(dm: DashboardDataManager) -> pn.Column:
     return pn.Column(
         section_header(
             "Horizon & Bias Analysis",
-            subtitle="Use this tab to understand where forecast error grows over time and which places drive it.",
+            tooltip="Analyze projection accuracy by forecast horizon, explore county-level error patterns, and identify systematic over- or under-projection bias.",
         ),
-        pn.FlexBox(
-            markdown_card(
-                "Use This Tab To",
-                "Use `Horizon & Bias` after `Projections` when you need to know whether a promising "
-                "run stays credible as the forecast gets longer.\n\n"
-                "Start with the horizon profile and county heatmap. The collapsed sections below are "
-                "for deeper diagnostic work once you already know which run you are investigating.",
-                min_width=420,
-            ),
-            takeaway_card,
-            flex_wrap="wrap",
-            sizing_mode="stretch_width",
-            styles={"gap": "12px"},
-        ),
-        pn.Card(
-            selector_row,
-            title="Filters",
-            collapsed=False,
-            sizing_mode="stretch_width",
-        ),
+        takeaway_card,
+        filter_bar(run_selector, category_selector),
         pn.Card(
             horizon_profile,
             title="Horizon Accuracy Profile",
@@ -1072,6 +1051,14 @@ def build_horizon_bias_tab(dm: DashboardDataManager) -> pn.Column:
             title="Advanced Diagnostic: Outlier Flags",
             collapsed=True,
             sizing_mode="stretch_width",
+        ),
+        build_review_step_bar(
+            dm.selection_state,
+            tabs,
+            current_step=3,
+            total_steps=4,
+            next_tab_index=5,
+            next_tab_label="Sensitivity",
         ),
         sizing_mode="stretch_width",
     )

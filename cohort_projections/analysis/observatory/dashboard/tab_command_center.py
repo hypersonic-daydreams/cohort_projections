@@ -1,7 +1,8 @@
 """Command Center tab for the Observatory dashboard.
 
-This is the dashboard home page. It prioritizes current decision context,
-run health, and next actions before exposing the lower-level benchmark index.
+This is the dashboard home page.  It uses a two-column layout to surface
+the current champion error, decision context, live search progress, and
+a unified launch section for autonomous experiments.
 """
 
 from __future__ import annotations
@@ -28,10 +29,15 @@ from cohort_projections.analysis.observatory.dashboard.theme import (
     STATUS_COLORS,
 )
 from cohort_projections.analysis.observatory.dashboard.widgets import (
+    candidate_feed,
+    completion_banner,
     empty_placeholder,
+    hero_metric,
     kpi_card,
     metric_table,
+    progress_ring,
     section_header,
+    terminal_output,
 )
 
 logger = logging.getLogger(__name__)
@@ -40,6 +46,11 @@ _OBSERVATORY_SCRIPT = (
     Path(__file__).resolve().parents[4] / "scripts" / "analysis" / "observatory.py"
 )
 _PROJECT_ROOT = Path(__file__).resolve().parents[4]
+
+
+# ---------------------------------------------------------------------------
+# Utility helpers
+# ---------------------------------------------------------------------------
 
 
 def _count_by_outcome(dm: DashboardDataManager, outcome: str) -> int:
@@ -130,8 +141,54 @@ def _default_search_id() -> str:
     return f"search-{dt.datetime.now(tz=dt.UTC).strftime('%Y%m%d-%H%M%S')}"
 
 
+def _best_tested_challenger(dm: DashboardDataManager) -> pd.Series | None:
+    """Return the strongest non-champion benchmark row for summary cards."""
+    if dm.run_metadata.empty:
+        return None
+    if "selected_county_mape_overall" not in dm.run_metadata.columns:
+        return None
+    challengers = dm.run_metadata.copy()
+    if dm.champion_id is not None:
+        challengers = challengers[challengers["run_id"] != dm.champion_id]
+    challengers = challengers[challengers["selected_county_mape_overall"].notna()]
+    if challengers.empty:
+        return None
+    return challengers.sort_values(
+        ["selected_county_mape_overall", "run_date_sort"],
+        ascending=[True, False],
+        na_position="last",
+    ).iloc[0]
+
+
+def _derive_parallelism(core_budget: int) -> tuple[int, int]:
+    """Map a core budget to (parallel_runs, workers_per_run).
+
+    Below 14 cores: single run, all cores as workers.
+    14+ cores: two parallel runs sharing the budget evenly.
+    """
+    parallel_runs = 1 if core_budget < 14 else 2
+    workers_per_run = max(1, core_budget // parallel_runs)
+    return parallel_runs, workers_per_run
+
+
+def _core_alloc_label(core_budget: int) -> str:
+    """Return a human-readable label for the CPU allocation."""
+    parallel_runs, workers_per_run = _derive_parallelism(core_budget)
+    if parallel_runs == 1:
+        return f"-> {workers_per_run} workers, 1 run at a time"
+    return f"-> {parallel_runs} parallel runs x {workers_per_run} workers = {parallel_runs * workers_per_run} cores"
+
+
+# ---------------------------------------------------------------------------
+# Tested utility functions (kept unchanged for backward compatibility)
+# ---------------------------------------------------------------------------
+
+
 def _search_progress_html(session_row: pd.Series | None) -> str:
-    """Render a simple HTML progress bar for one autonomous-search session."""
+    """Render a simple HTML progress bar for one autonomous-search session.
+
+    Retained as a tested helper even though the UI now uses ``progress_ring``.
+    """
     if session_row is None:
         return "<div><strong>No autonomous-search session selected.</strong></div>"
 
@@ -144,9 +201,8 @@ def _search_progress_html(session_row: pd.Series | None) -> str:
     failed = int(session_row.get("failed", 0) or 0)
     is_stopped = not bool(session_row.get("dashboard_process_running", False))
 
-    # Determine bar color and status label
     if is_stopped and failed > 0 and completed == 0:
-        tone = "#C00000"  # Red — stopped with only failures
+        tone = "#C00000"
         status_label = "STOPPED"
         status_color = "#C00000"
     elif failed > 0:
@@ -158,7 +214,6 @@ def _search_progress_html(session_row: pd.Series | None) -> str:
         status_label = status.upper()
         status_color = "#5A6C84"
 
-    # Style failed count red when there are failures
     failed_span = (
         f'<span style="color:#C00000;font-weight:600">Failed: {failed}</span>'
         if failed > 0
@@ -227,25 +282,6 @@ def _search_session_detail_html(session_row: pd.Series | None) -> str:
     """
 
 
-def _best_tested_challenger(dm: DashboardDataManager) -> pd.Series | None:
-    """Return the strongest non-champion benchmark row for summary cards."""
-    if dm.run_metadata.empty:
-        return None
-    if "selected_county_mape_overall" not in dm.run_metadata.columns:
-        return None
-    challengers = dm.run_metadata.copy()
-    if dm.champion_id is not None:
-        challengers = challengers[challengers["run_id"] != dm.champion_id]
-    challengers = challengers[challengers["selected_county_mape_overall"].notna()]
-    if challengers.empty:
-        return None
-    return challengers.sort_values(
-        ["selected_county_mape_overall", "run_date_sort"],
-        ascending=[True, False],
-        na_position="last",
-    ).iloc[0]
-
-
 def _command_center_summary(dm: DashboardDataManager) -> str:
     """Return a plain-language summary of the current decision state."""
     champion_row = (
@@ -254,7 +290,7 @@ def _command_center_summary(dm: DashboardDataManager) -> str:
         and not dm.run_metadata[dm.run_metadata["run_id"] == dm.champion_id].empty
         else None
     )
-    champion_mape = _champion_mape(dm)
+    champion_mape_val = _champion_mape(dm)
     best_variant = _best_tested_challenger(dm)
     if not dm.run_metadata.empty and "status_code" in dm.run_metadata.columns:
         review_queue = dm.run_metadata[dm.run_metadata["status_code"] == "needs_human_review"]
@@ -265,9 +301,9 @@ def _command_center_summary(dm: DashboardDataManager) -> str:
     top_recommendation = recommendations[0] if recommendations else None
 
     summary_parts: list[str] = []
-    if champion_row is not None and champion_mape is not None:
+    if champion_row is not None and champion_mape_val is not None:
         summary_parts.append(
-            f"Current champion: {champion_row['display_name']} at {champion_mape:.2f}% county error."
+            f"Current champion: {champion_row['display_name']} at {champion_mape_val:.2f}% county error."
         )
     elif champion_row is not None:
         summary_parts.append(f"Current champion: {champion_row['display_name']}.")
@@ -277,8 +313,8 @@ def _command_center_summary(dm: DashboardDataManager) -> str:
         if best_variant is not None
         else None
     )
-    if best_variant is not None and best_variant_mape is not None and champion_mape is not None:
-        delta = best_variant_mape - champion_mape
+    if best_variant is not None and best_variant_mape is not None and champion_mape_val is not None:
+        delta = best_variant_mape - champion_mape_val
         summary_parts.append(
             f"Best tested challenger: {best_variant['display_name']} at "
             f"{best_variant_mape:.2f}% ({delta:+.2f} vs champion)."
@@ -300,431 +336,11 @@ def _command_center_summary(dm: DashboardDataManager) -> str:
     return " ".join(summary_parts) or "No completed Observatory run history is available yet."
 
 
-def _make_tab_button(
-    *,
-    name: str,
-    button_type: str,
-    width: int,
-    target_index: int,
-    tabs: pn.Tabs | None,
-) -> pn.widgets.Button:
-    """Create a button that activates a dashboard tab when clicked."""
-    button = pn.widgets.Button(
-        name=name,
-        button_type=button_type,
-        width=width,
-        disabled=tabs is None,
-    )
-
-    if tabs is not None:
-
-        def _activate_tab(event: Any) -> None:
-            tabs.active = target_index
-
-        button.on_click(_activate_tab)
-
-    return button
-
-
-def _build_start_here_card(dm: DashboardDataManager, tabs: pn.Tabs | None) -> pn.Card:
-    """Render a compact orientation panel with the current situation and workflow nav."""
-    current_state = pn.pane.Markdown(f"**Current situation:** {_command_center_summary(dm)}")
-    workflow = pn.pane.Markdown(
-        "1. Review the situation summary and decision cards below.\n"
-        "2. **Start Exploring** to launch an autonomous search with smart defaults, or expand controls to customize.\n"
-        "3. Use the tabs to compare challengers, inspect projections, or check diagnostics."
-    )
-    buttons = pn.FlexBox(
-        _make_tab_button(
-            name="Scorecards",
-            button_type="default",
-            width=120,
-            target_index=3,
-            tabs=tabs,
-        ),
-        _make_tab_button(
-            name="Projections",
-            button_type="default",
-            width=120,
-            target_index=4,
-            tabs=tabs,
-        ),
-        _make_tab_button(
-            name="Horizon & Bias",
-            button_type="default",
-            width=130,
-            target_index=5,
-            tabs=tabs,
-        ),
-        _make_tab_button(
-            name="Sensitivity",
-            button_type="default",
-            width=120,
-            target_index=6,
-            tabs=tabs,
-        ),
-        flex_wrap="wrap",
-        sizing_mode="stretch_width",
-        styles={"gap": "8px"},
-    )
-
-    return pn.Card(
-        current_state,
-        workflow,
-        buttons,
-        title="Start Here",
-        sizing_mode="stretch_width",
-    )
-
-
-def _build_quick_start_card(dm: DashboardDataManager) -> pn.Card:
-    """Quick launcher with resource controls and smart defaults.
-
-    Exposes only the settings a user needs to allocate system resources and
-    scope the search — CPU cores and maximum experiment runs.  Everything
-    else (search ID, batch budget, pending/recommended limits, recipe
-    inclusion) is derived from the search policy automatically.
-    """
-    import os
-
-    status_pane = pn.pane.HTML(sizing_mode="stretch_width")
-    output_pane = pn.widgets.TextAreaInput(
-        value="",
-        disabled=True,
-        height=120,
-        sizing_mode="stretch_width",
-        name="",
-        visible=False,
-    )
-
-    # Derive smart defaults from the search policy
-    available_cores = os.cpu_count() or 12
-    default_workers = min(12, available_cores)
-    default_batch_budget = int(dm.search_policy.default_run_budget)
-    default_max_total = 20
-    include_recipes = bool(dm.search_policy.include_recipe_catalog)
-
-    # Resource controls — the only inputs on the Quick Start card
-    cpu_slider = pn.widgets.IntSlider(
-        name="CPU cores to use",
-        start=2,
-        end=available_cores,
-        step=2,
-        value=default_workers,
-        width=280,
-    )
-    max_runs_spinner = pn.widgets.IntInput(
-        name="Max experiments to run",
-        value=default_max_total,
-        step=5,
-        start=1,
-        end=200,
-        width=160,
-    )
-
-    # Check if there's already an active search session
-    active_id = dm.active_search_id
-    has_active = active_id is not None and active_id != ""
-
-    if has_active:
-        status_pane.object = (
-            f'<div style="color:#334E68;font-size:0.92em">'
-            f"Active search: <strong>{active_id}</strong> — "
-            f"progress updates appear in the Search Progress section below."
-            f"</div>"
-        )
-
-    def _on_start(event: Any) -> None:
-        import time
-
-        search_id = _default_search_id()
-        session_root = dm.search_session_root
-        session_root.mkdir(parents=True, exist_ok=True)
-        pid_path = session_root / f".{search_id}.dashboard.pid"
-        log_path = session_root / f".{search_id}.dashboard.log"
-        meta_path = session_root / f".{search_id}.dashboard_meta.yaml"
-        workers = cpu_slider.value
-        total_runs = max_runs_spinner.value
-        cmd = [
-            sys.executable,
-            str(_OBSERVATORY_SCRIPT),
-            "search-auto",
-            "--search-id",
-            search_id,
-            "--batch-run-budget",
-            str(default_batch_budget),
-            "--max-total-runs",
-            str(total_runs),
-            "--workers-per-run",
-            str(workers),
-            "--max-pending",
-            str(int(dm.search_policy.default_max_pending)),
-            "--max-recommended",
-            str(int(dm.search_policy.default_max_recommended)),
-        ]
-        if include_recipes:
-            cmd.append("--include-recipe-catalog")
-        meta_path.write_text(
-            yaml.safe_dump(
-                {
-                    "search_id": search_id,
-                    "launched_at": dt.datetime.now(tz=dt.UTC).isoformat(),
-                    "base_revision": "HEAD",
-                    "command": " ".join(cmd[2:]),
-                },
-                sort_keys=False,
-            ),
-            encoding="utf-8",
-        )
-        with log_path.open("a", encoding="utf-8") as handle:
-            process = subprocess.Popen(  # noqa: S603
-                cmd,
-                cwd=str(_PROJECT_ROOT),
-                stdout=handle,
-                stderr=subprocess.STDOUT,
-                start_new_session=True,
-            )
-        pid_path.write_text(str(process.pid), encoding="utf-8")
-
-        # Wait briefly to detect early failures (e.g. dirty checkout,
-        # missing config).  The process typically crashes within 1-2s
-        # if it is going to fail at startup.
-        time.sleep(2)
-        exit_code = process.poll()
-        output_pane.visible = True
-
-        if exit_code is not None:
-            # Process already exited — read the log for the error
-            log_tail = ""
-            if log_path.exists():
-                lines = log_path.read_text(encoding="utf-8").strip().splitlines()
-                log_tail = "\n".join(lines[-15:])
-            output_pane.value = (
-                f"Search {search_id} failed to start (exit code {exit_code}).\n\n"
-                f"--- Log output ---\n{log_tail}"
-            )
-            status_pane.object = (
-                f'<div style="color:#C00;font-weight:600;font-size:0.92em">'
-                f"Search <strong>{search_id}</strong> failed to start. "
-                f"See details below."
-                f"</div>"
-            )
-        else:
-            output_pane.value = (
-                f"Launched: {search_id}  (PID {process.pid})\n"
-                f"CPU cores: {workers} | Max experiments: {total_runs}\n"
-                f"Log: {log_path.relative_to(_PROJECT_ROOT)}\n\n"
-                f"Progress will appear in the Search Progress section below."
-            )
-            status_pane.object = (
-                f'<div style="color:#00B050;font-weight:600;font-size:0.92em">'
-                f"Search <strong>{search_id}</strong> launched successfully."
-                f"</div>"
-            )
-
-    btn_start = pn.widgets.Button(
-        name="Start Exploring",
-        button_type="success",
-        width=200,
-        height=44,
-    )
-    btn_start.on_click(_on_start)
-
-    description = pn.pane.Markdown(
-        "Set your resource budget and hit **Start Exploring**. "
-        "The system will automatically plan, run, and evaluate "
-        "projection experiments. Expand **Autonomous Search (Advanced)** "
-        "below for session management and fine-grained control.",
-        styles={"color": "#5A6C84", "font-size": "0.9em"},
-    )
-
-    resource_row = pn.Row(
-        cpu_slider,
-        pn.Spacer(width=20),
-        max_runs_spinner,
-        sizing_mode="stretch_width",
-    )
-
-    return pn.Card(
-        description,
-        resource_row,
-        pn.Row(btn_start, sizing_mode="stretch_width"),
-        status_pane,
-        output_pane,
-        title="Quick Start",
-        sizing_mode="stretch_width",
-    )
-
-
-def _build_kpi_row(dm: DashboardDataManager) -> pn.FlexBox | pn.pane.HTML:
-    """Top-line KPI strip with mobile-safe wrapping."""
-    total_runs = len(dm.run_ids)
-
-    tested_count = 0
-    untested_count = 0
-    if dm.catalog is not None:
-        variants_df = dm.catalog.list_variants()
-        if not variants_df.empty and "tested" in variants_df.columns:
-            tested_count = int(variants_df["tested"].sum())
-            untested_count = int((~variants_df["tested"]).sum())
-
-    if total_runs == 0 and tested_count == 0:
-        return pn.pane.HTML(
-            '<div style="text-align:center;padding:20px 16px;background:#F8FBFF;'
-            "border:1px dashed #B8CBE0;border-radius:12px;color:#5A6C84;"
-            'font-size:0.95em">'
-            '<strong style="color:#1F3864">No benchmark results yet.</strong><br>'
-            "Use Quick Start below to run your first autonomous search. "
-            "KPIs will populate as results come in."
-            "</div>",
-            sizing_mode="stretch_width",
-        )
-
-    cards = [
-        kpi_card("Total Runs", total_runs, color=SDC_NAVY),
-        kpi_card("Experiments Tested", tested_count, color=SDC_BLUE),
-        kpi_card(
-            "Passed Gates",
-            _count_by_outcome(dm, "passed_all_gates"),
-            color=GROWTH_GREEN,
-        ),
-        kpi_card(
-            "Needs Review",
-            _count_by_outcome(dm, "needs_human_review"),
-            color=STATUS_COLORS["needs_human_review"],
-        ),
-        kpi_card(
-            "Untested Variants",
-            untested_count,
-            color=STATUS_COLORS["untested"],
-        ),
-        kpi_card(
-            "Champion Error (MAPE)",
-            f"{_champion_mape(dm):.2f}%" if _champion_mape(dm) is not None else "N/A",
-            color=SDC_NAVY,
-        ),
-    ]
-    return pn.FlexBox(
-        *cards,
-        flex_wrap="wrap",
-        sizing_mode="stretch_width",
-        styles={"gap": "12px"},
-    )
-
-
-def _build_decision_strip(dm: DashboardDataManager) -> pn.FlexBox | pn.pane.HTML:
-    """Decision-oriented summary cards for the first screen."""
-    if dm.run_metadata.empty:
-        return pn.pane.HTML(
-            '<div style="text-align:center;padding:24px 16px;background:'
-            "linear-gradient(180deg, #F8FBFF 0%, #E9F1FC 100%);"
-            'border:1px solid #D9E3F0;border-radius:12px">'
-            '<div style="color:#1F3864;font-size:1.1em;font-weight:700;'
-            'margin-bottom:8px">'
-            "Decision cards appear here after your first benchmark run</div>"
-            '<div style="color:#5A6C84;font-size:0.9em;line-height:1.5">'
-            "You will see: current champion accuracy, best challenger, "
-            "review queue status, and next recommended experiment."
-            "</div></div>",
-            sizing_mode="stretch_width",
-        )
-    champion_mape = _champion_mape(dm)
-    champion_row = (
-        dm.run_metadata[dm.run_metadata["run_id"] == dm.champion_id].iloc[0]
-        if dm.champion_id is not None
-        and not dm.run_metadata[dm.run_metadata["run_id"] == dm.champion_id].empty
-        else None
-    )
-    best_variant = _best_tested_challenger(dm)
-    if not dm.run_metadata.empty and "status_code" in dm.run_metadata.columns:
-        review_queue = dm.run_metadata[dm.run_metadata["status_code"] == "needs_human_review"]
-    else:
-        review_queue = dm.run_metadata.iloc[:0]
-
-    recommendations = dm.recommender.suggest_next_experiments(1)
-    top_recommendation = recommendations[0] if recommendations else None
-
-    champion_card = _summary_card(
-        "Current Champion",
-        f"{champion_mape:.2f}% county error"
-        if champion_mape is not None
-        else "Champion unavailable",
-        (
-            f"{champion_row.get('display_name', champion_row.get('run_id', ''))} | "
-            f"{champion_row.get('reference_method_id', champion_row.get('selected_method_id', ''))}"
-            if champion_row is not None
-            else "No champion metadata found."
-        ),
-        tone="primary",
-    )
-
-    best_variant_mape = (
-        _as_float(best_variant.get("selected_county_mape_overall"))
-        if best_variant is not None
-        else None
-    )
-    if best_variant is not None and best_variant_mape is not None and champion_mape is not None:
-        delta = best_variant_mape - champion_mape
-        best_card = _summary_card(
-            "Best Challenger",
-            str(best_variant["display_name"]),
-            f"{best_variant_mape:.2f}% county error ({delta:+.2f} vs champion)",
-            tone="success" if delta <= 0 else "warning",
-        )
-    else:
-        best_card = _summary_card(
-            "Best Challenger",
-            "No challenger ranked yet",
-            "Run more benchmark bundles to populate variant comparisons.",
-            tone="warning",
-        )
-
-    if review_queue.empty:
-        review_card = _summary_card(
-            "Review Queue",
-            "No pending reviews",
-            "All completed runs are either passed, failed hard, or still untested.",
-            tone="success",
-        )
-    else:
-        latest_review = review_queue.sort_values(
-            "run_date_sort", ascending=False, na_position="last"
-        ).iloc[0]
-        review_card = _summary_card(
-            "Review Queue",
-            f"{len(review_queue)} run(s) need review",
-            f"Latest: {latest_review['display_name']}",
-            tone="warning",
-        )
-
-    if top_recommendation is None:
-        recommendation_card = _summary_card(
-            "Next Recommendation",
-            "No recommendation yet",
-            "The recommender needs more completed experiment history.",
-            tone="primary",
-        )
-    else:
-        recommendation_card = _summary_card(
-            "Next Recommendation",
-            f"{top_recommendation.parameter} -> {top_recommendation.suggested_value}",
-            top_recommendation.rationale,
-            tone="primary",
-        )
-
-    return pn.FlexBox(
-        champion_card,
-        best_card,
-        review_card,
-        recommendation_card,
-        flex_wrap="wrap",
-        sizing_mode="stretch_width",
-        styles={"gap": "12px"},
-    )
-
-
 def _queue_health_snapshot(dm: DashboardDataManager) -> dict[str, Any]:
-    """Return the queue-health metrics surfaced on the command center."""
+    """Return the queue-health metrics surfaced on the command center.
+
+    Kept as a tested utility even though no dedicated card calls it directly.
+    """
     inventory = {}
     if dm.catalog is not None:
         try:
@@ -761,50 +377,1130 @@ def _queue_health_snapshot(dm: DashboardDataManager) -> dict[str, Any]:
     }
 
 
-def _build_queue_health_card(dm: DashboardDataManager) -> pn.Card:
-    """Queue readiness panel for unattended-run planning."""
-    snapshot = _queue_health_snapshot(dm)
-    blocked_grids = snapshot["grid_blocked_ids"]
-
-    lines = [
-        f"Variants you can run now: {snapshot['untested_runnable']}",
-        f"Variants still blocked by code changes: {snapshot['untested_requires_code_change']}",
-        f"Runs waiting for human review: {snapshot['review_queue']}",
-        f"Config-only recommendations ready to preview: {snapshot['runnable_recommendations']}",
-    ]
-    if blocked_grids:
-        lines.append(f"Blocked grids: {', '.join(blocked_grids)}")
-    else:
-        lines.append("Blocked grids: none")
-
-    command_md = (
-        "Advanced CLI loop:\n"
-        "1. `python scripts/analysis/observatory.py status`\n"
-        "2. `python scripts/analysis/observatory.py run-pending --dry-run --run-budget 3 --resume-file data/analysis/experiments/sweeps/observatory_pending_resume.json`\n"
-        "3. Re-run without `--dry-run` once the queue looks correct.\n"
-        "4. Review `needs_human_review` runs before any SOP-003 promotion decision."
+def _make_tab_button(
+    *,
+    name: str,
+    button_type: str,
+    width: int,
+    target_index: int,
+    tabs: pn.Tabs | None,
+) -> pn.widgets.Button:
+    """Create a button that activates a dashboard tab when clicked."""
+    button = pn.widgets.Button(
+        name=name,
+        button_type=button_type,
+        width=width,
+        disabled=tabs is None,
     )
 
-    tone = "warning" if blocked_grids or snapshot["review_queue"] else "success"
-    alert_type = "warning" if tone == "warning" else "success"
-    headline = (
-        "Attention needed before unattended queueing."
-        if tone == "warning"
-        else "Queue looks runnable within current guardrails."
+    if tabs is not None:
+
+        def _activate_tab(event: Any) -> None:
+            tabs.active = target_index
+
+        button.on_click(_activate_tab)
+
+    return button
+
+
+# ---------------------------------------------------------------------------
+# Hero metric
+# ---------------------------------------------------------------------------
+
+
+def _build_hero_metric(dm: DashboardDataManager) -> pn.pane.HTML:
+    """Render the champion MAPE as the primary hero metric with challenger delta."""
+    champ_mape = _champion_mape(dm)
+    if champ_mape is None:
+        return hero_metric("N/A", "Champion County Error (MAPE)")
+
+    best = _best_tested_challenger(dm)
+    best_mape = _as_float(best.get("selected_county_mape_overall")) if best is not None else None
+    delta = None
+    if best_mape is not None:
+        delta = best_mape - champ_mape
+
+    return hero_metric(
+        f"{champ_mape:.2f}%",
+        "Champion County Error (MAPE)",
+        delta=delta,
+        color=SDC_BLUE,
     )
 
-    return pn.Card(
-        pn.pane.Alert(headline, alert_type=alert_type),
-        pn.pane.Markdown(
-            "Use this section when deciding whether the unattended queue is safe to run. "
-            "If you only need to inspect what would happen next, the preview buttons below do not execute experiments."
+
+# ---------------------------------------------------------------------------
+# KPI grid (5 compact cards)
+# ---------------------------------------------------------------------------
+
+
+def _build_kpi_grid(dm: DashboardDataManager) -> pn.FlexBox | pn.pane.HTML:
+    """Five smaller KPI cards in a compact flex grid."""
+    total_runs = len(dm.run_ids)
+
+    tested_count = 0
+    untested_count = 0
+    if dm.catalog is not None:
+        variants_df = dm.catalog.list_variants()
+        if not variants_df.empty and "tested" in variants_df.columns:
+            tested_count = int(variants_df["tested"].sum())
+            untested_count = int((~variants_df["tested"]).sum())
+
+    if total_runs == 0 and tested_count == 0:
+        return pn.pane.HTML(
+            '<div style="text-align:center;padding:20px 16px;background:#F8FBFF;'
+            "border:1px dashed #B8CBE0;border-radius:12px;color:#5A6C84;"
+            'font-size:0.95em">'
+            '<strong style="color:#1F3864">No benchmark results yet.</strong><br>'
+            "Use the Launch Section to run your first autonomous search. "
+            "KPIs will populate as results come in."
+            "</div>",
+            sizing_mode="stretch_width",
+        )
+
+    cards = [
+        kpi_card("Total Runs", total_runs, color=SDC_NAVY),
+        kpi_card("Experiments Tested", tested_count, color=SDC_BLUE),
+        kpi_card(
+            "Passed Gates",
+            _count_by_outcome(dm, "passed_all_gates"),
+            color=GROWTH_GREEN,
         ),
-        pn.pane.Markdown("\n".join(f"- {line}" for line in lines)),
-        pn.pane.Markdown(command_md),
-        title="Queue Health",
+        kpi_card(
+            "Needs Review",
+            _count_by_outcome(dm, "needs_human_review"),
+            color=STATUS_COLORS["needs_human_review"],
+        ),
+        kpi_card(
+            "Untested Variants",
+            untested_count,
+            color=STATUS_COLORS["untested"],
+        ),
+    ]
+    return pn.FlexBox(
+        *cards,
+        flex_wrap="wrap",
+        sizing_mode="stretch_width",
+        styles={"gap": "10px"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Decision strip (2 cards: Champion + Best Challenger)
+# ---------------------------------------------------------------------------
+
+
+def _build_decision_strip(dm: DashboardDataManager) -> pn.FlexBox | pn.pane.HTML:
+    """Two-card decision strip: Current Champion and Best Challenger."""
+    if dm.run_metadata.empty:
+        return pn.pane.HTML(
+            '<div style="text-align:center;padding:24px 16px;background:'
+            "linear-gradient(180deg, #F8FBFF 0%, #E9F1FC 100%);"
+            'border:1px solid #D9E3F0;border-radius:12px">'
+            '<div style="color:#1F3864;font-size:1.1em;font-weight:700;'
+            'margin-bottom:8px">'
+            "Decision cards appear here after your first benchmark run</div>"
+            '<div style="color:#5A6C84;font-size:0.9em;line-height:1.5">'
+            "You will see: current champion accuracy and best challenger comparison."
+            "</div></div>",
+            sizing_mode="stretch_width",
+        )
+
+    champ_mape = _champion_mape(dm)
+    champion_row = (
+        dm.run_metadata[dm.run_metadata["run_id"] == dm.champion_id].iloc[0]
+        if dm.champion_id is not None
+        and not dm.run_metadata[dm.run_metadata["run_id"] == dm.champion_id].empty
+        else None
+    )
+    best_variant = _best_tested_challenger(dm)
+
+    champion_card = _summary_card(
+        "Current Champion",
+        f"{champ_mape:.2f}% county error" if champ_mape is not None else "Champion unavailable",
+        (
+            f"{champion_row.get('display_name', champion_row.get('run_id', ''))} | "
+            f"{champion_row.get('reference_method_id', champion_row.get('selected_method_id', ''))}"
+            if champion_row is not None
+            else "No champion metadata found."
+        ),
+        tone="primary",
+    )
+
+    best_variant_mape = (
+        _as_float(best_variant.get("selected_county_mape_overall"))
+        if best_variant is not None
+        else None
+    )
+    if best_variant is not None and best_variant_mape is not None and champ_mape is not None:
+        delta = best_variant_mape - champ_mape
+        best_card = _summary_card(
+            "Best Challenger",
+            str(best_variant["display_name"]),
+            f"{best_variant_mape:.2f}% county error ({delta:+.2f} vs champion)",
+            tone="success" if delta <= 0 else "warning",
+        )
+    else:
+        best_card = _summary_card(
+            "Best Challenger",
+            "No challenger ranked yet",
+            "Run more benchmark bundles to populate variant comparisons.",
+            tone="warning",
+        )
+
+    return pn.FlexBox(
+        champion_card,
+        best_card,
+        flex_wrap="wrap",
+        sizing_mode="stretch_width",
+        styles={"gap": "12px"},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Subprocess launch helper (shared by simple + advanced)
+# ---------------------------------------------------------------------------
+
+
+def _launch_search_auto(
+    *,
+    search_id: str,
+    cpu_budget: int,
+    max_total_runs: int,
+    batch_run_budget: int,
+    max_pending: int,
+    max_recommended: int,
+    include_recipes: bool,
+    overwrite: bool,
+    status_pane: pn.pane.HTML,
+    output_pane: pn.pane.HTML,
+    session_dir: Path,
+) -> subprocess.Popen | None:
+    """Write sidecar metadata, PID file, and launch ``search-auto`` subprocess.
+
+    Returns the ``Popen`` handle on success, or ``None`` if the process
+    crashes during the 2-second startup window.
+    """
+    import time
+
+    session_dir.mkdir(parents=True, exist_ok=True)
+    pid_path = session_dir / f".{search_id}.dashboard.pid"
+    log_path = session_dir / f".{search_id}.dashboard.log"
+    meta_path = session_dir / f".{search_id}.dashboard_meta.yaml"
+
+    cmd = [
+        sys.executable,
+        str(_OBSERVATORY_SCRIPT),
+        "search-auto",
+        "--search-id",
+        search_id,
+        "--batch-run-budget",
+        str(batch_run_budget),
+        "--max-total-runs",
+        str(max_total_runs),
+        "--workers-per-run",
+        str(cpu_budget),
+        "--max-pending",
+        str(max_pending),
+        "--max-recommended",
+        str(max_recommended),
+    ]
+    if include_recipes:
+        cmd.append("--include-recipe-catalog")
+    if overwrite:
+        cmd.append("--overwrite")
+
+    meta_path.write_text(
+        yaml.safe_dump(
+            {
+                "search_id": search_id,
+                "launched_at": dt.datetime.now(tz=dt.UTC).isoformat(),
+                "base_revision": "HEAD",
+                "command": " ".join(cmd[2:]),
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    with log_path.open("a", encoding="utf-8") as handle:
+        process = subprocess.Popen(  # noqa: S603
+            cmd,
+            cwd=str(_PROJECT_ROOT),
+            stdout=handle,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+    pid_path.write_text(str(process.pid), encoding="utf-8")
+
+    # Wait briefly to detect early failures
+    time.sleep(2)
+    exit_code = process.poll()
+
+    if exit_code is not None:
+        log_tail = ""
+        if log_path.exists():
+            lines = log_path.read_text(encoding="utf-8").strip().splitlines()
+            log_tail = "\n".join(lines[-15:])
+        output_pane.object = terminal_output(
+            f"Search {search_id} failed to start (exit code {exit_code}).\n\n"
+            f"--- Log output ---\n{log_tail}",
+            max_height=180,
+        ).object
+        status_pane.object = (
+            f'<div style="color:#C00;font-weight:600;font-size:0.92em">'
+            f"Search <strong>{search_id}</strong> failed to start. "
+            f"See details below."
+            f"</div>"
+        )
+        return None
+
+    output_pane.object = terminal_output(
+        f"Launched: {search_id}  (PID {process.pid})\n"
+        f"CPU cores: {cpu_budget} | Max experiments: {max_total_runs}\n"
+        f"Log: {log_path.relative_to(_PROJECT_ROOT)}\n\n"
+        f"Progress will appear in the Search Progress section.",
+        max_height=180,
+    ).object
+    status_pane.object = (
+        f'<div style="color:#00B050;font-weight:600;font-size:0.92em">'
+        f"Search <strong>{search_id}</strong> launched successfully."
+        f"</div>"
+    )
+    return process
+
+
+# ---------------------------------------------------------------------------
+# Launch section (consolidated Quick Start + Advanced)
+# ---------------------------------------------------------------------------
+
+
+def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
+    """Unified launch section combining simple and advanced search controls.
+
+    Simple mode (always visible): CPU slider, max experiments, hint text,
+    Start Exploring button, status/output panes.
+
+    Advanced toggle (collapsed inner card): search-auto parameters, session
+    management, preview/launch buttons, candidate tables, report, and log.
+    """
+    import os
+
+    # --- Status and output panes (shared by simple and advanced) ---
+    status_pane = pn.pane.HTML(sizing_mode="stretch_width")
+    output_pane = pn.pane.HTML(sizing_mode="stretch_width")
+
+    # --- Smart defaults ---
+    available_cores = os.cpu_count() or 12
+    default_workers = min(12, available_cores)
+    default_batch_budget = int(dm.search_policy.default_run_budget)
+    default_max_total = 20
+    default_include_recipes = bool(dm.search_policy.include_recipe_catalog)
+
+    # --- Simple mode widgets ---
+    cpu_slider = pn.widgets.IntSlider(
+        name="CPU cores to use",
+        start=2,
+        end=available_cores,
+        step=2,
+        value=default_workers,
+        width=280,
+    )
+    max_runs_spinner = pn.widgets.IntInput(
+        name="Max experiments to run",
+        value=default_max_total,
+        step=5,
+        start=1,
+        end=200,
+        width=160,
+    )
+
+    # --- Next-recommendation hint ---
+    recommendations = dm.recommender.suggest_next_experiments(1)
+    top_rec = recommendations[0] if recommendations else None
+    hint_text = (
+        f'<div style="color:#5A6C84;font-size:0.88em;margin:4px 0 8px 0">'
+        f"Next suggestion: <strong>{top_rec.parameter}</strong> "
+        f"-> <strong>{top_rec.suggested_value}</strong></div>"
+        if top_rec is not None
+        else '<div style="color:#5A6C84;font-size:0.88em;margin:4px 0 8px 0">'
+        "No recommendation available yet.</div>"
+    )
+    hint_pane = pn.pane.HTML(hint_text, sizing_mode="stretch_width")
+
+    # Active session notice
+    active_id = dm.active_search_id
+    has_active = active_id is not None and active_id != ""
+    if has_active:
+        status_pane.object = (
+            f'<div style="color:#334E68;font-size:0.92em">'
+            f"Active search: <strong>{active_id}</strong> -- "
+            f"progress updates appear in the Search Progress section."
+            f"</div>"
+        )
+
+    # --- Simple Start button ---
+    def _on_simple_start(event: Any) -> None:
+        _launch_search_auto(
+            search_id=_default_search_id(),
+            cpu_budget=cpu_slider.value,
+            max_total_runs=max_runs_spinner.value,
+            batch_run_budget=default_batch_budget,
+            max_pending=int(dm.search_policy.default_max_pending),
+            max_recommended=int(dm.search_policy.default_max_recommended),
+            include_recipes=default_include_recipes,
+            overwrite=False,
+            status_pane=status_pane,
+            output_pane=output_pane,
+            session_dir=dm.search_session_root,
+        )
+
+    btn_start = pn.widgets.Button(
+        name="Start Exploring",
+        button_type="success",
+        width=200,
+        height=44,
+    )
+    btn_start.on_click(_on_simple_start)
+
+    resource_row = pn.Row(
+        cpu_slider,
+        pn.Spacer(width=20),
+        max_runs_spinner,
+        sizing_mode="stretch_width",
+    )
+
+    # ---------------------------------------------------------------
+    # Advanced controls (collapsed inner card)
+    # ---------------------------------------------------------------
+    search_id_input = pn.widgets.TextInput(
+        name="Launch Search ID",
+        value=_default_search_id(),
+        sizing_mode="stretch_width",
+    )
+    batch_run_budget_input = pn.widgets.IntInput(
+        name="Batch Run Budget",
+        value=default_batch_budget,
+        step=1,
+        start=1,
+        sizing_mode="stretch_width",
+    )
+    max_total_runs_input = pn.widgets.IntInput(
+        name="Max Total Runs",
+        value=default_max_total,
+        step=1,
+        start=1,
+        sizing_mode="stretch_width",
+    )
+    max_pending_input = pn.widgets.IntInput(
+        name="Max Pending",
+        value=int(dm.search_policy.default_max_pending),
+        step=1,
+        start=0,
+        sizing_mode="stretch_width",
+    )
+    max_recommended_input = pn.widgets.IntInput(
+        name="Max Recommended",
+        value=int(dm.search_policy.default_max_recommended),
+        step=1,
+        start=0,
+        sizing_mode="stretch_width",
+    )
+    overwrite_box = pn.widgets.Checkbox(name="Overwrite existing session", value=False)
+    include_recipes_box = pn.widgets.Checkbox(
+        name="Include recipe catalog",
+        value=default_include_recipes,
+    )
+
+    # Advanced session management widgets
+    adv_session_select = pn.widgets.Select(
+        name="Search Session",
+        options=dm.search_session_option_map() or {"No sessions yet": ""},
+        value=dm.active_search_id or "",
+        sizing_mode="stretch_width",
+    )
+    adv_detail_pane = pn.pane.HTML(sizing_mode="stretch_width")
+    adv_sessions_table_box = pn.Column(sizing_mode="stretch_width")
+    adv_candidates_table_box = pn.Column(sizing_mode="stretch_width")
+    adv_report_preview_box = pn.Column(sizing_mode="stretch_width")
+    adv_log_preview = pn.pane.HTML(sizing_mode="stretch_width")
+    adv_output_pane = pn.pane.HTML(sizing_mode="stretch_width")
+
+    def _adv_selected_session_row() -> pd.Series | None:
+        sessions = dm.search_sessions
+        if sessions.empty:
+            return None
+        search_id = adv_session_select.value or dm.active_search_id
+        if search_id:
+            matches = sessions[sessions["search_id"] == search_id]
+            if not matches.empty:
+                return matches.iloc[0]
+        return sessions.iloc[0]
+
+    def _adv_refresh_views(*, prefer_search_id: str | None = None) -> None:
+        """Refresh all advanced-section session views."""
+        dm.refresh_search_sessions()
+        sessions = dm.search_sessions
+        options = dm.search_session_option_map()
+        if not options:
+            adv_session_select.options = {"No sessions yet": ""}
+            adv_session_select.value = ""
+            adv_detail_pane.object = _search_session_detail_html(None)
+            adv_sessions_table_box[:] = [empty_placeholder("No autonomous-search sessions found.")]
+            adv_candidates_table_box[:] = [empty_placeholder("No candidate preview available yet.")]
+            adv_report_preview_box[:] = [empty_placeholder("No search report is available yet.")]
+            adv_log_preview.object = ""
+            return
+
+        adv_session_select.options = options
+        desired = (
+            prefer_search_id
+            or adv_session_select.value
+            or dm.active_search_id
+            or next(iter(options.values()))
+        )
+        if desired not in options.values():
+            desired = next(iter(options.values()))
+        adv_session_select.value = desired
+
+        selected = _adv_selected_session_row()
+        adv_detail_pane.object = _search_session_detail_html(selected)
+
+        # Sessions table
+        display_sessions = sessions.copy()
+        display_sessions["progress"] = (
+            display_sessions["progress_count"].astype(int).astype(str)
+            + "/"
+            + display_sessions["total"].astype(int).astype(str)
+        )
+        display_sessions["progress_pct"] = display_sessions["progress_pct"].round(1)
+        session_cols = [
+            col
+            for col in [
+                "search_id",
+                "status",
+                "progress",
+                "progress_pct",
+                "running",
+                "planned",
+                "failed",
+                "updated_at",
+            ]
+            if col in display_sessions.columns
+        ]
+        adv_sessions_table_box[:] = [
+            metric_table(
+                display_sessions[session_cols].rename(
+                    columns={
+                        "search_id": "search",
+                        "progress_pct": "progress_pct",
+                        "updated_at": "updated",
+                    }
+                ),
+                page_size=5,
+                frozen_columns=["search"],
+            )
+        ]
+
+        # Candidates table
+        selected_search_id = str(selected["search_id"]) if selected is not None else ""
+        candidates = (
+            dm.search_session_candidates(selected_search_id)
+            if selected_search_id
+            else pd.DataFrame()
+        )
+        if candidates.empty:
+            adv_candidates_table_box[:] = [
+                empty_placeholder(
+                    "No candidate summary is available for the selected search session yet."
+                )
+            ]
+        else:
+            candidate_cols = [
+                col
+                for col in [
+                    "candidate_id",
+                    "source",
+                    "execution_mode",
+                    "status",
+                    "outcome",
+                    "run_id",
+                    "primary_metric_name",
+                    "county_mape_overall",
+                    "delta_county_mape_overall",
+                ]
+                if col in candidates.columns
+            ]
+            adv_candidates_table_box[:] = [
+                metric_table(
+                    candidates[candidate_cols],
+                    page_size=8,
+                    frozen_columns=["candidate_id"],
+                )
+            ]
+
+        # Report preview
+        report_text = (
+            dm.search_session_report_markdown(selected_search_id) if selected_search_id else ""
+        )
+        observatory_report_path = (
+            str(selected.get("observatory_report_html", "") or "") if selected is not None else ""
+        )
+        if report_text:
+            adv_report_preview_box[:] = [
+                pn.pane.Markdown(report_text, sizing_mode="stretch_width"),
+                pn.pane.Markdown(
+                    f"Observatory HTML report: `{observatory_report_path or 'not written yet'}`"
+                ),
+            ]
+        else:
+            adv_report_preview_box[:] = [
+                empty_placeholder(
+                    "No Markdown search report is available for the selected session yet."
+                ),
+                pn.pane.Markdown(
+                    f"Observatory HTML report: `{observatory_report_path or 'not written yet'}`"
+                ),
+            ]
+
+        # Log tail
+        log_text = dm.search_session_log_tail(selected_search_id) if selected_search_id else ""
+        adv_log_preview.object = (
+            terminal_output(log_text, max_height=220).object if log_text else ""
+        )
+
+    # --- Advanced button callbacks ---
+    def _adv_preview_plan(event: Any) -> None:
+        sid = search_id_input.value.strip() or _default_search_id()
+        args = [
+            "search-plan",
+            "--search-id",
+            sid,
+            "--max-pending",
+            str(max_pending_input.value),
+            "--max-recommended",
+            str(max_recommended_input.value),
+        ]
+        if include_recipes_box.value:
+            args.append("--include-recipe-catalog")
+        if overwrite_box.value:
+            args.append("--overwrite")
+        result = _run_observatory_command(args)
+        adv_output_pane.object = terminal_output(result, max_height=220).object
+        _adv_refresh_views(prefer_search_id=sid)
+
+    def _adv_launch_search(event: Any) -> None:
+        sid = search_id_input.value.strip() or _default_search_id()
+        _launch_search_auto(
+            search_id=sid,
+            cpu_budget=cpu_slider.value,
+            max_total_runs=max_total_runs_input.value,
+            batch_run_budget=batch_run_budget_input.value,
+            max_pending=max_pending_input.value,
+            max_recommended=max_recommended_input.value,
+            include_recipes=include_recipes_box.value,
+            overwrite=overwrite_box.value,
+            status_pane=status_pane,
+            output_pane=output_pane,
+            session_dir=dm.search_session_root,
+        )
+        adv_session_select.value = sid
+        _adv_refresh_views(prefer_search_id=sid)
+        search_id_input.value = _default_search_id()
+
+    def _adv_stop_search(event: Any) -> None:
+        sid = (adv_session_select.value or "").strip()
+        if not sid:
+            adv_output_pane.object = terminal_output(
+                "Select a dashboard-launched search session first.", max_height=80
+            ).object
+            return
+        result = dm.stop_search_session(sid)
+        adv_output_pane.object = terminal_output(result, max_height=120).object
+        _adv_refresh_views(prefer_search_id=sid)
+
+    def _adv_refresh_only(event: Any) -> None:
+        _adv_refresh_views()
+        adv_output_pane.object = terminal_output(
+            "Autonomous-search views refreshed from session files.", max_height=80
+        ).object
+
+    # --- Manual sweep callbacks (from old _build_action_buttons) ---
+    def _on_run_pending_preview(event: Any) -> None:
+        result = _run_observatory_command(
+            [
+                "run-pending",
+                "--dry-run",
+                "--run-budget",
+                "3",
+                "--resume-file",
+                "data/analysis/experiments/sweeps/observatory_pending_resume.json",
+            ]
+        )
+        adv_output_pane.object = terminal_output(result, max_height=220).object
+
+    def _on_run_recommended_preview(event: Any) -> None:
+        result = _run_observatory_command(
+            [
+                "run-recommended",
+                "--dry-run",
+                "--run-budget",
+                "2",
+                "--resume-file",
+                "data/analysis/experiments/sweeps/observatory_recommended_resume.json",
+            ]
+        )
+        adv_output_pane.object = terminal_output(result, max_height=220).object
+
+    def _launch_sweep(subcommand: str, resume_filename: str) -> None:
+        """Launch run-pending or run-recommended as a background subprocess."""
+        parallel_runs, workers_per_run = _derive_parallelism(cpu_slider.value)
+        sweeps_dir = _PROJECT_ROOT / "data" / "analysis" / "experiments" / "sweeps"
+        sweeps_dir.mkdir(parents=True, exist_ok=True)
+        stamp = dt.datetime.now(tz=dt.UTC).strftime("%Y%m%dT%H%M%SZ")
+        log_path = sweeps_dir / "logs" / f"{subcommand}_{stamp}.log"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        resume_file = sweeps_dir / resume_filename
+        cmd = [
+            sys.executable,
+            str(_OBSERVATORY_SCRIPT),
+            subcommand,
+            "--parallel-runs",
+            str(parallel_runs),
+            "--workers-per-run",
+            str(workers_per_run),
+            "--resume-file",
+            str(resume_file),
+        ]
+        with log_path.open("a", encoding="utf-8") as fh:
+            process = subprocess.Popen(  # noqa: S603
+                cmd,
+                cwd=str(_PROJECT_ROOT),
+                stdout=fh,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+        adv_output_pane.object = terminal_output(
+            f"Launched {subcommand} in the background (PID {process.pid}).\n"
+            f"CPU budget: {cpu_slider.value} cores "
+            f"({parallel_runs} parallel run(s) x {workers_per_run} workers)\n"
+            f"Log: {log_path.relative_to(_PROJECT_ROOT)}\n"
+            f"Resume: {resume_file.relative_to(_PROJECT_ROOT)}\n\n"
+            f"Command: {' '.join(cmd[2:])}",
+            max_height=180,
+        ).object
+
+    def _on_launch_pending(event: Any) -> None:
+        _launch_sweep("run-pending", "observatory_pending_resume.json")
+
+    def _on_launch_recommended(event: Any) -> None:
+        _launch_sweep("run-recommended", "observatory_recommended_resume.json")
+
+    # --- Advanced buttons ---
+    btn_adv_refresh = pn.widgets.Button(name="Refresh", button_type="primary", width=100)
+    btn_adv_refresh.on_click(_adv_refresh_only)
+    btn_adv_preview_plan = pn.widgets.Button(name="Preview Plan", button_type="warning", width=140)
+    btn_adv_preview_plan.on_click(_adv_preview_plan)
+    btn_adv_launch = pn.widgets.Button(name="Launch Search-Auto", button_type="success", width=180)
+    btn_adv_launch.on_click(_adv_launch_search)
+    btn_adv_stop = pn.widgets.Button(name="Stop Search", button_type="danger", width=140)
+    btn_adv_stop.on_click(_adv_stop_search)
+
+    btn_pending_preview = pn.widgets.Button(
+        name="Preview Runnable Queue", button_type="warning", width=190
+    )
+    btn_pending_preview.on_click(_on_run_pending_preview)
+    btn_recommended_preview = pn.widgets.Button(
+        name="Preview Recommended Queue", button_type="warning", width=220
+    )
+    btn_recommended_preview.on_click(_on_run_recommended_preview)
+    btn_launch_pending = pn.widgets.Button(
+        name="Launch Run-Pending", button_type="success", width=180
+    )
+    btn_launch_pending.on_click(_on_launch_pending)
+    btn_launch_recommended = pn.widgets.Button(
+        name="Launch Run-Recommended", button_type="success", width=210
+    )
+    btn_launch_recommended.on_click(_on_launch_recommended)
+
+    adv_session_select.param.watch(
+        lambda event: _adv_refresh_views(prefer_search_id=str(event.new)), "value"
+    )
+    _adv_refresh_views(prefer_search_id=dm.active_search_id)
+
+    adv_controls = pn.FlexBox(
+        search_id_input,
+        batch_run_budget_input,
+        max_total_runs_input,
+        max_pending_input,
+        max_recommended_input,
+        flex_wrap="wrap",
+        sizing_mode="stretch_width",
+        styles={"gap": "10px"},
+    )
+    adv_toggles = pn.FlexBox(
+        overwrite_box,
+        include_recipes_box,
+        flex_wrap="wrap",
+        sizing_mode="stretch_width",
+        styles={"gap": "18px"},
+    )
+    adv_search_buttons = pn.FlexBox(
+        btn_adv_refresh,
+        btn_adv_preview_plan,
+        btn_adv_launch,
+        btn_adv_stop,
+        flex_wrap="wrap",
+        sizing_mode="stretch_width",
+        styles={"gap": "10px"},
+    )
+    adv_sweep_buttons = pn.FlexBox(
+        btn_pending_preview,
+        btn_recommended_preview,
+        btn_launch_pending,
+        btn_launch_recommended,
+        flex_wrap="wrap",
+        sizing_mode="stretch_width",
+        styles={"gap": "10px"},
+    )
+
+    advanced_card = pn.Card(
+        adv_session_select,
+        adv_detail_pane,
+        section_header("Search-Auto Settings"),
+        adv_controls,
+        adv_toggles,
+        adv_search_buttons,
+        adv_output_pane,
+        section_header("Manual Sweep Actions"),
+        adv_sweep_buttons,
+        section_header("All Sessions"),
+        adv_sessions_table_box,
+        section_header("Candidate Details"),
+        adv_candidates_table_box,
+        section_header("Search Report"),
+        adv_report_preview_box,
+        section_header("Log Tail"),
+        adv_log_preview,
+        title="Advanced Controls",
         collapsed=True,
         sizing_mode="stretch_width",
     )
+
+    return pn.Card(
+        resource_row,
+        hint_pane,
+        pn.Row(btn_start, sizing_mode="stretch_width"),
+        status_pane,
+        output_pane,
+        advanced_card,
+        title="Launch Experiments",
+        sizing_mode="stretch_width",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Search Progress card (Phase 3 monitoring overhaul)
+# ---------------------------------------------------------------------------
+
+
+def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
+    """Live-progress view for active search sessions.
+
+    Shows progress ring, process health badges, candidate feed during
+    monitoring, completion banner when done, and terminal-styled log output.
+    """
+    session_select = pn.widgets.Select(
+        name="Search Session",
+        options=dm.search_session_option_map() or {"No sessions yet": ""},
+        value=dm.active_search_id or "",
+        sizing_mode="stretch_width",
+    )
+    progress_area = pn.Column(sizing_mode="stretch_width")
+    best_candidates_box = pn.Column(sizing_mode="stretch_width")
+    log_pane = pn.pane.HTML(sizing_mode="stretch_width")
+    log_card = pn.Card(
+        log_pane,
+        title="Log Output",
+        collapsed=True,
+        sizing_mode="stretch_width",
+    )
+    current_experiment_pane = pn.pane.HTML(sizing_mode="stretch_width")
+
+    def _selected_session_row() -> pd.Series | None:
+        sessions = dm.search_sessions
+        if sessions.empty:
+            return None
+        search_id = session_select.value or dm.active_search_id
+        if search_id:
+            matches = sessions[sessions["search_id"] == search_id]
+            if not matches.empty:
+                return matches.iloc[0]
+        return sessions.iloc[0]
+
+    def _process_health_badge(session_row: pd.Series | None, search_id: str) -> str:
+        """Return styled HTML badge for process health status."""
+        if session_row is None:
+            return ""
+        is_running = bool(session_row.get("dashboard_process_running", False))
+        running_count = int(session_row.get("running", 0) or 0)
+        completed = int(session_row.get("completed", 0) or 0)
+        failed = int(session_row.get("failed", 0) or 0)
+        total = int(session_row.get("total", 0) or 0)
+        process_status = str(session_row.get("process_status", "unknown"))
+
+        if is_running and running_count > 0:
+            badge = '<span class="badge badge-passed">RUNNING EXPERIMENTS</span>'
+        elif is_running:
+            badge = '<span class="badge badge-passed">PROCESS ACTIVE</span>'
+        elif process_status == "stopped" and completed + failed >= total > 0 and failed == 0:
+            badge = '<span class="badge badge-champion">SEARCH COMPLETE</span>'
+        elif process_status == "stopped":
+            badge = '<span class="badge badge-failed">PROCESS STOPPED</span>'
+        else:
+            badge = f'<span class="badge badge-untested">{process_status.upper()}</span>'
+
+        # Activity info
+        activity = ""
+        if running_count > 0:
+            candidates = dm.search_session_candidates(search_id)
+            if not candidates.empty and "status" in candidates.columns:
+                active = candidates[candidates["status"].str.lower() == "running"]
+                if not active.empty:
+                    names = active["candidate_id"].tolist()[:3]
+                    activity = (
+                        f'<div style="margin-top:6px;color:#334E68;font-size:0.9em">'
+                        f"Running now: <strong>{', '.join(str(n) for n in names)}</strong>"
+                        f"{'...' if len(active) > 3 else ''}"
+                        f"</div>"
+                    )
+
+        # Elapsed time
+        elapsed = ""
+        created = str(session_row.get("created_at", "") or "")
+        updated = str(session_row.get("updated_at", "") or "")
+        if created:
+            try:
+                start = dt.datetime.fromisoformat(created)
+                if start.tzinfo is None:
+                    start = start.replace(tzinfo=dt.UTC)
+                if is_running:
+                    delta = dt.datetime.now(tz=dt.UTC) - start
+                    hours, remainder = divmod(int(delta.total_seconds()), 3600)
+                    mins, secs = divmod(remainder, 60)
+                    elapsed = (
+                        f"{hours}h {mins}m elapsed" if hours > 0 else f"{mins}m {secs}s elapsed"
+                    )
+                elif updated and completed + failed >= total > 0:
+                    end = dt.datetime.fromisoformat(updated)
+                    if end.tzinfo is None:
+                        end = end.replace(tzinfo=dt.UTC)
+                    delta_t = end - start
+                    hours, remainder = divmod(int(delta_t.total_seconds()), 3600)
+                    mins, secs = divmod(remainder, 60)
+                    elapsed = (
+                        f"Completed in {hours}h {mins}m"
+                        if hours > 0
+                        else f"Completed in {mins}m {secs}s"
+                    )
+            except (ValueError, TypeError):
+                pass
+
+        return (
+            f"<div style=\"font-family:'Aptos','Segoe UI',Arial,sans-serif;"
+            f"display:flex;justify-content:space-between;align-items:center;"
+            f'flex-wrap:wrap;gap:8px;margin-bottom:4px">'
+            f"{badge}"
+            f'<span style="color:#5A6C84;font-size:0.85em">{elapsed}</span>'
+            f"</div>"
+            f"{activity}"
+        )
+
+    def _refresh_progress(*, prefer_search_id: str | None = None) -> None:
+        """Refresh the search progress card content."""
+        dm.refresh_search_sessions()
+        options = dm.search_session_option_map()
+        if not options:
+            session_select.options = {"No sessions yet": ""}
+            session_select.value = ""
+            progress_area[:] = [
+                empty_placeholder("No search results yet. Use the Launch Section to begin.")
+            ]
+            current_experiment_pane.object = ""
+            best_candidates_box[:] = [empty_placeholder("No search results yet.")]
+            log_pane.object = ""
+            return
+
+        session_select.options = options
+        active = dm.active_search_id
+        desired = prefer_search_id or active or session_select.value or next(iter(options.values()))
+        if desired not in options.values():
+            desired = next(iter(options.values()))
+        session_select.value = desired
+
+        selected = _selected_session_row()
+        selected_search_id = str(selected["search_id"]) if selected is not None else ""
+
+        # --- Determine state for progress ring vs completion banner ---
+        is_running = (
+            bool(selected.get("dashboard_process_running", False))
+            if selected is not None
+            else False
+        )
+        process_status = (
+            str(selected.get("process_status", "unknown")) if selected is not None else "unknown"
+        )
+        completed = int(selected.get("completed", 0) or 0) if selected is not None else 0
+        failed = int(selected.get("failed", 0) or 0) if selected is not None else 0
+        total = int(selected.get("total", 0) or 0) if selected is not None else 0
+        progress_pct = (
+            float(selected.get("progress_pct", 0.0) or 0.0) if selected is not None else 0.0
+        )
+
+        search_done = (
+            not is_running
+            and process_status in ("complete", "stopped")
+            and completed + failed >= total > 0
+        )
+
+        if search_done:
+            # Completion state -- show banner instead of ring
+            best_candidates = (
+                dm.search_session_best_candidates(selected_search_id)
+                if selected_search_id
+                else pd.DataFrame()
+            )
+            if failed > 0 and completed == 0:
+                banner = completion_banner(total, status="failed")
+            elif failed > 0:
+                banner = completion_banner(total, status="mixed")
+            else:
+                best_name = ""
+                best_delta = 0.0
+                if not best_candidates.empty:
+                    top = best_candidates.iloc[0]
+                    best_name = str(top.get("candidate_id", ""))
+                    d = _as_float(top.get("delta_county_mape_overall"))
+                    best_delta = d if d is not None else 0.0
+                banner = completion_banner(
+                    total, best_name=best_name, best_delta=best_delta, status="success"
+                )
+            progress_area[:] = [banner]
+        else:
+            # Running / not started -- show progress ring + status text
+            ring_status = "running" if is_running else "mixed" if failed > 0 else "running"
+            ring_label = f"{completed + failed}/{total}" if total > 0 else ""
+            ring = progress_ring(progress_pct, label=ring_label, status=ring_status)
+
+            status_text = (
+                f'<div style="font-size:0.92em;color:#334E68">'
+                f"<strong>{selected.get('search_id', '')}</strong> -- "
+                f"{str(selected.get('status', 'unknown')).upper()}"
+                f"</div>"
+                if selected is not None
+                else ""
+            )
+            status_html = pn.pane.HTML(status_text, sizing_mode="stretch_width")
+
+            progress_area[:] = [pn.Row(ring, status_html, sizing_mode="stretch_width")]
+
+        # Process health badges
+        current_experiment_pane.object = _process_health_badge(selected, selected_search_id)
+
+        # Best candidates -- candidate_feed during monitoring, metric_table when done
+        best_candidates = (
+            dm.search_session_best_candidates(selected_search_id)
+            if selected_search_id
+            else pd.DataFrame()
+        )
+        if best_candidates.empty:
+            best_candidates_box[:] = [empty_placeholder("No completed candidates yet.")]
+        elif search_done:
+            best_cols = [
+                col
+                for col in [
+                    "candidate_id",
+                    "outcome",
+                    "county_mape_overall",
+                    "delta_county_mape_overall",
+                ]
+                if col in best_candidates.columns
+            ]
+            best_candidates_box[:] = [
+                metric_table(
+                    best_candidates[best_cols],
+                    page_size=5,
+                    frozen_columns=["candidate_id"],
+                )
+            ]
+        else:
+            best_candidates_box[:] = [candidate_feed(best_candidates, max_items=5)]
+
+        # Log tail -- terminal output widget
+        log_text = (
+            dm.search_session_log_tail(selected_search_id, max_chars=4000)
+            if selected_search_id
+            else ""
+        )
+        if log_text:
+            log_pane.object = terminal_output(log_text, max_height=200).object
+        else:
+            log_pane.object = ""
+
+        # Auto-expand log when there are errors
+        has_errors = selected is not None and (
+            int(selected.get("failed", 0) or 0) > 0
+            and not bool(selected.get("dashboard_process_running", False))
+        )
+        log_card.collapsed = not has_errors
+
+        # Adaptive polling frequency
+        if _periodic_cb is not None:
+            any_running = (
+                not dm.search_sessions.empty
+                and dm.search_sessions["dashboard_process_running"].any()
+            )
+            if any_running and _periodic_cb.period != 5000:
+                _periodic_cb.period = 5000
+            elif not any_running and _periodic_cb.period != 30000:
+                _periodic_cb.period = 30000
+
+    def _on_stop(event: Any) -> None:
+        search_id = (session_select.value or "").strip()
+        if search_id:
+            dm.stop_search_session(search_id)
+            _refresh_progress(prefer_search_id=search_id)
+
+    def _on_refresh(event: Any) -> None:
+        _refresh_progress()
+
+    btn_stop = pn.widgets.Button(name="Stop", button_type="danger", width=80)
+    btn_stop.on_click(_on_stop)
+    btn_refresh = pn.widgets.Button(name="Refresh", button_type="default", width=90)
+    btn_refresh.on_click(_on_refresh)
+
+    # Auto-refresh every 5 seconds while a search is running
+    _periodic_cb = None
+    if pn.state.curdoc is not None:
+        _periodic_cb = pn.state.add_periodic_callback(_refresh_progress, period=5000, start=True)
+
+    session_select.param.watch(
+        lambda event: _refresh_progress(prefer_search_id=str(event.new)), "value"
+    )
+    _refresh_progress(prefer_search_id=dm.active_search_id)
+
+    return pn.Card(
+        pn.Row(session_select, btn_refresh, btn_stop, sizing_mode="stretch_width"),
+        current_experiment_pane,
+        progress_area,
+        best_candidates_box,
+        log_card,
+        title="Search Progress",
+        sizing_mode="stretch_width",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Champion snapshot and run index (preserved)
+# ---------------------------------------------------------------------------
 
 
 def _build_champion_card(dm: DashboardDataManager) -> pn.Card:
@@ -938,1011 +1634,16 @@ def _build_index_table(dm: DashboardDataManager) -> pn.Card:
     )
 
 
-def _derive_parallelism(core_budget: int) -> tuple[int, int]:
-    """Map a core budget to (parallel_runs, workers_per_run).
-
-    Below 14 cores: single run, all cores as workers.
-    14+ cores: two parallel runs sharing the budget evenly.
-    """
-    parallel_runs = 1 if core_budget < 14 else 2
-    workers_per_run = max(1, core_budget // parallel_runs)
-    return parallel_runs, workers_per_run
-
-
-def _core_alloc_label(core_budget: int) -> str:
-    parallel_runs, workers_per_run = _derive_parallelism(core_budget)
-    if parallel_runs == 1:
-        return f"→ {workers_per_run} workers, 1 run at a time"
-    return f"→ {parallel_runs} parallel runs × {workers_per_run} workers = {parallel_runs * workers_per_run} cores"
-
-
-def _build_action_buttons(dm: DashboardDataManager) -> pn.Card:
-    """Action row and output console."""
-    # CPU core allocation slider
-    cpu_budget = pn.widgets.IntSlider(
-        name="CPU Core Budget",
-        start=2,
-        end=24,
-        step=2,
-        value=12,
-        width=320,
-    )
-    alloc_label = pn.pane.Markdown(
-        _core_alloc_label(cpu_budget.value),
-        styles={"color": "#555", "margin-top": "4px"},
-    )
-
-    def _on_cpu_budget_change(event: Any) -> None:
-        alloc_label.object = _core_alloc_label(event.new)
-
-    cpu_budget.param.watch(_on_cpu_budget_change, "value")
-
-    output_pane = pn.widgets.TextAreaInput(
-        value="Use the preview actions below to inspect what would run next. Launch buttons run in the background and return immediately.",
-        disabled=True,
-        height=220,
-        sizing_mode="stretch_width",
-        name="Output",
-    )
-
-    def on_refresh(event: Any) -> None:
-        dm.refresh()
-        output_pane.value = "Data refreshed successfully."
-
-    def on_run_pending(event: Any) -> None:
-        output_pane.value = (
-            "Running 'run-pending --dry-run --run-budget 3 --resume-file "
-            "data/analysis/experiments/sweeps/observatory_pending_resume.json'...\n"
-        )
-        output_pane.value = _run_observatory_command(
-            [
-                "run-pending",
-                "--dry-run",
-                "--run-budget",
-                "3",
-                "--resume-file",
-                "data/analysis/experiments/sweeps/observatory_pending_resume.json",
-            ]
-        )
-
-    def on_run_recommended(event: Any) -> None:
-        output_pane.value = (
-            "Running 'run-recommended --dry-run --run-budget 2 --resume-file "
-            "data/analysis/experiments/sweeps/observatory_recommended_resume.json'...\n"
-        )
-        output_pane.value = _run_observatory_command(
-            [
-                "run-recommended",
-                "--dry-run",
-                "--run-budget",
-                "2",
-                "--resume-file",
-                "data/analysis/experiments/sweeps/observatory_recommended_resume.json",
-            ]
-        )
-
-    def _launch_sweep(subcommand: str, resume_filename: str) -> None:
-        """Launch run-pending or run-recommended as a background subprocess."""
-        parallel_runs, workers_per_run = _derive_parallelism(cpu_budget.value)
-        sweeps_dir = _PROJECT_ROOT / "data" / "analysis" / "experiments" / "sweeps"
-        sweeps_dir.mkdir(parents=True, exist_ok=True)
-        import datetime as _dt
-
-        stamp = _dt.datetime.now(tz=_dt.UTC).strftime("%Y%m%dT%H%M%SZ")
-        log_path = sweeps_dir / "logs" / f"{subcommand}_{stamp}.log"
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        resume_file = sweeps_dir / resume_filename
-        cmd = [
-            sys.executable,
-            str(_OBSERVATORY_SCRIPT),
-            subcommand,
-            "--parallel-runs",
-            str(parallel_runs),
-            "--workers-per-run",
-            str(workers_per_run),
-            "--resume-file",
-            str(resume_file),
-        ]
-        with log_path.open("a", encoding="utf-8") as handle:
-            process = subprocess.Popen(  # noqa: S603
-                cmd,
-                cwd=str(_PROJECT_ROOT),
-                stdout=handle,
-                stderr=subprocess.STDOUT,
-                start_new_session=True,
-            )
-        output_pane.value = (
-            f"Launched {subcommand} in the background (PID {process.pid}).\n"
-            f"CPU budget: {cpu_budget.value} cores "
-            f"({parallel_runs} parallel run(s) × {workers_per_run} workers)\n"
-            f"Log: {log_path.relative_to(_PROJECT_ROOT)}\n"
-            f"Resume: {resume_file.relative_to(_PROJECT_ROOT)}\n\n"
-            f"Command: {' '.join(cmd[2:])}"
-        )
-
-    def on_launch_pending(event: Any) -> None:
-        _launch_sweep("run-pending", "observatory_pending_resume.json")
-
-    def on_launch_recommended(event: Any) -> None:
-        _launch_sweep("run-recommended", "observatory_recommended_resume.json")
-
-    btn_refresh = pn.widgets.Button(
-        name="Refresh Data",
-        button_type="primary",
-        width=150,
-    )
-    btn_refresh.on_click(on_refresh)
-
-    btn_pending = pn.widgets.Button(
-        name="Preview Runnable Queue",
-        button_type="warning",
-        width=190,
-    )
-    btn_pending.on_click(on_run_pending)
-
-    btn_recommended = pn.widgets.Button(
-        name="Preview Recommended Queue",
-        button_type="warning",
-        width=220,
-    )
-    btn_recommended.on_click(on_run_recommended)
-
-    btn_launch_pending = pn.widgets.Button(
-        name="Launch Run-Pending",
-        button_type="success",
-        width=180,
-    )
-    btn_launch_pending.on_click(on_launch_pending)
-
-    btn_launch_recommended = pn.widgets.Button(
-        name="Launch Run-Recommended",
-        button_type="success",
-        width=210,
-    )
-    btn_launch_recommended.on_click(on_launch_recommended)
-
-    cpu_row = pn.Row(
-        pn.Column(cpu_budget, alloc_label),
-        sizing_mode="stretch_width",
-    )
-
-    preview_buttons = pn.FlexBox(
-        btn_refresh,
-        btn_pending,
-        btn_recommended,
-        flex_wrap="wrap",
-        sizing_mode="stretch_width",
-        styles={"gap": "10px"},
-    )
-
-    launch_buttons = pn.FlexBox(
-        btn_launch_pending,
-        btn_launch_recommended,
-        flex_wrap="wrap",
-        sizing_mode="stretch_width",
-        styles={"gap": "10px"},
-    )
-
-    guidance = pn.pane.Markdown(
-        "**Preview** actions show what would run without executing anything. "
-        "**Launch** buttons start a real background sweep using the CPU budget above — "
-        "check the log file and progress JSON in `data/analysis/experiments/sweeps/` to monitor progress. "
-        "Run `observatory.py refresh && observatory.py compare` when done."
-    )
-
-    return pn.Card(
-        section_header("CPU Resources"),
-        cpu_row,
-        section_header("Preview"),
-        preview_buttons,
-        section_header("Launch (Background)"),
-        launch_buttons,
-        guidance,
-        output_pane,
-        title="Manual Sweep Actions (Advanced)",
-        collapsed=True,
-        sizing_mode="stretch_width",
-    )
-
-
-def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
-    """Live-progress view for active search sessions.
-
-    Always visible on the Command Center.  Shows the active session's
-    progress bar, process health, best candidates, and a live log tail.
-    """
-    session_select = pn.widgets.Select(
-        name="Search Session",
-        options=dm.search_session_option_map() or {"No sessions yet": ""},
-        value=dm.active_search_id or "",
-        sizing_mode="stretch_width",
-    )
-    progress_pane = pn.pane.HTML(sizing_mode="stretch_width")
-    best_candidates_box = pn.Column(sizing_mode="stretch_width")
-    log_tail_pane = pn.widgets.TextAreaInput(
-        value="",
-        disabled=True,
-        height=160,
-        sizing_mode="stretch_width",
-        name="Live Log",
-    )
-    log_card = pn.Card(
-        log_tail_pane,
-        title="Log Output",
-        collapsed=True,
-        sizing_mode="stretch_width",
-    )
-    current_experiment_pane = pn.pane.HTML(sizing_mode="stretch_width")
-
-    def _selected_session_row() -> pd.Series | None:
-        sessions = dm.search_sessions
-        if sessions.empty:
-            return None
-        search_id = session_select.value or dm.active_search_id
-        if search_id:
-            matches = sessions[sessions["search_id"] == search_id]
-            if not matches.empty:
-                return matches.iloc[0]
-        return sessions.iloc[0]
-
-    def _current_experiment_html(
-        search_id: str,
-        session_row: pd.Series | None,
-    ) -> str:
-        """Render info about the currently running experiment, if any."""
-        if session_row is None:
-            return ""
-        process_status = str(session_row.get("process_status", "unknown"))
-        is_running = bool(session_row.get("dashboard_process_running", False))
-        running_count = int(session_row.get("running", 0) or 0)
-        completed = int(session_row.get("completed", 0) or 0)
-        failed = int(session_row.get("failed", 0) or 0)
-        total = int(session_row.get("total", 0) or 0)
-
-        # Process health indicator
-        if is_running and running_count > 0:
-            indicator = (
-                '<span style="color:#00B050;font-weight:600">&#9679; Running experiments</span>'
-            )
-        elif is_running:
-            indicator = '<span style="color:#00B050;font-weight:600">&#9679; Process running</span>'
-        elif process_status == "stopped" and completed + failed >= total > 0 and failed == 0:
-            indicator = '<span style="color:#0563C1;font-weight:600">&#9632; Search complete</span>'
-        elif process_status == "stopped":
-            indicator = '<span style="color:#C00;font-weight:600">&#9632; Process stopped</span>'
-        else:
-            indicator = f'<span style="color:#5A6C84">Process: {process_status}</span>'
-
-        # Status banner — shown when search is done (success or failure)
-        status_banner = ""
-        if not is_running and process_status == "stopped" and completed + failed >= total > 0:
-            if failed > 0 and completed == 0:
-                # All failed
-                log_text = dm.search_session_log_tail(search_id, max_chars=2000)
-                error_reason = ""
-                if log_text:
-                    for line in reversed(log_text.strip().splitlines()):
-                        if "error" in line.lower() or "stopping" in line.lower():
-                            reason = line.strip()
-                            if reason.startswith("2"):
-                                parts = reason.split("] ", 1)
-                                if len(parts) > 1:
-                                    reason = parts[1]
-                            error_reason = reason
-                            break
-                reason_html = (
-                    f'<div style="margin-top:4px;font-size:0.88em;color:#5A1A00">'
-                    f"{error_reason}</div>"
-                    if error_reason
-                    else ""
-                )
-                status_banner = (
-                    f'<div style="background:#FFF0F0;border:1px solid #E8AAAA;'
-                    f'border-radius:8px;padding:10px 14px;margin:8px 0">'
-                    f'<span style="color:#C00;font-weight:600">'
-                    f"All {failed} experiments failed</span>"
-                    f"{reason_html}"
-                    f"</div>"
-                )
-            elif failed > 0:
-                # Mixed results
-                status_banner = (
-                    f'<div style="background:#FFF9E8;border:1px solid #E8D088;'
-                    f'border-radius:8px;padding:10px 14px;margin:8px 0">'
-                    f'<span style="color:#BF8F00;font-weight:700">Search finished '
-                    f"with errors</span> &mdash; "
-                    f"{completed} succeeded, {failed} failed. "
-                    f"Check <strong>Log Output</strong> below for failure details. "
-                    f"Successful results are still available in "
-                    f"<strong>Best Candidates</strong> below."
-                    f"</div>"
-                )
-            else:
-                # All succeeded
-                status_banner = (
-                    f'<div style="background:#F3FBF6;border:1px solid #A3D9B1;'
-                    f'border-radius:8px;padding:14px 18px;margin:8px 0">'
-                    f'<div style="color:#00B050;font-weight:700;font-size:1.05em;'
-                    f'margin-bottom:6px">Search Complete</div>'
-                    f'<div style="color:#334E68;font-size:0.92em;line-height:1.5">'
-                    f"{completed} experiment(s) finished. "
-                    f"Review <strong>Best Candidates</strong> below, then:"
-                    f'<ol style="margin:8px 0 0 18px;padding:0">'
-                    f"<li>Check <strong>Scorecards</strong> tab to compare "
-                    f"candidates against the champion</li>"
-                    f"<li>Check <strong>Horizon &amp; Bias</strong> tab for "
-                    f"systematic forecast errors</li>"
-                    f"<li>If a candidate improves on the champion, follow the "
-                    f"promotion SOP</li>"
-                    f"</ol></div></div>"
-                )
-        elif (
-            not is_running
-            and process_status == "stopped"
-            and completed + failed < total
-            and total > 0
-        ):
-            # Stopped early
-            status_banner = (
-                f'<div style="background:#FFF0F0;border:1px solid #E8AAAA;'
-                f'border-radius:8px;padding:10px 14px;margin:8px 0">'
-                f'<span style="color:#C00;font-weight:600">'
-                f"Search stopped before completion</span>"
-                f" &mdash; {completed + failed}/{total} experiments ran."
-                f"</div>"
-            )
-
-        # Currently running experiments
-        activity = ""
-        if running_count > 0:
-            candidates = dm.search_session_candidates(search_id)
-            if not candidates.empty and "status" in candidates.columns:
-                active = candidates[candidates["status"].str.lower() == "running"]
-                if not active.empty:
-                    names = active["candidate_id"].tolist()[:3]
-                    activity = (
-                        f'<div style="margin-top:6px;color:#334E68;font-size:0.9em">'
-                        f"Running now: <strong>{', '.join(str(n) for n in names)}</strong>"
-                        f"{'...' if len(active) > 3 else ''}"
-                        f"</div>"
-                    )
-
-        # Elapsed time
-        elapsed = ""
-        created = str(session_row.get("created_at", "") or "")
-        updated = str(session_row.get("updated_at", "") or "")
-        if created:
-            try:
-                start = dt.datetime.fromisoformat(created)
-                if start.tzinfo is None:
-                    start = start.replace(tzinfo=dt.UTC)
-                if is_running:
-                    delta = dt.datetime.now(tz=dt.UTC) - start
-                    hours, remainder = divmod(int(delta.total_seconds()), 3600)
-                    mins, secs = divmod(remainder, 60)
-                    elapsed = (
-                        f"{hours}h {mins}m elapsed" if hours > 0 else f"{mins}m {secs}s elapsed"
-                    )
-                elif updated and completed + failed >= total > 0:
-                    end = dt.datetime.fromisoformat(updated)
-                    if end.tzinfo is None:
-                        end = end.replace(tzinfo=dt.UTC)
-                    delta = end - start
-                    hours, remainder = divmod(int(delta.total_seconds()), 3600)
-                    mins, secs = divmod(remainder, 60)
-                    elapsed = (
-                        f"Completed in {hours}h {mins}m"
-                        if hours > 0
-                        else f"Completed in {mins}m {secs}s"
-                    )
-            except (ValueError, TypeError):
-                pass
-
-        return f"""
-        <div style="font-family:'Aptos','Segoe UI',Arial,sans-serif;
-                    display:flex;justify-content:space-between;align-items:center;
-                    flex-wrap:wrap;gap:8px;margin-bottom:4px">
-            {indicator}
-            <span style="color:#5A6C84;font-size:0.85em">{elapsed}</span>
-        </div>
-        {status_banner}
-        {activity}
-        """
-
-    def _refresh_progress(*, prefer_search_id: str | None = None) -> None:
-        dm.refresh_search_sessions()
-        options = dm.search_session_option_map()
-        if not options:
-            session_select.options = {"No sessions yet": ""}
-            session_select.value = ""
-            progress_pane.object = _search_progress_html(None)
-            current_experiment_pane.object = ""
-            best_candidates_box[:] = [
-                empty_placeholder("No search results yet. Use Quick Start above to begin.")
-            ]
-            log_tail_pane.value = ""
-            return
-
-        session_select.options = options
-        # Always prefer: explicit request > active/running session > current dropdown > first
-        active = dm.active_search_id
-        desired = prefer_search_id or active or session_select.value or next(iter(options.values()))
-        if desired not in options.values():
-            desired = next(iter(options.values()))
-        session_select.value = desired
-
-        selected = _selected_session_row()
-        progress_pane.object = _search_progress_html(selected)
-
-        selected_search_id = str(selected["search_id"]) if selected is not None else ""
-
-        # Current experiment and process health
-        current_experiment_pane.object = _current_experiment_html(
-            selected_search_id,
-            selected,
-        )
-
-        # Best candidates
-        best_candidates = (
-            dm.search_session_best_candidates(selected_search_id)
-            if selected_search_id
-            else pd.DataFrame()
-        )
-        if best_candidates.empty:
-            best_candidates_box[:] = [empty_placeholder("No completed candidates yet.")]
-        else:
-            best_cols = [
-                col
-                for col in [
-                    "candidate_id",
-                    "outcome",
-                    "county_mape_overall",
-                    "delta_county_mape_overall",
-                ]
-                if col in best_candidates.columns
-            ]
-            best_candidates_box[:] = [
-                metric_table(
-                    best_candidates[best_cols],
-                    page_size=5,
-                    frozen_columns=["candidate_id"],
-                )
-            ]
-
-        # Live log tail
-        log_text = (
-            dm.search_session_log_tail(selected_search_id, max_chars=4000)
-            if selected_search_id
-            else ""
-        )
-        log_tail_pane.value = log_text
-
-        # Auto-expand log when there are errors, collapse when healthy
-        has_errors = selected is not None and (
-            int(selected.get("failed", 0) or 0) > 0
-            and not bool(selected.get("dashboard_process_running", False))
-        )
-        log_card.collapsed = not has_errors
-
-        # Reduce polling frequency when no search is actively running
-        if _periodic_cb is not None:
-            any_running = (
-                not dm.search_sessions.empty
-                and dm.search_sessions["dashboard_process_running"].any()
-            )
-            if any_running and _periodic_cb.period != 5000:
-                _periodic_cb.period = 5000  # Fast polling while running
-            elif not any_running and _periodic_cb.period != 30000:
-                _periodic_cb.period = 30000  # Slow polling when idle
-
-    def _on_stop(event: Any) -> None:
-        search_id = (session_select.value or "").strip()
-        if search_id:
-            dm.stop_search_session(search_id)
-            _refresh_progress(prefer_search_id=search_id)
-
-    def _on_refresh(event: Any) -> None:
-        _refresh_progress()
-
-    btn_stop = pn.widgets.Button(name="Stop", button_type="danger", width=80)
-    btn_stop.on_click(_on_stop)
-    btn_refresh = pn.widgets.Button(name="Refresh", button_type="default", width=90)
-    btn_refresh.on_click(_on_refresh)
-
-    # Auto-refresh every 5 seconds while a search is running
-    _periodic_cb = None
-    if pn.state.curdoc is not None:
-        _periodic_cb = pn.state.add_periodic_callback(_refresh_progress, period=5000, start=True)
-
-    session_select.param.watch(
-        lambda event: _refresh_progress(prefer_search_id=str(event.new)), "value"
-    )
-    _refresh_progress(prefer_search_id=dm.active_search_id)
-
-    return pn.Card(
-        pn.Row(session_select, btn_refresh, btn_stop, sizing_mode="stretch_width"),
-        current_experiment_pane,
-        progress_pane,
-        best_candidates_box,
-        log_card,
-        title="Search Progress",
-        sizing_mode="stretch_width",
-    )
-
-
-def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
-    """Full autonomous-search controls — starts collapsed for reduced clutter.
-
-    Power users expand this card to customize search parameters, preview
-    plans, inspect session details, and view full candidate/report output.
-    """
-    session_select = pn.widgets.Select(
-        name="Search Session",
-        options=dm.search_session_option_map() or {"No sessions yet": ""},
-        value=dm.active_search_id or "",
-        sizing_mode="stretch_width",
-    )
-    search_id_input = pn.widgets.TextInput(
-        name="Launch Search ID",
-        value=_default_search_id(),
-        sizing_mode="stretch_width",
-    )
-    cpu_budget_search = pn.widgets.IntSlider(
-        name="CPU Core Budget",
-        start=2,
-        end=24,
-        step=2,
-        value=12,
-        width=320,
-    )
-    cpu_budget_search_label = pn.pane.Markdown(
-        f"→ {cpu_budget_search.value} workers per experiment (search-auto runs one experiment at a time)",
-        styles={"color": "#555", "margin-top": "4px"},
-    )
-
-    def _on_cpu_search_change(event: Any) -> None:
-        cpu_budget_search_label.object = (
-            f"→ {event.new} workers per experiment (search-auto runs one experiment at a time)"
-        )
-
-    cpu_budget_search.param.watch(_on_cpu_search_change, "value")
-
-    batch_run_budget = pn.widgets.IntInput(
-        name="Batch Run Budget",
-        value=int(dm.search_policy.default_run_budget),
-        step=1,
-        start=1,
-        sizing_mode="stretch_width",
-    )
-    max_total_runs = pn.widgets.IntInput(
-        name="Max Total Runs",
-        value=20,
-        step=1,
-        start=1,
-        sizing_mode="stretch_width",
-    )
-    max_pending = pn.widgets.IntInput(
-        name="Max Pending",
-        value=int(dm.search_policy.default_max_pending),
-        step=1,
-        start=0,
-        sizing_mode="stretch_width",
-    )
-    max_recommended = pn.widgets.IntInput(
-        name="Max Recommended",
-        value=int(dm.search_policy.default_max_recommended),
-        step=1,
-        start=0,
-        sizing_mode="stretch_width",
-    )
-    overwrite_box = pn.widgets.Checkbox(name="Overwrite existing session", value=False)
-    include_recipes_box = pn.widgets.Checkbox(
-        name="Include recipe catalog",
-        value=bool(dm.search_policy.include_recipe_catalog),
-    )
-
-    detail_pane = pn.pane.HTML(sizing_mode="stretch_width")
-    sessions_table_box = pn.Column(sizing_mode="stretch_width")
-    candidates_table_box = pn.Column(sizing_mode="stretch_width")
-    report_preview_box = pn.Column(sizing_mode="stretch_width")
-    log_preview = pn.widgets.TextAreaInput(
-        value="",
-        disabled=True,
-        height=220,
-        sizing_mode="stretch_width",
-        name="Launch Log Tail",
-    )
-    output_pane = pn.widgets.TextAreaInput(
-        value="",
-        disabled=True,
-        height=220,
-        sizing_mode="stretch_width",
-        name="Output",
-    )
-
-    def _planner_args() -> list[str]:
-        return [
-            "--max-pending",
-            str(max_pending.value),
-            "--max-recommended",
-            str(max_recommended.value),
-        ]
-
-    def _selected_session_row() -> pd.Series | None:
-        sessions = dm.search_sessions
-        if sessions.empty:
-            return None
-        search_id = session_select.value or dm.active_search_id
-        if search_id:
-            matches = sessions[sessions["search_id"] == search_id]
-            if not matches.empty:
-                return matches.iloc[0]
-        return sessions.iloc[0]
-
-    def _refresh_search_views(*, prefer_search_id: str | None = None) -> None:
-        dm.refresh_search_sessions()
-        sessions = dm.search_sessions
-
-        options = dm.search_session_option_map()
-        if not options:
-            session_select.options = {"No sessions yet": ""}
-            session_select.value = ""
-            detail_pane.object = _search_session_detail_html(None)
-            sessions_table_box[:] = [empty_placeholder("No autonomous-search sessions found.")]
-            candidates_table_box[:] = [empty_placeholder("No candidate preview available yet.")]
-            report_preview_box[:] = [empty_placeholder("No search report is available yet.")]
-            log_preview.value = ""
-            return
-
-        session_select.options = options
-        desired = (
-            prefer_search_id
-            or session_select.value
-            or dm.active_search_id
-            or next(iter(options.values()))
-        )
-        if desired not in options.values():
-            desired = next(iter(options.values()))
-        session_select.value = desired
-
-        selected = _selected_session_row()
-        detail_pane.object = _search_session_detail_html(selected)
-
-        display_sessions = sessions.copy()
-        display_sessions["progress"] = (
-            display_sessions["progress_count"].astype(int).astype(str)
-            + "/"
-            + display_sessions["total"].astype(int).astype(str)
-        )
-        display_sessions["progress_pct"] = display_sessions["progress_pct"].round(1)
-        session_cols = [
-            col
-            for col in [
-                "search_id",
-                "status",
-                "progress",
-                "progress_pct",
-                "running",
-                "planned",
-                "failed",
-                "updated_at",
-            ]
-            if col in display_sessions.columns
-        ]
-        sessions_table_box[:] = [
-            metric_table(
-                display_sessions[session_cols].rename(
-                    columns={
-                        "search_id": "search",
-                        "progress_pct": "progress_pct",
-                        "updated_at": "updated",
-                    }
-                ),
-                page_size=5,
-                frozen_columns=["search"],
-            )
-        ]
-
-        selected_search_id = str(selected["search_id"]) if selected is not None else ""
-        candidates = (
-            dm.search_session_candidates(selected_search_id)
-            if selected_search_id
-            else pd.DataFrame()
-        )
-        if candidates.empty:
-            candidates_table_box[:] = [
-                empty_placeholder(
-                    "No candidate summary is available for the selected search session yet."
-                )
-            ]
-        else:
-            candidate_cols = [
-                col
-                for col in [
-                    "candidate_id",
-                    "source",
-                    "execution_mode",
-                    "status",
-                    "outcome",
-                    "run_id",
-                    "primary_metric_name",
-                    "county_mape_overall",
-                    "delta_county_mape_overall",
-                ]
-                if col in candidates.columns
-            ]
-            candidates_table_box[:] = [
-                metric_table(
-                    candidates[candidate_cols],
-                    page_size=8,
-                    frozen_columns=["candidate_id"],
-                )
-            ]
-
-        report_text = (
-            dm.search_session_report_markdown(selected_search_id) if selected_search_id else ""
-        )
-        observatory_report_path = (
-            str(selected.get("observatory_report_html", "") or "") if selected is not None else ""
-        )
-        if report_text:
-            report_preview_box[:] = [
-                pn.pane.Markdown(report_text, sizing_mode="stretch_width"),
-                pn.pane.Markdown(
-                    f"Observatory HTML report: `{observatory_report_path or 'not written yet'}`"
-                ),
-            ]
-        else:
-            report_preview_box[:] = [
-                empty_placeholder(
-                    "No Markdown search report is available for the selected session yet."
-                ),
-                pn.pane.Markdown(
-                    f"Observatory HTML report: `{observatory_report_path or 'not written yet'}`"
-                ),
-            ]
-
-        log_preview.value = (
-            dm.search_session_log_tail(selected_search_id) if selected_search_id else ""
-        )
-
-    def _preview_plan(event: Any) -> None:
-        search_id = search_id_input.value.strip() or _default_search_id()
-        args = ["search-plan", "--search-id", search_id, *_planner_args()]
-        if include_recipes_box.value:
-            args.append("--include-recipe-catalog")
-        if overwrite_box.value:
-            args.append("--overwrite")
-        output_pane.value = _run_observatory_command(args)
-        _refresh_search_views(prefer_search_id=search_id)
-
-    def _preview_next_batch(event: Any) -> None:
-        search_id = (session_select.value or search_id_input.value).strip()
-        if not search_id:
-            output_pane.value = "Select or create a search session first."
-            return
-        output_pane.value = _run_observatory_command(
-            [
-                "search-run",
-                "--search-id",
-                search_id,
-                "--run-budget",
-                str(batch_run_budget.value),
-                "--dry-run",
-            ]
-        )
-        _refresh_search_views(prefer_search_id=search_id)
-
-    def _launch_search(event: Any) -> None:
-        search_id = search_id_input.value.strip() or _default_search_id()
-        session_root = dm.search_session_root
-        session_root.mkdir(parents=True, exist_ok=True)
-        pid_path = session_root / f".{search_id}.dashboard.pid"
-        log_path = session_root / f".{search_id}.dashboard.log"
-        meta_path = session_root / f".{search_id}.dashboard_meta.yaml"
-        cmd = [
-            sys.executable,
-            str(_OBSERVATORY_SCRIPT),
-            "search-auto",
-            "--search-id",
-            search_id,
-            "--batch-run-budget",
-            str(batch_run_budget.value),
-            "--max-total-runs",
-            str(max_total_runs.value),
-            "--workers-per-run",
-            str(cpu_budget_search.value),
-            *_planner_args(),
-        ]
-        if include_recipes_box.value:
-            cmd.append("--include-recipe-catalog")
-        if overwrite_box.value:
-            cmd.append("--overwrite")
-        meta_path.write_text(
-            yaml.safe_dump(
-                {
-                    "search_id": search_id,
-                    "launched_at": dt.datetime.now(tz=dt.UTC).isoformat(),
-                    "base_revision": "HEAD",
-                    "command": " ".join(cmd[2:]),
-                },
-                sort_keys=False,
-            ),
-            encoding="utf-8",
-        )
-        with log_path.open("a", encoding="utf-8") as handle:
-            process = subprocess.Popen(  # noqa: S603
-                cmd,
-                cwd=str(_PROJECT_ROOT),
-                stdout=handle,
-                stderr=subprocess.STDOUT,
-                start_new_session=True,
-            )
-        pid_path.write_text(str(process.pid), encoding="utf-8")
-        output_pane.value = (
-            f"Launched autonomous search in the background: {search_id}\n"
-            f"Command: {' '.join(cmd[2:])}\n"
-            "Use the Search Progress card or Refresh button to watch progress."
-        )
-        session_select.value = search_id
-        _refresh_search_views(prefer_search_id=search_id)
-        search_id_input.value = _default_search_id()
-
-    def _refresh_only(event: Any) -> None:
-        _refresh_search_views()
-        output_pane.value = "Autonomous-search views refreshed from session files."
-
-    def _stop_search(event: Any) -> None:
-        search_id = (session_select.value or "").strip()
-        if not search_id:
-            output_pane.value = "Select a dashboard-launched search session first."
-            return
-        output_pane.value = dm.stop_search_session(search_id)
-        _refresh_search_views(prefer_search_id=search_id)
-
-    btn_refresh = pn.widgets.Button(name="Refresh", button_type="primary", width=100)
-    btn_refresh.on_click(_refresh_only)
-    btn_preview_plan = pn.widgets.Button(name="Preview Plan", button_type="warning", width=140)
-    btn_preview_plan.on_click(_preview_plan)
-    btn_preview_batch = pn.widgets.Button(
-        name="Preview Next Batch", button_type="warning", width=170
-    )
-    btn_preview_batch.on_click(_preview_next_batch)
-    btn_launch = pn.widgets.Button(name="Launch Search-Auto", button_type="success", width=180)
-    btn_launch.on_click(_launch_search)
-    btn_stop = pn.widgets.Button(name="Stop Search", button_type="danger", width=140)
-    btn_stop.on_click(_stop_search)
-
-    session_select.param.watch(
-        lambda event: _refresh_search_views(prefer_search_id=str(event.new)), "value"
-    )
-    _refresh_search_views(prefer_search_id=dm.active_search_id)
-
-    cpu_search_row = pn.Column(
-        cpu_budget_search,
-        cpu_budget_search_label,
-        sizing_mode="stretch_width",
-    )
-
-    controls = pn.FlexBox(
-        search_id_input,
-        batch_run_budget,
-        max_total_runs,
-        max_pending,
-        max_recommended,
-        cpu_search_row,
-        flex_wrap="wrap",
-        sizing_mode="stretch_width",
-        styles={"gap": "10px"},
-    )
-    toggles = pn.FlexBox(
-        overwrite_box,
-        include_recipes_box,
-        flex_wrap="wrap",
-        sizing_mode="stretch_width",
-        styles={"gap": "18px"},
-    )
-    buttons = pn.FlexBox(
-        btn_refresh,
-        btn_preview_plan,
-        btn_preview_batch,
-        btn_launch,
-        btn_stop,
-        flex_wrap="wrap",
-        sizing_mode="stretch_width",
-        styles={"gap": "10px"},
-    )
-
-    return pn.Card(
-        session_select,
-        detail_pane,
-        section_header("Launch Settings"),
-        controls,
-        toggles,
-        buttons,
-        output_pane,
-        section_header("All Sessions"),
-        sessions_table_box,
-        section_header("Candidate Details"),
-        candidates_table_box,
-        section_header("Search Report"),
-        report_preview_box,
-        section_header("Log Tail"),
-        log_preview,
-        title="Autonomous Search (Advanced)",
-        collapsed=True,
-        sizing_mode="stretch_width",
-    )
-
-
-def _build_weaknesses_panel(dm: DashboardDataManager) -> pn.Card:
-    """Persistent weaknesses from the recommender."""
-    try:
-        weaknesses = dm.recommender.identify_persistent_weaknesses()
-    except Exception:  # pragma: no cover - defensive UI guard
-        logger.exception("Failed to identify persistent weaknesses.")
-        return pn.Card(
-            empty_placeholder("Unable to compute persistent weaknesses."),
-            title="Persistent Weaknesses",
-            sizing_mode="stretch_width",
-        )
-
-    if weaknesses.empty:
-        return pn.Card(
-            pn.pane.Alert(
-                "No persistent weaknesses detected. Every tracked county group has at least one tested variant that improves over the champion.",
-                alert_type="success",
-            ),
-            title="Persistent Weaknesses",
-            sizing_mode="stretch_width",
-        )
-
-    persistent = weaknesses[
-        weaknesses["best_challenger_delta"].notna() & (weaknesses["best_challenger_delta"] >= 0)
-    ]
-    if persistent.empty:
-        return pn.Card(
-            pn.pane.Alert(
-                "No persistent weaknesses. The tested variant set covers every tracked county group.",
-                alert_type="success",
-            ),
-            title="Persistent Weaknesses",
-            sizing_mode="stretch_width",
-        )
-
-    display_df = persistent.copy()
-    display_df["champion_value"] = display_df["champion_value"].round(4)
-    display_df["best_challenger_delta"] = display_df["best_challenger_delta"].round(4)
-    display_df = display_df.rename(
-        columns={
-            "metric": "Metric",
-            "champion_value": "Champion Value",
-            "best_challenger_delta": "Best Delta",
-            "best_challenger_run": "Best Challenger Run",
-        }
-    )
-
-    return pn.Card(
-        pn.pane.Alert(
-            f"{len(display_df)} metric(s) still have no improving challenger.",
-            alert_type="warning",
-        ),
-        metric_table(
-            display_df,
-            page_size=0,
-            frozen_columns=["Metric"],
-        ),
-        title="Persistent Weaknesses",
-        collapsed=True,
-        sizing_mode="stretch_width",
-    )
+# ---------------------------------------------------------------------------
+# Main layout
+# ---------------------------------------------------------------------------
 
 
 def build_command_center(
     dm: DashboardDataManager,
     tabs: pn.Tabs | None = None,
 ) -> pn.Column:
-    """Build the dashboard home page.
+    """Build the Command Center tab with a two-column layout.
 
     Parameters
     ----------
@@ -1950,15 +1651,42 @@ def build_command_center(
         Dashboard data manager supplying run metadata, scorecards, and
         recommendations.
     tabs:
-        Optional parent tab layout. When provided, the start-here buttons can
-        switch directly to the related dashboard tabs.
+        Optional parent tab layout (unused after removing Start Here card,
+        kept for API compatibility).
 
     Returns
     -------
     pn.Column
         The assembled command-center layout.
     """
-    components: list[Any] = [
+    # --- Left column (55%): hero, decision strip, search progress ---
+    left_items: list[Any] = [
+        _build_hero_metric(dm),
+        _build_decision_strip(dm),
+        _build_search_progress_card(dm),
+    ]
+    left_col = pn.Column(*left_items, sizing_mode="stretch_width", min_width=400)
+
+    # --- Right column (45%): KPI grid, launch section, run index, champion ---
+    right_items: list[Any] = [
+        _build_kpi_grid(dm),
+        _build_launch_section(dm),
+    ]
+
+    # Only show detail cards when there is benchmark data to inspect
+    if dm.run_ids:
+        right_items.extend(
+            [
+                _build_index_table(dm),
+                _build_champion_card(dm),
+            ]
+        )
+
+    right_col = pn.Column(*right_items, sizing_mode="stretch_width", min_width=350)
+
+    two_col_layout = pn.Row(left_col, right_col, sizing_mode="stretch_width")
+
+    return pn.Column(
         section_header(
             "Command Center",
             subtitle=(
@@ -1966,33 +1694,6 @@ def build_command_center(
                 "decide what to run or promote next."
             ),
         ),
-        # -- Above the fold: orientation, situation, and one-click action --
-        _build_start_here_card(dm, tabs),
-        _build_kpi_row(dm),
-        _build_decision_strip(dm),
-        _build_quick_start_card(dm),
-        # -- Live progress for active searches --
-        _build_search_progress_card(dm),
-    ]
-
-    # Only show detail cards when there is benchmark data to inspect
-    has_runs = bool(dm.run_ids)
-    if has_runs:
-        components.extend(
-            [
-                _build_champion_card(dm),
-                _build_index_table(dm),
-                _build_queue_health_card(dm),
-                _build_weaknesses_panel(dm),
-            ]
-        )
-
-    # Advanced controls always available but collapsed
-    components.extend(
-        [
-            _build_autonomous_search_card(dm),
-            _build_action_buttons(dm),
-        ]
+        two_col_layout,
+        sizing_mode="stretch_width",
     )
-
-    return pn.Column(*components, sizing_mode="stretch_width")
