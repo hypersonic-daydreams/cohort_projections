@@ -96,8 +96,10 @@ def _history_takeaway_text(dm: DashboardDataManager) -> str:
     review_count = int((history["status_code"] == "needs_human_review").sum())
     failed_count = int((history["status_code"] == "failed_hard_gate").sum())
 
+    earliest_str = earliest.strftime("%Y-%m-%d") if pd.notna(earliest) else "unknown"
+    latest_str = latest.strftime("%Y-%m-%d") if pd.notna(latest) else "unknown"
     parts = [
-        f"**History coverage:** {len(history)} benchmark bundles from {earliest:%Y-%m-%d} to {latest:%Y-%m-%d}.",
+        f"**History coverage:** {len(history)} benchmark bundles from {earliest_str} to {latest_str}.",
     ]
 
     passed = history[history["status_code"] == "passed_all_gates"]
@@ -202,10 +204,10 @@ def _build_champion_history_chart(
     if history.empty or "run_date_sort" not in history.columns:
         return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
 
-    chart_data = history.dropna(
-        subset=["run_date_sort", "reference_county_mape_overall", "selected_county_mape_overall"],
-        how="any",
-    ).copy()
+    _required = ["run_date_sort", "reference_county_mape_overall", "selected_county_mape_overall"]
+    if not all(c in history.columns for c in _required):
+        return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
+    chart_data = history.dropna(subset=_required, how="any").copy()
     if chart_data.empty:
         return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
     chart_data = chart_data.sort_values("run_date_sort", ascending=True, na_position="last")
@@ -276,7 +278,11 @@ def _build_metric_delta_heatmap(
         ["run_date_sort", "run_id", "metric"], ascending=[True, True, True]
     )
     ordered["run_axis_label"] = ordered.apply(
-        lambda row: f"{row['run_date_sort']:%Y-%m-%d}<br>{str(row['display_name'])[:24]}",
+        lambda row: (
+            f"{row['run_date_sort']:%Y-%m-%d}<br>{str(row['display_name'])[:24]}"
+            if pd.notna(row["run_date_sort"])
+            else f"unknown<br>{str(row['display_name'])[:24]}"
+        ),
         axis=1,
     )
     ordered["metric_label"] = ordered["metric"].map(_METRIC_LABELS).fillna(ordered["metric"])

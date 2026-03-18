@@ -372,11 +372,11 @@ def build_longitudinal_run_history(run_metadata: pd.DataFrame) -> pd.DataFrame:
         if selected_col in history.columns and reference_col in history.columns:
             history[delta_col] = history[selected_col] - history[reference_col]
 
-    history["run_date_display"] = (
-        history.get("run_date_sort", pd.Series(dtype="datetime64[ns]"))
-        .dt.strftime("%Y-%m-%d")
-        .fillna("")
-    )
+    _raw_dates = history.get("run_date_sort", pd.Series(dtype="datetime64[ns]"))
+    _mask = _raw_dates.notna()
+    history["run_date_display"] = ""
+    if _mask.any():
+        history.loc[_mask, "run_date_display"] = _raw_dates[_mask].dt.strftime("%Y-%m-%d")
     history["accepted_flag"] = history.get("status_code", pd.Series(dtype=object)).isin(
         ["champion", "passed_all_gates"]
     )
@@ -485,7 +485,12 @@ def build_status_timeline(run_metadata: pd.DataFrame) -> pd.DataFrame:
     if run_metadata.empty or "run_date_sort" not in run_metadata.columns:
         return pd.DataFrame()
     timeline = run_metadata.copy()
-    timeline["run_date_display"] = timeline["run_date_sort"].dt.strftime("%Y-%m-%d")
+    _mask = timeline["run_date_sort"].notna()
+    timeline["run_date_display"] = ""
+    if _mask.any():
+        timeline.loc[_mask, "run_date_display"] = timeline.loc[_mask, "run_date_sort"].dt.strftime(
+            "%Y-%m-%d"
+        )
     counts = (
         timeline.groupby(["run_date_display", "status_code"], dropna=False)
         .size()
@@ -730,6 +735,19 @@ def build_run_metadata_frame(
         format="%Y%m%d",
         errors="coerce",
     )
+
+    # Ensure expected metric columns exist even when no benchmarks have run yet.
+    for _col in [
+        "selected_county_mape_overall",
+        "reference_county_mape_overall",
+        "selected_state_ape_recent_short",
+        "reference_state_ape_recent_short",
+        "selected_method_id",
+        "reference_method_id",
+        "short_config",
+    ]:
+        if _col not in metadata.columns:
+            metadata[_col] = pd.NA
 
     sort_cols = ["status_priority"]
     ascending = [True]

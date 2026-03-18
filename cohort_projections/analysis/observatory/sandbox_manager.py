@@ -52,7 +52,11 @@ class SandboxManager:
     def assert_live_checkout_clean(self) -> None:
         """Fail if the live checkout is dirty before an autonomous run."""
         if self.live_checkout_signature():
-            raise RuntimeError("Refusing autonomous search while the live checkout is dirty.")
+            raise RuntimeError(
+                "Refusing autonomous search while the live checkout is dirty.\n"
+                "Commit or stash your changes first (git add . && git commit, "
+                "or git stash), then try again."
+            )
 
     def assert_live_checkout_unchanged(self, prior_signature: str) -> None:
         """Fail if the live checkout changed during a search run."""
