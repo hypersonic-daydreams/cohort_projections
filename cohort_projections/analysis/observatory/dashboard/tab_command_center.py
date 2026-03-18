@@ -556,7 +556,7 @@ def _build_quick_start_card(dm: DashboardDataManager) -> pn.Card:
     )
 
 
-def _build_kpi_row(dm: DashboardDataManager) -> pn.FlexBox:
+def _build_kpi_row(dm: DashboardDataManager) -> pn.FlexBox | pn.pane.HTML:
     """Top-line KPI strip with mobile-safe wrapping."""
     total_runs = len(dm.run_ids)
 
@@ -567,6 +567,18 @@ def _build_kpi_row(dm: DashboardDataManager) -> pn.FlexBox:
         if not variants_df.empty and "tested" in variants_df.columns:
             tested_count = int(variants_df["tested"].sum())
             untested_count = int((~variants_df["tested"]).sum())
+
+    if total_runs == 0 and tested_count == 0:
+        return pn.pane.HTML(
+            '<div style="text-align:center;padding:20px 16px;background:#F8FBFF;'
+            "border:1px dashed #B8CBE0;border-radius:12px;color:#5A6C84;"
+            'font-size:0.95em">'
+            '<strong style="color:#1F3864">No benchmark results yet.</strong><br>'
+            "Use Quick Start below to run your first autonomous search. "
+            "KPIs will populate as results come in."
+            "</div>",
+            sizing_mode="stretch_width",
+        )
 
     cards = [
         kpi_card("Total Runs", total_runs, color=SDC_NAVY),
@@ -600,8 +612,22 @@ def _build_kpi_row(dm: DashboardDataManager) -> pn.FlexBox:
     )
 
 
-def _build_decision_strip(dm: DashboardDataManager) -> pn.FlexBox:
+def _build_decision_strip(dm: DashboardDataManager) -> pn.FlexBox | pn.pane.HTML:
     """Decision-oriented summary cards for the first screen."""
+    if dm.run_metadata.empty:
+        return pn.pane.HTML(
+            '<div style="text-align:center;padding:24px 16px;background:'
+            "linear-gradient(180deg, #F8FBFF 0%, #E9F1FC 100%);"
+            'border:1px solid #D9E3F0;border-radius:12px">'
+            '<div style="color:#1F3864;font-size:1.1em;font-weight:700;'
+            'margin-bottom:8px">'
+            "Decision cards appear here after your first benchmark run</div>"
+            '<div style="color:#5A6C84;font-size:0.9em;line-height:1.5">'
+            "You will see: current champion accuracy, best challenger, "
+            "review queue status, and next recommended experiment."
+            "</div></div>",
+            sizing_mode="stretch_width",
+        )
     champion_mape = _champion_mape(dm)
     champion_row = (
         dm.run_metadata[dm.run_metadata["run_id"] == dm.champion_id].iloc[0]
@@ -1187,38 +1213,82 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
         else:
             indicator = f'<span style="color:#5A6C84">Process: {process_status}</span>'
 
-        # Error banner — shown when process stopped abnormally
-        error_banner = ""
-        if (
+        # Status banner — shown when search is done (success or failure)
+        status_banner = ""
+        if not is_running and process_status == "stopped" and completed + failed >= total > 0:
+            if failed > 0 and completed == 0:
+                # All failed
+                log_text = dm.search_session_log_tail(search_id, max_chars=2000)
+                error_reason = ""
+                if log_text:
+                    for line in reversed(log_text.strip().splitlines()):
+                        if "error" in line.lower() or "stopping" in line.lower():
+                            reason = line.strip()
+                            if reason.startswith("2"):
+                                parts = reason.split("] ", 1)
+                                if len(parts) > 1:
+                                    reason = parts[1]
+                            error_reason = reason
+                            break
+                reason_html = (
+                    f'<div style="margin-top:4px;font-size:0.88em;color:#5A1A00">'
+                    f"{error_reason}</div>"
+                    if error_reason
+                    else ""
+                )
+                status_banner = (
+                    f'<div style="background:#FFF0F0;border:1px solid #E8AAAA;'
+                    f'border-radius:8px;padding:10px 14px;margin:8px 0">'
+                    f'<span style="color:#C00;font-weight:600">'
+                    f"All {failed} experiments failed</span>"
+                    f"{reason_html}"
+                    f"</div>"
+                )
+            elif failed > 0:
+                # Mixed results
+                status_banner = (
+                    f'<div style="background:#FFF9E8;border:1px solid #E8D088;'
+                    f'border-radius:8px;padding:10px 14px;margin:8px 0">'
+                    f'<span style="color:#BF8F00;font-weight:700">Search finished '
+                    f"with errors</span> &mdash; "
+                    f"{completed} succeeded, {failed} failed. "
+                    f"Check <strong>Log Output</strong> below for failure details. "
+                    f"Successful results are still available in "
+                    f"<strong>Best Candidates</strong> below."
+                    f"</div>"
+                )
+            else:
+                # All succeeded
+                status_banner = (
+                    f'<div style="background:#F3FBF6;border:1px solid #A3D9B1;'
+                    f'border-radius:8px;padding:14px 18px;margin:8px 0">'
+                    f'<div style="color:#00B050;font-weight:700;font-size:1.05em;'
+                    f'margin-bottom:6px">Search Complete</div>'
+                    f'<div style="color:#334E68;font-size:0.92em;line-height:1.5">'
+                    f"{completed} experiment(s) finished. "
+                    f"Review <strong>Best Candidates</strong> below, then:"
+                    f'<ol style="margin:8px 0 0 18px;padding:0">'
+                    f"<li>Check <strong>Scorecards</strong> tab to compare "
+                    f"candidates against the champion</li>"
+                    f"<li>Check <strong>Horizon &amp; Bias</strong> tab for "
+                    f"systematic forecast errors</li>"
+                    f"<li>If a candidate improves on the champion, follow the "
+                    f"promotion SOP</li>"
+                    f"</ol></div></div>"
+                )
+        elif (
             not is_running
             and process_status == "stopped"
-            and (failed > 0 or (completed + failed < total and total > 0))
+            and completed + failed < total
+            and total > 0
         ):
-            # Try to extract the error reason from the log tail
-            log_text = dm.search_session_log_tail(search_id, max_chars=2000)
-            error_reason = ""
-            if log_text:
-                for line in reversed(log_text.strip().splitlines()):
-                    if "error" in line.lower() or "stopping" in line.lower():
-                        # Strip timestamp prefix if present
-                        reason = line.strip()
-                        if reason.startswith("2"):
-                            parts = reason.split("] ", 1)
-                            if len(parts) > 1:
-                                reason = parts[1]
-                        error_reason = reason
-                        break
-            reason_html = (
-                f'<div style="margin-top:4px;font-size:0.88em;color:#5A1A00">{error_reason}</div>'
-                if error_reason
-                else ""
-            )
-            error_banner = (
-                f'<div style="background:#FFF0F0;border:1px solid #E8AAAA;border-radius:8px;'
-                f'padding:10px 14px;margin:8px 0">'
-                f'<span style="color:#C00;font-weight:600">Search stopped before completion</span>'
-                f" &mdash; {failed} failed, {completed} completed out of {total} planned."
-                f"{reason_html}"
+            # Stopped early
+            status_banner = (
+                f'<div style="background:#FFF0F0;border:1px solid #E8AAAA;'
+                f'border-radius:8px;padding:10px 14px;margin:8px 0">'
+                f'<span style="color:#C00;font-weight:600">'
+                f"Search stopped before completion</span>"
+                f" &mdash; {completed + failed}/{total} experiments ran."
                 f"</div>"
             )
 
@@ -1240,20 +1310,31 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
         # Elapsed time
         elapsed = ""
         created = str(session_row.get("created_at", "") or "")
+        updated = str(session_row.get("updated_at", "") or "")
         if created:
             try:
                 start = dt.datetime.fromisoformat(created)
                 if start.tzinfo is None:
                     start = start.replace(tzinfo=dt.UTC)
-                delta = dt.datetime.now(tz=dt.UTC) - start
-                hours, remainder = divmod(int(delta.total_seconds()), 3600)
-                mins, secs = divmod(remainder, 60)
-                if not is_running:
-                    elapsed = ""  # Don't show elapsed when stopped
-                elif hours > 0:
-                    elapsed = f"{hours}h {mins}m elapsed"
-                else:
-                    elapsed = f"{mins}m {secs}s elapsed"
+                if is_running:
+                    delta = dt.datetime.now(tz=dt.UTC) - start
+                    hours, remainder = divmod(int(delta.total_seconds()), 3600)
+                    mins, secs = divmod(remainder, 60)
+                    elapsed = (
+                        f"{hours}h {mins}m elapsed" if hours > 0 else f"{mins}m {secs}s elapsed"
+                    )
+                elif updated and completed + failed >= total > 0:
+                    end = dt.datetime.fromisoformat(updated)
+                    if end.tzinfo is None:
+                        end = end.replace(tzinfo=dt.UTC)
+                    delta = end - start
+                    hours, remainder = divmod(int(delta.total_seconds()), 3600)
+                    mins, secs = divmod(remainder, 60)
+                    elapsed = (
+                        f"Completed in {hours}h {mins}m"
+                        if hours > 0
+                        else f"Completed in {mins}m {secs}s"
+                    )
             except (ValueError, TypeError):
                 pass
 
@@ -1264,7 +1345,7 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
             {indicator}
             <span style="color:#5A6C84;font-size:0.85em">{elapsed}</span>
         </div>
-        {error_banner}
+        {status_banner}
         {activity}
         """
 
@@ -1343,6 +1424,17 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
         )
         log_card.collapsed = not has_errors
 
+        # Stop polling when no search process is actively running
+        if _periodic_cb is not None:
+            any_running = (
+                not dm.search_sessions.empty
+                and dm.search_sessions["dashboard_process_running"].any()
+            )
+            if any_running and not _periodic_cb.running:
+                _periodic_cb.start()
+            elif not any_running and _periodic_cb.running:
+                _periodic_cb.stop()
+
     def _on_stop(event: Any) -> None:
         search_id = (session_select.value or "").strip()
         if search_id:
@@ -1357,9 +1449,10 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
     btn_refresh = pn.widgets.Button(name="Refresh", button_type="default", width=90)
     btn_refresh.on_click(_on_refresh)
 
-    # Auto-refresh every 5 seconds
+    # Auto-refresh every 5 seconds while a search is running
+    _periodic_cb = None
     if pn.state.curdoc is not None:
-        pn.state.add_periodic_callback(_refresh_progress, period=5000, start=True)
+        _periodic_cb = pn.state.add_periodic_callback(_refresh_progress, period=5000, start=True)
 
     session_select.param.watch(
         lambda event: _refresh_progress(prefer_search_id=str(event.new)), "value"
@@ -1865,7 +1958,7 @@ def build_command_center(
     pn.Column
         The assembled command-center layout.
     """
-    return pn.Column(
+    components: list[Any] = [
         section_header(
             "Command Center",
             subtitle=(
@@ -1880,12 +1973,26 @@ def build_command_center(
         _build_quick_start_card(dm),
         # -- Live progress for active searches --
         _build_search_progress_card(dm),
-        # -- Everything below is collapsed by default (progressive disclosure) --
-        _build_autonomous_search_card(dm),
-        _build_queue_health_card(dm),
-        _build_champion_card(dm),
-        _build_index_table(dm),
-        _build_action_buttons(dm),
-        _build_weaknesses_panel(dm),
-        sizing_mode="stretch_width",
+    ]
+
+    # Only show detail cards when there is benchmark data to inspect
+    has_runs = bool(dm.run_ids)
+    if has_runs:
+        components.extend(
+            [
+                _build_champion_card(dm),
+                _build_index_table(dm),
+                _build_queue_health_card(dm),
+                _build_weaknesses_panel(dm),
+            ]
+        )
+
+    # Advanced controls always available but collapsed
+    components.extend(
+        [
+            _build_autonomous_search_card(dm),
+            _build_action_buttons(dm),
+        ]
     )
+
+    return pn.Column(*components, sizing_mode="stretch_width")

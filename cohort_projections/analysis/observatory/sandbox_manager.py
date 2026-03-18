@@ -141,6 +141,12 @@ class SandboxManager:
             env=_clean_git_env(),
         )
 
+        # Symlink gitignored data directories from the source repo into the
+        # worktree so that benchmark scripts can find raw data files and
+        # existing analysis outputs.  The worktree only has tracked files;
+        # without these symlinks the benchmark suite fails immediately.
+        self._provision_data_symlinks(worktree_path)
+
         return WorktreeContext(
             search_id=search_id,
             candidate_id=candidate_id,
@@ -148,6 +154,23 @@ class SandboxManager:
             branch_name=branch_name,
             worktree_path=worktree_path,
         )
+
+    def _provision_data_symlinks(self, worktree_path: Path) -> None:
+        """Symlink gitignored data directories from the source repo.
+
+        Git worktrees only contain tracked files.  Data directories like
+        ``data/raw/`` are gitignored and must be made available via symlinks
+        so that benchmark scripts can load census and projection data.
+        """
+        data_dirs = ["raw", "processed", "interim", "metadata", "backtesting"]
+        for subdir in data_dirs:
+            source = self.source_repo / "data" / subdir
+            target = worktree_path / "data" / subdir
+            if source.is_dir() and not target.exists():
+                # Remove the (empty) gitkeep-only directory if present
+                if target.is_dir():
+                    shutil.rmtree(target)
+                target.symlink_to(source.resolve())
 
     def remove_worktree(self, context: WorktreeContext) -> None:
         """Remove a disposable worktree and its local branch."""
