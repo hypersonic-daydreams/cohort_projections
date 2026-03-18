@@ -757,11 +757,17 @@ class AutonomousSearchController:
             directory.mkdir(parents=True, exist_ok=True)
 
         experiment_id = str(candidate["spec"]["experiment_id"])
+        # The experiment subprocess may write to either the worktree's log
+        # or the live repo's log (due to editable-install import paths).
+        # Check both locations.
         local_log_path = (
             context.worktree_path / "data" / "analysis" / "experiments" / "experiment_log.csv"
         )
         local_log = read_experiment_log(local_log_path)
         matching = local_log[local_log["experiment_id"] == experiment_id]
+        if matching.empty:
+            canonical_log = read_experiment_log(self.experiment_log_path)
+            matching = canonical_log[canonical_log["experiment_id"] == experiment_id]
         if matching.empty:
             raise RuntimeError(f"Experiment log entry not found for {experiment_id}")
         row = cast(dict[str, Any], matching.iloc[-1].to_dict())
@@ -774,8 +780,20 @@ class AutonomousSearchController:
             / "completed"
             / f"{experiment_id}.yaml"
         )
+        # Completed spec may also land in the live repo due to editable install.
         if not local_completed_spec.exists():
-            raise RuntimeError(f"Completed spec not found: {local_completed_spec}")
+            canonical_completed_spec = (
+                self.project_root
+                / "data"
+                / "analysis"
+                / "experiments"
+                / "completed"
+                / f"{experiment_id}.yaml"
+            )
+            if canonical_completed_spec.exists():
+                local_completed_spec = canonical_completed_spec
+            else:
+                raise RuntimeError(f"Completed spec not found: {local_completed_spec}")
 
         copied_spec_path = completed_specs_dir / local_completed_spec.name
         shutil.copy2(local_completed_spec, copied_spec_path)

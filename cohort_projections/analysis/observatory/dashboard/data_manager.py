@@ -1101,12 +1101,21 @@ class DashboardDataManager:
 
     @functools.cached_property
     def active_search_id(self) -> str | None:
-        """Most recent in-progress or latest autonomous-search session ID."""
+        """Most recent in-progress or latest autonomous-search session ID.
+
+        A session is only considered "active" if it has an in-progress status
+        AND its background process is still running.  Abandoned sessions
+        (status=planned but process stopped) are treated as inactive.
+        """
         sessions = self.search_sessions
         if sessions.empty:
             return None
-        active = sessions[sessions["status"].isin(["launching", "planned", "running"])]
-        source = active if not active.empty else sessions
+        # Truly active: in-progress status AND process still running
+        truly_active = sessions[
+            sessions["status"].isin(["launching", "planned", "running"])
+            & sessions["dashboard_process_running"].fillna(False).astype(bool)
+        ]
+        source = truly_active if not truly_active.empty else sessions
         if source.empty:
             return None
         return str(source.iloc[0]["search_id"])
