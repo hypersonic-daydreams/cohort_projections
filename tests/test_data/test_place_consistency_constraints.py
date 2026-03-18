@@ -68,7 +68,13 @@ def _minimal_share_history(tmp_path: Path) -> Path:
                 "row_type": "place",
                 "share_raw": share,
             }
-            for year, share in [(2020, 0.60), (2021, 0.61), (2022, 0.62), (2023, 0.63), (2024, 0.64)]
+            for year, share in [
+                (2020, 0.60),
+                (2021, 0.61),
+                (2022, 0.62),
+                (2023, 0.63),
+                (2024, 0.64),
+            ]
         ]
     )
     shares_path = tmp_path / "place_shares_2000_2024.parquet"

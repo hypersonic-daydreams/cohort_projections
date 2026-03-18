@@ -38,9 +38,7 @@ class ModelScorecard:
     """
 
     def __init__(self, config: dict[str, Any]) -> None:
-        self.weights: dict[str, float] = config.get(
-            "scorecard_weights", _DEFAULT_WEIGHTS
-        )
+        self.weights: dict[str, float] = config.get("scorecard_weights", _DEFAULT_WEIGHTS)
         self.near_term_max: int = config.get("near_term_max_horizon", 5)
         self.long_term_min: int = config.get("long_term_min_horizon", 10)
 
@@ -79,9 +77,7 @@ class ModelScorecard:
         long_acc = self._compute_long_term_accuracy(accuracy_diagnostics)
         bias = self._compute_bias_calibration(accuracy_diagnostics)
         age_real = self._compute_age_realism(realism_diagnostics)
-        robust = self._compute_robustness(
-            accuracy_diagnostics, sensitivity_diagnostics
-        )
+        robust = self._compute_robustness(accuracy_diagnostics, sensitivity_diagnostics)
         interp = interpretability_score if interpretability_score is not None else 0.5
 
         entry = ScorecardEntry(
@@ -191,9 +187,7 @@ class ModelScorecard:
 
         if len(entries) > 1:
             best = min(entries, key=lambda e: e.composite_score)
-            lines.append(
-                f"Best composite: {best.model_name} ({best.composite_score:.4f})"
-            )
+            lines.append(f"Best composite: {best.model_name} ({best.composite_score:.4f})")
             lines.append("")
 
         lines.append("=" * 60)
@@ -251,9 +245,7 @@ class ModelScorecard:
         normalised to [0, 1].  If sensitivity diagnostics are provided,
         also factors in perturbation response stability.
         """
-        mape_vals = accuracy_df.loc[
-            accuracy_df["metric_name"] == "mape", "value"
-        ]
+        mape_vals = accuracy_df.loc[accuracy_df["metric_name"] == "mape", "value"]
         if mape_vals.empty or mape_vals.std() == 0:
             base_robustness = 1.0
         else:
@@ -261,9 +253,7 @@ class ModelScorecard:
             base_robustness = float(np.clip(1.0 / (1.0 + cv), 0.0, 1.0))
 
         if sensitivity_df is not None and not sensitivity_df.empty:
-            sens_vals = sensitivity_df.loc[
-                sensitivity_df["metric_name"] == "mape", "value"
-            ]
+            sens_vals = sensitivity_df.loc[sensitivity_df["metric_name"] == "mape", "value"]
             if not sens_vals.empty and sens_vals.std() > 0:
                 sens_cv = sens_vals.std() / max(sens_vals.mean(), 1e-10)
                 sens_score = float(np.clip(1.0 / (1.0 + sens_cv), 0.0, 1.0))

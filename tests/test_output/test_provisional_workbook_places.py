@@ -174,7 +174,9 @@ def test_provisional_workbook_places_sheet_contract(monkeypatch, tmp_path: Path)
     rc = workbook_mod.main()
     assert rc == 0
 
-    output_path = tmp_path / "data" / "exports" / "nd_population_projections_provisional_20260301.xlsx"
+    output_path = (
+        tmp_path / "data" / "exports" / "nd_population_projections_provisional_20260301.xlsx"
+    )
     assert output_path.exists()
 
     wb = load_workbook(output_path, data_only=True)
@@ -207,7 +209,8 @@ def test_provisional_workbook_places_sheet_contract(monkeypatch, tmp_path: Path)
             ]
         )
         actual_headers = [
-            ws.cell(row=header_row, column=col_idx).value for col_idx in range(1, len(expected_headers) + 1)
+            ws.cell(row=header_row, column=col_idx).value
+            for col_idx in range(1, len(expected_headers) + 1)
         ]
         assert actual_headers == expected_headers
 
@@ -222,7 +225,11 @@ def test_provisional_workbook_places_sheet_contract(monkeypatch, tmp_path: Path)
         assert "place" in row_types
         assert "balance_of_county" in row_types
 
-        balance_row_idx = next(row_idx for row_idx in data_rows if ws.cell(row=row_idx, column=4).value == "balance_of_county")
+        balance_row_idx = next(
+            row_idx
+            for row_idx in data_rows
+            if ws.cell(row=row_idx, column=4).value == "balance_of_county"
+        )
         assert ws.cell(row=balance_row_idx, column=5).value == "BALANCE"
         for year_offset in range(len(KEY_YEARS)):
             assert ws.cell(row=balance_row_idx, column=6 + year_offset).value not in (None, "")

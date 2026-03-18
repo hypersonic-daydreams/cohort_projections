@@ -9,6 +9,7 @@ import sys
 import warnings
 
 import pandas as pd
+import pytest
 
 from tests._sdc_paths import get_sdc_repo_root
 
@@ -18,12 +19,14 @@ SCRIPTS_DIR = get_sdc_repo_root() / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 sys.path.insert(0, str(SCRIPTS_DIR / "statistical_analysis"))
 
-from statistical_analysis.module_7_causal_inference import (  # noqa: E402
-    ModuleResult,
-    estimate_event_study,
-    estimate_event_study_extended,
-    prepare_travel_ban_did_data,
+_m7 = pytest.importorskip(  # noqa: E402
+    "statistical_analysis.module_7_causal_inference",
+    reason="module_7_causal_inference source not available (SDC replication scripts not synced)",
 )
+ModuleResult = _m7.ModuleResult
+estimate_event_study = _m7.estimate_event_study
+estimate_event_study_extended = _m7.estimate_event_study_extended
+prepare_travel_ban_did_data = _m7.prepare_travel_ban_did_data
 
 
 def test_prepare_travel_ban_did_data_excludes_pseudo_nationalities():

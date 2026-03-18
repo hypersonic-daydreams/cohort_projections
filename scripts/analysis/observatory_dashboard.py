@@ -16,7 +16,10 @@ from __future__ import annotations
 
 import argparse
 import logging
+import platform
+import subprocess
 import sys
+import webbrowser
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -62,9 +65,7 @@ def build_dashboard() -> pn.template.FastListTemplate:
 
 def main() -> None:
     """Parse arguments and launch the dashboard server."""
-    parser = argparse.ArgumentParser(
-        description="Launch the Projection Observatory dashboard."
-    )
+    parser = argparse.ArgumentParser(description="Launch the Projection Observatory dashboard.")
     parser.add_argument(
         "--port",
         type=int,
@@ -92,13 +93,53 @@ def main() -> None:
 
     import panel as pn
 
-    pn.serve(
-        {"/": build_dashboard},
-        port=args.port,
-        show=not args.no_open,
-        title="Projection Observatory",
-        websocket_origin="*",
-    )
+    open_browser = not args.no_open
+
+    # On WSL, Panel's default show=True opens the WSL-side browser
+    # (e.g. Chromium) instead of the Windows host browser.  Detect WSL
+    # and handle browser opening ourselves via cmd.exe so it routes to
+    # the user's default Windows browser (typically Chrome).
+    is_wsl = "microsoft" in platform.uname().release.lower()
+    if is_wsl and open_browser:
+        import threading
+
+        def _open_windows_browser() -> None:
+            url = f"http://localhost:{args.port}/"
+            try:
+                subprocess.Popen(  # noqa: S603
+                    ["cmd.exe", "/c", "start", url],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            except FileNotFoundError:
+                try:
+                    subprocess.Popen(  # noqa: S603
+                        ["wslview", url],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                except FileNotFoundError:
+                    webbrowser.open(url)
+
+        # Open the Windows browser after a short delay to let the
+        # server finish binding the port.
+        threading.Timer(1.5, _open_windows_browser).start()
+
+        pn.serve(
+            {"/": build_dashboard},
+            port=args.port,
+            show=False,
+            title="Projection Observatory",
+            websocket_origin="*",
+        )
+    else:
+        pn.serve(
+            {"/": build_dashboard},
+            port=args.port,
+            show=open_browser,
+            title="Projection Observatory",
+            websocket_origin="*",
+        )
 
 
 # ------------------------------------------------------------------

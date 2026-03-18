@@ -105,9 +105,7 @@ class ForecastAccuracyModule:
         """
         validate_dataframe(df, PROJECTION_RESULT_COLUMNS, label="input")
         subset = df[
-            (df["target"] == target)
-            & (df["age_group"] == "total")
-            & (df["sex"] == "total")
+            (df["target"] == target) & (df["age_group"] == "total") & (df["sex"] == "total")
         ].copy()
 
         rows = compute_grouped_metrics(
@@ -140,9 +138,7 @@ class ForecastAccuracyModule:
         """
         validate_dataframe(df, PROJECTION_RESULT_COLUMNS, label="input")
         subset = df[
-            (df["target"] == target)
-            & (df["age_group"] != "total")
-            & (df["sex"] == "total")
+            (df["target"] == target) & (df["age_group"] != "total") & (df["sex"] == "total")
         ].copy()
 
         rows: list[dict[str, Any]] = []
@@ -170,7 +166,7 @@ class ForecastAccuracyModule:
                         target=target,
                         value=val,
                         geography_group=geo_group,
-                        horizon=int(horizon),
+                        horizon=int(horizon),  # type: ignore[call-overload]
                         notes=f"age_group={age_group}",
                     )
                 )
@@ -200,16 +196,10 @@ class ForecastAccuracyModule:
         """
         validate_dataframe(df, PROJECTION_RESULT_COLUMNS, label="input")
         subset = df[
-            (df["target"] == target)
-            & (df["age_group"] == "total")
-            & (df["sex"] == "total")
+            (df["target"] == target) & (df["age_group"] == "total") & (df["sex"] == "total")
         ].copy()
 
-        bias_metrics = {
-            k: v
-            for k, v in METRIC_REGISTRY.items()
-            if v[1] == "bias"
-        }
+        bias_metrics = {k: v for k, v in METRIC_REGISTRY.items() if v[1] == "bias"}
 
         rows = compute_grouped_metrics(
             subset,
@@ -256,13 +246,11 @@ class ForecastAccuracyModule:
         subset = subset.copy()
         mask = subset["base_value"] != 0
         subset.loc[mask, "proj_growth"] = (
-            (subset.loc[mask, "projected_value"] - subset.loc[mask, "base_value"])
-            / subset.loc[mask, "base_value"]
-        )
+            subset.loc[mask, "projected_value"] - subset.loc[mask, "base_value"]
+        ) / subset.loc[mask, "base_value"]
         subset.loc[mask, "act_growth"] = (
-            (subset.loc[mask, "actual_value"] - subset.loc[mask, "base_value"])
-            / subset.loc[mask, "base_value"]
-        )
+            subset.loc[mask, "actual_value"] - subset.loc[mask, "base_value"]
+        ) / subset.loc[mask, "base_value"]
         subset = subset.dropna(subset=["proj_growth", "act_growth"])
 
         rows: list[dict[str, Any]] = []
@@ -279,9 +267,9 @@ class ForecastAccuracyModule:
                     metric_group="accuracy",
                     geography="all_counties",
                     target=target,
-                    value=spearman_rank_correlation(pg, ag),
+                    value=spearman_rank_correlation(pg, ag),  # type: ignore[arg-type]
                     geography_group="all",
-                    horizon=int(horizon),
+                    horizon=int(horizon),  # type: ignore[call-overload]
                 )
             )
 
@@ -293,9 +281,9 @@ class ForecastAccuracyModule:
                     metric_group="accuracy",
                     geography="all_counties",
                     target=target,
-                    value=directional_accuracy(pg, ag),
+                    value=directional_accuracy(pg, ag),  # type: ignore[arg-type]
                     geography_group="all",
-                    horizon=int(horizon),
+                    horizon=int(horizon),  # type: ignore[call-overload]
                 )
             )
 
@@ -307,9 +295,9 @@ class ForecastAccuracyModule:
                     metric_group="accuracy",
                     geography="all_counties",
                     target=target,
-                    value=decile_capture(pg, ag, quantile=0.1, tail="top"),
+                    value=decile_capture(pg, ag, quantile=0.1, tail="top"),  # type: ignore[arg-type]
                     geography_group="all",
-                    horizon=int(horizon),
+                    horizon=int(horizon),  # type: ignore[call-overload]
                 )
             )
 
@@ -321,9 +309,9 @@ class ForecastAccuracyModule:
                     metric_group="accuracy",
                     geography="all_counties",
                     target=target,
-                    value=decile_capture(pg, ag, quantile=0.1, tail="bottom"),
+                    value=decile_capture(pg, ag, quantile=0.1, tail="bottom"),  # type: ignore[arg-type]
                     geography_group="all",
-                    horizon=int(horizon),
+                    horizon=int(horizon),  # type: ignore[call-overload]
                 )
             )
 
@@ -376,7 +364,7 @@ class ForecastAccuracyModule:
                     target=target,
                     value=mape_val,
                     geography_group="all",
-                    horizon=int(horizon),
+                    horizon=int(horizon),  # type: ignore[call-overload]
                     notes="unweighted (cross-county)",
                 )
             )
@@ -389,7 +377,7 @@ class ForecastAccuracyModule:
                     target=target,
                     value=wape_val,
                     geography_group="all",
-                    horizon=int(horizon),
+                    horizon=int(horizon),  # type: ignore[call-overload]
                     notes="population-weighted (cross-county)",
                 )
             )
@@ -404,7 +392,7 @@ class ForecastAccuracyModule:
                     target=target,
                     value=ratio,
                     geography_group="all",
-                    horizon=int(horizon),
+                    horizon=int(horizon),  # type: ignore[call-overload]
                     notes="<1 means large counties more accurate",
                 )
             )
@@ -443,9 +431,7 @@ class ForecastAccuracyModule:
             return pd.DataFrame()
 
         subset = df[
-            (df["target"] == target)
-            & (df["age_group"] == "total")
-            & (df["sex"] == "total")
+            (df["target"] == target) & (df["age_group"] == "total") & (df["sex"] == "total")
         ].copy()
 
         # Tag each row with its regime
@@ -463,9 +449,7 @@ class ForecastAccuracyModule:
 
         rows: list[dict[str, Any]] = []
 
-        for (run_id, regime, geography), grp in subset.groupby(
-            ["run_id", "regime", "geography"]
-        ):
+        for (run_id, regime, geography), grp in subset.groupby(["run_id", "regime", "geography"]):
             geo_type = grp["geography_type"].iloc[0]
             geo_group = (
                 "state"

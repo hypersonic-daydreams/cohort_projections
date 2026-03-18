@@ -69,7 +69,9 @@ def _write_place_parquet(
                         "year": year,
                         "age_group": age_group,
                         "sex": sex,
-                        "population": float(100 + place_index * 7 + age_index * 3 + sex_index + year_index),
+                        "population": float(
+                            100 + place_index * 7 + age_index * 3 + sex_index + year_index
+                        ),
                     }
                 )
 
@@ -87,13 +89,22 @@ def _write_synthetic_place_outputs(root: Path, scenario: str) -> None:
     all_places: list[tuple[str, str, str, str]] = []
 
     for idx in range(1, 10):
-        all_places.append((f"3810{idx:03d}", f"High Place {idx}", "HIGH", COUNTIES[(idx - 1) % len(COUNTIES)]))
+        all_places.append(
+            (f"3810{idx:03d}", f"High Place {idx}", "HIGH", COUNTIES[(idx - 1) % len(COUNTIES)])
+        )
     for idx in range(1, 10):
         all_places.append(
-            (f"3820{idx:03d}", f"Moderate Place {idx}", "MODERATE", COUNTIES[(idx + 1) % len(COUNTIES)])
+            (
+                f"3820{idx:03d}",
+                f"Moderate Place {idx}",
+                "MODERATE",
+                COUNTIES[(idx + 1) % len(COUNTIES)],
+            )
         )
     for idx in range(1, 73):
-        all_places.append((f"3830{idx:03d}", f"Lower Place {idx}", "LOWER", COUNTIES[(idx + 2) % len(COUNTIES)]))
+        all_places.append(
+            (f"3830{idx:03d}", f"Lower Place {idx}", "LOWER", COUNTIES[(idx + 2) % len(COUNTIES)])
+        )
 
     for place_index, (place_fips, place_name, tier, county_fips) in enumerate(all_places, start=1):
         _write_place_parquet(
@@ -234,21 +245,29 @@ def test_build_place_workbook_contract(monkeypatch, tmp_path: Path) -> None:
     first_high_name = next(name for name in sheetnames if name.startswith("HIGH - "))
     high_ws = wb[first_high_name]
     high_header_row = _find_header_row(high_ws, "Age Group")
-    expected_high_headers = ["Age Group"] + [value for year in KEY_YEARS for value in (f"{year} Male", f"{year} Female")]
+    expected_high_headers = ["Age Group"] + [
+        value for year in KEY_YEARS for value in (f"{year} Male", f"{year} Female")
+    ]
     actual_high_headers = [
-        high_ws.cell(row=high_header_row, column=col_idx).value for col_idx in range(1, len(expected_high_headers) + 1)
+        high_ws.cell(row=high_header_row, column=col_idx).value
+        for col_idx in range(1, len(expected_high_headers) + 1)
     ]
     assert actual_high_headers == expected_high_headers
-    high_age_labels = [high_ws.cell(row=high_header_row + 1 + idx, column=1).value for idx in range(18)]
+    high_age_labels = [
+        high_ws.cell(row=high_header_row + 1 + idx, column=1).value for idx in range(18)
+    ]
     assert high_age_labels == workbook_mod.HIGH_AGE_GROUPS
 
     # MODERATE tier: 6 broad age rows and 2 sex columns per key year.
     first_mod_name = next(name for name in sheetnames if name.startswith("MODERATE - "))
     mod_ws = wb[first_mod_name]
     mod_header_row = _find_header_row(mod_ws, "Age Group")
-    expected_mod_headers = ["Age Group"] + [value for year in KEY_YEARS for value in (f"{year} Male", f"{year} Female")]
+    expected_mod_headers = ["Age Group"] + [
+        value for year in KEY_YEARS for value in (f"{year} Male", f"{year} Female")
+    ]
     actual_mod_headers = [
-        mod_ws.cell(row=mod_header_row, column=col_idx).value for col_idx in range(1, len(expected_mod_headers) + 1)
+        mod_ws.cell(row=mod_header_row, column=col_idx).value
+        for col_idx in range(1, len(expected_mod_headers) + 1)
     ]
     assert actual_mod_headers == expected_mod_headers
     mod_age_labels = [mod_ws.cell(row=mod_header_row + 1 + idx, column=1).value for idx in range(6)]
@@ -263,9 +282,9 @@ def test_build_place_workbook_contract(monkeypatch, tmp_path: Path) -> None:
         lower_rows.append(row)
         row += 1
     assert len(lower_rows) == 72
-    assert [lower_ws.cell(row=lower_header_row, column=4 + idx).value for idx in range(len(KEY_YEARS))] == [
-        str(year) for year in KEY_YEARS
-    ]
+    assert [
+        lower_ws.cell(row=lower_header_row, column=4 + idx).value for idx in range(len(KEY_YEARS))
+    ] == [str(year) for year in KEY_YEARS]
     caveat_cell = None
     for row_idx in range(1, lower_header_row):
         value = lower_ws.cell(row=row_idx, column=1).value
@@ -300,28 +319,33 @@ def _write_synthetic_hu_projections(root: Path, scenario: str) -> None:
     for idx in range(1, 10):
         place_fips = f"3810{idx:03d}"
         for year in hu_years:
-            hu_rows.append({
-                "place_fips": place_fips,
-                "year": year,
-                "hu_projected": float(400 + idx * 20 + (year - 2025)),
-                "pph_projected": 2.5,
-                "population_hu": float((400 + idx * 20 + (year - 2025)) * 2.5),
-                "method": "hu_log_linear",
-            })
+            hu_rows.append(
+                {
+                    "place_fips": place_fips,
+                    "year": year,
+                    "hu_projected": float(400 + idx * 20 + (year - 2025)),
+                    "pph_projected": 2.5,
+                    "population_hu": float((400 + idx * 20 + (year - 2025)) * 2.5),
+                    "method": "hu_log_linear",
+                }
+            )
     for idx in range(1, 10):
         place_fips = f"3820{idx:03d}"
         for year in hu_years:
-            hu_rows.append({
-                "place_fips": place_fips,
-                "year": year,
-                "hu_projected": float(200 + idx * 15 + (year - 2025)),
-                "pph_projected": 2.3,
-                "population_hu": float((200 + idx * 15 + (year - 2025)) * 2.3),
-                "method": "hu_log_linear",
-            })
+            hu_rows.append(
+                {
+                    "place_fips": place_fips,
+                    "year": year,
+                    "hu_projected": float(200 + idx * 15 + (year - 2025)),
+                    "pph_projected": 2.3,
+                    "population_hu": float((200 + idx * 15 + (year - 2025)) * 2.3),
+                    "method": "hu_log_linear",
+                }
+            )
 
     pd.DataFrame(hu_rows).to_parquet(
-        place_dir / "housing_unit_projections.parquet", index=False,
+        place_dir / "housing_unit_projections.parquet",
+        index=False,
     )
 
 
@@ -389,12 +413,14 @@ def test_hu_comparison_sheet_present(monkeypatch, tmp_path: Path) -> None:
     hu_header_row = _find_header_row(hu_ws, "Place Name")
     expected_headers = ["Place Name", "Tier", "Place FIPS"]
     for year in [2025, 2030, 2035]:
-        expected_headers.extend([
-            f"{year} Share-Trend",
-            f"{year} HU Method",
-            f"{year} Diff",
-            f"{year} % Diff",
-        ])
+        expected_headers.extend(
+            [
+                f"{year} Share-Trend",
+                f"{year} HU Method",
+                f"{year} Diff",
+                f"{year} % Diff",
+            ]
+        )
     actual_headers = [
         hu_ws.cell(row=hu_header_row, column=col_idx).value
         for col_idx in range(1, len(expected_headers) + 1)

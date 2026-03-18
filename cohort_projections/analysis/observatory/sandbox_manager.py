@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 import sys
@@ -9,6 +10,17 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from cohort_projections.analysis.observatory.search_policy import SearchPolicy
+
+
+def _clean_git_env() -> dict[str, str]:
+    """Return a copy of ``os.environ`` with ``GIT_*`` variables removed.
+
+    Pre-commit hooks and other callers may set ``GIT_DIR``,
+    ``GIT_WORK_TREE``, ``GIT_INDEX_FILE``, etc.  These leak into child
+    processes and cause git operations on temporary repos or bare mirrors
+    to resolve paths incorrectly.
+    """
+    return {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
 
 
 @dataclass(frozen=True)
@@ -33,18 +45,14 @@ class SandboxManager:
         """Return the porcelain status for the live checkout."""
         raw = self._git(self.source_repo, "status", "--porcelain").stdout.splitlines()
         filtered = [
-            line
-            for line in raw
-            if not self._is_runtime_artifact(self._extract_status_path(line))
+            line for line in raw if not self._is_runtime_artifact(self._extract_status_path(line))
         ]
         return "\n".join(filtered).strip()
 
     def assert_live_checkout_clean(self) -> None:
         """Fail if the live checkout is dirty before an autonomous run."""
         if self.live_checkout_signature():
-            raise RuntimeError(
-                "Refusing autonomous search while the live checkout is dirty."
-            )
+            raise RuntimeError("Refusing autonomous search while the live checkout is dirty.")
 
     def assert_live_checkout_unchanged(self, prior_signature: str) -> None:
         """Fail if the live checkout changed during a search run."""
@@ -71,6 +79,7 @@ class SandboxManager:
                 check=True,
                 capture_output=True,
                 text=True,
+                env=_clean_git_env(),
             )
             subprocess.run(
                 [
@@ -85,6 +94,7 @@ class SandboxManager:
                 check=True,
                 capture_output=True,
                 text=True,
+                env=_clean_git_env(),
             )
         else:
             subprocess.run(
@@ -92,6 +102,7 @@ class SandboxManager:
                 check=True,
                 capture_output=True,
                 text=True,
+                env=_clean_git_env(),
             )
         return mirror
 
@@ -127,6 +138,7 @@ class SandboxManager:
             check=True,
             capture_output=True,
             text=True,
+            env=_clean_git_env(),
         )
 
         return WorktreeContext(
@@ -153,6 +165,7 @@ class SandboxManager:
                 check=False,
                 capture_output=True,
                 text=True,
+                env=_clean_git_env(),
             )
         self._remove_branch_if_present(mirror, context.branch_name)
         if context.worktree_path.exists():
@@ -183,7 +196,9 @@ class SandboxManager:
 
     def compile_changed_python(self, worktree_path: Path, changed_files: list[str]) -> None:
         """Run ``py_compile`` against changed Python files."""
-        py_files = [str(worktree_path / rel_path) for rel_path in changed_files if rel_path.endswith(".py")]
+        py_files = [
+            str(worktree_path / rel_path) for rel_path in changed_files if rel_path.endswith(".py")
+        ]
         if not py_files:
             return
         subprocess.run(
@@ -200,6 +215,7 @@ class SandboxManager:
             check=False,
             capture_output=True,
             text=True,
+            env=_clean_git_env(),
         )
         if existing.returncode == 0:
             subprocess.run(
@@ -207,6 +223,7 @@ class SandboxManager:
                 check=True,
                 capture_output=True,
                 text=True,
+                env=_clean_git_env(),
             )
 
     @staticmethod
@@ -233,6 +250,7 @@ class SandboxManager:
             check=True,
             capture_output=True,
             text=True,
+            env=_clean_git_env(),
         )
 
     @staticmethod

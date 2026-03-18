@@ -169,9 +169,7 @@ class TestGeospatialPipeline:
             dry_run=False,
         )
 
-        geo_results = [
-            r for r in report.results if r.component.startswith("geospatial_geojson")
-        ]
+        geo_results = [r for r in report.results if r.component.startswith("geospatial_geojson")]
         assert len(geo_results) >= 1
         assert geo_results[0].success
 
@@ -218,9 +216,7 @@ class TestGeospatialPipeline:
             dry_run=True,
         )
 
-        geo_results = [
-            r for r in report.results if r.component.startswith("geospatial_geojson")
-        ]
+        geo_results = [r for r in report.results if r.component.startswith("geospatial_geojson")]
         assert len(geo_results) >= 1
         # No output files should have been created
         assert len(geo_results[0].output_files) == 0
@@ -239,9 +235,7 @@ class TestGeospatialPipeline:
         proj_root = tmp_path / "projections"
         export_root = tmp_path / "exports"
         _write_projection_parquet(proj_root, "baseline", "county", ["38001", "38015"])
-        _write_projection_parquet(
-            proj_root, "baseline", "place", ["3807200", "3825700"]
-        )
+        _write_projection_parquet(proj_root, "baseline", "place", ["3807200", "3825700"])
 
         def _side_effect(level: str, **kwargs: Any) -> Any:
             return _make_boundaries(level)
@@ -258,9 +252,7 @@ class TestGeospatialPipeline:
             dry_run=False,
         )
 
-        geo_results = [
-            r for r in report.results if r.component.startswith("geospatial_")
-        ]
+        geo_results = [r for r in report.results if r.component.startswith("geospatial_")]
         assert len(geo_results) >= 1
         total_files = sum(r.files_exported for r in geo_results)
         assert total_files >= 2  # at least one per level
@@ -294,9 +286,7 @@ class TestGeospatialPipeline:
                 dry_run=False,
             )
 
-        geo_results = [
-            r for r in report.results if r.component.startswith("geospatial_")
-        ]
+        geo_results = [r for r in report.results if r.component.startswith("geospatial_")]
         # Should succeed (graceful handling) but export 0 files
         assert len(geo_results) >= 1
         assert geo_results[0].success

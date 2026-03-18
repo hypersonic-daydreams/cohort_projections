@@ -30,9 +30,7 @@ def accuracy_df() -> pd.DataFrame:
     """Diagnostics with MAPE and MSPE across several horizons."""
     rows = []
     for h in [1, 3, 5, 10, 15, 20]:
-        rows.append(
-            {"metric_name": "mape", "horizon": h, "value": 1.0 + h * 0.5}
-        )
+        rows.append({"metric_name": "mape", "horizon": h, "value": 1.0 + h * 0.5})
         rows.append(
             {
                 "metric_name": "mean_signed_percentage_error",
@@ -58,9 +56,7 @@ class TestModelScorecard:
         self, default_config: dict, accuracy_df: pd.DataFrame
     ) -> None:
         sc = ModelScorecard(default_config)
-        entry = sc.build_scorecard(
-            accuracy_df, run_id="run1", model_name="m2026"
-        )
+        entry = sc.build_scorecard(accuracy_df, run_id="run1", model_name="m2026")
         assert isinstance(entry, ScorecardEntry)
         assert entry.run_id == "run1"
         assert entry.model_name == "m2026"
@@ -81,9 +77,7 @@ class TestModelScorecard:
         # Long-term horizons: 10, 15, 20 -> MAPE values: 6.0, 8.5, 11.0 -> mean 8.5
         assert entry.long_term_accuracy == pytest.approx(8.5, abs=0.01)
 
-    def test_bias_calibration(
-        self, default_config: dict, accuracy_df: pd.DataFrame
-    ) -> None:
+    def test_bias_calibration(self, default_config: dict, accuracy_df: pd.DataFrame) -> None:
         sc = ModelScorecard(default_config)
         entry = sc.build_scorecard(accuracy_df)
         assert entry.bias_calibration == pytest.approx(0.2, abs=0.01)
@@ -160,9 +154,7 @@ class TestModelScorecard:
             "composite_score",
         ]
 
-    def test_render_summary_contains_model_names(
-        self, default_config: dict
-    ) -> None:
+    def test_render_summary_contains_model_names(self, default_config: dict) -> None:
         sc = ModelScorecard(default_config)
         entries = [
             ScorecardEntry("r1", "model_alpha", 1.0, 2.0, 0.0, 0.9, 0.8, 0.7),

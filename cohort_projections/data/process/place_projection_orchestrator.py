@@ -150,7 +150,9 @@ def _allocate_from_profile(
 
     merged = profile_df.groupby(["age_group", "sex"], as_index=False)["population"].sum()
     full_index = pd.MultiIndex.from_product([groups, SEX_ORDER], names=["age_group", "sex"])
-    merged = merged.set_index(["age_group", "sex"]).reindex(full_index, fill_value=0.0).reset_index()
+    merged = (
+        merged.set_index(["age_group", "sex"]).reindex(full_index, fill_value=0.0).reset_index()
+    )
 
     county_total = float(merged["population"].sum())
     if county_total <= 0:
@@ -256,7 +258,9 @@ def _validate_crosswalk_uniqueness(crosswalk: pd.DataFrame) -> None:
     )
 
 
-def _validate_projection_universe(expected_place_fips: set[str], produced_place_fips: set[str]) -> None:
+def _validate_projection_universe(
+    expected_place_fips: set[str], produced_place_fips: set[str]
+) -> None:
     """Validate output universe matches the projected crosswalk exactly."""
     missing = sorted(expected_place_fips - produced_place_fips)
     extra = sorted(produced_place_fips - expected_place_fips)
@@ -278,11 +282,15 @@ def _enforce_county_hard_constraints(
         raise ValueError(f"County {county_fips} has no place rows in projection output.")
 
     place_rows["projected_share"] = pd.to_numeric(place_rows["projected_share"], errors="coerce")
-    place_rows["county_population"] = pd.to_numeric(place_rows["county_population"], errors="coerce")
+    place_rows["county_population"] = pd.to_numeric(
+        place_rows["county_population"], errors="coerce"
+    )
     place_rows["projected_population"] = pd.to_numeric(
         place_rows["projected_population"], errors="coerce"
     )
-    place_rows = place_rows.dropna(subset=["year", "projected_share", "county_population", "projected_population"])
+    place_rows = place_rows.dropna(
+        subset=["year", "projected_share", "county_population", "projected_population"]
+    )
 
     out_of_bounds = place_rows[
         (place_rows["projected_share"] < -QA_FLOAT_TOLERANCE)
@@ -350,7 +358,9 @@ def _load_state_total_series_from_counties(
         county_df["population"] = pd.to_numeric(county_df["population"], errors="coerce")
         county_df = county_df.dropna(subset=["year", "population"]).copy()
         county_df["year"] = county_df["year"].astype(int)
-        county_df = county_df[(county_df["year"] >= base_year) & (county_df["year"] <= end_year)].copy()
+        county_df = county_df[
+            (county_df["year"] >= base_year) & (county_df["year"] <= end_year)
+        ].copy()
         if county_df.empty:
             continue
 
@@ -479,7 +489,9 @@ def _load_share_history(config: Mapping[str, Any]) -> pd.DataFrame:
     """Load historical place shares used for trend fitting."""
     root = _project_root()
     place_cfg = config.get("place_projections", {})
-    shares_path = place_cfg.get("historical_shares_path", "data/processed/place_shares_2000_2024.parquet")
+    shares_path = place_cfg.get(
+        "historical_shares_path", "data/processed/place_shares_2000_2024.parquet"
+    )
     path = _resolve_path(str(shares_path), root)
 
     shares = pd.read_parquet(path)
@@ -507,12 +519,16 @@ def _load_county_projection(
 ) -> pd.DataFrame:
     """Load one county projection parquet and filter to projection years."""
     county_dir = _county_projection_dir(config, scenario)
-    expected = county_dir / f"nd_county_{county_fips}_projection_{base_year}_{end_year}_{scenario}.parquet"
+    expected = (
+        county_dir / f"nd_county_{county_fips}_projection_{base_year}_{end_year}_{scenario}.parquet"
+    )
 
     if expected.exists():
         path = expected
     else:
-        candidates = sorted(county_dir.glob(f"nd_county_{county_fips}_projection_*_{scenario}.parquet"))
+        candidates = sorted(
+            county_dir.glob(f"nd_county_{county_fips}_projection_*_{scenario}.parquet")
+        )
         if not candidates:
             raise FileNotFoundError(
                 f"No county projection parquet found for county {county_fips} in {county_dir}"
@@ -596,7 +612,7 @@ def _summary_row_from_metadata(metadata: Mapping[str, Any]) -> dict[str, Any]:
 def _county_year_totals(county_df: pd.DataFrame) -> pd.DataFrame:
     """Return county totals by year for share scaling."""
     totals = county_df.groupby("year", as_index=False)["population"].sum()
-    totals = totals.rename(columns={"population": "county_population"})
+    totals = totals.rename(columns={"population": "county_population"})  # type: ignore[call-overload]
     return totals.sort_values("year").reset_index(drop=True)
 
 
@@ -614,7 +630,9 @@ def _share_history_for_county(
     return county_rows[["county_fips", "year", "row_type", "place_fips", "share_raw"]]
 
 
-def allocate_age_sex_detail(place_total: float, county_cohort_df: pd.DataFrame, tier: str) -> pd.DataFrame:
+def allocate_age_sex_detail(
+    place_total: float, county_cohort_df: pd.DataFrame, tier: str
+) -> pd.DataFrame:
     """
     Allocate county cohort structure to a place total by confidence tier.
 
@@ -652,14 +670,14 @@ def allocate_age_sex_detail(place_total: float, county_cohort_df: pd.DataFrame, 
         collapsed["age_group"] = collapsed["age"].map(_five_year_age_group)
         allocated = _allocate_from_profile(
             place_total=float(place_total),
-            profile_df=collapsed[["age_group", "sex", "population"]],
+            profile_df=collapsed[["age_group", "sex", "population"]],  # type: ignore[arg-type]
             groups=HIGH_AGE_GROUPS,
         )
     else:
         collapsed["age_group"] = collapsed["age"].map(_broad_age_group)
         allocated = _allocate_from_profile(
             place_total=float(place_total),
-            profile_df=collapsed[["age_group", "sex", "population"]],
+            profile_df=collapsed[["age_group", "sex", "population"]],  # type: ignore[arg-type]
             groups=MODERATE_AGE_GROUPS,
         )
 
@@ -815,8 +833,10 @@ def write_places_summary(
     if summary_df.empty:
         summary_df = pd.DataFrame(columns=columns)
     else:
-        summary_df = summary_df[columns].sort_values(["county_fips", "row_type", "place_fips"]).reset_index(
-            drop=True
+        summary_df = (
+            summary_df[columns]
+            .sort_values(["county_fips", "row_type", "place_fips"])
+            .reset_index(drop=True)
         )
 
     summary_df.to_csv(summary_path, index=False)
@@ -965,10 +985,14 @@ def write_place_qa_artifacts(
     else:
         invalid_types = set(outlier_df["flag_type"]) - ALLOWED_OUTLIER_FLAG_TYPES
         if invalid_types:
-            raise ValueError(f"qa_outlier_flags contains unsupported flag types: {sorted(invalid_types)}")
-        outlier_df = outlier_df.drop_duplicates().sort_values(
-            ["place_fips", "flag_type", "year"], na_position="last"
-        ).reset_index(drop=True)
+            raise ValueError(
+                f"qa_outlier_flags contains unsupported flag types: {sorted(invalid_types)}"
+            )
+        outlier_df = (
+            outlier_df.drop_duplicates()
+            .sort_values(["place_fips", "flag_type", "year"], na_position="last")
+            .reset_index(drop=True)
+        )
     outlier_df.to_csv(outlier_path, index=False)
 
     balance_columns = [
@@ -1043,10 +1067,12 @@ def run_place_projections(
     if mc_config["enabled"]:
         root = _project_root()
         xw_path = _resolve_path(
-            str(place_cfg.get(
-                "crosswalk_path",
-                "data/processed/geographic/place_county_crosswalk_2020.csv",
-            )),
+            str(
+                place_cfg.get(
+                    "crosswalk_path",
+                    "data/processed/geographic/place_county_crosswalk_2020.csv",
+                )
+            ),
             root,
         )
         mc_detail_path = _resolve_path(mc_config["multicounty_detail_path"], root)
@@ -1055,12 +1081,9 @@ def run_place_projections(
             multicounty_detail_path=mc_detail_path,
         )
         # Only process multicounty places that are in the projected crosswalk.
-        all_mc_fips = identify_multicounty_places(
-            pd.read_csv(xw_path, dtype=str)
-        )
+        all_mc_fips = identify_multicounty_places(pd.read_csv(xw_path, dtype=str))
         mc_place_fips = [
-            fp for fp in all_mc_fips
-            if fp in set(crosswalk["place_fips"].astype(str).tolist())
+            fp for fp in all_mc_fips if fp in set(crosswalk["place_fips"].astype(str).tolist())
         ]
 
         if mc_place_fips:
@@ -1092,14 +1115,16 @@ def run_place_projections(
                     row_data["county_fips"] = county_fips_mc
                     row_data["assignment_type"] = "multi_county_secondary"
                     row_data["area_share"] = mc_weights[pfips][county_fips_mc]
-                    mc_crosswalk_rows.append(row_data)
+                    mc_crosswalk_rows.append(row_data)  # type: ignore[arg-type]
                     mc_secondary_entries.add((pfips, county_fips_mc))
 
             if mc_crosswalk_rows:
                 mc_df = pd.DataFrame(mc_crosswalk_rows)
-                crosswalk = pd.concat(
-                    [crosswalk, mc_df], ignore_index=True
-                ).sort_values(["county_fips", "place_fips"]).reset_index(drop=True)
+                crosswalk = (
+                    pd.concat([crosswalk, mc_df], ignore_index=True)
+                    .sort_values(["county_fips", "place_fips"])
+                    .reset_index(drop=True)
+                )
                 logger.info(
                     "Expanded crosswalk with %d multi-county secondary entries.",
                     len(mc_crosswalk_rows),
@@ -1121,7 +1146,7 @@ def run_place_projections(
 
     for county_fips, county_places in crosswalk.groupby("county_fips"):
         county_df = _load_county_projection(
-            county_fips=county_fips,
+            county_fips=county_fips,  # type: ignore[arg-type]
             scenario=scenario,
             base_year=base_year,
             end_year=end_year,
@@ -1130,12 +1155,14 @@ def run_place_projections(
         county_totals = _county_year_totals(county_df)
         projection_years = county_totals["year"].tolist()
         if not projection_years:
-            raise ValueError(f"County {county_fips} has no projection years in {base_year}-{end_year}.")
+            raise ValueError(
+                f"County {county_fips} has no projection years in {base_year}-{end_year}."
+            )
 
         county_place_ids = set(county_places["place_fips"].tolist())
         history_county = _share_history_for_county(
             share_history=share_history,
-            county_fips=county_fips,
+            county_fips=county_fips,  # type: ignore[arg-type]
             place_fips_values=county_place_ids,
         )
         if history_county.empty:
@@ -1157,12 +1184,17 @@ def run_place_projections(
             config=trend_config,
         )
 
-        _enforce_county_hard_constraints(county_fips=county_fips, county_share_projection=county_share_projection)
+        _enforce_county_hard_constraints(
+            county_fips=county_fips,  # type: ignore[arg-type]
+            county_share_projection=county_share_projection,
+        )
 
         place_projection_rows = county_share_projection[
             county_share_projection["row_type"] == "place"
         ].copy()
-        place_projection_rows = place_projection_rows.sort_values(["place_fips", "year"]).reset_index(drop=True)
+        place_projection_rows = place_projection_rows.sort_values(
+            ["place_fips", "year"]
+        ).reset_index(drop=True)
 
         projected_place_ids = set(place_projection_rows["place_fips"].astype(str).tolist())
         if projected_place_ids != county_place_ids:
@@ -1173,19 +1205,27 @@ def run_place_projections(
                 f"{county_fips}. Missing={missing}, Extra={extra}"
             )
 
-        county_name = county_names.get(county_fips, f"County {county_fips}")
+        county_name = county_names.get(county_fips, f"County {county_fips}")  # type: ignore[arg-type]
         crosswalk_vintage = (
-            str(county_places["source_vintage"].iloc[0]) if "source_vintage" in county_places else "2020"
+            str(county_places["source_vintage"].iloc[0])
+            if "source_vintage" in county_places
+            else "2020"
         )
 
         raw_share_sum_by_year = (
-            place_projection_rows.groupby("year", as_index=False)["projected_share_raw"].sum().set_index("year")
+            place_projection_rows.groupby("year", as_index=False)["projected_share_raw"]
+            .sum()
+            .set_index("year")
         )["projected_share_raw"].to_dict()
         share_sum_by_year = (
-            place_projection_rows.groupby("year", as_index=False)["projected_share"].sum().set_index("year")
+            place_projection_rows.groupby("year", as_index=False)["projected_share"]
+            .sum()
+            .set_index("year")
         )["projected_share"].to_dict()
         place_population_sum_by_year = (
-            place_projection_rows.groupby("year", as_index=False)["projected_population"].sum().set_index("year")
+            place_projection_rows.groupby("year", as_index=False)["projected_population"]
+            .sum()
+            .set_index("year")
         )["projected_population"].to_dict()
         county_population_by_year = dict(
             zip(county_totals["year"].astype(int), county_totals["county_population"], strict=True)
@@ -1320,9 +1360,9 @@ def run_place_projections(
             is_mc_secondary = (place_fips, county_fips) in mc_secondary_entries
             is_mc_primary = place_fips in mc_place_fips and not is_mc_secondary
             if is_mc_secondary or is_mc_primary:
-                mc_county_projections.setdefault(county_fips, pd.DataFrame())
-                mc_county_projections[county_fips] = pd.concat(
-                    [mc_county_projections[county_fips], place_share_rows],
+                mc_county_projections.setdefault(county_fips, pd.DataFrame())  # type: ignore[arg-type]
+                mc_county_projections[county_fips] = pd.concat(  # type: ignore[index]
+                    [mc_county_projections[county_fips], place_share_rows],  # type: ignore[list-item, index]
                     ignore_index=True,
                 )
             # Skip per-place output for multicounty secondary entries;
@@ -1333,9 +1373,13 @@ def run_place_projections(
             history_place_rows = history_county[history_county["place_fips"] == place_fips].copy()
             history_place_rows = history_place_rows.sort_values("year").reset_index(drop=True)
             if len(history_place_rows) >= 2 and len(place_share_rows) >= 2:
-                historical_change = float(history_place_rows["share_raw"].iloc[-1] - history_place_rows["share_raw"].iloc[0])
+                historical_change = float(
+                    history_place_rows["share_raw"].iloc[-1]
+                    - history_place_rows["share_raw"].iloc[0]
+                )
                 projected_change = float(
-                    place_share_rows["projected_share"].iloc[-1] - place_share_rows["projected_share"].iloc[0]
+                    place_share_rows["projected_share"].iloc[-1]
+                    - place_share_rows["projected_share"].iloc[0]
                 )
 
                 if (
@@ -1417,8 +1461,10 @@ def run_place_projections(
                         year=year,
                     )
 
-                if idx > 0:
-                    previous_population = float(place_share_rows["projected_population"].iloc[idx - 1])
+                if idx > 0:  # type: ignore[operator]
+                    previous_population = float(
+                        place_share_rows["projected_population"].iloc[idx - 1]  # type: ignore[operator]
+                    )
                     if previous_population <= 0.0:
                         annual_growth = np.inf if projected_population > 0.0 else 0.0
                     else:
@@ -1518,7 +1564,9 @@ def run_place_projections(
                     "constraint_method": constraint_method,
                     "base_share": float(base_row["projected_share"].iloc[0]),
                     "final_share": float(final_row["projected_share"].iloc[0]),
-                    "share_change": float(final_row["projected_share"].iloc[0] - base_row["projected_share"].iloc[0]),
+                    "share_change": float(
+                        final_row["projected_share"].iloc[0] - base_row["projected_share"].iloc[0]
+                    ),
                     "historical_window": f"{history_start}-{history_end}",
                     "crosswalk_vintage": crosswalk_vintage,
                     "model_version": "1.0.0",
@@ -1551,7 +1599,9 @@ def run_place_projections(
             all_place_metadata.append(metadata)
             all_place_summaries.append(write_result["summary_row"])
 
-        county_balance = county_share_projection[county_share_projection["row_type"] == BALANCE_KEY].copy()
+        county_balance = county_share_projection[
+            county_share_projection["row_type"] == BALANCE_KEY
+        ].copy()
         county_balance = county_balance.sort_values("year").reset_index(drop=True)
         if not county_balance.empty:
             base_balance = county_balance[county_balance["year"] == base_year]
@@ -1585,7 +1635,7 @@ def run_place_projections(
             )
 
     # --- Reaggregate multi-county place outputs (ADR-058) ---
-    deferred = mc_county_projections.pop("_deferred_places", {})  # type: ignore[arg-type]
+    deferred: dict[str, Any] = mc_county_projections.pop("_deferred_places", {})  # type: ignore[arg-type, assignment]
     if deferred and isinstance(deferred, dict):
         for mc_pfips, mc_info in deferred.items():
             mc_pfips_str = str(mc_pfips)
@@ -1639,8 +1689,12 @@ def run_place_projections(
 
             mc_base_year_int = int(mc_base_row["year"].iloc[0])
             mc_end_year_int = int(mc_final_row["year"].iloc[0])
-            mc_base_pop = float(reagg_map.get(mc_base_year_int, mc_base_row["projected_population"].iloc[0]))
-            mc_final_pop = float(reagg_map.get(mc_end_year_int, mc_final_row["projected_population"].iloc[0]))
+            mc_base_pop = float(
+                reagg_map.get(mc_base_year_int, mc_base_row["projected_population"].iloc[0])
+            )
+            mc_final_pop = float(
+                reagg_map.get(mc_end_year_int, mc_final_row["projected_population"].iloc[0])
+            )
             mc_abs_growth = mc_final_pop - mc_base_pop
             mc_growth_rate = mc_abs_growth / mc_base_pop if mc_base_pop > 0 else 0.0
             mc_processing_time = round(time.perf_counter() - mc_start_time, 4)

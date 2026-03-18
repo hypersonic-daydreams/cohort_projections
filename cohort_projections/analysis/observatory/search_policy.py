@@ -61,8 +61,7 @@ class SearchPolicy:
         if self.is_protected_path(resolved):
             return False
         return any(
-            resolved == root or resolved.is_relative_to(root)
-            for root in self.allowed_recipe_roots
+            resolved == root or resolved.is_relative_to(root) for root in self.allowed_recipe_roots
         )
 
 
@@ -72,9 +71,7 @@ def load_search_policy(
     project_root: Path = PROJECT_ROOT,
 ) -> SearchPolicy:
     """Load the deterministic search policy from YAML."""
-    resolved_policy_path = _resolve_project_path(
-        project_root, policy_path or DEFAULT_POLICY_PATH
-    )
+    resolved_policy_path = _resolve_project_path(project_root, policy_path or DEFAULT_POLICY_PATH)
     if not resolved_policy_path.exists():
         raise FileNotFoundError(f"Search policy file not found: {resolved_policy_path}")
 

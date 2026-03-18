@@ -20,22 +20,23 @@ import logging
 import numpy as np
 import pandas as pd
 
-from .schemas import PROJECTION_JOIN_KEYS
 from .utils import validate_dataframe
 
 logger = logging.getLogger(__name__)
 
 # Minimum columns we require from input DataFrames
-_REQUIRED_COLUMNS = frozenset({
-    "geography",
-    "year",
-    "actual_value",
-    "projected_value",
-    "horizon",
-    "target",
-    "sex",
-    "age_group",
-})
+_REQUIRED_COLUMNS = frozenset(
+    {
+        "geography",
+        "year",
+        "actual_value",
+        "projected_value",
+        "horizon",
+        "target",
+        "sex",
+        "age_group",
+    }
+)
 
 
 # ------------------------------------------------------------------
@@ -127,9 +128,7 @@ def linear_trend(
 
     # Identify historical window
     min_year = origin_year - lookback + 1
-    hist_mask = (results_df["year"] >= min_year) & (
-        results_df["year"] <= origin_year
-    )
+    hist_mask = (results_df["year"] >= min_year) & (results_df["year"] <= origin_year)
     hist = results_df.loc[hist_mask].copy()
 
     # Fit per-series slopes and intercepts
@@ -144,7 +143,7 @@ def linear_trend(
             slopes[key] = 0.0
             intercepts[key] = float(values[-1]) if len(values) > 0 else 0.0
         else:
-            coeffs = np.polyfit(years, values, 1)
+            coeffs = np.polyfit(years, values, 1)  # type: ignore[arg-type]
             slopes[key] = float(coeffs[0])
             intercepts[key] = float(coeffs[1])
 
@@ -199,9 +198,7 @@ def average_growth(
 
     # Historical window
     min_year = origin_year - lookback + 1
-    hist_mask = (results_df["year"] >= min_year) & (
-        results_df["year"] <= origin_year
-    )
+    hist_mask = (results_df["year"] >= min_year) & (results_df["year"] <= origin_year)
     hist = results_df.loc[hist_mask].copy()
 
     # Compute mean growth rate and base value per series
@@ -224,13 +221,9 @@ def average_growth(
             mean_rates[key] = 0.0
         else:
             with np.errstate(divide="ignore", invalid="ignore"):
-                rates = np.diff(values) / np.where(
-                    values[:-1] != 0, values[:-1], np.nan
-                )
+                rates = np.diff(values) / np.where(values[:-1] != 0, values[:-1], np.nan)  # type: ignore[arg-type]
             valid_rates = rates[np.isfinite(rates)]
-            mean_rates[key] = (
-                float(np.mean(valid_rates)) if len(valid_rates) > 0 else 0.0
-            )
+            mean_rates[key] = float(np.mean(valid_rates)) if len(valid_rates) > 0 else 0.0
 
     result = results_df.copy()
 

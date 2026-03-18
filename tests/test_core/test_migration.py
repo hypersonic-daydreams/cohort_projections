@@ -457,9 +457,7 @@ class TestAdditiveReductionScenario:
         )
 
         expected_reduction = 10051 * (1 - 0.20) / 799358
-        actual_reduction = (
-            positive_migration_rates["migration_rate"] - result["migration_rate"]
-        )
+        actual_reduction = positive_migration_rates["migration_rate"] - result["migration_rate"]
 
         # All cells should have the same per-capita reduction
         for reduction_val in actual_reduction:
@@ -569,9 +567,7 @@ class TestAdditiveReductionScenario:
         # reduction_rate = 0 * (1-0.20) / 799358 = 0.0, so no change
         pd.testing.assert_frame_equal(result, positive_migration_rates)
 
-    def test_additive_reduction_uniform_across_cells(
-        self, additive_scenario_config
-    ):
+    def test_additive_reduction_uniform_across_cells(self, additive_scenario_config):
         """Per-capita reduction rate should be the same for every cell.
 
         Since migration rates are already per-capita, the additive decrement
@@ -629,9 +625,7 @@ class TestTimeVaryingMigrationScenario:
             }
         )
 
-        result = apply_migration_scenario(
-            rates, time_varying_scenario, year=2025, base_year=2025
-        )
+        result = apply_migration_scenario(rates, time_varying_scenario, year=2025, base_year=2025)
 
         # effective_factor = 1 - 0.91 * (1 - 0.20) = 1 - 0.728 = 0.272
         expected_factor = 1.0 - 0.91 * (1.0 - 0.20)
@@ -651,7 +645,10 @@ class TestTimeVaryingMigrationScenario:
         )
 
         result = apply_migration_scenario(
-            rates, time_varying_scenario, year=2030, base_year=2025  # default_factor=1.0
+            rates,
+            time_varying_scenario,
+            year=2030,
+            base_year=2025,  # default_factor=1.0
         )
 
         pd.testing.assert_frame_equal(result, rates)

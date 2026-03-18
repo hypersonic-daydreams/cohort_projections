@@ -79,28 +79,40 @@ def _scorecard_takeaway_text(
             "bundles above to compare county-group error side by side."
         )
 
-    best = challengers.sort_values("county_mape_overall", ascending=True, na_position="last").iloc[0]
+    best = challengers.sort_values("county_mape_overall", ascending=True, na_position="last").iloc[
+        0
+    ]
     best_label = str(best.get("run", dm.run_label(str(best["run_id"]), short=True)))
     best_mape = best.get("county_mape_overall")
     status = str(best.get("status", "Unknown")).strip() or "Unknown"
 
     details: list[str] = [f"**Best selected challenger:** {best_label}."]
     if pd.notna(best_mape):
-        details[0] = f"**Best selected challenger:** {best_label} at {float(best_mape):.2f}% county error."
+        details[0] = (
+            f"**Best selected challenger:** {best_label} at {float(best_mape):.2f}% county error."
+        )
 
-    if champion is not None and pd.notna(champion.get("county_mape_overall")) and pd.notna(best_mape):
+    if (
+        champion is not None
+        and pd.notna(champion.get("county_mape_overall"))
+        and pd.notna(best_mape)
+    ):
         delta = float(best_mape) - float(champion["county_mape_overall"])
         details.append(f"That is {delta:+.2f} percentage points versus the champion.")
 
         improved = [
             label
             for col, label in _DELTA_METRICS
-            if pd.notna(best.get(col)) and pd.notna(champion.get(col)) and float(best[col]) < float(champion[col])
+            if pd.notna(best.get(col))
+            and pd.notna(champion.get(col))
+            and float(best[col]) < float(champion[col])
         ]
         worse = [
             label
             for col, label in _DELTA_METRICS
-            if pd.notna(best.get(col)) and pd.notna(champion.get(col)) and float(best[col]) > float(champion[col])
+            if pd.notna(best.get(col))
+            and pd.notna(champion.get(col))
+            and float(best[col]) > float(champion[col])
         ]
         details.append(
             f"**Where it improves:** {', '.join(improved) if improved else 'none of the tracked county groups'}."
@@ -126,9 +138,13 @@ def _scorecard_takeaway_text(
         )
 
     if status.lower() == "review":
-        details.append("**Governance note:** This bundle still needs human review before promotion.")
+        details.append(
+            "**Governance note:** This bundle still needs human review before promotion."
+        )
     elif status.lower() == "failed":
-        details.append("**Governance note:** This bundle failed a hard gate and is not promotion-ready.")
+        details.append(
+            "**Governance note:** This bundle failed a hard gate and is not promotion-ready."
+        )
 
     return "\n\n".join(details)
 
@@ -169,9 +185,7 @@ def _selected_scorecard_rows(
     rows["run_long"] = rows["run_id"].map(dm.run_label)
     rows["status"] = rows["run_id"].map(
         lambda run_id: (
-            str(metadata.loc[run_id, "status_label"])
-            if run_id in metadata.index
-            else "Unknown"
+            str(metadata.loc[run_id, "status_label"]) if run_id in metadata.index else "Unknown"
         )
     )
     rows["role"] = rows["run_id"].map(
@@ -200,7 +214,9 @@ def _build_scorecard_table(
 
     filtered = _selected_scorecard_rows(selected_runs, dm)
     if filtered.empty:
-        return pn.Column(widgets.empty_placeholder("No comparison rows found for the current selection."))
+        return pn.Column(
+            widgets.empty_placeholder("No comparison rows found for the current selection.")
+        )
 
     display_cols = [
         col
@@ -310,9 +326,7 @@ def _build_sentinel_chart(
         return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
 
     available_sentinels = [
-        (col, label)
-        for col, label in _SENTINEL_LABELS.items()
-        if col in comparison.columns
+        (col, label) for col, label in _SENTINEL_LABELS.items() if col in comparison.columns
     ]
     if not available_sentinels:
         return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
@@ -389,7 +403,8 @@ def _build_pareto_scatter(
                 text=others["run"],
                 textposition="top center",
                 name="Other selected runs",
-                hovertemplate="<b>%{text}</b><br>" + f"{x_metric}: %{{x:.4f}}<br>{y_metric}: %{{y:.4f}}<extra></extra>",
+                hovertemplate="<b>%{text}</b><br>"
+                + f"{x_metric}: %{{x:.4f}}<br>{y_metric}: %{{y:.4f}}<extra></extra>",
             )
         )
 
@@ -403,8 +418,7 @@ def _build_pareto_scatter(
                 marker={
                     "size": 15,
                     "color": [
-                        _run_color(str(run_id), dm.ordered_run_ids)
-                        for run_id in pareto["run_id"]
+                        _run_color(str(run_id), dm.ordered_run_ids) for run_id in pareto["run_id"]
                     ],
                     "symbol": "star",
                     "line": {"width": 1, "color": theme.SDC_NAVY},
@@ -412,7 +426,8 @@ def _build_pareto_scatter(
                 text=pareto["run"],
                 textposition="top center",
                 name="Pareto-optimal",
-                hovertemplate="<b>%{text}</b><br>" + f"{x_metric}: %{{x:.4f}}<br>{y_metric}: %{{y:.4f}}<extra></extra>",
+                hovertemplate="<b>%{text}</b><br>"
+                + f"{x_metric}: %{{x:.4f}}<br>{y_metric}: %{{y:.4f}}<extra></extra>",
             )
         )
 
@@ -524,13 +539,17 @@ def build_scorecard_tab(dm: DashboardDataManager) -> pn.Column:
     pareto_x = pn.widgets.Select(
         name="X Axis Metric",
         options=metric_options,
-        value="county_mape_overall" if "county_mape_overall" in metric_options else metric_options[0],
+        value="county_mape_overall"
+        if "county_mape_overall" in metric_options
+        else metric_options[0],
         sizing_mode="stretch_width",
     )
     pareto_y = pn.widgets.Select(
         name="Y Axis Metric",
         options=metric_options,
-        value="state_ape_recent_short" if "state_ape_recent_short" in metric_options else metric_options[min(1, len(metric_options) - 1)],
+        value="state_ape_recent_short"
+        if "state_ape_recent_short" in metric_options
+        else metric_options[min(1, len(metric_options) - 1)],
         sizing_mode="stretch_width",
     )
 

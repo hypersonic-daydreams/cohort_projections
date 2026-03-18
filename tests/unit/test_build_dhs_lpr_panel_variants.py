@@ -8,13 +8,22 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from tests._sdc_paths import get_sdc_repo_root
 
+_SCRIPTS_DIR = get_sdc_repo_root() / "data_immigration_policy" / "scripts"
+_MODULE_PATH = _SCRIPTS_DIR / "build_dhs_lpr_panel_variants.py"
+
+if not _MODULE_PATH.exists():
+    pytest.skip(
+        f"SDC script not found: {_MODULE_PATH}",
+        allow_module_level=True,
+    )
+
 
 def test_build_lpr_panel_variants_filters_and_balances(tmp_path: Path):
-    scripts_dir = get_sdc_repo_root() / "data_immigration_policy" / "scripts"
-    sys.path.insert(0, str(scripts_dir))
+    sys.path.insert(0, str(_SCRIPTS_DIR))
     try:
         from build_dhs_lpr_panel_variants import (  # noqa: E402
             build_lpr_panel_variants,
@@ -65,4 +74,4 @@ def test_build_lpr_panel_variants_filters_and_balances(tmp_path: Path):
         share_2000 = nd_share.loc[nd_share["fiscal_year"] == 2000, "nd_share_pct"].iloc[0]
         assert round(float(share_2000), 4) == round(5 / 15 * 100, 4)
     finally:
-        sys.path.remove(str(scripts_dir))
+        sys.path.remove(str(_SCRIPTS_DIR))

@@ -14,8 +14,8 @@ import pandas as pd
 import pytest
 
 from cohort_projections.analysis.evaluation.sensitivity import (
-    SensitivityModule,
     _REQUIRED_COLS,
+    SensitivityModule,
 )
 from cohort_projections.analysis.evaluation.utils import validate_dataframe
 
@@ -56,13 +56,15 @@ def _make_results_df(
         for hor in horizons:
             projected = base + hor * 100 + rng.normal(0, noise_scale)
             actual = base + hor * 100
-            rows.append({
-                "geography": geo,
-                "year": 2025 + hor,
-                "horizon": hor,
-                "projected_value": projected,
-                "actual_value": actual,
-            })
+            rows.append(
+                {
+                    "geography": geo,
+                    "year": 2025 + hor,
+                    "horizon": hor,
+                    "projected_value": projected,
+                    "actual_value": actual,
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -90,9 +92,7 @@ def _make_mock_runner(
                 df["projected_value"] *= 1 + pct / 100.0
                 if unstable_geo:
                     mask = df["geography"] == unstable_geo
-                    df.loc[mask, "projected_value"] *= (
-                        1 + pct / 100.0 * unstable_amplification
-                    )
+                    df.loc[mask, "projected_value"] *= 1 + pct / 100.0 * unstable_amplification
             # Multi-component (MC) perturbation
             elif "components" in perturbation:
                 total_pct = sum(perturbation["components"].values())
@@ -209,9 +209,7 @@ class TestInteractionSweep:
         module: SensitivityModule,
         baseline_results: pd.DataFrame,
     ) -> None:
-        result = module.interaction_sweep(
-            [("a", "b")], {"a": [1], "b": [2]}, baseline_results
-        )
+        result = module.interaction_sweep([("a", "b")], {"a": [1], "b": [2]}, baseline_results)
         assert set(result.columns) >= {
             "param_a",
             "param_b",
@@ -433,10 +431,12 @@ class TestComputeStabilityIndex:
         module: SensitivityModule,
     ) -> None:
         """Counties with sensitivity > threshold get flagged."""
-        df = pd.DataFrame({
-            "geography": ["A", "A", "B", "B"],
-            "sensitivity_index": [1.0, 1.5, 3.0, 4.0],
-        })
+        df = pd.DataFrame(
+            {
+                "geography": ["A", "A", "B", "B"],
+                "sensitivity_index": [1.0, 1.5, 3.0, 4.0],
+            }
+        )
         result = module.compute_stability_index(df)
         a_row = result[result["geography"] == "A"]
         b_row = result[result["geography"] == "B"]

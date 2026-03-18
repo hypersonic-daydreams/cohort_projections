@@ -17,12 +17,16 @@ from cohort_projections.analysis.observatory.search_policy import load_search_po
 
 
 def _git(repo: Path, *args: str) -> None:
+    import os
+
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     subprocess.run(
         ["git", *args],
         cwd=repo,
         check=True,
         capture_output=True,
         text=True,
+        env=env,
     )
 
 
@@ -39,7 +43,7 @@ def sandbox_repo(tmp_path: Path) -> Path:
     )
     (repo / "README.md").write_text("sandbox\n", encoding="utf-8")
 
-    _git(repo, "init")
+    _git(repo, "init", "-b", "main")
     _git(repo, "config", "user.email", "test@example.com")
     _git(repo, "config", "user.name", "Test User")
     _git(repo, "add", ".")
@@ -137,7 +141,7 @@ def search_project(tmp_path: Path) -> Path:
         + "\n",
         encoding="utf-8",
     )
-    _git(project, "init")
+    _git(project, "init", "-b", "main")
     _git(project, "config", "user.email", "test@example.com")
     _git(project, "config", "user.name", "Test User")
     _git(project, "add", ".")
@@ -250,13 +254,13 @@ class TestSandboxManager:
         context = manager.create_worktree(
             search_id="search-one",
             candidate_id="cand-a",
-            base_revision="HEAD",
+            base_revision="main",
         )
         changed_file = context.worktree_path / "scripts" / "analysis" / "example.py"
         changed_file.write_text("VALUE = 'changed'\n", encoding="utf-8")
         changed_files, diff_patch = manager.capture_diff(
             worktree_path=context.worktree_path,
-            base_revision="HEAD",
+            base_revision="main",
         )
         assert "scripts/analysis/example.py" in changed_files
         assert "changed" in diff_patch
@@ -282,7 +286,15 @@ class TestSearchController:
         session = controller.plan_session(search_id="search-one")
         assert session["summary"]["total"] == 2
         assert session["summary"]["planned"] == 2
-        assert (search_project / "data" / "analysis" / "experiments" / "search_runs" / "search-one" / "planned_specs").exists()
+        assert (
+            search_project
+            / "data"
+            / "analysis"
+            / "experiments"
+            / "search_runs"
+            / "search-one"
+            / "planned_specs"
+        ).exists()
 
         status = controller.status(search_id="search-one")
         assert status["summary"]["planned"] == 2
@@ -309,9 +321,7 @@ class TestSearchController:
         assert result["runnable"] == 2
         assert len(result["preview"]) == 1
 
-    def test_write_session_artifacts_creates_candidate_summary(
-        self, search_project: Path
-    ) -> None:
+    def test_write_session_artifacts_creates_candidate_summary(self, search_project: Path) -> None:
         controller = AutonomousSearchController(
             store=None,
             observatory_config={
@@ -471,13 +481,11 @@ def test_repo_recipe_catalog_has_unique_search_lattice() -> None:
             saw_recent_window = True
         if "mortality_improvement_rate" in config_delta:
             saw_mortality = True
-        if (
-            {
-                "convergence_recent_period_count",
-                "convergence_medium_period_count",
-                "mortality_improvement_rate",
-            }.issubset(config_delta)
-        ):
+        if {
+            "convergence_recent_period_count",
+            "convergence_medium_period_count",
+            "mortality_improvement_rate",
+        }.issubset(config_delta):
             saw_interaction = True
 
     assert saw_recent_window is True

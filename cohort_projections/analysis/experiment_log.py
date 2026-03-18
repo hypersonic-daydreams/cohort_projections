@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import csv
-import datetime as dt
 from pathlib import Path
 from typing import Any
 
@@ -29,21 +28,25 @@ LOG_COLUMNS = [
 ]
 
 # Valid outcome values
-VALID_OUTCOMES = frozenset({
-    "passed_all_gates",
-    "failed_hard_gate",
-    "needs_human_review",
-    "inconclusive",
-    "not_run",
-})
+VALID_OUTCOMES = frozenset(
+    {
+        "passed_all_gates",
+        "failed_hard_gate",
+        "needs_human_review",
+        "inconclusive",
+        "not_run",
+    }
+)
 
 # Valid next_action values
-VALID_NEXT_ACTIONS = frozenset({
-    "proceed_to_next",
-    "flag_for_review",
-    "promote_candidate",
-    "abandon_line",
-})
+VALID_NEXT_ACTIONS = frozenset(
+    {
+        "proceed_to_next",
+        "flag_for_review",
+        "promote_candidate",
+        "abandon_line",
+    }
+)
 
 
 def append_experiment_entry(
@@ -73,8 +76,7 @@ def append_experiment_entry(
     # Validate outcome
     if entry["outcome"] not in VALID_OUTCOMES:
         raise ValueError(
-            f"Invalid outcome {entry['outcome']!r}. "
-            f"Must be one of: {sorted(VALID_OUTCOMES)}"
+            f"Invalid outcome {entry['outcome']!r}. Must be one of: {sorted(VALID_OUTCOMES)}"
         )
 
     # Validate next_action

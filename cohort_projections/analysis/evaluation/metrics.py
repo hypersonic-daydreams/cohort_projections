@@ -10,10 +10,10 @@ import numpy as np
 import pandas as pd
 from scipy import stats as scipy_stats
 
-
 # ---------------------------------------------------------------------------
 # Absolute-error family
 # ---------------------------------------------------------------------------
+
 
 def mae(projected: np.ndarray | pd.Series, actual: np.ndarray | pd.Series) -> float:
     """Mean Absolute Error."""
@@ -30,6 +30,7 @@ def rmse(projected: np.ndarray | pd.Series, actual: np.ndarray | pd.Series) -> f
 # ---------------------------------------------------------------------------
 # Percentage-error family
 # ---------------------------------------------------------------------------
+
 
 def mape(projected: np.ndarray | pd.Series, actual: np.ndarray | pd.Series) -> float:
     """Mean Absolute Percentage Error (×100, in percentage points)."""
@@ -62,19 +63,21 @@ def wape(
     If *weights* is ``None``, uses ``|actual|`` as weights (population-weighted).
     """
     projected, actual = np.asarray(projected, dtype=float), np.asarray(actual, dtype=float)
-    if weights is None:
-        weights = np.abs(actual)
-    else:
-        weights = np.asarray(weights, dtype=float)
+    weights = np.abs(actual) if weights is None else np.asarray(weights, dtype=float)
     total_weight = weights.sum()
     if total_weight == 0:
         return float("nan")
-    return float(np.sum(weights * np.abs(projected - actual) / np.where(actual == 0, 1, np.abs(actual))) / total_weight * 100)
+    return float(
+        np.sum(weights * np.abs(projected - actual) / np.where(actual == 0, 1, np.abs(actual)))
+        / total_weight
+        * 100
+    )
 
 
 # ---------------------------------------------------------------------------
 # Signed-error / bias family
 # ---------------------------------------------------------------------------
+
 
 def mean_signed_error(
     projected: np.ndarray | pd.Series,
@@ -100,6 +103,7 @@ def mean_signed_percentage_error(
 # ---------------------------------------------------------------------------
 # Rank / direction tests
 # ---------------------------------------------------------------------------
+
 
 def spearman_rank_correlation(
     projected: np.ndarray | pd.Series,
@@ -155,6 +159,7 @@ def decile_capture(
 # ---------------------------------------------------------------------------
 # Distributional divergence
 # ---------------------------------------------------------------------------
+
 
 def jensen_shannon_divergence(
     p: np.ndarray | pd.Series,

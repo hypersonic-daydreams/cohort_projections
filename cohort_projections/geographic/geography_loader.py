@@ -465,8 +465,7 @@ def load_tiger_boundaries(
         return _load_places_from_tiger(vintage)
     else:
         raise ValueError(
-            f"Unsupported level for TIGER boundaries: {level!r}. "
-            "Use 'county' or 'place'."
+            f"Unsupported level for TIGER boundaries: {level!r}. Use 'county' or 'place'."
         )
 
 
@@ -647,16 +646,11 @@ def _load_counties_from_tiger(vintage: int) -> pd.DataFrame:
         import geopandas as gpd
     except ImportError as exc:
         raise ImportError(
-            "geopandas is required for TIGER county loading. "
-            "Install with: pip install geopandas"
+            "geopandas is required for TIGER county loading. Install with: pip install geopandas"
         ) from exc
 
     config = load_projection_config()
-    tiger_cfg = (
-        config.get("geography", {})
-        .get("reference_data", {})
-        .get("tiger_boundaries", {})
-    )
+    tiger_cfg = config.get("geography", {}).get("reference_data", {}).get("tiger_boundaries", {})
     shapefile_rel = tiger_cfg.get(
         "county_shapefile",
         "data/interim/geographic/tiger2020/tl_2020_us_county.shp",
@@ -665,9 +659,7 @@ def _load_counties_from_tiger(vintage: int) -> pd.DataFrame:
     shapefile_path = project_root / shapefile_rel
 
     if not shapefile_path.exists():
-        raise FileNotFoundError(
-            f"TIGER county shapefile not found: {shapefile_path}"
-        )
+        raise FileNotFoundError(f"TIGER county shapefile not found: {shapefile_path}")
 
     logger.info(
         "Loading counties from TIGER shapefile: %s (vintage %d)",
@@ -728,16 +720,11 @@ def _load_places_from_tiger(vintage: int) -> pd.DataFrame:
         import geopandas as gpd
     except ImportError as exc:
         raise ImportError(
-            "geopandas is required for TIGER place loading. "
-            "Install with: pip install geopandas"
+            "geopandas is required for TIGER place loading. Install with: pip install geopandas"
         ) from exc
 
     config = load_projection_config()
-    tiger_cfg = (
-        config.get("geography", {})
-        .get("reference_data", {})
-        .get("tiger_boundaries", {})
-    )
+    tiger_cfg = config.get("geography", {}).get("reference_data", {}).get("tiger_boundaries", {})
     shapefile_rel = tiger_cfg.get(
         "place_shapefile",
         "data/interim/geographic/tiger2020/tl_2020_38_place.shp",
@@ -746,9 +733,7 @@ def _load_places_from_tiger(vintage: int) -> pd.DataFrame:
     shapefile_path = project_root / shapefile_rel
 
     if not shapefile_path.exists():
-        raise FileNotFoundError(
-            f"TIGER place shapefile not found: {shapefile_path}"
-        )
+        raise FileNotFoundError(f"TIGER place shapefile not found: {shapefile_path}")
 
     logger.info(
         "Loading places from TIGER shapefile: %s (vintage %d)",

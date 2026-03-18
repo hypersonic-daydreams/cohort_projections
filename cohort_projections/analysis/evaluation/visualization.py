@@ -135,9 +135,7 @@ def plot_county_horizon_heatmap(
     _apply_style()
 
     df = diagnostics_df.loc[diagnostics_df["metric_name"] == metric].copy()
-    pivot = df.pivot_table(
-        index="geography", columns="horizon", values="value", aggfunc="mean"
-    )
+    pivot = df.pivot_table(index="geography", columns="horizon", values="value", aggfunc="mean")
 
     fig, ax = plt.subplots(figsize=figsize, dpi=_DPI)
     if SEABORN_AVAILABLE:
@@ -184,9 +182,7 @@ def plot_bias_map(
     _require_matplotlib()
     _apply_style()
 
-    df = diagnostics_df.loc[
-        diagnostics_df["metric_name"] == "mean_signed_percentage_error"
-    ].copy()
+    df = diagnostics_df.loc[diagnostics_df["metric_name"] == "mean_signed_percentage_error"].copy()
     agg = df.groupby("geography")["value"].mean().sort_values()
 
     fig, ax = plt.subplots(figsize=figsize, dpi=_DPI)
@@ -225,9 +221,7 @@ def plot_component_blame(
 
     df = component_diagnostics_df.copy()
     df["error"] = df["projected_component_value"] - df["actual_component_value"]
-    pivot = df.pivot_table(
-        index="horizon", columns="component", values="error", aggfunc="mean"
-    )
+    pivot = df.pivot_table(index="horizon", columns="component", values="error", aggfunc="mean")
 
     fig, ax = plt.subplots(figsize=figsize, dpi=_DPI)
     pivot.plot(kind="bar", stacked=True, ax=ax)

@@ -14,9 +14,7 @@ import functools
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_METHOD_CONFIG_PATH = (
-    PROJECT_ROOT / "scripts" / "analysis" / "walk_forward_validation.py"
-)
+DEFAULT_METHOD_CONFIG_PATH = PROJECT_ROOT / "scripts" / "analysis" / "walk_forward_validation.py"
 
 
 @functools.lru_cache(maxsize=1)
@@ -43,9 +41,7 @@ def get_runtime_injectable_parameters(
         If the ``MethodConfig`` TypedDict cannot be located.
     """
     if not method_config_path.exists():
-        raise FileNotFoundError(
-            f"MethodConfig source not found: {method_config_path}"
-        )
+        raise FileNotFoundError(f"MethodConfig source not found: {method_config_path}")
 
     tree = ast.parse(method_config_path.read_text(encoding="utf-8"))
     for node in tree.body:
@@ -54,18 +50,13 @@ def get_runtime_injectable_parameters(
         fields = [
             item.target.id
             for item in node.body
-            if isinstance(item, ast.AnnAssign)
-            and isinstance(item.target, ast.Name)
+            if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name)
         ]
         if not fields:
-            raise ValueError(
-                "MethodConfig TypedDict was found but has no annotated fields."
-            )
+            raise ValueError("MethodConfig TypedDict was found but has no annotated fields.")
         return frozenset(fields)
 
-    raise ValueError(
-        f"MethodConfig TypedDict not found in {method_config_path}"
-    )
+    raise ValueError(f"MethodConfig TypedDict not found in {method_config_path}")
 
 
 def is_runtime_injectable(parameter: str) -> bool:

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 
@@ -233,9 +233,7 @@ class ObservatoryRecommender:
             return empty
 
         # Identify the champion row (first row from the first run, status=champion)
-        champion_rows = scorecards[
-            scorecards["status_at_run"].str.lower() == "champion"
-        ]
+        champion_rows = scorecards[scorecards["status_at_run"].str.lower() == "champion"]
         if champion_rows.empty:
             champion_rows = scorecards.head(1)
 
@@ -258,7 +256,7 @@ class ObservatoryRecommender:
                 valid = group_impact.dropna(subset=[delta_col])
                 if not valid.empty:
                     best_idx = valid[delta_col].idxmin()
-                    best_delta = float(valid.loc[best_idx, delta_col])
+                    best_delta = float(valid.loc[best_idx, delta_col])  # type: ignore[arg-type]
                     if "run_id" in valid.columns:
                         best_run = str(valid.loc[best_idx, "run_id"])
 
@@ -284,9 +282,9 @@ class ObservatoryRecommender:
             return pd.DataFrame()
         result = pd.DataFrame(param_rows)
         if "resolved_status" in result.columns:
-            result = result[
-                result["resolved_status"].isin(self._gate_clean_statuses)
-            ].reset_index(drop=True)
+            result = result[result["resolved_status"].isin(self._gate_clean_statuses)].reset_index(
+                drop=True
+            )
         return result
 
     def format_recommendations(self, recommendations: list[Recommendation]) -> str:
@@ -307,8 +305,9 @@ class ObservatoryRecommender:
         ]
         for i, rec in enumerate(recommendations, 1):
             code_flag = " [CODE CHANGE REQUIRED]" if rec.requires_code_change else ""
-            lines.append(f"  #{i}  {rec.parameter} -> {rec.suggested_value}"
-                         f"  ({rec.direction}){code_flag}")
+            lines.append(
+                f"  #{i}  {rec.parameter} -> {rec.suggested_value}  ({rec.direction}){code_flag}"
+            )
             lines.append(f"      Priority: {rec.priority}")
             lines.append(f"      Rationale: {rec.rationale}")
             lines.append(f"      Expected impact: {rec.expected_impact}")
@@ -319,8 +318,7 @@ class ObservatoryRecommender:
         # Persistent weaknesses summary
         weaknesses = self.identify_persistent_weaknesses()
         persistent = weaknesses[
-            weaknesses["best_challenger_delta"].notna()
-            & (weaknesses["best_challenger_delta"] >= 0)
+            weaknesses["best_challenger_delta"].notna() & (weaknesses["best_challenger_delta"] >= 0)
         ]
         if not persistent.empty:
             lines.append("-" * 72)
@@ -351,7 +349,7 @@ class ObservatoryRecommender:
                 is_champion = False
                 if "status_at_run" in group.columns:
                     statuses = group["status_at_run"].fillna("").astype(str).str.lower()
-                    is_champion = statuses.eq("champion").any()
+                    is_champion = bool(statuses.eq("champion").any())
                     non_empty = statuses[statuses.ne("")]
                     if not non_empty.empty:
                         scorecard_status = str(non_empty.iloc[0])
@@ -459,9 +457,7 @@ class ObservatoryRecommender:
                     continue
 
                 # Get the delta row for this method from the comparator
-                method_delta_rows = run_deltas[
-                    run_deltas["method_id"] == method_id
-                ]
+                method_delta_rows = run_deltas[run_deltas["method_id"] == method_id]
                 delta_dict: dict[str, float] = {}
                 if not method_delta_rows.empty:
                     delta_row = method_delta_rows.iloc[0]
@@ -489,9 +485,7 @@ class ObservatoryRecommender:
         return rows
 
     @staticmethod
-    def _resolved_config_for(
-        manifest: dict[str, Any], method_id: str
-    ) -> dict[str, Any] | None:
+    def _resolved_config_for(manifest: dict[str, Any], method_id: str) -> dict[str, Any] | None:
         """Extract resolved_config for *method_id* from a manifest."""
         for method in manifest.get("methods", []):
             if method.get("method_id") == method_id:
@@ -499,9 +493,7 @@ class ObservatoryRecommender:
         return None
 
     @staticmethod
-    def _diff_configs(
-        base: dict[str, Any], variant: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _diff_configs(base: dict[str, Any], variant: dict[str, Any]) -> dict[str, Any]:
         """Return keys from *variant* that differ from *base*.
 
         Only top-level scalar differences are detected; nested structures
@@ -520,9 +512,7 @@ class ObservatoryRecommender:
     # Heuristic 1 — boundary detection
     # ------------------------------------------------------------------
 
-    def _boundary_recommendations(
-        self, sensitivity: pd.DataFrame
-    ) -> list[Recommendation]:
+    def _boundary_recommendations(self, sensitivity: pd.DataFrame) -> list[Recommendation]:
         """For each numeric parameter, check if the best value is at a boundary."""
         recs: list[Recommendation] = []
         if sensitivity.empty:
@@ -559,22 +549,12 @@ class ObservatoryRecommender:
                 direction = "increase"
                 suggested = _next_step(numeric_vals, direction)
                 step = numeric_vals[-1] - numeric_vals[-2]
-                grid = {
-                    param: [
-                        round(numeric_vals[-1] + step * i, 6)
-                        for i in range(1, 3)
-                    ]
-                }
+                grid = {param: [round(numeric_vals[-1] + step * i, 6) for i in range(1, 3)]}
             elif is_at_min:
                 direction = "decrease"
                 suggested = _next_step(numeric_vals, direction)
                 step = numeric_vals[1] - numeric_vals[0]
-                grid = {
-                    param: [
-                        round(numeric_vals[0] - step * i, 6)
-                        for i in range(1, 3)
-                    ]
-                }
+                grid = {param: [round(numeric_vals[0] - step * i, 6) for i in range(1, 3)]}
             else:
                 # Best is interior — no boundary recommendation
                 continue
@@ -585,9 +565,7 @@ class ObservatoryRecommender:
                 bounds = self._bounds_catalog.get_bounds(param)
                 if bounds is not None:
                     original_suggested = suggested
-                    suggested = self._bounds_catalog.clamp_value(
-                        param, suggested
-                    )
+                    suggested = self._bounds_catalog.clamp_value(param, suggested)
                     if suggested != original_suggested:
                         clamped = True
 
@@ -606,11 +584,7 @@ class ObservatoryRecommender:
             best_delta = float(best_row[metric_col])
             clamp_note = ""
             if clamped:
-                clamp_note = (
-                    f" (clamped to "
-                    f"{'max' if is_at_max else 'min'} "
-                    f"{suggested})"
-                )
+                clamp_note = f" (clamped to {'max' if is_at_max else 'min'} {suggested})"
             recs.append(
                 Recommendation(
                     parameter=param,
@@ -671,9 +645,7 @@ class ObservatoryRecommender:
                     suggested_value=value,
                     direction="explore",
                     rationale=f"Untested catalog entry '{slug}'. {hypothesis}",
-                    expected_impact=str(
-                        entry.get("expected_improvement", "unknown")
-                    ),
+                    expected_impact=str(entry.get("expected_improvement", "unknown")),
                     priority=priority,
                     requires_code_change=requires_code,
                     grid_suggestion=None,
@@ -684,7 +656,7 @@ class ObservatoryRecommender:
     def _normalize_catalog(self) -> list[dict[str, Any]]:
         """Coerce variant_catalog into a list of dicts."""
         if isinstance(self.variant_catalog, pd.DataFrame):
-            return self.variant_catalog.to_dict("records")  # type: ignore[union-attr]
+            return cast(list[dict[str, Any]], self.variant_catalog.to_dict("records"))
         if isinstance(self.variant_catalog, list):
             return self.variant_catalog
         return []
@@ -693,9 +665,7 @@ class ObservatoryRecommender:
     # Heuristic 3 — interaction detection
     # ------------------------------------------------------------------
 
-    def _interaction_recommendations(
-        self, sensitivity: pd.DataFrame
-    ) -> list[Recommendation]:
+    def _interaction_recommendations(self, sensitivity: pd.DataFrame) -> list[Recommendation]:
         """If two parameters independently improve metrics, suggest testing together."""
         recs: list[Recommendation] = []
         if sensitivity.empty:
@@ -720,9 +690,7 @@ class ObservatoryRecommender:
 
         # Filter to config-only parameters — interactions involving params
         # that require code changes are not actionable via sweep.
-        improving_params = {
-            p: v for p, v in improving_params.items() if p in CONFIG_ONLY_PARAMS
-        }
+        improving_params = {p: v for p, v in improving_params.items() if p in CONFIG_ONLY_PARAMS}
 
         # Generate pairwise interaction suggestions
         param_list = sorted(improving_params.keys())
@@ -765,9 +733,7 @@ class ObservatoryRecommender:
     # Heuristic 5 — diminishing returns
     # ------------------------------------------------------------------
 
-    def _diminishing_returns_flags(
-        self, sensitivity: pd.DataFrame
-    ) -> list[Recommendation]:
+    def _diminishing_returns_flags(self, sensitivity: pd.DataFrame) -> list[Recommendation]:
         """Detect parameters whose metric sensitivity has plateaued.
 
         When the slope of (parameter value -> metric delta) is below
@@ -801,8 +767,7 @@ class ObservatoryRecommender:
 
             xs_sorted = sorted(deduped["value_f"].tolist())
             ys_sorted = [
-                float(deduped.loc[deduped["value_f"] == x, metric_col].iloc[0])
-                for x in xs_sorted
+                float(deduped.loc[deduped["value_f"] == x, metric_col].iloc[0]) for x in xs_sorted
             ]
 
             slope = _linear_trend(xs_sorted, ys_sorted)

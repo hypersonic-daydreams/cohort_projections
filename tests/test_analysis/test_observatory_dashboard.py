@@ -148,10 +148,7 @@ def _build_fixture_frames() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 
 def _run_label_factory(metadata: pd.DataFrame) -> dict[str, str]:
     """Return short run labels keyed by run ID."""
-    return {
-        str(row["run_id"]): str(row["legend_label"])
-        for _, row in metadata.iterrows()
-    }
+    return {str(row["run_id"]): str(row["legend_label"]) for _, row in metadata.iterrows()}
 
 
 def test_build_comparison_rows_prefers_variant_rows_except_for_champion_bundle() -> None:
@@ -362,7 +359,9 @@ summary:
         + "\n",
         encoding="utf-8",
     )
-    (session_dir / "candidate_summary.csv").write_text("candidate_id,status\ncand-1,completed\n", encoding="utf-8")
+    (session_dir / "candidate_summary.csv").write_text(
+        "candidate_id,status\ncand-1,completed\n", encoding="utf-8"
+    )
     (session_dir / "search_report.md").write_text("# report\n", encoding="utf-8")
 
     frame = build_search_session_frame(tmp_path)
@@ -377,7 +376,9 @@ summary:
     assert row["process_status"] == "stopped"
 
 
-def test_build_search_session_frame_includes_launch_sidecars(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_build_search_session_frame_includes_launch_sidecars(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Dashboard sidecars should surface launching sessions before session.yaml exists."""
     search_id = "search-launching"
     meta_path = _search_sidecar_path(tmp_path, search_id, "dashboard_meta.yaml")

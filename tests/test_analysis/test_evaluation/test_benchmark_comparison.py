@@ -16,6 +16,7 @@ from cohort_projections.analysis.evaluation.utils import validate_dataframe
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 def _make_config() -> dict:
     """Minimal evaluation config for testing."""
     return {
@@ -102,6 +103,7 @@ def bad_method_df():
 # Validation
 # ---------------------------------------------------------------------------
 
+
 class TestValidation:
     def test_validate_result_df_passes(self, baseline_df):
         validate_dataframe(baseline_df, PROJECTION_RESULT_COLUMNS, "test")
@@ -116,6 +118,7 @@ class TestValidation:
 # compare_all
 # ---------------------------------------------------------------------------
 
+
 class TestCompareAll:
     def test_compare_all_returns_rows(self, module, baseline_df, good_method_df):
         results = {"baseline": baseline_df, "good": good_method_df}
@@ -124,9 +127,7 @@ class TestCompareAll:
         assert set(out["method"].unique()) == {"good"}
         assert "delta" in out.columns
 
-    def test_compare_all_multiple_methods(
-        self, module, baseline_df, good_method_df, bad_method_df
-    ):
+    def test_compare_all_multiple_methods(self, module, baseline_df, good_method_df, bad_method_df):
         results = {
             "baseline": baseline_df,
             "good": good_method_df,
@@ -144,22 +145,17 @@ class TestCompareAll:
 # pairwise_comparison
 # ---------------------------------------------------------------------------
 
+
 class TestPairwiseComparison:
     def test_deltas_correct_direction(self, module, baseline_df, good_method_df):
-        out = module.pairwise_comparison(
-            good_method_df, baseline_df, "good", "baseline"
-        )
+        out = module.pairwise_comparison(good_method_df, baseline_df, "good", "baseline")
         # Good method has error 1.0; baseline has error 0.0 -> delta > 0
-        mae_rows = out[
-            (out["metric_name"] == "mae") & (out["geography_group"] == "all")
-        ]
+        mae_rows = out[(out["metric_name"] == "mae") & (out["geography_group"] == "all")]
         assert all(mae_rows["delta"] > 0)
         assert all(mae_rows["baseline_value"] == 0.0)
 
     def test_horizon_bands_present(self, module, baseline_df, good_method_df):
-        out = module.pairwise_comparison(
-            good_method_df, baseline_df, "good", "baseline"
-        )
+        out = module.pairwise_comparison(good_method_df, baseline_df, "good", "baseline")
         assert set(out["horizon_band"].unique()) == {"near_term", "long_term", "all"}
 
 
@@ -167,13 +163,12 @@ class TestPairwiseComparison:
 # component_swap_analysis
 # ---------------------------------------------------------------------------
 
+
 class TestComponentSwapAnalysis:
     def test_swap_analysis_produces_rows(self, module):
         swap_a = _make_result_df("swap_a", [105.0] * 9, [100.0] * 9)
         swap_b = _make_result_df("swap_b", [102.0] * 9, [100.0] * 9)
-        out = module.component_swap_analysis(
-            {"adv_migration": swap_a, "adv_fertility": swap_b}
-        )
+        out = module.component_swap_analysis({"adv_migration": swap_a, "adv_fertility": swap_b})
         assert set(out["swap_label"].unique()) == {"adv_migration", "adv_fertility"}
         # swap_b (error 2) should have lower MAE than swap_a (error 5)
         mae_all = out[
@@ -181,18 +176,15 @@ class TestComponentSwapAnalysis:
             & (out["geography_group"] == "all")
             & (out["horizon_band"] == "all")
         ]
-        migration_val = mae_all.loc[
-            mae_all["swap_label"] == "adv_migration", "value"
-        ].iloc[0]
-        fertility_val = mae_all.loc[
-            mae_all["swap_label"] == "adv_fertility", "value"
-        ].iloc[0]
+        migration_val = mae_all.loc[mae_all["swap_label"] == "adv_migration", "value"].iloc[0]
+        fertility_val = mae_all.loc[mae_all["swap_label"] == "adv_fertility", "value"].iloc[0]
         assert migration_val > fertility_val
 
 
 # ---------------------------------------------------------------------------
 # horizon_blend
 # ---------------------------------------------------------------------------
+
 
 class TestHorizonBlend:
     def test_near_term_used_before_blend_horizon(self, module):
@@ -245,6 +237,7 @@ class TestHorizonBlend:
 # ensemble_average
 # ---------------------------------------------------------------------------
 
+
 class TestEnsembleAverage:
     def test_equal_weight_average(self, module):
         m1 = _make_result_df("m1", [100.0] * 9)
@@ -255,9 +248,7 @@ class TestEnsembleAverage:
     def test_weighted_average(self, module):
         m1 = _make_result_df("m1", [100.0] * 9)
         m2 = _make_result_df("m2", [200.0] * 9)
-        ensemble = module.ensemble_average(
-            {"m1": m1, "m2": m2}, weights={"m1": 3.0, "m2": 1.0}
-        )
+        ensemble = module.ensemble_average({"m1": m1, "m2": m2}, weights={"m1": 3.0, "m2": 1.0})
         # (100*0.75 + 200*0.25) = 125
         np.testing.assert_allclose(ensemble["projected_value"].values, 125.0)
 
@@ -274,6 +265,7 @@ class TestEnsembleAverage:
 # ---------------------------------------------------------------------------
 # ensemble_by_county_type
 # ---------------------------------------------------------------------------
+
 
 class TestEnsembleByCountyType:
     def test_selects_correct_method_per_group(self, module):
@@ -294,8 +286,11 @@ class TestEnsembleByCountyType:
 # rank_methods
 # ---------------------------------------------------------------------------
 
+
 class TestRankMethods:
-    def test_ranks_error_metrics_ascending(self, module, baseline_df, good_method_df, bad_method_df):
+    def test_ranks_error_metrics_ascending(
+        self, module, baseline_df, good_method_df, bad_method_df
+    ):
         results = {
             "baseline": baseline_df,
             "good": good_method_df,
@@ -316,8 +311,14 @@ class TestRankMethods:
     def test_empty_comparison(self, module):
         empty = pd.DataFrame(
             columns=[
-                "method", "baseline", "metric_name", "method_value",
-                "baseline_value", "delta", "geography_group", "horizon_band",
+                "method",
+                "baseline",
+                "metric_name",
+                "method_value",
+                "baseline_value",
+                "delta",
+                "geography_group",
+                "horizon_band",
             ]
         )
         ranked = module.rank_methods(empty)
@@ -327,6 +328,7 @@ class TestRankMethods:
 # ---------------------------------------------------------------------------
 # improvement_over_baseline
 # ---------------------------------------------------------------------------
+
 
 class TestImprovementOverBaseline:
     def test_improvement_positive_when_better(
@@ -346,7 +348,5 @@ class TestImprovementOverBaseline:
     def test_missing_metric_returns_empty(self, module, baseline_df, good_method_df):
         results = {"baseline": baseline_df, "good": good_method_df}
         comparison = module.compare_all(results, baseline_name="baseline")
-        improvement = module.improvement_over_baseline(
-            comparison, metric="nonexistent_metric"
-        )
+        improvement = module.improvement_over_baseline(comparison, metric="nonexistent_metric")
         assert improvement.empty

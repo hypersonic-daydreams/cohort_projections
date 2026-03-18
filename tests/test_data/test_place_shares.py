@@ -17,15 +17,63 @@ def _place_history_fixture() -> pd.DataFrame:
     """Synthetic place history with two counties and one dissolved place."""
     rows = [
         # Cass County 38017
-        {"place_fips": "3825700", "place_name": "Fargo city", "county_fips": "38017", "year": 2023, "population": 80_000},
-        {"place_fips": "3884780", "place_name": "West Fargo city", "county_fips": "38017", "year": 2023, "population": 30_000},
-        {"place_fips": "3825700", "place_name": "Fargo city", "county_fips": "38017", "year": 2024, "population": 82_000},
-        {"place_fips": "3884780", "place_name": "West Fargo city", "county_fips": "38017", "year": 2024, "population": 31_000},
+        {
+            "place_fips": "3825700",
+            "place_name": "Fargo city",
+            "county_fips": "38017",
+            "year": 2023,
+            "population": 80_000,
+        },
+        {
+            "place_fips": "3884780",
+            "place_name": "West Fargo city",
+            "county_fips": "38017",
+            "year": 2023,
+            "population": 30_000,
+        },
+        {
+            "place_fips": "3825700",
+            "place_name": "Fargo city",
+            "county_fips": "38017",
+            "year": 2024,
+            "population": 82_000,
+        },
+        {
+            "place_fips": "3884780",
+            "place_name": "West Fargo city",
+            "county_fips": "38017",
+            "year": 2024,
+            "population": 31_000,
+        },
         # Burleigh County 38015
-        {"place_fips": "3807200", "place_name": "Bismarck city", "county_fips": "38015", "year": 2023, "population": 75_000},
-        {"place_fips": "3849900", "place_name": "Mandan city", "county_fips": "38015", "year": 2023, "population": 24_000},
-        {"place_fips": "3807200", "place_name": "Bismarck city", "county_fips": "38015", "year": 2024, "population": 76_000},
-        {"place_fips": "3849900", "place_name": "Mandan city", "county_fips": "38015", "year": 2024, "population": 25_000},
+        {
+            "place_fips": "3807200",
+            "place_name": "Bismarck city",
+            "county_fips": "38015",
+            "year": 2023,
+            "population": 75_000,
+        },
+        {
+            "place_fips": "3849900",
+            "place_name": "Mandan city",
+            "county_fips": "38015",
+            "year": 2023,
+            "population": 24_000,
+        },
+        {
+            "place_fips": "3807200",
+            "place_name": "Bismarck city",
+            "county_fips": "38015",
+            "year": 2024,
+            "population": 76_000,
+        },
+        {
+            "place_fips": "3849900",
+            "place_name": "Mandan city",
+            "county_fips": "38015",
+            "year": 2024,
+            "population": 25_000,
+        },
     ]
     return pd.DataFrame(rows)
 
@@ -109,7 +157,9 @@ def test_compute_historical_shares_bounds_and_balance_invariant() -> None:
         .sum()
         .rename(columns={"share_raw": "balance_share_sum"})
     )
-    check = place_sum.merge(balance_sum, on=["county_fips", "year"], how="inner", validate="one_to_one")
+    check = place_sum.merge(
+        balance_sum, on=["county_fips", "year"], how="inner", validate="one_to_one"
+    )
     np.testing.assert_allclose(
         check["place_share_sum"] + check["balance_share_sum"],
         np.ones(len(check)),

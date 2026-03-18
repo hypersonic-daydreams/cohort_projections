@@ -71,10 +71,7 @@ def _make_fertility() -> dict[str, float]:
 def shared_inputs() -> dict[str, Any]:
     """Shared synthetic inputs for sequential and parallel runs."""
     counties = ["38001", "38003"]
-    snapshots = {
-        year: _make_population_df(counties, year)
-        for year in [2015, 2020, 2024]
-    }
+    snapshots = {year: _make_population_df(counties, year) for year in [2015, 2020, 2024]}
     return {
         "snapshots": snapshots,
         "mig_raw": _make_migration_df(counties),
@@ -161,8 +158,9 @@ class TestParallelSensitivityFallback:
                         fut.set_exception(exc)
                 return fut
 
-        with patch.object(sa, "PERTURBATIONS", small_perturbations), patch.object(
-            sa, "ProcessPoolExecutor", _FakeExecutor
+        with (
+            patch.object(sa, "PERTURBATIONS", small_perturbations),
+            patch.object(sa, "ProcessPoolExecutor", _FakeExecutor),
         ):
             results = sa.run_sensitivity_analysis(
                 shared_inputs["snapshots"],

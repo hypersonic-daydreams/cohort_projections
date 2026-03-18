@@ -62,22 +62,130 @@ def test_update_alias_mapping_writes_yaml(tmp_path: Path) -> None:
 def test_build_summary_scorecard_and_comparison() -> None:
     annual_state = pd.DataFrame(
         [
-            {"origin_year": 2015, "method": "m2026", "validation_year": 2020, "horizon": 5, "pct_error": -1.0, "projected_state": 100.0, "actual_state": 101.0},
-            {"origin_year": 2015, "method": "m2026", "validation_year": 2024, "horizon": 9, "pct_error": -2.0, "projected_state": 100.0, "actual_state": 102.0},
-            {"origin_year": 2020, "method": "m2026", "validation_year": 2024, "horizon": 4, "pct_error": -0.5, "projected_state": 100.0, "actual_state": 100.5},
-            {"origin_year": 2015, "method": "m2026r1", "validation_year": 2020, "horizon": 5, "pct_error": -0.8, "projected_state": 100.0, "actual_state": 100.8},
-            {"origin_year": 2015, "method": "m2026r1", "validation_year": 2024, "horizon": 9, "pct_error": -1.2, "projected_state": 100.0, "actual_state": 101.2},
-            {"origin_year": 2020, "method": "m2026r1", "validation_year": 2024, "horizon": 4, "pct_error": -0.3, "projected_state": 100.0, "actual_state": 100.3},
+            {
+                "origin_year": 2015,
+                "method": "m2026",
+                "validation_year": 2020,
+                "horizon": 5,
+                "pct_error": -1.0,
+                "projected_state": 100.0,
+                "actual_state": 101.0,
+            },
+            {
+                "origin_year": 2015,
+                "method": "m2026",
+                "validation_year": 2024,
+                "horizon": 9,
+                "pct_error": -2.0,
+                "projected_state": 100.0,
+                "actual_state": 102.0,
+            },
+            {
+                "origin_year": 2020,
+                "method": "m2026",
+                "validation_year": 2024,
+                "horizon": 4,
+                "pct_error": -0.5,
+                "projected_state": 100.0,
+                "actual_state": 100.5,
+            },
+            {
+                "origin_year": 2015,
+                "method": "m2026r1",
+                "validation_year": 2020,
+                "horizon": 5,
+                "pct_error": -0.8,
+                "projected_state": 100.0,
+                "actual_state": 100.8,
+            },
+            {
+                "origin_year": 2015,
+                "method": "m2026r1",
+                "validation_year": 2024,
+                "horizon": 9,
+                "pct_error": -1.2,
+                "projected_state": 100.0,
+                "actual_state": 101.2,
+            },
+            {
+                "origin_year": 2020,
+                "method": "m2026r1",
+                "validation_year": 2024,
+                "horizon": 4,
+                "pct_error": -0.3,
+                "projected_state": 100.0,
+                "actual_state": 100.3,
+            },
         ]
     )
     annual_county = pd.DataFrame(
         [
-            {"origin_year": 2015, "method": "m2026", "validation_year": 2020, "horizon": 5, "county_fips": "38017", "county_name": "Cass", "projected": 50.0, "actual": 51.0, "pct_error": -1.9608},
-            {"origin_year": 2015, "method": "m2026", "validation_year": 2020, "horizon": 5, "county_fips": "38105", "county_name": "Williams", "projected": 50.0, "actual": 50.0, "pct_error": 0.0},
-            {"origin_year": 2015, "method": "m2026r1", "validation_year": 2020, "horizon": 5, "county_fips": "38017", "county_name": "Cass", "projected": 50.0, "actual": 50.5, "pct_error": -0.9901},
-            {"origin_year": 2015, "method": "m2026r1", "validation_year": 2020, "horizon": 5, "county_fips": "38105", "county_name": "Williams", "projected": 50.0, "actual": 50.0, "pct_error": 0.0},
-            {"origin_year": 2020, "method": "m2026", "validation_year": 2024, "horizon": 4, "county_fips": "38053", "county_name": "McKenzie", "projected": 50.0, "actual": 51.0, "pct_error": -1.9608},
-            {"origin_year": 2020, "method": "m2026r1", "validation_year": 2024, "horizon": 4, "county_fips": "38053", "county_name": "McKenzie", "projected": 50.0, "actual": 50.2, "pct_error": -0.3984},
+            {
+                "origin_year": 2015,
+                "method": "m2026",
+                "validation_year": 2020,
+                "horizon": 5,
+                "county_fips": "38017",
+                "county_name": "Cass",
+                "projected": 50.0,
+                "actual": 51.0,
+                "pct_error": -1.9608,
+            },
+            {
+                "origin_year": 2015,
+                "method": "m2026",
+                "validation_year": 2020,
+                "horizon": 5,
+                "county_fips": "38105",
+                "county_name": "Williams",
+                "projected": 50.0,
+                "actual": 50.0,
+                "pct_error": 0.0,
+            },
+            {
+                "origin_year": 2015,
+                "method": "m2026r1",
+                "validation_year": 2020,
+                "horizon": 5,
+                "county_fips": "38017",
+                "county_name": "Cass",
+                "projected": 50.0,
+                "actual": 50.5,
+                "pct_error": -0.9901,
+            },
+            {
+                "origin_year": 2015,
+                "method": "m2026r1",
+                "validation_year": 2020,
+                "horizon": 5,
+                "county_fips": "38105",
+                "county_name": "Williams",
+                "projected": 50.0,
+                "actual": 50.0,
+                "pct_error": 0.0,
+            },
+            {
+                "origin_year": 2020,
+                "method": "m2026",
+                "validation_year": 2024,
+                "horizon": 4,
+                "county_fips": "38053",
+                "county_name": "McKenzie",
+                "projected": 50.0,
+                "actual": 51.0,
+                "pct_error": -1.9608,
+            },
+            {
+                "origin_year": 2020,
+                "method": "m2026r1",
+                "validation_year": 2024,
+                "horizon": 4,
+                "county_fips": "38053",
+                "county_name": "McKenzie",
+                "projected": 50.0,
+                "actual": 50.2,
+                "pct_error": -0.3984,
+            },
         ]
     )
     sensitivity_tornado = pd.DataFrame(
@@ -103,7 +211,10 @@ def test_build_summary_scorecard_and_comparison() -> None:
 
     assert set(scorecard["method_id"]) == {"m2026", "m2026r1"}
     challenger = scorecard[scorecard["method_id"] == "m2026r1"].iloc[0]
-    assert challenger["state_ape_recent_short"] < scorecard[scorecard["method_id"] == "m2026"].iloc[0]["state_ape_recent_short"]
+    assert (
+        challenger["state_ape_recent_short"]
+        < scorecard[scorecard["method_id"] == "m2026"].iloc[0]["state_ape_recent_short"]
+    )
     assert comparison["challengers"][0]["method_id"] == "m2026r1"
 
 

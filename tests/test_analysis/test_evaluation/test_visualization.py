@@ -19,9 +19,7 @@ from cohort_projections.analysis.evaluation.visualization import (
     save_evaluation_report,
 )
 
-pytestmark = pytest.mark.skipif(
-    not MATPLOTLIB_AVAILABLE, reason="matplotlib not installed"
-)
+pytestmark = pytest.mark.skipif(not MATPLOTLIB_AVAILABLE, reason="matplotlib not installed")
 
 
 @pytest.fixture()
@@ -161,9 +159,7 @@ class TestStabilityScatter:
 
 
 class TestSaveReport:
-    def test_saves_files(
-        self, tmp_path: Path, diagnostics_df: pd.DataFrame
-    ) -> None:
+    def test_saves_files(self, tmp_path: Path, diagnostics_df: pd.DataFrame) -> None:
         fig = plot_horizon_profile(diagnostics_df, "mape")
         out = save_evaluation_report(
             tmp_path / "report",

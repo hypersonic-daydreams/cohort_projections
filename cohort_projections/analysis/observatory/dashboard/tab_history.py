@@ -41,18 +41,24 @@ _STATUS_ORDER: tuple[str, ...] = (
 )
 
 
-def _selected_statuses(statuses: list[str] | tuple[str, ...] | None, dm: DashboardDataManager) -> list[str]:
+def _selected_statuses(
+    statuses: list[str] | tuple[str, ...] | None, dm: DashboardDataManager
+) -> list[str]:
     """Normalize status filters to a concrete list."""
     if statuses:
         return [str(status) for status in statuses]
     history = dm.longitudinal_run_history
     if history.empty or "status_code" not in history.columns:
         return list(_STATUS_ORDER)
-    discovered = [str(status) for status in history["status_code"].dropna().astype(str).unique().tolist()]
+    discovered = [
+        str(status) for status in history["status_code"].dropna().astype(str).unique().tolist()
+    ]
     return [status for status in _STATUS_ORDER if status in discovered] or discovered
 
 
-def _filter_history(dm: DashboardDataManager, statuses: list[str] | tuple[str, ...] | None) -> pd.DataFrame:
+def _filter_history(
+    dm: DashboardDataManager, statuses: list[str] | tuple[str, ...] | None
+) -> pd.DataFrame:
     """Return the longitudinal run history filtered to statuses."""
     history = dm.longitudinal_run_history
     if history.empty:
@@ -63,7 +69,9 @@ def _filter_history(dm: DashboardDataManager, statuses: list[str] | tuple[str, .
     return history[history["status_code"].isin(selected)].copy()
 
 
-def _filter_delta_history(dm: DashboardDataManager, statuses: list[str] | tuple[str, ...] | None) -> pd.DataFrame:
+def _filter_delta_history(
+    dm: DashboardDataManager, statuses: list[str] | tuple[str, ...] | None
+) -> pd.DataFrame:
     """Return the long metric-delta history filtered to statuses."""
     delta_history = dm.metric_delta_history
     if delta_history.empty:
@@ -94,7 +102,9 @@ def _history_takeaway_text(dm: DashboardDataManager) -> str:
 
     passed = history[history["status_code"] == "passed_all_gates"]
     if not passed.empty and "delta_county_mape_overall" in passed.columns:
-        best = passed.sort_values("delta_county_mape_overall", ascending=True, na_position="last").iloc[0]
+        best = passed.sort_values(
+            "delta_county_mape_overall", ascending=True, na_position="last"
+        ).iloc[0]
         parts.append(
             f"**Best accepted challenger:** {best['display_name']} at "
             f"{float(best['delta_county_mape_overall']):+.3f} county-MAPE delta vs the champion-at-run baseline."
@@ -105,11 +115,17 @@ def _history_takeaway_text(dm: DashboardDataManager) -> str:
             f"**Governance queue:** {review_count} bundle(s) still need review and {failed_count} failed hard gates."
         )
     else:
-        parts.append("**Governance queue:** No historical bundles are currently waiting for review or marked failed.")
+        parts.append(
+            "**Governance queue:** No historical bundles are currently waiting for review or marked failed."
+        )
 
     if "reference_county_mape_overall" in history.columns:
-        champion_first = history.sort_values("run_date_sort", ascending=True, na_position="last").iloc[0]
-        champion_last = history.sort_values("run_date_sort", ascending=False, na_position="last").iloc[0]
+        champion_first = history.sort_values(
+            "run_date_sort", ascending=True, na_position="last"
+        ).iloc[0]
+        champion_last = history.sort_values(
+            "run_date_sort", ascending=False, na_position="last"
+        ).iloc[0]
         first_metric = champion_first.get("reference_county_mape_overall")
         last_metric = champion_last.get("reference_county_mape_overall")
         if pd.notna(first_metric) and pd.notna(last_metric):
@@ -130,11 +146,15 @@ def _build_history_takeaway_card(dm: DashboardDataManager) -> pn.Card:
     )
 
 
-def _build_history_table(dm: DashboardDataManager, statuses: list[str] | tuple[str, ...] | None) -> pn.Column:
+def _build_history_table(
+    dm: DashboardDataManager, statuses: list[str] | tuple[str, ...] | None
+) -> pn.Column:
     """Render a searchable table of all benchmark bundles through time."""
     history = _filter_history(dm, statuses)
     if history.empty:
-        return pn.Column(widgets.empty_placeholder("No benchmark history matches the current filter."))
+        return pn.Column(
+            widgets.empty_placeholder("No benchmark history matches the current filter.")
+        )
 
     display_cols = [
         col
@@ -174,7 +194,9 @@ def _build_history_table(dm: DashboardDataManager, statuses: list[str] | tuple[s
     )
 
 
-def _build_champion_history_chart(dm: DashboardDataManager, statuses: list[str] | tuple[str, ...] | None) -> pn.pane.Plotly:
+def _build_champion_history_chart(
+    dm: DashboardDataManager, statuses: list[str] | tuple[str, ...] | None
+) -> pn.pane.Plotly:
     """Plot the champion-at-run baseline alongside selected challengers over time."""
     history = _filter_history(dm, statuses)
     if history.empty or "run_date_sort" not in history.columns:
@@ -198,8 +220,7 @@ def _build_champion_history_chart(dm: DashboardDataManager, statuses: list[str] 
             line={"color": theme.SDC_NAVY, "width": 3},
             marker={"size": 8},
             hovertemplate=(
-                "<b>Champion-at-run</b><br>%{x|%Y-%m-%d}<br>"
-                "County MAPE: %{y:.4f}<extra></extra>"
+                "<b>Champion-at-run</b><br>%{x|%Y-%m-%d}<br>County MAPE: %{y:.4f}<extra></extra>"
             ),
         )
     )
@@ -219,8 +240,7 @@ def _build_champion_history_chart(dm: DashboardDataManager, statuses: list[str] 
             },
             text=chart_data["display_name"],
             hovertemplate=(
-                "<b>%{text}</b><br>%{x|%Y-%m-%d}<br>"
-                "Selected county MAPE: %{y:.4f}<extra></extra>"
+                "<b>%{text}</b><br>%{x|%Y-%m-%d}<br>Selected county MAPE: %{y:.4f}<extra></extra>"
             ),
         )
     )
@@ -244,13 +264,17 @@ def _build_metric_delta_heatmap(
     if delta_history.empty:
         return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
 
-    metric_filter = [metric for metric in (metrics or list(_METRIC_LABELS)) if metric in _METRIC_LABELS]
+    metric_filter = [
+        metric for metric in (metrics or list(_METRIC_LABELS)) if metric in _METRIC_LABELS
+    ]
     if metric_filter:
         delta_history = delta_history[delta_history["metric"].isin(metric_filter)]
     if delta_history.empty:
         return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
 
-    ordered = delta_history.sort_values(["run_date_sort", "run_id", "metric"], ascending=[True, True, True])
+    ordered = delta_history.sort_values(
+        ["run_date_sort", "run_id", "metric"], ascending=[True, True, True]
+    )
     ordered["run_axis_label"] = ordered.apply(
         lambda row: f"{row['run_date_sort']:%Y-%m-%d}<br>{str(row['display_name'])[:24]}",
         axis=1,
@@ -260,7 +284,7 @@ def _build_metric_delta_heatmap(
         index="metric_label",
         columns="run_axis_label",
         values="delta_value",
-        aggfunc="first",
+        aggfunc="first",  # type: ignore[arg-type]
     )
     if pivot.empty:
         return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
@@ -286,7 +310,9 @@ def _build_metric_delta_heatmap(
     return pn.pane.Plotly(fig, sizing_mode="stretch_width")
 
 
-def _build_category_trend_chart(dm: DashboardDataManager, statuses: list[str] | tuple[str, ...] | None) -> pn.pane.Plotly:
+def _build_category_trend_chart(
+    dm: DashboardDataManager, statuses: list[str] | tuple[str, ...] | None
+) -> pn.pane.Plotly:
     """Line chart of average category-level deltas through time."""
     delta_history = _filter_delta_history(dm, statuses)
     if delta_history.empty:
@@ -297,9 +323,7 @@ def _build_category_trend_chart(dm: DashboardDataManager, statuses: list[str] | 
         return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
 
     grouped = (
-        chart.groupby(["run_date_sort", "metric"], dropna=False)["delta_value"]
-        .mean()
-        .reset_index()
+        chart.groupby(["run_date_sort", "metric"], dropna=False)["delta_value"].mean().reset_index()
     )
     grouped = grouped.dropna(subset=["run_date_sort"])
     if grouped.empty:
@@ -332,7 +356,9 @@ def _build_category_trend_chart(dm: DashboardDataManager, statuses: list[str] | 
     return pn.pane.Plotly(fig, sizing_mode="stretch_width")
 
 
-def _build_outcome_history_chart(dm: DashboardDataManager, statuses: list[str] | tuple[str, ...] | None) -> pn.pane.Plotly:
+def _build_outcome_history_chart(
+    dm: DashboardDataManager, statuses: list[str] | tuple[str, ...] | None
+) -> pn.pane.Plotly:
     """Stacked bar chart of accepted/rejected/review history over time."""
     timeline = dm.status_timeline
     if timeline.empty:

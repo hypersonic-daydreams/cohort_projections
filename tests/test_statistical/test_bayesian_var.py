@@ -25,30 +25,33 @@ MODULE_PATH = get_sdc_repo_root() / "scripts" / "statistical_analysis"
 if str(MODULE_PATH) not in sys.path:
     sys.path.insert(0, str(MODULE_PATH))
 
-from module_B4_bayesian_panel import (
-    PYMC_AVAILABLE,
-    BayesianVARResult,
-    MinnesotaPrior,
-    ModelComparisonResult,
-    PanelVARResult,
-    # Model comparison
-    compare_var_models,
-    # Minnesota prior
-    construct_minnesota_prior,
-    # Bayesian VAR
-    estimate_bayesian_var,
-    # Panel VAR
-    estimate_panel_var,
-)
-from module_B4_bayesian_panel.bayesian_var import (
-    estimate_bayesian_var_conjugate,
-    prepare_var_data,
-)
-from module_B4_bayesian_panel.minnesota_prior import (
-    construct_minnesota_prior_from_data,
-    estimate_ar1_variances,
-    summarize_prior,
-)
+try:
+    from module_B4_bayesian_panel import (
+        BayesianVARResult,
+        MinnesotaPrior,
+        ModelComparisonResult,
+        PanelVARResult,
+        compare_var_models,
+        construct_minnesota_prior,
+        estimate_bayesian_var,
+        estimate_panel_var,
+    )
+    from module_B4_bayesian_panel.bayesian_var import (
+        estimate_bayesian_var_conjugate,
+        prepare_var_data,
+    )
+    from module_B4_bayesian_panel.minnesota_prior import (
+        construct_minnesota_prior_from_data,
+        estimate_ar1_variances,
+        summarize_prior,
+    )
+
+    PYMC_AVAILABLE = getattr(__import__("module_B4_bayesian_panel"), "PYMC_AVAILABLE", False)
+except (ImportError, AttributeError) as _err:
+    pytest.skip(
+        f"module_B4_bayesian_panel not fully available: {_err}",
+        allow_module_level=True,
+    )
 
 
 class TestConstructMinnesotaPrior:

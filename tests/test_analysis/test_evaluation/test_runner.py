@@ -45,20 +45,22 @@ def _make_results_df(
         for hor in horizons:
             projected = base + hor * 100 + rng.normal(0, noise_scale)
             actual = base + hor * 100
-            rows.append({
-                "run_id": run_id,
-                "model_name": model_name,
-                "geography": geo,
-                "geography_type": "county",
-                "year": 2025 + hor,
-                "horizon": hor,
-                "sex": "total",
-                "age_group": "total",
-                "target": "population",
-                "projected_value": projected,
-                "actual_value": actual,
-                "base_value": base,
-            })
+            rows.append(
+                {
+                    "run_id": run_id,
+                    "model_name": model_name,
+                    "geography": geo,
+                    "geography_type": "county",
+                    "year": 2025 + hor,
+                    "horizon": hor,
+                    "sex": "total",
+                    "age_group": "total",
+                    "target": "population",
+                    "projected_value": projected,
+                    "actual_value": actual,
+                    "base_value": base,
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -145,9 +147,7 @@ class TestConfigLoading:
 class TestRunAccuracyOnly:
     """Tests for EvaluationRunner.run_accuracy_only."""
 
-    def test_returns_dataframe(
-        self, runner: EvaluationRunner, results_df: pd.DataFrame
-    ) -> None:
+    def test_returns_dataframe(self, runner: EvaluationRunner, results_df: pd.DataFrame) -> None:
         diag = runner.run_accuracy_only(results_df)
         assert isinstance(diag, pd.DataFrame)
         assert len(diag) > 0
@@ -159,9 +159,7 @@ class TestRunAccuracyOnly:
         expected = {"metric_name", "horizon", "geography", "value"}
         assert expected.issubset(set(diag.columns))
 
-    def test_metrics_match_config(
-        self, runner: EvaluationRunner, results_df: pd.DataFrame
-    ) -> None:
+    def test_metrics_match_config(self, runner: EvaluationRunner, results_df: pd.DataFrame) -> None:
         diag = runner.run_accuracy_only(results_df)
         metric_names = set(diag["metric_name"].unique())
         for m in runner.accuracy_metrics:
@@ -202,9 +200,7 @@ class TestRunFullEvaluationNoRunner:
         assert isinstance(acc, pd.DataFrame)
         assert len(acc) > 0
 
-    def test_scorecard_is_entry(
-        self, runner: EvaluationRunner, results_df: pd.DataFrame
-    ) -> None:
+    def test_scorecard_is_entry(self, runner: EvaluationRunner, results_df: pd.DataFrame) -> None:
         out = runner.run_full_evaluation(results_df)
         assert isinstance(out["scorecard"], ScorecardEntry)
 
@@ -227,9 +223,7 @@ class TestRunFullEvaluationWithRunner:
         self, runner: EvaluationRunner, results_df: pd.DataFrame
     ) -> None:
         mock_runner = _make_mock_runner()
-        out = runner.run_full_evaluation(
-            results_df, projection_runner_fn=mock_runner
-        )
+        out = runner.run_full_evaluation(results_df, projection_runner_fn=mock_runner)
         sens = out["sensitivity"]
         assert sens is not None
         assert isinstance(sens, dict)
@@ -238,9 +232,7 @@ class TestRunFullEvaluationWithRunner:
         self, runner: EvaluationRunner, results_df: pd.DataFrame
     ) -> None:
         mock_runner = _make_mock_runner()
-        out = runner.run_full_evaluation(
-            results_df, projection_runner_fn=mock_runner
-        )
+        out = runner.run_full_evaluation(results_df, projection_runner_fn=mock_runner)
         sens = out["sensitivity"]
         assert "perturbation" in sens
         pert = sens["perturbation"]
@@ -251,9 +243,7 @@ class TestRunFullEvaluationWithRunner:
         self, runner: EvaluationRunner, results_df: pd.DataFrame
     ) -> None:
         mock_runner = _make_mock_runner()
-        out = runner.run_full_evaluation(
-            results_df, projection_runner_fn=mock_runner
-        )
+        out = runner.run_full_evaluation(results_df, projection_runner_fn=mock_runner)
         sens = out["sensitivity"]
         assert "stability_index" in sens
         stab = sens["stability_index"]
@@ -264,9 +254,7 @@ class TestRunFullEvaluationWithRunner:
         self, runner: EvaluationRunner, results_df: pd.DataFrame
     ) -> None:
         mock_runner = _make_mock_runner()
-        out = runner.run_full_evaluation(
-            results_df, projection_runner_fn=mock_runner
-        )
+        out = runner.run_full_evaluation(results_df, projection_runner_fn=mock_runner)
         assert isinstance(out["accuracy_diagnostics"], pd.DataFrame)
         assert len(out["accuracy_diagnostics"]) > 0
 
@@ -315,30 +303,22 @@ class TestRunSensitivityOnly:
 class TestRunComparison:
     """Tests for EvaluationRunner.run_comparison."""
 
-    def test_returns_combined_diagnostics(
-        self, runner: EvaluationRunner
-    ) -> None:
+    def test_returns_combined_diagnostics(self, runner: EvaluationRunner) -> None:
         rng1 = np.random.default_rng(1)
         rng2 = np.random.default_rng(2)
         method_a = _make_results_df(model_name="method_a", rng=rng1)
-        method_b = _make_results_df(
-            noise_scale=50.0, model_name="method_b", rng=rng2
-        )
+        method_b = _make_results_df(noise_scale=50.0, model_name="method_b", rng=rng2)
         result = runner.run_comparison({"method_a": method_a, "method_b": method_b})
         assert isinstance(result, pd.DataFrame)
         assert len(result) > 0
 
-    def test_both_methods_present(
-        self, runner: EvaluationRunner
-    ) -> None:
+    def test_both_methods_present(self, runner: EvaluationRunner) -> None:
         method_a = _make_results_df(model_name="method_a")
         method_b = _make_results_df(model_name="method_b")
         result = runner.run_comparison({"method_a": method_a, "method_b": method_b})
         assert set(result["model_name"].unique()) == {"method_a", "method_b"}
 
-    def test_delta_vs_baseline_column(
-        self, runner: EvaluationRunner
-    ) -> None:
+    def test_delta_vs_baseline_column(self, runner: EvaluationRunner) -> None:
         method_a = _make_results_df(model_name="method_a")
         method_b = _make_results_df(noise_scale=10.0, model_name="method_b")
         result = runner.run_comparison({"method_a": method_a, "method_b": method_b})
@@ -347,9 +327,7 @@ class TestRunComparison:
         baseline_rows = result[result["model_name"] == "method_a"]
         assert all(np.isclose(baseline_rows["delta_vs_baseline"], 0.0))
 
-    def test_empty_dict_returns_empty(
-        self, runner: EvaluationRunner
-    ) -> None:
+    def test_empty_dict_returns_empty(self, runner: EvaluationRunner) -> None:
         result = runner.run_comparison({})
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 0
@@ -391,9 +369,7 @@ class TestGenerateReport:
         self, runner: EvaluationRunner, results_df: pd.DataFrame, tmp_path: Path
     ) -> None:
         mock_runner = _make_mock_runner()
-        out = runner.run_full_evaluation(
-            results_df, projection_runner_fn=mock_runner
-        )
+        out = runner.run_full_evaluation(results_df, projection_runner_fn=mock_runner)
         report_dir = tmp_path / "report"
         runner.generate_report(out, report_dir)
         assert (report_dir / "sensitivity_perturbation.csv").exists()

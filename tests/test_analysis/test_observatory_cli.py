@@ -234,9 +234,7 @@ class TestCmdStatus:
 class TestSearchCommands:
     """Tests for the autonomous-search command handlers."""
 
-    def test_search_status_with_mocked_controller(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_search_status_with_mocked_controller(self, capsys: pytest.CaptureFixture[str]) -> None:
         controller = MagicMock()
         controller.status.return_value = {
             "search_id": "search-one",
@@ -258,9 +256,7 @@ class TestSearchCommands:
         assert "Search session: search-one" in out
         assert "Completed: 1" in out
 
-    def test_search_plan_with_mocked_controller(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_search_plan_with_mocked_controller(self, capsys: pytest.CaptureFixture[str]) -> None:
         controller = MagicMock()
         controller.plan_session.return_value = {
             "search_id": "search-one",
@@ -276,11 +272,11 @@ class TestSearchCommands:
         assert "Search session created: search-one" in out
         assert "Total candidates: 3" in out
 
-    def test_search_auto_with_mocked_controller(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_search_auto_with_mocked_controller(self, capsys: pytest.CaptureFixture[str]) -> None:
         controller = MagicMock()
-        controller.policy.session_root = PROJECT_ROOT / "data" / "analysis" / "experiments" / "search_runs"
+        controller.policy.session_root = (
+            PROJECT_ROOT / "data" / "analysis" / "experiments" / "search_runs"
+        )
         controller.run_to_completion.return_value = {
             "search_id": "search-auto-one",
             "status": "finished",

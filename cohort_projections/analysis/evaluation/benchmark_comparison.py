@@ -41,9 +41,7 @@ BENCHMARK_FAMILIES = [
 _RESULT_COLUMNS = sorted(PROJECTION_RESULT_COLUMNS)
 
 # Default metrics: extract just the callable from METRIC_REGISTRY entries
-_DEFAULT_METRICS: dict[str, Any] = {
-    name: fn for name, (fn, _group) in METRIC_REGISTRY.items()
-}
+_DEFAULT_METRICS: dict[str, Any] = {name: fn for name, (fn, _group) in METRIC_REGISTRY.items()}
 
 
 class BenchmarkComparisonModule:
@@ -67,9 +65,7 @@ class BenchmarkComparisonModule:
         self.long_term_min: int = config.get("long_term_min_horizon", 10)
         self.horizons: list[int] = config.get("horizons", [1, 2, 3, 5, 10, 15, 20])
         self.county_groups: dict[str, list[str]] = config.get("county_groups", {})
-        self._hbands = HorizonBands(
-            near_max=self.near_term_max, long_min=self.long_term_min
-        )
+        self._hbands = HorizonBands(near_max=self.near_term_max, long_min=self.long_term_min)
 
     # ------------------------------------------------------------------
     # Full comparison
@@ -110,10 +106,8 @@ class BenchmarkComparisonModule:
         for name, challenger_df in method_results.items():
             if name == baseline_name:
                 continue
-            pair = self.pairwise_comparison(
-                challenger_df, baseline_df, name, baseline_name
-            )
-            rows.extend(pair.to_dict("records"))
+            pair = self.pairwise_comparison(challenger_df, baseline_df, name, baseline_name)
+            rows.extend(pair.to_dict("records"))  # type: ignore[arg-type]
 
         if not rows:
             return pd.DataFrame(
@@ -176,12 +170,8 @@ class BenchmarkComparisonModule:
                     continue
 
                 for metric_name, metric_fn in _DEFAULT_METRICS.items():
-                    c_val = float(
-                        metric_fn(c_geo["projected_value"], c_geo["actual_value"])
-                    )
-                    b_val = float(
-                        metric_fn(b_geo["projected_value"], b_geo["actual_value"])
-                    )
+                    c_val = float(metric_fn(c_geo["projected_value"], c_geo["actual_value"]))
+                    b_val = float(metric_fn(b_geo["projected_value"], b_geo["actual_value"]))
                     rows.append(
                         {
                             "method": method_name,
@@ -232,11 +222,7 @@ class BenchmarkComparisonModule:
                         continue
 
                     for metric_name, metric_fn in _DEFAULT_METRICS.items():
-                        val = float(
-                            metric_fn(
-                                geo_sub["projected_value"], geo_sub["actual_value"]
-                            )
-                        )
+                        val = float(metric_fn(geo_sub["projected_value"], geo_sub["actual_value"]))
                         rows.append(
                             {
                                 "swap_label": swap_label,
@@ -301,16 +287,18 @@ class BenchmarkComparisonModule:
                 return 1.0
             if horizon >= transition_end:
                 return 0.0
-            return float(
-                (transition_end - horizon) / (transition_end - blend_horizon)
-            )
+            return float((transition_end - horizon) / (transition_end - blend_horizon))
 
         w_near = merged["horizon"].apply(_weight_near)
         w_long = 1.0 - w_near
 
         # Fill missing projected values with zeros to allow outer-join blending
-        near_proj = merged.get("projected_value_near", pd.Series(0.0, index=merged.index)).fillna(0.0)
-        long_proj = merged.get("projected_value_long", pd.Series(0.0, index=merged.index)).fillna(0.0)
+        near_proj = merged.get("projected_value_near", pd.Series(0.0, index=merged.index)).fillna(
+            0.0
+        )
+        long_proj = merged.get("projected_value_long", pd.Series(0.0, index=merged.index)).fillna(
+            0.0
+        )
 
         blended = merged[PROJECTION_JOIN_KEYS].copy()
         blended["projected_value"] = w_near * near_proj + w_long * long_proj
@@ -372,10 +360,10 @@ class BenchmarkComparisonModule:
             validate_dataframe(df, PROJECTION_RESULT_COLUMNS, name)
 
         # Start from the first method and merge in the rest
-        base_df = method_results[names[0]][PROJECTION_JOIN_KEYS + ["actual_value", "base_value"]].copy()
-        base_df["projected_value"] = (
-            method_results[names[0]]["projected_value"] * w[names[0]]
-        )
+        base_df = method_results[names[0]][
+            PROJECTION_JOIN_KEYS + ["actual_value", "base_value"]
+        ].copy()
+        base_df["projected_value"] = method_results[names[0]]["projected_value"] * w[names[0]]
 
         for name in names[1:]:
             other = method_results[name]
@@ -387,8 +375,7 @@ class BenchmarkComparisonModule:
             )
             proj_col = f"projected_value_{name}"
             merged["projected_value"] = (
-                merged["projected_value"].fillna(0.0)
-                + merged[proj_col].fillna(0.0) * w[name]
+                merged["projected_value"].fillna(0.0) + merged[proj_col].fillna(0.0) * w[name]
             )
             merged.drop(columns=[proj_col], inplace=True)
             base_df = merged
@@ -520,7 +507,7 @@ class BenchmarkComparisonModule:
                         "horizon_band": horizon_band,
                         "geography_group": geo_group,
                         "method_value": row["method_value"],
-                        "rank": int(ranks.loc[idx]),  # type: ignore[arg-type]
+                        "rank": int(ranks.loc[idx]),  # type: ignore[call-overload]
                     }
                 )
 
@@ -597,9 +584,7 @@ class BenchmarkComparisonModule:
             "all": all_h,
         }
 
-    def _filter_geography_group(
-        self, df: pd.DataFrame, group: str
-    ) -> pd.DataFrame:
+    def _filter_geography_group(self, df: pd.DataFrame, group: str) -> pd.DataFrame:
         """Filter *df* by county-group membership."""
         if group == "all":
             return df

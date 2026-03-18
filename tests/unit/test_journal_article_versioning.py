@@ -7,17 +7,24 @@ import pytest
 
 from tests._sdc_paths import get_sdc_repo_root
 
+_MODULE_PATH = (
+    get_sdc_repo_root()
+    / "scripts"
+    / "statistical_analysis"
+    / "journal_article"
+    / "build_versioned_artifacts.py"
+)
+
+if not _MODULE_PATH.exists():
+    pytest.skip(
+        f"SDC script not found: {_MODULE_PATH}",
+        allow_module_level=True,
+    )
+
 
 @pytest.fixture(scope="module")
 def versioning_module():
-    module_path = (
-        get_sdc_repo_root()
-        / "scripts"
-        / "statistical_analysis"
-        / "journal_article"
-        / "build_versioned_artifacts.py"
-    )
-    spec = importlib.util.spec_from_file_location("build_versioned_artifacts", module_path)
+    spec = importlib.util.spec_from_file_location("build_versioned_artifacts", _MODULE_PATH)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     assert spec.loader is not None

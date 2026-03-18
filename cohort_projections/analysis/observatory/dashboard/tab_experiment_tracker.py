@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 # Tabulator formatters for status badges
 # ---------------------------------------------------------------------------
 
+
 def _status_badge_html(status: object) -> str:
     """Render a small inline status pill for tables."""
     value = str(status or "untested").strip() or "untested"
@@ -41,7 +42,7 @@ def _status_badge_html(status: object) -> str:
     text_color = "#1F3864" if value == "needs_human_review" else "#FFFFFF"
     return (
         '<span style="display:inline-block;padding:2px 10px;border-radius:999px;'
-        f'font-size:0.82em;font-weight:600;text-transform:uppercase;'
+        f"font-size:0.82em;font-weight:600;text-transform:uppercase;"
         f'background:{color};color:{text_color}">{value.replace("_", " ")}</span>'
     )
 
@@ -51,7 +52,9 @@ def _status_badge_html(status: object) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _build_variant_catalog(dm: DashboardDataManager) -> tuple[pn.Column, pn.widgets.Tabulator | None]:
+def _build_variant_catalog(
+    dm: DashboardDataManager,
+) -> tuple[pn.Column, pn.widgets.Tabulator | None]:
     """Build the variant catalog table with filter widgets.
 
     Returns
@@ -241,8 +244,7 @@ def _build_detail_panel(
 
         if dm.catalog is None:
             detail_pane.object = (
-                '<div style="padding:10px;color:#C00000">'
-                "Variant catalog is not available.</div>"
+                '<div style="padding:10px;color:#C00000">Variant catalog is not available.</div>'
             )
             return
 
@@ -312,12 +314,20 @@ def _render_variant_detail(pane: pn.pane.HTML, vdef: dict[str, Any]) -> None:
             display:inline-block;padding:2px 10px;border-radius:12px;
             font-size:0.82em;font-weight:600;text-transform:uppercase;
             background-color:{status_color};
-            color:{'#1F3864' if status == 'needs_human_review' else '#FFFFFF'}
-          ">{status or 'unknown'}</span></p>
-          {'<table style="width:100%;border-collapse:collapse">'
-           + metrics_rows + '</table>' if metrics_rows else ''}
-          {'<p style="margin-top:8px;color:#595959"><strong>Interpretation:</strong> '
-           + interpretation + '</p>' if interpretation else ''}
+            color:{"#1F3864" if status == "needs_human_review" else "#FFFFFF"}
+          ">{status or "unknown"}</span></p>
+          {
+            '<table style="width:100%;border-collapse:collapse">' + metrics_rows + "</table>"
+            if metrics_rows
+            else ""
+        }
+          {
+            '<p style="margin-top:8px;color:#595959"><strong>Interpretation:</strong> '
+            + interpretation
+            + "</p>"
+            if interpretation
+            else ""
+        }
         </div>
         """
 
@@ -357,7 +367,7 @@ def _render_variant_detail(pane: pn.pane.HTML, vdef: dict[str, Any]) -> None:
         </tr>
         <tr>
           <td style="padding:2px 16px 2px 0;color:#595959">Config-only</td>
-          <td style="padding:2px 0">{'Yes' if config_only else 'No (code change required)'}</td>
+          <td style="padding:2px 0">{"Yes" if config_only else "No (code change required)"}</td>
         </tr>
         <tr>
           <td style="padding:2px 16px 2px 0;color:#595959">Slug</td>
@@ -365,8 +375,8 @@ def _render_variant_detail(pane: pn.pane.HTML, vdef: dict[str, Any]) -> None:
         </tr>
         <tr>
           <td style="padding:2px 16px 2px 0;color:#595959">Tested</td>
-          <td style="padding:2px 0;font-weight:600;color:{'#00B050' if tested else '#A0A0A0'}">
-            {'Yes' if tested else 'No'}
+          <td style="padding:2px 0;font-weight:600;color:{"#00B050" if tested else "#A0A0A0"}">
+            {"Yes" if tested else "No"}
           </td>
         </tr>
       </table>
@@ -479,24 +489,34 @@ def _build_grid_definitions(dm: DashboardDataManager) -> pn.Card:
             if isinstance(param_values, list):
                 values_str = ", ".join(str(v) for v in param_values)
                 n_values = len(param_values)
-                min_val = min(param_values) if param_values and all(isinstance(v, (int, float)) for v in param_values) else ""
-                max_val = max(param_values) if param_values and all(isinstance(v, (int, float)) for v in param_values) else ""
+                min_val = (
+                    min(param_values)
+                    if param_values and all(isinstance(v, (int, float)) for v in param_values)
+                    else ""
+                )
+                max_val = (
+                    max(param_values)
+                    if param_values and all(isinstance(v, (int, float)) for v in param_values)
+                    else ""
+                )
             else:
                 values_str = str(param_values)
                 n_values = 1
                 min_val = ""
                 max_val = ""
 
-            rows.append({
-                "grid": grid_id,
-                "parameter": param_name,
-                "values": values_str,
-                "count": n_values,
-                "min": min_val,
-                "max": max_val,
-                "mode": mode,
-                "hypothesis": hypothesis,
-            })
+            rows.append(
+                {
+                    "grid": grid_id,
+                    "parameter": param_name,
+                    "values": values_str,
+                    "count": n_values,
+                    "min": min_val,
+                    "max": max_val,
+                    "mode": mode,
+                    "hypothesis": hypothesis,
+                }
+            )
 
     if not rows:
         return pn.Card(

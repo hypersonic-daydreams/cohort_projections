@@ -49,7 +49,7 @@ _KNOWN_OUTCOME_STATUSES: frozenset[str] = frozenset(
 
 def normalize_status(value: object) -> str:
     """Return a lower-case status code or ``"untested"``."""
-    if value is None or pd.isna(value):
+    if value is None or pd.isna(value):  # type: ignore[call-overload]
         return "untested"
     status = str(value).strip().lower()
     return status or "untested"

@@ -185,9 +185,9 @@ def _smallest_population_fips(county_method: pd.DataFrame, n_counties: int = 5) 
     if pop_col not in county_method.columns:
         return set()
     mean_pop = (
-        county_method.groupby("county_fips", as_index=False)[pop_col]
+        county_method.groupby("county_fips", as_index=False)[[pop_col]]
         .mean()
-        .sort_values(pop_col, ascending=True)
+        .sort_values(by=pop_col, ascending=True)
     )
     return set(mean_pop.head(n_counties)["county_fips"].astype(str).tolist())
 
@@ -240,10 +240,9 @@ def _mean_pct_error(frame: pd.DataFrame) -> float:
 
 
 def _aggregation_violations(annual_county: pd.DataFrame, annual_state: pd.DataFrame) -> int:
-    grouped = (
-        annual_county.groupby(["origin_year", "method", "validation_year"], as_index=False)
-        .agg(projected=("projected", "sum"), actual=("actual", "sum"))
-    )
+    grouped = annual_county.groupby(
+        ["origin_year", "method", "validation_year"], as_index=False
+    ).agg(projected=("projected", "sum"), actual=("actual", "sum"))
     merged = grouped.merge(
         annual_state[
             ["origin_year", "method", "validation_year", "projected_state", "actual_state"]
@@ -383,9 +382,11 @@ def build_comparison_to_champion(
                 "config_id": challenger["config_id"],
                 "deltas": deltas,
                 "hard_constraint_regression": bool(
-                    challenger["negative_population_violations"] > champion["negative_population_violations"]
+                    challenger["negative_population_violations"]
+                    > champion["negative_population_violations"]
                     or challenger["aggregation_violations"] > champion["aggregation_violations"]
-                    or challenger["scenario_order_violations"] > champion["scenario_order_violations"]
+                    or challenger["scenario_order_violations"]
+                    > champion["scenario_order_violations"]
                 ),
             }
         )
@@ -443,7 +444,9 @@ def append_benchmark_index(
                         "decision_id": decision_id or "",
                         "decision_status": decision_status,
                         "is_champion_at_run": str(row["method_id"] == champion_method_id).lower(),
-                        "summary_scorecard_path": str(manifest_path.parent / "summary_scorecard.csv"),
+                        "summary_scorecard_path": str(
+                            manifest_path.parent / "summary_scorecard.csv"
+                        ),
                         "manifest_path": str(manifest_path),
                     }
                 )
@@ -570,8 +573,12 @@ def append_promotion_history(
             {
                 "promoted_at_utc": dt.datetime.now(dt.UTC).isoformat(),
                 "alias_name": alias_name,
-                "prior_method_id": "" if prior_mapping is None else prior_mapping.get("method_id", ""),
-                "prior_config_id": "" if prior_mapping is None else prior_mapping.get("config_id", ""),
+                "prior_method_id": ""
+                if prior_mapping is None
+                else prior_mapping.get("method_id", ""),
+                "prior_config_id": ""
+                if prior_mapping is None
+                else prior_mapping.get("config_id", ""),
                 "new_method_id": new_mapping["method_id"],
                 "new_config_id": new_mapping["config_id"],
                 "decision_id": decision_id,

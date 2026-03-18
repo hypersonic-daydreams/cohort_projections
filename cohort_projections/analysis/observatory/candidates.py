@@ -92,9 +92,7 @@ def build_candidate_view(scorecards: pd.DataFrame) -> pd.DataFrame:
             "candidate_id": str(candidate_id),
             "candidate_source": str(candidate_source),
             "candidate_status": aggregate_statuses(
-                group["status_at_run"].tolist()
-                if "status_at_run" in group.columns
-                else []
+                group["status_at_run"].tolist() if "status_at_run" in group.columns else []
             ),
             "run_count": len(run_ids) or len(group),
             "run_ids": run_ids,

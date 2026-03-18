@@ -36,9 +36,7 @@ logger = logging.getLogger(__name__)
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-_REQUIRED_COLS = frozenset(
-    {"geography", "year", "horizon", "projected_value", "actual_value"}
-)
+_REQUIRED_COLS = frozenset({"geography", "year", "horizon", "projected_value", "actual_value"})
 
 
 def _error_metrics(projected: np.ndarray, actual: np.ndarray) -> dict[str, float]:
@@ -139,15 +137,17 @@ class SensitivityModule:
             else:
                 stability = float("nan")
 
-            records.append({
-                "param_name": param_name,
-                "param_value": val,
-                "near_term_error": near_err,
-                "long_term_error": long_err,
-                "bias": bias,
-                "realism_score": realism,
-                "stability_score": stability,
-            })
+            records.append(
+                {
+                    "param_name": param_name,
+                    "param_value": val,
+                    "near_term_error": near_err,
+                    "long_term_error": long_err,
+                    "bias": bias,
+                    "realism_score": realism,
+                    "stability_score": stability,
+                }
+            )
 
         return pd.DataFrame(records)
 
@@ -180,9 +180,7 @@ class SensitivityModule:
             vals_a = values_dict.get(param_a, [])
             vals_b = values_dict.get(param_b, [])
             for va, vb in itertools.product(vals_a, vals_b):
-                logger.info(
-                    "Interaction sweep: %s=%s, %s=%s", param_a, va, param_b, vb
-                )
+                logger.info("Interaction sweep: %s=%s, %s=%s", param_a, va, param_b, vb)
                 run_results = self.run_projection_fn({param_a: va, param_b: vb})
                 validate_dataframe(run_results, _REQUIRED_COLS)
 
@@ -192,15 +190,21 @@ class SensitivityModule:
                 nt = self._horizon_bands.near_term_mask(run_results)
                 lt = self._horizon_bands.long_term_mask(run_results)
 
-                records.append({
-                    "param_a": param_a,
-                    "param_b": param_b,
-                    "value_a": va,
-                    "value_b": vb,
-                    "near_term_error": mape(projected[nt], actual[nt]) if nt.any() else float("nan"),
-                    "long_term_error": mape(projected[lt], actual[lt]) if lt.any() else float("nan"),
-                    "bias": mean_signed_percentage_error(projected, actual),
-                })
+                records.append(
+                    {
+                        "param_a": param_a,
+                        "param_b": param_b,
+                        "value_a": va,
+                        "value_b": vb,
+                        "near_term_error": mape(projected[nt], actual[nt])
+                        if nt.any()
+                        else float("nan"),
+                        "long_term_error": mape(projected[lt], actual[lt])
+                        if lt.any()
+                        else float("nan"),
+                        "bias": mean_signed_percentage_error(projected, actual),
+                    }
+                )
 
         return pd.DataFrame(records)
 
@@ -247,9 +251,7 @@ class SensitivityModule:
                             "pct": pct * sign,
                         }
                     }
-                    logger.info(
-                        "Perturbation test: %s %+.1f%%", component, pct * sign
-                    )
+                    logger.info("Perturbation test: %s %+.1f%%", component, pct * sign)
                     run_results = self.run_projection_fn(override)
                     validate_dataframe(run_results, _REQUIRED_COLS)
 
@@ -270,17 +272,19 @@ class SensitivityModule:
                         else:
                             sens_idx = float("nan")
 
-                        records.append({
-                            "component": component,
-                            "perturbation_pct": pct * sign,
-                            "direction": direction,
-                            "geography": row["geography"],
-                            "horizon": row["horizon"],
-                            "baseline_value": base_val,
-                            "perturbed_value": pert_val,
-                            "abs_change": abs_change,
-                            "sensitivity_index": sens_idx,
-                        })
+                        records.append(
+                            {
+                                "component": component,
+                                "perturbation_pct": pct * sign,
+                                "direction": direction,
+                                "geography": row["geography"],
+                                "horizon": row["horizon"],
+                                "baseline_value": base_val,
+                                "perturbed_value": pert_val,
+                                "abs_change": abs_change,
+                                "sensitivity_index": sens_idx,
+                            }
+                        )
 
         return pd.DataFrame(records)
 
@@ -322,22 +326,18 @@ class SensitivityModule:
         rng = np.random.default_rng(seed)
 
         # Collect all iteration results keyed by (geography, horizon)
-        geo_horizons = (
-            baseline_results[["geography", "horizon"]]
-            .drop_duplicates()
-            .values.tolist()
-        )
+        geo_horizons = baseline_results[["geography", "horizon"]].drop_duplicates().values.tolist()
         # Matrix: rows = iterations, cols = geo-horizon combinations
-        all_projections: dict[tuple[str, int], list[float]] = {
-            (g, h): [] for g, h in geo_horizons
-        }
+        all_projections: dict[tuple[str, int], list[float]] = {(g, h): [] for g, h in geo_horizons}
         components = list(self._perturbation_pcts.keys())
 
         for _i in range(n_iterations):
             # Draw perturbations for all components simultaneously
             perturbations: dict[str, float] = {}
             for comp in components:
-                max_pct = max(self._perturbation_pcts[comp]) if self._perturbation_pcts[comp] else 1.0
+                max_pct = (
+                    max(self._perturbation_pcts[comp]) if self._perturbation_pcts[comp] else 1.0
+                )
                 perturbations[comp] = float(rng.normal(0, max_pct))
 
             override: dict[str, Any] = {
@@ -407,9 +407,7 @@ class SensitivityModule:
         validate_dataframe(baseline_results, _REQUIRED_COLS, "baseline_results")
 
         records: list[dict[str, Any]] = []
-        base_lookup = build_lookup(
-            baseline_results, ["geography", "horizon"], "projected_value"
-        )
+        base_lookup = build_lookup(baseline_results, ["geography", "horizon"], "projected_value")
 
         for origin in origin_years:
             logger.info("Base-year sensitivity: origin=%d", origin)
@@ -426,15 +424,17 @@ class SensitivityModule:
                     if baseline_val != 0 and not np.isnan(baseline_val)
                     else float("nan")
                 )
-                records.append({
-                    "origin_year": origin,
-                    "geography": row["geography"],
-                    "horizon": row["horizon"],
-                    "projected_value": proj_val,
-                    "baseline_projected": baseline_val,
-                    "deviation": deviation,
-                    "deviation_pct": dev_pct,
-                })
+                records.append(
+                    {
+                        "origin_year": origin,
+                        "geography": row["geography"],
+                        "horizon": row["horizon"],
+                        "projected_value": proj_val,
+                        "baseline_projected": baseline_val,
+                        "deviation": deviation,
+                        "deviation_pct": dev_pct,
+                    }
+                )
 
         return pd.DataFrame(records)
 
@@ -475,13 +475,19 @@ class SensitivityModule:
             nt = self._horizon_bands.near_term_mask(run_results)
             lt = self._horizon_bands.long_term_mask(run_results)
 
-            records.append({
-                "window_label": label,
-                "near_term_error": mape(projected[nt], actual[nt]) if nt.any() else float("nan"),
-                "long_term_error": mape(projected[lt], actual[lt]) if lt.any() else float("nan"),
-                "bias": mean_signed_percentage_error(projected, actual),
-                "n_rows": len(run_results),
-            })
+            records.append(
+                {
+                    "window_label": label,
+                    "near_term_error": mape(projected[nt], actual[nt])
+                    if nt.any()
+                    else float("nan"),
+                    "long_term_error": mape(projected[lt], actual[lt])
+                    if lt.any()
+                    else float("nan"),
+                    "bias": mean_signed_percentage_error(projected, actual),
+                    "n_rows": len(run_results),
+                }
+            )
 
         return pd.DataFrame(records)
 
@@ -522,13 +528,19 @@ class SensitivityModule:
             nt = self._horizon_bands.near_term_mask(run_results)
             lt = self._horizon_bands.long_term_mask(run_results)
 
-            records.append({
-                "shock_label": label,
-                "near_term_error": mape(projected[nt], actual[nt]) if nt.any() else float("nan"),
-                "long_term_error": mape(projected[lt], actual[lt]) if lt.any() else float("nan"),
-                "bias": mean_signed_percentage_error(projected, actual),
-                "n_rows": len(run_results),
-            })
+            records.append(
+                {
+                    "shock_label": label,
+                    "near_term_error": mape(projected[nt], actual[nt])
+                    if nt.any()
+                    else float("nan"),
+                    "long_term_error": mape(projected[lt], actual[lt])
+                    if lt.any()
+                    else float("nan"),
+                    "bias": mean_signed_percentage_error(projected, actual),
+                    "n_rows": len(run_results),
+                }
+            )
 
         return pd.DataFrame(records)
 
@@ -557,11 +569,13 @@ class SensitivityModule:
         )
 
         grouped = perturbation_results.groupby("geography")["sensitivity_index"]
-        summary = pd.DataFrame({
-            "geography": grouped.mean().index,
-            "mean_sensitivity": grouped.mean().values,
-            "max_sensitivity": grouped.max().values,
-        })
+        summary = pd.DataFrame(
+            {
+                "geography": grouped.mean().index,
+                "mean_sensitivity": grouped.mean().values,
+                "max_sensitivity": grouped.max().values,
+            }
+        )
 
         # Rank by mean sensitivity (lower = more stable)
         summary = summary.sort_values("mean_sensitivity").reset_index(drop=True)
@@ -569,11 +583,7 @@ class SensitivityModule:
 
         # Disproportionate flag: sensitivity index > 2.0 means a 1% input
         # change produces >2% output change
-        disproportionate_threshold = float(
-            self.config.get("disproportionate_threshold", 2.0)
-        )
-        summary["disproportionate_flag"] = (
-            summary["max_sensitivity"] > disproportionate_threshold
-        )
+        disproportionate_threshold = float(self.config.get("disproportionate_threshold", 2.0))
+        summary["disproportionate_flag"] = summary["max_sensitivity"] > disproportionate_threshold
 
         return summary

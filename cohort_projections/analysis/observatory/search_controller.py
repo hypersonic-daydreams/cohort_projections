@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import yaml
@@ -143,9 +143,7 @@ class AutonomousSearchController:
         self.project_root = project_root.resolve()
         self.store = store
         self.observatory_config = observatory_config or {}
-        self.policy: SearchPolicy = load_search_policy(
-            policy_path, project_root=self.project_root
-        )
+        self.policy: SearchPolicy = load_search_policy(policy_path, project_root=self.project_root)
         self.recipe_registry = RecipeRegistry(self.policy.recipe_catalog)
         self.sandbox_manager = SandboxManager(
             self.policy, source_repo=(source_repo or self.project_root)
@@ -194,13 +192,9 @@ class AutonomousSearchController:
         requested_by = "system"
 
         resolved_base_revision = self._resolve_git_revision(base_revision)
-        pending_limit = (
-            self.policy.default_max_pending if max_pending is None else max_pending
-        )
+        pending_limit = self.policy.default_max_pending if max_pending is None else max_pending
         recommended_limit = (
-            self.policy.default_max_recommended
-            if max_recommended is None
-            else max_recommended
+            self.policy.default_max_recommended if max_recommended is None else max_recommended
         )
         include_recipes = (
             self.policy.include_recipe_catalog
@@ -253,14 +247,12 @@ class AutonomousSearchController:
                 config=self.observatory_config,
                 bounds_catalog=catalog_for_bounds,
             )
-            base_method = (
-                getattr(catalog_for_bounds, "base_method", None)
-                or self.observatory_config.get("challenger_base_method", "m2026r1")
-            )
-            base_config = (
-                getattr(catalog_for_bounds, "base_config", None)
-                or self.observatory_config.get("base_config", "cfg-20260309-college-fix-v1")
-            )
+            base_method = getattr(
+                catalog_for_bounds, "base_method", None
+            ) or self.observatory_config.get("challenger_base_method", "m2026r1")
+            base_config = getattr(
+                catalog_for_bounds, "base_config", None
+            ) or self.observatory_config.get("base_config", "cfg-20260309-college-fix-v1")
             recommendations = [
                 rec
                 for rec in recommender.suggest_next_experiments(n=recommended_limit * 3)
@@ -294,7 +286,10 @@ class AutonomousSearchController:
                         spec_path=spec_path,
                     )
                 )
-                if len([c for c in candidates if c["source"] == "recommendation"]) >= recommended_limit:
+                if (
+                    len([c for c in candidates if c["source"] == "recommendation"])
+                    >= recommended_limit
+                ):
                     break
 
         if include_recipes:
@@ -375,7 +370,9 @@ class AutonomousSearchController:
         session = self.load_session(search_id)
         budget = run_budget if run_budget is not None else self.policy.default_run_budget
         keep = self.policy.keep_worktrees if keep_worktrees is None else keep_worktrees
-        runnable = [candidate for candidate in session["candidates"] if candidate["status"] == "planned"]
+        runnable = [
+            candidate for candidate in session["candidates"] if candidate["status"] == "planned"
+        ]
         if dry_run:
             return {
                 "search_id": search_id,
@@ -458,7 +455,9 @@ class AutonomousSearchController:
                 self.sandbox_manager.assert_live_checkout_unchanged(live_signature)
 
         session["updated_at"] = _utc_now()
-        if all(candidate["status"] in {"completed", "failed"} for candidate in session["candidates"]):
+        if all(
+            candidate["status"] in {"completed", "failed"} for candidate in session["candidates"]
+        ):
             session["status"] = "finished"
         else:
             session["status"] = "planned"
@@ -757,7 +756,7 @@ class AutonomousSearchController:
         matching = local_log[local_log["experiment_id"] == experiment_id]
         if matching.empty:
             raise RuntimeError(f"Experiment log entry not found for {experiment_id}")
-        row = matching.iloc[-1].to_dict()
+        row = cast(dict[str, Any], matching.iloc[-1].to_dict())
 
         local_completed_spec = (
             context.worktree_path
@@ -1061,15 +1060,9 @@ class AutonomousSearchController:
                 "outcome": str(result.get("outcome", "")),
                 "run_id": str(result.get("run_id", "")),
                 "primary_metric_name": str(benchmark_summary.get("primary_metric", "")),
-                "hard_constraint_regression": benchmark_summary.get(
-                    "hard_constraint_regression"
-                ),
-                "champion_method_id": str(
-                    benchmark_summary.get("champion_method_id", "") or ""
-                ),
-                "champion_config_id": str(
-                    benchmark_summary.get("champion_config_id", "") or ""
-                ),
+                "hard_constraint_regression": benchmark_summary.get("hard_constraint_regression"),
+                "champion_method_id": str(benchmark_summary.get("champion_method_id", "") or ""),
+                "champion_config_id": str(benchmark_summary.get("champion_config_id", "") or ""),
                 "patch_path": str(result.get("patch_path", "")),
                 "profile_path": str(result.get("profile_path", "")),
             }

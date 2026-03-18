@@ -59,7 +59,9 @@ def _patch_non_place_steps(
     monkeypatch.setattr(
         export_mod,
         "convert_projection_formats",
-        convert_override if convert_override is not None else lambda *args, **kwargs: _ok_result("formats"),
+        convert_override
+        if convert_override is not None
+        else lambda *args, **kwargs: _ok_result("formats"),
     )
     monkeypatch.setattr(
         export_mod,
@@ -92,7 +94,10 @@ def test_places_flag_exports_place_summary_and_workbook(
     monkeypatch.setattr(export_mod, "load_projection_config", lambda _: config)
 
     def _fake_build_place_workbook(scenario: str, config: dict[str, Any]) -> Path:
-        workbook_path = Path(config["pipeline"]["export"]["output_dir"]) / f"nd_projections_{scenario}_places_20260301.xlsx"
+        workbook_path = (
+            Path(config["pipeline"]["export"]["output_dir"])
+            / f"nd_projections_{scenario}_places_20260301.xlsx"
+        )
         workbook_path.parent.mkdir(parents=True, exist_ok=True)
         workbook_path.write_text("placeholder workbook", encoding="utf-8")
         return workbook_path
@@ -117,7 +122,9 @@ def test_places_flag_exports_place_summary_and_workbook(
     exported_summary = export_root / "baseline" / "place" / "places_summary.csv"
     workbook_path = export_root / "nd_projections_baseline_places_20260301.xlsx"
     assert exported_summary.exists()
-    assert exported_summary.read_text(encoding="utf-8") == source_summary.read_text(encoding="utf-8")
+    assert exported_summary.read_text(encoding="utf-8") == source_summary.read_text(
+        encoding="utf-8"
+    )
     assert workbook_path.exists()
 
 

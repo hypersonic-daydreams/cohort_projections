@@ -93,7 +93,7 @@ def _fmt_metric(value: object) -> str:
 
 def _as_float(value: object) -> float | None:
     """Coerce a scalar metric value to float when possible."""
-    if value is None or pd.isna(value):
+    if value is None or pd.isna(value):  # type: ignore[call-overload]
         return None
     if isinstance(value, (int, float)):
         return float(value)
@@ -133,9 +133,7 @@ def _default_search_id() -> str:
 def _search_progress_html(session_row: pd.Series | None) -> str:
     """Render a simple HTML progress bar for one autonomous-search session."""
     if session_row is None:
-        return (
-            "<div><strong>No autonomous-search session selected.</strong></div>"
-        )
+        return "<div><strong>No autonomous-search session selected.</strong></div>"
 
     progress_pct = float(session_row.get("progress_pct", 0.0) or 0.0)
     status = str(session_row.get("status", "unknown") or "unknown")
@@ -197,7 +195,7 @@ def _search_session_detail_html(session_row: pd.Series | None) -> str:
       <div style="margin-top:10px">
         <strong>Artifacts</strong>
         <ul style="margin:6px 0 0 18px;padding:0">
-          {''.join(artifact_lines)}
+          {"".join(artifact_lines)}
         </ul>
       </div>
     </div>
@@ -231,7 +229,10 @@ def _command_center_summary(dm: DashboardDataManager) -> str:
     )
     champion_mape = _champion_mape(dm)
     best_variant = _best_tested_challenger(dm)
-    review_queue = dm.run_metadata[dm.run_metadata["status_code"] == "needs_human_review"]
+    if not dm.run_metadata.empty and "status_code" in dm.run_metadata.columns:
+        review_queue = dm.run_metadata[dm.run_metadata["status_code"] == "needs_human_review"]
+    else:
+        review_queue = dm.run_metadata.iloc[:0]
 
     recommendations = dm.recommender.suggest_next_experiments(1)
     top_recommendation = recommendations[0] if recommendations else None
@@ -289,6 +290,7 @@ def _make_tab_button(
     )
 
     if tabs is not None:
+
         def _activate_tab(event: Any) -> None:
             tabs.active = target_index
 
@@ -299,9 +301,7 @@ def _make_tab_button(
 
 def _build_start_here_card(dm: DashboardDataManager, tabs: pn.Tabs | None) -> pn.Card:
     """Render a compact orientation panel with the current situation and workflow nav."""
-    current_state = pn.pane.Markdown(
-        f"**Current situation:** {_command_center_summary(dm)}"
-    )
+    current_state = pn.pane.Markdown(f"**Current situation:** {_command_center_summary(dm)}")
     workflow = pn.pane.Markdown(
         "1. Review the situation summary and decision cards below.\n"
         "2. **Start Exploring** to launch an autonomous search with smart defaults, or expand controls to customize.\n"
@@ -351,12 +351,15 @@ def _build_start_here_card(dm: DashboardDataManager, tabs: pn.Tabs | None) -> pn
 
 
 def _build_quick_start_card(dm: DashboardDataManager) -> pn.Card:
-    """One-click launcher for autonomous search with smart defaults.
+    """Quick launcher with resource controls and smart defaults.
 
-    Eliminates the need to configure search ID, CPU budget, run budgets, etc.
-    before starting exploration.  Advanced users can expand the full
-    Autonomous Search card below for fine-grained control.
+    Exposes only the settings a user needs to allocate system resources and
+    scope the search — CPU cores and maximum experiment runs.  Everything
+    else (search ID, batch budget, pending/recommended limits, recipe
+    inclusion) is derived from the search policy automatically.
     """
+    import os
+
     status_pane = pn.pane.HTML(sizing_mode="stretch_width")
     output_pane = pn.widgets.TextAreaInput(
         value="",
@@ -368,10 +371,29 @@ def _build_quick_start_card(dm: DashboardDataManager) -> pn.Card:
     )
 
     # Derive smart defaults from the search policy
-    default_workers = 12
+    available_cores = os.cpu_count() or 12
+    default_workers = min(12, available_cores)
     default_batch_budget = int(dm.search_policy.default_run_budget)
     default_max_total = 20
     include_recipes = bool(dm.search_policy.include_recipe_catalog)
+
+    # Resource controls — the only inputs on the Quick Start card
+    cpu_slider = pn.widgets.IntSlider(
+        name="CPU cores to use",
+        start=2,
+        end=available_cores,
+        step=2,
+        value=default_workers,
+        width=280,
+    )
+    max_runs_spinner = pn.widgets.IntInput(
+        name="Max experiments to run",
+        value=default_max_total,
+        step=5,
+        start=1,
+        end=200,
+        width=160,
+    )
 
     # Check if there's already an active search session
     active_id = dm.active_search_id
@@ -380,28 +402,38 @@ def _build_quick_start_card(dm: DashboardDataManager) -> pn.Card:
     if has_active:
         status_pane.object = (
             f'<div style="color:#334E68;font-size:0.92em">'
-            f'Active search: <strong>{active_id}</strong> — '
-            f'progress updates appear in the Search Progress section below.'
-            f'</div>'
+            f"Active search: <strong>{active_id}</strong> — "
+            f"progress updates appear in the Search Progress section below."
+            f"</div>"
         )
 
     def _on_start(event: Any) -> None:
+        import time
+
         search_id = _default_search_id()
         session_root = dm.search_session_root
         session_root.mkdir(parents=True, exist_ok=True)
         pid_path = session_root / f".{search_id}.dashboard.pid"
         log_path = session_root / f".{search_id}.dashboard.log"
         meta_path = session_root / f".{search_id}.dashboard_meta.yaml"
+        workers = cpu_slider.value
+        total_runs = max_runs_spinner.value
         cmd = [
             sys.executable,
             str(_OBSERVATORY_SCRIPT),
             "search-auto",
-            "--search-id", search_id,
-            "--batch-run-budget", str(default_batch_budget),
-            "--max-total-runs", str(default_max_total),
-            "--workers-per-run", str(default_workers),
-            "--max-pending", str(int(dm.search_policy.default_max_pending)),
-            "--max-recommended", str(int(dm.search_policy.default_max_recommended)),
+            "--search-id",
+            search_id,
+            "--batch-run-budget",
+            str(default_batch_budget),
+            "--max-total-runs",
+            str(total_runs),
+            "--workers-per-run",
+            str(workers),
+            "--max-pending",
+            str(int(dm.search_policy.default_max_pending)),
+            "--max-recommended",
+            str(int(dm.search_policy.default_max_recommended)),
         ]
         if include_recipes:
             cmd.append("--include-recipe-catalog")
@@ -426,19 +458,42 @@ def _build_quick_start_card(dm: DashboardDataManager) -> pn.Card:
                 start_new_session=True,
             )
         pid_path.write_text(str(process.pid), encoding="utf-8")
+
+        # Wait briefly to detect early failures (e.g. dirty checkout,
+        # missing config).  The process typically crashes within 1-2s
+        # if it is going to fail at startup.
+        time.sleep(2)
+        exit_code = process.poll()
         output_pane.visible = True
-        output_pane.value = (
-            f"Launched: {search_id}  (PID {process.pid})\n"
-            f"Workers: {default_workers} | Batch budget: {default_batch_budget} | "
-            f"Max runs: {default_max_total}\n"
-            f"Log: {log_path.relative_to(_PROJECT_ROOT)}\n\n"
-            f"Progress will appear in the Search Progress section below."
-        )
-        status_pane.object = (
-            f'<div style="color:#00B050;font-weight:600;font-size:0.92em">'
-            f'Search <strong>{search_id}</strong> launched successfully.'
-            f'</div>'
-        )
+
+        if exit_code is not None:
+            # Process already exited — read the log for the error
+            log_tail = ""
+            if log_path.exists():
+                lines = log_path.read_text(encoding="utf-8").strip().splitlines()
+                log_tail = "\n".join(lines[-15:])
+            output_pane.value = (
+                f"Search {search_id} failed to start (exit code {exit_code}).\n\n"
+                f"--- Log output ---\n{log_tail}"
+            )
+            status_pane.object = (
+                f'<div style="color:#C00;font-weight:600;font-size:0.92em">'
+                f"Search <strong>{search_id}</strong> failed to start. "
+                f"See details below."
+                f"</div>"
+            )
+        else:
+            output_pane.value = (
+                f"Launched: {search_id}  (PID {process.pid})\n"
+                f"CPU cores: {workers} | Max experiments: {total_runs}\n"
+                f"Log: {log_path.relative_to(_PROJECT_ROOT)}\n\n"
+                f"Progress will appear in the Search Progress section below."
+            )
+            status_pane.object = (
+                f'<div style="color:#00B050;font-weight:600;font-size:0.92em">'
+                f"Search <strong>{search_id}</strong> launched successfully."
+                f"</div>"
+            )
 
     btn_start = pn.widgets.Button(
         name="Start Exploring",
@@ -449,16 +504,24 @@ def _build_quick_start_card(dm: DashboardDataManager) -> pn.Card:
     btn_start.on_click(_on_start)
 
     description = pn.pane.Markdown(
-        "Launch an autonomous search with smart defaults. "
-        f"Uses {default_workers} CPU cores, batch budget of {default_batch_budget}, "
-        f"up to {default_max_total} total runs. "
-        "Expand **Autonomous Search** below to customize.",
+        "Set your resource budget and hit **Start Exploring**. "
+        "The system will automatically plan, run, and evaluate "
+        "projection experiments. Expand **Autonomous Search (Advanced)** "
+        "below for session management and fine-grained control.",
         styles={"color": "#5A6C84", "font-size": "0.9em"},
     )
 
+    resource_row = pn.Row(
+        cpu_slider,
+        pn.Spacer(width=20),
+        max_runs_spinner,
+        sizing_mode="stretch_width",
+    )
+
     return pn.Card(
-        pn.Row(btn_start, sizing_mode="stretch_width"),
         description,
+        resource_row,
+        pn.Row(btn_start, sizing_mode="stretch_width"),
         status_pane,
         output_pane,
         title="Quick Start",
@@ -520,7 +583,10 @@ def _build_decision_strip(dm: DashboardDataManager) -> pn.FlexBox:
         else None
     )
     best_variant = _best_tested_challenger(dm)
-    review_queue = dm.run_metadata[dm.run_metadata["status_code"] == "needs_human_review"]
+    if not dm.run_metadata.empty and "status_code" in dm.run_metadata.columns:
+        review_queue = dm.run_metadata[dm.run_metadata["status_code"] == "needs_human_review"]
+    else:
+        review_queue = dm.run_metadata.iloc[:0]
 
     recommendations = dm.recommender.suggest_next_experiments(1)
     top_recommendation = recommendations[0] if recommendations else None
@@ -896,6 +962,7 @@ def _build_action_buttons(dm: DashboardDataManager) -> pn.Card:
         sweeps_dir = _PROJECT_ROOT / "data" / "analysis" / "experiments" / "sweeps"
         sweeps_dir.mkdir(parents=True, exist_ok=True)
         import datetime as _dt
+
         stamp = _dt.datetime.now(tz=_dt.UTC).strftime("%Y%m%dT%H%M%SZ")
         log_path = sweeps_dir / "logs" / f"{subcommand}_{stamp}.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -904,9 +971,12 @@ def _build_action_buttons(dm: DashboardDataManager) -> pn.Card:
             sys.executable,
             str(_OBSERVATORY_SCRIPT),
             subcommand,
-            "--parallel-runs", str(parallel_runs),
-            "--workers-per-run", str(workers_per_run),
-            "--resume-file", str(resume_file),
+            "--parallel-runs",
+            str(parallel_runs),
+            "--workers-per-run",
+            str(workers_per_run),
+            "--resume-file",
+            str(resume_file),
         ]
         with log_path.open("a", encoding="utf-8") as handle:
             process = subprocess.Popen(  # noqa: S603
@@ -1011,11 +1081,10 @@ def _build_action_buttons(dm: DashboardDataManager) -> pn.Card:
 
 
 def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
-    """Lightweight live-progress view for active search sessions.
+    """Live-progress view for active search sessions.
 
     Always visible on the Command Center.  Shows the active session's
-    progress bar, best candidates, and a stop button — nothing else.
-    The full control surface lives in the collapsed Autonomous Search card.
+    progress bar, process health, best candidates, and a live log tail.
     """
     session_select = pn.widgets.Select(
         name="Search Session",
@@ -1025,6 +1094,14 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
     )
     progress_pane = pn.pane.HTML(sizing_mode="stretch_width")
     best_candidates_box = pn.Column(sizing_mode="stretch_width")
+    log_tail_pane = pn.widgets.TextAreaInput(
+        value="",
+        disabled=True,
+        height=160,
+        sizing_mode="stretch_width",
+        name="Live Log",
+    )
+    current_experiment_pane = pn.pane.HTML(sizing_mode="stretch_width")
 
     def _selected_session_row() -> pd.Series | None:
         sessions = dm.search_sessions
@@ -1037,6 +1114,70 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
                 return matches.iloc[0]
         return sessions.iloc[0]
 
+    def _current_experiment_html(
+        search_id: str,
+        session_row: pd.Series | None,
+    ) -> str:
+        """Render info about the currently running experiment, if any."""
+        if session_row is None:
+            return ""
+        process_status = str(session_row.get("process_status", "unknown"))
+        is_running = bool(session_row.get("dashboard_process_running", False))
+        running_count = int(session_row.get("running", 0) or 0)
+        completed = int(session_row.get("completed", 0) or 0)
+        failed = int(session_row.get("failed", 0) or 0)
+        total = int(session_row.get("total", 0) or 0)
+
+        # Process health indicator
+        if is_running:
+            indicator = '<span style="color:#00B050;font-weight:600">&#9679; Process running</span>'
+        elif process_status == "stopped" and completed + failed >= total > 0:
+            indicator = '<span style="color:#0563C1;font-weight:600">&#9632; Search complete</span>'
+        elif process_status == "stopped":
+            indicator = '<span style="color:#C00;font-weight:600">&#9632; Process stopped</span>'
+        else:
+            indicator = f'<span style="color:#5A6C84">Process: {process_status}</span>'
+
+        # Currently running experiments
+        activity = ""
+        if running_count > 0:
+            candidates = dm.search_session_candidates(search_id)
+            if not candidates.empty and "status" in candidates.columns:
+                active = candidates[candidates["status"].str.lower() == "running"]
+                if not active.empty:
+                    names = active["candidate_id"].tolist()[:3]
+                    activity = (
+                        f'<div style="margin-top:6px;color:#334E68;font-size:0.9em">'
+                        f"Running now: <strong>{', '.join(str(n) for n in names)}</strong>"
+                        f"{'...' if len(active) > 3 else ''}"
+                        f"</div>"
+                    )
+
+        # Elapsed time
+        elapsed = ""
+        created = str(session_row.get("created_at", "") or "")
+        if created:
+            try:
+                start = dt.datetime.fromisoformat(created)
+                if start.tzinfo is None:
+                    start = start.replace(tzinfo=dt.UTC)
+                delta = dt.datetime.now(tz=dt.UTC) - start
+                hours, remainder = divmod(int(delta.total_seconds()), 3600)
+                mins, secs = divmod(remainder, 60)
+                elapsed = f"{hours}h {mins}m elapsed" if hours > 0 else f"{mins}m {secs}s elapsed"
+            except (ValueError, TypeError):
+                pass
+
+        return f"""
+        <div style="font-family:'Aptos','Segoe UI',Arial,sans-serif;
+                    display:flex;justify-content:space-between;align-items:center;
+                    flex-wrap:wrap;gap:8px;margin-bottom:4px">
+            {indicator}
+            <span style="color:#5A6C84;font-size:0.85em">{elapsed}</span>
+        </div>
+        {activity}
+        """
+
     def _refresh_progress(*, prefer_search_id: str | None = None) -> None:
         dm.refresh_search_sessions()
         options = dm.search_session_option_map()
@@ -1044,9 +1185,11 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
             session_select.options = {"No sessions yet": ""}
             session_select.value = ""
             progress_pane.object = _search_progress_html(None)
+            current_experiment_pane.object = ""
             best_candidates_box[:] = [
                 empty_placeholder("No search results yet. Use Quick Start above to begin.")
             ]
+            log_tail_pane.value = ""
             return
 
         session_select.options = options
@@ -1064,15 +1207,21 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
         progress_pane.object = _search_progress_html(selected)
 
         selected_search_id = str(selected["search_id"]) if selected is not None else ""
+
+        # Current experiment and process health
+        current_experiment_pane.object = _current_experiment_html(
+            selected_search_id,
+            selected,
+        )
+
+        # Best candidates
         best_candidates = (
             dm.search_session_best_candidates(selected_search_id)
             if selected_search_id
             else pd.DataFrame()
         )
         if best_candidates.empty:
-            best_candidates_box[:] = [
-                empty_placeholder("No completed candidates yet.")
-            ]
+            best_candidates_box[:] = [empty_placeholder("No completed candidates yet.")]
         else:
             best_cols = [
                 col
@@ -1091,6 +1240,14 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
                     frozen_columns=["candidate_id"],
                 )
             ]
+
+        # Live log tail
+        log_text = (
+            dm.search_session_log_tail(selected_search_id, max_chars=4000)
+            if selected_search_id
+            else ""
+        )
+        log_tail_pane.value = log_text
 
     def _on_stop(event: Any) -> None:
         search_id = (session_select.value or "").strip()
@@ -1117,8 +1274,10 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
 
     return pn.Card(
         pn.Row(session_select, btn_refresh, btn_stop, sizing_mode="stretch_width"),
+        current_experiment_pane,
         progress_pane,
         best_candidates_box,
+        log_tail_pane,
         title="Search Progress",
         sizing_mode="stretch_width",
     )
@@ -1156,8 +1315,7 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
 
     def _on_cpu_search_change(event: Any) -> None:
         cpu_budget_search_label.object = (
-            f"→ {event.new} workers per experiment "
-            "(search-auto runs one experiment at a time)"
+            f"→ {event.new} workers per experiment (search-auto runs one experiment at a time)"
         )
 
     cpu_budget_search.param.watch(_on_cpu_search_change, "value")
@@ -1250,7 +1408,12 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
             return
 
         session_select.options = options
-        desired = prefer_search_id or session_select.value or dm.active_search_id or next(iter(options.values()))
+        desired = (
+            prefer_search_id
+            or session_select.value
+            or dm.active_search_id
+            or next(iter(options.values()))
+        )
         if desired not in options.values():
             desired = next(iter(options.values()))
         session_select.value = desired
@@ -1301,7 +1464,9 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
         )
         if candidates.empty:
             candidates_table_box[:] = [
-                empty_placeholder("No candidate summary is available for the selected search session yet.")
+                empty_placeholder(
+                    "No candidate summary is available for the selected search session yet."
+                )
             ]
         else:
             candidate_cols = [
@@ -1327,11 +1492,11 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
                 )
             ]
 
-        report_text = dm.search_session_report_markdown(selected_search_id) if selected_search_id else ""
+        report_text = (
+            dm.search_session_report_markdown(selected_search_id) if selected_search_id else ""
+        )
         observatory_report_path = (
-            str(selected.get("observatory_report_html", "") or "")
-            if selected is not None
-            else ""
+            str(selected.get("observatory_report_html", "") or "") if selected is not None else ""
         )
         if report_text:
             report_preview_box[:] = [
@@ -1342,16 +1507,16 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
             ]
         else:
             report_preview_box[:] = [
-                empty_placeholder("No Markdown search report is available for the selected session yet."),
+                empty_placeholder(
+                    "No Markdown search report is available for the selected session yet."
+                ),
                 pn.pane.Markdown(
                     f"Observatory HTML report: `{observatory_report_path or 'not written yet'}`"
                 ),
             ]
 
         log_preview.value = (
-            dm.search_session_log_tail(selected_search_id)
-            if selected_search_id
-            else ""
+            dm.search_session_log_tail(selected_search_id) if selected_search_id else ""
         )
 
     def _preview_plan(event: Any) -> None:
@@ -1452,14 +1617,18 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
     btn_refresh.on_click(_refresh_only)
     btn_preview_plan = pn.widgets.Button(name="Preview Plan", button_type="warning", width=140)
     btn_preview_plan.on_click(_preview_plan)
-    btn_preview_batch = pn.widgets.Button(name="Preview Next Batch", button_type="warning", width=170)
+    btn_preview_batch = pn.widgets.Button(
+        name="Preview Next Batch", button_type="warning", width=170
+    )
     btn_preview_batch.on_click(_preview_next_batch)
     btn_launch = pn.widgets.Button(name="Launch Search-Auto", button_type="success", width=180)
     btn_launch.on_click(_launch_search)
     btn_stop = pn.widgets.Button(name="Stop Search", button_type="danger", width=140)
     btn_stop.on_click(_stop_search)
 
-    session_select.param.watch(lambda event: _refresh_search_views(prefer_search_id=str(event.new)), "value")
+    session_select.param.watch(
+        lambda event: _refresh_search_views(prefer_search_id=str(event.new)), "value"
+    )
     _refresh_search_views(prefer_search_id=dm.active_search_id)
 
     cpu_search_row = pn.Column(

@@ -177,4 +177,3 @@ def test_run_single_variant_executes_all_four_variants_on_synthetic_data() -> No
         assert set(projected["year"].unique()) == {2003, 2004}
         assert set(actual["year"].unique()) == {2003, 2004}
         assert projected["projected_population"].notna().all()
-

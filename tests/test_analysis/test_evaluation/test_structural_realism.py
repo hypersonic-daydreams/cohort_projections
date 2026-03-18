@@ -15,6 +15,7 @@ from cohort_projections.analysis.evaluation.structural_realism import (
 # Fixtures: synthetic data builders
 # ---------------------------------------------------------------------------
 
+
 def _make_components_df(
     *,
     n_geos: int = 3,
@@ -35,15 +36,17 @@ def _make_components_df(
             for comp in components:
                 actual = rng.uniform(100, 500)
                 projected = actual * (1 + rng.normal(0, error_scale))
-                rows.append({
-                    "run_id": "test-run",
-                    "geography": geo,
-                    "year": year,
-                    "horizon": h,
-                    "component": comp,
-                    "projected_component_value": projected,
-                    "actual_component_value": actual,
-                })
+                rows.append(
+                    {
+                        "run_id": "test-run",
+                        "geography": geo,
+                        "year": year,
+                        "horizon": h,
+                        "component": comp,
+                        "projected_component_value": projected,
+                        "actual_component_value": actual,
+                    }
+                )
     return pd.DataFrame(rows)
 
 
@@ -88,34 +91,38 @@ def _make_results_df(
                     projected = max(projected, 0.0)
                     age_values_actual.append(actual)
                     age_values_proj.append(projected)
-                    rows.append({
-                        "run_id": "test-run",
-                        "geography": geo,
-                        "geography_type": geo_types[geo],
-                        "year": year,
-                        "horizon": year - origin,
-                        "sex": sex,
-                        "age_group": ag,
-                        "target": "population",
-                        "projected_value": projected,
-                        "actual_value": actual,
-                        "base_value": actual * 0.95,
-                    })
+                    rows.append(
+                        {
+                            "run_id": "test-run",
+                            "geography": geo,
+                            "geography_type": geo_types[geo],
+                            "year": year,
+                            "horizon": year - origin,
+                            "sex": sex,
+                            "age_group": ag,
+                            "target": "population",
+                            "projected_value": projected,
+                            "actual_value": actual,
+                            "base_value": actual * 0.95,
+                        }
+                    )
 
                 if include_totals:
-                    rows.append({
-                        "run_id": "test-run",
-                        "geography": geo,
-                        "geography_type": geo_types[geo],
-                        "year": year,
-                        "horizon": year - origin,
-                        "sex": sex,
-                        "age_group": "total",
-                        "target": "population",
-                        "projected_value": sum(age_values_proj),
-                        "actual_value": sum(age_values_actual),
-                        "base_value": sum(age_values_actual) * 0.95,
-                    })
+                    rows.append(
+                        {
+                            "run_id": "test-run",
+                            "geography": geo,
+                            "geography_type": geo_types[geo],
+                            "year": year,
+                            "horizon": year - origin,
+                            "sex": sex,
+                            "age_group": "total",
+                            "target": "population",
+                            "projected_value": sum(age_values_proj),
+                            "actual_value": sum(age_values_actual),
+                            "base_value": sum(age_values_actual) * 0.95,
+                        }
+                    )
 
             # Add sex=total rows
             if include_totals:
@@ -123,7 +130,8 @@ def _make_results_df(
                 sex_total_act = 0.0
                 for sex_val in ("male", "female"):
                     sex_rows = [
-                        r for r in rows
+                        r
+                        for r in rows
                         if r["geography"] == geo
                         and r["year"] == year
                         and r["sex"] == sex_val
@@ -133,19 +141,21 @@ def _make_results_df(
                         sex_total_proj += sex_rows[0]["projected_value"]
                         sex_total_act += sex_rows[0]["actual_value"]
 
-                rows.append({
-                    "run_id": "test-run",
-                    "geography": geo,
-                    "geography_type": geo_types[geo],
-                    "year": year,
-                    "horizon": year - origin,
-                    "sex": "total",
-                    "age_group": "total",
-                    "target": "population",
-                    "projected_value": sex_total_proj,
-                    "actual_value": sex_total_act,
-                    "base_value": sex_total_act * 0.95,
-                })
+                rows.append(
+                    {
+                        "run_id": "test-run",
+                        "geography": geo,
+                        "geography_type": geo_types[geo],
+                        "year": year,
+                        "horizon": year - origin,
+                        "sex": "total",
+                        "age_group": "total",
+                        "target": "population",
+                        "projected_value": sex_total_proj,
+                        "actual_value": sex_total_act,
+                        "base_value": sex_total_act * 0.95,
+                    }
+                )
 
     # If state included, set state total = sum of county totals
     if include_state:
@@ -177,6 +187,7 @@ def _make_results_df(
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def module() -> StructuralRealismModule:
@@ -274,9 +285,7 @@ class TestAccountingChecks:
         """County totals should match state total when constructed correctly."""
         df = _make_results_df(include_totals=True, include_state=True)
         result = module.accounting_checks(df, pd.DataFrame())
-        state_check = result[
-            result["metric_name"] == "county_state_total_mismatch_pct"
-        ]
+        state_check = result[result["metric_name"] == "county_state_total_mismatch_pct"]
         assert not state_check.empty
         assert (state_check["value"] < 0.01).all()
 
@@ -284,16 +293,10 @@ class TestAccountingChecks:
         """Deliberately wrong state total should produce large mismatch."""
         df = _make_results_df(include_totals=True, include_state=True)
         # Corrupt state total
-        mask = (
-            (df["geography"] == "state")
-            & (df["sex"] == "total")
-            & (df["age_group"] == "total")
-        )
+        mask = (df["geography"] == "state") & (df["sex"] == "total") & (df["age_group"] == "total")
         df.loc[mask, "projected_value"] = 999999.0
         result = module.accounting_checks(df, pd.DataFrame())
-        state_check = result[
-            result["metric_name"] == "county_state_total_mismatch_pct"
-        ]
+        state_check = result[result["metric_name"] == "county_state_total_mismatch_pct"]
         assert not state_check.empty
         # At least one FAIL
         assert any("FAIL" in str(n) for n in state_check["notes"])
@@ -347,7 +350,9 @@ class TestComputeAllChecks:
             age_error_scale=0.05,
         )
         components_df = _make_components_df(
-            n_geos=5, horizons=(5, 10), error_scale=0.1,
+            n_geos=5,
+            horizons=(5, 10),
+            error_scale=0.1,
         )
         result = module.compute_all_checks(results_df, components_df)
         assert not result.empty
@@ -362,8 +367,15 @@ class TestComputeAllChecks:
         components_df = _make_components_df()
         result = module.compute_all_checks(results_df, components_df)
         expected_cols = {
-            "run_id", "metric_name", "metric_group", "geography",
-            "geography_group", "target", "horizon", "value",
-            "comparison_run_id", "notes",
+            "run_id",
+            "metric_name",
+            "metric_group",
+            "geography",
+            "geography_group",
+            "target",
+            "horizon",
+            "value",
+            "comparison_run_id",
+            "notes",
         }
         assert expected_cols.issubset(set(result.columns))

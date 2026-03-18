@@ -240,13 +240,15 @@ def validate_cohort_sums(
 #
 # Reference: Sprague (1880); Siegel & Swanson, "The Methods and Materials
 # of Demography", 2nd ed.; UN Population Division; DemoTools R package.
-SPRAGUE_MULTIPLIERS: np.ndarray = np.array([
-    [-0.0128,  0.0848,  0.1504, -0.0240,  0.0016],
-    [-0.0016,  0.0144,  0.2224, -0.0416,  0.0064],
-    [ 0.0064, -0.0336,  0.2544, -0.0336,  0.0064],
-    [ 0.0064, -0.0416,  0.2224,  0.0144, -0.0016],
-    [ 0.0016, -0.0240,  0.1504,  0.0848, -0.0128],
-])
+SPRAGUE_MULTIPLIERS: np.ndarray = np.array(
+    [
+        [-0.0128, 0.0848, 0.1504, -0.0240, 0.0016],
+        [-0.0016, 0.0144, 0.2224, -0.0416, 0.0064],
+        [0.0064, -0.0336, 0.2544, -0.0336, 0.0064],
+        [0.0064, -0.0416, 0.2224, 0.0144, -0.0016],
+        [0.0016, -0.0240, 0.1504, 0.0848, -0.0128],
+    ]
+)
 
 
 def _pad_groups(group_totals: np.ndarray) -> np.ndarray:
@@ -339,9 +341,7 @@ def sprague_graduate(
     n_groups = len(group_totals)
 
     if n_groups < 5:
-        raise ValueError(
-            f"Sprague interpolation requires at least 5 groups, got {n_groups}"
-        )
+        raise ValueError(f"Sprague interpolation requires at least 5 groups, got {n_groups}")
 
     # Pad with 2 virtual groups on each side so every original group can
     # sit at the center of a 5-group window.

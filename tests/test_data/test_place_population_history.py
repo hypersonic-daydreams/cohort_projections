@@ -69,13 +69,17 @@ def _crosswalk_fixture() -> pd.DataFrame:
 
 def test_assemble_history_handoff_windows_and_schema() -> None:
     """History uses the required S02 windows and preserves vintage provenance."""
-    sub_est00int = _make_place_vintage(list(range(2000, 2011)), include_dissolved=True, source_tag="00int")
+    sub_est00int = _make_place_vintage(
+        list(range(2000, 2011)), include_dissolved=True, source_tag="00int"
+    )
     sub_est2020int = _make_place_vintage(
         list(range(2010, 2021)),
         include_dissolved=True,
         source_tag="2020int",
     )
-    sub_est2024 = _make_place_vintage(list(range(2020, 2025)), include_dissolved=False, source_tag="2024")
+    sub_est2024 = _make_place_vintage(
+        list(range(2020, 2025)), include_dissolved=False, source_tag="2024"
+    )
 
     history = assemble_place_population_history(sub_est00int, sub_est2020int, sub_est2024)
     history = attach_crosswalk(history, _crosswalk_fixture())
@@ -100,7 +104,9 @@ def test_assemble_history_handoff_windows_and_schema() -> None:
 
     # Handoff windows
     assert set(history[history["year"] <= 2009]["vintage_source"]) == {"sub-est00int"}
-    assert set(history[(history["year"] >= 2010) & (history["year"] <= 2019)]["vintage_source"]) == {
+    assert set(
+        history[(history["year"] >= 2010) & (history["year"] <= 2019)]["vintage_source"]
+    ) == {
         "sub-est2020int",
     }
     assert set(history[history["year"] >= 2020]["vintage_source"]) == {"sub-est2024"}
@@ -108,13 +114,17 @@ def test_assemble_history_handoff_windows_and_schema() -> None:
 
 def test_dissolved_place_present_through_2019_only() -> None:
     """Dissolved place rows stop after 2019 and are marked historical-only."""
-    sub_est00int = _make_place_vintage(list(range(2000, 2011)), include_dissolved=True, source_tag="00int")
+    sub_est00int = _make_place_vintage(
+        list(range(2000, 2011)), include_dissolved=True, source_tag="00int"
+    )
     sub_est2020int = _make_place_vintage(
         list(range(2010, 2021)),
         include_dissolved=True,
         source_tag="2020int",
     )
-    sub_est2024 = _make_place_vintage(list(range(2020, 2025)), include_dissolved=False, source_tag="2024")
+    sub_est2024 = _make_place_vintage(
+        list(range(2020, 2025)), include_dissolved=False, source_tag="2024"
+    )
 
     history = attach_crosswalk(
         assemble_place_population_history(sub_est00int, sub_est2020int, sub_est2024),
@@ -132,13 +142,17 @@ def test_dissolved_place_present_through_2019_only() -> None:
 
 def test_fargo_2024_population_comes_from_sub_est2024_window() -> None:
     """Spot-check that 2024 values come from the postcensal source."""
-    sub_est00int = _make_place_vintage(list(range(2000, 2011)), include_dissolved=True, source_tag="00int")
+    sub_est00int = _make_place_vintage(
+        list(range(2000, 2011)), include_dissolved=True, source_tag="00int"
+    )
     sub_est2020int = _make_place_vintage(
         list(range(2010, 2021)),
         include_dissolved=True,
         source_tag="2020int",
     )
-    sub_est2024 = _make_place_vintage(list(range(2020, 2025)), include_dissolved=False, source_tag="2024")
+    sub_est2024 = _make_place_vintage(
+        list(range(2020, 2025)), include_dissolved=False, source_tag="2024"
+    )
 
     history = attach_crosswalk(
         assemble_place_population_history(sub_est00int, sub_est2020int, sub_est2024),

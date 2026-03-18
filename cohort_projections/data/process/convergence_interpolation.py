@@ -220,9 +220,7 @@ def calculate_age_specific_convergence(
     phase3 = convergence_schedule["medium_to_longterm_years"]
 
     # Determine whether rate capping is enabled
-    cap_enabled = (
-        rate_cap_config is not None and rate_cap_config.get("enabled", False)
-    )
+    cap_enabled = rate_cap_config is not None and rate_cap_config.get("enabled", False)
 
     group_cols = ["county_fips", "age_group", "sex"]
 
@@ -265,9 +263,7 @@ def calculate_age_specific_convergence(
         # Apply age-aware rate cap (after interpolation, before storing)
         if cap_enabled:
             assert rate_cap_config is not None  # for type checker
-            rate, n_clipped = _apply_rate_cap(
-                rate, merged["age_group"], rate_cap_config
-            )
+            rate, n_clipped = _apply_rate_cap(rate, merged["age_group"], rate_cap_config)
             total_clipped += n_clipped
 
         year_df = merged[group_cols].copy()
@@ -353,9 +349,11 @@ def _compute_high_scenario_rate_increment(
     diff_county = diff_county.merge(county_pop, on="county_fips", how="left")
     # Cells per county = 18 age groups x 2 sexes = 36
     cells_per_county = baseline_window.groupby("county_fips").size().iloc[0]
-    diff_county["rate_increment_per_cell"] = diff_county["abs_diff"] / (
-        diff_county["county_population"].clip(lower=1.0)
-    ) / cells_per_county
+    diff_county["rate_increment_per_cell"] = (
+        diff_county["abs_diff"]
+        / (diff_county["county_population"].clip(lower=1.0))
+        / cells_per_county
+    )
 
     # Distribute the per-cell increment to all cells in the window
     group_cols = ["county_fips", "age_group", "sex"]

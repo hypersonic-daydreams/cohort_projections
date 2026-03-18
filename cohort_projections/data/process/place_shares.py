@@ -178,7 +178,9 @@ def compute_historical_shares(
     if merged["share_raw"].lt(0).any():
         raise ValueError("Negative place share detected; population inputs must be non-negative.")
     if merged["share_raw"].gt(1).any():
-        over = merged.loc[merged["share_raw"] > 1, ["place_fips", "county_fips", "year", "share_raw"]]
+        over = merged.loc[
+            merged["share_raw"] > 1, ["place_fips", "county_fips", "year", "share_raw"]
+        ]
         raise ValueError(
             "Place share exceeds 1.0 for one or more rows; check county totals. "
             f"Sample: {over.head(5).to_dict(orient='records')}"
@@ -189,9 +191,7 @@ def compute_historical_shares(
 
     # Carry optional columns where present.
     optional_cols = [
-        col
-        for col in ["place_name", "historical_only", "vintage_source"]
-        if col in merged.columns
+        col for col in ["place_name", "historical_only", "vintage_source"] if col in merged.columns
     ]
     place_rows = merged[
         [
@@ -243,7 +243,9 @@ def compute_historical_shares(
         balance_rows["place_name"] = pd.NA
 
     output = pd.concat([place_rows, balance_rows], ignore_index=True, sort=False)
-    output = output.sort_values(["county_fips", "year", "row_type", "place_fips"]).reset_index(drop=True)
+    output = output.sort_values(["county_fips", "year", "row_type", "place_fips"]).reset_index(
+        drop=True
+    )
 
     logger.info(
         "Computed historical shares: %d place rows, %d balance rows",
@@ -261,4 +263,3 @@ def load_county_population_history(county_population_path: Path) -> pd.DataFrame
     if suffix == ".csv":
         return pd.read_csv(county_population_path, dtype=str)
     raise ValueError(f"Unsupported county population file type: {county_population_path}")
-

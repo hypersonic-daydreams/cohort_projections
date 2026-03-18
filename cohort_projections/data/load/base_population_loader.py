@@ -92,13 +92,12 @@ def _load_single_year_distribution(
     """
     raw_dist = pd.read_csv(distribution_path)
     logger.info(
-        f"Loaded single-year distribution: {len(raw_dist)} records "
-        f"from {distribution_path}"
+        f"Loaded single-year distribution: {len(raw_dist)} records from {distribution_path}"
     )
 
     # Map race codes and capitalize sex
-    raw_dist["race"] = raw_dist["race_ethnicity"].map(RACE_CODE_MAP).fillna(
-        raw_dist["race_ethnicity"]
+    raw_dist["race"] = (
+        raw_dist["race_ethnicity"].map(RACE_CODE_MAP).fillna(raw_dist["race_ethnicity"])
     )
     raw_dist["sex"] = raw_dist["sex"].str.title()
     raw_dist["age"] = raw_dist["age"].astype(int)
@@ -128,8 +127,7 @@ def _load_five_year_uniform_distribution(
     """
     raw_dist = pd.read_csv(distribution_path)
     logger.info(
-        f"Loaded 5-year group distribution: {len(raw_dist)} records "
-        f"from {distribution_path}"
+        f"Loaded 5-year group distribution: {len(raw_dist)} records from {distribution_path}"
     )
 
     expanded_rows: list[dict[str, str | int | float]] = []
@@ -230,8 +228,7 @@ def load_state_age_sex_race_distribution(
         else:
             # Legacy 5-year uniform distribution
             distribution_path = (
-                project_root / "data" / "raw" / "population"
-                / "nd_age_sex_race_distribution.csv"
+                project_root / "data" / "raw" / "population" / "nd_age_sex_race_distribution.csv"
             )
 
     distribution_path = Path(distribution_path)
@@ -364,9 +361,24 @@ def _build_statewide_single_year_weights(
 
 # Ordered list of 5-year age group labels matching AGE_GROUP_RANGES order
 _ORDERED_AGE_GROUPS: list[str] = [
-    "0-4", "5-9", "10-14", "15-19", "20-24", "25-29",
-    "30-34", "35-39", "40-44", "45-49", "50-54", "55-59",
-    "60-64", "65-69", "70-74", "75-79", "80-84", "85+",
+    "0-4",
+    "5-9",
+    "10-14",
+    "15-19",
+    "20-24",
+    "25-29",
+    "30-34",
+    "35-39",
+    "40-44",
+    "45-49",
+    "50-54",
+    "55-59",
+    "60-64",
+    "65-69",
+    "70-74",
+    "75-79",
+    "80-84",
+    "85+",
 ]
 
 
@@ -416,9 +428,7 @@ def _expand_county_with_sprague(
             # Create ordered array (18 groups: 0-4 through 85+)
             # The first 17 groups have 5 years each; the last (85+)
             # has 6 years (85-90) in the engine's age scheme.
-            prop_vector = np.array(
-                [group_props.get(g, 0.0) for g in _ORDERED_AGE_GROUPS]
-            )
+            prop_vector = np.array([group_props.get(g, 0.0) for g in _ORDERED_AGE_GROUPS])
 
             total_prop = prop_vector.sum()
             if total_prop == 0:
@@ -456,8 +466,8 @@ def _expand_county_with_sprague(
             # the statewide terminal age distribution (survival ~0.7/year)
             survival_factor = 0.7
             # Weight for 90+: geometric tail s^5 / (1-s) relative to s^0..s^4
-            tail_weight = survival_factor ** 5 / (1.0 - survival_factor)
-            base_weights = np.array([survival_factor ** i for i in range(5)])
+            tail_weight = survival_factor**5 / (1.0 - survival_factor)
+            base_weights = np.array([survival_factor**i for i in range(5)])
             total_weight = base_weights.sum() + tail_weight
 
             # Fraction of 85+ that should go to 90+
@@ -488,19 +498,23 @@ def _expand_county_with_sprague(
             )
 
             for i, age in enumerate(range(85, 90)):
-                expanded_rows.append({
-                    "age": age,
+                expanded_rows.append(
+                    {
+                        "age": age,
+                        "sex": sex.title(),
+                        "race": race,
+                        "proportion": float(adjusted_85_89[i]),
+                    }
+                )
+
+            expanded_rows.append(
+                {
+                    "age": 90,
                     "sex": sex.title(),
                     "race": race,
-                    "proportion": float(adjusted_85_89[i]),
-                })
-
-            expanded_rows.append({
-                "age": 90,
-                "sex": sex.title(),
-                "race": race,
-                "proportion": float(age_90_prop),
-            })
+                    "proportion": float(age_90_prop),
+                }
+            )
 
     return expanded_rows
 
@@ -599,17 +613,11 @@ def load_county_age_sex_race_distribution(
 
     # Map race codes before expansion so Sprague sees standard names
     county_data = county_data.copy()
-    county_data["race"] = county_data["race"].map(
-        lambda r: RACE_CODE_MAP.get(r, r)
-    )
+    county_data["race"] = county_data["race"].map(lambda r: RACE_CODE_MAP.get(r, r))
 
     # Determine expansion method
-    use_sprague = (
-        age_resolution == "single_year" and county_interp == "sprague"
-    )
-    use_statewide_weights = (
-        age_resolution == "single_year" and county_interp == "statewide_weights"
-    )
+    use_sprague = age_resolution == "single_year" and county_interp == "sprague"
+    use_statewide_weights = age_resolution == "single_year" and county_interp == "statewide_weights"
 
     if use_sprague:
         # ADR-048: Sprague osculatory interpolation
@@ -916,9 +924,7 @@ def _load_gq_data(config: dict[str, Any]) -> pd.DataFrame | None:
     if not gq_config.get("enabled", False):
         return None
 
-    gq_path_str = gq_config.get(
-        "gq_data_path", "data/processed/gq_county_age_sex_2025.parquet"
-    )
+    gq_path_str = gq_config.get("gq_data_path", "data/processed/gq_county_age_sex_2025.parquet")
     project_root = Path(__file__).parent.parent.parent.parent
     gq_path = project_root / gq_path_str
 
@@ -931,10 +937,7 @@ def _load_gq_data(config: dict[str, Any]) -> pd.DataFrame | None:
 
     logger.info(f"ADR-055: Loading GQ data from {gq_path}")
     _gq_data_cache = pd.read_parquet(gq_path)
-    logger.info(
-        f"ADR-055: Loaded GQ data for "
-        f"{_gq_data_cache['county_fips'].nunique()} counties"
-    )
+    logger.info(f"ADR-055: Loaded GQ data for {_gq_data_cache['county_fips'].nunique()} counties")
     return _gq_data_cache
 
 
@@ -1102,10 +1105,7 @@ def _separate_gq_from_base_population(
         gq_empty["gq_population"] = 0.0
         return base_pop, gq_empty
 
-    logger.info(
-        f"ADR-055: Separating GQ for county {fips}: "
-        f"GQ total = {county_gq_total:,.0f}"
-    )
+    logger.info(f"ADR-055: Separating GQ for county {fips}: GQ total = {county_gq_total:,.0f}")
 
     # Step 1: Expand 5-year age groups to single-year ages
     gq_single_year = _expand_gq_to_single_year_ages(
@@ -1143,9 +1143,9 @@ def _separate_gq_from_base_population(
             gq_val = 0.0
 
         # Cap GQ at total population to prevent negative household pop
-        gq_val = min(gq_val, total_pop)
+        gq_val = min(gq_val, total_pop)  # type: ignore[type-var, assignment]
 
-        household_pop.at[idx, "population"] = total_pop - gq_val
+        household_pop.at[idx, "population"] = total_pop - gq_val  # type: ignore[operator]
         gq_result.at[idx, "gq_population"] = gq_val
 
     # Store the GQ population for later retrieval by the pipeline

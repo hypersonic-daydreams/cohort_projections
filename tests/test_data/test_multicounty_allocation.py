@@ -172,9 +172,7 @@ def crosswalk_csv(tmp_path: Path, sample_crosswalk: pd.DataFrame) -> Path:
 class TestIdentifyMulticountyPlaces:
     """Tests for identify_multicounty_places."""
 
-    def test_returns_multicounty_place_fips(
-        self, sample_crosswalk: pd.DataFrame
-    ) -> None:
+    def test_returns_multicounty_place_fips(self, sample_crosswalk: pd.DataFrame) -> None:
         """Returns only places with multi_county_primary assignment type."""
         result = identify_multicounty_places(sample_crosswalk)
         assert result == ["3824260", "3832300", "3845740"]
@@ -191,9 +189,7 @@ class TestIdentifyMulticountyPlaces:
 
     def test_returns_empty_for_empty_crosswalk(self) -> None:
         """Returns empty list for empty input DataFrame."""
-        xw = pd.DataFrame(
-            columns=["place_fips", "assignment_type"]
-        )
+        xw = pd.DataFrame(columns=["place_fips", "assignment_type"])
         assert identify_multicounty_places(xw) == []
 
     def test_raises_on_missing_columns(self) -> None:
@@ -211,9 +207,7 @@ class TestIdentifyMulticountyPlaces:
 class TestLoadAllocationWeights:
     """Tests for load_allocation_weights."""
 
-    def test_loads_correct_weights(
-        self, crosswalk_csv: Path, multicounty_detail_csv: Path
-    ) -> None:
+    def test_loads_correct_weights(self, crosswalk_csv: Path, multicounty_detail_csv: Path) -> None:
         """Weights are loaded and normalized correctly."""
         weights = load_allocation_weights(crosswalk_csv, multicounty_detail_csv)
         assert len(weights) == 3
@@ -247,17 +241,13 @@ class TestLoadAllocationWeights:
         with pytest.raises(FileNotFoundError):
             load_allocation_weights(bad_path, multicounty_detail_csv)
 
-    def test_raises_on_missing_detail(
-        self, crosswalk_csv: Path, tmp_path: Path
-    ) -> None:
+    def test_raises_on_missing_detail(self, crosswalk_csv: Path, tmp_path: Path) -> None:
         """Raises FileNotFoundError when detail path is invalid."""
         bad_path = tmp_path / "nonexistent.csv"
         with pytest.raises(FileNotFoundError):
             load_allocation_weights(crosswalk_csv, bad_path)
 
-    def test_raises_on_missing_columns(
-        self, crosswalk_csv: Path, tmp_path: Path
-    ) -> None:
+    def test_raises_on_missing_columns(self, crosswalk_csv: Path, tmp_path: Path) -> None:
         """Raises ValueError when required columns are absent in detail CSV."""
         bad_csv = tmp_path / "bad_detail.csv"
         pd.DataFrame({"foo": [1]}).to_csv(bad_csv, index=False)
@@ -273,14 +263,10 @@ class TestLoadAllocationWeights:
 class TestSplitMulticountyPlace:
     """Tests for split_multicounty_place."""
 
-    def test_split_preserves_total(
-        self, sample_weights: dict[str, dict[str, float]]
-    ) -> None:
+    def test_split_preserves_total(self, sample_weights: dict[str, dict[str, float]]) -> None:
         """Sum of allocated populations equals input population."""
         result = split_multicounty_place("3824260", 1000.0, sample_weights)
-        np.testing.assert_allclose(
-            sum(result.values()), 1000.0, atol=1e-9
-        )
+        np.testing.assert_allclose(sum(result.values()), 1000.0, atol=1e-9)
 
     def test_split_two_county_proportions(
         self, sample_weights: dict[str, dict[str, float]]
@@ -288,9 +274,7 @@ class TestSplitMulticountyPlace:
         """Allocations match expected proportions for 2-county place."""
         result = split_multicounty_place("3824260", 1000.0, sample_weights)
         assert set(result.keys()) == {"38073", "38017"}
-        np.testing.assert_allclose(
-            result["38073"], 1000.0 * 0.9895, atol=1.0
-        )
+        np.testing.assert_allclose(result["38073"], 1000.0 * 0.9895, atol=1.0)
 
     def test_split_three_county_proportions(self) -> None:
         """Split works correctly for 3-county place."""
@@ -308,9 +292,7 @@ class TestSplitMulticountyPlace:
         np.testing.assert_allclose(result["38002"], 150.0, atol=1e-9)
         np.testing.assert_allclose(result["38003"], 100.0, atol=1e-9)
 
-    def test_split_zero_population(
-        self, sample_weights: dict[str, dict[str, float]]
-    ) -> None:
+    def test_split_zero_population(self, sample_weights: dict[str, dict[str, float]]) -> None:
         """Zero population allocates zero to all counties."""
         result = split_multicounty_place("3824260", 0.0, sample_weights)
         assert all(v == 0.0 for v in result.values())
@@ -322,9 +304,7 @@ class TestSplitMulticountyPlace:
         with pytest.raises(ValueError, match="non-negative"):
             split_multicounty_place("3824260", -100.0, sample_weights)
 
-    def test_split_unknown_place_raises(
-        self, sample_weights: dict[str, dict[str, float]]
-    ) -> None:
+    def test_split_unknown_place_raises(self, sample_weights: dict[str, dict[str, float]]) -> None:
         """Raises ValueError for unknown place FIPS."""
         with pytest.raises(ValueError, match="not found"):
             split_multicounty_place("9999999", 100.0, sample_weights)
@@ -501,9 +481,7 @@ class TestReaggregateMulticountyPlace:
             atol=1e-9,
         )
 
-    def test_raises_for_unknown_place(
-        self, sample_weights: dict[str, dict[str, float]]
-    ) -> None:
+    def test_raises_for_unknown_place(self, sample_weights: dict[str, dict[str, float]]) -> None:
         """Raises ValueError for place not in weights."""
         with pytest.raises(ValueError, match="not found"):
             reaggregate_multicounty_place(
@@ -516,9 +494,7 @@ class TestReaggregateMulticountyPlace:
         self, sample_weights: dict[str, dict[str, float]]
     ) -> None:
         """Raises ValueError when no county has projection data for the place."""
-        empty_proj = pd.DataFrame(
-            columns=["year", "place_fips", "projected_population"]
-        )
+        empty_proj = pd.DataFrame(columns=["year", "place_fips", "projected_population"])
         with pytest.raises(ValueError, match="No projection data"):
             reaggregate_multicounty_place(
                 county_projections={"38073": empty_proj},
@@ -526,9 +502,7 @@ class TestReaggregateMulticountyPlace:
                 weights=sample_weights,
             )
 
-    def test_handles_partial_county_data(
-        self, sample_weights: dict[str, dict[str, float]]
-    ) -> None:
+    def test_handles_partial_county_data(self, sample_weights: dict[str, dict[str, float]]) -> None:
         """Reaggregates correctly when only primary county has data."""
         proj_38073 = pd.DataFrame(
             {
@@ -544,9 +518,7 @@ class TestReaggregateMulticountyPlace:
             weights=sample_weights,
         )
         assert len(result) == 1
-        np.testing.assert_allclose(
-            result["place_total"].values[0], 900.0, atol=1e-9
-        )
+        np.testing.assert_allclose(result["place_total"].values[0], 900.0, atol=1e-9)
 
 
 # ---------------------------------------------------------------------------
@@ -567,11 +539,7 @@ class TestGetMulticountyConfig:
     def test_reads_enabled_flag(self) -> None:
         """Reads enabled flag from config."""
         cfg = get_multicounty_config(
-            {
-                "place_projections": {
-                    "multicounty_allocation": {"enabled": True}
-                }
-            }
+            {"place_projections": {"multicounty_allocation": {"enabled": True}}}
         )
         assert cfg["enabled"] is True
 
@@ -580,9 +548,7 @@ class TestGetMulticountyConfig:
         cfg = get_multicounty_config(
             {
                 "place_projections": {
-                    "multicounty_allocation": {
-                        "allocation_method": "population_share"
-                    }
+                    "multicounty_allocation": {"allocation_method": "population_share"}
                 }
             }
         )
@@ -627,8 +593,7 @@ class TestPrepareMulticountyShareHistory:
         )
         # The original rows for 3824260 in county 38073 should still be present.
         original_rows = augmented[
-            (augmented["place_fips"] == "3824260")
-            & (augmented["county_fips"] == "38073")
+            (augmented["place_fips"] == "3824260") & (augmented["county_fips"] == "38073")
         ]
         assert len(original_rows) == 5
 
@@ -661,8 +626,7 @@ class TestPrepareMulticountyShareHistory:
             multicounty_place_fips=["3832300"],
         )
         synthetic = augmented[
-            (augmented["place_fips"] == "3832300")
-            & (augmented["county_fips"] == "38097")
+            (augmented["place_fips"] == "3832300") & (augmented["county_fips"] == "38097")
         ]
         assert len(synthetic) == 5  # 5 years
 
@@ -687,9 +651,7 @@ class TestEdgeCases:
         weights = {"3899999": {"38001": 0.999, "38002": 0.001}}
         result = split_multicounty_place("3899999", 10000.0, weights)
         np.testing.assert_allclose(result["38002"], 10.0, atol=1e-6)
-        np.testing.assert_allclose(
-            sum(result.values()), 10000.0, atol=1e-9
-        )
+        np.testing.assert_allclose(sum(result.values()), 10000.0, atol=1e-9)
 
     def test_equal_split(self) -> None:
         """Equal weights produce equal allocations."""

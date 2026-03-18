@@ -12,10 +12,19 @@ import pytest
 
 from tests._sdc_paths import get_sdc_repo_root
 
+_SDC_SCRIPTS_DIR = get_sdc_repo_root() / "scripts"
+_DATA_LOADER_PATH = _SDC_SCRIPTS_DIR / "statistical_analysis" / "data_loader.py"
+
+if not _DATA_LOADER_PATH.exists():
+    pytest.skip(
+        f"SDC script not found: {_DATA_LOADER_PATH}",
+        allow_module_level=True,
+    )
+
 
 @pytest.fixture()
 def sdc_scripts_dir() -> Path:
-    return get_sdc_repo_root() / "scripts"
+    return _SDC_SCRIPTS_DIR
 
 
 def test_data_loader_files_mode_uses_local_files(

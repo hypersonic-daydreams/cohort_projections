@@ -213,19 +213,14 @@ def _assert_standard_output_shape(df: pd.DataFrame, *, label: str = ""):
     )
 
     # Expected row count
-    assert len(df) == N_COHORTS, (
-        f"{prefix}Expected {N_COHORTS} rows; got {len(df)}"
-    )
+    assert len(df) == N_COHORTS, f"{prefix}Expected {N_COHORTS} rows; got {len(df)}"
 
 
 def _assert_population_nonnegative(df: pd.DataFrame, *, label: str = ""):
     """Assert no cell has a negative population."""
     prefix = f"[{label}] " if label else ""
     neg = df[df["population"] < 0]
-    assert neg.empty, (
-        f"{prefix}Found {len(neg)} rows with negative population:\n"
-        f"{neg.head(10)}"
-    )
+    assert neg.empty, f"{prefix}Found {len(neg)} rows with negative population:\n{neg.head(10)}"
 
 
 # ===================================================================
@@ -452,15 +447,11 @@ class TestLoadBasePopulationForCounty:
 class TestLoadBasePopulationForAllCounties:
     """Tests for ``load_base_population_for_all_counties``."""
 
-    @patch(
-        "cohort_projections.data.load.base_population_loader.load_county_populations"
-    )
+    @patch("cohort_projections.data.load.base_population_loader.load_county_populations")
     @patch(
         "cohort_projections.data.load.base_population_loader.load_state_age_sex_race_distribution"
     )
-    @patch(
-        "cohort_projections.data.load.base_population_loader.load_county_distributions_file"
-    )
+    @patch("cohort_projections.data.load.base_population_loader.load_county_distributions_file")
     def test_returns_dict_with_all_counties(
         self,
         mock_county_dists_file,
@@ -480,15 +471,11 @@ class TestLoadBasePopulationForAllCounties:
         assert isinstance(result, dict)
         assert set(result.keys()) == {"38001", "38017", "38035"}
 
-    @patch(
-        "cohort_projections.data.load.base_population_loader.load_county_populations"
-    )
+    @patch("cohort_projections.data.load.base_population_loader.load_county_populations")
     @patch(
         "cohort_projections.data.load.base_population_loader.load_state_age_sex_race_distribution"
     )
-    @patch(
-        "cohort_projections.data.load.base_population_loader.load_county_distributions_file"
-    )
+    @patch("cohort_projections.data.load.base_population_loader.load_county_distributions_file")
     def test_each_county_has_correct_shape(
         self,
         mock_county_dists_file,
@@ -508,15 +495,11 @@ class TestLoadBasePopulationForAllCounties:
         for fips, df in result.items():
             _assert_standard_output_shape(df, label=f"county_{fips}")
 
-    @patch(
-        "cohort_projections.data.load.base_population_loader.load_county_populations"
-    )
+    @patch("cohort_projections.data.load.base_population_loader.load_county_populations")
     @patch(
         "cohort_projections.data.load.base_population_loader.load_state_age_sex_race_distribution"
     )
-    @patch(
-        "cohort_projections.data.load.base_population_loader.load_county_distributions_file"
-    )
+    @patch("cohort_projections.data.load.base_population_loader.load_county_distributions_file")
     def test_each_county_population_nonnegative(
         self,
         mock_county_dists_file,
@@ -536,15 +519,11 @@ class TestLoadBasePopulationForAllCounties:
         for fips, df in result.items():
             _assert_population_nonnegative(df, label=f"county_{fips}")
 
-    @patch(
-        "cohort_projections.data.load.base_population_loader.load_county_populations"
-    )
+    @patch("cohort_projections.data.load.base_population_loader.load_county_populations")
     @patch(
         "cohort_projections.data.load.base_population_loader.load_state_age_sex_race_distribution"
     )
-    @patch(
-        "cohort_projections.data.load.base_population_loader.load_county_distributions_file"
-    )
+    @patch("cohort_projections.data.load.base_population_loader.load_county_distributions_file")
     def test_fips_list_filters_counties(
         self,
         mock_county_dists_file,
@@ -559,21 +538,15 @@ class TestLoadBasePopulationForAllCounties:
         mock_county_pops.return_value = synthetic_county_populations
         mock_county_dists_file.return_value = None
 
-        result = load_base_population_for_all_counties(
-            config=minimal_config, fips_list=["38017"]
-        )
+        result = load_base_population_for_all_counties(config=minimal_config, fips_list=["38017"])
 
         assert set(result.keys()) == {"38017"}
 
-    @patch(
-        "cohort_projections.data.load.base_population_loader.load_county_populations"
-    )
+    @patch("cohort_projections.data.load.base_population_loader.load_county_populations")
     @patch(
         "cohort_projections.data.load.base_population_loader.load_state_age_sex_race_distribution"
     )
-    @patch(
-        "cohort_projections.data.load.base_population_loader.load_county_distributions_file"
-    )
+    @patch("cohort_projections.data.load.base_population_loader.load_county_distributions_file")
     def test_total_population_across_all_counties(
         self,
         mock_county_dists_file,
@@ -594,15 +567,11 @@ class TestLoadBasePopulationForAllCounties:
         expected_total = 2000 + 50000 + 30000
         assert abs(total - expected_total) < 1.0
 
-    @patch(
-        "cohort_projections.data.load.base_population_loader.load_county_populations"
-    )
+    @patch("cohort_projections.data.load.base_population_loader.load_county_populations")
     @patch(
         "cohort_projections.data.load.base_population_loader.load_state_age_sex_race_distribution"
     )
-    @patch(
-        "cohort_projections.data.load.base_population_loader.load_county_distributions_file"
-    )
+    @patch("cohort_projections.data.load.base_population_loader.load_county_distributions_file")
     def test_failed_county_excluded_gracefully(
         self,
         mock_county_dists_file,
@@ -899,9 +868,7 @@ class TestGQSeparation:
 
         assert abs(result["population"].sum() - 50000.0) < 1.0
 
-    @patch(
-        "cohort_projections.data.load.base_population_loader._load_gq_data"
-    )
+    @patch("cohort_projections.data.load.base_population_loader._load_gq_data")
     def test_gq_separation_hh_plus_gq_equals_total(
         self,
         mock_load_gq,
@@ -936,9 +903,7 @@ class TestGQSeparation:
             f"!= total ({total_pop:.1f})"
         )
 
-    @patch(
-        "cohort_projections.data.load.base_population_loader._load_gq_data"
-    )
+    @patch("cohort_projections.data.load.base_population_loader._load_gq_data")
     def test_gq_separation_household_pop_nonnegative(
         self,
         mock_load_gq,
@@ -959,9 +924,7 @@ class TestGQSeparation:
 
         _assert_population_nonnegative(result, label="hh_pop_38017")
 
-    @patch(
-        "cohort_projections.data.load.base_population_loader._load_gq_data"
-    )
+    @patch("cohort_projections.data.load.base_population_loader._load_gq_data")
     def test_gq_separation_reduces_population(
         self,
         mock_load_gq,
@@ -988,9 +951,7 @@ class TestGQSeparation:
             f"Household pop ({hh_pop:.0f}) should be less than total ({total_pop:.0f})"
         )
 
-    @patch(
-        "cohort_projections.data.load.base_population_loader._load_gq_data"
-    )
+    @patch("cohort_projections.data.load.base_population_loader._load_gq_data")
     def test_gq_no_data_for_county_returns_full_pop(
         self,
         mock_load_gq,
@@ -1019,9 +980,7 @@ class TestGQSeparation:
         # Adams (pop 2000) should be unchanged since no GQ data for it
         assert abs(result["population"].sum() - 2000.0) < 1.0
 
-    @patch(
-        "cohort_projections.data.load.base_population_loader._load_gq_data"
-    )
+    @patch("cohort_projections.data.load.base_population_loader._load_gq_data")
     def test_gq_stored_in_module_cache(
         self,
         mock_load_gq,
@@ -1044,9 +1003,7 @@ class TestGQSeparation:
         assert gq is not None
         assert "gq_population" in gq.columns
 
-    @patch(
-        "cohort_projections.data.load.base_population_loader._load_gq_data"
-    )
+    @patch("cohort_projections.data.load.base_population_loader._load_gq_data")
     def test_gq_population_nonnegative(
         self,
         mock_load_gq,
@@ -1073,9 +1030,7 @@ class TestGQSeparation:
         # Manually populate caches
         from cohort_projections.data.load import base_population_loader as bpl
 
-        bpl._county_gq_populations["38017"] = pd.DataFrame(
-            {"gq_population": [100.0]}
-        )
+        bpl._county_gq_populations["38017"] = pd.DataFrame({"gq_population": [100.0]})
 
         clear_gq_cache()
 
@@ -1260,9 +1215,7 @@ class TestDistributeGQAcrossRaces:
 class TestSeparateGQFromBasePopulation:
     """Tests for ``_separate_gq_from_base_population``."""
 
-    @patch(
-        "cohort_projections.data.load.base_population_loader._load_gq_data"
-    )
+    @patch("cohort_projections.data.load.base_population_loader._load_gq_data")
     def test_hh_plus_gq_equals_total_invariant(
         self,
         mock_load_gq,
@@ -1305,9 +1258,7 @@ class TestSeparateGQFromBasePopulation:
         reconstructed_total = merged["reconstructed"].sum()
         assert abs(reconstructed_total - original_total) < 1.0
 
-    @patch(
-        "cohort_projections.data.load.base_population_loader._load_gq_data"
-    )
+    @patch("cohort_projections.data.load.base_population_loader._load_gq_data")
     def test_gq_capped_at_total_pop(
         self,
         mock_load_gq,
@@ -1348,9 +1299,7 @@ class TestSeparateGQFromBasePopulation:
         # No negative household populations
         _assert_population_nonnegative(hh_pop, label="hh_pop_capped")
 
-    @patch(
-        "cohort_projections.data.load.base_population_loader._load_gq_data"
-    )
+    @patch("cohort_projections.data.load.base_population_loader._load_gq_data")
     def test_no_gq_data_returns_unchanged(
         self,
         mock_load_gq,
@@ -1398,9 +1347,7 @@ class TestGQCacheFunctions:
         """get_all_county_gq_populations returns a copy, not the original."""
         from cohort_projections.data.load import base_population_loader as bpl
 
-        bpl._county_gq_populations["38017"] = pd.DataFrame(
-            {"gq_population": [100.0]}
-        )
+        bpl._county_gq_populations["38017"] = pd.DataFrame({"gq_population": [100.0]})
 
         result = get_all_county_gq_populations()
         # Mutating the result should not affect the original
@@ -1411,9 +1358,7 @@ class TestGQCacheFunctions:
         """get_county_gq_population zero-pads the FIPS code."""
         from cohort_projections.data.load import base_population_loader as bpl
 
-        bpl._county_gq_populations["00001"] = pd.DataFrame(
-            {"gq_population": [50.0]}
-        )
+        bpl._county_gq_populations["00001"] = pd.DataFrame({"gq_population": [50.0]})
 
         # Pass unpadded "1" -- should be padded to "00001"
         result = get_county_gq_population("1")

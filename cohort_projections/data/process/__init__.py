@@ -147,7 +147,6 @@ from .survival_rates import (
     validate_survival_rates,
 )
 
-
 __all__ = [
     # Base population
     "harmonize_race_categories",

@@ -469,9 +469,7 @@ class TestCollegeAgeAdjustment:
         assert (gf_smoothed["migration_rate"] > 0.05).all()
 
         # 30-34 should NOT be smoothed
-        gf_30 = result[
-            (result["county_fips"] == "38035") & (result["age_group"] == "30-34")
-        ]
+        gf_30 = result[(result["county_fips"] == "38035") & (result["age_group"] == "30-34")]
         assert np.allclose(gf_30["migration_rate"], 0.05)
 
 
@@ -489,6 +487,7 @@ class TestGQCorrectionFraction:
         from cohort_projections.data.process.residual_migration import (
             subtract_gq_from_populations,
         )
+
         pop_data = pd.DataFrame(
             {
                 "county_fips": ["38017"] * 4,
@@ -977,9 +976,7 @@ class TestApplyPepRecalibration:
 
         benson = result[result["county_fips"] == "38005"]
         expected_rate = -0.02 * expected_k
-        np.testing.assert_allclose(
-            benson["migration_rate"].values[0], expected_rate, rtol=1e-4
-        )
+        np.testing.assert_allclose(benson["migration_rate"].values[0], expected_rate, rtol=1e-4)
 
         assert meta["38005"]["method"] == "scaled"
         np.testing.assert_allclose(meta["38005"]["k"], expected_k, rtol=1e-3)
@@ -1201,8 +1198,7 @@ class TestCollegeAgeSmoothingPropagation:
         # Verify that college-age rates are reduced in each period
         for period_key, rates in period_rates.items():
             cass_college = rates[
-                (rates["county_fips"] == "38017")
-                & (rates["age_group"].isin(["15-19", "20-24"]))
+                (rates["county_fips"] == "38017") & (rates["age_group"].isin(["15-19", "20-24"]))
             ]
             # Should be blended: 0.5 * 0.12 + 0.5 * statewide_avg
             # statewide_avg for 20-24 = mean(0.02, 0.12, 0.12) / 3 counties
@@ -1295,8 +1291,7 @@ class TestCollegeAgeSmoothingPropagation:
 
         # Check that averaged rates for Cass college ages are smoothed
         cass_college_avg = averaged[
-            (averaged["county_fips"] == "38017")
-            & (averaged["age_group"].isin(["15-19", "20-24"]))
+            (averaged["county_fips"] == "38017") & (averaged["age_group"].isin(["15-19", "20-24"]))
         ]
         # Must be < raw 0.12 (since period-level smoothing reduced them)
         assert (cass_college_avg["migration_rate"] < 0.12).all(), (
@@ -1377,9 +1372,7 @@ class TestCollegeAgeSmoothingPropagation:
 
         # Group into per-period dicts for smoothing
         period_groups = {}
-        for (ps, pe), group_df in all_period_rates.groupby(
-            ["period_start", "period_end"]
-        ):
+        for (ps, pe), group_df in all_period_rates.groupby(["period_start", "period_end"]):
             period_groups[(int(ps), int(pe))] = group_df.reset_index(drop=True)
 
         # Apply smoothing per-period (as the pipeline does)
@@ -1402,8 +1395,7 @@ class TestCollegeAgeSmoothingPropagation:
                 (combined["period_start"] == ps) & (combined["period_end"] == pe)
             ]
             cass_college = period_data[
-                (period_data["county_fips"] == "38017")
-                & (period_data["age_group"].isin(["20-24"]))
+                (period_data["county_fips"] == "38017") & (period_data["age_group"].isin(["20-24"]))
             ]
             assert (cass_college["migration_rate"] < 0.12).all(), (
                 f"Period {ps}-{pe}: convergence input should have smoothed "

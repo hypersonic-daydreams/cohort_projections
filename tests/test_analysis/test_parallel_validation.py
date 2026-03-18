@@ -95,7 +95,9 @@ class TestRunSingleOriginAnnual:
     def test_data(self) -> dict[str, Any]:
         """Provide a small synthetic dataset."""
         counties = ["38001", "38003"]
-        snapshots = {yr: _make_population_df(counties, yr) for yr in [2000, 2005, 2010, 2015, 2020, 2024]}
+        snapshots = {
+            yr: _make_population_df(counties, yr) for yr in [2000, 2005, 2010, 2015, 2020, 2024]
+        }
         mig_raw = _make_migration_df(counties)
         survival = _make_survival()
         fertility = _make_fertility()
@@ -104,9 +106,7 @@ class TestRunSingleOriginAnnual:
         actual_county_totals: dict[int, dict[str, float]] = {}
         for yr in range(2006, 2025):
             df = _make_population_df(counties, yr)
-            actual_county_totals[yr] = (
-                df.groupby("county_fips")["population"].sum().to_dict()
-            )
+            actual_county_totals[yr] = df.groupby("county_fips")["population"].sum().to_dict()
 
         return {
             "snapshots": snapshots,
@@ -153,7 +153,9 @@ class TestParallelIdenticalResults:
     def shared_inputs(self) -> dict[str, Any]:
         """Build shared inputs for sequential vs parallel comparison."""
         counties = ["38001", "38003", "38005"]
-        snapshots = {yr: _make_population_df(counties, yr) for yr in [2000, 2005, 2010, 2015, 2020, 2024]}
+        snapshots = {
+            yr: _make_population_df(counties, yr) for yr in [2000, 2005, 2010, 2015, 2020, 2024]
+        }
         mig_raw = _make_migration_df(counties)
         survival = _make_survival()
         fertility = _make_fertility()
@@ -175,12 +177,15 @@ class TestParallelIdenticalResults:
         for yr in range(2006, 2025):
             mock_actuals[yr] = _make_population_df(counties, yr)
 
-        with patch(
-            "scripts.analysis.walk_forward_validation.load_annual_validation_actuals",
-            return_value=mock_actuals,
-        ), patch(
-            "scripts.analysis.walk_forward_validation.maybe_recompute_mig_raw",
-            side_effect=lambda mig, snap, cfg: mig,
+        with (
+            patch(
+                "scripts.analysis.walk_forward_validation.load_annual_validation_actuals",
+                return_value=mock_actuals,
+            ),
+            patch(
+                "scripts.analysis.walk_forward_validation.maybe_recompute_mig_raw",
+                side_effect=lambda mig, snap, cfg: mig,
+            ),
         ):
             state_seq, county_seq, curves_seq = run_annual_validation(
                 shared_inputs["snapshots"],
@@ -231,7 +236,9 @@ class TestGracefulFallback:
         from scripts.analysis.walk_forward_validation import run_annual_validation
 
         counties = ["38001"]
-        snapshots = {yr: _make_population_df(counties, yr) for yr in [2000, 2005, 2010, 2015, 2020, 2024]}
+        snapshots = {
+            yr: _make_population_df(counties, yr) for yr in [2000, 2005, 2010, 2015, 2020, 2024]
+        }
         mig_raw = _make_migration_df(counties)
         survival = _make_survival()
         fertility = _make_fertility()
@@ -265,15 +272,19 @@ class TestGracefulFallback:
                         fut.set_exception(exc)
                 return fut
 
-        with patch(
-            "scripts.analysis.walk_forward_validation.load_annual_validation_actuals",
-            return_value=mock_actuals,
-        ), patch(
-            "scripts.analysis.walk_forward_validation.maybe_recompute_mig_raw",
-            side_effect=lambda mig, snap, cfg: mig,
-        ), patch(
-            "scripts.analysis.walk_forward_validation.ProcessPoolExecutor",
-            _FakeExecutor,
+        with (
+            patch(
+                "scripts.analysis.walk_forward_validation.load_annual_validation_actuals",
+                return_value=mock_actuals,
+            ),
+            patch(
+                "scripts.analysis.walk_forward_validation.maybe_recompute_mig_raw",
+                side_effect=lambda mig, snap, cfg: mig,
+            ),
+            patch(
+                "scripts.analysis.walk_forward_validation.ProcessPoolExecutor",
+                _FakeExecutor,
+            ),
         ):
             # Should not raise — the failed origin gets retried sequentially
             state_df, county_df, curves_df = run_annual_validation(
@@ -327,8 +338,7 @@ class TestProjectionWorkerPath:
         """Build shared inputs for projection-worker comparisons."""
         counties = ["38001", "38003", "38005"]
         snapshots = {
-            yr: _make_population_df(counties, yr)
-            for yr in [2000, 2005, 2010, 2015, 2020, 2024]
+            yr: _make_population_df(counties, yr) for yr in [2000, 2005, 2010, 2015, 2020, 2024]
         }
         return {
             "snapshots": snapshots,
@@ -337,9 +347,7 @@ class TestProjectionWorkerPath:
             "fertility": _make_fertility(),
         }
 
-    def test_projection_workers_1_vs_2_identical(
-        self, shared_inputs: dict[str, Any]
-    ) -> None:
+    def test_projection_workers_1_vs_2_identical(self, shared_inputs: dict[str, Any]) -> None:
         """County-worker path must match sequential results exactly."""
         from scripts.analysis.walk_forward_validation import run_annual_validation
 
@@ -348,12 +356,15 @@ class TestProjectionWorkerPath:
         for yr in range(2006, 2025):
             mock_actuals[yr] = _make_population_df(counties, yr)
 
-        with patch(
-            "scripts.analysis.walk_forward_validation.load_annual_validation_actuals",
-            return_value=mock_actuals,
-        ), patch(
-            "scripts.analysis.walk_forward_validation.maybe_recompute_mig_raw",
-            side_effect=lambda mig, snap, cfg: mig,
+        with (
+            patch(
+                "scripts.analysis.walk_forward_validation.load_annual_validation_actuals",
+                return_value=mock_actuals,
+            ),
+            patch(
+                "scripts.analysis.walk_forward_validation.maybe_recompute_mig_raw",
+                side_effect=lambda mig, snap, cfg: mig,
+            ),
         ):
             state_seq, county_seq, curves_seq = run_annual_validation(
                 shared_inputs["snapshots"],
@@ -399,12 +410,15 @@ class TestProjectionWorkerPath:
         for yr in range(2006, 2025):
             mock_actuals[yr] = _make_population_df(counties, yr)
 
-        with patch(
-            "scripts.analysis.walk_forward_validation.load_annual_validation_actuals",
-            return_value=mock_actuals,
-        ), patch(
-            "scripts.analysis.walk_forward_validation.maybe_recompute_mig_raw",
-            side_effect=lambda mig, snap, cfg: mig,
+        with (
+            patch(
+                "scripts.analysis.walk_forward_validation.load_annual_validation_actuals",
+                return_value=mock_actuals,
+            ),
+            patch(
+                "scripts.analysis.walk_forward_validation.maybe_recompute_mig_raw",
+                side_effect=lambda mig, snap, cfg: mig,
+            ),
         ):
             state_seq, county_seq, curves_seq = run_annual_validation(
                 shared_inputs["snapshots"],
@@ -439,9 +453,7 @@ class TestProjectionWorkerPath:
             curves_par.reset_index(drop=True),
         )
 
-    def test_projection_worker_fallback_on_error(
-        self, shared_inputs: dict[str, Any]
-    ) -> None:
+    def test_projection_worker_fallback_on_error(self, shared_inputs: dict[str, Any]) -> None:
         """A failed county worker should be retried sequentially."""
         from concurrent.futures import Future
 
@@ -476,15 +488,19 @@ class TestProjectionWorkerPath:
                         fut.set_exception(exc)
                 return fut
 
-        with patch(
-            "scripts.analysis.walk_forward_validation.load_annual_validation_actuals",
-            return_value=mock_actuals,
-        ), patch(
-            "scripts.analysis.walk_forward_validation.maybe_recompute_mig_raw",
-            side_effect=lambda mig, snap, cfg: mig,
-        ), patch(
-            "scripts.analysis.walk_forward_validation.ProcessPoolExecutor",
-            _FakeExecutor,
+        with (
+            patch(
+                "scripts.analysis.walk_forward_validation.load_annual_validation_actuals",
+                return_value=mock_actuals,
+            ),
+            patch(
+                "scripts.analysis.walk_forward_validation.maybe_recompute_mig_raw",
+                side_effect=lambda mig, snap, cfg: mig,
+            ),
+            patch(
+                "scripts.analysis.walk_forward_validation.ProcessPoolExecutor",
+                _FakeExecutor,
+            ),
         ):
             state_df, county_df, curves_df = run_annual_validation(
                 shared_inputs["snapshots"],

@@ -126,9 +126,7 @@ class TestEvaluateScorecard:
         assert all(t["passed"] for t in result["tradeoff_results"].values())
         assert result["tradeoff_metrics"] == result["tradeoff_results"]
 
-    def test_evaluate_failed_hard_gate_negative_pop(
-        self, policy: dict[str, Any]
-    ) -> None:
+    def test_evaluate_failed_hard_gate_negative_pop(self, policy: dict[str, Any]) -> None:
         """Challenger has negative_population_violations=1 → failed_hard_gate."""
         champion = _make_row()
         challenger = _make_row(negative_population_violations=1)
@@ -139,9 +137,7 @@ class TestEvaluateScorecard:
         assert gate["passed"] is False
         assert gate["value"] == 1
 
-    def test_evaluate_failed_hard_gate_aggregation(
-        self, policy: dict[str, Any]
-    ) -> None:
+    def test_evaluate_failed_hard_gate_aggregation(self, policy: dict[str, Any]) -> None:
         """Challenger has aggregation_violations=2 → failed_hard_gate."""
         champion = _make_row()
         challenger = _make_row(aggregation_violations=2)
@@ -152,9 +148,7 @@ class TestEvaluateScorecard:
         assert gate["passed"] is False
         assert gate["value"] == 2
 
-    def test_evaluate_failed_hard_gate_scenario_order(
-        self, policy: dict[str, Any]
-    ) -> None:
+    def test_evaluate_failed_hard_gate_scenario_order(self, policy: dict[str, Any]) -> None:
         """Challenger has scenario_order_violations=1 → failed_hard_gate."""
         champion = _make_row()
         challenger = _make_row(scenario_order_violations=1)
@@ -165,9 +159,7 @@ class TestEvaluateScorecard:
         assert gate["passed"] is False
         assert gate["value"] == 1
 
-    def test_evaluate_needs_review_tradeoff_breach(
-        self, policy: dict[str, Any]
-    ) -> None:
+    def test_evaluate_needs_review_tradeoff_breach(self, policy: dict[str, Any]) -> None:
         """Hard gates pass but county_mape_rural delta > 0.10 → needs_human_review."""
         champion = _make_row(county_mape_rural=0.10)
         # challenger is 0.21 higher than champion → delta = 0.11 > 0.10
@@ -177,9 +169,7 @@ class TestEvaluateScorecard:
         assert result["classification"] == "needs_human_review"
         assert result["tradeoff_results"]["county_mape_rural"]["passed"] is False
 
-    def test_evaluate_needs_review_sensitivity_flag(
-        self, policy: dict[str, Any]
-    ) -> None:
+    def test_evaluate_needs_review_sensitivity_flag(self, policy: dict[str, Any]) -> None:
         """Hard gates and tradeoffs pass but sensitivity flag → needs_human_review."""
         champion = _make_row()
         challenger = _make_row(sensitivity_instability_flag=True)
@@ -216,9 +206,7 @@ class TestEvaluateScorecard:
         assert result["hard_gate_results"]["negative_population_violations"]["passed"] is False
         assert result["tradeoff_results"]["county_mape_rural"]["passed"] is False
 
-    def test_evaluate_missing_fields_default_to_zero(
-        self, policy: dict[str, Any]
-    ) -> None:
+    def test_evaluate_missing_fields_default_to_zero(self, policy: dict[str, Any]) -> None:
         """Challenger row missing gate fields should default to 0 and pass."""
         champion: dict[str, Any] = {}  # empty — defaults to 0.0 for tradeoffs too
         challenger: dict[str, Any] = {}  # empty — defaults to 0 for gates

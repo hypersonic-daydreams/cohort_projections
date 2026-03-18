@@ -11,9 +11,23 @@ synthetic dataset.
 
 from __future__ import annotations
 
-import module_app_covariate_anchor as anchor
+import sys
+
 import numpy as np
 import pandas as pd
+import pytest
+
+from tests._sdc_paths import get_sdc_repo_root
+
+# Add module path for imports
+MODULE_PATH = get_sdc_repo_root() / "scripts" / "statistical_analysis"
+if str(MODULE_PATH) not in sys.path:
+    sys.path.insert(0, str(MODULE_PATH))
+
+anchor = pytest.importorskip(
+    "module_app_covariate_anchor",
+    reason="module_app_covariate_anchor source not available (SDC replication scripts not synced)",
+)
 
 
 def test_series_from_grouped_sum_fills_missing_years() -> None:

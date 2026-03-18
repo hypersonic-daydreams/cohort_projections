@@ -13,7 +13,6 @@ from cohort_projections.analysis.evaluation.benchmark_runners import (
     linear_trend,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -145,9 +144,7 @@ class TestLinearTrend:
 
         # Check the future projections
         future = result[result["year"] > 2020]
-        np.testing.assert_allclose(
-            future["projected_value"].values, [150.0, 160.0], atol=0.01
-        )
+        np.testing.assert_allclose(future["projected_value"].values, [150.0, 160.0], atol=0.01)
 
     def test_run_id(self):
         """Should set run_id to benchmark_linear_trend."""
@@ -163,9 +160,7 @@ class TestLinearTrend:
 
         result = linear_trend(df, origin_year=2020, lookback=3)
 
-        np.testing.assert_allclose(
-            result["projected_value"].values, [100.0] * 5, atol=0.01
-        )
+        np.testing.assert_allclose(result["projected_value"].values, [100.0] * 5, atol=0.01)
 
     def test_lookback_parameter(self):
         """Should only use the specified lookback window."""
@@ -289,9 +284,7 @@ class TestBuildComponentSwap:
                 )
         method_b = pd.DataFrame(rows_b)
 
-        result = build_component_swap(
-            method_a, method_b, components=["births", "deaths"]
-        )
+        result = build_component_swap(method_a, method_b, components=["births", "deaths"])
 
         # Population should come from method_a
         pop = result[result["target"] == "population"]
@@ -324,9 +317,7 @@ class TestBuildComponentSwap:
         method_a = _make_result_df(run_id="a", target="population")
         method_b = _make_result_df(run_id="b", target="population")
 
-        result = build_component_swap(
-            method_a, method_b, components=["births"]
-        )
+        result = build_component_swap(method_a, method_b, components=["births"])
 
         # No births in either, so all rows come from method_a
         assert len(result) == len(method_a)
@@ -337,9 +328,7 @@ class TestBuildComponentSwap:
         method_a = _make_result_df(run_id="a", target="population")
         method_b = _make_result_df(run_id="b", target="population")
 
-        result = build_component_swap(
-            method_a, method_b, components=["deaths", "births"]
-        )
+        result = build_component_swap(method_a, method_b, components=["deaths", "births"])
 
         # Should be alphabetically sorted
         assert "births_deaths" in result["run_id"].iloc[0]

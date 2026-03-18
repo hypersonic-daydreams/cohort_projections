@@ -23,7 +23,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
 from .data_structures import ScorecardEntry
@@ -77,12 +76,8 @@ def generate_html_report(
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     scorecard: ScorecardEntry | None = evaluation_results.get("scorecard")
-    accuracy_df: pd.DataFrame = evaluation_results.get(
-        "accuracy_diagnostics", pd.DataFrame()
-    )
-    realism_df: pd.DataFrame = evaluation_results.get(
-        "realism_diagnostics", pd.DataFrame()
-    )
+    accuracy_df: pd.DataFrame = evaluation_results.get("accuracy_diagnostics", pd.DataFrame())
+    realism_df: pd.DataFrame = evaluation_results.get("realism_diagnostics", pd.DataFrame())
     comparison_df: pd.DataFrame | None = evaluation_results.get("comparison")
     sensitivity: dict[str, Any] | None = evaluation_results.get("sensitivity")
     figures: dict[str, Any] = evaluation_results.get("figures", {})
@@ -103,9 +98,7 @@ def generate_html_report(
     # Assemble sections
     sections: list[str] = []
     sections.append(_build_header(title, model_name, run_id))
-    sections.append(
-        _build_executive_summary(scorecard, accuracy_df, near_term_max, long_term_min)
-    )
+    sections.append(_build_executive_summary(scorecard, accuracy_df, near_term_max, long_term_min))
     sections.append(
         _build_accuracy_section(
             accuracy_df,
@@ -125,14 +118,10 @@ def generate_html_report(
         sections.append(_build_comparison_section(comparison_df, encoded_figures))
 
     if sensitivity is not None:
-        sections.append(
-            _build_sensitivity_section(sensitivity, encoded_figures)
-        )
+        sections.append(_build_sensitivity_section(sensitivity, encoded_figures))
 
     if include_appendix:
-        sections.append(
-            _build_appendix(accuracy_df, realism_df, config)
-        )
+        sections.append(_build_appendix(accuracy_df, realism_df, config))
 
     body = "\n".join(sections)
     toc = _build_toc(sections)
@@ -315,9 +304,7 @@ def _render_key_findings(
                 f"({horizon_mape[first_breach]:.2f}%)"
             )
         else:
-            findings.append(
-                "Mean MAPE remains below 5% across all evaluated horizons."
-            )
+            findings.append("Mean MAPE remains below 5% across all evaluated horizons.")
 
     # Near-term vs long-term
     near = mape_df.loc[mape_df["horizon"] <= near_term_max, "value"]
@@ -368,9 +355,7 @@ def _build_accuracy_section(
 
     # Summary table by horizon band
     parts.append("<h3>Accuracy by Horizon Band</h3>")
-    parts.append(
-        _build_horizon_band_table(accuracy_df, near_term_max, long_term_min)
-    )
+    parts.append(_build_horizon_band_table(accuracy_df, near_term_max, long_term_min))
 
     # County group table
     if "geography_group" in accuracy_df.columns:
@@ -397,9 +382,7 @@ def _build_accuracy_section(
     return "\n".join(parts)
 
 
-def _build_horizon_band_table(
-    df: pd.DataFrame, near_term_max: int, long_term_min: int
-) -> str:
+def _build_horizon_band_table(df: pd.DataFrame, near_term_max: int, long_term_min: int) -> str:
     mape = df.loc[df["metric_name"] == "mape"]
     mae = df.loc[df["metric_name"] == "mae"]
     rmse = df.loc[df["metric_name"] == "rmse"]
@@ -436,20 +419,20 @@ def _build_county_group_table(df: pd.DataFrame) -> str:
 
     rows = []
     for group, grp in mape.groupby("geography_group"):
-        rows.append({
-            "County Group": str(group),
-            "Mean MAPE (%)": f"{grp['value'].mean():.3f}",
-            "Median MAPE (%)": f"{grp['value'].median():.3f}",
-            "Max MAPE (%)": f"{grp['value'].max():.3f}",
-            "N": str(len(grp)),
-        })
+        rows.append(
+            {
+                "County Group": str(group),
+                "Mean MAPE (%)": f"{grp['value'].mean():.3f}",
+                "Median MAPE (%)": f"{grp['value'].median():.3f}",
+                "Max MAPE (%)": f"{grp['value'].max():.3f}",
+                "N": str(len(grp)),
+            }
+        )
 
     return _render_table(rows, sortable=True)
 
 
-def _build_sentinel_table(
-    df: pd.DataFrame, sentinel_counties: dict[str, str]
-) -> str:
+def _build_sentinel_table(df: pd.DataFrame, sentinel_counties: dict[str, str]) -> str:
     mape = df.loc[df["metric_name"] == "mape"]
     mspe = df.loc[df["metric_name"] == "mean_signed_percentage_error"]
 
@@ -457,13 +440,15 @@ def _build_sentinel_table(
     for fips, name in sentinel_counties.items():
         county_mape = mape.loc[mape["geography"] == fips, "value"]
         county_mspe = mspe.loc[mspe["geography"] == fips, "value"]
-        rows.append({
-            "FIPS": fips,
-            "County": name,
-            "Mean MAPE (%)": f"{county_mape.mean():.3f}" if not county_mape.empty else "N/A",
-            "Bias (MSPE %)": f"{county_mspe.mean():+.3f}" if not county_mspe.empty else "N/A",
-            "Max MAPE (%)": f"{county_mape.max():.3f}" if not county_mape.empty else "N/A",
-        })
+        rows.append(
+            {
+                "FIPS": fips,
+                "County": name,
+                "Mean MAPE (%)": f"{county_mape.mean():.3f}" if not county_mape.empty else "N/A",
+                "Bias (MSPE %)": f"{county_mspe.mean():+.3f}" if not county_mspe.empty else "N/A",
+                "Max MAPE (%)": f"{county_mape.max():.3f}" if not county_mape.empty else "N/A",
+            }
+        )
 
     return _render_table(rows, sortable=True)
 
@@ -478,9 +463,11 @@ def _build_bias_section(
         "<h2>Bias Analysis</h2>",
     ]
 
-    mspe = accuracy_df.loc[
-        accuracy_df["metric_name"] == "mean_signed_percentage_error"
-    ] if not accuracy_df.empty else pd.DataFrame()
+    mspe = (
+        accuracy_df.loc[accuracy_df["metric_name"] == "mean_signed_percentage_error"]
+        if not accuracy_df.empty
+        else pd.DataFrame()
+    )
 
     if mspe.empty:
         parts.append("<p>No bias data available.</p>")
@@ -504,12 +491,14 @@ def _build_bias_section(
         rows = []
         for _, row in county_bias.iterrows():
             bias_val = row["value"]
-            rows.append({
-                "Geography": str(row["geography"]),
-                "Mean MSPE (%)": f"{bias_val:+.3f}",
-                "Abs MSPE (%)": f"{row['abs_value']:.3f}",
-                "Direction": "Over" if bias_val > 0 else "Under",
-            })
+            rows.append(
+                {
+                    "Geography": str(row["geography"]),
+                    "Mean MSPE (%)": f"{bias_val:+.3f}",
+                    "Abs MSPE (%)": f"{row['abs_value']:.3f}",
+                    "Direction": "Over" if bias_val > 0 else "Under",
+                }
+            )
 
         parts.append(_render_table(rows, sortable=True))
 
@@ -549,19 +538,19 @@ def _build_realism_section(
         horizon_jsd = jsd_df.groupby("horizon")["value"].agg(["mean", "min", "max"])
         rows = []
         for h, row in horizon_jsd.iterrows():
-            rows.append({
-                "Horizon": str(h),
-                "Mean JSD": f"{row['mean']:.5f}",
-                "Min JSD": f"{row['min']:.5f}",
-                "Max JSD": f"{row['max']:.5f}",
-            })
+            rows.append(
+                {
+                    "Horizon": str(h),
+                    "Mean JSD": f"{row['mean']:.5f}",
+                    "Min JSD": f"{row['min']:.5f}",
+                    "Max JSD": f"{row['max']:.5f}",
+                }
+            )
         parts.append(_render_table(rows, sortable=True))
 
     if "age_divergence" in encoded_figures:
         parts.append("<h3>Age Divergence Chart</h3>")
-        parts.append(
-            _embed_image(encoded_figures["age_divergence"], "Age Distribution Divergence")
-        )
+        parts.append(_embed_image(encoded_figures["age_divergence"], "Age Distribution Divergence"))
 
     parts.append("</section>")
     return "\n".join(parts)
@@ -585,10 +574,14 @@ def _build_comparison_section(
 
     # Side-by-side accuracy table
     has_delta = "delta_vs_baseline" in mape.columns
-    model_summary = mape.groupby("model_name").agg(
-        mean_mape=("value", "mean"),
-        **({"mean_delta": ("delta_vs_baseline", "mean")} if has_delta else {}),
-    ).reset_index()
+    model_summary = (
+        mape.groupby("model_name")
+        .agg(
+            mean_mape=("value", "mean"),
+            **({"mean_delta": ("delta_vs_baseline", "mean")} if has_delta else {}),
+        )
+        .reset_index()
+    )
 
     rows = []
     for _, row in model_summary.iterrows():
@@ -605,9 +598,11 @@ def _build_comparison_section(
     parts.append(_render_table(rows, sortable=True, raw_html=True))
 
     # Comparison charts
-    for fig_name in ("comparison_horizon", "stability_scatter"):
-        if fig_name in encoded_figures:
-            parts.append(_embed_image(encoded_figures[fig_name], fig_name))
+    parts.extend(
+        _embed_image(encoded_figures[fig_name], fig_name)
+        for fig_name in ("comparison_horizon", "stability_scatter")
+        if fig_name in encoded_figures
+    )
 
     parts.append("</section>")
     return "\n".join(parts)
@@ -646,7 +641,7 @@ def _build_sensitivity_section(
     # Parameter sweeps
     sweeps = sensitivity.get("parameter_sweeps")
     if isinstance(sweeps, dict):
-        for param_name, sweep_df in sweeps.items():
+        for param_name in sweeps:
             fig_key = f"param_response_{param_name}"
             if fig_key in encoded_figures:
                 parts.append(f"<h3>Parameter Response: {_esc(param_name)}</h3>")
@@ -675,10 +670,19 @@ def _build_appendix(
           <div class="appendix-table-wrapper">
         """)
         display_cols = [
-            c for c in accuracy_df.columns
-            if c in (
-                "run_id", "metric_name", "metric_group", "geography",
-                "geography_group", "target", "horizon", "value", "model_name",
+            c
+            for c in accuracy_df.columns
+            if c
+            in (
+                "run_id",
+                "metric_name",
+                "metric_group",
+                "geography",
+                "geography_group",
+                "target",
+                "horizon",
+                "value",
+                "model_name",
             )
         ]
         rows = []
@@ -740,9 +744,7 @@ def _build_toc(sections: list[str]) -> str:
         if toc_match and id_match:
             label = toc_match.group(1)
             section_id = id_match.group(1)
-            items.append(
-                f'<li><a href="#{section_id}">{_esc(label)}</a></li>'
-            )
+            items.append(f'<li><a href="#{section_id}">{_esc(label)}</a></li>')
 
     if not items:
         return ""
@@ -765,10 +767,7 @@ def _build_toc(sections: list[str]) -> str:
 def _esc(text: str) -> str:
     """Escape HTML special characters."""
     return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
+        text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
     )
 
 

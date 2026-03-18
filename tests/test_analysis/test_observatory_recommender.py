@@ -7,8 +7,6 @@ identification, parameter sensitivity summary, formatting, and edge cases.
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pandas as pd
@@ -17,14 +15,13 @@ import pytest
 from cohort_projections.analysis.observatory.comparator import ObservatoryComparator
 from cohort_projections.analysis.observatory.recommender import (
     CONFIG_ONLY_PARAMS,
-    Recommendation,
     ObservatoryRecommender,
+    Recommendation,
     _is_numeric,
     _linear_trend,
     _next_step,
     _numeric_values_sorted,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -40,7 +37,9 @@ def _make_store_and_comparator(
     """Build a mock store + real comparator for testing."""
     store = MagicMock()
     store.get_consolidated_scorecards.return_value = scorecards
-    store.get_run_ids.return_value = sorted(scorecards["run_id"].unique().tolist()) if not scorecards.empty else []
+    store.get_run_ids.return_value = (
+        sorted(scorecards["run_id"].unique().tolist()) if not scorecards.empty else []
+    )
 
     # Default manifest/config setup
     if manifests is None:
@@ -330,13 +329,25 @@ class TestSuggestNextExperiments:
         scorecards = pd.DataFrame([CHAMPION, EXP_A, EXP_B])
         manifests = {
             "run-champ": {"champion_method_id": "m2026", "methods": [{"method_id": "m2026"}]},
-            "run-a": {"champion_method_id": "m2026", "methods": [{"method_id": "m2026"}, {"method_id": "m2026r1"}]},
-            "run-b": {"champion_method_id": "m2026", "methods": [{"method_id": "m2026"}, {"method_id": "m2026r1"}]},
+            "run-a": {
+                "champion_method_id": "m2026",
+                "methods": [{"method_id": "m2026"}, {"method_id": "m2026r1"}],
+            },
+            "run-b": {
+                "champion_method_id": "m2026",
+                "methods": [{"method_id": "m2026"}, {"method_id": "m2026r1"}],
+            },
         }
         run_configs = {
             "run-champ": {"m2026": {"college_blend_factor": 0.5}},
-            "run-a": {"m2026": {"college_blend_factor": 0.5}, "m2026r1": {"college_blend_factor": 0.7}},
-            "run-b": {"m2026": {"college_blend_factor": 0.5}, "m2026r1": {"college_blend_factor": 0.9}},
+            "run-a": {
+                "m2026": {"college_blend_factor": 0.5},
+                "m2026r1": {"college_blend_factor": 0.7},
+            },
+            "run-b": {
+                "m2026": {"college_blend_factor": 0.5},
+                "m2026r1": {"college_blend_factor": 0.9},
+            },
         }
         experiment_log = pd.DataFrame(
             [
@@ -363,12 +374,22 @@ class TestUntestedCatalog:
     def test_surfaces_untested_entries(self) -> None:
         store, comparator = _make_store_and_comparator(pd.DataFrame())
         catalog = [
-            {"slug": "exp-x", "parameter": "alpha", "status": "untested", "tier": 1, "hypothesis": "test"},
-            {"slug": "exp-y", "parameter": "beta", "status": "passed_all_gates", "tier": 2, "hypothesis": "done"},
+            {
+                "slug": "exp-x",
+                "parameter": "alpha",
+                "status": "untested",
+                "tier": 1,
+                "hypothesis": "test",
+            },
+            {
+                "slug": "exp-y",
+                "parameter": "beta",
+                "status": "passed_all_gates",
+                "tier": 2,
+                "hypothesis": "done",
+            },
         ]
-        rec = ObservatoryRecommender(
-            store=store, comparator=comparator, variant_catalog=catalog
-        )
+        rec = ObservatoryRecommender(store=store, comparator=comparator, variant_catalog=catalog)
         recs = rec._untested_catalog_recommendations()
         params = [r.parameter for r in recs]
         assert "alpha" in params
@@ -381,9 +402,17 @@ class TestUntestedCatalog:
 
     def test_catalog_as_dataframe(self) -> None:
         store, comparator = _make_store_and_comparator(pd.DataFrame())
-        catalog_df = pd.DataFrame([
-            {"slug": "exp-x", "parameter": "alpha", "status": "untested", "tier": 1, "hypothesis": "h"},
-        ])
+        catalog_df = pd.DataFrame(
+            [
+                {
+                    "slug": "exp-x",
+                    "parameter": "alpha",
+                    "status": "untested",
+                    "tier": 1,
+                    "hypothesis": "h",
+                },
+            ]
+        )
         # Pass catalog_df directly; the constructor uses `variant_catalog or []`
         # which fails for DataFrames, so we must set it after construction.
         rec = ObservatoryRecommender(store=store, comparator=comparator)
@@ -413,9 +442,7 @@ class TestUntestedCatalog:
                 "value": 0.7,
             },
         ]
-        rec = ObservatoryRecommender(
-            store=store, comparator=comparator, variant_catalog=catalog
-        )
+        rec = ObservatoryRecommender(store=store, comparator=comparator, variant_catalog=catalog)
         recs = rec._untested_catalog_recommendations()
         assert len(recs) == 2
         assert {r.requires_code_change for r in recs} == {False, True}
@@ -462,20 +489,39 @@ class TestInteractionRecommendations:
 
     def test_with_improving_params(self) -> None:
         """Two independently improving parameters should produce an interaction rec."""
-        sensitivity = pd.DataFrame([
-            {"parameter": "college_blend_factor", "value": 0.7, "county_mape_overall_delta": -0.1},
-            {"parameter": "convergence_medium_hold", "value": 3, "county_mape_overall_delta": -0.2},
-        ])
+        sensitivity = pd.DataFrame(
+            [
+                {
+                    "parameter": "college_blend_factor",
+                    "value": 0.7,
+                    "county_mape_overall_delta": -0.1,
+                },
+                {
+                    "parameter": "convergence_medium_hold",
+                    "value": 3,
+                    "county_mape_overall_delta": -0.2,
+                },
+            ]
+        )
         store, comparator = _make_store_and_comparator(pd.DataFrame())
         rec = ObservatoryRecommender(store=store, comparator=comparator)
         recs = rec._interaction_recommendations(sensitivity)
         assert len(recs) == 1
-        assert "college_blend_factor" in recs[0].parameter and "convergence_medium_hold" in recs[0].parameter
+        assert (
+            "college_blend_factor" in recs[0].parameter
+            and "convergence_medium_hold" in recs[0].parameter
+        )
 
     def test_no_improving_params(self) -> None:
-        sensitivity = pd.DataFrame([
-            {"parameter": "college_blend_factor", "value": 0.7, "county_mape_overall_delta": 0.1},
-        ])
+        sensitivity = pd.DataFrame(
+            [
+                {
+                    "parameter": "college_blend_factor",
+                    "value": 0.7,
+                    "county_mape_overall_delta": 0.1,
+                },
+            ]
+        )
         store, comparator = _make_store_and_comparator(pd.DataFrame())
         rec = ObservatoryRecommender(store=store, comparator=comparator)
         assert rec._interaction_recommendations(sensitivity) == []
@@ -496,11 +542,13 @@ class TestDiminishingReturns:
 
     def test_plateaued_parameter(self) -> None:
         """Parameter with flat slope should be flagged."""
-        sensitivity = pd.DataFrame([
-            {"parameter": "alpha", "value": 0.5, "county_mape_overall_delta": -0.01},
-            {"parameter": "alpha", "value": 0.6, "county_mape_overall_delta": -0.01},
-            {"parameter": "alpha", "value": 0.7, "county_mape_overall_delta": -0.01},
-        ])
+        sensitivity = pd.DataFrame(
+            [
+                {"parameter": "alpha", "value": 0.5, "county_mape_overall_delta": -0.01},
+                {"parameter": "alpha", "value": 0.6, "county_mape_overall_delta": -0.01},
+                {"parameter": "alpha", "value": 0.7, "county_mape_overall_delta": -0.01},
+            ]
+        )
         store, comparator = _make_store_and_comparator(pd.DataFrame())
         rec = ObservatoryRecommender(
             store=store, comparator=comparator, config={"plateau_threshold": 0.02}
@@ -512,10 +560,12 @@ class TestDiminishingReturns:
 
     def test_not_enough_points(self) -> None:
         """Fewer than 3 points should yield no flags."""
-        sensitivity = pd.DataFrame([
-            {"parameter": "alpha", "value": 0.5, "county_mape_overall_delta": -0.1},
-            {"parameter": "alpha", "value": 0.7, "county_mape_overall_delta": -0.3},
-        ])
+        sensitivity = pd.DataFrame(
+            [
+                {"parameter": "alpha", "value": 0.5, "county_mape_overall_delta": -0.1},
+                {"parameter": "alpha", "value": 0.7, "county_mape_overall_delta": -0.3},
+            ]
+        )
         store, comparator = _make_store_and_comparator(pd.DataFrame())
         rec = ObservatoryRecommender(store=store, comparator=comparator)
         assert rec._diminishing_returns_flags(sensitivity) == []

@@ -220,9 +220,7 @@ class TestIsConfigDeltaTested:
             _make_entry(config_delta_summary="college_blend_factor=0.7"),
             log_path=log_path,
         )
-        assert is_config_delta_tested(
-            {"college_blend_factor": 0.7}, log_path=log_path
-        )
+        assert is_config_delta_tested({"college_blend_factor": 0.7}, log_path=log_path)
 
     def test_no_match_in_log(self, tmp_path: Path) -> None:
         log_path = tmp_path / "log.csv"
@@ -230,12 +228,8 @@ class TestIsConfigDeltaTested:
             _make_entry(config_delta_summary="college_blend_factor=0.5"),
             log_path=log_path,
         )
-        assert not is_config_delta_tested(
-            {"college_blend_factor": 0.7}, log_path=log_path
-        )
+        assert not is_config_delta_tested({"college_blend_factor": 0.7}, log_path=log_path)
 
     def test_nonexistent_log(self, tmp_path: Path) -> None:
         log_path = tmp_path / "nonexistent.csv"
-        assert not is_config_delta_tested(
-            {"college_blend_factor": 0.7}, log_path=log_path
-        )
+        assert not is_config_delta_tested({"college_blend_factor": 0.7}, log_path=log_path)

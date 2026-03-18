@@ -35,9 +35,24 @@ _DEFAULT_REALISM_CONFIG: dict[str, Any] = {
 
 # Standard 5-year age groups used by the projection system
 _STANDARD_AGE_GROUPS = [
-    "0-4", "5-9", "10-14", "15-19", "20-24", "25-29",
-    "30-34", "35-39", "40-44", "45-49", "50-54", "55-59",
-    "60-64", "65-69", "70-74", "75-79", "80-84", "85+",
+    "0-4",
+    "5-9",
+    "10-14",
+    "15-19",
+    "20-24",
+    "25-29",
+    "30-34",
+    "35-39",
+    "40-44",
+    "45-49",
+    "50-54",
+    "55-59",
+    "60-64",
+    "65-69",
+    "70-74",
+    "75-79",
+    "80-84",
+    "85+",
 ]
 
 # Mapping from age group to the next cohort age group (5-year shift)
@@ -95,25 +110,29 @@ def _compute_divergence_metrics(
     notes = ""
     if max_jsd is not None:
         notes = "WARN" if jsd > max_jsd else "OK"
-    records.append(_realism_diagnostic(
-        run_id=run_id,
-        metric_name=jsd_metric_name,
-        geography=geography,
-        target=target,
-        value=jsd,
-        horizon=horizon,
-        notes=notes,
-    ))
+    records.append(
+        _realism_diagnostic(
+            run_id=run_id,
+            metric_name=jsd_metric_name,
+            geography=geography,
+            target=target,
+            value=jsd,
+            horizon=horizon,
+            notes=notes,
+        )
+    )
 
     kld = kullback_leibler_divergence(act_dist, proj_dist)
-    records.append(_realism_diagnostic(
-        run_id=run_id,
-        metric_name=kld_metric_name,
-        geography=geography,
-        target=target,
-        value=kld,
-        horizon=horizon,
-    ))
+    records.append(
+        _realism_diagnostic(
+            run_id=run_id,
+            metric_name=kld_metric_name,
+            geography=geography,
+            target=target,
+            value=kld,
+            horizon=horizon,
+        )
+    )
 
     return records
 
@@ -220,34 +239,40 @@ class StructuralRealismModule:
                 act = hslice["actual_component_value"].values
 
                 mape_val = mape(proj, act)
-                records.append(_realism_diagnostic(
-                    run_id=run_id,
-                    metric_name=f"{component}_mape",
-                    geography="all",
-                    target=component,
-                    value=mape_val,
-                    horizon=int(horizon_val),
-                ))
+                records.append(
+                    _realism_diagnostic(
+                        run_id=run_id,
+                        metric_name=f"{component}_mape",
+                        geography="all",
+                        target=component,
+                        value=mape_val,
+                        horizon=int(horizon_val),
+                    )
+                )
 
                 mspe_val = mean_signed_percentage_error(proj, act)
-                records.append(_realism_diagnostic(
-                    run_id=run_id,
-                    metric_name=f"{component}_mspe",
-                    geography="all",
-                    target=component,
-                    value=mspe_val,
-                    horizon=int(horizon_val),
-                ))
+                records.append(
+                    _realism_diagnostic(
+                        run_id=run_id,
+                        metric_name=f"{component}_mspe",
+                        geography="all",
+                        target=component,
+                        value=mspe_val,
+                        horizon=int(horizon_val),
+                    )
+                )
 
                 mae_val = mae(proj, act)
-                records.append(_realism_diagnostic(
-                    run_id=run_id,
-                    metric_name=f"{component}_mae",
-                    geography="all",
-                    target=component,
-                    value=mae_val,
-                    horizon=int(horizon_val),
-                ))
+                records.append(
+                    _realism_diagnostic(
+                        run_id=run_id,
+                        metric_name=f"{component}_mae",
+                        geography="all",
+                        target=component,
+                        value=mae_val,
+                        horizon=int(horizon_val),
+                    )
+                )
 
         return pd.DataFrame(records)
 
@@ -308,47 +333,53 @@ class StructuralRealismModule:
             horizon = int(group["horizon"].iloc[0]) if "horizon" in group.columns else None
 
             # JSD and KLD via shared helper
-            records.extend(_compute_divergence_metrics(
-                run_id=run_id,
-                proj_dist=proj_dist,
-                act_dist=act_dist,
-                geography=str(geo),
-                horizon=horizon,
-                jsd_metric_name="age_jsd",
-                kld_metric_name="age_kld",
-                target="population",
-                max_jsd=self.max_jsd,
-            ))
+            records.extend(
+                _compute_divergence_metrics(
+                    run_id=run_id,
+                    proj_dist=proj_dist,  # type: ignore[arg-type]
+                    act_dist=act_dist,  # type: ignore[arg-type]
+                    geography=str(geo),
+                    horizon=horizon,
+                    jsd_metric_name="age_jsd",
+                    kld_metric_name="age_kld",
+                    target="population",
+                    max_jsd=self.max_jsd,
+                )
+            )
 
             # Five-year age-band MAPE
             for _, row in group.iterrows():
                 if row["actual_value"] != 0:
-                    band_ape = abs(
-                        (row["projected_value"] - row["actual_value"])
-                        / row["actual_value"]
-                    ) * 100
-                    records.append(_realism_diagnostic(
-                        run_id=run_id,
-                        metric_name=f"age_band_ape_{row['age_group']}",
-                        geography=str(geo),
-                        target="population",
-                        value=float(band_ape),
-                        horizon=horizon,
-                    ))
+                    band_ape = (
+                        abs((row["projected_value"] - row["actual_value"]) / row["actual_value"])
+                        * 100
+                    )
+                    records.append(
+                        _realism_diagnostic(
+                            run_id=run_id,
+                            metric_name=f"age_band_ape_{row['age_group']}",
+                            geography=str(geo),
+                            target="population",
+                            value=float(band_ape),
+                            horizon=horizon,
+                        )
+                    )
 
             # Age-schedule smoothness (second-difference roughness)
-            if len(proj_dist) >= 3 and proj_dist.sum() > 0:
-                normed = proj_dist / proj_dist.sum()
+            if len(proj_dist) >= 3 and proj_dist.sum() > 0:  # type: ignore[union-attr]
+                normed = proj_dist / proj_dist.sum()  # type: ignore[union-attr]
                 second_diff = np.diff(normed, n=2)
                 roughness = float(np.sqrt(np.mean(second_diff**2)))
-                records.append(_realism_diagnostic(
-                    run_id=run_id,
-                    metric_name="age_roughness",
-                    geography=str(geo),
-                    target="population",
-                    value=roughness,
-                    horizon=horizon,
-                ))
+                records.append(
+                    _realism_diagnostic(
+                        run_id=run_id,
+                        metric_name="age_roughness",
+                        geography=str(geo),
+                        target="population",
+                        value=roughness,
+                        horizon=horizon,
+                    )
+                )
 
         return pd.DataFrame(records)
 
@@ -418,15 +449,17 @@ class StructuralRealismModule:
                         residual = abs(ratio - 1.0)
 
                         flag = "WARN" if residual > self.max_cohort_residual else "OK"
-                        records.append(_realism_diagnostic(
-                            run_id=run_id,
-                            metric_name="cohort_survival_residual",
-                            geography=str(geo),
-                            target=f"{age_group}->{successor}",
-                            value=residual,
-                            horizon=int(next_year - years[0]),
-                            notes=f"sex={sex}, ratio={ratio:.4f}, {flag}",
-                        ))
+                        records.append(
+                            _realism_diagnostic(
+                                run_id=run_id,
+                                metric_name="cohort_survival_residual",
+                                geography=str(geo),
+                                target=f"{age_group}->{successor}",
+                                value=residual,
+                                horizon=int(next_year - years[0]),
+                                notes=f"sex={sex}, ratio={ratio:.4f}, {flag}",
+                            )
+                        )
 
         return pd.DataFrame(records)
 
@@ -522,30 +555,32 @@ class StructuralRealismModule:
 
                 # Sum components for the interval
                 interval_comp = geo_comp[geo_comp["year"] == t1]
-                births = interval_comp[
-                    interval_comp["component"] == "births"
-                ]["projected_component_value"].sum()
-                deaths = interval_comp[
-                    interval_comp["component"] == "deaths"
-                ]["projected_component_value"].sum()
-                net_mig = interval_comp[
-                    interval_comp["component"] == "net_migration"
-                ]["projected_component_value"].sum()
+                births = interval_comp[interval_comp["component"] == "births"][
+                    "projected_component_value"
+                ].sum()
+                deaths = interval_comp[interval_comp["component"] == "deaths"][
+                    "projected_component_value"
+                ].sum()
+                net_mig = interval_comp[interval_comp["component"] == "net_migration"][
+                    "projected_component_value"
+                ].sum()
 
                 expected = p_t + births - deaths + net_mig
                 residual = p_t1 - expected
                 rel_residual = abs(residual) / max(abs(p_t), 1.0)
 
                 flag = "FAIL" if rel_residual > 0.001 else "OK"
-                records.append(_realism_diagnostic(
-                    run_id=run_id,
-                    metric_name="accounting_identity_residual",
-                    geography=str(geo),
-                    target="population",
-                    value=rel_residual,
-                    horizon=t1 - years[0],
-                    notes=f"year={t}->{t1}, abs_residual={residual:.1f}, {flag}",
-                ))
+                records.append(
+                    _realism_diagnostic(
+                        run_id=run_id,
+                        metric_name="accounting_identity_residual",
+                        geography=str(geo),
+                        target="population",
+                        value=rel_residual,
+                        horizon=t1 - years[0],
+                        notes=f"year={t}->{t1}, abs_residual={residual:.1f}, {flag}",
+                    )
+                )
 
         return records
 
@@ -578,16 +613,18 @@ class StructuralRealismModule:
 
             diff_pct = abs(detail_sum - reported_total) / abs(reported_total) * 100
             flag = "FAIL" if diff_pct > 0.1 else "OK"
-            records.append(_realism_diagnostic(
-                run_id=run_id,
-                metric_name="age_sex_total_mismatch_pct",
-                geography=str(geo),
-                target="population",
-                value=diff_pct,
-                horizon=int(group["horizon"].iloc[0]) if "horizon" in group.columns else None,
-                notes=f"sex={sex}, detail_sum={detail_sum:.0f}, "
-                      f"total={reported_total:.0f}, {flag}",
-            ))
+            records.append(
+                _realism_diagnostic(
+                    run_id=run_id,
+                    metric_name="age_sex_total_mismatch_pct",
+                    geography=str(geo),
+                    target="population",
+                    value=diff_pct,
+                    horizon=int(group["horizon"].iloc[0]) if "horizon" in group.columns else None,
+                    notes=f"sex={sex}, detail_sum={detail_sum:.0f}, "
+                    f"total={reported_total:.0f}, {flag}",
+                )
+            )
 
         return records
 
@@ -617,26 +654,24 @@ class StructuralRealismModule:
             return records
 
         for year in state_rows["year"].unique():
-            state_val = float(
-                state_rows[state_rows["year"] == year]["projected_value"].sum()
-            )
-            county_sum = float(
-                county_rows[county_rows["year"] == year]["projected_value"].sum()
-            )
+            state_val = float(state_rows[state_rows["year"] == year]["projected_value"].sum())
+            county_sum = float(county_rows[county_rows["year"] == year]["projected_value"].sum())
             if state_val == 0:
                 continue
             diff_pct = abs(county_sum - state_val) / abs(state_val) * 100
             flag = "FAIL" if diff_pct > 0.1 else "OK"
-            records.append(_realism_diagnostic(
-                run_id=run_id,
-                metric_name="county_state_total_mismatch_pct",
-                geography="state",
-                target="population",
-                value=diff_pct,
-                horizon=int(state_rows[state_rows["year"] == year]["horizon"].iloc[0]),
-                notes=f"year={year}, county_sum={county_sum:.0f}, "
-                      f"state={state_val:.0f}, {flag}",
-            ))
+            records.append(
+                _realism_diagnostic(
+                    run_id=run_id,
+                    metric_name="county_state_total_mismatch_pct",
+                    geography="state",
+                    target="population",
+                    value=diff_pct,
+                    horizon=int(state_rows[state_rows["year"] == year]["horizon"].iloc[0]),
+                    notes=f"year={year}, county_sum={county_sum:.0f}, "
+                    f"state={state_val:.0f}, {flag}",
+                )
+            )
 
         return records
 
@@ -659,9 +694,7 @@ class StructuralRealismModule:
         ]
         pop_lookup: dict[tuple[str, int], float] = {}
         for _, row in total_pop.iterrows():
-            pop_lookup[(str(row["geography"]), int(row["year"]))] = float(
-                row["projected_value"]
-            )
+            pop_lookup[(str(row["geography"]), int(row["year"]))] = float(row["projected_value"])
 
         for _, row in components_df.iterrows():
             pop_val = pop_lookup.get((str(row["geography"]), int(row["year"])))
@@ -680,15 +713,17 @@ class StructuralRealismModule:
                 out_of_bounds = rate < lo or rate > hi
 
             if out_of_bounds:
-                records.append(_realism_diagnostic(
-                    run_id=run_id,
-                    metric_name=f"{component}_rate_out_of_bounds",
-                    geography=str(row["geography"]),
-                    target=component,
-                    value=rate,
-                    horizon=int(row["horizon"]),
-                    notes=f"year={row['year']}, bounds=[{lo:.2f}, {hi:.2f}]",
-                ))
+                records.append(
+                    _realism_diagnostic(
+                        run_id=run_id,
+                        metric_name=f"{component}_rate_out_of_bounds",
+                        geography=str(row["geography"]),
+                        target=component,
+                        value=rate,
+                        horizon=int(row["horizon"]),
+                        notes=f"year={row['year']}, bounds=[{lo:.2f}, {hi:.2f}]",
+                    )
+                )
 
         return records
 
@@ -746,46 +781,52 @@ class StructuralRealismModule:
 
             # Population size distribution JSD via shared helper
             # (only JSD is used here; KLD record is also emitted for consistency)
-            records.extend(_compute_divergence_metrics(
-                run_id=run_id,
-                proj_dist=proj_sizes,
-                act_dist=act_sizes,
-                geography="all_counties",
-                horizon=horizon,
-                jsd_metric_name="county_size_dist_jsd",
-                kld_metric_name="county_size_dist_kld",
-                target="population",
-            ))
+            records.extend(
+                _compute_divergence_metrics(
+                    run_id=run_id,
+                    proj_dist=proj_sizes,
+                    act_dist=act_sizes,
+                    geography="all_counties",
+                    horizon=horizon,
+                    jsd_metric_name="county_size_dist_jsd",
+                    kld_metric_name="county_size_dist_kld",
+                    target="population",
+                )
+            )
 
             # Variance ratio of population sizes
             proj_var = float(np.var(proj_sizes))
             act_var = float(np.var(act_sizes))
             if act_var > 0:
                 variance_ratio = proj_var / act_var
-                records.append(_realism_diagnostic(
-                    run_id=run_id,
-                    metric_name="county_size_variance_ratio",
-                    geography="all_counties",
-                    target="population",
-                    value=variance_ratio,
-                    horizon=horizon,
-                    notes="<1 = under-dispersed, >1 = over-dispersed",
-                ))
+                records.append(
+                    _realism_diagnostic(
+                        run_id=run_id,
+                        metric_name="county_size_variance_ratio",
+                        geography="all_counties",
+                        target="population",
+                        value=variance_ratio,
+                        horizon=horizon,
+                        notes="<1 = under-dispersed, >1 = over-dispersed",
+                    )
+                )
 
             # Skewness comparison
             from scipy.stats import skew as scipy_skew  # noqa: PLC0415
 
             proj_skew = float(scipy_skew(proj_sizes))
             act_skew = float(scipy_skew(act_sizes))
-            records.append(_realism_diagnostic(
-                run_id=run_id,
-                metric_name="county_size_skewness_diff",
-                geography="all_counties",
-                target="population",
-                value=proj_skew - act_skew,
-                horizon=horizon,
-                notes=f"proj_skew={proj_skew:.3f}, act_skew={act_skew:.3f}",
-            ))
+            records.append(
+                _realism_diagnostic(
+                    run_id=run_id,
+                    metric_name="county_size_skewness_diff",
+                    geography="all_counties",
+                    target="population",
+                    value=proj_skew - act_skew,
+                    horizon=horizon,
+                    notes=f"proj_skew={proj_skew:.3f}, act_skew={act_skew:.3f}",
+                )
+            )
 
             # Growth rate distribution (if base_value available)
             if "base_value" in yslice.columns:
@@ -799,26 +840,30 @@ class StructuralRealismModule:
                     pg_var = float(np.var(proj_growth))
                     ag_var = float(np.var(act_growth))
                     if ag_var > 0:
-                        records.append(_realism_diagnostic(
-                            run_id=run_id,
-                            metric_name="county_growth_variance_ratio",
-                            geography="all_counties",
-                            target="growth_rate",
-                            value=pg_var / ag_var,
-                            horizon=horizon,
-                            notes="<1 = under-dispersed, >1 = over-dispersed",
-                        ))
+                        records.append(
+                            _realism_diagnostic(
+                                run_id=run_id,
+                                metric_name="county_growth_variance_ratio",
+                                geography="all_counties",
+                                target="growth_rate",
+                                value=pg_var / ag_var,
+                                horizon=horizon,
+                                notes="<1 = under-dispersed, >1 = over-dispersed",
+                            )
+                        )
 
                     # Growth rate skewness difference
                     pg_skew = float(scipy_skew(proj_growth))
                     ag_skew = float(scipy_skew(act_growth))
-                    records.append(_realism_diagnostic(
-                        run_id=run_id,
-                        metric_name="county_growth_skewness_diff",
-                        geography="all_counties",
-                        target="growth_rate",
-                        value=pg_skew - ag_skew,
-                        horizon=horizon,
-                    ))
+                    records.append(
+                        _realism_diagnostic(
+                            run_id=run_id,
+                            metric_name="county_growth_skewness_diff",
+                            geography="all_counties",
+                            target="growth_rate",
+                            value=pg_skew - ag_skew,
+                            horizon=horizon,
+                        )
+                    )
 
         return pd.DataFrame(records)

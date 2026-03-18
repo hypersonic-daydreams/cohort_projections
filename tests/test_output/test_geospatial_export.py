@@ -352,9 +352,7 @@ class TestMissingGeopandas:
 
     def test_import_error_when_geopandas_missing(self, tmp_path: Path) -> None:
         """write_projection_shapefile should raise ImportError without geopandas."""
-        with patch(
-            "cohort_projections.output.writers.GEOPANDAS_AVAILABLE", False
-        ):
+        with patch("cohort_projections.output.writers.GEOPANDAS_AVAILABLE", False):
             from cohort_projections.output.writers import write_projection_shapefile
 
             with pytest.raises(ImportError, match="geopandas"):

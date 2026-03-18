@@ -44,6 +44,7 @@ from scripts.data.build_race_distribution_from_census import (
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def statewide_distribution():
     """
@@ -54,13 +55,15 @@ def statewide_distribution():
     for agegrp_code in sorted(AGEGRP_MAP.keys()):
         age_group = AGEGRP_MAP[agegrp_code]
         for race_ethnicity, sex, _census_cols in RACE_COLUMN_MAP:
-            rows.append({
-                "age_group": age_group,
-                "sex": sex,
-                "race_ethnicity": race_ethnicity,
-                "estimated_count": 100.0,
-                "proportion": 1.0 / EXPECTED_ROWS,
-            })
+            rows.append(
+                {
+                    "age_group": age_group,
+                    "sex": sex,
+                    "race_ethnicity": race_ethnicity,
+                    "estimated_count": 100.0,
+                    "proportion": 1.0 / EXPECTED_ROWS,
+                }
+            )
     return pd.DataFrame(rows)
 
 
@@ -83,9 +86,9 @@ def synthetic_census_csv(tmp_path):
 
     records = []
     counties = {
-        1: {"total_scale": 10000},   # Large county
-        3: {"total_scale": 3000},    # Small county
-        5: {"total_scale": 500},     # Tiny county
+        1: {"total_scale": 10000},  # Large county
+        3: {"total_scale": 3000},  # Small county
+        5: {"total_scale": 500},  # Tiny county
     }
 
     for county_code, info in counties.items():
@@ -155,13 +158,15 @@ def synthetic_county_distributions_df():
                     w = weights["aian_weight"]
                 else:
                     w = 0.045  # Spread remaining among 4 other groups
-                county_rows.append({
-                    "fips": fips,
-                    "age_group": age_group,
-                    "sex": sex,
-                    "race": race_ethnicity,
-                    "proportion": w / EXPECTED_ROWS,
-                })
+                county_rows.append(
+                    {
+                        "fips": fips,
+                        "age_group": age_group,
+                        "sex": sex,
+                        "race": race_ethnicity,
+                        "proportion": w / EXPECTED_ROWS,
+                    }
+                )
                 total_weight += w / EXPECTED_ROWS
 
         # Normalize
@@ -216,6 +221,7 @@ def county_dist_disabled_config(county_dist_enabled_config):
 # ---------------------------------------------------------------------------
 # 1. Ingestion tests: build_county_distributions
 # ---------------------------------------------------------------------------
+
 
 class TestBuildCountyDistributions:
     """Tests for build_county_distributions from the ingestion script."""
@@ -315,12 +321,16 @@ class TestBuildCountyDistributions:
         )
 
         # County 38005 distributions should differ between blended and unblended
-        blended_005 = result_blended[result_blended["fips"] == "38005"].sort_values(
-            ["age_group", "sex", "race"]
-        ).reset_index(drop=True)
-        unblended_005 = result_unblended[result_unblended["fips"] == "38005"].sort_values(
-            ["age_group", "sex", "race"]
-        ).reset_index(drop=True)
+        blended_005 = (
+            result_blended[result_blended["fips"] == "38005"]
+            .sort_values(["age_group", "sex", "race"])
+            .reset_index(drop=True)
+        )
+        unblended_005 = (
+            result_unblended[result_unblended["fips"] == "38005"]
+            .sort_values(["age_group", "sex", "race"])
+            .reset_index(drop=True)
+        )
 
         # Distributions should differ (blending moves toward uniform statewide)
         diff = (blended_005["proportion"] - unblended_005["proportion"]).abs().sum()
@@ -329,9 +339,7 @@ class TestBuildCountyDistributions:
             f"but total absolute difference is only {diff:.6f}"
         )
 
-    def test_zero_threshold_disables_blending(
-        self, synthetic_census_csv, statewide_distribution
-    ):
+    def test_zero_threshold_disables_blending(self, synthetic_census_csv, statewide_distribution):
         """When blend_threshold=0, no county should be blended."""
         result = build_county_distributions(
             synthetic_census_csv,
@@ -358,9 +366,7 @@ class TestBuildCountyDistributions:
                 f"County {fips} missing age groups: {expected_age_groups - county_ages}"
             )
 
-    def test_all_race_categories_present(
-        self, synthetic_census_csv, statewide_distribution
-    ):
+    def test_all_race_categories_present(self, synthetic_census_csv, statewide_distribution):
         """Each county should have all 6 race categories."""
         result = build_county_distributions(
             synthetic_census_csv,
@@ -392,12 +398,11 @@ class TestBuildCountyDistributions:
 # 2. Validation tests: validate_county_distributions
 # ---------------------------------------------------------------------------
 
+
 class TestValidateCountyDistributions:
     """Tests for validate_county_distributions from the ingestion script."""
 
-    def test_valid_distribution_passes(
-        self, synthetic_census_csv, statewide_distribution
-    ):
+    def test_valid_distribution_passes(self, synthetic_census_csv, statewide_distribution):
         """A correctly-built distribution should pass validation."""
         result = build_county_distributions(
             synthetic_census_csv,
@@ -425,6 +430,7 @@ class TestValidateCountyDistributions:
 # ---------------------------------------------------------------------------
 # 3. Loader tests: load_county_age_sex_race_distribution
 # ---------------------------------------------------------------------------
+
 
 class TestLoadCountyDistribution:
     """Tests for load_county_age_sex_race_distribution."""
@@ -493,9 +499,7 @@ class TestLoadCountyDistribution:
         )
         assert result is not None
         prop_sum = result["proportion"].sum()
-        assert abs(prop_sum - 1.0) < 1e-4, (
-            f"Proportions sum to {prop_sum}, expected 1.0"
-        )
+        assert abs(prop_sum - 1.0) < 1e-4, f"Proportions sum to {prop_sum}, expected 1.0"
 
     def test_age_range_correct(
         self,
@@ -547,9 +551,7 @@ class TestLoadCountyDistribution:
             "Hispanic (any race)",
         }
         actual_races = set(result["race"].unique())
-        assert actual_races == expected_races, (
-            f"Missing races: {expected_races - actual_races}"
-        )
+        assert actual_races == expected_races, f"Missing races: {expected_races - actual_races}"
 
     def test_fips_padding(
         self,
@@ -580,9 +582,7 @@ class TestLoadCountyDistribution:
         assert result is not None
         # 91 ages x 2 sexes x 6 races = 1092
         expected_rows = 91 * 2 * 6
-        assert len(result) == expected_rows, (
-            f"Expected {expected_rows} rows, got {len(result)}"
-        )
+        assert len(result) == expected_rows, f"Expected {expected_rows} rows, got {len(result)}"
 
 
 class TestLoadCountyDistributionsFile:
@@ -609,6 +609,7 @@ class TestLoadCountyDistributionsFile:
 # 4. Integration tests: real parquet file on disk
 # ---------------------------------------------------------------------------
 
+
 class TestCountyDistributionsIntegration:
     """
     Integration tests using the real county distributions parquet file.
@@ -622,8 +623,7 @@ class TestCountyDistributionsIntegration:
         """Load the real county distributions parquet file."""
         project_root = Path(__file__).resolve().parent.parent.parent
         parquet_path = (
-            project_root / "data" / "processed"
-            / "county_age_sex_race_distributions.parquet"
+            project_root / "data" / "processed" / "county_age_sex_race_distributions.parquet"
         )
         if not parquet_path.exists():
             pytest.skip(
@@ -653,9 +653,7 @@ class TestCountyDistributionsIntegration:
         """Proportions must sum to 1.0 for each county."""
         county_sums = real_county_dist.groupby("fips")["proportion"].sum()
         bad = county_sums[abs(county_sums - 1.0) > 1e-6]
-        assert len(bad) == 0, (
-            f"Counties with proportions not summing to 1.0: {dict(bad)}"
-        )
+        assert len(bad) == 0, f"Counties with proportions not summing to 1.0: {dict(bad)}"
 
     def test_no_negative_proportions(self, real_county_dist):
         """No proportions should be negative."""
@@ -676,9 +674,7 @@ class TestCountyDistributionsIntegration:
         """
         sioux = real_county_dist[real_county_dist["fips"] == "38085"]
         aian_prop = sioux[sioux["race"] == "aian_nonhispanic"]["proportion"].sum()
-        assert aian_prop > 0.50, (
-            f"Sioux County AIAN proportion is {aian_prop:.1%}, expected >50%"
-        )
+        assert aian_prop > 0.50, f"Sioux County AIAN proportion is {aian_prop:.1%}, expected >50%"
 
     def test_rolette_aian_proportion_high(self, real_county_dist):
         """Rolette County (38079) should have >60% AIAN proportion.
@@ -688,9 +684,7 @@ class TestCountyDistributionsIntegration:
         """
         rolette = real_county_dist[real_county_dist["fips"] == "38079"]
         aian_prop = rolette[rolette["race"] == "aian_nonhispanic"]["proportion"].sum()
-        assert aian_prop > 0.60, (
-            f"Rolette County AIAN proportion is {aian_prop:.1%}, expected >60%"
-        )
+        assert aian_prop > 0.60, f"Rolette County AIAN proportion is {aian_prop:.1%}, expected >60%"
 
     def test_benson_aian_proportion_elevated(self, real_county_dist):
         """Benson County (38005) should have >30% AIAN proportion.
@@ -701,17 +695,13 @@ class TestCountyDistributionsIntegration:
         """
         benson = real_county_dist[real_county_dist["fips"] == "38005"]
         aian_prop = benson[benson["race"] == "aian_nonhispanic"]["proportion"].sum()
-        assert aian_prop > 0.30, (
-            f"Benson County AIAN proportion is {aian_prop:.1%}, expected >30%"
-        )
+        assert aian_prop > 0.30, f"Benson County AIAN proportion is {aian_prop:.1%}, expected >30%"
 
     def test_cass_county_white_majority(self, real_county_dist):
         """Cass County (38017, Fargo) should have >75% white proportion."""
         cass = real_county_dist[real_county_dist["fips"] == "38017"]
         white_prop = cass[cass["race"] == "white_nonhispanic"]["proportion"].sum()
-        assert white_prop > 0.75, (
-            f"Cass County white proportion is {white_prop:.1%}, expected >75%"
-        )
+        assert white_prop > 0.75, f"Cass County white proportion is {white_prop:.1%}, expected >75%"
 
     def test_distributions_differ_between_counties(self, real_county_dist):
         """County distributions should meaningfully differ from each other.
@@ -719,16 +709,12 @@ class TestCountyDistributionsIntegration:
         The median mean-absolute-deviation across counties should be
         non-trivial (>0.001), confirming distributions are not identical.
         """
-        avg_dist = real_county_dist.groupby(
-            ["age_group", "sex", "race"]
-        )["proportion"].mean()
+        avg_dist = real_county_dist.groupby(["age_group", "sex", "race"])["proportion"].mean()
 
         mad_values = []
         for fips in real_county_dist["fips"].unique():
             county_data = real_county_dist[real_county_dist["fips"] == fips]
-            county_indexed = county_data.set_index(
-                ["age_group", "sex", "race"]
-            )["proportion"]
+            county_indexed = county_data.set_index(["age_group", "sex", "race"])["proportion"]
             mad = (county_indexed - avg_dist).abs().mean()
             mad_values.append(mad)
 
@@ -761,6 +747,7 @@ class TestCountyDistributionsIntegration:
 # 5. Blending-specific tests
 # ---------------------------------------------------------------------------
 
+
 class TestBlendingBehavior:
     """Tests specifically for the population-weighted blending logic."""
 
@@ -780,9 +767,7 @@ class TestBlendingBehavior:
         # Very small county: alpha close to 0
         assert abs(min(100 / threshold, 1.0) - 0.02) < 1e-6
 
-    def test_blending_moves_toward_statewide(
-        self, synthetic_census_csv, statewide_distribution
-    ):
+    def test_blending_moves_toward_statewide(self, synthetic_census_csv, statewide_distribution):
         """Blended small-county distributions should be closer to statewide
         than unblended distributions.
 
@@ -832,22 +817,25 @@ class TestBlendingBehavior:
         )
 
         # County 38001 (pop ~10000 > 5000) should be unaffected
-        blended_001 = blended[blended["fips"] == "38001"].sort_values(
-            ["age_group", "sex", "race"]
-        ).reset_index(drop=True)
-        unblended_001 = unblended[unblended["fips"] == "38001"].sort_values(
-            ["age_group", "sex", "race"]
-        ).reset_index(drop=True)
+        blended_001 = (
+            blended[blended["fips"] == "38001"]
+            .sort_values(["age_group", "sex", "race"])
+            .reset_index(drop=True)
+        )
+        unblended_001 = (
+            unblended[unblended["fips"] == "38001"]
+            .sort_values(["age_group", "sex", "race"])
+            .reset_index(drop=True)
+        )
 
         diff = (blended_001["proportion"] - unblended_001["proportion"]).abs().max()
-        assert diff < 1e-10, (
-            f"Large county distribution changed with blending: max diff = {diff}"
-        )
+        assert diff < 1e-10, f"Large county distribution changed with blending: max diff = {diff}"
 
 
 # ---------------------------------------------------------------------------
 # 6. Sprague interpolation tests for county distributions (ADR-048)
 # ---------------------------------------------------------------------------
+
 
 class TestSpragueCountyInterpolation:
     """Tests for Sprague-based county 5-year-to-single-year expansion (ADR-048).
@@ -909,9 +897,7 @@ class TestSpragueCountyInterpolation:
         )
         assert result is not None
         expected_rows = 91 * 2 * 6
-        assert len(result) == expected_rows, (
-            f"Expected {expected_rows} rows, got {len(result)}"
-        )
+        assert len(result) == expected_rows, f"Expected {expected_rows} rows, got {len(result)}"
 
     def test_sprague_proportions_sum_to_one(
         self,
@@ -926,9 +912,7 @@ class TestSpragueCountyInterpolation:
         )
         assert result is not None
         prop_sum = result["proportion"].sum()
-        assert abs(prop_sum - 1.0) < 1e-4, (
-            f"Sprague proportions sum to {prop_sum}, expected 1.0"
-        )
+        assert abs(prop_sum - 1.0) < 1e-4, f"Sprague proportions sum to {prop_sum}, expected 1.0"
 
     def test_sprague_no_negative_proportions(
         self,
@@ -954,31 +938,51 @@ class TestSpragueCountyInterpolation:
         that Sprague should smooth out.
         """
         age_weights = {
-            "0-4": 0.07, "5-9": 0.065, "10-14": 0.06, "15-19": 0.065,
-            "20-24": 0.075, "25-29": 0.08, "30-34": 0.075, "35-39": 0.07,
-            "40-44": 0.065, "45-49": 0.06, "50-54": 0.055, "55-59": 0.05,
-            "60-64": 0.045, "65-69": 0.04, "70-74": 0.035, "75-79": 0.03,
-            "80-84": 0.025, "85+": 0.035,
+            "0-4": 0.07,
+            "5-9": 0.065,
+            "10-14": 0.06,
+            "15-19": 0.065,
+            "20-24": 0.075,
+            "25-29": 0.08,
+            "30-34": 0.075,
+            "35-39": 0.07,
+            "40-44": 0.065,
+            "45-49": 0.06,
+            "50-54": 0.055,
+            "55-59": 0.05,
+            "60-64": 0.045,
+            "65-69": 0.04,
+            "70-74": 0.035,
+            "75-79": 0.03,
+            "80-84": 0.025,
+            "85+": 0.035,
         }
         rows = []
         for age_group, weight in age_weights.items():
             for sex in ["male", "female"]:
-                for race in ["white_nonhispanic", "black_nonhispanic",
-                             "aian_nonhispanic", "asian_nonhispanic",
-                             "multiracial_nonhispanic", "hispanic"]:
+                for race in [
+                    "white_nonhispanic",
+                    "black_nonhispanic",
+                    "aian_nonhispanic",
+                    "asian_nonhispanic",
+                    "multiracial_nonhispanic",
+                    "hispanic",
+                ]:
                     if race == "white_nonhispanic":
                         race_w = 0.80
                     elif race == "aian_nonhispanic":
                         race_w = 0.02
                     else:
                         race_w = 0.045
-                    rows.append({
-                        "fips": "38017",
-                        "age_group": age_group,
-                        "sex": sex,
-                        "race": race,
-                        "proportion": weight * race_w / 2.0,
-                    })
+                    rows.append(
+                        {
+                            "fips": "38017",
+                            "age_group": age_group,
+                            "sex": sex,
+                            "race": race,
+                            "proportion": weight * race_w / 2.0,
+                        }
+                    )
         df = pd.DataFrame(rows)
         total = df["proportion"].sum()
         df["proportion"] = df["proportion"] / total
@@ -1017,10 +1021,7 @@ class TestSpragueCountyInterpolation:
 
         # Extract White male age profile for comparison
         def extract_profile(df):
-            mask = (
-                (df["sex"] == "Male")
-                & (df["race"] == "White alone, Non-Hispanic")
-            )
+            mask = (df["sex"] == "Male") & (df["race"] == "White alone, Non-Hispanic")
             return df[mask].sort_values("age")["proportion"].values
 
         sprague_profile = extract_profile(sprague_result)
@@ -1029,7 +1030,7 @@ class TestSpragueCountyInterpolation:
         # Compute roughness: sum of squared second differences (ages 5-79)
         def roughness(arr):
             d2 = np.diff(arr[5:80], n=2)
-            return float(np.sum(d2 ** 2))
+            return float(np.sum(d2**2))
 
         sprague_rough = roughness(sprague_profile)
         uniform_rough = roughness(uniform_profile)
@@ -1069,9 +1070,7 @@ class TestSpragueCountyInterpolation:
                 v2 = age_totals[b + 1]
                 if v1 > 0 and v2 > 0:
                     ratio = max(v1 / v2, v2 / v1)
-                    assert ratio < 1.30, (
-                        f"Step at boundary ages {b}-{b + 1}: ratio = {ratio:.3f}"
-                    )
+                    assert ratio < 1.30, f"Step at boundary ages {b}-{b + 1}: ratio = {ratio:.3f}"
 
     def test_sprague_age_range_0_to_90(
         self,
@@ -1106,12 +1105,14 @@ class TestSpragueCountyInterpolation:
                     "Two or more races, Non-Hispanic",
                     "Hispanic (any race)",
                 ]:
-                    state_dist_rows.append({
-                        "age": age,
-                        "sex": sex,
-                        "race": race,
-                        "proportion": 1.0 / (91 * 2 * 6),
-                    })
+                    state_dist_rows.append(
+                        {
+                            "age": age,
+                            "sex": sex,
+                            "race": race,
+                            "proportion": 1.0 / (91 * 2 * 6),
+                        }
+                    )
         state_dist = pd.DataFrame(state_dist_rows)
 
         result = load_county_age_sex_race_distribution(

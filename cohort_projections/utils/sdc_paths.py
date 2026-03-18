@@ -75,8 +75,7 @@ def resolve_sdc_replication_root(
 
     rendered = ", ".join(str(path) for path in candidates)
     raise FileNotFoundError(
-        "Unable to locate sdc_2024_replication repository. "
-        f"Checked: {rendered}"
+        f"Unable to locate sdc_2024_replication repository. Checked: {rendered}"
     )
 
 

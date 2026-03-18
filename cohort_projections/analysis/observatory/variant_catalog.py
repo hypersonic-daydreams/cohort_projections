@@ -33,7 +33,7 @@ import hashlib
 import itertools
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import yaml
@@ -360,7 +360,7 @@ class VariantCatalog:
             variants_df["resolved_status"].eq("untested")
             & variants_df["runnable_without_code_change"].eq(True)
         ]
-        return runnable.to_dict("records")
+        return cast(list[dict[str, Any]], runnable.to_dict("records"))
 
     def get_variant(self, variant_id: str) -> dict[str, Any]:
         """Return the full definition for a single variant.

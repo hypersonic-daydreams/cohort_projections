@@ -224,9 +224,7 @@ def apply_migration_scenario(
 
             # Since rates are already per-capita, apply the same decrement to
             # every cell. Total person-reduction scales with county population.
-            adjusted_rates[migration_col] = (
-                adjusted_rates[migration_col] - reduction_rate
-            )
+            adjusted_rates[migration_col] = adjusted_rates[migration_col] - reduction_rate
             logger.info(
                 f"Year {year}: Additive migration reduction — factor={factor:.2f}, "
                 f"annual_reduction={annual_reduction:,.0f} persons, "

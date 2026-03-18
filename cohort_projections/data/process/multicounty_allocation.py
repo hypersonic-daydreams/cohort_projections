@@ -93,13 +93,9 @@ def identify_multicounty_places(crosswalk: pd.DataFrame) -> list[str]:
     required = {"place_fips", "assignment_type"}
     missing = required - set(crosswalk.columns)
     if missing:
-        raise ValueError(
-            f"Crosswalk missing required columns: {sorted(missing)}"
-        )
+        raise ValueError(f"Crosswalk missing required columns: {sorted(missing)}")
 
-    multicounty = crosswalk[
-        crosswalk["assignment_type"].astype(str) == "multi_county_primary"
-    ]
+    multicounty = crosswalk[crosswalk["assignment_type"].astype(str) == "multi_county_primary"]
     return sorted(multicounty["place_fips"].astype(str).unique().tolist())
 
 
@@ -132,30 +128,18 @@ def load_allocation_weights(
     if not crosswalk_path.exists():
         raise FileNotFoundError(f"Crosswalk not found: {crosswalk_path}")
     if not multicounty_detail_path.exists():
-        raise FileNotFoundError(
-            f"Multicounty detail not found: {multicounty_detail_path}"
-        )
+        raise FileNotFoundError(f"Multicounty detail not found: {multicounty_detail_path}")
 
     detail = pd.read_csv(multicounty_detail_path, dtype=str)
     required = {"place_fips", "county_fips", "area_share"}
     missing = required - set(detail.columns)
     if missing:
-        raise ValueError(
-            f"Multicounty detail CSV missing required columns: {sorted(missing)}"
-        )
+        raise ValueError(f"Multicounty detail CSV missing required columns: {sorted(missing)}")
 
-    detail["place_fips"] = detail["place_fips"].map(
-        lambda v: _normalize_fips(v, 7)
-    )
-    detail["county_fips"] = detail["county_fips"].map(
-        lambda v: _normalize_fips(v, 5)
-    )
-    detail["area_share"] = pd.to_numeric(
-        detail["area_share"], errors="coerce"
-    )
-    detail = detail.dropna(
-        subset=["place_fips", "county_fips", "area_share"]
-    ).copy()
+    detail["place_fips"] = detail["place_fips"].map(lambda v: _normalize_fips(v, 7))
+    detail["county_fips"] = detail["county_fips"].map(lambda v: _normalize_fips(v, 5))
+    detail["area_share"] = pd.to_numeric(detail["area_share"], errors="coerce")
+    detail = detail.dropna(subset=["place_fips", "county_fips", "area_share"]).copy()
 
     if (detail["area_share"] < 0).any():
         raise ValueError("Multicounty detail contains negative area_share values.")
@@ -165,9 +149,7 @@ def load_allocation_weights(
         place_weights: dict[str, float] = {}
         total = float(group["area_share"].sum())
         if total <= 0:
-            raise ValueError(
-                f"Place {place_fips} has non-positive total area_share: {total}"
-            )
+            raise ValueError(f"Place {place_fips} has non-positive total area_share: {total}")
         for _, row in group.iterrows():
             county = str(row["county_fips"])
             place_weights[county] = float(row["area_share"]) / total
@@ -208,9 +190,7 @@ def split_multicounty_place(
         raise ValueError(f"Population must be non-negative, got {population}.")
 
     if place_fips not in weights:
-        raise ValueError(
-            f"Place {place_fips} not found in multicounty allocation weights."
-        )
+        raise ValueError(f"Place {place_fips} not found in multicounty allocation weights.")
 
     place_weights = weights[place_fips]
     allocations: dict[str, float] = {}
@@ -266,9 +246,7 @@ def split_multicounty_shares(
         NOT included (they remain in the original history unchanged).
     """
     if place_fips not in weights:
-        raise ValueError(
-            f"Place {place_fips} not found in multicounty weights."
-        )
+        raise ValueError(f"Place {place_fips} not found in multicounty weights.")
 
     place_weights = weights[place_fips]
     if primary_county_fips not in place_weights:
@@ -278,9 +256,7 @@ def split_multicounty_shares(
 
     primary_weight = place_weights[primary_county_fips]
     if primary_weight <= 0:
-        raise ValueError(
-            f"Primary county weight must be positive, got {primary_weight}."
-        )
+        raise ValueError(f"Primary county weight must be positive, got {primary_weight}.")
 
     place_rows = share_history[
         (share_history["place_fips"] == place_fips)
@@ -298,13 +274,9 @@ def split_multicounty_shares(
         county_rows = place_rows.copy()
         county_rows["county_fips"] = county_fips
         # Scale the share proportionally to the weight ratio.
-        county_rows["share_raw"] = (
-            county_rows["share_raw"] * (weight / primary_weight)
-        )
+        county_rows["share_raw"] = county_rows["share_raw"] * (weight / primary_weight)
         if "share" in county_rows.columns:
-            county_rows["share"] = (
-                county_rows["share"] * (weight / primary_weight)
-            )
+            county_rows["share"] = county_rows["share"] * (weight / primary_weight)
         synthetic_rows.append(county_rows)
 
     if not synthetic_rows:
@@ -351,9 +323,7 @@ def reaggregate_multicounty_place(
         ValueError: If place_fips not in weights or no projection data found.
     """
     if place_fips not in weights:
-        raise ValueError(
-            f"Place {place_fips} not found in multicounty weights."
-        )
+        raise ValueError(f"Place {place_fips} not found in multicounty weights.")
 
     constituent_counties = list(weights[place_fips].keys())
     year_totals: dict[int, float] = {}
@@ -363,9 +333,7 @@ def reaggregate_multicounty_place(
             continue
 
         county_df = county_projections[county_fips]
-        place_rows = county_df[
-            county_df["place_fips"].astype(str) == place_fips
-        ].copy()
+        place_rows = county_df[county_df["place_fips"].astype(str) == place_fips].copy()
 
         if place_rows.empty:
             continue
@@ -414,9 +382,7 @@ def get_multicounty_config(
 
     return {
         "enabled": bool(mc_cfg.get("enabled", False)),
-        "allocation_method": str(
-            mc_cfg.get("allocation_method", "area_share")
-        ),
+        "allocation_method": str(mc_cfg.get("allocation_method", "area_share")),
         "multicounty_detail_path": str(
             mc_cfg.get(
                 "multicounty_detail_path",

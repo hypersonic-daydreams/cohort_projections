@@ -85,11 +85,13 @@ def gq_county_3ages():
     records = []
     for ag in THREE_AGE_GROUPS:
         for sex in ["Male", "Female"]:
-            records.append({
-                "age_group": ag,
-                "sex": sex,
-                "gq_population": 50.0,
-            })
+            records.append(
+                {
+                    "age_group": ag,
+                    "sex": sex,
+                    "gq_population": 50.0,
+                }
+            )
     return pd.DataFrame(records)
 
 
@@ -99,11 +101,13 @@ def gq_county_all_ages():
     records = []
     for ag in AGE_GROUP_RANGES:
         for sex in ["Male", "Female"]:
-            records.append({
-                "age_group": ag,
-                "sex": sex,
-                "gq_population": 10.0,
-            })
+            records.append(
+                {
+                    "age_group": ag,
+                    "sex": sex,
+                    "gq_population": 10.0,
+                }
+            )
     return pd.DataFrame(records)
 
 
@@ -114,13 +118,15 @@ def base_pop_simple(minimal_config):
     for age in range(91):
         for sex in ["Male", "Female"]:
             for race in STANDARD_RACES:
-                rows.append({
-                    "year": 2025,
-                    "age": age,
-                    "sex": sex,
-                    "race": race,
-                    "population": 100.0,
-                })
+                rows.append(
+                    {
+                        "year": 2025,
+                        "age": age,
+                        "sex": sex,
+                        "race": race,
+                        "population": 100.0,
+                    }
+                )
     return pd.DataFrame(rows)
 
 
@@ -131,13 +137,15 @@ def base_pop_small():
     for age in range(5):
         for sex in ["Male", "Female"]:
             for race in ["White alone, Non-Hispanic", "Hispanic (any race)"]:
-                rows.append({
-                    "year": 2025,
-                    "age": age,
-                    "sex": sex,
-                    "race": race,
-                    "population": 500.0,
-                })
+                rows.append(
+                    {
+                        "year": 2025,
+                        "age": age,
+                        "sex": sex,
+                        "race": race,
+                        "population": 500.0,
+                    }
+                )
     return pd.DataFrame(rows)
 
 
@@ -158,11 +166,15 @@ class TestExpandGqToSingleYearAges:
 
     def test_uniform_split_within_5yr_group(self):
         """Each 5-year group should split evenly into 5 single-year ages."""
-        gq = pd.DataFrame([{
-            "age_group": "20-24",
-            "sex": "Male",
-            "gq_population": 100.0,
-        }])
+        gq = pd.DataFrame(
+            [
+                {
+                    "age_group": "20-24",
+                    "sex": "Male",
+                    "gq_population": 100.0,
+                }
+            ]
+        )
         expanded = _expand_gq_to_single_year_ages(gq)
         assert len(expanded) == 5
         assert set(expanded["age"]) == {20, 21, 22, 23, 24}
@@ -171,11 +183,15 @@ class TestExpandGqToSingleYearAges:
 
     def test_85_plus_group_expands_to_6_ages(self):
         """The 85+ terminal group should expand to ages 85-90 (6 single years)."""
-        gq = pd.DataFrame([{
-            "age_group": "85+",
-            "sex": "Female",
-            "gq_population": 60.0,
-        }])
+        gq = pd.DataFrame(
+            [
+                {
+                    "age_group": "85+",
+                    "sex": "Female",
+                    "gq_population": 60.0,
+                }
+            ]
+        )
         expanded = _expand_gq_to_single_year_ages(gq)
         assert len(expanded) == 6
         assert set(expanded["age"]) == {85, 86, 87, 88, 89, 90}
@@ -196,11 +212,15 @@ class TestExpandGqToSingleYearAges:
 
     def test_zero_gq_produces_zero_expansion(self):
         """A group with zero GQ should produce zero population for each single year."""
-        gq = pd.DataFrame([{
-            "age_group": "10-14",
-            "sex": "Male",
-            "gq_population": 0.0,
-        }])
+        gq = pd.DataFrame(
+            [
+                {
+                    "age_group": "10-14",
+                    "sex": "Male",
+                    "gq_population": 0.0,
+                }
+            ]
+        )
         expanded = _expand_gq_to_single_year_ages(gq)
         assert (expanded["gq_population"] == 0.0).all()
         assert len(expanded) == 5
@@ -212,20 +232,26 @@ class TestExpandGqToSingleYearAges:
 
     def test_unknown_age_group_skipped(self):
         """Unknown age groups are skipped (no rows produced, no crash)."""
-        gq = pd.DataFrame([{
-            "age_group": "INVALID",
-            "sex": "Male",
-            "gq_population": 100.0,
-        }])
+        gq = pd.DataFrame(
+            [
+                {
+                    "age_group": "INVALID",
+                    "sex": "Male",
+                    "gq_population": 100.0,
+                }
+            ]
+        )
         expanded = _expand_gq_to_single_year_ages(gq)
         assert len(expanded) == 0
 
     def test_sex_preserved(self):
         """Sex labels should be preserved through expansion."""
-        gq = pd.DataFrame([
-            {"age_group": "0-4", "sex": "Male", "gq_population": 50.0},
-            {"age_group": "0-4", "sex": "Female", "gq_population": 30.0},
-        ])
+        gq = pd.DataFrame(
+            [
+                {"age_group": "0-4", "sex": "Male", "gq_population": 50.0},
+                {"age_group": "0-4", "sex": "Female", "gq_population": 30.0},
+            ]
+        )
         expanded = _expand_gq_to_single_year_ages(gq)
         male_rows = expanded[expanded["sex"] == "Male"]
         female_rows = expanded[expanded["sex"] == "Female"]
@@ -246,12 +272,14 @@ class TestDistributeGqAcrossRaces:
     @pytest.fixture
     def gq_single_year_simple(self):
         """GQ single-year data: 2 ages, 2 sexes."""
-        return pd.DataFrame([
-            {"age": 20, "sex": "Male", "gq_population": 100.0},
-            {"age": 20, "sex": "Female", "gq_population": 80.0},
-            {"age": 21, "sex": "Male", "gq_population": 60.0},
-            {"age": 21, "sex": "Female", "gq_population": 40.0},
-        ])
+        return pd.DataFrame(
+            [
+                {"age": 20, "sex": "Male", "gq_population": 100.0},
+                {"age": 20, "sex": "Female", "gq_population": 80.0},
+                {"age": 21, "sex": "Male", "gq_population": 60.0},
+                {"age": 21, "sex": "Female", "gq_population": 40.0},
+            ]
+        )
 
     @pytest.fixture
     def base_pop_for_race_shares(self):
@@ -259,21 +287,36 @@ class TestDistributeGqAcrossRaces:
         rows = []
         for age in range(91):
             for sex in ["Male", "Female"]:
-                rows.append({
-                    "year": 2025, "age": age, "sex": sex,
-                    "race": "White alone, Non-Hispanic", "population": 60.0,
-                })
-                rows.append({
-                    "year": 2025, "age": age, "sex": sex,
-                    "race": "Hispanic (any race)", "population": 40.0,
-                })
+                rows.append(
+                    {
+                        "year": 2025,
+                        "age": age,
+                        "sex": sex,
+                        "race": "White alone, Non-Hispanic",
+                        "population": 60.0,
+                    }
+                )
+                rows.append(
+                    {
+                        "year": 2025,
+                        "age": age,
+                        "sex": sex,
+                        "race": "Hispanic (any race)",
+                        "population": 40.0,
+                    }
+                )
                 # Zero for remaining races
                 for race in STANDARD_RACES:
                     if race not in ("White alone, Non-Hispanic", "Hispanic (any race)"):
-                        rows.append({
-                            "year": 2025, "age": age, "sex": sex,
-                            "race": race, "population": 0.0,
-                        })
+                        rows.append(
+                            {
+                                "year": 2025,
+                                "age": age,
+                                "sex": sex,
+                                "race": race,
+                                "population": 0.0,
+                            }
+                        )
         return pd.DataFrame(rows)
 
     def test_total_gq_preserved_after_race_distribution(
@@ -299,7 +342,9 @@ class TestDistributeGqAcrossRaces:
         )
         # Check Male age 20: total GQ = 100, expect White=60, Hispanic=40
         male_20 = result[(result["age"] == 20) & (result["sex"] == "Male")]
-        white_gq = male_20[male_20["race"] == "White alone, Non-Hispanic"]["gq_population"].values[0]
+        white_gq = male_20[male_20["race"] == "White alone, Non-Hispanic"]["gq_population"].values[
+            0
+        ]
         hispanic_gq = male_20[male_20["race"] == "Hispanic (any race)"]["gq_population"].values[0]
         assert white_gq == pytest.approx(60.0, abs=1e-10)
         assert hispanic_gq == pytest.approx(40.0, abs=1e-10)
@@ -324,18 +369,14 @@ class TestDistributeGqAcrossRaces:
         result_races = set(result["race"].unique())
         assert result_races == set(STANDARD_RACES)
 
-    def test_output_columns(
-        self, gq_single_year_simple, base_pop_for_race_shares, minimal_config
-    ):
+    def test_output_columns(self, gq_single_year_simple, base_pop_for_race_shares, minimal_config):
         """Output should have columns [age, sex, race, gq_population]."""
         result = _distribute_gq_across_races(
             gq_single_year_simple, base_pop_for_race_shares, minimal_config
         )
         assert set(result.columns) == {"age", "sex", "race", "gq_population"}
 
-    def test_gq_non_negative(
-        self, gq_single_year_simple, base_pop_for_race_shares, minimal_config
-    ):
+    def test_gq_non_negative(self, gq_single_year_simple, base_pop_for_race_shares, minimal_config):
         """All distributed GQ values should be non-negative."""
         result = _distribute_gq_across_races(
             gq_single_year_simple, base_pop_for_race_shares, minimal_config
@@ -344,18 +385,25 @@ class TestDistributeGqAcrossRaces:
 
     def test_zero_population_base_uniform_distribution(self, minimal_config):
         """When base pop is all zeros, GQ should be distributed uniformly across races."""
-        gq_sy = pd.DataFrame([
-            {"age": 0, "sex": "Male", "gq_population": 120.0},
-        ])
+        gq_sy = pd.DataFrame(
+            [
+                {"age": 0, "sex": "Male", "gq_population": 120.0},
+            ]
+        )
         # All-zero base population
         rows = []
         for age in range(91):
             for sex in ["Male", "Female"]:
                 for race in STANDARD_RACES:
-                    rows.append({
-                        "year": 2025, "age": age, "sex": sex,
-                        "race": race, "population": 0.0,
-                    })
+                    rows.append(
+                        {
+                            "year": 2025,
+                            "age": age,
+                            "sex": sex,
+                            "race": race,
+                            "population": 0.0,
+                        }
+                    )
         zero_base = pd.DataFrame(rows)
 
         result = _distribute_gq_across_races(gq_sy, zero_base, minimal_config)
@@ -364,9 +412,7 @@ class TestDistributeGqAcrossRaces:
         for _, row in male_0.iterrows():
             assert row["gq_population"] == pytest.approx(expected_per_race, abs=1e-10)
 
-    def test_row_count(
-        self, gq_single_year_simple, base_pop_for_race_shares, minimal_config
-    ):
+    def test_row_count(self, gq_single_year_simple, base_pop_for_race_shares, minimal_config):
         """Output should have n_input_rows * n_races rows."""
         result = _distribute_gq_across_races(
             gq_single_year_simple, base_pop_for_race_shares, minimal_config
@@ -390,13 +436,15 @@ class TestGetCountyGqPopulation:
 
     def test_retrieves_stored_gq_data(self):
         """Should return the DataFrame previously stored for a county."""
-        dummy_gq = pd.DataFrame({
-            "year": [2025],
-            "age": [20],
-            "sex": ["Male"],
-            "race": ["White alone, Non-Hispanic"],
-            "gq_population": [50.0],
-        })
+        dummy_gq = pd.DataFrame(
+            {
+                "year": [2025],
+                "age": [20],
+                "sex": ["Male"],
+                "race": ["White alone, Non-Hispanic"],
+                "gq_population": [50.0],
+            }
+        )
         _county_gq_populations["38001"] = dummy_gq
         result = get_county_gq_population("38001")
         assert result is not None
@@ -404,13 +452,15 @@ class TestGetCountyGqPopulation:
 
     def test_fips_zero_padded(self):
         """FIPS codes should be zero-padded to 5 digits."""
-        dummy_gq = pd.DataFrame({
-            "year": [2025],
-            "age": [0],
-            "sex": ["Female"],
-            "race": ["Hispanic (any race)"],
-            "gq_population": [10.0],
-        })
+        dummy_gq = pd.DataFrame(
+            {
+                "year": [2025],
+                "age": [0],
+                "sex": ["Female"],
+                "race": ["Hispanic (any race)"],
+                "gq_population": [10.0],
+            }
+        )
         _county_gq_populations["00001"] = dummy_gq
         # Call with unpadded fips
         result = get_county_gq_population("1")
@@ -418,14 +468,24 @@ class TestGetCountyGqPopulation:
 
     def test_different_counties_independent(self):
         """Different counties should return independent data."""
-        gq_a = pd.DataFrame({
-            "year": [2025], "age": [0], "sex": ["Male"],
-            "race": ["White alone, Non-Hispanic"], "gq_population": [100.0],
-        })
-        gq_b = pd.DataFrame({
-            "year": [2025], "age": [0], "sex": ["Male"],
-            "race": ["White alone, Non-Hispanic"], "gq_population": [200.0],
-        })
+        gq_a = pd.DataFrame(
+            {
+                "year": [2025],
+                "age": [0],
+                "sex": ["Male"],
+                "race": ["White alone, Non-Hispanic"],
+                "gq_population": [100.0],
+            }
+        )
+        gq_b = pd.DataFrame(
+            {
+                "year": [2025],
+                "age": [0],
+                "sex": ["Male"],
+                "race": ["White alone, Non-Hispanic"],
+                "gq_population": [200.0],
+            }
+        )
         _county_gq_populations["38001"] = gq_a
         _county_gq_populations["38017"] = gq_b
         assert get_county_gq_population("38001")["gq_population"].iloc[0] == 100.0
@@ -449,46 +509,44 @@ class TestSeparateGqFromBasePopulation:
         records = []
         for ag in THREE_AGE_GROUPS:
             for sex in ["Male", "Female"]:
-                records.append({
-                    "county_fips": "38017",
-                    "age_group": ag,
-                    "sex": sex,
-                    "gq_population": 30.0,
-                })
+                records.append(
+                    {
+                        "county_fips": "38017",
+                        "age_group": ag,
+                        "sex": sex,
+                        "gq_population": 30.0,
+                    }
+                )
         return pd.DataFrame(records)
 
     def _inject_gq_cache(self, gq_data):
         """Inject GQ data into the module-level cache."""
         import cohort_projections.data.load.base_population_loader as bpl
+
         bpl._gq_data_cache = gq_data
 
     def test_hh_plus_gq_equals_total(self, base_pop_simple, minimal_config, gq_data_for_cache):
         """Household pop + GQ pop must equal total pop for every cell."""
         self._inject_gq_cache(gq_data_for_cache)
-        hh_pop, gq_pop = _separate_gq_from_base_population(
-            "38017", base_pop_simple, minimal_config
-        )
+        hh_pop, gq_pop = _separate_gq_from_base_population("38017", base_pop_simple, minimal_config)
         # Merge on index (aligned DataFrames)
         total_check = hh_pop["population"] + gq_pop["gq_population"]
         pd.testing.assert_series_equal(
-            total_check, base_pop_simple["population"],
+            total_check,
+            base_pop_simple["population"],
             check_names=False,
         )
 
     def test_household_pop_non_negative(self, base_pop_simple, minimal_config, gq_data_for_cache):
         """Household population should never be negative (clamped to 0)."""
         self._inject_gq_cache(gq_data_for_cache)
-        hh_pop, _ = _separate_gq_from_base_population(
-            "38017", base_pop_simple, minimal_config
-        )
+        hh_pop, _ = _separate_gq_from_base_population("38017", base_pop_simple, minimal_config)
         assert (hh_pop["population"] >= 0).all()
 
     def test_gq_pop_non_negative(self, base_pop_simple, minimal_config, gq_data_for_cache):
         """GQ population should never be negative."""
         self._inject_gq_cache(gq_data_for_cache)
-        _, gq_pop = _separate_gq_from_base_population(
-            "38017", base_pop_simple, minimal_config
-        )
+        _, gq_pop = _separate_gq_from_base_population("38017", base_pop_simple, minimal_config)
         assert (gq_pop["gq_population"] >= 0).all()
 
     def test_gq_capped_at_total_population(self, minimal_config):
@@ -498,53 +556,58 @@ class TestSeparateGqFromBasePopulation:
         for age in range(91):
             for sex in ["Male", "Female"]:
                 for race in STANDARD_RACES:
-                    rows.append({
-                        "year": 2025,
-                        "age": age,
-                        "sex": sex,
-                        "race": race,
-                        "population": 1.0,  # Very small
-                    })
+                    rows.append(
+                        {
+                            "year": 2025,
+                            "age": age,
+                            "sex": sex,
+                            "race": race,
+                            "population": 1.0,  # Very small
+                        }
+                    )
         tiny_base = pd.DataFrame(rows)
 
         # GQ data with large values that exceed base pop
         gq_records = []
         for ag in AGE_GROUP_RANGES:
             for sex in ["Male", "Female"]:
-                gq_records.append({
-                    "county_fips": "38017",
-                    "age_group": ag,
-                    "sex": sex,
-                    "gq_population": 500.0,  # Much larger than base
-                })
+                gq_records.append(
+                    {
+                        "county_fips": "38017",
+                        "age_group": ag,
+                        "sex": sex,
+                        "gq_population": 500.0,  # Much larger than base
+                    }
+                )
         self._inject_gq_cache(pd.DataFrame(gq_records))
 
-        hh_pop, gq_pop = _separate_gq_from_base_population(
-            "38017", tiny_base, minimal_config
-        )
+        hh_pop, gq_pop = _separate_gq_from_base_population("38017", tiny_base, minimal_config)
         # Household pop should be zero (not negative) where GQ exceeds total
         assert (hh_pop["population"] >= 0).all()
         # Conservation: hh + gq = total (GQ capped)
         total_check = hh_pop["population"] + gq_pop["gq_population"]
         pd.testing.assert_series_equal(
-            total_check, tiny_base["population"],
+            total_check,
+            tiny_base["population"],
             check_names=False,
         )
 
     def test_missing_county_returns_full_population(self, base_pop_simple, minimal_config):
         """County not in GQ data should return full population unchanged."""
         # Cache with data for a different county only
-        other_county_gq = pd.DataFrame([{
-            "county_fips": "38099",
-            "age_group": "0-4",
-            "sex": "Male",
-            "gq_population": 100.0,
-        }])
+        other_county_gq = pd.DataFrame(
+            [
+                {
+                    "county_fips": "38099",
+                    "age_group": "0-4",
+                    "sex": "Male",
+                    "gq_population": 100.0,
+                }
+            ]
+        )
         self._inject_gq_cache(other_county_gq)
 
-        hh_pop, gq_pop = _separate_gq_from_base_population(
-            "38017", base_pop_simple, minimal_config
-        )
+        hh_pop, gq_pop = _separate_gq_from_base_population("38017", base_pop_simple, minimal_config)
         # Population unchanged
         pd.testing.assert_series_equal(
             hh_pop["population"],
@@ -587,25 +650,25 @@ class TestSeparateGqFromBasePopulation:
     def test_output_shape_matches_input(self, base_pop_simple, minimal_config, gq_data_for_cache):
         """Both output DataFrames should have same number of rows as input."""
         self._inject_gq_cache(gq_data_for_cache)
-        hh_pop, gq_pop = _separate_gq_from_base_population(
-            "38017", base_pop_simple, minimal_config
-        )
+        hh_pop, gq_pop = _separate_gq_from_base_population("38017", base_pop_simple, minimal_config)
         assert len(hh_pop) == len(base_pop_simple)
         assert len(gq_pop) == len(base_pop_simple)
 
     def test_zero_gq_county_returns_full_population(self, base_pop_simple, minimal_config):
         """County with zero GQ values should return full population unchanged."""
-        zero_gq = pd.DataFrame([{
-            "county_fips": "38017",
-            "age_group": "0-4",
-            "sex": "Male",
-            "gq_population": 0.0,
-        }])
+        zero_gq = pd.DataFrame(
+            [
+                {
+                    "county_fips": "38017",
+                    "age_group": "0-4",
+                    "sex": "Male",
+                    "gq_population": 0.0,
+                }
+            ]
+        )
         self._inject_gq_cache(zero_gq)
 
-        hh_pop, gq_pop = _separate_gq_from_base_population(
-            "38017", base_pop_simple, minimal_config
-        )
+        hh_pop, gq_pop = _separate_gq_from_base_population("38017", base_pop_simple, minimal_config)
         pd.testing.assert_series_equal(
             hh_pop["population"],
             base_pop_simple["population"],
@@ -619,20 +682,34 @@ class TestSeparateGqFromBasePopulation:
         for age in range(91):
             for sex in ["Male", "Female"]:
                 for race in STANDARD_RACES:
-                    rows.append({
-                        "year": 2025,
-                        "age": age,
-                        "sex": sex,
-                        "race": race,
-                        "population": 1000.0,
-                    })
+                    rows.append(
+                        {
+                            "year": 2025,
+                            "age": age,
+                            "sex": sex,
+                            "race": race,
+                            "population": 1000.0,
+                        }
+                    )
         base = pd.DataFrame(rows)
 
         # GQ for one age group (20-24) with 250 total per sex
-        gq = pd.DataFrame([
-            {"county_fips": "38017", "age_group": "20-24", "sex": "Male", "gq_population": 250.0},
-            {"county_fips": "38017", "age_group": "20-24", "sex": "Female", "gq_population": 250.0},
-        ])
+        gq = pd.DataFrame(
+            [
+                {
+                    "county_fips": "38017",
+                    "age_group": "20-24",
+                    "sex": "Male",
+                    "gq_population": 250.0,
+                },
+                {
+                    "county_fips": "38017",
+                    "age_group": "20-24",
+                    "sex": "Female",
+                    "gq_population": 250.0,
+                },
+            ]
+        )
         self._inject_gq_cache(gq)
 
         hh_pop, gq_pop = _separate_gq_from_base_population("38017", base, minimal_config)
@@ -640,9 +717,7 @@ class TestSeparateGqFromBasePopulation:
         # Ages 20-24 should have reduced population
         for age in range(20, 25):
             for sex in ["Male", "Female"]:
-                age_sex_rows = hh_pop[
-                    (hh_pop["age"] == age) & (hh_pop["sex"] == sex)
-                ]
+                age_sex_rows = hh_pop[(hh_pop["age"] == age) & (hh_pop["sex"] == sex)]
                 # GQ per single year: 250/5 = 50 per sex
                 # Distributed across races by proportion (all equal at 1000 each)
                 # Each race gets 50/6 of GQ subtracted
@@ -655,9 +730,7 @@ class TestSeparateGqFromBasePopulation:
         # Ages outside 20-24 should be unchanged
         for age in [0, 10, 50, 90]:
             for sex in ["Male", "Female"]:
-                age_sex_rows = hh_pop[
-                    (hh_pop["age"] == age) & (hh_pop["sex"] == sex)
-                ]
+                age_sex_rows = hh_pop[(hh_pop["age"] == age) & (hh_pop["sex"] == sex)]
                 total_hh = age_sex_rows["population"].sum()
                 assert total_hh == pytest.approx(6000.0, abs=0.1)
 
@@ -682,12 +755,14 @@ class TestSubtractGqFromPopulations:
             for fips in counties:
                 for ag in age_groups:
                     for sex in sexes:
-                        records.append({
-                            "county_fips": fips,
-                            "age_group": ag,
-                            "sex": sex,
-                            "population": base,
-                        })
+                        records.append(
+                            {
+                                "county_fips": fips,
+                                "age_group": ag,
+                                "sex": sex,
+                                "population": base,
+                            }
+                        )
             return pd.DataFrame(records)
 
         return {
@@ -709,46 +784,40 @@ class TestSubtractGqFromPopulations:
             for fips in counties:
                 for ag in age_groups:
                     for sex in sexes:
-                        records.append({
-                            "county_fips": fips,
-                            "year": year,
-                            "age_group": ag,
-                            "sex": sex,
-                            "gq_population": 50.0,
-                        })
+                        records.append(
+                            {
+                                "county_fips": fips,
+                                "year": year,
+                                "age_group": ag,
+                                "sex": sex,
+                                "gq_population": 50.0,
+                            }
+                        )
         return pd.DataFrame(records)
 
-    def test_household_pop_equals_total_minus_gq(
-        self, populations_3_years, gq_historical_3_years
-    ):
+    def test_household_pop_equals_total_minus_gq(self, populations_3_years, gq_historical_3_years):
         """For every year, HH pop = total pop - GQ pop."""
         result = subtract_gq_from_populations(populations_3_years, gq_historical_3_years)
         for year in populations_3_years:
             original_total = populations_3_years[year]["population"].sum()
             hh_total = result[year]["population"].sum()
-            gq_total = gq_historical_3_years[
-                gq_historical_3_years["year"] == year
-            ]["gq_population"].sum()
+            gq_total = gq_historical_3_years[gq_historical_3_years["year"] == year][
+                "gq_population"
+            ].sum()
             assert hh_total == pytest.approx(original_total - gq_total, abs=1e-6)
 
-    def test_population_non_negative(
-        self, populations_3_years, gq_historical_3_years
-    ):
+    def test_population_non_negative(self, populations_3_years, gq_historical_3_years):
         """All household populations should be >= 0 (clipped)."""
         result = subtract_gq_from_populations(populations_3_years, gq_historical_3_years)
         for year in result:
             assert (result[year]["population"] >= 0).all()
 
-    def test_output_keys_match_input(
-        self, populations_3_years, gq_historical_3_years
-    ):
+    def test_output_keys_match_input(self, populations_3_years, gq_historical_3_years):
         """Output dict should have same year keys as input."""
         result = subtract_gq_from_populations(populations_3_years, gq_historical_3_years)
         assert set(result.keys()) == set(populations_3_years.keys())
 
-    def test_output_columns(
-        self, populations_3_years, gq_historical_3_years
-    ):
+    def test_output_columns(self, populations_3_years, gq_historical_3_years):
         """Output DataFrames should have [county_fips, age_group, sex, population]."""
         result = subtract_gq_from_populations(populations_3_years, gq_historical_3_years)
         expected_cols = {"county_fips", "age_group", "sex", "population"}
@@ -758,7 +827,9 @@ class TestSubtractGqFromPopulations:
     def test_missing_gq_year_returns_unchanged(self, populations_3_years):
         """Year with no GQ data should return population unchanged."""
         # Empty GQ historical
-        gq_empty = pd.DataFrame(columns=["county_fips", "year", "age_group", "sex", "gq_population"])
+        gq_empty = pd.DataFrame(
+            columns=["county_fips", "year", "age_group", "sex", "gq_population"]
+        )
         result = subtract_gq_from_populations(populations_3_years, gq_empty)
         for year in populations_3_years:
             pd.testing.assert_series_equal(
@@ -770,38 +841,62 @@ class TestSubtractGqFromPopulations:
     def test_gq_exceeding_population_clipped_to_zero(self):
         """When GQ > population, household should be clipped to 0."""
         pop = {
-            2020: pd.DataFrame([{
-                "county_fips": "38001",
-                "age_group": "20-24",
-                "sex": "Male",
-                "population": 100.0,
-            }]),
+            2020: pd.DataFrame(
+                [
+                    {
+                        "county_fips": "38001",
+                        "age_group": "20-24",
+                        "sex": "Male",
+                        "population": 100.0,
+                    }
+                ]
+            ),
         }
-        gq = pd.DataFrame([{
-            "county_fips": "38001",
-            "year": 2020,
-            "age_group": "20-24",
-            "sex": "Male",
-            "gq_population": 500.0,  # Exceeds population
-        }])
+        gq = pd.DataFrame(
+            [
+                {
+                    "county_fips": "38001",
+                    "year": 2020,
+                    "age_group": "20-24",
+                    "sex": "Male",
+                    "gq_population": 500.0,  # Exceeds population
+                }
+            ]
+        )
         result = subtract_gq_from_populations(pop, gq)
         assert result[2020]["population"].iloc[0] == 0.0
 
     def test_partial_gq_match_fills_na_with_zero(self):
         """Cells without GQ match should retain full population (fillna(0))."""
         pop = {
-            2020: pd.DataFrame([
-                {"county_fips": "38001", "age_group": "0-4", "sex": "Male", "population": 500.0},
-                {"county_fips": "38001", "age_group": "20-24", "sex": "Male", "population": 300.0},
-            ]),
+            2020: pd.DataFrame(
+                [
+                    {
+                        "county_fips": "38001",
+                        "age_group": "0-4",
+                        "sex": "Male",
+                        "population": 500.0,
+                    },
+                    {
+                        "county_fips": "38001",
+                        "age_group": "20-24",
+                        "sex": "Male",
+                        "population": 300.0,
+                    },
+                ]
+            ),
         }
-        gq = pd.DataFrame([{
-            "county_fips": "38001",
-            "year": 2020,
-            "age_group": "20-24",
-            "sex": "Male",
-            "gq_population": 100.0,
-        }])
+        gq = pd.DataFrame(
+            [
+                {
+                    "county_fips": "38001",
+                    "year": 2020,
+                    "age_group": "20-24",
+                    "sex": "Male",
+                    "gq_population": 100.0,
+                }
+            ]
+        )
         result = subtract_gq_from_populations(pop, gq)
         result_df = result[2020].sort_values("age_group").reset_index(drop=True)
         # 0-4 should be unchanged (no GQ match)
@@ -809,9 +904,7 @@ class TestSubtractGqFromPopulations:
         # 20-24 should be reduced by 100
         assert result_df[result_df["age_group"] == "20-24"]["population"].iloc[0] == 200.0
 
-    def test_row_count_preserved(
-        self, populations_3_years, gq_historical_3_years
-    ):
+    def test_row_count_preserved(self, populations_3_years, gq_historical_3_years):
         """Number of rows in each year's DataFrame should be unchanged."""
         result = subtract_gq_from_populations(populations_3_years, gq_historical_3_years)
         for year in populations_3_years:
@@ -820,15 +913,41 @@ class TestSubtractGqFromPopulations:
     def test_exact_subtraction_values(self):
         """Verify exact arithmetic for a simple known case."""
         pop = {
-            2020: pd.DataFrame([
-                {"county_fips": "38001", "age_group": "0-4", "sex": "Male", "population": 1000.0},
-                {"county_fips": "38001", "age_group": "0-4", "sex": "Female", "population": 950.0},
-            ]),
+            2020: pd.DataFrame(
+                [
+                    {
+                        "county_fips": "38001",
+                        "age_group": "0-4",
+                        "sex": "Male",
+                        "population": 1000.0,
+                    },
+                    {
+                        "county_fips": "38001",
+                        "age_group": "0-4",
+                        "sex": "Female",
+                        "population": 950.0,
+                    },
+                ]
+            ),
         }
-        gq = pd.DataFrame([
-            {"county_fips": "38001", "year": 2020, "age_group": "0-4", "sex": "Male", "gq_population": 123.4},
-            {"county_fips": "38001", "year": 2020, "age_group": "0-4", "sex": "Female", "gq_population": 56.7},
-        ])
+        gq = pd.DataFrame(
+            [
+                {
+                    "county_fips": "38001",
+                    "year": 2020,
+                    "age_group": "0-4",
+                    "sex": "Male",
+                    "gq_population": 123.4,
+                },
+                {
+                    "county_fips": "38001",
+                    "year": 2020,
+                    "age_group": "0-4",
+                    "sex": "Female",
+                    "gq_population": 56.7,
+                },
+            ]
+        )
         result = subtract_gq_from_populations(pop, gq)
         result_df = result[2020].sort_values("sex").reset_index(drop=True)
         female_row = result_df[result_df["sex"] == "Female"]
@@ -836,9 +955,7 @@ class TestSubtractGqFromPopulations:
         assert female_row["population"].iloc[0] == pytest.approx(893.3, abs=1e-6)
         assert male_row["population"].iloc[0] == pytest.approx(876.6, abs=1e-6)
 
-    def test_no_gq_column_in_output(
-        self, populations_3_years, gq_historical_3_years
-    ):
+    def test_no_gq_column_in_output(self, populations_3_years, gq_historical_3_years):
         """The gq_population column should be dropped from the output."""
         result = subtract_gq_from_populations(populations_3_years, gq_historical_3_years)
         for year in result:
@@ -847,15 +964,41 @@ class TestSubtractGqFromPopulations:
     def test_multiple_counties_independent(self):
         """GQ subtraction for different counties should be independent."""
         pop = {
-            2020: pd.DataFrame([
-                {"county_fips": "38001", "age_group": "0-4", "sex": "Male", "population": 1000.0},
-                {"county_fips": "38017", "age_group": "0-4", "sex": "Male", "population": 5000.0},
-            ]),
+            2020: pd.DataFrame(
+                [
+                    {
+                        "county_fips": "38001",
+                        "age_group": "0-4",
+                        "sex": "Male",
+                        "population": 1000.0,
+                    },
+                    {
+                        "county_fips": "38017",
+                        "age_group": "0-4",
+                        "sex": "Male",
+                        "population": 5000.0,
+                    },
+                ]
+            ),
         }
-        gq = pd.DataFrame([
-            {"county_fips": "38001", "year": 2020, "age_group": "0-4", "sex": "Male", "gq_population": 100.0},
-            {"county_fips": "38017", "year": 2020, "age_group": "0-4", "sex": "Male", "gq_population": 200.0},
-        ])
+        gq = pd.DataFrame(
+            [
+                {
+                    "county_fips": "38001",
+                    "year": 2020,
+                    "age_group": "0-4",
+                    "sex": "Male",
+                    "gq_population": 100.0,
+                },
+                {
+                    "county_fips": "38017",
+                    "year": 2020,
+                    "age_group": "0-4",
+                    "sex": "Male",
+                    "gq_population": 200.0,
+                },
+            ]
+        )
         result = subtract_gq_from_populations(pop, gq)
         r = result[2020]
         assert r[r["county_fips"] == "38001"]["population"].iloc[0] == pytest.approx(900.0)

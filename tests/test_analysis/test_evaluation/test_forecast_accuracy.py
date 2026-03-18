@@ -12,6 +12,8 @@ from cohort_projections.analysis.evaluation.forecast_accuracy import (
 from cohort_projections.analysis.evaluation.schemas import PROJECTION_RESULT_COLUMNS
 from cohort_projections.analysis.evaluation.utils import (
     resolve_county_group as _resolve_county_group,
+)
+from cohort_projections.analysis.evaluation.utils import (
     validate_dataframe as _validate_dataframe_raw,
 )
 
@@ -19,6 +21,7 @@ from cohort_projections.analysis.evaluation.utils import (
 def _validate_dataframe(df: pd.DataFrame) -> None:
     """Thin wrapper matching the old single-arg signature for tests."""
     _validate_dataframe_raw(df, PROJECTION_RESULT_COLUMNS, label="input")
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -91,10 +94,7 @@ def sample_df() -> pd.DataFrame:
             )
     # Add a state-level total row
     for horizon in [5, 10]:
-        state_actual = sum(
-            (10000.0 + int(f[-3:]) * 10) * (1 + 0.01 * horizon)
-            for f, _ in counties
-        )
+        state_actual = sum((10000.0 + int(f[-3:]) * 10) * (1 + 0.01 * horizon) for f, _ in counties)
         records.append(
             {
                 "run_id": "run1",
@@ -127,9 +127,7 @@ def module(county_groups: dict[str, list[str]]) -> ForecastAccuracyModule:
 class TestValidation:
     """Tests for input validation helpers."""
 
-    def test_validate_dataframe_passes_with_all_columns(
-        self, sample_df: pd.DataFrame
-    ) -> None:
+    def test_validate_dataframe_passes_with_all_columns(self, sample_df: pd.DataFrame) -> None:
         _validate_dataframe(sample_df)  # should not raise
 
     def test_validate_dataframe_raises_on_missing_column(self) -> None:
@@ -239,9 +237,7 @@ class TestAccuracyByAgeGroup:
 class TestBiasSummary:
     """Tests for signed-error bias metrics."""
 
-    def test_positive_bias(
-        self, module: ForecastAccuracyModule, sample_df: pd.DataFrame
-    ) -> None:
+    def test_positive_bias(self, module: ForecastAccuracyModule, sample_df: pd.DataFrame) -> None:
         """Projected > actual everywhere, so MSE should be positive."""
         result = module.bias_summary(sample_df)
         mse_rows = result[result["metric_name"] == "mean_signed_error"]
@@ -335,9 +331,7 @@ class TestComputeAllMetrics:
         result = module.compute_all_metrics(sample_df)
         assert all(result["run_id"] == "run1")
 
-    def test_includes_regime_rows_when_regimes_configured(
-        self, sample_df: pd.DataFrame
-    ) -> None:
+    def test_includes_regime_rows_when_regimes_configured(self, sample_df: pd.DataFrame) -> None:
         """compute_all_metrics should include regime rows when regimes set."""
         regimes = {
             "post_pandemic": {"start": 2024, "end": 2026},
@@ -419,9 +413,7 @@ class TestAccuracyByRegime:
         assert isinstance(result, pd.DataFrame)
         assert len(result) > 0
 
-    def test_metric_names_contain_regime_suffix(
-        self, regime_df: pd.DataFrame
-    ) -> None:
+    def test_metric_names_contain_regime_suffix(self, regime_df: pd.DataFrame) -> None:
         mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS)
         result = mod.accuracy_by_regime(regime_df, REGIMES)
         assert all("__regime_" in mn for mn in result["metric_name"])
@@ -439,9 +431,7 @@ class TestAccuracyByRegime:
         assert "regime=stable" in regime_labels
         assert "regime=boom" in regime_labels
 
-    def test_mape_approximately_2_percent_per_regime(
-        self, regime_df: pd.DataFrame
-    ) -> None:
+    def test_mape_approximately_2_percent_per_regime(self, regime_df: pd.DataFrame) -> None:
         """All counties have 2% over-projection in both regimes."""
         mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS)
         result = mod.accuracy_by_regime(regime_df, REGIMES)
@@ -451,9 +441,7 @@ class TestAccuracyByRegime:
         ]
         assert all(np.isclose(county_mape["value"], 2.0, atol=0.1))
 
-    def test_county_group_assignment_in_regime(
-        self, regime_df: pd.DataFrame
-    ) -> None:
+    def test_county_group_assignment_in_regime(self, regime_df: pd.DataFrame) -> None:
         mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS)
         result = mod.accuracy_by_regime(regime_df, REGIMES)
         bakken = result[result["geography"] == "38105"]
@@ -473,22 +461,16 @@ class TestAccuracyByRegime:
         result = mod.accuracy_by_regime(regime_df, regimes={})
         assert len(result) == 0
 
-    def test_empty_when_years_outside_all_regimes(
-        self, regime_df: pd.DataFrame
-    ) -> None:
+    def test_empty_when_years_outside_all_regimes(self, regime_df: pd.DataFrame) -> None:
         """Regimes that don't overlap any data years produce empty output."""
         far_future = {"far": {"start": 2050, "end": 2060}}
         mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS)
         result = mod.accuracy_by_regime(regime_df, far_future)
         assert len(result) == 0
 
-    def test_uses_instance_regimes_when_arg_is_none(
-        self, regime_df: pd.DataFrame
-    ) -> None:
+    def test_uses_instance_regimes_when_arg_is_none(self, regime_df: pd.DataFrame) -> None:
         """Falls back to self.regimes when regimes arg is None."""
-        mod = ForecastAccuracyModule(
-            county_groups=COUNTY_GROUPS, regimes=REGIMES
-        )
+        mod = ForecastAccuracyModule(county_groups=COUNTY_GROUPS, regimes=REGIMES)
         result = mod.accuracy_by_regime(regime_df)
         assert len(result) > 0
 

@@ -172,20 +172,14 @@ def run_single_geography_projection(
                     f"at each of {projection_results['year'].nunique()} years"
                 )
                 # Build a GQ lookup keyed by (age, sex, race)
-                gq_lookup = (
-                    gq_pop.groupby(["age", "sex", "race"])["gq_population"]
-                    .sum()
-                    .to_dict()
-                )
+                gq_lookup = gq_pop.groupby(["age", "sex", "race"])["gq_population"].sum().to_dict()
 
                 # Add GQ population to each year's projection results
                 def _add_gq(row: pd.Series) -> float:
                     key = (row["age"], row["sex"], row["race"])
                     return row["population"] + gq_lookup.get(key, 0.0)
 
-                projection_results["population"] = projection_results.apply(
-                    _add_gq, axis=1
-                )
+                projection_results["population"] = projection_results.apply(_add_gq, axis=1)
 
                 # Also update the base_year_pop to reflect total (HH + GQ)
                 # so that growth rate calculations are based on total pop

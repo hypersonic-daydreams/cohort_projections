@@ -104,7 +104,9 @@ def _normalize_county_population(
         normalized = normalized.rename(columns={pop_col: "county_population"})
         normalized["county_fips"] = normalized["county_fips"].map(lambda v: _normalize_fips(v, 5))
         normalized["year"] = pd.to_numeric(normalized["year"], errors="coerce").astype("Int64")
-        normalized["county_population"] = pd.to_numeric(normalized["county_population"], errors="coerce")
+        normalized["county_population"] = pd.to_numeric(
+            normalized["county_population"], errors="coerce"
+        )
         normalized = normalized.dropna(subset=["county_fips", "year", "county_population"]).copy()
         normalized["year"] = normalized["year"].astype(int)
         normalized = normalized[
@@ -190,7 +192,9 @@ def run_single_variant(
         "constraint_method": constraint_method,
         "epsilon": float(model_cfg.get("epsilon", 0.001)),
         "lambda_decay": float(model_cfg.get("lambda_decay", 0.9)),
-        "reconciliation_flag_threshold": float(model_cfg.get("reconciliation_flag_threshold", 0.05)),
+        "reconciliation_flag_threshold": float(
+            model_cfg.get("reconciliation_flag_threshold", 0.05)
+        ),
     }
 
     for county_fips, county_train in train_history.groupby("county_fips"):
@@ -215,7 +219,14 @@ def run_single_variant(
         }
     )
     projected = projected[
-        ["variant_id", "county_fips", "place_fips", "year", "projected_population", "projected_share"]
+        [
+            "variant_id",
+            "county_fips",
+            "place_fips",
+            "year",
+            "projected_population",
+            "projected_share",
+        ]
     ].copy()
 
     actual = _extract_actual_population(test_actual_source)
@@ -284,7 +295,7 @@ def compute_per_place_metrics(
         columns={"AE": "AE_terminal"}
     )
     if terminal.duplicated(subset=["place_fips"]).any():
-        terminal = terminal.groupby("place_fips", as_index=False)["AE_terminal"].mean()
+        terminal = terminal.groupby("place_fips", as_index=False)["AE_terminal"].mean()  # type: ignore[assignment]
 
     summary = (
         merged.groupby("place_fips", as_index=False)
@@ -386,7 +397,9 @@ def compute_variant_score(tier_aggregates: pd.DataFrame) -> float:
         raise ValueError("No HIGH/MODERATE/LOWER rows found for variant scoring.")
 
     if "tier_population_2024" in scored.columns:
-        weights = pd.to_numeric(scored["tier_population_2024"], errors="coerce").to_numpy(dtype=float)
+        weights = pd.to_numeric(scored["tier_population_2024"], errors="coerce").to_numpy(
+            dtype=float
+        )
     else:
         weights = np.ones(len(scored), dtype=float)
 
@@ -434,7 +447,10 @@ def select_winner(variant_scores: pd.DataFrame | Mapping[str, float]) -> str:
     """
     if isinstance(variant_scores, Mapping):
         score_df = pd.DataFrame(
-            [{"variant_id": variant_id, "score": score} for variant_id, score in variant_scores.items()]
+            [
+                {"variant_id": variant_id, "score": score}
+                for variant_id, score in variant_scores.items()
+            ]
         )
     else:
         score_df = variant_scores.copy()
@@ -470,4 +486,3 @@ __all__ = [
     "run_single_variant",
     "select_winner",
 ]
-

@@ -77,9 +77,7 @@ def _make_survival_rates() -> pd.DataFrame:
             rate = max(0.5, 1.0 - idx * 0.02)
             if ag == "85+":
                 rate = 0.60
-            records.append(
-                {"age_group": ag, "sex": sex, "survival_rate_5yr": rate}
-            )
+            records.append({"age_group": ag, "sex": sex, "survival_rate_5yr": rate})
     return pd.DataFrame(records)
 
 
@@ -275,9 +273,7 @@ class TestResidualMigrationPipelineWiring:
         for year in [2000, 2005, 2010, 2015, 2020, 2024]:
             # Slight growth over time to produce plausible residual rates
             growth = 1.0 + (year - 2000) * 0.005
-            pops[year] = _make_population_snapshot(
-                SYNTHETIC_COUNTIES, base_pop=500.0 * growth
-            )
+            pops[year] = _make_population_snapshot(SYNTHETIC_COUNTIES, base_pop=500.0 * growth)
         return pops
 
     @pytest.fixture
@@ -315,7 +311,9 @@ class TestResidualMigrationPipelineWiring:
                     else (pep_data if pep_data is not None else pd.DataFrame())
                 ),
             ),
-            patch("cohort_projections.data.process.residual_migration.Path.exists", return_value=True),
+            patch(
+                "cohort_projections.data.process.residual_migration.Path.exists", return_value=True
+            ),
             patch("cohort_projections.data.process.residual_migration.Path.mkdir"),
             patch("pandas.DataFrame.to_parquet"),
             patch("builtins.open", mock_open()),
@@ -330,9 +328,7 @@ class TestResidualMigrationPipelineWiring:
     ) -> None:
         """Pipeline returns both 'all_periods' and 'averaged' DataFrames."""
         config = _make_minimal_config()
-        result = self._run_pipeline_with_mocks(
-            config, synthetic_populations, synthetic_survival
-        )
+        result = self._run_pipeline_with_mocks(config, synthetic_populations, synthetic_survival)
 
         assert "all_periods" in result
         assert "averaged" in result
@@ -346,9 +342,7 @@ class TestResidualMigrationPipelineWiring:
     ) -> None:
         """All-periods output contains the residual migration schema columns."""
         config = _make_minimal_config()
-        result = self._run_pipeline_with_mocks(
-            config, synthetic_populations, synthetic_survival
-        )
+        result = self._run_pipeline_with_mocks(config, synthetic_populations, synthetic_survival)
 
         expected_cols = {
             "county_fips",
@@ -372,9 +366,7 @@ class TestResidualMigrationPipelineWiring:
     ) -> None:
         """Averaged output contains group columns plus rate and count."""
         config = _make_minimal_config()
-        result = self._run_pipeline_with_mocks(
-            config, synthetic_populations, synthetic_survival
-        )
+        result = self._run_pipeline_with_mocks(config, synthetic_populations, synthetic_survival)
 
         expected_cols = {
             "county_fips",
@@ -394,9 +386,7 @@ class TestResidualMigrationPipelineWiring:
     ) -> None:
         """All-periods output contains data for all 5 historical periods."""
         config = _make_minimal_config()
-        result = self._run_pipeline_with_mocks(
-            config, synthetic_populations, synthetic_survival
-        )
+        result = self._run_pipeline_with_mocks(config, synthetic_populations, synthetic_survival)
 
         all_periods = result["all_periods"]
         period_pairs = (
@@ -414,9 +404,7 @@ class TestResidualMigrationPipelineWiring:
     ) -> None:
         """Averaged output has exactly one row per county x age_group x sex."""
         config = _make_minimal_config()
-        result = self._run_pipeline_with_mocks(
-            config, synthetic_populations, synthetic_survival
-        )
+        result = self._run_pipeline_with_mocks(config, synthetic_populations, synthetic_survival)
 
         averaged = result["averaged"]
         n_counties = len(SYNTHETIC_COUNTIES)
@@ -430,9 +418,7 @@ class TestResidualMigrationPipelineWiring:
     ) -> None:
         """Each averaged cell reports n_periods=5 (all periods contributed)."""
         config = _make_minimal_config()
-        result = self._run_pipeline_with_mocks(
-            config, synthetic_populations, synthetic_survival
-        )
+        result = self._run_pipeline_with_mocks(config, synthetic_populations, synthetic_survival)
 
         assert (result["averaged"]["n_periods"] == 5).all()
 
@@ -443,9 +429,7 @@ class TestResidualMigrationPipelineWiring:
     ) -> None:
         """No NaN values leak through the pipeline into migration rates."""
         config = _make_minimal_config()
-        result = self._run_pipeline_with_mocks(
-            config, synthetic_populations, synthetic_survival
-        )
+        result = self._run_pipeline_with_mocks(config, synthetic_populations, synthetic_survival)
 
         assert not result["all_periods"]["migration_rate"].isna().any()
         assert not result["averaged"]["migration_rate"].isna().any()
@@ -457,9 +441,7 @@ class TestResidualMigrationPipelineWiring:
     ) -> None:
         """Migration rates are within demographically plausible bounds [-1, +1]."""
         config = _make_minimal_config()
-        result = self._run_pipeline_with_mocks(
-            config, synthetic_populations, synthetic_survival
-        )
+        result = self._run_pipeline_with_mocks(config, synthetic_populations, synthetic_survival)
 
         rates = result["averaged"]["migration_rate"]
         assert (rates >= -1.0).all(), "Migration rate below -1.0 (impossible)"
@@ -472,9 +454,7 @@ class TestResidualMigrationPipelineWiring:
     ) -> None:
         """All input counties appear in the output."""
         config = _make_minimal_config()
-        result = self._run_pipeline_with_mocks(
-            config, synthetic_populations, synthetic_survival
-        )
+        result = self._run_pipeline_with_mocks(config, synthetic_populations, synthetic_survival)
 
         output_counties = sorted(result["averaged"]["county_fips"].unique())
         assert output_counties == sorted(SYNTHETIC_COUNTIES)
@@ -486,9 +466,7 @@ class TestResidualMigrationPipelineWiring:
     ) -> None:
         """All 18 age groups appear in the output."""
         config = _make_minimal_config()
-        result = self._run_pipeline_with_mocks(
-            config, synthetic_populations, synthetic_survival
-        )
+        result = self._run_pipeline_with_mocks(config, synthetic_populations, synthetic_survival)
 
         output_ags = sorted(
             result["averaged"]["age_group"].unique(),
@@ -503,9 +481,7 @@ class TestResidualMigrationPipelineWiring:
     ) -> None:
         """Both Male and Female appear in the output."""
         config = _make_minimal_config()
-        result = self._run_pipeline_with_mocks(
-            config, synthetic_populations, synthetic_survival
-        )
+        result = self._run_pipeline_with_mocks(config, synthetic_populations, synthetic_survival)
 
         assert sorted(result["averaged"]["sex"].unique()) == ["Female", "Male"]
 
@@ -522,7 +498,9 @@ class TestResidualMigrationPipelineWiring:
         )
 
         result = self._run_pipeline_with_mocks(
-            config, synthetic_populations, synthetic_survival,
+            config,
+            synthetic_populations,
+            synthetic_survival,
             gq_historical=gq_data,
         )
 
@@ -543,9 +521,7 @@ class TestResidualMigrationPipelineWiring:
             years=[2000, 2005, 2010, 2015, 2020, 2024],
         )
 
-        corrected = subtract_gq_from_populations(
-            synthetic_populations, gq_data
-        )
+        corrected = subtract_gq_from_populations(synthetic_populations, gq_data)
 
         for year in synthetic_populations:
             orig_total = synthetic_populations[year]["population"].sum()
@@ -559,9 +535,7 @@ class TestResidualMigrationPipelineWiring:
     ) -> None:
         """Pipeline completes when college-age smoothing is enabled."""
         config = _make_minimal_config(enable_college=True)
-        result = self._run_pipeline_with_mocks(
-            config, synthetic_populations, synthetic_survival
-        )
+        result = self._run_pipeline_with_mocks(config, synthetic_populations, synthetic_survival)
 
         # Verify output is well-formed
         assert not result["averaged"]["migration_rate"].isna().any()
@@ -578,14 +552,10 @@ class TestResidualMigrationPipelineWiring:
         pops = {}
         for year in [2000, 2005, 2010, 2015, 2020, 2024]:
             growth = 1.0 + (year - 2000) * 0.005
-            pops[year] = _make_population_snapshot(
-                counties_with_oil, base_pop=500.0 * growth
-            )
+            pops[year] = _make_population_snapshot(counties_with_oil, base_pop=500.0 * growth)
 
         config = _make_minimal_config(enable_dampening=True)
-        result = self._run_pipeline_with_mocks(
-            config, pops, synthetic_survival
-        )
+        result = self._run_pipeline_with_mocks(config, pops, synthetic_survival)
 
         assert "38105" in result["averaged"]["county_fips"].values
 
@@ -615,7 +585,9 @@ class TestResidualMigrationPipelineWiring:
         )
 
         result = self._run_pipeline_with_mocks(
-            config, pops, synthetic_survival,
+            config,
+            pops,
+            synthetic_survival,
             gq_historical=gq_data,
             pep_data=pep_data,
         )
@@ -630,13 +602,11 @@ class TestResidualMigrationPipelineWiring:
     ) -> None:
         """Each period for each county has exactly 36 rows (18 ages x 2 sexes)."""
         config = _make_minimal_config()
-        result = self._run_pipeline_with_mocks(
-            config, synthetic_populations, synthetic_survival
-        )
+        result = self._run_pipeline_with_mocks(config, synthetic_populations, synthetic_survival)
 
-        grouped = result["all_periods"].groupby(
-            ["county_fips", "period_start", "period_end"]
-        ).size()
+        grouped = (
+            result["all_periods"].groupby(["county_fips", "period_start", "period_end"]).size()
+        )
         assert (grouped == CELLS_PER_COUNTY).all()
 
 
@@ -841,10 +811,8 @@ class TestConvergencePipelineWiring:
             .sort_values(["county_fips", "age_group", "sex"])
             .reset_index(drop=True)
         )
-        medium_sorted = (
-            medium_rates
-            .sort_values(["county_fips", "age_group", "sex"])
-            .reset_index(drop=True)
+        medium_sorted = medium_rates.sort_values(["county_fips", "age_group", "sex"]).reset_index(
+            drop=True
         )
 
         np.testing.assert_allclose(
@@ -896,11 +864,9 @@ class TestConvergencePipelineWiring:
             .sort_values(["county_fips", "age_group", "sex"])
             .reset_index(drop=True)
         )
-        longterm_sorted = (
-            longterm_rates
-            .sort_values(["county_fips", "age_group", "sex"])
-            .reset_index(drop=True)
-        )
+        longterm_sorted = longterm_rates.sort_values(
+            ["county_fips", "age_group", "sex"]
+        ).reset_index(drop=True)
 
         np.testing.assert_allclose(
             year20["migration_rate"].values,
@@ -1008,9 +974,7 @@ class TestConvergencePipelineWiring:
     ) -> None:
         """Baseline (variant=None) saves to convergence_rates_by_year.parquet."""
         config = _make_minimal_config()
-        result = self._run_convergence_with_mocks(
-            config, synthetic_phase1_rates, variant=None
-        )
+        result = self._run_convergence_with_mocks(config, synthetic_phase1_rates, variant=None)
 
         assert result["output_path"].name == "convergence_rates_by_year.parquet"
 

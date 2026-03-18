@@ -229,9 +229,7 @@ def plot_population_pyramid(
     ax.set_xlim(-max_val, max_val)
 
     # Format x-axis labels as absolute values while preserving tick locator behavior.
-    ax.xaxis.set_major_formatter(
-        mticker.FuncFormatter(lambda x, _pos: f"{abs(int(round(x))):,}")
-    )
+    ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _pos: f"{abs(int(round(x))):,}"))
     ax.set_xlabel("Population")
 
     # Center line

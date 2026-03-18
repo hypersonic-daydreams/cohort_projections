@@ -53,9 +53,11 @@ logger = get_logger_from_config(__name__)
 # Default oil-boom counties (Bakken region)
 OIL_COUNTIES: list[str] = ["38105", "38053", "38061", "38025", "38089"]
 
+
 def _age_group_index(label: str) -> int:
     """Return the positional index of an age group label in AGE_GROUP_LABELS."""
     return AGE_GROUP_LABELS.index(label)
+
 
 def _annualize_period_migration_rate(period_rate: float, period_length: int) -> float:
     """Convert a multi-year net migration rate into an annual rate.
@@ -446,8 +448,8 @@ def apply_period_dampening(
     n_affected = mask.sum()
 
     if n_affected > 0:
-        result.loc[mask, "migration_rate"] *= factor
-        result.loc[mask, "net_migration"] *= factor
+        result.loc[mask, "migration_rate"] *= factor  # type: ignore[operator, index]
+        result.loc[mask, "net_migration"] *= factor  # type: ignore[operator, index]
         logger.info(
             f"Period {period[0]}-{period[1]}: dampened {n_affected} rows "
             f"in {len(counties)} oil counties by factor {factor:.2f}"
@@ -966,8 +968,7 @@ def subtract_gq_from_populations(
 
         if gq_year.empty:
             logger.warning(
-                f"GQ correction: no GQ data for year {year}; "
-                f"using total population unchanged"
+                f"GQ correction: no GQ data for year {year}; using total population unchanged"
             )
             result[year] = pop_df.copy()
             continue
@@ -983,9 +984,9 @@ def subtract_gq_from_populations(
         merged["gq_population"] = merged["gq_population"].fillna(0.0)
 
         # Subtract GQ (scaled by fraction), floor at zero
-        merged["population"] = (
-            merged["population"] - fraction * merged["gq_population"]
-        ).clip(lower=0.0)
+        merged["population"] = (merged["population"] - fraction * merged["gq_population"]).clip(
+            lower=0.0
+        )
 
         total_after = merged["population"].sum()
         gq_subtracted = total_before - total_after
@@ -1072,9 +1073,7 @@ def run_residual_migration_pipeline(
             f"years: {sorted(gq_historical['year'].unique())}"
         )
         gq_fraction = gq_correction_cfg.get("fraction", 1.0)
-        populations = subtract_gq_from_populations(
-            populations, gq_historical, fraction=gq_fraction
-        )
+        populations = subtract_gq_from_populations(populations, gq_historical, fraction=gq_fraction)
     else:
         logger.info("Step 1b: GQ correction disabled; using total population")
 
@@ -1104,11 +1103,23 @@ def run_residual_migration_pipeline(
     college_cfg = adjustments_cfg.get("college_age", {})
     college_enabled = college_cfg.get("enabled", True)
     college_method = college_cfg.get("method", "smooth")
-    college_counties = college_cfg.get("counties", [
-        "38003", "38009", "38015", "38017", "38035",
-        "38071", "38077", "38089", "38093", "38097", "38101",
-        "38105",
-    ])
+    college_counties = college_cfg.get(
+        "counties",
+        [
+            "38003",
+            "38009",
+            "38015",
+            "38017",
+            "38035",
+            "38071",
+            "38077",
+            "38089",
+            "38093",
+            "38097",
+            "38101",
+            "38105",
+        ],
+    )
     college_age_groups = college_cfg.get("age_groups", ["15-19", "20-24"])
     college_blend = college_cfg.get("blend_factor", 0.5)
 
@@ -1269,12 +1280,8 @@ def run_residual_migration_pipeline(
         "gq_correction": {
             "enabled": gq_correction_enabled,
             "fraction": gq_correction_cfg.get("fraction", 1.0),
-            "historical_gq_path": gq_correction_cfg.get(
-                "historical_gq_path", ""
-            ),
-            "pre_2020_method": gq_correction_cfg.get(
-                "pre_2020_method", "backward_constant"
-            ),
+            "historical_gq_path": gq_correction_cfg.get("historical_gq_path", ""),
+            "pre_2020_method": gq_correction_cfg.get("pre_2020_method", "backward_constant"),
         },
         "survival_source": residual_cfg.get("survival_source", "CDC_ND_2020"),
         "summary": {

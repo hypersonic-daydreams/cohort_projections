@@ -67,12 +67,7 @@ def _projection_endpoint(
         return None
 
     if origin_year == "All" and "origin_year" in curves.columns:
-        curves = (
-            curves.groupby("year")["projected_state"]
-            .mean()
-            .reset_index()
-            .sort_values("year")
-        )
+        curves = curves.groupby("year")["projected_state"].mean().reset_index().sort_values("year")
     else:
         curves = curves.sort_values("year")[["year", "projected_state"]]
     if curves.empty:
@@ -136,9 +131,7 @@ def _projection_takeaway_text(
         _, champion_pop = champion_endpoint
         delta = end_pop - champion_pop
         direction = "higher" if delta > 0 else "lower" if delta < 0 else "the same as"
-        comparison_phrase = (
-            "the same as" if delta == 0 else f"{direction} than"
-        )
+        comparison_phrase = "the same as" if delta == 0 else f"{direction} than"
         if delta == 0:
             parts.append(
                 f"At {end_year}, the spotlight run ends at roughly {end_pop:,.0f}, "
@@ -155,9 +148,7 @@ def _projection_takeaway_text(
         )
     elif endpoint is not None:
         end_year, end_pop = endpoint
-        parts.append(
-            f"The spotlight run ends near {end_pop:,.0f} in {end_year} ({origin_label})."
-        )
+        parts.append(f"The spotlight run ends near {end_pop:,.0f} in {end_year} ({origin_label}).")
         if not show_champion_reference:
             parts.append(
                 "Turn on the champion reference to see whether that path is materially higher "
@@ -299,7 +290,11 @@ def _build_spaghetti_plot(
 
     year_col = "year" if "year" in curves.columns else "validation_year"
     proj_col = next(
-        (candidate for candidate in ("projected_state", "projected_population", "population") if candidate in curves.columns),
+        (
+            candidate
+            for candidate in ("projected_state", "projected_population", "population")
+            if candidate in curves.columns
+        ),
         None,
     )
     if proj_col is None or year_col not in curves.columns:
@@ -314,7 +309,9 @@ def _build_spaghetti_plot(
             method_col="method",
         )
         for idx, (_, origin_df) in enumerate(
-            champion_curves.sort_values(year_col).groupby("origin_year" if "origin_year" in champion_curves.columns else year_col)
+            champion_curves.sort_values(year_col).groupby(
+                "origin_year" if "origin_year" in champion_curves.columns else year_col
+            )
         ):
             fig.add_trace(
                 go.Scatter(
@@ -353,9 +350,7 @@ def _build_spaghetti_plot(
         opacity = 0.84 if emphasis_mode == "Balanced" else 0.62
 
         group_col = "origin_year" if "origin_year" in run_curves.columns else year_col
-        for idx, (_, origin_df) in enumerate(
-            run_curves.sort_values(year_col).groupby(group_col)
-        ):
+        for idx, (_, origin_df) in enumerate(run_curves.sort_values(year_col).groupby(group_col)):
             fig.add_trace(
                 go.Scatter(
                     x=origin_df[year_col],
@@ -395,11 +390,19 @@ def _build_error_over_time(
         return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
 
     horizon_col = next(
-        (candidate for candidate in ("horizon", "forecast_horizon", "horizon_years") if candidate in state_metrics.columns),
+        (
+            candidate
+            for candidate in ("horizon", "forecast_horizon", "horizon_years")
+            if candidate in state_metrics.columns
+        ),
         None,
     )
     error_col = next(
-        (candidate for candidate in ("pct_error", "state_pct_error", "ape") if candidate in state_metrics.columns),
+        (
+            candidate
+            for candidate in ("pct_error", "state_pct_error", "ape")
+            if candidate in state_metrics.columns
+        ),
         None,
     )
     if horizon_col is None or error_col is None:
@@ -456,7 +459,9 @@ def _build_error_over_time(
                     .sort_values(horizon_col)
                 )
             else:
-                champion_metrics = champion_metrics[[horizon_col, error_col]].sort_values(horizon_col)
+                champion_metrics = champion_metrics[[horizon_col, error_col]].sort_values(
+                    horizon_col
+                )
             fig.add_trace(
                 go.Scatter(
                     x=champion_metrics[horizon_col],
@@ -522,27 +527,79 @@ def _build_uncertainty_fan(
         method_col="method",
     )
     if run_data.empty:
-        return pn.Column(widgets.empty_placeholder("No uncertainty data for the current selection."))
+        return pn.Column(
+            widgets.empty_placeholder("No uncertainty data for the current selection.")
+        )
 
-    year_col = next((candidate for candidate in ("year", "validation_year", "horizon") if candidate in run_data.columns), None)
+    year_col = next(
+        (
+            candidate
+            for candidate in ("year", "validation_year", "horizon")
+            if candidate in run_data.columns
+        ),
+        None,
+    )
     if year_col is None:
-        return pn.Column(widgets.empty_placeholder("Uncertainty data is missing a year/horizon column."))
+        return pn.Column(
+            widgets.empty_placeholder("Uncertainty data is missing a year/horizon column.")
+        )
     run_data = run_data.sort_values(year_col)
 
     fig = go.Figure()
     if {"p5", "p95"}.issubset(run_data.columns):
-        fig.add_trace(go.Scatter(x=run_data[year_col], y=run_data["p95"], mode="lines", line={"width": 0}, showlegend=False, hoverinfo="skip"))
-        fig.add_trace(go.Scatter(x=run_data[year_col], y=run_data["p5"], mode="lines", line={"width": 0}, fill="tonexty", fillcolor="rgba(5,99,193,0.15)", name="90% band"))
+        fig.add_trace(
+            go.Scatter(
+                x=run_data[year_col],
+                y=run_data["p95"],
+                mode="lines",
+                line={"width": 0},
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=run_data[year_col],
+                y=run_data["p5"],
+                mode="lines",
+                line={"width": 0},
+                fill="tonexty",
+                fillcolor="rgba(5,99,193,0.15)",
+                name="90% band",
+            )
+        )
     if {"p25", "p75"}.issubset(run_data.columns):
-        fig.add_trace(go.Scatter(x=run_data[year_col], y=run_data["p75"], mode="lines", line={"width": 0}, showlegend=False, hoverinfo="skip"))
-        fig.add_trace(go.Scatter(x=run_data[year_col], y=run_data["p25"], mode="lines", line={"width": 0}, fill="tonexty", fillcolor="rgba(5,99,193,0.32)", name="50% band"))
+        fig.add_trace(
+            go.Scatter(
+                x=run_data[year_col],
+                y=run_data["p75"],
+                mode="lines",
+                line={"width": 0},
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=run_data[year_col],
+                y=run_data["p25"],
+                mode="lines",
+                line={"width": 0},
+                fill="tonexty",
+                fillcolor="rgba(5,99,193,0.32)",
+                name="50% band",
+            )
+        )
     if "p50" in run_data.columns:
         fig.add_trace(
             go.Scatter(
                 x=run_data[year_col],
                 y=run_data["p50"],
                 mode="lines",
-                line={"color": SDC_NAVY if run_id == dm.champion_id else theme.SDC_BLUE, "width": 2.6},
+                line={
+                    "color": SDC_NAVY if run_id == dm.champion_id else theme.SDC_BLUE,
+                    "width": 2.6,
+                },
                 name="Median",
             )
         )

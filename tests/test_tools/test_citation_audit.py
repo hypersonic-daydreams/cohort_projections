@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib.util
 
+import pytest
+
 from tests._sdc_paths import get_sdc_repo_root
 
 SDC_REPO_ROOT = get_sdc_repo_root()
@@ -16,6 +18,12 @@ MODULE_PATH = (
     / "citation_audit"
     / "check_citations.py"
 )
+
+if not MODULE_PATH.exists():
+    pytest.skip(
+        f"SDC script not found: {MODULE_PATH}",
+        allow_module_level=True,
+    )
 
 
 def load_module():

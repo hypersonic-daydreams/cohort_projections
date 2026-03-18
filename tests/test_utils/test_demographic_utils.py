@@ -547,12 +547,28 @@ class TestSpragueGraduate:
         Shaped like a typical population pyramid: larger young-adult groups,
         declining at older ages, with a smaller terminal group.
         """
-        return np.array([
-            5000, 4800, 4500, 5200, 5800,  # 0-4 through 20-24
-            5500, 5100, 4800, 4600, 4400,  # 25-29 through 45-49
-            4200, 3900, 3500, 3000, 2500,  # 50-54 through 70-74
-            2000, 1500, 1200,              # 75-79, 80-84, 85+
-        ])
+        return np.array(
+            [
+                5000,
+                4800,
+                4500,
+                5200,
+                5800,  # 0-4 through 20-24
+                5500,
+                5100,
+                4800,
+                4600,
+                4400,  # 25-29 through 45-49
+                4200,
+                3900,
+                3500,
+                3000,
+                2500,  # 50-54 through 70-74
+                2000,
+                1500,
+                1200,  # 75-79, 80-84, 85+
+            ]
+        )
 
     @pytest.fixture
     def uniform_totals(self) -> np.ndarray:
@@ -605,9 +621,7 @@ class TestSpragueGraduate:
         # Sprague should produce gradual changes; max ratio should be well
         # under 1.20 (20%). Uniform splitting creates 4-5% jumps at every
         # 5-year boundary and 0% change within groups.
-        assert max_ratio < 1.20, (
-            f"Adjacent-age max ratio {max_ratio:.3f} exceeds 1.20 threshold"
-        )
+        assert max_ratio < 1.20, f"Adjacent-age max ratio {max_ratio:.3f} exceeds 1.20 threshold"
 
     def test_no_step_at_group_boundaries(self, uniform_totals: np.ndarray) -> None:
         """With uniform group totals, there should be no steps at boundaries.
@@ -624,8 +638,7 @@ class TestSpragueGraduate:
             if boundary + 1 < len(result) and result[boundary] > 0:
                 ratio = result[boundary + 1] / result[boundary]
                 assert 0.85 < ratio < 1.15, (
-                    f"Step at boundary ages {boundary}-{boundary + 1}: "
-                    f"ratio = {ratio:.3f}"
+                    f"Step at boundary ages {boundary}-{boundary + 1}: ratio = {ratio:.3f}"
                 )
 
     def test_non_negative_with_clamping(self, demographic_totals: np.ndarray) -> None:
@@ -642,19 +655,34 @@ class TestSpragueGraduate:
         """
         # Create a distribution with a very small terminal group that may
         # trigger negative overshoots
-        totals = np.array([
-            5000, 4800, 4500, 5200, 5800,
-            5500, 5100, 4800, 4600, 4400,
-            4200, 3900, 3500, 3000, 2500,
-            2000, 1500, 50,  # Very small terminal group
-        ])
+        totals = np.array(
+            [
+                5000,
+                4800,
+                4500,
+                5200,
+                5800,
+                5500,
+                5100,
+                4800,
+                4600,
+                4400,
+                4200,
+                3900,
+                3500,
+                3000,
+                2500,
+                2000,
+                1500,
+                50,  # Very small terminal group
+            ]
+        )
         result = sprague_graduate(totals, clamp_negatives=True)
 
         for i, group_total in enumerate(totals):
             single_year_sum = result[i * 5 : (i + 1) * 5].sum()
             assert abs(single_year_sum - group_total) < 0.1, (
-                f"Group {i}: expected {group_total}, got {single_year_sum} "
-                f"after clamping"
+                f"Group {i}: expected {group_total}, got {single_year_sum} after clamping"
             )
 
     def test_minimum_groups_required(self) -> None:
@@ -687,9 +715,7 @@ class TestSpragueGraduate:
         # All values should be non-negative
         assert np.all(result >= 0)
 
-    def test_monotonically_declining_at_old_ages(
-        self, demographic_totals: np.ndarray
-    ) -> None:
+    def test_monotonically_declining_at_old_ages(self, demographic_totals: np.ndarray) -> None:
         """For a typical age distribution, populations should generally
         decline at older ages (60+).
 
@@ -712,9 +738,7 @@ class TestSpragueGraduate:
         assert avg_75_79 < avg_70_74
         assert avg_80_84 < avg_75_79
 
-    def test_sprague_vs_uniform_smoothness(
-        self, demographic_totals: np.ndarray
-    ) -> None:
+    def test_sprague_vs_uniform_smoothness(self, demographic_totals: np.ndarray) -> None:
         """Sprague should produce smoother results than uniform splitting.
 
         Compute the sum of squared second differences (a measure of
@@ -729,7 +753,7 @@ class TestSpragueGraduate:
         def roughness(arr: np.ndarray) -> float:
             """Sum of squared second differences (curvature penalty)."""
             d2 = np.diff(arr, n=2)
-            return float(np.sum(d2 ** 2))
+            return float(np.sum(d2**2))
 
         sprague_roughness = roughness(sprague_result[5:80])
         uniform_roughness = roughness(uniform_result[5:80])

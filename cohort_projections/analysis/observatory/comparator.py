@@ -104,9 +104,7 @@ class ObservatoryComparator:
         self.store = store
         self.config: dict[str, Any] = config or _DEFAULT_CONFIG
         comparison_cfg = self.config.get("comparison", {})
-        self.primary_metric: str = comparison_cfg.get(
-            "primary_metric", "county_mape_overall"
-        )
+        self.primary_metric: str = comparison_cfg.get("primary_metric", "county_mape_overall")
         self.secondary_metrics: list[str] = comparison_cfg.get(
             "secondary_metrics",
             _DEFAULT_CONFIG["comparison"]["secondary_metrics"],
@@ -146,9 +144,7 @@ class ObservatoryComparator:
         if scorecards.empty:
             return None
 
-        champions = scorecards[
-            scorecards["status_at_run"].str.lower() == "champion"
-        ]
+        champions = scorecards[scorecards["status_at_run"].str.lower() == "champion"]
         if not champions.empty:
             best_idx = champions[self.primary_metric].idxmin()
             if "candidate_id" in champions.columns:
@@ -244,8 +240,7 @@ class ObservatoryComparator:
 
         if metric not in scorecards.columns:
             raise ValueError(
-                f"Metric '{metric}' not found in scorecards. "
-                f"Available: {list(scorecards.columns)}"
+                f"Metric '{metric}' not found in scorecards. Available: {list(scorecards.columns)}"
             )
 
         id_cols = ["candidate_id", "candidate_source", "run_id", "method_id", "config_id"]
@@ -280,9 +275,7 @@ class ObservatoryComparator:
         id_col = "candidate_id" if "candidate_id" in scorecards.columns else "run_id"
         champion_rows = scorecards[scorecards[id_col] == champion_id]
         if champion_rows.empty:
-            raise ValueError(
-                f"Champion candidate/run ID not found in scorecards: {champion_id}"
-            )
+            raise ValueError(f"Champion candidate/run ID not found in scorecards: {champion_id}")
 
         # Use the first champion row (there should typically be one per method
         # family, but the champion baseline is the reference).
@@ -335,11 +328,7 @@ class ObservatoryComparator:
                 if i == j or not is_pareto[j]:
                     continue
                 # j dominates i if j is <= on both and < on at least one.
-                if (
-                    xs[j] <= xs[i]
-                    and ys[j] <= ys[i]
-                    and (xs[j] < xs[i] or ys[j] < ys[i])
-                ):
+                if xs[j] <= xs[i] and ys[j] <= ys[i] and (xs[j] < xs[i] or ys[j] < ys[i]):
                     is_pareto[i] = False
                     break
 
@@ -394,12 +383,16 @@ class ObservatoryComparator:
             if col in scorecards.columns:
                 best_idx = scorecards[col].idxmin()
                 run_id = str(scorecards.loc[best_idx, "run_id"])
-                config_id = str(
-                    scorecards.loc[best_idx, "config_id"]
-                ) if "config_id" in scorecards.columns else run_id
-                candidate_id = str(
-                    scorecards.loc[best_idx, "candidate_id"]
-                ) if "candidate_id" in scorecards.columns else run_id
+                config_id = (
+                    str(scorecards.loc[best_idx, "config_id"])
+                    if "config_id" in scorecards.columns
+                    else run_id
+                )
+                candidate_id = (
+                    str(scorecards.loc[best_idx, "candidate_id"])
+                    if "candidate_id" in scorecards.columns
+                    else run_id
+                )
                 best[group] = {
                     "run_id": run_id,
                     "config_id": config_id,
@@ -407,9 +400,7 @@ class ObservatoryComparator:
                 }
         return best
 
-    def full_comparison(
-        self, champion_run_id: str | None = None
-    ) -> ComparisonResult:
+    def full_comparison(self, champion_run_id: str | None = None) -> ComparisonResult:
         """Run the complete comparison analysis.
 
         Parameters
@@ -432,16 +423,10 @@ class ObservatoryComparator:
 
         # Pareto frontier on primary vs the first secondary metric.
         pareto_x = self.primary_metric
-        pareto_y = (
-            self.secondary_metrics[0]
-            if self.secondary_metrics
-            else "state_ape_recent_short"
-        )
+        pareto_y = self.secondary_metrics[0] if self.secondary_metrics else "state_ape_recent_short"
         try:
             pareto_df = self.pareto_frontier(pareto_x, pareto_y)
-            pareto_run_ids = (
-                pareto_df["run_id"].tolist() if "run_id" in pareto_df.columns else []
-            )
+            pareto_run_ids = pareto_df["run_id"].tolist() if "run_id" in pareto_df.columns else []
             pareto_candidate_ids = (
                 pareto_df["candidate_id"].tolist()
                 if "candidate_id" in pareto_df.columns
@@ -593,9 +578,7 @@ class ObservatoryComparator:
             hi = result.summary.get(f"{metric}_max")
             avg = result.summary.get(f"{metric}_mean")
             if lo is not None:
-                lines.append(
-                    f"  {metric:<35s}  min={lo:.4f}  max={hi:.4f}  mean={avg:.4f}"
-                )
+                lines.append(f"  {metric:<35s}  min={lo:.4f}  max={hi:.4f}  mean={avg:.4f}")
         lines.append("")
 
         # Best per county group.

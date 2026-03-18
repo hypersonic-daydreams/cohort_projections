@@ -137,36 +137,40 @@ def trend_housing_units(
         # Single observation: hold constant
         if projection_years is None:
             projection_years = [int(years[0]) + 5]
-        return pd.DataFrame({
-            "year": projection_years,
-            "hu_projected": [float(hu[0])] * len(projection_years),
-        })
+        return pd.DataFrame(
+            {
+                "year": projection_years,
+                "hu_projected": [float(hu[0])] * len(projection_years),
+            }
+        )
 
     if projection_years is None:
-        last_year = int(years.max())
+        last_year = int(years.max())  # type: ignore[union-attr]
         projection_years = [last_year + 5, last_year + 10]
 
     proj_years = np.array(projection_years, dtype=float)
 
     if method == "linear":
-        coeffs = np.polyfit(years, hu, deg=1)
+        coeffs = np.polyfit(years, hu, deg=1)  # type: ignore[arg-type]
         projected = np.polyval(coeffs, proj_years)
         # Floor at zero -- negative housing units are not meaningful
         projected = np.maximum(projected, 0.0)
 
     elif method == "log_linear":
         # Guard against zero or negative HU
-        hu_safe = np.where(hu > 0, hu, 1.0)
-        coeffs = np.polyfit(years, np.log(hu_safe), deg=1)
+        hu_safe = np.where(hu > 0, hu, 1.0)  # type: ignore[operator, arg-type]
+        coeffs = np.polyfit(years, np.log(hu_safe), deg=1)  # type: ignore[arg-type]
         projected = np.exp(np.polyval(coeffs, proj_years))
 
     else:
         raise ValueError(f"Unknown trend method: {method!r}. Use 'linear' or 'log_linear'.")
 
-    return pd.DataFrame({
-        "year": [int(y) for y in proj_years],
-        "hu_projected": projected.tolist(),
-    })
+    return pd.DataFrame(
+        {
+            "year": [int(y) for y in proj_years],
+            "hu_projected": projected.tolist(),
+        }
+    )
 
 
 def project_pph(
@@ -202,22 +206,26 @@ def project_pph(
         projection_years = [last_year + 5, last_year + 10]
 
     if method == "hold_last" or len(sorted_hist) < 2:
-        return pd.DataFrame({
-            "year": projection_years,
-            "pph_projected": [last_pph] * len(projection_years),
-        })
+        return pd.DataFrame(
+            {
+                "year": projection_years,
+                "pph_projected": [last_pph] * len(projection_years),
+            }
+        )
 
     if method == "linear_trend":
         years = sorted_hist["year"].values.astype(float)
         pph = sorted_hist["avg_hh_size"].values.astype(float)
-        coeffs = np.polyfit(years, pph, deg=1)
+        coeffs = np.polyfit(years, pph, deg=1)  # type: ignore[arg-type]
         proj = np.polyval(coeffs, np.array(projection_years, dtype=float))
         # Floor PPH at 1.0 (a household has at least 1 person)
         proj = np.maximum(proj, 1.0)
-        return pd.DataFrame({
-            "year": projection_years,
-            "pph_projected": proj.tolist(),
-        })
+        return pd.DataFrame(
+            {
+                "year": projection_years,
+                "pph_projected": proj.tolist(),
+            }
+        )
 
     raise ValueError(f"Unknown PPH method: {method!r}. Use 'hold_last' or 'linear_trend'.")
 
@@ -292,7 +300,9 @@ def run_housing_unit_projections(
         if n_years < min_history:
             logger.debug(
                 "Skipping %s: only %d vintage(s) (need %d)",
-                place_fips, n_years, min_history,
+                place_fips,
+                n_years,
+                min_history,
             )
             continue
 
@@ -317,11 +327,20 @@ def run_housing_unit_projections(
     if not results:
         logger.warning("No places produced HU projections")
         return pd.DataFrame(
-            columns=["place_fips", "year", "hu_projected", "pph_projected", "population_hu", "method"]
+            columns=[
+                "place_fips",
+                "year",
+                "hu_projected",
+                "pph_projected",
+                "population_hu",
+                "method",
+            ]
         )
 
     combined = pd.concat(results, ignore_index=True)
-    combined = combined[["place_fips", "year", "hu_projected", "pph_projected", "population_hu", "method"]]
+    combined = combined[
+        ["place_fips", "year", "hu_projected", "pph_projected", "population_hu", "method"]
+    ]
     combined = combined.sort_values(["place_fips", "year"]).reset_index(drop=True)
 
     logger.info(

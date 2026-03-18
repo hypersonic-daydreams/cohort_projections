@@ -10,18 +10,25 @@ import pytest
 
 from tests._sdc_paths import get_sdc_repo_root
 
+_SDC_ROOT = get_sdc_repo_root()
+_MODULE_PATH = (
+    _SDC_ROOT
+    / "scripts"
+    / "statistical_analysis"
+    / "journal_article"
+    / "create_publication_figures.py"
+)
+
+if not _MODULE_PATH.exists():
+    pytest.skip(
+        f"SDC script not found: {_MODULE_PATH}",
+        allow_module_level=True,
+    )
+
 
 @pytest.fixture(scope="module")
 def publication_figures_module():
-    sdc_root = get_sdc_repo_root()
-    module_path = (
-        sdc_root
-        / "scripts"
-        / "statistical_analysis"
-        / "journal_article"
-        / "create_publication_figures.py"
-    )
-    spec = importlib.util.spec_from_file_location("create_publication_figures", module_path)
+    spec = importlib.util.spec_from_file_location("create_publication_figures", _MODULE_PATH)
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     assert spec.loader is not None

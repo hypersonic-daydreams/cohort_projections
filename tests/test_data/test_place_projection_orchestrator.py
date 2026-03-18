@@ -310,4 +310,3 @@ def test_run_place_projections_writes_contract_outputs(tmp_path: Path) -> None:
     assert run_meta["level"] == "place"
     assert run_meta["num_geographies"] == 3
     assert run_meta["by_tier"] == {"HIGH": 1, "MODERATE": 1, "LOWER": 1}
-

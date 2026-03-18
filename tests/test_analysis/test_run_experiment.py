@@ -69,9 +69,7 @@ def base_profile_dir(tmp_path: Path) -> Path:
         },
     }
     profile_path = profile_dir / "m2026__cfg-20260101-baseline.yaml"
-    profile_path.write_text(
-        yaml.safe_dump(base_profile, sort_keys=False), encoding="utf-8"
-    )
+    profile_path.write_text(yaml.safe_dump(base_profile, sort_keys=False), encoding="utf-8")
     return profile_dir
 
 
@@ -209,16 +207,12 @@ class TestCheckMethodDispatch:
 
 
 class TestCreateMethodProfile:
-    def test_create_method_profile(
-        self, tmp_path: Path, base_profile_dir: Path
-    ) -> None:
+    def test_create_method_profile(self, tmp_path: Path, base_profile_dir: Path) -> None:
         spec = {**VALID_SPEC}
         method_id = "m2026"
         config_id = "cfg-test-experiment"
 
-        profile_path = re_mod._create_method_profile(
-            spec, method_id, config_id, base_profile_dir
-        )
+        profile_path = re_mod._create_method_profile(spec, method_id, config_id, base_profile_dir)
 
         assert profile_path.exists()
         profile = yaml.safe_load(profile_path.read_text(encoding="utf-8"))
@@ -233,23 +227,17 @@ class TestCreateMethodProfile:
         assert profile["resolved_config"]["param_a"] == 1
         assert profile["resolved_config"]["nested"]["param_b"] == 2
 
-    def test_create_method_profile_idempotent(
-        self, tmp_path: Path, base_profile_dir: Path
-    ) -> None:
+    def test_create_method_profile_idempotent(self, tmp_path: Path, base_profile_dir: Path) -> None:
         spec = {**VALID_SPEC}
         method_id = "m2026"
         config_id = "cfg-test-idempotent"
 
         # Create profile first time
-        path1 = re_mod._create_method_profile(
-            spec, method_id, config_id, base_profile_dir
-        )
+        path1 = re_mod._create_method_profile(spec, method_id, config_id, base_profile_dir)
         content_after_first = path1.read_text(encoding="utf-8")
 
         # Create profile second time — should skip, no error
-        path2 = re_mod._create_method_profile(
-            spec, method_id, config_id, base_profile_dir
-        )
+        path2 = re_mod._create_method_profile(spec, method_id, config_id, base_profile_dir)
         assert path1 == path2
         # Content should be unchanged
         assert path2.read_text(encoding="utf-8") == content_after_first

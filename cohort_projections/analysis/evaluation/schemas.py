@@ -24,42 +24,48 @@ from .metrics import (
 # Canonical column sets
 # ---------------------------------------------------------------------------
 
-PROJECTION_RESULT_COLUMNS: frozenset[str] = frozenset({
-    "run_id",
-    "geography",
-    "geography_type",
-    "year",
-    "horizon",
-    "sex",
-    "age_group",
-    "target",
-    "projected_value",
-    "actual_value",
-    "base_value",
-})
+PROJECTION_RESULT_COLUMNS: frozenset[str] = frozenset(
+    {
+        "run_id",
+        "geography",
+        "geography_type",
+        "year",
+        "horizon",
+        "sex",
+        "age_group",
+        "target",
+        "projected_value",
+        "actual_value",
+        "base_value",
+    }
+)
 
-COMPONENT_RECORD_COLUMNS: frozenset[str] = frozenset({
-    "run_id",
-    "geography",
-    "year",
-    "horizon",
-    "component",
-    "projected_component_value",
-    "actual_component_value",
-})
+COMPONENT_RECORD_COLUMNS: frozenset[str] = frozenset(
+    {
+        "run_id",
+        "geography",
+        "year",
+        "horizon",
+        "component",
+        "projected_component_value",
+        "actual_component_value",
+    }
+)
 
-DIAGNOSTIC_RECORD_COLUMNS: frozenset[str] = frozenset({
-    "run_id",
-    "metric_name",
-    "metric_group",
-    "geography",
-    "geography_group",
-    "target",
-    "horizon",
-    "value",
-    "comparison_run_id",
-    "notes",
-})
+DIAGNOSTIC_RECORD_COLUMNS: frozenset[str] = frozenset(
+    {
+        "run_id",
+        "metric_name",
+        "metric_group",
+        "geography",
+        "geography_group",
+        "target",
+        "horizon",
+        "value",
+        "comparison_run_id",
+        "notes",
+    }
+)
 
 # Order matters for joins — kept as a list.
 PROJECTION_JOIN_KEYS: list[str] = [

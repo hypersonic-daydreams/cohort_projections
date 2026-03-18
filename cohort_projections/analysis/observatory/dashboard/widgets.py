@@ -63,11 +63,7 @@ def kpi_card(
         else:
             arrow = "&#8212;"  # em-dash — no change
             css_class = "neutral"
-        delta_html = (
-            f'<div class="kpi-delta {css_class}">'
-            f"{arrow} {delta:+.2f}"
-            f"</div>"
-        )
+        delta_html = f'<div class="kpi-delta {css_class}">{arrow} {delta:+.2f}</div>'
 
     html = (
         f'<div class="kpi-card">'
@@ -265,12 +261,7 @@ def section_header(title: str, subtitle: str = "") -> pn.pane.HTML:
     subtitle_html = ""
     if subtitle:
         subtitle_html = f'<p class="subtitle">{subtitle}</p>'
-    html = (
-        f'<div class="section-header">'
-        f"  <h2>{title}</h2>"
-        f"  {subtitle_html}"
-        f"</div>"
-    )
+    html = f'<div class="section-header">  <h2>{title}</h2>  {subtitle_html}</div>'
     return pn.pane.HTML(
         html,
         sizing_mode="stretch_width",

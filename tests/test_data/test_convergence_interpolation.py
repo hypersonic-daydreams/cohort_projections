@@ -622,18 +622,16 @@ class TestRateCap:
         }
 
         results = calculate_age_specific_convergence(
-            recent, medium, longterm,
+            recent,
+            medium,
+            longterm,
             rate_cap_config=rate_cap_config,
         )
 
         # Check year 10 (medium hold at 20%)
         year10 = results[10]
-        rate_25_29 = float(
-            year10.loc[year10["age_group"] == "25-29", "migration_rate"].iloc[0]
-        )
-        rate_20_24 = float(
-            year10.loc[year10["age_group"] == "20-24", "migration_rate"].iloc[0]
-        )
+        rate_25_29 = float(year10.loc[year10["age_group"] == "25-29", "migration_rate"].iloc[0])
+        rate_20_24 = float(year10.loc[year10["age_group"] == "20-24", "migration_rate"].iloc[0])
 
         # 25-29 at 20% should be clipped to general_cap=8%
         assert rate_25_29 == pytest.approx(0.08)
@@ -653,7 +651,9 @@ class TestRateCap:
         longterm["migration_rate"] = [0.20]
 
         results = calculate_age_specific_convergence(
-            recent, medium, longterm,
+            recent,
+            medium,
+            longterm,
             rate_cap_config=None,
         )
 
@@ -682,7 +682,9 @@ class TestRateCap:
         }
 
         results = calculate_age_specific_convergence(
-            recent, medium, longterm,
+            recent,
+            medium,
+            longterm,
             rate_cap_config=rate_cap_config,
         )
 
@@ -715,7 +717,9 @@ class TestRateCap:
         }
 
         results = calculate_age_specific_convergence(
-            recent, medium, longterm,
+            recent,
+            medium,
+            longterm,
             rate_cap_config=rate_cap_config,
         )
 
@@ -942,7 +946,12 @@ class TestLiftWindowAverages:
         """Counties not in the increment DataFrame get zero increment."""
         rates = pd.DataFrame(
             [
-                {"county_fips": "38001", "age_group": "0-4", "sex": "Male", "migration_rate": -0.02},
+                {
+                    "county_fips": "38001",
+                    "age_group": "0-4",
+                    "sex": "Male",
+                    "migration_rate": -0.02,
+                },
                 {"county_fips": "38099", "age_group": "0-4", "sex": "Male", "migration_rate": 0.01},
             ]
         )
@@ -962,18 +971,22 @@ class TestLiftWindowAverages:
         """A positive increment always produces rates >= original."""
         np.random.seed(42)
         n_cells = 100
-        rates = pd.DataFrame({
-            "county_fips": [f"38{i:03d}" for i in range(n_cells)],
-            "age_group": ["0-4"] * n_cells,
-            "sex": ["Male"] * n_cells,
-            "migration_rate": np.random.uniform(-0.10, 0.10, n_cells),
-        })
-        increment = pd.DataFrame({
-            "county_fips": rates["county_fips"],
-            "age_group": rates["age_group"],
-            "sex": rates["sex"],
-            "rate_increment": np.abs(np.random.uniform(0.001, 0.01, n_cells)),
-        })
+        rates = pd.DataFrame(
+            {
+                "county_fips": [f"38{i:03d}" for i in range(n_cells)],
+                "age_group": ["0-4"] * n_cells,
+                "sex": ["Male"] * n_cells,
+                "migration_rate": np.random.uniform(-0.10, 0.10, n_cells),
+            }
+        )
+        increment = pd.DataFrame(
+            {
+                "county_fips": rates["county_fips"],
+                "age_group": rates["age_group"],
+                "sex": rates["sex"],
+                "rate_increment": np.abs(np.random.uniform(0.001, 0.01, n_cells)),
+            }
+        )
 
         result = _lift_window_averages(rates, increment)
         assert (result["migration_rate"].values >= rates["migration_rate"].values).all()
@@ -1030,13 +1043,10 @@ class TestHighScenarioConvergenceRates:
         high_sorted = high.sort_values(sort_cols).reset_index(drop=True)
 
         violations = (
-            high_sorted["migration_rate"].values
-            < baseline_sorted["migration_rate"].values - 1e-12
+            high_sorted["migration_rate"].values < baseline_sorted["migration_rate"].values - 1e-12
         )
         n_violations = violations.sum()
-        assert n_violations == 0, (
-            f"{n_violations} cells where high < baseline"
-        )
+        assert n_violations == 0, f"{n_violations} cells where high < baseline"
 
     def test_high_strictly_greater_for_most_cells(self) -> None:
         """Most cells should be strictly greater (not just equal at cap)."""
@@ -1048,8 +1058,7 @@ class TestHighScenarioConvergenceRates:
         high_sorted = high.sort_values(sort_cols).reset_index(drop=True)
 
         strictly_greater = (
-            high_sorted["migration_rate"].values
-            > baseline_sorted["migration_rate"].values + 1e-12
+            high_sorted["migration_rate"].values > baseline_sorted["migration_rate"].values + 1e-12
         )
         pct_strictly_greater = strictly_greater.sum() / len(high_sorted) * 100
 
@@ -1063,18 +1072,16 @@ class TestHighScenarioConvergenceRates:
         baseline = pd.read_parquet(_BASELINE_CONVERGENCE_PATH)
         high = pd.read_parquet(_HIGH_CONVERGENCE_PATH)
 
-        bl_means = baseline.groupby(
-            ["county_fips", "year_offset"]
-        )["migration_rate"].mean()
-        hi_means = high.groupby(
-            ["county_fips", "year_offset"]
-        )["migration_rate"].mean()
+        bl_means = baseline.groupby(["county_fips", "year_offset"])["migration_rate"].mean()
+        hi_means = high.groupby(["county_fips", "year_offset"])["migration_rate"].mean()
 
         # Align on same multi-index
-        comparison = pd.DataFrame({
-            "baseline": bl_means,
-            "high": hi_means,
-        }).dropna()
+        comparison = pd.DataFrame(
+            {
+                "baseline": bl_means,
+                "high": hi_means,
+            }
+        ).dropna()
 
         violations = comparison[comparison["high"] < comparison["baseline"] - 1e-12]
         assert violations.empty, (
@@ -1105,12 +1112,14 @@ class TestPlusPercentRemoved:
         from cohort_projections.core.migration import apply_migration_scenario
 
         # Create test migration rates
-        rates = pd.DataFrame({
-            "age": [20, 30],
-            "sex": ["Male", "Male"],
-            "race": ["White", "White"],
-            "net_migration": [100.0, -50.0],
-        })
+        rates = pd.DataFrame(
+            {
+                "age": [20, 30],
+                "sex": ["Male", "Male"],
+                "race": ["White", "White"],
+                "net_migration": [100.0, -50.0],
+            }
+        )
 
         # Applying "+15_percent" should trigger the unknown scenario path
         # and return unchanged rates (like "constant" / "recent_average")

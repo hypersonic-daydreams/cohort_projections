@@ -157,7 +157,9 @@ def test_cap_and_redistribute_keeps_declining_shares_unchanged() -> None:
 
     adjusted = apply_cap_and_redistribute(projected, base)
 
-    np.testing.assert_allclose(adjusted["declining"], projected["declining"], rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(
+        adjusted["declining"], projected["declining"], rtol=1e-12, atol=1e-12
+    )
     np.testing.assert_allclose(adjusted["stable"], projected["stable"], rtol=1e-12, atol=1e-12)
     np.testing.assert_allclose(adjusted["growing"], 0.30, rtol=1e-12, atol=1e-12)
     np.testing.assert_allclose(sum(adjusted.values()), 1.0, rtol=1e-12, atol=1e-12)
@@ -227,12 +229,16 @@ def test_reconcile_county_shares_single_place_county_is_near_trivial() -> None:
 
     assert result.adjustment < 1e-9
     assert not result.flagged
-    np.testing.assert_allclose(result.place_shares["3825700"], 0.719999999995, rtol=1e-12, atol=1e-12)
+    np.testing.assert_allclose(
+        result.place_shares["3825700"], 0.719999999995, rtol=1e-12, atol=1e-12
+    )
 
 
 def test_trend_all_places_in_county_with_no_projected_places_returns_empty() -> None:
     """Counties with no projected places return no share rows."""
-    empty_history = pd.DataFrame(columns=["county_fips", "year", "row_type", "place_fips", "share_raw"])
+    empty_history = pd.DataFrame(
+        columns=["county_fips", "year", "row_type", "place_fips", "share_raw"]
+    )
     county_pop = pd.DataFrame({"year": [2025], "county_population": [1000]})
 
     result = trend_all_places_in_county(

@@ -127,9 +127,7 @@ def _horizon_takeaway_text(
         + (f" Category filter: {category}." if category != "All" else "")
     ]
     if pd.notna(mape) and horizon is not None:
-        parts.append(
-            f"Average county error rises to {float(mape):.1f}% by horizon {horizon}."
-        )
+        parts.append(f"Average county error rises to {float(mape):.1f}% by horizon {horizon}.")
     if pd.notna(mpe):
         bias = float(mpe)
         if bias <= -0.5:
@@ -197,9 +195,7 @@ def _build_horizon_profile(
 
     ahs = _filter_by_category(ahs, category)
     if ahs.empty:
-        return empty_placeholder(
-            f"No horizon data for category '{category}'."
-        )
+        return empty_placeholder(f"No horizon data for category '{category}'.")
 
     # Determine MAPE and MPE columns
     mape_col = (
@@ -221,9 +217,7 @@ def _build_horizon_profile(
     horizon_col = "horizon" if "horizon" in ahs.columns else None
 
     if horizon_col is None or mape_col is None:
-        return empty_placeholder(
-            "Horizon summary missing required columns (horizon, mape)."
-        )
+        return empty_placeholder("Horizon summary missing required columns (horizon, mape).")
 
     fig = make_subplots(
         rows=1,
@@ -271,9 +265,7 @@ def _build_horizon_profile(
     else:
         run_data = ahs[ahs["run_id"] == selected_run].copy()
         if run_data.empty:
-            return empty_placeholder(
-                f"No horizon data for run '{selected_run}'."
-            )
+            return empty_placeholder(f"No horizon data for run '{selected_run}'.")
         # Group by method if available
         group_col = (
             "method"
@@ -341,9 +333,7 @@ def _build_horizon_profile(
                 )
 
     # Add zero-bias reference line on the right panel
-    fig.add_hline(
-        y=0, line_dash="dash", line_color="#A0A0A0", line_width=1, row=1, col=2
-    )
+    fig.add_hline(y=0, line_dash="dash", line_color="#A0A0A0", line_width=1, row=1, col=2)
 
     fig.update_xaxes(title_text="Horizon (years)", row=1, col=1)
     fig.update_xaxes(title_text="Horizon (years)", row=1, col=2)
@@ -351,11 +341,7 @@ def _build_horizon_profile(
     fig.update_yaxes(title_text="MPE (%)", row=1, col=2)
 
     fig.update_layout(
-        **{
-            k: v
-            for k, v in layout_defaults.items()
-            if k not in ("xaxis", "yaxis", "legend")
-        },
+        **{k: v for k, v in layout_defaults.items() if k not in ("xaxis", "yaxis", "legend")},
         height=450,
         title_text="Horizon Accuracy Profile",
         legend={"orientation": "h", "yanchor": "bottom", "y": -0.25},
@@ -396,17 +382,11 @@ def _build_county_heatmap(
 
     cm = _filter_by_category(cm, category)
     if cm.empty:
-        return empty_placeholder(
-            f"No county data for category '{category}'."
-        )
+        return empty_placeholder(f"No county data for category '{category}'.")
 
     # Determine the error column
     error_col = (
-        "pct_error"
-        if "pct_error" in cm.columns
-        else "mape"
-        if "mape" in cm.columns
-        else None
+        "pct_error" if "pct_error" in cm.columns else "mape" if "mape" in cm.columns else None
     )
     county_name_col = (
         "county_name"
@@ -424,8 +404,9 @@ def _build_county_heatmap(
 
     # Aggregate: mean |pct_error| per county per run
     agg = (
-        cm.groupby([county_name_col, "run_id"]
-                    + ([category_col] if category_col else []))[error_col]
+        cm.groupby([county_name_col, "run_id"] + ([category_col] if category_col else []))[
+            error_col
+        ]
         .apply(lambda x: x.abs().mean())
         .reset_index()
         .rename(columns={error_col: "mape"})
@@ -435,9 +416,7 @@ def _build_county_heatmap(
         return empty_placeholder("No aggregated county data available.")
 
     # Pivot to county x run matrix
-    index_cols = (
-        [category_col, county_name_col] if category_col else [county_name_col]
-    )
+    index_cols = [category_col, county_name_col] if category_col else [county_name_col]
     pivot = agg.pivot_table(
         index=index_cols,
         columns="run_id",
@@ -449,24 +428,19 @@ def _build_county_heatmap(
     if category_col and category_col in pivot.columns:
         cat_order_map = {c: i for i, c in enumerate(_CATEGORY_ORDER)}
         pivot["_cat_order"] = pivot[category_col].map(cat_order_map).fillna(99)
-        pivot = pivot.sort_values(["_cat_order", county_name_col]).drop(
-            columns=["_cat_order"]
-        )
+        pivot = pivot.sort_values(["_cat_order", county_name_col]).drop(columns=["_cat_order"])
     else:
         pivot = pivot.sort_values(county_name_col)
 
     # Build y-labels and z-matrix
     if category_col and category_col in pivot.columns:
         y_labels = [
-            f"{row[county_name_col]} ({str(row[category_col])[:3]})"
-            for _, row in pivot.iterrows()
+            f"{row[county_name_col]} ({str(row[category_col])[:3]})" for _, row in pivot.iterrows()
         ]
     else:
         y_labels = pivot[county_name_col].tolist()
 
-    run_cols = sorted(
-        [c for c in pivot.columns if c in dm.run_ids]
-    )
+    run_cols = sorted([c for c in pivot.columns if c in dm.run_ids])
     if not run_cols:
         return empty_placeholder("No run columns found in pivoted data.")
 
@@ -489,17 +463,10 @@ def _build_county_heatmap(
                 30,
                 float(np.nanmax(z)) if z.size > 0 else 30,
             ),
-            text=[
-                [f"{v:.1f}" if not pd.isna(v) else "" for v in row]
-                for row in z
-            ],
+            text=[[f"{v:.1f}" if not pd.isna(v) else "" for v in row] for row in z],
             texttemplate="%{text}",
             textfont={"size": 8},
-            hovertemplate=(
-                "County: %{y}<br>"
-                "Run: %{x}<br>"
-                "MAPE: %{z:.2f}%<extra></extra>"
-            ),
+            hovertemplate=("County: %{y}<br>Run: %{x}<br>MAPE: %{z:.2f}%<extra></extra>"),
             colorbar={"title": "MAPE (%)"},
         )
     )
@@ -520,11 +487,7 @@ def _build_county_heatmap(
 
     layout_defaults = get_plotly_layout_defaults()
     fig.update_layout(
-        **{
-            k: v
-            for k, v in layout_defaults.items()
-            if k not in ("xaxis", "yaxis")
-        },
+        **{k: v for k, v in layout_defaults.items() if k not in ("xaxis", "yaxis")},
         title="County MAPE by Run",
         height=max(600, len(y_labels) * 16 + 100),
         yaxis={"autorange": "reversed", "dtick": 1, "tickfont": {"size": 9}},
@@ -584,8 +547,7 @@ def _build_bias_heatmap(
 
     if category_col is None or horizon_col is None or error_col is None:
         return empty_placeholder(
-            "Bias analysis missing required columns "
-            "(category, horizon, mean_signed_pct_error)."
+            "Bias analysis missing required columns (category, horizon, mean_signed_pct_error)."
         )
 
     method_col = "method" if "method" in ba.columns else None
@@ -593,14 +555,13 @@ def _build_bias_heatmap(
     if selected_run != "All Runs":
         ba = ba[ba["run_id"] == selected_run]
         if ba.empty:
-            return empty_placeholder(
-                f"No bias data for run '{selected_run}'."
-            )
+            return empty_placeholder(f"No bias data for run '{selected_run}'.")
 
     runs_to_plot = (
         sorted(ba[method_col].dropna().astype(str).unique())
         if selected_run != "All Runs" and method_col is not None
-        else [selected_run] if selected_run != "All Runs"
+        else [selected_run]
+        if selected_run != "All Runs"
         else sorted(ba["run_id"].unique())
     )
     n_runs = len(runs_to_plot)
@@ -645,28 +606,19 @@ def _build_bias_heatmap(
                 x=[str(c) for c in pivot.columns],
                 y=list(pivot.index),
                 colorscale=[
-                    [0.0, "#2166AC"],   # Blue — under-projection
-                    [0.5, "#FFFFFF"],   # White — unbiased
-                    [1.0, "#B2182B"],   # Red — over-projection
+                    [0.0, "#2166AC"],  # Blue — under-projection
+                    [0.5, "#FFFFFF"],  # White — unbiased
+                    [1.0, "#B2182B"],  # Red — over-projection
                 ],
                 zmin=-z_max,
                 zmax=z_max,
-                text=[
-                    [f"{v:+.1f}" if not pd.isna(v) else "" for v in row]
-                    for row in pivot.values
-                ],
+                text=[[f"{v:+.1f}" if not pd.isna(v) else "" for v in row] for row in pivot.values],
                 texttemplate="%{text}",
                 textfont={"size": 9},
                 hovertemplate=(
-                    "Category: %{y}<br>"
-                    "Horizon: %{x}<br>"
-                    "Bias: %{z:+.2f}%<extra></extra>"
+                    "Category: %{y}<br>Horizon: %{x}<br>Bias: %{z:+.2f}%<extra></extra>"
                 ),
-                colorbar=(
-                    {"title": "MPE (%)", "len": 0.8}
-                    if col_idx == n_runs
-                    else None
-                ),
+                colorbar=({"title": "MPE (%)", "len": 0.8} if col_idx == n_runs else None),
                 showscale=col_idx == n_runs,
             ),
             row=1,
@@ -675,11 +627,7 @@ def _build_bias_heatmap(
 
     layout_defaults = get_plotly_layout_defaults()
     fig.update_layout(
-        **{
-            k: v
-            for k, v in layout_defaults.items()
-            if k not in ("xaxis", "yaxis")
-        },
+        **{k: v for k, v in layout_defaults.items() if k not in ("xaxis", "yaxis")},
         title_text="Bias Direction by Category and Horizon",
         height=350 + 20 * n_runs,
     )
@@ -705,7 +653,9 @@ def _build_top_counties_table(
 
     sort_col = "mape" if "mape" in crc.columns else "worst_case_abs_error"
     if sort_col not in crc.columns:
-        return pn.Column(empty_placeholder("County report cards are missing a sortable error column."))
+        return pn.Column(
+            empty_placeholder("County report cards are missing a sortable error column.")
+        )
 
     display_cols = [
         col
@@ -722,14 +672,23 @@ def _build_top_counties_table(
         if col in crc.columns
     ]
     display_df = (
-        crc.sort_values(sort_col, ascending=False, na_position="last")
-        .head(12)[display_cols]
-        .copy()
+        crc.sort_values(sort_col, ascending=False, na_position="last").head(12)[display_cols].copy()
     )
     if "run_id" in display_df.columns:
-        display_df["run"] = display_df["run_id"].map(lambda run_id: dm.run_label(str(run_id), short=True))
+        display_df["run"] = display_df["run_id"].map(
+            lambda run_id: dm.run_label(str(run_id), short=True)
+        )
         display_df = display_df.drop(columns=["run_id"])
-        ordered_cols = ["county_name", "method", "category", "grade", "mape", "worst_case_error", "bias_direction", "run"]
+        ordered_cols = [
+            "county_name",
+            "method",
+            "category",
+            "grade",
+            "mape",
+            "worst_case_error",
+            "bias_direction",
+            "run",
+        ]
         display_df = display_df[[col for col in ordered_cols if col in display_df.columns]]
 
     return metric_table(
@@ -768,18 +727,14 @@ def _build_county_report_cards(
     """
     crc = dm.county_report_cards
     if crc.empty:
-        return pn.Column(
-            empty_placeholder("No county report card data available.")
-        )
+        return pn.Column(empty_placeholder("No county report card data available."))
 
     if selected_run != "All Runs":
         crc = crc[crc["run_id"] == selected_run]
     crc = _filter_by_category(crc, category)
 
     if crc.empty:
-        return pn.Column(
-            empty_placeholder("No report cards match the current filters.")
-        )
+        return pn.Column(empty_placeholder("No report cards match the current filters."))
 
     # Select display columns (flexible based on what exists)
     desired_cols = [
@@ -811,8 +766,7 @@ def _build_county_report_cards(
         }
 
     highlight_cols = [
-        c for c in ["mape", "mean_signed_error", "worst_case_error"]
-        if c in display_df.columns
+        c for c in ["mape", "mean_signed_error", "worst_case_error"] if c in display_df.columns
     ]
 
     return metric_table(
@@ -868,17 +822,11 @@ def _build_outlier_scatter(
         else None
     )
     zscore_col = (
-        "z_score"
-        if "z_score" in of.columns
-        else "zscore"
-        if "zscore" in of.columns
-        else None
+        "z_score" if "z_score" in of.columns else "zscore" if "zscore" in of.columns else None
     )
 
     if error_col is None or zscore_col is None:
-        return empty_placeholder(
-            "Outlier data missing required columns (pct_error, z_score)."
-        )
+        return empty_placeholder("Outlier data missing required columns (pct_error, z_score).")
 
     # Build hover text
     hover_parts: list[str] = []
@@ -967,9 +915,7 @@ def build_horizon_bias_tab(dm: DashboardDataManager) -> pn.Column:
     """
     # Section 1: Selectors
     default_run = (
-        dm.initialize_shortlist()[0]
-        if dm.initialize_shortlist()
-        else dm.champion_id or "All Runs"
+        dm.initialize_shortlist()[0] if dm.initialize_shortlist() else dm.champion_id or "All Runs"
     )
     run_selector = pn.widgets.Select(
         name="Run",
@@ -1000,55 +946,76 @@ def build_horizon_bias_tab(dm: DashboardDataManager) -> pn.Column:
     dm.selection_state.param.watch(_sync_from_shortlist, "shortlist_runs")
 
     # Section 2: Horizon Profile (reactive)
-    horizon_profile = pn.panel(pn.bind(
-        _build_horizon_profile,
-        dm=dm,
-        selected_run=run_selector,
-        category=category_selector,
-    ), loading_indicator=True)
-    takeaway_card = pn.panel(pn.bind(
-        _build_horizon_takeaway,
-        dm=dm,
-        selected_run=run_selector,
-        category=category_selector,
-    ), loading_indicator=True)
+    horizon_profile = pn.panel(
+        pn.bind(
+            _build_horizon_profile,
+            dm=dm,
+            selected_run=run_selector,
+            category=category_selector,
+        ),
+        loading_indicator=True,
+    )
+    takeaway_card = pn.panel(
+        pn.bind(
+            _build_horizon_takeaway,
+            dm=dm,
+            selected_run=run_selector,
+            category=category_selector,
+        ),
+        loading_indicator=True,
+    )
 
     # Section 3: County Heatmap (reactive on category only)
-    county_heatmap = pn.panel(pn.bind(
-        _build_county_heatmap,
-        dm=dm,
-        category=category_selector,
-    ), loading_indicator=True)
+    county_heatmap = pn.panel(
+        pn.bind(
+            _build_county_heatmap,
+            dm=dm,
+            category=category_selector,
+        ),
+        loading_indicator=True,
+    )
 
     # Section 4: Bias Analysis (reactive on run)
-    bias_heatmap = pn.panel(pn.bind(
-        _build_bias_heatmap,
-        dm=dm,
-        selected_run=run_selector,
-    ), loading_indicator=True)
+    bias_heatmap = pn.panel(
+        pn.bind(
+            _build_bias_heatmap,
+            dm=dm,
+            selected_run=run_selector,
+        ),
+        loading_indicator=True,
+    )
 
     # Section 5: County Report Cards (reactive)
-    report_cards = pn.panel(pn.bind(
-        _build_county_report_cards,
-        dm=dm,
-        selected_run=run_selector,
-        category=category_selector,
-    ), loading_indicator=True)
+    report_cards = pn.panel(
+        pn.bind(
+            _build_county_report_cards,
+            dm=dm,
+            selected_run=run_selector,
+            category=category_selector,
+        ),
+        loading_indicator=True,
+    )
 
-    top_counties = pn.panel(pn.bind(
-        _build_top_counties_table,
-        dm=dm,
-        selected_run=run_selector,
-        category=category_selector,
-    ), loading_indicator=True)
+    top_counties = pn.panel(
+        pn.bind(
+            _build_top_counties_table,
+            dm=dm,
+            selected_run=run_selector,
+            category=category_selector,
+        ),
+        loading_indicator=True,
+    )
 
     # Section 6: Outlier Flags (reactive)
-    outlier_scatter = pn.panel(pn.bind(
-        _build_outlier_scatter,
-        dm=dm,
-        selected_run=run_selector,
-        category=category_selector,
-    ), loading_indicator=True)
+    outlier_scatter = pn.panel(
+        pn.bind(
+            _build_outlier_scatter,
+            dm=dm,
+            selected_run=run_selector,
+            category=category_selector,
+        ),
+        loading_indicator=True,
+    )
 
     return pn.Column(
         section_header(

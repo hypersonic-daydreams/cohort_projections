@@ -127,16 +127,16 @@ def _normalize_county_population_projection(
         return dict(zip(county["year"], county[pop_col], strict=True))
 
     pop_cols = [
-        col
-        for col in county.columns
-        if col.startswith("POPESTIMATE") and col[-4:].isdigit()
+        col for col in county.columns if col.startswith("POPESTIMATE") and col[-4:].isdigit()
     ]
     if not pop_cols:
         raise ValueError(
             "county_pop_history must be long with year/pop columns or wide with POPESTIMATEYYYY."
         )
 
-    melted = county.melt(value_vars=pop_cols, var_name="population_column", value_name="county_population")
+    melted = county.melt(
+        value_vars=pop_cols, var_name="population_column", value_name="county_population"
+    )
     melted["year"] = melted["population_column"].str.extract(r"(\d{4})").astype(int)
     melted["county_population"] = pd.to_numeric(melted["county_population"], errors="coerce")
     melted = melted.dropna(subset=["county_population"]).copy()
@@ -439,13 +439,9 @@ def reconcile_county_shares(
             base_combined = {key: float(base_shares.get(key, combined[key])) for key in combined}
             adjusted = apply_cap_and_redistribute(combined, base_combined)
         else:
-            raise ValueError(
-                "constraint_method must be 'proportional' or 'cap_and_redistribute'."
-            )
+            raise ValueError("constraint_method must be 'proportional' or 'cap_and_redistribute'.")
 
-    adjusted_place_shares = {
-        key: value for key, value in adjusted.items() if key != BALANCE_KEY
-    }
+    adjusted_place_shares = {key: value for key, value in adjusted.items() if key != BALANCE_KEY}
     adjusted_balance_share = float(adjusted[BALANCE_KEY])
     flagged = adjustment > flag_threshold
 
@@ -580,13 +576,15 @@ def trend_all_places_in_county(
     balance_rows = history[balance_mask].copy()
     if balance_rows.empty:
         derived_balance = (
-            place_rows.groupby("year", as_index=False)[share_col].sum().rename(columns={share_col: "place_sum"})
+            place_rows.groupby("year", as_index=False)[share_col]
+            .sum()
+            .rename(columns={share_col: "place_sum"})  # type: ignore[call-overload]
         )
         derived_balance[share_col] = 1.0 - derived_balance["place_sum"]
         balance_rows = derived_balance[["year", share_col]]
     else:
         balance_rows = (
-            balance_rows.groupby("year", as_index=False)[share_col].sum().reset_index(drop=True)
+            balance_rows.groupby("year", as_index=False)[share_col].sum().reset_index(drop=True)  # type: ignore[assignment]
         )
 
     county_fips = pd.NA
@@ -608,7 +606,7 @@ def trend_all_places_in_county(
             lambda_decay=lambda_decay,
         )
         center_year = float(np.mean(years))
-        place_projection_raw[place_fips] = project_shares(
+        place_projection_raw[place_fips] = project_shares(  # type: ignore[index]
             intercept=intercept,
             slope=slope,
             projection_years=projection_years,
@@ -633,7 +631,9 @@ def trend_all_places_in_county(
         center_year=balance_center_year,
     )
 
-    base_shares = {place_fips: float(values[0]) for place_fips, values in place_projection_raw.items()}
+    base_shares = {
+        place_fips: float(values[0]) for place_fips, values in place_projection_raw.items()
+    }
     base_shares[BALANCE_KEY] = float(balance_projection_raw[0])
 
     county_population_map = _normalize_county_population_projection(

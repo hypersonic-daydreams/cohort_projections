@@ -85,14 +85,12 @@ def evaluate_scorecard(
         }
         if passed:
             reasons.append(
-                f"Hard gate '{gate_name}': PASSED "
-                f"(value={value}, max_allowed={max_allowed})"
+                f"Hard gate '{gate_name}': PASSED (value={value}, max_allowed={max_allowed})"
             )
         else:
             any_hard_gate_failed = True
             reasons.append(
-                f"Hard gate '{gate_name}': FAILED "
-                f"(value={value} > max_allowed={max_allowed})"
+                f"Hard gate '{gate_name}': FAILED (value={value} > max_allowed={max_allowed})"
             )
 
     # --- Tradeoff threshold evaluation ---
@@ -110,8 +108,7 @@ def evaluate_scorecard(
         }
         if passed:
             reasons.append(
-                f"Tradeoff '{metric}': PASSED "
-                f"(delta={delta:+.4f}, max_regression={max_regression})"
+                f"Tradeoff '{metric}': PASSED (delta={delta:+.4f}, max_regression={max_regression})"
             )
         else:
             any_tradeoff_breached = True
@@ -121,9 +118,7 @@ def evaluate_scorecard(
             )
 
     # --- Sensitivity flag ---
-    sensitivity_flag = bool(
-        challenger_row.get("sensitivity_instability_flag", False)
-    )
+    sensitivity_flag = bool(challenger_row.get("sensitivity_instability_flag", False))
     if sensitivity_flag:
         reasons.append("Sensitivity instability flag is set on challenger")
 
@@ -209,9 +204,7 @@ def evaluate_promotion(
 
     sentinel_vetoes = policy.get("promotion_policy", {}).get("sentinel_vetoes", {})
     for metric, max_regression in sentinel_vetoes.items():
-        delta = float(challenger_row.get(metric, 0.0)) - float(
-            champion_row.get(metric, 0.0)
-        )
+        delta = float(challenger_row.get(metric, 0.0)) - float(champion_row.get(metric, 0.0))
         passed = delta <= float(max_regression)
         checks[metric] = {
             "passed": passed,

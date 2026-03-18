@@ -119,7 +119,7 @@ def _status_label(value: object) -> str:
 
 def _format_run_date(value: object) -> str:
     """Format YYYYMMDD-ish run dates as ISO dates for display."""
-    if value is None or pd.isna(value):
+    if value is None or pd.isna(value):  # type: ignore[call-overload]
         return ""
     raw = str(value).strip()
     match = re.fullmatch(r"(\d{4})(\d{2})(\d{2})", raw)
@@ -130,7 +130,7 @@ def _format_run_date(value: object) -> str:
 
 def _short_config_label(value: object) -> str:
     """Convert verbose config IDs to a short, readable label."""
-    if value is None or pd.isna(value):
+    if value is None or pd.isna(value):  # type: ignore[call-overload]
         return ""
     config_id = str(value).strip()
     config_id = re.sub(r"^cfg-\d{8}-", "", config_id)
@@ -142,7 +142,7 @@ def _short_config_label(value: object) -> str:
 
 def _humanize_identifier(value: object) -> str:
     """Convert slugs and experiment IDs to title-cased display text."""
-    if value is None or pd.isna(value):
+    if value is None or pd.isna(value):  # type: ignore[call-overload]
         return ""
     text = str(value).strip()
     text = re.sub(r"^exp-\d{8}-", "", text)
@@ -153,14 +153,14 @@ def _humanize_identifier(value: object) -> str:
 
 def _contains_text(base: object, candidate: object) -> bool:
     """Return True if *candidate* already appears in *base* (case-insensitive)."""
-    if base is None or candidate is None or pd.isna(base) or pd.isna(candidate):
+    if base is None or candidate is None or pd.isna(base) or pd.isna(candidate):  # type: ignore[call-overload]
         return False
     return str(candidate).strip().lower() in str(base).strip().lower()
 
 
 def _has_text(value: object) -> bool:
     """Return True if a value is a non-empty string-like scalar."""
-    if value is None or pd.isna(value):
+    if value is None or pd.isna(value):  # type: ignore[call-overload]
         return False
     return str(value).strip() != ""
 
@@ -213,11 +213,7 @@ def _pid_matches_search_process(pid: int, search_id: str) -> bool:
     if not cmdline:
         return True
     lowered = cmdline.lower()
-    return (
-        "observatory.py" in lowered
-        and "search-auto" in lowered
-        and search_id.lower() in lowered
-    )
+    return "observatory.py" in lowered and "search-auto" in lowered and search_id.lower() in lowered
 
 
 def _is_search_process_running(pid: int | None, search_id: str) -> bool:
@@ -238,10 +234,7 @@ def build_search_session_frame(session_root: Path) -> pd.DataFrame:
     if not session_root.exists():
         return pd.DataFrame(columns=_SEARCH_SESSION_COLUMNS)
 
-    search_ids = {
-        path.parent.name
-        for path in session_root.glob("*/session.yaml")
-    }
+    search_ids = {path.parent.name for path in session_root.glob("*/session.yaml")}
     search_ids.update(
         path.name.removeprefix(".").removesuffix(".dashboard_meta.yaml")
         for path in session_root.glob(".*.dashboard_meta.yaml")
@@ -274,16 +267,8 @@ def build_search_session_frame(session_root: Path) -> pd.DataFrame:
         failed = int(summary.get("failed", 0) or 0)
         progress_count = completed + failed
         progress_pct = 0.0 if total <= 0 else (progress_count / total) * 100.0
-        created_at = str(
-            session.get("created_at")
-            or meta.get("launched_at")
-            or ""
-        )
-        updated_at = str(
-            session.get("updated_at")
-            or meta.get("launched_at")
-            or ""
-        )
+        created_at = str(session.get("created_at") or meta.get("launched_at") or "")
+        updated_at = str(session.get("updated_at") or meta.get("launched_at") or "")
         raw_status = str(session.get("status", "") or "")
         if raw_status:
             status = raw_status
@@ -304,7 +289,9 @@ def build_search_session_frame(session_root: Path) -> pd.DataFrame:
                 "process_status": process_status,
                 "created_at": created_at,
                 "updated_at": updated_at,
-                "base_revision": str(session.get("base_revision") or meta.get("base_revision") or ""),
+                "base_revision": str(
+                    session.get("base_revision") or meta.get("base_revision") or ""
+                ),
                 "resolved_base_revision": str(session.get("resolved_base_revision", "") or ""),
                 "total": total,
                 "planned": planned,
@@ -331,7 +318,9 @@ def build_search_session_frame(session_root: Path) -> pd.DataFrame:
         return pd.DataFrame(columns=_SEARCH_SESSION_COLUMNS)
 
     sessions = pd.DataFrame(rows)
-    sort_cols = [col for col in ["updated_at", "created_at", "search_id"] if col in sessions.columns]
+    sort_cols = [
+        col for col in ["updated_at", "created_at", "search_id"] if col in sessions.columns
+    ]
     if sort_cols:
         sessions = sessions.sort_values(sort_cols, ascending=[False] * len(sort_cols))
     return sessions.reset_index(drop=True)
@@ -362,16 +351,26 @@ def build_longitudinal_run_history(run_metadata: pd.DataFrame) -> pd.DataFrame:
 
     history = run_metadata.copy()
     metric_pairs = [
-        ("selected_county_mape_overall", "reference_county_mape_overall", "delta_county_mape_overall"),
-        ("selected_state_ape_recent_short", "reference_state_ape_recent_short", "delta_state_ape_recent_short"),
+        (
+            "selected_county_mape_overall",
+            "reference_county_mape_overall",
+            "delta_county_mape_overall",
+        ),
+        (
+            "selected_state_ape_recent_short",
+            "reference_state_ape_recent_short",
+            "delta_state_ape_recent_short",
+        ),
     ]
     for selected_col, reference_col, delta_col in metric_pairs:
         if selected_col in history.columns and reference_col in history.columns:
             history[delta_col] = history[selected_col] - history[reference_col]
 
-    history["run_date_display"] = history.get("run_date_sort", pd.Series(dtype="datetime64[ns]")).dt.strftime(
-        "%Y-%m-%d"
-    ).fillna("")
+    history["run_date_display"] = (
+        history.get("run_date_sort", pd.Series(dtype="datetime64[ns]"))
+        .dt.strftime("%Y-%m-%d")
+        .fillna("")
+    )
     history["accepted_flag"] = history.get("status_code", pd.Series(dtype=object)).isin(
         ["champion", "passed_all_gates"]
     )
@@ -381,9 +380,15 @@ def build_longitudinal_run_history(run_metadata: pd.DataFrame) -> pd.DataFrame:
     history["review_flag"] = history.get("status_code", pd.Series(dtype=object)).isin(
         ["needs_human_review"]
     )
-    sort_cols = [col for col in ["run_date_sort", "selected_county_mape_overall", "run_id"] if col in history.columns]
+    sort_cols = [
+        col
+        for col in ["run_date_sort", "selected_county_mape_overall", "run_id"]
+        if col in history.columns
+    ]
     if sort_cols:
-        history = history.sort_values(sort_cols, ascending=[False, True, True][: len(sort_cols)], na_position="last")
+        history = history.sort_values(
+            sort_cols, ascending=[False, True, True][: len(sort_cols)], na_position="last"
+        )
     return history.reset_index(drop=True)
 
 
@@ -401,8 +406,14 @@ def build_metric_delta_history(
     if comparison_rows.empty or reference_rows.empty:
         return pd.DataFrame()
 
-    selected_cols = ["run_id", *[metric for metric in _LONGITUDINAL_METRICS if metric in comparison_rows.columns]]
-    reference_cols = ["run_id", *[metric for metric in _LONGITUDINAL_METRICS if metric in reference_rows.columns]]
+    selected_cols = [
+        "run_id",
+        *[metric for metric in _LONGITUDINAL_METRICS if metric in comparison_rows.columns],
+    ]
+    reference_cols = [
+        "run_id",
+        *[metric for metric in _LONGITUDINAL_METRICS if metric in reference_rows.columns],
+    ]
     selected = comparison_rows[selected_cols].rename(
         columns={metric: f"selected_{metric}" for metric in selected_cols if metric != "run_id"}
     )
@@ -439,7 +450,7 @@ def build_metric_delta_history(
                 continue
             selected_value = row.get(selected_col)
             reference_value = row.get(reference_col)
-            if pd.isna(selected_value) or pd.isna(reference_value):
+            if pd.isna(selected_value) or pd.isna(reference_value):  # type: ignore[call-overload]
                 continue
             rows.append(
                 {
@@ -507,8 +518,10 @@ def build_comparison_rows(
         sort_cols = ["_selection_priority"]
         if "county_mape_overall" in work.columns:
             sort_cols.append("county_mape_overall")
-        selected = work.sort_values(sort_cols, na_position="last").iloc[0].drop(
-            labels="_selection_priority"
+        selected = (
+            work.sort_values(sort_cols, na_position="last")
+            .iloc[0]
+            .drop(labels="_selection_priority")
         )
         rows.append(selected)
 
@@ -534,8 +547,10 @@ def _build_reference_rows(scorecards: pd.DataFrame) -> pd.DataFrame:
         sort_cols = ["_selection_priority"]
         if "county_mape_overall" in work.columns:
             sort_cols.append("county_mape_overall")
-        selected = work.sort_values(sort_cols, na_position="last").iloc[0].drop(
-            labels="_selection_priority"
+        selected = (
+            work.sort_values(sort_cols, na_position="last")
+            .iloc[0]
+            .drop(labels="_selection_priority")
         )
         rows.append(selected)
 
@@ -657,9 +672,9 @@ def build_run_metadata_frame(
         metadata["display_name"].eq(""),
         metadata["run_id"].map(_humanize_identifier),
     )
-    metadata["short_config"] = metadata.get(
-        "selected_config_id", pd.Series(dtype=object)
-    ).map(_short_config_label)
+    metadata["short_config"] = metadata.get("selected_config_id", pd.Series(dtype=object)).map(
+        _short_config_label
+    )
 
     metadata["status_code"] = metadata.apply(
         lambda row: resolve_observatory_status(
@@ -702,9 +717,7 @@ def build_run_metadata_frame(
         + " | "
         + metadata.loc[with_date, "run_date_label"]
     )
-    metadata["selector_label"] = (
-        "[" + metadata["status_label"] + "] " + metadata["selector_label"]
-    )
+    metadata["selector_label"] = "[" + metadata["status_label"] + "] " + metadata["selector_label"]
 
     metadata["run_date_sort"] = pd.to_datetime(
         metadata.get("run_date", pd.Series(dtype=object)).astype(str),
@@ -790,9 +803,7 @@ class DashboardDataManager:
         self._config = config or self._store._config  # noqa: SLF001
 
         # Eagerly build sub-components (cheap — they are lazy internally)
-        self._comparator = ObservatoryComparator(
-            self._store, config=self._config
-        )
+        self._comparator = ObservatoryComparator(self._store, config=self._config)
         self._recommender = ObservatoryRecommender(
             self._store,
             comparator=self._comparator,
@@ -1105,10 +1116,7 @@ class DashboardDataManager:
         sessions = self.search_sessions
         if sessions.empty:
             return {}
-        return {
-            str(row["selector_label"]): str(row["search_id"])
-            for _, row in sessions.iterrows()
-        }
+        return {str(row["selector_label"]): str(row["search_id"]) for _, row in sessions.iterrows()}
 
     def load_search_session(self, search_id: str) -> dict[str, Any] | None:
         """Load one autonomous-search session YAML payload from disk."""
@@ -1172,7 +1180,9 @@ class DashboardDataManager:
         candidates = self.search_session_candidates(search_id)
         if candidates.empty:
             return pd.DataFrame()
-        completed = candidates[candidates.get("status", pd.Series(dtype=str)).astype(str) == "completed"]
+        completed = candidates[
+            candidates.get("status", pd.Series(dtype=str)).astype(str) == "completed"
+        ]
         if completed.empty:
             return pd.DataFrame()
         sort_cols: list[str] = []
@@ -1229,7 +1239,7 @@ class DashboardDataManager:
             return f"Search session not found: {search_id}"
         raw_pid = row.get("dashboard_pid")
         try:
-            pid = int(raw_pid)
+            pid = int(raw_pid)  # type: ignore[arg-type]
         except (TypeError, ValueError):
             return f"No dashboard-managed process PID is recorded for {search_id}."
         if pid <= 0:
@@ -1293,9 +1303,7 @@ class DashboardDataManager:
             self.__dict__.pop(attr, None)
 
         # Rebuild sub-components
-        self._comparator = ObservatoryComparator(
-            self._store, config=self._config
-        )
+        self._comparator = ObservatoryComparator(self._store, config=self._config)
         self._catalog = self._try_build_catalog()
         self._recommender = ObservatoryRecommender(
             self._store,

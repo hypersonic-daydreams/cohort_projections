@@ -81,6 +81,8 @@ def _color_delta(value: float, threshold: float = 0.005) -> str:
         return _green(formatted)
     else:
         return _red(formatted)
+
+
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "data" / "analysis" / "observatory"
 
 
@@ -122,9 +124,7 @@ class ObservatoryReport:
         self._result = comparator_result
         self._recommendations = recommendations or []
         self._store = store
-        self._timestamp = timestamp or datetime.now(tz=UTC).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
+        self._timestamp = timestamp or datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # ------------------------------------------------------------------
     # Console report
@@ -224,9 +224,7 @@ class ObservatoryReport:
             primary_metric_name = self._get_primary_metric_name()
             metric_val = _dict_get(top, primary_metric_name, default=None)
             metric_str = _fmt_metric(metric_val)
-            lines.append(
-                f"Top variant: {label} ({primary_metric_name}: {metric_str})"
-            )
+            lines.append(f"Top variant: {label} ({primary_metric_name}: {metric_str})")
 
         # Persistent weaknesses count
         weaknesses = self._get_persistent_weaknesses()
@@ -258,11 +256,13 @@ class ObservatoryReport:
     def _console_header(self) -> str:
         date_str = self._timestamp[:10] if len(self._timestamp) >= 10 else self._timestamp
         width = 60
-        return "\n".join([
-            "=" * width,
-            _bold(f"  Projection Observatory Report -- {date_str}"),
-            "=" * width,
-        ])
+        return "\n".join(
+            [
+                "=" * width,
+                _bold(f"  Projection Observatory Report -- {date_str}"),
+                "=" * width,
+            ]
+        )
 
     def _console_run_inventory(self) -> str:
         n_runs, date_range, methods = self._inventory_stats()
@@ -307,7 +307,8 @@ class ObservatoryReport:
 
         # Filter secondary metrics to those actually present in the data
         available_secondary = [
-            m for m in console_secondary
+            m
+            for m in console_secondary
             if ranking and _dict_get(ranking[0], m, default=None) is not None
         ]
 
@@ -324,22 +325,17 @@ class ObservatoryReport:
         headers.append(short_names.get(primary_metric_name, primary_metric_name))
         if delta_lookup:
             headers.append("Delta")
-        for m in available_secondary:
-            headers.append(short_names.get(m, m))
+        headers.extend(short_names.get(m, m) for m in available_secondary)
 
         rows: list[list[str]] = []
         for i, entry in enumerate(ranking[:10], 1):
             config_id = _dict_get(entry, "config_id", "method", "run_id", default="?")
             label = _truncate(str(config_id), 30)
-            primary = _fmt_metric(
-                _dict_get(entry, primary_metric_name, default=None)
-            )
+            primary = _fmt_metric(_dict_get(entry, primary_metric_name, default=None))
             row = [str(i), label, primary]
 
             if delta_lookup:
-                lookup_key = str(
-                    _dict_get(entry, "config_id", "run_id", default="?")
-                )
+                lookup_key = str(_dict_get(entry, "config_id", "run_id", default="?"))
                 delta_val = delta_lookup.get(lookup_key)
                 if delta_val is not None:
                     try:
@@ -349,10 +345,7 @@ class ObservatoryReport:
                 else:
                     row.append(_fmt_delta(delta_val))
 
-            for m in available_secondary:
-                row.append(
-                    _fmt_metric(_dict_get(entry, m, default=None))
-                )
+            row.extend(_fmt_metric(_dict_get(entry, m, default=None)) for m in available_secondary)
             rows.append(row)
 
         lines.append(_text_table(headers, rows))
@@ -361,7 +354,12 @@ class ObservatoryReport:
     def _console_county_group_impact(self) -> str:
         best_per_group = _safe_attr(self._result, "best_per_group", {})
         if not best_per_group:
-            return _bold("County Group Impact") + "\n" + "-" * 40 + "\n  No county group data available."
+            return (
+                _bold("County Group Impact")
+                + "\n"
+                + "-" * 40
+                + "\n  No county group data available."
+            )
 
         lines = [_bold("County Group Impact"), "-" * 40]
         headers = ["Group", "Best Variant"]
@@ -378,7 +376,12 @@ class ObservatoryReport:
     def _console_pareto_frontier(self) -> str:
         pareto_runs = _safe_attr(self._result, "pareto_runs", [])
         if not pareto_runs:
-            return _bold("Pareto Frontier") + "\n" + "-" * 40 + "\n  No Pareto-optimal runs identified."
+            return (
+                _bold("Pareto Frontier")
+                + "\n"
+                + "-" * 40
+                + "\n  No Pareto-optimal runs identified."
+            )
 
         summary = _safe_attr(self._result, "summary", {})
         x_m = summary.get("pareto_metric_x", "?") if isinstance(summary, dict) else "?"
@@ -396,7 +399,12 @@ class ObservatoryReport:
     def _console_persistent_weaknesses(self) -> str:
         weaknesses = self._get_persistent_weaknesses()
         if not weaknesses:
-            return _bold("Persistent Weaknesses") + "\n" + "-" * 40 + "\n  No persistent weaknesses identified."
+            return (
+                _bold("Persistent Weaknesses")
+                + "\n"
+                + "-" * 40
+                + "\n  No persistent weaknesses identified."
+            )
 
         lines = [_bold("Persistent Weaknesses"), "-" * 40]
         for i, w in enumerate(weaknesses, 1):
@@ -479,7 +487,9 @@ class ObservatoryReport:
         primary_metric_name = self._get_primary_metric_name()
 
         headers = ["Rank", "Variant", primary_metric_name]
-        extra_keys = _extra_metric_keys(ranking[0], exclude={primary_metric_name}) if ranking else []
+        extra_keys = (
+            _extra_metric_keys(ranking[0], exclude={primary_metric_name}) if ranking else []
+        )
         headers.extend(extra_keys)
 
         rows_html: list[str] = []
@@ -535,9 +545,7 @@ class ObservatoryReport:
             best = _esc(str(_dict_get(group, "config_id", "best_variant", "method", default="?")))
             run_id = _esc(str(_dict_get(group, "run_id", default="")))
             best_label = (
-                f'<span title="{run_id}">{best}</span>'
-                if run_id and run_id != best
-                else best
+                f'<span title="{run_id}">{best}</span>' if run_id and run_id != best else best
             )
             val = _dict_get(group, "best_value", "value", default=None)
             val_str = _fmt_metric(val)
@@ -648,9 +656,9 @@ class ObservatoryReport:
       <div class="rec-body">
         <div class="rec-header">
           <span class="rec-id">{exp_id}</span>
-          {f'<span class="rec-priority {priority_cls}">{priority}</span>' if priority else ''}
+          {f'<span class="rec-priority {priority_cls}">{priority}</span>' if priority else ""}
         </div>
-        {f'<div class="rec-rationale">{rationale}</div>' if rationale else ''}
+        {f'<div class="rec-rationale">{rationale}</div>' if rationale else ""}
       </div>
     </div>"""
             cards.append(card)
@@ -774,9 +782,7 @@ class ObservatoryReport:
             if toc_match and id_match:
                 label = toc_match.group(1)
                 section_id = id_match.group(1)
-                items.append(
-                    f'<li><a href="#{_esc(section_id)}">{_esc(label)}</a></li>'
-                )
+                items.append(f'<li><a href="#{_esc(section_id)}">{_esc(label)}</a></li>')
 
         if not items:
             return ""
@@ -802,6 +808,7 @@ def _df_to_records(val: Any) -> list[Any]:
         return []
     try:
         import pandas as pd
+
         if isinstance(val, pd.DataFrame):
             if val.empty:
                 return []
@@ -857,14 +864,15 @@ def _extra_metric_keys(entry: Any, exclude: set[str] | None = None) -> list[str]
     known = {"method", "method_id", "run_id", "config_id", "primary_metric", "value", "rank"}
     if exclude:
         known = known | exclude
-    extras: list[str] = []
     try:
         keys = entry.keys() if hasattr(entry, "keys") else []
     except Exception:
         keys = []
-    for k in keys:
-        if k not in known and not k.startswith("_") and not k.startswith("rank_"):
-            extras.append(str(k))
+    extras = [
+        str(k)
+        for k in keys
+        if k not in known and not k.startswith("_") and not k.startswith("rank_")
+    ]
     return extras
 
 
@@ -928,10 +936,7 @@ def _priority_class(priority: str) -> str:
 def _esc(text: str) -> str:
     """Escape HTML special characters."""
     return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
+        text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
     )
 
 
@@ -982,8 +987,7 @@ def _text_table(headers: list[str], rows: list[list[str]]) -> str:
         return "|" + "|".join(parts) + "|"
 
     lines = [_sep(), _row(headers), _sep()]
-    for row in rows:
-        lines.append(_row(row))
+    lines.extend(_row(row) for row in rows)
     lines.append(_sep())
     return "\n".join(lines)
 

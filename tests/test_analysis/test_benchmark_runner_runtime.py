@@ -28,10 +28,7 @@ def test_build_runtime_summary_tracks_stage_shares_and_worker_config() -> None:
     assert summary["slowest_stage"] == "annual_validation"
     assert summary["slowest_stage_seconds"] == 6.0
     assert summary["worker_config"]["shared_workers_arg"] == 4
-    assert (
-        summary["worker_config"]["annual_validation_county_workers_requested"]
-        == 4
-    )
+    assert summary["worker_config"]["annual_validation_county_workers_requested"] == 4
 
 
 def test_build_runtime_summary_handles_empty_timings() -> None:

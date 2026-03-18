@@ -81,18 +81,18 @@ def _write_manifest(run_dir: Path, run_id: str, methods: list[dict] | None = Non
         "run_id": run_id,
         "methods": methods or [{"method_id": "m2026r1"}],
     }
-    (run_dir / "manifest.json").write_text(
-        json.dumps(manifest), encoding="utf-8"
-    )
+    (run_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
 
 def _write_county_metrics(run_dir: Path) -> None:
     """Write a small county_metrics.csv."""
-    df = pd.DataFrame({
-        "county_fips": ["38017", "38105"],
-        "county_name": ["Cass", "Williams"],
-        "mape": [3.5, 12.2],
-    })
+    df = pd.DataFrame(
+        {
+            "county_fips": ["38017", "38105"],
+            "county_name": ["Cass", "Williams"],
+            "mape": [3.5, 12.2],
+        }
+    )
     df.to_csv(run_dir / "county_metrics.csv", index=False)
 
 
@@ -319,9 +319,7 @@ class TestRunConfig:
         rc_dir = run_dir / "resolved_configs"
         rc_dir.mkdir()
         cfg = {"method_id": "m2026r1", "resolved_config": {"college_blend_factor": 0.7}}
-        (rc_dir / "m2026r1.yaml").write_text(
-            yaml.safe_dump(cfg), encoding="utf-8"
-        )
+        (rc_dir / "m2026r1.yaml").write_text(yaml.safe_dump(cfg), encoding="utf-8")
 
         store = ResultsStore(history_dir=history_dir)
         configs = store.get_run_config("run-001")
@@ -418,7 +416,9 @@ class TestRefresh:
 class TestExperimentLog:
     """Tests for experiment log loading."""
 
-    def test_missing_log_returns_empty(self, history_dir: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_missing_log_returns_empty(
+        self, history_dir: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         # Point _resolve_path at tmp so the default log path doesn't exist
         monkeypatch.setattr(
             "cohort_projections.analysis.observatory.results_store._resolve_path",
@@ -436,9 +436,7 @@ class TestExperimentLog:
 
         # Write a small experiment log
         log_path = tmp_path / "experiment_log.csv"
-        pd.DataFrame({"experiment_id": ["exp-1"], "outcome": ["ok"]}).to_csv(
-            log_path, index=False
-        )
+        pd.DataFrame({"experiment_id": ["exp-1"], "outcome": ["ok"]}).to_csv(log_path, index=False)
 
         # Make _resolve_path resolve relative to tmp_path
         monkeypatch.setattr(

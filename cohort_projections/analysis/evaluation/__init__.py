@@ -15,6 +15,12 @@ Supporting layers:
   - runner.py: Orchestrator that runs all modules
 """
 
+from .benchmark_runners import (
+    average_growth,
+    build_component_swap,
+    carry_forward,
+    linear_trend,
+)
 from .data_structures import (
     ComponentRecord,
     DiagnosticRecord,
@@ -24,12 +30,6 @@ from .data_structures import (
     ScorecardEntry,
 )
 from .html_report import generate_html_report
-from .benchmark_runners import (
-    average_growth,
-    build_component_swap,
-    carry_forward,
-    linear_trend,
-)
 from .metrics import (
     mae,
     mape,
@@ -40,9 +40,9 @@ from .metrics import (
     wape,
 )
 from .schemas import (
-    HorizonBands,
     METRIC_REGISTRY,
     PROJECTION_RESULT_COLUMNS,
+    HorizonBands,
 )
 from .utils import (
     make_diagnostic_record,

@@ -33,7 +33,9 @@ def test_projection_config_has_place_projection_block_with_expected_defaults() -
 
     place_cfg = config["place_projections"]
     assert place_cfg["enabled"] is True
-    assert place_cfg["crosswalk_path"] == "data/processed/geographic/place_county_crosswalk_2020.csv"
+    assert (
+        place_cfg["crosswalk_path"] == "data/processed/geographic/place_county_crosswalk_2020.csv"
+    )
     assert place_cfg["historical_shares_path"] == "data/processed/place_shares_2000_2024.parquet"
     assert (
         place_cfg["place_population_history_path"]
@@ -67,11 +69,41 @@ def test_place_share_trending_consumes_place_projection_year_window() -> None:
 
     place_history = pd.DataFrame(
         [
-            {"county_fips": "38017", "place_fips": "3825700", "year": 2020, "row_type": "place", "share_raw": 0.44},
-            {"county_fips": "38017", "place_fips": "3825700", "year": 2021, "row_type": "place", "share_raw": 0.45},
-            {"county_fips": "38017", "place_fips": "3825700", "year": 2022, "row_type": "place", "share_raw": 0.46},
-            {"county_fips": "38017", "place_fips": "3825700", "year": 2023, "row_type": "place", "share_raw": 0.47},
-            {"county_fips": "38017", "place_fips": "3825700", "year": 2024, "row_type": "place", "share_raw": 0.48},
+            {
+                "county_fips": "38017",
+                "place_fips": "3825700",
+                "year": 2020,
+                "row_type": "place",
+                "share_raw": 0.44,
+            },
+            {
+                "county_fips": "38017",
+                "place_fips": "3825700",
+                "year": 2021,
+                "row_type": "place",
+                "share_raw": 0.45,
+            },
+            {
+                "county_fips": "38017",
+                "place_fips": "3825700",
+                "year": 2022,
+                "row_type": "place",
+                "share_raw": 0.46,
+            },
+            {
+                "county_fips": "38017",
+                "place_fips": "3825700",
+                "year": 2023,
+                "row_type": "place",
+                "share_raw": 0.47,
+            },
+            {
+                "county_fips": "38017",
+                "place_fips": "3825700",
+                "year": 2024,
+                "row_type": "place",
+                "share_raw": 0.48,
+            },
         ]
     )
     county_pop_history = pd.DataFrame(
@@ -143,11 +175,41 @@ def test_place_projection_orchestrator_consumes_config_paths(tmp_path: Path) -> 
 
     shares = pd.DataFrame(
         [
-            {"county_fips": "38017", "place_fips": "3890000", "year": 2020, "row_type": "place", "share_raw": 0.03},
-            {"county_fips": "38017", "place_fips": "3890000", "year": 2021, "row_type": "place", "share_raw": 0.03},
-            {"county_fips": "38017", "place_fips": "3890000", "year": 2022, "row_type": "place", "share_raw": 0.03},
-            {"county_fips": "38017", "place_fips": "3890000", "year": 2023, "row_type": "place", "share_raw": 0.03},
-            {"county_fips": "38017", "place_fips": "3890000", "year": 2024, "row_type": "place", "share_raw": 0.03},
+            {
+                "county_fips": "38017",
+                "place_fips": "3890000",
+                "year": 2020,
+                "row_type": "place",
+                "share_raw": 0.03,
+            },
+            {
+                "county_fips": "38017",
+                "place_fips": "3890000",
+                "year": 2021,
+                "row_type": "place",
+                "share_raw": 0.03,
+            },
+            {
+                "county_fips": "38017",
+                "place_fips": "3890000",
+                "year": 2022,
+                "row_type": "place",
+                "share_raw": 0.03,
+            },
+            {
+                "county_fips": "38017",
+                "place_fips": "3890000",
+                "year": 2023,
+                "row_type": "place",
+                "share_raw": 0.03,
+            },
+            {
+                "county_fips": "38017",
+                "place_fips": "3890000",
+                "year": 2024,
+                "row_type": "place",
+                "share_raw": 0.03,
+            },
         ]
     )
     shares_path = tmp_path / "place_shares_2000_2024.parquet"
@@ -165,6 +227,9 @@ def test_place_projection_orchestrator_consumes_config_paths(tmp_path: Path) -> 
     config["place_projections"]["historical_shares_path"] = str(shares_path)
     config["place_projections"]["output"]["base_year"] = 2025
     config["place_projections"]["output"]["end_year"] = 2026
+    # Disable multicounty allocation for this test — the multicounty detail
+    # CSV is not available in the test environment.
+    config["place_projections"].setdefault("multicounty_allocation", {})["enabled"] = False
 
     result = run_place_projections(
         scenario="baseline",
@@ -179,4 +244,3 @@ def test_place_projection_orchestrator_consumes_config_paths(tmp_path: Path) -> 
     assert (place_dir / "nd_place_3890000_projection_2025_2026_baseline_summary.csv").exists()
     assert (place_dir / "places_summary.csv").exists()
     assert (place_dir / "places_metadata.json").exists()
-

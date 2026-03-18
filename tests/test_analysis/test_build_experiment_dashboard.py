@@ -137,74 +137,121 @@ def dashboard_data_with_experiments(tmp_path: Path) -> dict:
         "sentinel_williams_mape": 23.0,
         "sentinel_mckenzie_mape": 29.0,
     }
-    challenger_sc = {**champion_sc, "status_at_run": "experiment", "method_id": "m2026r1", "config_id": "cfg-blend-70", "county_mape_overall": 8.7}
+    challenger_sc = {
+        **champion_sc,
+        "status_at_run": "experiment",
+        "method_id": "m2026r1",
+        "config_id": "cfg-blend-70",
+        "county_mape_overall": 8.7,
+    }
 
     catalog = [
-        {"exp_id": "EXP-A", "name": "Convergence Hold", "tier": 1, "slug": "convergence-medium-hold-5", "parameter": "hold: 3→5", "hypothesis": "", "results_text": "", "config_only": True},
-        {"exp_id": "EXP-B", "name": "Blend 0.7", "tier": 1, "slug": "college-blend-70", "parameter": "blend: 0.5→0.7", "hypothesis": "", "results_text": "passed_all_gates", "config_only": True},
+        {
+            "exp_id": "EXP-A",
+            "name": "Convergence Hold",
+            "tier": 1,
+            "slug": "convergence-medium-hold-5",
+            "parameter": "hold: 3→5",
+            "hypothesis": "",
+            "results_text": "",
+            "config_only": True,
+        },
+        {
+            "exp_id": "EXP-B",
+            "name": "Blend 0.7",
+            "tier": 1,
+            "slug": "college-blend-70",
+            "parameter": "blend: 0.5→0.7",
+            "hypothesis": "",
+            "results_text": "passed_all_gates",
+            "config_only": True,
+        },
     ]
 
     # Synthetic projection curves
-    curves_df = pd.DataFrame({
-        "origin_year": [2005] * 4 + [2010] * 4,
-        "method": ["m2026", "m2026", "m2026r1", "m2026r1"] * 2,
-        "year": [2005, 2010, 2005, 2010, 2010, 2015, 2010, 2015],
-        "projected_state": [650000, 670000, 648000, 668000, 670000, 700000, 668000, 698000],
-    })
+    curves_df = pd.DataFrame(
+        {
+            "origin_year": [2005] * 4 + [2010] * 4,
+            "method": ["m2026", "m2026", "m2026r1", "m2026r1"] * 2,
+            "year": [2005, 2010, 2005, 2010, 2010, 2015, 2010, 2015],
+            "projected_state": [650000, 670000, 648000, 668000, 670000, 700000, 668000, 698000],
+        }
+    )
 
     # Synthetic horizon summary
-    hz_df = pd.DataFrame({
-        "horizon": [1, 5, 10, 1, 5, 10],
-        "method": ["m2026", "m2026", "m2026", "m2026r1", "m2026r1", "m2026r1"],
-        "n_origins": [4, 4, 3, 4, 4, 3],
-        "mean_state_ape": [1.0, 3.0, 5.0, 0.8, 2.5, 4.5],
-        "mean_county_mape": [1.1, 4.0, 8.0, 0.9, 3.5, 7.5],
-        "mean_state_mpe": [-0.5, -1.5, -3.0, -0.3, -1.0, -2.5],
-        "mean_county_mpe": [-0.3, -1.0, -2.0, -0.2, -0.8, -1.8],
-    })
+    hz_df = pd.DataFrame(
+        {
+            "horizon": [1, 5, 10, 1, 5, 10],
+            "method": ["m2026", "m2026", "m2026", "m2026r1", "m2026r1", "m2026r1"],
+            "n_origins": [4, 4, 3, 4, 4, 3],
+            "mean_state_ape": [1.0, 3.0, 5.0, 0.8, 2.5, 4.5],
+            "mean_county_mape": [1.1, 4.0, 8.0, 0.9, 3.5, 7.5],
+            "mean_state_mpe": [-0.5, -1.5, -3.0, -0.3, -1.0, -2.5],
+            "mean_county_mpe": [-0.3, -1.0, -2.0, -0.2, -0.8, -1.8],
+        }
+    )
 
     # Synthetic state metrics (for actuals)
-    state_df = pd.DataFrame({
-        "origin_year": [2005, 2005],
-        "method": ["m2026", "m2026"],
-        "validation_year": [2010, 2015],
-        "horizon": [5, 10],
-        "projected_state": [670000, 700000],
-        "actual_state": [672000, 710000],
-        "error": [-2000, -10000],
-        "pct_error": [-0.3, -1.4],
-        "abs_pct_error": [0.3, 1.4],
-    })
+    state_df = pd.DataFrame(
+        {
+            "origin_year": [2005, 2005],
+            "method": ["m2026", "m2026"],
+            "validation_year": [2010, 2015],
+            "horizon": [5, 10],
+            "projected_state": [670000, 700000],
+            "actual_state": [672000, 710000],
+            "error": [-2000, -10000],
+            "pct_error": [-0.3, -1.4],
+            "abs_pct_error": [0.3, 1.4],
+        }
+    )
 
     # Synthetic county metrics
-    county_df = pd.DataFrame({
-        "origin_year": [2005, 2005, 2005, 2005],
-        "method": ["m2026", "m2026r1", "m2026", "m2026r1"],
-        "validation_year": [2010, 2010, 2010, 2010],
-        "horizon": [5, 5, 5, 5],
-        "county_fips": ["38017", "38017", "38105", "38105"],
-        "county_name": ["Cass", "Cass", "Williams", "Williams"],
-        "projected": [200000, 199000, 35000, 34500],
-        "actual": [201000, 201000, 36000, 36000],
-        "error": [-1000, -2000, -1000, -1500],
-        "pct_error": [-0.5, -1.0, -2.8, -4.2],
-        "category": ["Urban/College", "Urban/College", "Bakken", "Bakken"],
-    })
+    county_df = pd.DataFrame(
+        {
+            "origin_year": [2005, 2005, 2005, 2005],
+            "method": ["m2026", "m2026r1", "m2026", "m2026r1"],
+            "validation_year": [2010, 2010, 2010, 2010],
+            "horizon": [5, 5, 5, 5],
+            "county_fips": ["38017", "38017", "38105", "38105"],
+            "county_name": ["Cass", "Cass", "Williams", "Williams"],
+            "projected": [200000, 199000, 35000, 34500],
+            "actual": [201000, 201000, 36000, 36000],
+            "error": [-1000, -2000, -1000, -1500],
+            "pct_error": [-0.5, -1.0, -2.8, -4.2],
+            "category": ["Urban/College", "Urban/College", "Bakken", "Bakken"],
+        }
+    )
 
     comparison = {
         "champion_method_id": "m2026",
         "champion_config_id": "cfg-baseline",
-        "challengers": [{
-            "method_id": "m2026r1",
-            "config_id": "cfg-blend-70",
-            "deltas": {"county_mape_overall": -0.09, "county_mape_rural": 0.02, "county_mape_bakken": 0.33, "county_mape_urban_college": -1.78},
-            "hard_constraint_regression": False,
-        }],
+        "challengers": [
+            {
+                "method_id": "m2026r1",
+                "config_id": "cfg-blend-70",
+                "deltas": {
+                    "county_mape_overall": -0.09,
+                    "county_mape_rural": 0.02,
+                    "county_mape_bakken": 0.33,
+                    "county_mape_urban_college": -1.78,
+                },
+                "hard_constraint_regression": False,
+            }
+        ],
     }
 
     return {
         "catalog": catalog,
-        "exp_outcomes": {"EXP-B": {"outcome": "passed_all_gates", "run_id": "br-test", "key_metrics": "", "config_delta": "blend=0.7", "interpretation": ""}},
+        "exp_outcomes": {
+            "EXP-B": {
+                "outcome": "passed_all_gates",
+                "run_id": "br-test",
+                "key_metrics": "",
+                "config_delta": "blend=0.7",
+                "interpretation": "",
+            }
+        },
         "scorecards": {"EXP-B": [champion_sc, challenger_sc]},
         "comparisons": {"EXP-B": comparison},
         "projection_curves": {"EXP-B": curves_df},

@@ -34,16 +34,50 @@ import walk_forward_validation as wfv  # noqa: E402
 @pytest.fixture()
 def sample_rate_series() -> tuple[pd.Series, pd.Series]:
     """Return a rate series and corresponding age_group series for testing."""
-    age_groups = pd.Series([
-        "0-4", "5-9", "10-14", "15-19", "20-24", "25-29",
-        "30-34", "35-39", "40-44", "45-49", "50-54", "55-59",
-        "60-64", "65-69", "70-74", "75-79", "80-84", "85+",
-    ])
-    rates = pd.Series([
-        0.02, 0.01, -0.01, 0.12, -0.10, 0.05,
-        0.03, 0.02, 0.01, -0.005, -0.01, -0.02,
-        -0.03, -0.04, -0.05, -0.06, -0.07, -0.09,
-    ])
+    age_groups = pd.Series(
+        [
+            "0-4",
+            "5-9",
+            "10-14",
+            "15-19",
+            "20-24",
+            "25-29",
+            "30-34",
+            "35-39",
+            "40-44",
+            "45-49",
+            "50-54",
+            "55-59",
+            "60-64",
+            "65-69",
+            "70-74",
+            "75-79",
+            "80-84",
+            "85+",
+        ]
+    )
+    rates = pd.Series(
+        [
+            0.02,
+            0.01,
+            -0.01,
+            0.12,
+            -0.10,
+            0.05,
+            0.03,
+            0.02,
+            0.01,
+            -0.005,
+            -0.01,
+            -0.02,
+            -0.03,
+            -0.04,
+            -0.05,
+            -0.06,
+            -0.07,
+            -0.09,
+        ]
+    )
     return rates, age_groups
 
 
@@ -57,12 +91,14 @@ def convergence_windows() -> dict[str, pd.DataFrame]:
     for fips in counties:
         for ag in age_groups:
             for sex in sexes:
-                rows.append({
-                    "county_fips": fips,
-                    "age_group": ag,
-                    "sex": sex,
-                    "migration_rate_annual": np.random.default_rng(42).normal(0.02, 0.05),
-                })
+                rows.append(
+                    {
+                        "county_fips": fips,
+                        "age_group": ag,
+                        "sex": sex,
+                        "migration_rate_annual": np.random.default_rng(42).normal(0.02, 0.05),
+                    }
+                )
 
     recent = pd.DataFrame(rows)
     medium = recent.copy()
@@ -105,9 +141,7 @@ class TestApplyAnnualRateCap:
 
     def test_no_cap_at_zero_clips_everything(self, sample_rate_series: tuple) -> None:
         rates, age_groups = sample_rate_series
-        capped = wfv._apply_annual_rate_cap(
-            rates, age_groups, general_cap=0.0, college_cap=0.0
-        )
+        capped = wfv._apply_annual_rate_cap(rates, age_groups, general_cap=0.0, college_cap=0.0)
         # Everything should be clipped to 0
         assert (capped == 0.0).all()
 
@@ -129,11 +163,15 @@ class TestConvergenceRateCapIntegration:
             "rate_cap_general": wfv._DEFAULT_RATE_CAP_GENERAL,
         }
         result_with = wfv.get_convergence_rate_for_year(3, convergence_windows, cfg)
-        result_without = wfv.get_convergence_rate_for_year(3, convergence_windows, {
-            "convergence_recent_hold": 1,
-            "convergence_medium_hold": 2,
-            "convergence_transition_hold": 1,
-        })
+        result_without = wfv.get_convergence_rate_for_year(
+            3,
+            convergence_windows,
+            {
+                "convergence_recent_hold": 1,
+                "convergence_medium_hold": 2,
+                "convergence_transition_hold": 1,
+            },
+        )
         pd.testing.assert_frame_equal(result_with, result_without)
 
     def test_non_default_cap_triggers_capping(self, convergence_windows: dict) -> None:
@@ -160,14 +198,16 @@ class TestMaybeRecomputeMigRaw:
 
     def test_default_fraction_returns_original(self) -> None:
         """Default gq_correction_fraction (1.0) should return original mig_raw."""
-        mig_raw = pd.DataFrame({
-            "county_fips": ["38001"],
-            "age_group": ["0-4"],
-            "sex": ["Male"],
-            "period_start": [2000],
-            "period_end": [2005],
-            "migration_rate": [0.01],
-        })
+        mig_raw = pd.DataFrame(
+            {
+                "county_fips": ["38001"],
+                "age_group": ["0-4"],
+                "sex": ["Male"],
+                "period_start": [2000],
+                "period_end": [2005],
+                "migration_rate": [0.01],
+            }
+        )
         cfg: wfv.MethodConfig = {
             "gq_correction_fraction": wfv._DEFAULT_GQ_CORRECTION_FRACTION,
         }
@@ -176,31 +216,33 @@ class TestMaybeRecomputeMigRaw:
 
     def test_missing_key_returns_original(self) -> None:
         """Missing gq_correction_fraction key should return original mig_raw."""
-        mig_raw = pd.DataFrame({
-            "county_fips": ["38001"],
-            "age_group": ["0-4"],
-            "sex": ["Male"],
-            "period_start": [2000],
-            "period_end": [2005],
-            "migration_rate": [0.01],
-        })
+        mig_raw = pd.DataFrame(
+            {
+                "county_fips": ["38001"],
+                "age_group": ["0-4"],
+                "sex": ["Male"],
+                "period_start": [2000],
+                "period_end": [2005],
+                "migration_rate": [0.01],
+            }
+        )
         cfg: wfv.MethodConfig = {}
         result = wfv.maybe_recompute_mig_raw(mig_raw, {}, cfg)
         assert result is mig_raw
 
     @patch("walk_forward_validation.recompute_migration_with_gq_override")
-    def test_non_default_fraction_triggers_recompute(
-        self, mock_recompute: MagicMock
-    ) -> None:
+    def test_non_default_fraction_triggers_recompute(self, mock_recompute: MagicMock) -> None:
         """Non-default gq_correction_fraction should trigger recomputation."""
-        mig_raw = pd.DataFrame({
-            "county_fips": ["38001"],
-            "age_group": ["0-4"],
-            "sex": ["Male"],
-            "period_start": [2000],
-            "period_end": [2005],
-            "migration_rate": [0.01],
-        })
+        mig_raw = pd.DataFrame(
+            {
+                "county_fips": ["38001"],
+                "age_group": ["0-4"],
+                "sex": ["Male"],
+                "period_start": [2000],
+                "period_end": [2005],
+                "migration_rate": [0.01],
+            }
+        )
         mock_recompute.return_value = mig_raw.copy()
         cfg: wfv.MethodConfig = {"gq_correction_fraction": 0.75}
         snapshots = {2000: pd.DataFrame()}

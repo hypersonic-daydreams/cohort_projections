@@ -82,7 +82,9 @@ def _make_mock_results(
         window_label = f"{train_start}-{train_end}/{test_start}-{test_end}"
         for vi, variant_id in enumerate(variant_ids):
             if scores and variant_id in scores:
-                score = scores[variant_id][len([r for r in results if r["variant_id"] == variant_id])]
+                score = scores[variant_id][
+                    len([r for r in results if r["variant_id"] == variant_id])
+                ]
             else:
                 score = 5.0 + vi * 0.5
             results.append(

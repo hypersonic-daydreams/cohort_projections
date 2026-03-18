@@ -71,12 +71,25 @@ class TestLoadHousingData:
 
     def test_valid_csv_loads_correctly(self, tmp_path: Path) -> None:
         """Happy-path: valid CSV loads with correct dtypes."""
-        csv = _synthetic_csv(tmp_path, [
-            {"place_fips": "3825700", "place_name": "Fargo", "year": 2020,
-             "housing_units": 55000, "avg_hh_size": 2.30},
-            {"place_fips": "3825700", "place_name": "Fargo", "year": 2021,
-             "housing_units": 56000, "avg_hh_size": 2.28},
-        ])
+        csv = _synthetic_csv(
+            tmp_path,
+            [
+                {
+                    "place_fips": "3825700",
+                    "place_name": "Fargo",
+                    "year": 2020,
+                    "housing_units": 55000,
+                    "avg_hh_size": 2.30,
+                },
+                {
+                    "place_fips": "3825700",
+                    "place_name": "Fargo",
+                    "year": 2021,
+                    "housing_units": 56000,
+                    "avg_hh_size": 2.28,
+                },
+            ],
+        )
         config = _config_for(csv)
         df = load_housing_data(config)
         assert len(df) == 2
@@ -85,9 +98,12 @@ class TestLoadHousingData:
 
     def test_missing_columns_raises(self, tmp_path: Path) -> None:
         """CSV missing required columns raises ValueError."""
-        csv = _synthetic_csv(tmp_path, [
-            {"place_fips": "3825700", "year": 2020, "housing_units": 100},
-        ])
+        csv = _synthetic_csv(
+            tmp_path,
+            [
+                {"place_fips": "3825700", "year": 2020, "housing_units": 100},
+            ],
+        )
         config = _config_for(csv)
         with pytest.raises(ValueError, match="missing required columns"):
             load_housing_data(config)
@@ -242,13 +258,15 @@ class TestRunHousingUnitProjections:
         rows = []
         for place in ["3825700", "3807200"]:
             for year in range(2010, 2024):
-                rows.append({
-                    "place_fips": place,
-                    "place_name": "TestPlace",
-                    "year": year,
-                    "housing_units": 1000 + (year - 2010) * 50,
-                    "avg_hh_size": 2.40,
-                })
+                rows.append(
+                    {
+                        "place_fips": place,
+                        "place_name": "TestPlace",
+                        "year": year,
+                        "housing_units": 1000 + (year - 2010) * 50,
+                        "avg_hh_size": 2.40,
+                    }
+                )
         csv = _synthetic_csv(tmp_path, rows)
         config = _config_for(csv, projection_years=[2025, 2030])
         result = run_housing_unit_projections(config)
@@ -258,8 +276,13 @@ class TestRunHousingUnitProjections:
     def test_config_driven_method_selection(self, tmp_path: Path) -> None:
         """Orchestrator honours trend_method from config."""
         rows = [
-            {"place_fips": "3825700", "place_name": "Fargo", "year": y,
-             "housing_units": 1000 + (y - 2010) * 50, "avg_hh_size": 2.4}
+            {
+                "place_fips": "3825700",
+                "place_name": "Fargo",
+                "year": y,
+                "housing_units": 1000 + (y - 2010) * 50,
+                "avg_hh_size": 2.4,
+            }
             for y in range(2010, 2024)
         ]
         csv = _synthetic_csv(tmp_path, rows)
@@ -270,10 +293,20 @@ class TestRunHousingUnitProjections:
     def test_insufficient_history_skipped(self, tmp_path: Path) -> None:
         """Places with fewer than min_history_years vintages are skipped."""
         rows = [
-            {"place_fips": "3825700", "place_name": "Fargo", "year": 2020,
-             "housing_units": 1000, "avg_hh_size": 2.4},
-            {"place_fips": "3825700", "place_name": "Fargo", "year": 2021,
-             "housing_units": 1050, "avg_hh_size": 2.4},
+            {
+                "place_fips": "3825700",
+                "place_name": "Fargo",
+                "year": 2020,
+                "housing_units": 1000,
+                "avg_hh_size": 2.4,
+            },
+            {
+                "place_fips": "3825700",
+                "place_name": "Fargo",
+                "year": 2021,
+                "housing_units": 1050,
+                "avg_hh_size": 2.4,
+            },
         ]
         csv = _synthetic_csv(tmp_path, rows)
         config = _config_for(csv, min_history_years=3)
@@ -321,16 +354,20 @@ class TestCrossValidation:
 
     def test_divergence_computation(self) -> None:
         """Divergence metrics are correctly computed."""
-        hu = pd.DataFrame({
-            "place_fips": ["3825700", "3825700"],
-            "year": [2025, 2030],
-            "population_hu": [110.0, 130.0],
-        })
-        st = pd.DataFrame({
-            "place_fips": ["3825700", "3825700"],
-            "year": [2025, 2030],
-            "population": [100.0, 120.0],
-        })
+        hu = pd.DataFrame(
+            {
+                "place_fips": ["3825700", "3825700"],
+                "year": [2025, 2030],
+                "population_hu": [110.0, 130.0],
+            }
+        )
+        st = pd.DataFrame(
+            {
+                "place_fips": ["3825700", "3825700"],
+                "year": [2025, 2030],
+                "population": [100.0, 120.0],
+            }
+        )
         result = cross_validate_with_share_trending(hu, st)
         assert len(result) == 2
         # 2025: (110 - 100) / 100 * 100 = 10%
@@ -340,31 +377,39 @@ class TestCrossValidation:
 
     def test_total_population_column_accepted(self) -> None:
         """share-trending df with 'total_population' column is accepted."""
-        hu = pd.DataFrame({
-            "place_fips": ["3825700"],
-            "year": [2025],
-            "population_hu": [100.0],
-        })
-        st = pd.DataFrame({
-            "place_fips": ["3825700"],
-            "year": [2025],
-            "total_population": [90.0],
-        })
+        hu = pd.DataFrame(
+            {
+                "place_fips": ["3825700"],
+                "year": [2025],
+                "population_hu": [100.0],
+            }
+        )
+        st = pd.DataFrame(
+            {
+                "place_fips": ["3825700"],
+                "year": [2025],
+                "total_population": [90.0],
+            }
+        )
         result = cross_validate_with_share_trending(hu, st)
         assert len(result) == 1
 
     def test_missing_pop_column_raises(self) -> None:
         """share-trending df without population column raises ValueError."""
-        hu = pd.DataFrame({
-            "place_fips": ["3825700"],
-            "year": [2025],
-            "population_hu": [100.0],
-        })
-        st = pd.DataFrame({
-            "place_fips": ["3825700"],
-            "year": [2025],
-            "other_col": [90.0],
-        })
+        hu = pd.DataFrame(
+            {
+                "place_fips": ["3825700"],
+                "year": [2025],
+                "population_hu": [100.0],
+            }
+        )
+        st = pd.DataFrame(
+            {
+                "place_fips": ["3825700"],
+                "year": [2025],
+                "other_col": [90.0],
+            }
+        )
         with pytest.raises(ValueError, match="population"):
             cross_validate_with_share_trending(hu, st)
 
@@ -385,8 +430,13 @@ class TestConfigParsing:
         skip.  Here we verify the config is parsed without error.
         """
         rows = [
-            {"place_fips": "3825700", "place_name": "Fargo", "year": y,
-             "housing_units": 1000, "avg_hh_size": 2.4}
+            {
+                "place_fips": "3825700",
+                "place_name": "Fargo",
+                "year": y,
+                "housing_units": 1000,
+                "avg_hh_size": 2.4,
+            }
             for y in range(2010, 2024)
         ]
         csv = _synthetic_csv(tmp_path, rows)
@@ -400,13 +450,15 @@ class TestConfigParsing:
         rows = []
         for place in ["3825700", "3807200", "3833900"]:
             for year in range(2010, 2024):
-                rows.append({
-                    "place_fips": place,
-                    "place_name": "Test",
-                    "year": year,
-                    "housing_units": 1000,
-                    "avg_hh_size": 2.4,
-                })
+                rows.append(
+                    {
+                        "place_fips": place,
+                        "place_name": "Test",
+                        "year": year,
+                        "housing_units": 1000,
+                        "avg_hh_size": 2.4,
+                    }
+                )
         csv = _synthetic_csv(tmp_path, rows)
         config = _config_for(csv)
         result = run_housing_unit_projections(config, place_fips_list=["3825700"])

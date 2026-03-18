@@ -74,8 +74,7 @@ def _sensitivity_takeaway_text(dm: DashboardDataManager) -> str:
         )
     else:
         persistent = weaknesses[
-            weaknesses["best_challenger_delta"].notna()
-            & (weaknesses["best_challenger_delta"] >= 0)
+            weaknesses["best_challenger_delta"].notna() & (weaknesses["best_challenger_delta"] >= 0)
         ]
         if persistent.empty:
             summary_parts.append(
@@ -159,26 +158,16 @@ def _build_tornado_chart(dm: DashboardDataManager) -> pn.pane.Plotly:
         else None
     )
     param_col = (
-        "parameter"
-        if "parameter" in ss.columns
-        else "param"
-        if "param" in ss.columns
-        else None
+        "parameter" if "parameter" in ss.columns else "param" if "param" in ss.columns else None
     )
 
     if param_col is None:
-        return empty_placeholder(
-            "Sensitivity summary missing 'parameter' column."
-        )
+        return empty_placeholder("Sensitivity summary missing 'parameter' column.")
 
     # Try to build tornado data from per-parameter low/high values
     if swing_col is not None and param_col in ss.columns:
         # Aggregate by parameter: total swing
-        param_swings = (
-            ss.groupby(param_col)[swing_col]
-            .sum()
-            .sort_values(ascending=True)
-        )
+        param_swings = ss.groupby(param_col)[swing_col].sum().sort_values(ascending=True)
         if param_swings.empty:
             return empty_placeholder("No parameter swing data to display.")
 
@@ -190,10 +179,7 @@ def _build_tornado_chart(dm: DashboardDataManager) -> pn.pane.Plotly:
                 orientation="h",
                 marker_color=SDC_BLUE,
                 name="Total Swing",
-                hovertemplate=(
-                    "Parameter: %{y}<br>"
-                    "Swing: %{x:.4f}<extra></extra>"
-                ),
+                hovertemplate=("Parameter: %{y}<br>Swing: %{x:.4f}<extra></extra>"),
             )
         )
     elif metric_col is not None:
@@ -207,21 +193,19 @@ def _build_tornado_chart(dm: DashboardDataManager) -> pn.pane.Plotly:
             low = float(vals.min())
             high = float(vals.max())
             center = float(vals.mean())
-            records.append({
-                "parameter": str(param),
-                "low_effect": low - center,
-                "high_effect": high - center,
-                "total_swing": high - low,
-            })
-
-        if not records:
-            return empty_placeholder(
-                "Insufficient data to compute parameter sensitivity."
+            records.append(
+                {
+                    "parameter": str(param),
+                    "low_effect": low - center,
+                    "high_effect": high - center,
+                    "total_swing": high - low,
+                }
             )
 
-        tornado_df = pd.DataFrame(records).sort_values(
-            "total_swing", ascending=True
-        )
+        if not records:
+            return empty_placeholder("Insufficient data to compute parameter sensitivity.")
+
+        tornado_df = pd.DataFrame(records).sort_values("total_swing", ascending=True)
 
         fig = go.Figure()
         fig.add_trace(
@@ -231,10 +215,7 @@ def _build_tornado_chart(dm: DashboardDataManager) -> pn.pane.Plotly:
                 orientation="h",
                 marker_color=SDC_BLUE,
                 name="Low perturbation",
-                hovertemplate=(
-                    "Parameter: %{y}<br>"
-                    "Effect: %{x:+.4f}<extra></extra>"
-                ),
+                hovertemplate=("Parameter: %{y}<br>Effect: %{x:+.4f}<extra></extra>"),
             )
         )
         fig.add_trace(
@@ -244,17 +225,12 @@ def _build_tornado_chart(dm: DashboardDataManager) -> pn.pane.Plotly:
                 orientation="h",
                 marker_color=SDC_RED,
                 name="High perturbation",
-                hovertemplate=(
-                    "Parameter: %{y}<br>"
-                    "Effect: %{x:+.4f}<extra></extra>"
-                ),
+                hovertemplate=("Parameter: %{y}<br>Effect: %{x:+.4f}<extra></extra>"),
             )
         )
         fig.update_layout(barmode="relative")
     else:
-        return empty_placeholder(
-            "Cannot build tornado chart — missing metric or swing columns."
-        )
+        return empty_placeholder("Cannot build tornado chart — missing metric or swing columns.")
 
     # Add center axis line
     fig.add_vline(x=0, line_width=1, line_color="#595959")
@@ -300,16 +276,12 @@ def _build_parameter_response(dm: DashboardDataManager) -> pn.pane.Plotly:
         sensitivity = pd.DataFrame()
 
     if sensitivity.empty:
-        return empty_placeholder(
-            "No parameter sensitivity data available for response plots."
-        )
+        return empty_placeholder("No parameter sensitivity data available for response plots.")
 
     param_col = "parameter" if "parameter" in sensitivity.columns else None
     value_col = "value" if "value" in sensitivity.columns else None
     delta_col = (
-        "county_mape_overall_delta"
-        if "county_mape_overall_delta" in sensitivity.columns
-        else None
+        "county_mape_overall_delta" if "county_mape_overall_delta" in sensitivity.columns else None
     )
 
     if param_col is None or value_col is None or delta_col is None:
@@ -333,9 +305,7 @@ def _build_parameter_response(dm: DashboardDataManager) -> pn.pane.Plotly:
     sensitivity["_value_f"] = sensitivity[value_col].apply(float)
 
     if sensitivity.empty:
-        return empty_placeholder(
-            "No numeric parameter values found for response plots."
-        )
+        return empty_placeholder("No numeric parameter values found for response plots.")
 
     params = sorted(sensitivity[param_col].unique())
     n_params = len(params)
@@ -373,10 +343,7 @@ def _build_parameter_response(dm: DashboardDataManager) -> pn.pane.Plotly:
                 marker={"color": color, "size": 8},
                 name=param,
                 showlegend=False,
-                hovertemplate=(
-                    f"{param}=%{{x}}<br>"
-                    f"Delta: %{{y:+.4f}}pp<extra></extra>"
-                ),
+                hovertemplate=(f"{param}=%{{x}}<br>Delta: %{{y:+.4f}}pp<extra></extra>"),
             ),
             row=row,
             col=col,
@@ -417,11 +384,7 @@ def _build_parameter_response(dm: DashboardDataManager) -> pn.pane.Plotly:
 
     layout_defaults = get_plotly_layout_defaults()
     fig.update_layout(
-        **{
-            k: v
-            for k, v in layout_defaults.items()
-            if k not in ("xaxis", "yaxis")
-        },
+        **{k: v for k, v in layout_defaults.items() if k not in ("xaxis", "yaxis")},
         title_text="Parameter Response Curves",
         height=max(350, n_rows * 300),
     )
@@ -454,9 +417,7 @@ def _build_recommendations_table(dm: DashboardDataManager) -> pn.Column:
         recommendations = dm.recommender.suggest_next_experiments()
     except Exception:
         logger.exception("Failed to generate experiment recommendations.")
-        return pn.Column(
-            empty_placeholder("Unable to generate recommendations.")
-        )
+        return pn.Column(empty_placeholder("Unable to generate recommendations."))
 
     if not recommendations:
         return pn.Column(
@@ -516,9 +477,7 @@ def _build_weakness_cards(dm: DashboardDataManager) -> pn.Column:
         weaknesses = dm.recommender.identify_persistent_weaknesses()
     except Exception:
         logger.exception("Failed to identify persistent weaknesses.")
-        return pn.Column(
-            empty_placeholder("Unable to compute persistent weaknesses.")
-        )
+        return pn.Column(empty_placeholder("Unable to compute persistent weaknesses."))
 
     if weaknesses.empty:
         return pn.Column(
@@ -531,8 +490,7 @@ def _build_weakness_cards(dm: DashboardDataManager) -> pn.Column:
 
     # Filter to actual weaknesses (delta >= 0 means no improvement)
     persistent = weaknesses[
-        weaknesses["best_challenger_delta"].notna()
-        & (weaknesses["best_challenger_delta"] >= 0)
+        weaknesses["best_challenger_delta"].notna() & (weaknesses["best_challenger_delta"] >= 0)
     ]
 
     if persistent.empty:
@@ -554,9 +512,7 @@ def _build_weakness_cards(dm: DashboardDataManager) -> pn.Column:
         delta_str = f"{best_delta:+.4f}" if pd.notna(best_delta) else "N/A"
 
         # Determine severity color
-        severity_color = (
-            SDC_RED if (pd.notna(best_delta) and best_delta > 0.1) else ORANGE
-        )
+        severity_color = SDC_RED if (pd.notna(best_delta) and best_delta > 0.1) else ORANGE
 
         html = f"""
         <div style="
@@ -575,7 +531,7 @@ def _build_weakness_cards(dm: DashboardDataManager) -> pn.Column:
                 &nbsp;|&nbsp;
                 Best challenger delta: <span style="color:{severity_color};
                 font-weight:600">{delta_str}</span>
-                {f'&nbsp;|&nbsp; Best run: {best_run}' if best_run else ''}
+                {f"&nbsp;|&nbsp; Best run: {best_run}" if best_run else ""}
             </div>
             <div style="color:#595959; font-size:0.85em; margin-top:4px">
                 No tested variant improves this metric. Consider designing
@@ -612,9 +568,7 @@ def _build_residual_diagnostics(dm: DashboardDataManager) -> pn.Column:
     """
     rd = dm.residual_diagnostics
     if rd.empty:
-        return pn.Column(
-            empty_placeholder("No residual diagnostics data available.")
-        )
+        return pn.Column(empty_placeholder("No residual diagnostics data available."))
 
     # Select display columns (flexible)
     desired_cols = [
@@ -629,20 +583,12 @@ def _build_residual_diagnostics(dm: DashboardDataManager) -> pn.Column:
     ]
     display_cols = [c for c in desired_cols if c in rd.columns]
     if not display_cols:
-        return pn.Column(
-            empty_placeholder(
-                "Residual diagnostics table has no recognized columns."
-            )
-        )
+        return pn.Column(empty_placeholder("Residual diagnostics table has no recognized columns."))
 
     display_df = rd[display_cols].copy()
 
     # Highlight columns where violations are possible
-    highlight_cols = [
-        c
-        for c in ["mean_autocorr_lag1", "het_r2"]
-        if c in display_df.columns
-    ]
+    highlight_cols = [c for c in ["mean_autocorr_lag1", "het_r2"] if c in display_df.columns]
 
     return metric_table(
         display_df,

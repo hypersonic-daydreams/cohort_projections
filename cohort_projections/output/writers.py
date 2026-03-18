@@ -689,9 +689,7 @@ def write_projection_shapefile(
         )
 
     # Narrow the type for mypy after validation
-    geo_level: Literal["county", "place"] = cast(
-        Literal["county", "place"], geography_level
-    )
+    geo_level: Literal["county", "place"] = cast(Literal["county", "place"], geography_level)
 
     # --- 2. Load TIGER boundaries ------------------------------------
     boundaries = load_tiger_boundaries(geo_level, vintage=tiger_vintage)
@@ -736,7 +734,7 @@ def write_projection_shapefile(
 
     # Rename the FIPS column to match boundaries if needed
     if proj_fips_col != fips_col:
-        agg_df = agg_df.rename(columns={proj_fips_col: fips_col})
+        agg_df = agg_df.rename(columns={proj_fips_col: fips_col})  # type: ignore[call-overload]
 
     # Ensure FIPS codes are zero-padded strings for joining
     fips_width = 5 if geography_level == "county" else 7

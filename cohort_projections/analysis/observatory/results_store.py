@@ -68,9 +68,7 @@ def load_observatory_config(
         raise FileNotFoundError(f"Observatory config not found: {config_path}")
     raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict) or "observatory" not in raw:
-        raise ValueError(
-            f"Observatory config must contain an 'observatory' key: {config_path}"
-        )
+        raise ValueError(f"Observatory config must contain an 'observatory' key: {config_path}")
     return raw["observatory"]
 
 
@@ -194,12 +192,8 @@ class ResultsStore:
         if run_id not in self._manifests:
             manifest_path = self._history_dir / run_id / _MANIFEST_FILE
             if not manifest_path.exists():
-                raise FileNotFoundError(
-                    f"Manifest not found for run {run_id}: {manifest_path}"
-                )
-            self._manifests[run_id] = json.loads(
-                manifest_path.read_text(encoding="utf-8")
-            )
+                raise FileNotFoundError(f"Manifest not found for run {run_id}: {manifest_path}")
+            self._manifests[run_id] = json.loads(manifest_path.read_text(encoding="utf-8"))
         return dict(self._manifests[run_id])
 
     def get_consolidated_county_metrics(self) -> pd.DataFrame:
@@ -302,9 +296,7 @@ class ResultsStore:
         pd.DataFrame
             The experiment log, or an empty DataFrame if the file is missing.
         """
-        log_rel = self._config.get(
-            "experiment_log", "data/analysis/experiments/experiment_log.csv"
-        )
+        log_rel = self._config.get("experiment_log", "data/analysis/experiments/experiment_log.csv")
         log_path = _resolve_path(log_rel)
         if not log_path.exists():
             logger.warning("Experiment log not found: %s", log_path)
@@ -449,9 +441,7 @@ class ResultsStore:
             try:
                 df = pd.read_csv(csv_path)
             except Exception:
-                logger.warning(
-                    "Failed to read %s for run %s; skipping.", filename, run_id
-                )
+                logger.warning("Failed to read %s for run %s; skipping.", filename, run_id)
                 continue
             df["run_id"] = run_id
             frames.append(df)

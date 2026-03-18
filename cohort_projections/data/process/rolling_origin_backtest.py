@@ -75,9 +75,7 @@ def generate_rolling_windows(
     if test_horizon < 1:
         raise ValueError(f"test_horizon must be >= 1, got {test_horizon}")
     if history_start > history_end:
-        raise ValueError(
-            f"history_start ({history_start}) must be <= history_end ({history_end})"
-        )
+        raise ValueError(f"history_start ({history_start}) must be <= history_end ({history_end})")
 
     total_span = history_end - history_start + 1
     if total_span < min_train_years + test_horizon:
@@ -278,9 +276,7 @@ def aggregate_rolling_metrics(
     scores_df = pd.DataFrame(rows)
 
     aggregated = (
-        scores_df.groupby(
-            ["variant_id", "fitting_method", "constraint_method"], as_index=False
-        )
+        scores_df.groupby(["variant_id", "fitting_method", "constraint_method"], as_index=False)
         .agg(
             mean_score=("score", "mean"),
             median_score=("score", "median"),
@@ -366,9 +362,7 @@ def select_rolling_winner(
 
     score_col = acceptance_criteria
     if score_col not in aggregated_scores.columns:
-        raise ValueError(
-            f"aggregated_scores missing '{score_col}' column."
-        )
+        raise ValueError(f"aggregated_scores missing '{score_col}' column.")
 
     # Delegate to the existing select_winner with {variant_id: score} mapping
     score_map = dict(

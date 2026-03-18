@@ -16,7 +16,7 @@ import yaml
 
 from .data_structures import ScorecardEntry
 from .forecast_accuracy import ForecastAccuracyModule
-from .schemas import METRIC_REGISTRY, PROJECTION_RESULT_COLUMNS, HorizonBands
+from .schemas import METRIC_REGISTRY, PROJECTION_RESULT_COLUMNS
 from .scorecard import ModelScorecard
 from .sensitivity import SensitivityModule
 from .utils import make_diagnostic_record, resolve_county_group, safe_plot
@@ -32,9 +32,7 @@ from .visualization import (
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_CONFIG_PATH = (
-    Path(__file__).resolve().parents[3] / "config" / "evaluation_config.yaml"
-)
+_DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[3] / "config" / "evaluation_config.yaml"
 
 # Map config metric names to functions (derived from canonical registry)
 _METRIC_FUNCS: dict[str, Callable[..., float]] = {
@@ -113,13 +111,9 @@ class EvaluationRunner:
                     county_groups=self.county_groups,
                     regimes=self.regimes,
                 )
-                regime_diag = fa_module.accuracy_by_regime(
-                    results_df, self.regimes
-                )
+                regime_diag = fa_module.accuracy_by_regime(results_df, self.regimes)
                 if not regime_diag.empty:
-                    accuracy_diag = pd.concat(
-                        [accuracy_diag, regime_diag], ignore_index=True
-                    )
+                    accuracy_diag = pd.concat([accuracy_diag, regime_diag], ignore_index=True)
             else:
                 logger.debug(
                     "Skipping regime-stratified accuracy: results_df missing "
@@ -147,9 +141,7 @@ class EvaluationRunner:
         # Module 5 -- Sensitivity analysis (requires projection runner)
         sensitivity_results: dict[str, Any] | None = None
         if projection_runner_fn is not None:
-            sensitivity_results = self._run_sensitivity(
-                projection_runner_fn, results_df
-            )
+            sensitivity_results = self._run_sensitivity(projection_runner_fn, results_df)
         out["sensitivity"] = sensitivity_results
 
         # Scorecard
@@ -158,9 +150,7 @@ class EvaluationRunner:
             realism_diagnostics=realism_diag,
             run_id=results_df["run_id"].iloc[0] if "run_id" in results_df.columns else "",
             model_name=(
-                results_df["model_name"].iloc[0]
-                if "model_name" in results_df.columns
-                else ""
+                results_df["model_name"].iloc[0] if "model_name" in results_df.columns else ""
             ),
         )
         out["scorecard"] = entry
@@ -168,9 +158,7 @@ class EvaluationRunner:
         # Module 6 -- Visualizations
         figures: dict[str, Any] = {}
         if MATPLOTLIB_AVAILABLE:
-            figures = self._generate_figures(
-                accuracy_diag, component_diag, results_df
-            )
+            figures = self._generate_figures(accuracy_diag, component_diag, results_df)
         out["figures"] = figures
 
         # Save report if requested
@@ -228,9 +216,9 @@ class EvaluationRunner:
 
         baseline_diag = combined.loc[combined["model_name"] == baseline_name]
         if not baseline_diag.empty:
-            baseline_lookup = baseline_diag.set_index(
-                ["metric_name", "horizon", "geography"]
-            )["value"]
+            baseline_lookup = baseline_diag.set_index(["metric_name", "horizon", "geography"])[
+                "value"
+            ]
             deltas = []
             for _, row in combined.iterrows():
                 key = (row["metric_name"], row["horizon"], row["geography"])
@@ -341,7 +329,7 @@ class EvaluationRunner:
                 horizon = keys
                 geography = "state"
             else:
-                horizon, geography = keys
+                horizon, geography = keys  # type: ignore[assignment]
 
             proj = grp["projected_value"].values
             act = grp["actual_value"].values
@@ -360,13 +348,9 @@ class EvaluationRunner:
                     target=grp["target"].iloc[0] if "target" in grp.columns else "population",
                     value=val,
                     geography_group=geo_group,
-                    horizon=int(horizon),
+                    horizon=int(horizon),  # type: ignore[call-overload]
                 )
-                rec["model_name"] = (
-                    grp["model_name"].iloc[0]
-                    if "model_name" in grp.columns
-                    else ""
-                )
+                rec["model_name"] = grp["model_name"].iloc[0] if "model_name" in grp.columns else ""
                 records.append(rec)
 
         return pd.DataFrame(records)
@@ -393,7 +377,7 @@ class EvaluationRunner:
                 horizon = keys
                 geography = "state"
             else:
-                horizon, geography = keys
+                horizon, geography = keys  # type: ignore[assignment]
 
             proj = grp.groupby("age_group")["projected_value"].sum()
             act = grp.groupby("age_group")["actual_value"].sum()
@@ -401,7 +385,7 @@ class EvaluationRunner:
             if proj.sum() <= 0 or act.sum() <= 0:
                 continue
 
-            jsd = jensen_shannon_divergence(proj.values, act.values)
+            jsd = jensen_shannon_divergence(proj.values, act.values)  # type: ignore[arg-type]
             records.append(
                 make_diagnostic_record(
                     run_id=grp["run_id"].iloc[0] if "run_id" in grp.columns else "",
@@ -411,7 +395,7 @@ class EvaluationRunner:
                     target="age_distribution",
                     value=jsd,
                     geography_group=self._resolve_geography_group(str(geography)),
-                    horizon=int(horizon),
+                    horizon=int(horizon),  # type: ignore[call-overload]
                 )
             )
 
@@ -505,9 +489,7 @@ class EvaluationRunner:
         if param_ranges is not None:
             sweep_results: dict[str, pd.DataFrame] = {}
             for param_name, values in param_ranges.items():
-                sweep_df = sens_module.parameter_sweep(
-                    param_name, values, baseline_results
-                )
+                sweep_df = sens_module.parameter_sweep(param_name, values, baseline_results)
                 sweep_results[param_name] = sweep_df
             results["parameter_sweeps"] = sweep_results
 

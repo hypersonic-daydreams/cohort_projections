@@ -46,9 +46,7 @@ def validate_dataframe(
     """
     missing = set(required_cols) - set(df.columns)
     if missing:
-        raise ValueError(
-            f"{label} DataFrame missing required columns: {sorted(missing)}"
-        )
+        raise ValueError(f"{label} DataFrame missing required columns: {sorted(missing)}")
 
 
 # ---------------------------------------------------------------------------
@@ -181,9 +179,7 @@ def safe_plot(
     try:
         return plot_fn(*args, **kwargs)
     except Exception:
-        logger.warning(
-            "Could not generate plot from %s", plot_fn.__name__, exc_info=True
-        )
+        logger.warning("Could not generate plot from %s", plot_fn.__name__, exc_info=True)
         return None
 
 
@@ -242,7 +238,7 @@ def compute_grouped_metrics(
 
         # Resolve per-record fields from group keys or defaults
         effective_run_id = run_id or str(key_map.get("run_id", ""))
-        horizon = int(key_map["horizon"]) if "horizon" in key_map else None
+        horizon = int(key_map["horizon"]) if "horizon" in key_map else None  # type: ignore[call-overload]
         geography = str(key_map["geography"]) if "geography" in key_map else "state"
         target = str(key_map["target"]) if "target" in key_map else default_target
 
@@ -250,8 +246,7 @@ def compute_grouped_metrics(
         if county_groups is not None and geography != "state":
             geo_group = resolve_county_group(geography, county_groups)
         elif geography == "state" or (
-            "geography_type" in grp.columns
-            and grp["geography_type"].iloc[0] == "state"
+            "geography_type" in grp.columns and grp["geography_type"].iloc[0] == "state"
         ):
             geo_group = "state"
         else:

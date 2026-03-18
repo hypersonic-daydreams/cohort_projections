@@ -189,14 +189,16 @@ def test_place_pipeline_stage_and_export_end_to_end(
         index=False,
     )
 
-    crosswalk_path = _write_crosswalk(tmp_path / "data" / "processed" / "geographic" / "crosswalk.csv")
+    crosswalk_path = _write_crosswalk(
+        tmp_path / "data" / "processed" / "geographic" / "crosswalk.csv"
+    )
     shares_path = _write_share_history(tmp_path / "data" / "processed" / "place_shares.parquet")
 
     counties_path = tmp_path / "data" / "raw" / "geographic" / "nd_counties.csv"
     counties_path.parent.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(
-        [{"county_fips": 38017, "state_fips": 38, "county_name": "Cass County"}]
-    ).to_csv(counties_path, index=False)
+    pd.DataFrame([{"county_fips": 38017, "state_fips": 38, "county_name": "Cass County"}]).to_csv(
+        counties_path, index=False
+    )
 
     winner_path = _write_backtest_winner(
         tmp_path / "data" / "backtesting" / "place_backtest_results" / "backtest_winner.json"

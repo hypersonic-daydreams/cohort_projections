@@ -34,13 +34,15 @@ def _write_housing_csv(tmp_path: Path, n_places: int = 3, n_years: int = 10) -> 
         fips = str(base_fips + i)
         for y_offset in range(n_years):
             year = 2010 + y_offset
-            rows.append({
-                "place_fips": fips,
-                "place_name": f"Place_{i}",
-                "year": year,
-                "housing_units": 1000 + y_offset * 50 + i * 100,
-                "avg_hh_size": 2.40 - y_offset * 0.01,
-            })
+            rows.append(
+                {
+                    "place_fips": fips,
+                    "place_name": f"Place_{i}",
+                    "year": year,
+                    "housing_units": 1000 + y_offset * 50 + i * 100,
+                    "avg_hh_size": 2.40 - y_offset * 0.01,
+                }
+            )
     csv_path = tmp_path / "housing.csv"
     pd.DataFrame(rows).to_csv(csv_path, index=False)
     return csv_path

@@ -7,7 +7,6 @@ best-variant-per-group, full comparison, formatting, and edge cases
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pandas as pd
@@ -18,7 +17,6 @@ from cohort_projections.analysis.observatory.comparator import (
     ComparisonResult,
     ObservatoryComparator,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -210,9 +208,7 @@ class TestPareto:
     """Tests for pareto_frontier."""
 
     def test_pareto_frontier(self, comparator_3run: ObservatoryComparator) -> None:
-        pareto = comparator_3run.pareto_frontier(
-            "county_mape_overall", "county_mape_rural"
-        )
+        pareto = comparator_3run.pareto_frontier("county_mape_overall", "county_mape_rural")
         assert not pareto.empty
         # run-a (8.2, 7.1) is Pareto-optimal vs run-champ (8.5, 7.0) and run-b (8.8, 6.5)
         # run-b (8.8, 6.5) is Pareto-optimal (best rural)
@@ -378,8 +374,18 @@ class TestChampionDetection:
     def test_fallback_to_best_primary_metric(self) -> None:
         """When no status_at_run == champion, uses best primary metric."""
         rows = [
-            {**CHAMPION_ROW, "run_id": "r1", "status_at_run": "experiment", "county_mape_overall": 9.0},
-            {**CHAMPION_ROW, "run_id": "r2", "status_at_run": "experiment", "county_mape_overall": 7.0},
+            {
+                **CHAMPION_ROW,
+                "run_id": "r1",
+                "status_at_run": "experiment",
+                "county_mape_overall": 9.0,
+            },
+            {
+                **CHAMPION_ROW,
+                "run_id": "r2",
+                "status_at_run": "experiment",
+                "county_mape_overall": 7.0,
+            },
         ]
         sc = _make_scorecards(rows)
         store = _make_store(sc)
