@@ -102,6 +102,59 @@ Implemented in this session:
   visible action/context columns, and reduced exposure of internal-only fields
   in the Experiment Tracker.
 
+## Progressive Disclosure and Quick Start (2026-03-17)
+
+New user story driving this slice:
+
+> "I want to open the Observatory and start exploring improvements to the
+> projections without wading through configuration controls and dense
+> reference panels before I can take action."
+
+| ID | Work Item | Priority | Status | Acceptance Criteria | Primary Touch Points |
+|----|-----------|----------|--------|---------------------|----------------------|
+| OBS-UX-11 | Add one-click Quick Start launcher | P0 | implemented_2026-03-17 | A single "Start Exploring" button with smart defaults launches `search-auto` without requiring any configuration | `tab_command_center.py` |
+| OBS-UX-12 | Add lightweight Search Progress card | P0 | implemented_2026-03-17 | Active search session progress, best candidates, stop/refresh — always visible without expanding advanced controls | `tab_command_center.py` |
+| OBS-UX-13 | Collapse secondary panels by default | P0 | implemented_2026-03-17 | Queue Health, Champion Snapshot, Run Index, Manual Sweep Actions, and Persistent Weaknesses start collapsed | `tab_command_center.py` |
+| OBS-UX-14 | Collapse Autonomous Search advanced controls | P0 | implemented_2026-03-17 | Full search configuration (search ID, CPU budget, batch/max budgets, toggles, preview/launch buttons) starts collapsed under "Autonomous Search (Advanced)" | `tab_command_center.py` |
+| OBS-UX-15 | Streamline Start Here card | P1 | implemented_2026-03-17 | Compact orientation with 3-step workflow and 4 tab-navigation buttons; removed verbose introductory text | `tab_command_center.py` |
+| OBS-UX-16 | Rename legacy Actions card | P1 | implemented_2026-03-17 | Renamed to "Manual Sweep Actions (Advanced)" to clarify its role relative to Quick Start and Autonomous Search | `tab_command_center.py` |
+
+Implemented in this session:
+
+- `OBS-UX-11`: added a `Quick Start` card immediately after the decision strip.
+  Uses smart defaults from the search policy (12 CPU cores, policy-derived batch
+  budget, 20 max total runs, recipe inclusion per policy). Generates a timestamped
+  search ID automatically. One green "Start Exploring" button.
+- `OBS-UX-12`: added a `Search Progress` card that shows the active session's
+  progress bar, best completed candidates, and stop/refresh controls. Auto-refreshes
+  every 5 seconds. Always visible — does not require expanding the advanced card.
+- `OBS-UX-13`: all secondary reference panels (Queue Health, Champion Snapshot,
+  Run Index, Manual Sweep Actions, Persistent Weaknesses) now render with
+  `collapsed=True` so they are available but do not contribute to first-open
+  cognitive load.
+- `OBS-UX-14`: the full Autonomous Search control surface is now in a card titled
+  "Autonomous Search (Advanced)" that starts collapsed. Power users expand it to
+  customize search parameters, preview plans, or inspect session detail/logs.
+- `OBS-UX-15`: the Start Here card was streamlined to a compact 3-step workflow
+  and 4 tab-navigation buttons pointing to Scorecards, Projections, Horizon & Bias,
+  and Sensitivity (corrected tab indices for the 7-tab layout).
+- `OBS-UX-16`: the legacy Actions card was renamed to "Manual Sweep Actions
+  (Advanced)" and starts collapsed.
+
+New Command Center layout order (top to bottom):
+
+1. Start Here (compact orientation + tab nav)
+2. KPI row (at-a-glance metrics)
+3. Decision strip (champion / challenger / review / recommendation cards)
+4. **Quick Start** (one-click launch — new)
+5. **Search Progress** (live progress + best candidates — new)
+6. Autonomous Search (Advanced) — collapsed
+7. Queue Health — collapsed
+8. Champion Snapshot — collapsed
+9. Run Index — collapsed
+10. Manual Sweep Actions (Advanced) — collapsed
+11. Persistent Weaknesses — collapsed
+
 ## Verification Notes
 
 This review was based on:
@@ -110,3 +163,5 @@ This review was based on:
 - live rendering of all six tabs,
 - a narrower laptop-width check for the `Command Center`,
 - direct code inspection of the dashboard launcher and tab builders.
+- Module import verification and full dashboard test suite (18 tests passing)
+  for the 2026-03-17 progressive disclosure changes.

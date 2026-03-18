@@ -53,17 +53,20 @@ This will:
   `--skip-observatory-report` is used.
 
 If you prefer to operate from the dashboard, open the Projection Observatory
-`Command Center` tab and use the `Autonomous Search` card. It can:
+`Command Center` tab. The fastest path is the `Quick Start` card — click
+"Start Exploring" to launch `search-auto` with smart defaults (no
+configuration needed). Live progress and best candidates appear in the
+`Search Progress` card, which auto-refreshes every 5 seconds.
+
+For fine-grained control, expand the collapsed `Autonomous Search (Advanced)`
+card. It can:
 
 - preview a `search-plan`,
 - preview the next `search-run --dry-run` batch,
-- launch `search-auto` in the background,
+- launch `search-auto` in the background with custom parameters,
 - stop dashboard-launched `search-auto` processes with `SIGTERM`,
-- auto-refresh against persisted `session.yaml` state,
-- show progress bars, session counts, and candidate/result tables for the
-  selected search session,
-- preview the selected session's Markdown search report, best completed
-  candidates, and dashboard-captured launch log tail.
+- show session tables, candidate details, search reports, and log tails for
+  the selected search session.
 
 The current enabled recipe catalog is intentionally broader than the original
 three-point pilot. It now covers:

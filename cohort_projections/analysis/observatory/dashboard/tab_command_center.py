@@ -298,70 +298,170 @@ def _make_tab_button(
 
 
 def _build_start_here_card(dm: DashboardDataManager, tabs: pn.Tabs | None) -> pn.Card:
-    """Render a first-run orientation panel with a plain-language workflow."""
-    intro = pn.pane.Markdown(
-        "The Projection Observatory is the dashboard and analysis layer for "
-        "testing projection variants, comparing their quality metrics, and "
-        "deciding what to run or promote next."
-    )
+    """Render a compact orientation panel with the current situation and workflow nav."""
     current_state = pn.pane.Markdown(
         f"**Current situation:** {_command_center_summary(dm)}"
     )
     workflow = pn.pane.Markdown(
-        "Use this order:\n"
-        "1. Review the queue health and champion snapshot on this page.\n"
-        "2. Open **Scorecards** to see whether a challenger materially beats the champion.\n"
-        "3. Open **Projections** to inspect what the shortlist does to the population path.\n"
-        "4. Open **Horizon & Bias** or **Sensitivity** only after you have a shortlist or need diagnostics.\n"
-        "5. Return here to preview pending or recommended runs."
+        "1. Review the situation summary and decision cards below.\n"
+        "2. **Start Exploring** to launch an autonomous search with smart defaults, or expand controls to customize.\n"
+        "3. Use the tabs to compare challengers, inspect projections, or check diagnostics."
     )
     buttons = pn.FlexBox(
         _make_tab_button(
-            name="Review Variants",
+            name="Scorecards",
             button_type="default",
-            width=150,
-            target_index=1,
-            tabs=tabs,
-        ),
-        _make_tab_button(
-            name="Compare Challengers",
-            button_type="primary",
-            width=180,
-            target_index=2,
-            tabs=tabs,
-        ),
-        _make_tab_button(
-            name="Inspect Projections",
-            button_type="default",
-            width=170,
+            width=120,
             target_index=3,
             tabs=tabs,
         ),
         _make_tab_button(
-            name="Check Diagnostics",
+            name="Projections",
             button_type="default",
-            width=170,
+            width=120,
             target_index=4,
             tabs=tabs,
         ),
         _make_tab_button(
-            name="See Recommendations",
+            name="Horizon & Bias",
             button_type="default",
-            width=180,
+            width=130,
             target_index=5,
+            tabs=tabs,
+        ),
+        _make_tab_button(
+            name="Sensitivity",
+            button_type="default",
+            width=120,
+            target_index=6,
             tabs=tabs,
         ),
         flex_wrap="wrap",
         sizing_mode="stretch_width",
-        styles={"gap": "10px"},
+        styles={"gap": "8px"},
     )
 
     return pn.Card(
-        intro,
         current_state,
         workflow,
         buttons,
         title="Start Here",
+        sizing_mode="stretch_width",
+    )
+
+
+def _build_quick_start_card(dm: DashboardDataManager) -> pn.Card:
+    """One-click launcher for autonomous search with smart defaults.
+
+    Eliminates the need to configure search ID, CPU budget, run budgets, etc.
+    before starting exploration.  Advanced users can expand the full
+    Autonomous Search card below for fine-grained control.
+    """
+    status_pane = pn.pane.HTML(sizing_mode="stretch_width")
+    output_pane = pn.widgets.TextAreaInput(
+        value="",
+        disabled=True,
+        height=120,
+        sizing_mode="stretch_width",
+        name="",
+        visible=False,
+    )
+
+    # Derive smart defaults from the search policy
+    default_workers = 12
+    default_batch_budget = int(dm.search_policy.default_run_budget)
+    default_max_total = 20
+    include_recipes = bool(dm.search_policy.include_recipe_catalog)
+
+    # Check if there's already an active search session
+    active_id = dm.active_search_id
+    has_active = active_id is not None and active_id != ""
+
+    if has_active:
+        status_pane.object = (
+            f'<div style="color:#334E68;font-size:0.92em">'
+            f'Active search: <strong>{active_id}</strong> — '
+            f'progress updates appear in the Search Progress section below.'
+            f'</div>'
+        )
+
+    def _on_start(event: Any) -> None:
+        search_id = _default_search_id()
+        session_root = dm.search_session_root
+        session_root.mkdir(parents=True, exist_ok=True)
+        pid_path = session_root / f".{search_id}.dashboard.pid"
+        log_path = session_root / f".{search_id}.dashboard.log"
+        meta_path = session_root / f".{search_id}.dashboard_meta.yaml"
+        cmd = [
+            sys.executable,
+            str(_OBSERVATORY_SCRIPT),
+            "search-auto",
+            "--search-id", search_id,
+            "--batch-run-budget", str(default_batch_budget),
+            "--max-total-runs", str(default_max_total),
+            "--workers-per-run", str(default_workers),
+            "--max-pending", str(int(dm.search_policy.default_max_pending)),
+            "--max-recommended", str(int(dm.search_policy.default_max_recommended)),
+        ]
+        if include_recipes:
+            cmd.append("--include-recipe-catalog")
+        meta_path.write_text(
+            yaml.safe_dump(
+                {
+                    "search_id": search_id,
+                    "launched_at": dt.datetime.now(tz=dt.UTC).isoformat(),
+                    "base_revision": "HEAD",
+                    "command": " ".join(cmd[2:]),
+                },
+                sort_keys=False,
+            ),
+            encoding="utf-8",
+        )
+        with log_path.open("a", encoding="utf-8") as handle:
+            process = subprocess.Popen(  # noqa: S603
+                cmd,
+                cwd=str(_PROJECT_ROOT),
+                stdout=handle,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+            )
+        pid_path.write_text(str(process.pid), encoding="utf-8")
+        output_pane.visible = True
+        output_pane.value = (
+            f"Launched: {search_id}  (PID {process.pid})\n"
+            f"Workers: {default_workers} | Batch budget: {default_batch_budget} | "
+            f"Max runs: {default_max_total}\n"
+            f"Log: {log_path.relative_to(_PROJECT_ROOT)}\n\n"
+            f"Progress will appear in the Search Progress section below."
+        )
+        status_pane.object = (
+            f'<div style="color:#00B050;font-weight:600;font-size:0.92em">'
+            f'Search <strong>{search_id}</strong> launched successfully.'
+            f'</div>'
+        )
+
+    btn_start = pn.widgets.Button(
+        name="Start Exploring",
+        button_type="success",
+        width=200,
+        height=44,
+    )
+    btn_start.on_click(_on_start)
+
+    description = pn.pane.Markdown(
+        "Launch an autonomous search with smart defaults. "
+        f"Uses {default_workers} CPU cores, batch budget of {default_batch_budget}, "
+        f"up to {default_max_total} total runs. "
+        "Expand **Autonomous Search** below to customize.",
+        styles={"color": "#5A6C84", "font-size": "0.9em"},
+    )
+
+    return pn.Card(
+        pn.Row(btn_start, sizing_mode="stretch_width"),
+        description,
+        status_pane,
+        output_pane,
+        title="Quick Start",
         sizing_mode="stretch_width",
     )
 
@@ -583,6 +683,7 @@ def _build_queue_health_card(dm: DashboardDataManager) -> pn.Card:
         pn.pane.Markdown("\n".join(f"- {line}" for line in lines)),
         pn.pane.Markdown(command_md),
         title="Queue Health",
+        collapsed=True,
         sizing_mode="stretch_width",
     )
 
@@ -649,6 +750,7 @@ def _build_champion_card(dm: DashboardDataManager) -> pn.Card:
     return pn.Card(
         pn.pane.HTML(html, sizing_mode="stretch_width"),
         title="Champion Snapshot",
+        collapsed=True,
         sizing_mode="stretch_width",
     )
 
@@ -700,6 +802,7 @@ def _build_index_table(dm: DashboardDataManager) -> pn.Card:
             frozen_columns=["run"],
         ),
         title="Run Index",
+        collapsed=True,
         sizing_mode="stretch_width",
     )
 
@@ -901,13 +1004,132 @@ def _build_action_buttons(dm: DashboardDataManager) -> pn.Card:
         launch_buttons,
         guidance,
         output_pane,
-        title="Actions",
+        title="Manual Sweep Actions (Advanced)",
+        collapsed=True,
+        sizing_mode="stretch_width",
+    )
+
+
+def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
+    """Lightweight live-progress view for active search sessions.
+
+    Always visible on the Command Center.  Shows the active session's
+    progress bar, best candidates, and a stop button — nothing else.
+    The full control surface lives in the collapsed Autonomous Search card.
+    """
+    session_select = pn.widgets.Select(
+        name="Search Session",
+        options=dm.search_session_option_map() or {"No sessions yet": ""},
+        value=dm.active_search_id or "",
+        sizing_mode="stretch_width",
+    )
+    progress_pane = pn.pane.HTML(sizing_mode="stretch_width")
+    best_candidates_box = pn.Column(sizing_mode="stretch_width")
+
+    def _selected_session_row() -> pd.Series | None:
+        sessions = dm.search_sessions
+        if sessions.empty:
+            return None
+        search_id = session_select.value or dm.active_search_id
+        if search_id:
+            matches = sessions[sessions["search_id"] == search_id]
+            if not matches.empty:
+                return matches.iloc[0]
+        return sessions.iloc[0]
+
+    def _refresh_progress(*, prefer_search_id: str | None = None) -> None:
+        dm.refresh_search_sessions()
+        options = dm.search_session_option_map()
+        if not options:
+            session_select.options = {"No sessions yet": ""}
+            session_select.value = ""
+            progress_pane.object = _search_progress_html(None)
+            best_candidates_box[:] = [
+                empty_placeholder("No search results yet. Use Quick Start above to begin.")
+            ]
+            return
+
+        session_select.options = options
+        desired = (
+            prefer_search_id
+            or session_select.value
+            or dm.active_search_id
+            or next(iter(options.values()))
+        )
+        if desired not in options.values():
+            desired = next(iter(options.values()))
+        session_select.value = desired
+
+        selected = _selected_session_row()
+        progress_pane.object = _search_progress_html(selected)
+
+        selected_search_id = str(selected["search_id"]) if selected is not None else ""
+        best_candidates = (
+            dm.search_session_best_candidates(selected_search_id)
+            if selected_search_id
+            else pd.DataFrame()
+        )
+        if best_candidates.empty:
+            best_candidates_box[:] = [
+                empty_placeholder("No completed candidates yet.")
+            ]
+        else:
+            best_cols = [
+                col
+                for col in [
+                    "candidate_id",
+                    "outcome",
+                    "county_mape_overall",
+                    "delta_county_mape_overall",
+                ]
+                if col in best_candidates.columns
+            ]
+            best_candidates_box[:] = [
+                metric_table(
+                    best_candidates[best_cols],
+                    page_size=5,
+                    frozen_columns=["candidate_id"],
+                )
+            ]
+
+    def _on_stop(event: Any) -> None:
+        search_id = (session_select.value or "").strip()
+        if search_id:
+            dm.stop_search_session(search_id)
+            _refresh_progress(prefer_search_id=search_id)
+
+    def _on_refresh(event: Any) -> None:
+        _refresh_progress()
+
+    btn_stop = pn.widgets.Button(name="Stop", button_type="danger", width=80)
+    btn_stop.on_click(_on_stop)
+    btn_refresh = pn.widgets.Button(name="Refresh", button_type="default", width=90)
+    btn_refresh.on_click(_on_refresh)
+
+    # Auto-refresh every 5 seconds
+    if pn.state.curdoc is not None:
+        pn.state.add_periodic_callback(_refresh_progress, period=5000, start=True)
+
+    session_select.param.watch(
+        lambda event: _refresh_progress(prefer_search_id=str(event.new)), "value"
+    )
+    _refresh_progress(prefer_search_id=dm.active_search_id)
+
+    return pn.Card(
+        pn.Row(session_select, btn_refresh, btn_stop, sizing_mode="stretch_width"),
+        progress_pane,
+        best_candidates_box,
+        title="Search Progress",
         sizing_mode="stretch_width",
     )
 
 
 def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
-    """Render dashboard controls and status for autonomous-search sessions."""
+    """Full autonomous-search controls — starts collapsed for reduced clutter.
+
+    Power users expand this card to customize search parameters, preview
+    plans, inspect session details, and view full candidate/report output.
+    """
     session_select = pn.widgets.Select(
         name="Search Session",
         options=dm.search_session_option_map() or {"No sessions yet": ""},
@@ -973,13 +1195,10 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
         name="Include recipe catalog",
         value=bool(dm.search_policy.include_recipe_catalog),
     )
-    auto_refresh_box = pn.widgets.Checkbox(name="Auto-refresh every 5s", value=True)
 
-    progress_pane = pn.pane.HTML(sizing_mode="stretch_width")
     detail_pane = pn.pane.HTML(sizing_mode="stretch_width")
     sessions_table_box = pn.Column(sizing_mode="stretch_width")
     candidates_table_box = pn.Column(sizing_mode="stretch_width")
-    best_candidates_box = pn.Column(sizing_mode="stretch_width")
     report_preview_box = pn.Column(sizing_mode="stretch_width")
     log_preview = pn.widgets.TextAreaInput(
         value="",
@@ -989,15 +1208,11 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
         name="Launch Log Tail",
     )
     output_pane = pn.widgets.TextAreaInput(
-        value=(
-            "Use Preview Plan to create or overwrite a search session without running it. "
-            "Use Preview Next Batch to see what would execute next. Launch runs "
-            "search-auto in the background and progress updates from persisted session state."
-        ),
+        value="",
         disabled=True,
         height=220,
         sizing_mode="stretch_width",
-        name="Autonomous Search Output",
+        name="Output",
     )
 
     def _planner_args() -> list[str]:
@@ -1027,11 +1242,9 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
         if not options:
             session_select.options = {"No sessions yet": ""}
             session_select.value = ""
-            progress_pane.value = _search_progress_html(None)
-            detail_pane.value = _search_session_detail_html(None)
+            detail_pane.object = _search_session_detail_html(None)
             sessions_table_box[:] = [empty_placeholder("No autonomous-search sessions found.")]
             candidates_table_box[:] = [empty_placeholder("No candidate preview available yet.")]
-            best_candidates_box[:] = [empty_placeholder("No completed candidates are available yet.")]
             report_preview_box[:] = [empty_placeholder("No search report is available yet.")]
             log_preview.value = ""
             return
@@ -1043,8 +1256,7 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
         session_select.value = desired
 
         selected = _selected_session_row()
-        progress_pane.value = _search_progress_html(selected)
-        detail_pane.value = _search_session_detail_html(selected)
+        detail_pane.object = _search_session_detail_html(selected)
 
         display_sessions = sessions.copy()
         display_sessions["progress"] = (
@@ -1111,37 +1323,6 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
                 metric_table(
                     candidates[candidate_cols],
                     page_size=8,
-                    frozen_columns=["candidate_id"],
-                )
-            ]
-
-        best_candidates = (
-            dm.search_session_best_candidates(selected_search_id)
-            if selected_search_id
-            else pd.DataFrame()
-        )
-        if best_candidates.empty:
-            best_candidates_box[:] = [
-                empty_placeholder("No completed candidates with harvested metrics are available yet.")
-            ]
-        else:
-            best_cols = [
-                col
-                for col in [
-                    "candidate_id",
-                    "outcome",
-                    "run_id",
-                    "county_mape_overall",
-                    "delta_county_mape_overall",
-                    "state_ape_recent_short",
-                    "state_ape_recent_medium",
-                ]
-                if col in best_candidates.columns
-            ]
-            best_candidates_box[:] = [
-                metric_table(
-                    best_candidates[best_cols],
-                    page_size=5,
                     frozen_columns=["candidate_id"],
                 )
             ]
@@ -1249,7 +1430,7 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
         output_pane.value = (
             f"Launched autonomous search in the background: {search_id}\n"
             f"Command: {' '.join(cmd[2:])}\n"
-            "Use auto-refresh or the Refresh Search Views button to watch progress."
+            "Use the Search Progress card or Refresh button to watch progress."
         )
         session_select.value = search_id
         _refresh_search_views(prefer_search_id=search_id)
@@ -1267,7 +1448,7 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
         output_pane.value = dm.stop_search_session(search_id)
         _refresh_search_views(prefer_search_id=search_id)
 
-    btn_refresh = pn.widgets.Button(name="Refresh Search Views", button_type="primary", width=180)
+    btn_refresh = pn.widgets.Button(name="Refresh", button_type="primary", width=100)
     btn_refresh.on_click(_refresh_only)
     btn_preview_plan = pn.widgets.Button(name="Preview Plan", button_type="warning", width=140)
     btn_preview_plan.on_click(_preview_plan)
@@ -1278,23 +1459,7 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
     btn_stop = pn.widgets.Button(name="Stop Search", button_type="danger", width=140)
     btn_stop.on_click(_stop_search)
 
-    periodic = None
-    if pn.state.curdoc is not None:
-        periodic = pn.state.add_periodic_callback(_refresh_search_views, period=5000, start=False)
-        if auto_refresh_box.value:
-            periodic.start()
-
-    def _toggle_auto_refresh(event: Any) -> None:
-        if periodic is None:
-            return
-        if event.new:
-            periodic.start()
-        else:
-            periodic.stop()
-
-    auto_refresh_box.param.watch(_toggle_auto_refresh, "value")
     session_select.param.watch(lambda event: _refresh_search_views(prefer_search_id=str(event.new)), "value")
-
     _refresh_search_views(prefer_search_id=dm.active_search_id)
 
     cpu_search_row = pn.Column(
@@ -1317,7 +1482,6 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
     toggles = pn.FlexBox(
         overwrite_box,
         include_recipes_box,
-        auto_refresh_box,
         flex_wrap="wrap",
         sizing_mode="stretch_width",
         styles={"gap": "18px"},
@@ -1334,29 +1498,23 @@ def _build_autonomous_search_card(dm: DashboardDataManager) -> pn.Card:
     )
 
     return pn.Card(
-        pn.pane.Markdown(
-            "Observe and control deterministic autonomous-search sessions from the dashboard. "
-            "Preview planning and dry-run execution first, then launch `search-auto` in the background "
-            "and watch persisted session progress update here."
-        ),
         session_select,
-        progress_pane,
         detail_pane,
+        section_header("Launch Settings"),
         controls,
         toggles,
         buttons,
-        section_header("Search Sessions", subtitle="Recent autonomous-search sessions and their progress."),
-        sessions_table_box,
-        section_header("Candidate Preview", subtitle="Selected session candidates and harvested benchmark summaries."),
-        candidates_table_box,
-        section_header("Best Completed Candidates", subtitle="Fast shortlist of the strongest completed search results."),
-        best_candidates_box,
-        section_header("Search Report Preview", subtitle="Embedded Markdown report for the selected search session."),
-        report_preview_box,
-        section_header("Launch Log Tail", subtitle="Dashboard-captured stdout/stderr from the background search process."),
-        log_preview,
         output_pane,
-        title="Autonomous Search",
+        section_header("All Sessions"),
+        sessions_table_box,
+        section_header("Candidate Details"),
+        candidates_table_box,
+        section_header("Search Report"),
+        report_preview_box,
+        section_header("Log Tail"),
+        log_preview,
+        title="Autonomous Search (Advanced)",
+        collapsed=True,
         sizing_mode="stretch_width",
     )
 
@@ -1419,6 +1577,7 @@ def _build_weaknesses_panel(dm: DashboardDataManager) -> pn.Card:
             frozen_columns=["Metric"],
         ),
         title="Persistent Weaknesses",
+        collapsed=True,
         sizing_mode="stretch_width",
     )
 
@@ -1451,11 +1610,16 @@ def build_command_center(
                 "decide what to run or promote next."
             ),
         ),
+        # -- Above the fold: orientation, situation, and one-click action --
         _build_start_here_card(dm, tabs),
         _build_kpi_row(dm),
         _build_decision_strip(dm),
-        _build_queue_health_card(dm),
+        _build_quick_start_card(dm),
+        # -- Live progress for active searches --
+        _build_search_progress_card(dm),
+        # -- Everything below is collapsed by default (progressive disclosure) --
         _build_autonomous_search_card(dm),
+        _build_queue_health_card(dm),
         _build_champion_card(dm),
         _build_index_table(dm),
         _build_action_buttons(dm),

@@ -56,7 +56,7 @@ python scripts/analysis/observatory_dashboard.py       # Launch live Panel dashb
 python scripts/analysis/observatory_dashboard.py --port 8080  # Custom port
 ```
 
-The live dashboard is the primary interface for the Observatory. It provides 7 interactive tabs (Command Center, Experiments, History, Scorecards, Projections, Horizon & Bias, Sensitivity) with auto-refreshing progress tracking for autonomous search sessions. Use it to monitor `search-auto` runs in real time, compare variants, and review results.
+The live dashboard is the primary interface for the Observatory. It provides 7 interactive tabs (Command Center, Experiments, History, Scorecards, Projections, Horizon & Bias, Sensitivity) with auto-refreshing progress tracking for autonomous search sessions. The Command Center uses progressive disclosure: a one-click "Start Exploring" button launches autonomous search with smart defaults, and a live Search Progress card shows results — advanced controls are collapsed by default. Use it to monitor `search-auto` runs in real time, compare variants, and review results.
 
 **CLI (alternative / scripting):**
 

@@ -25,7 +25,7 @@ path from multiple documents.
    - Read the Observatory config sections when changing thresholds, paths, or
      variant-catalog behavior.
 
-## Current State (2026-03-15)
+## Current State (2026-03-17)
 
 - BM-001 experiment infrastructure is implemented.
 - OBS-001 Observatory analysis, CLI, dashboard, and reporting layer is
@@ -64,10 +64,13 @@ path from multiple documents.
 - Enabled search-only recipe families now cover convergence-window widening,
   mortality-improvement sensitivity, and selected interaction terms around
   `m2026r1` without touching production aliases.
-- The dashboard `Command Center` now includes an `Autonomous Search` panel for
-  previewing search plans, launching `search-auto`, stopping dashboard-launched
-  searches, tracking session progress, previewing search reports/log tails, and
-  inspecting candidate/result summaries from persisted search sessions.
+- The dashboard `Command Center` uses progressive disclosure to reduce
+  first-open cognitive load. A `Quick Start` card provides a one-click
+  "Start Exploring" button with smart defaults. A `Search Progress` card
+  shows live progress and best candidates for the active session. Advanced
+  controls (full search configuration, manual sweep actions, queue health,
+  champion snapshot, run index, persistent weaknesses) are available in
+  collapsed cards that expand on demand.
 - A dedicated `History` tab now provides longitudinal benchmark-history views
   across all runs, champion-at-run baselines, metric delta heatmaps,
   category-level trend lines, and accepted/rejected challenger history.
@@ -77,7 +80,8 @@ path from multiple documents.
 The previously documented follow-on roadmap items are now implemented in the
 current codebase:
 
-- `OBS-UX-09` and `OBS-UX-10` are complete.
+- `OBS-UX-09` through `OBS-UX-16` are complete (see
+  `docs/plans/observatory-ui-ux-backlog.md`).
 - `P1`/`P2` promotion-threshold formalization and hard-gate vs tradeoff split
   are implemented in the machine-readable evaluation policy.
 - `P3` schema enforcement is implemented through centralized benchmark-contract
