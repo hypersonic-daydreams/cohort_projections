@@ -84,10 +84,10 @@ python scripts/analysis/observatory.py --format json status  # Machine-readable 
 ### Starting
 ```bash
 cd ~/workspace/demography/cohort_projections
-direnv allow                     # First time only
+direnv allow                     # First time only — activates .venv
 git pull
 ./scripts/bisync.sh
-uv sync
+uv sync --extra dev --extra dashboard  # Install dev + dashboard deps
 ```
 
 ### After Changes

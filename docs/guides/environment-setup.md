@@ -10,9 +10,14 @@ Complete setup instructions for the development environment.
 
 ```bash
 cd ~/workspace/demography/cohort_projections
-direnv allow          # Auto-activates .venv on cd (first time only)
-uv sync               # Install all dependencies
+direnv allow                      # Auto-activates .venv on cd (first time only)
+uv sync --extra dev --extra dashboard   # Install all dev + dashboard dependencies
 ```
+
+> **Important:** Plain `uv sync` only installs core dependencies. You need
+> `--extra dev` for pytest/ruff/mypy and `--extra dashboard` for the
+> Observatory Panel dashboard.  See [Dependency Groups](#dependency-groups)
+> for the full list.
 
 ---
 
@@ -52,11 +57,36 @@ uv add --dev <package>           # Add as dev dependency
 uv add "package>=1.0,<2.0"       # With version constraints
 ```
 
+### Dependency Groups
+
+The project defines optional dependency groups in `pyproject.toml`.
+Install the ones you need with `--extra`:
+
+| Group | Contents | When needed |
+|-------|----------|-------------|
+| `dev` | pytest, ruff, mypy, ipython, jupyter | Development and testing |
+| `dashboard` | panel, plotly | Projection Observatory UI |
+| `viz` | matplotlib, seaborn, plotly | Visualization scripts |
+| `stats` | statsmodels, scipy, arch, scikit-learn | Statistical analysis |
+| `bayesian` | pymc, arviz | Bayesian inference (Phase B) |
+| `geo` | geopandas, shapely | Geospatial exports |
+| `pdf_export` | weasyprint, markdown | PDF report generation |
+| `excel_io` | xlrd | Legacy .xls file support |
+| `all` | Everything above | Full environment |
+
+```bash
+# Typical development setup
+uv sync --extra dev --extra dashboard
+
+# Full environment with all optional packages
+uv sync --extra all
+```
+
 ### Syncing Environment
 
 ```bash
-uv sync                          # Install from pyproject.toml
-uv sync --frozen                 # Use exact versions from uv.lock
+uv sync --extra dev --extra dashboard  # Recommended for development
+uv sync --frozen                       # Use exact versions from uv.lock
 ```
 
 ### Updating Dependencies
@@ -210,13 +240,35 @@ Allow direnv for this directory:
 direnv allow
 ```
 
+### Wrong Python on PATH (conda conflict)
+
+If `which python` shows a conda path (e.g. `/home/user/miniconda3/bin/python`)
+instead of `.venv/bin/python`, your shell is using conda's Python rather than
+the project's uv-managed venv.  This causes `ModuleNotFoundError` for packages
+that are installed in `.venv` but not in conda.
+
+Fix:
+```bash
+direnv allow                     # Preferred — auto-activates .venv
+# or
+source .venv/bin/activate        # Manual activation
+# or use the venv Python directly
+.venv/bin/python <script>
+```
+
 ### Tests fail with import errors
 
-Ensure virtual environment is activated:
+Ensure virtual environment is activated **and** dev dependencies are installed:
 ```bash
-source .venv/bin/activate
-# or
-direnv allow
+direnv allow                     # or: source .venv/bin/activate
+uv sync --extra dev              # Installs pytest, ruff, mypy, etc.
+```
+
+### Observatory dashboard won't start (ModuleNotFoundError: panel)
+
+The dashboard requires the `dashboard` dependency group:
+```bash
+uv sync --extra dashboard
 ```
 
 ### Pre-commit hooks fail
@@ -226,6 +278,32 @@ Run hooks manually to see detailed errors:
 pre-commit run --all-files
 ```
 
+The pre-commit mypy hook runs in its own isolated environment with
+`pandas-stubs`, which is stricter than running `mypy` directly.  If mypy
+passes locally but fails in the hook, check for pandas type-stub issues
+(e.g. `pd.isna` on `object` types, `Series.rename` with a dict argument).
+
+### Observatory search fails with "dirty checkout"
+
+The autonomous search refuses to run if `git status` shows uncommitted
+changes.  Commit or stash your changes first, then retry.
+
 ---
 
-*Last Updated: 2026-01-01*
+## WSL-Specific Notes
+
+When running on Windows Subsystem for Linux:
+
+- **Browser opening**: The Observatory dashboard launcher detects WSL and
+  opens the browser via `cmd.exe /c start` to route to Windows Chrome
+  instead of WSL's Chromium.
+- **direnv**: May need to be installed separately in WSL
+  (`sudo apt install direnv`) and hooked into your shell
+  (`eval "$(direnv hook bash)"` in `.bashrc`).
+- **Git environment variables**: Pre-commit hooks set `GIT_DIR`,
+  `GIT_INDEX_FILE`, etc.  The sandbox manager strips these to prevent
+  interference with mirror/worktree operations.
+
+---
+
+*Last Updated: 2026-03-18*
