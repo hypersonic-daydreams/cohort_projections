@@ -142,23 +142,48 @@ def _search_progress_html(session_row: pd.Series | None) -> str:
     running = int(session_row.get("running", 0) or 0)
     completed = int(session_row.get("completed", 0) or 0)
     failed = int(session_row.get("failed", 0) or 0)
-    tone = STATUS_COLORS.get(
-        "needs_human_review" if failed else status,
-        SDC_BLUE,
+    is_stopped = not bool(session_row.get("dashboard_process_running", False))
+
+    # Determine bar color and status label
+    if is_stopped and failed > 0 and completed == 0:
+        tone = "#C00000"  # Red — stopped with only failures
+        status_label = "STOPPED"
+        status_color = "#C00000"
+    elif failed > 0:
+        tone = STATUS_COLORS.get("needs_human_review", "#FFC000")
+        status_label = status.upper()
+        status_color = "#5A6C84"
+    else:
+        tone = STATUS_COLORS.get(status, SDC_BLUE)
+        status_label = status.upper()
+        status_color = "#5A6C84"
+
+    # Style failed count red when there are failures
+    failed_span = (
+        f'<span style="color:#C00000;font-weight:600">Failed: {failed}</span>'
+        if failed > 0
+        else f"<span>Failed: {failed}</span>"
     )
+    completed_span = (
+        f'<span style="color:#00B050;font-weight:600">Completed: {completed}</span>'
+        if completed > 0
+        else f"<span>Completed: {completed}</span>"
+    )
+
     return f"""
     <div style="font-family:'Aptos','Segoe UI',Arial,sans-serif">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <strong>{session_row.get("search_id", "")}</strong>
-        <span style="color:#5A6C84;text-transform:uppercase;font-size:12px">{status}</span>
+        <span style="color:{status_color};text-transform:uppercase;font-size:12px;
+               font-weight:600">{status_label}</span>
       </div>
       <div style="width:100%;height:14px;background:#E7ECF3;border-radius:999px;overflow:hidden">
         <div style="width:{progress_pct:.1f}%;height:14px;background:{tone};border-radius:999px"></div>
       </div>
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:13px;color:#334E68">
         <span>Progress: {completed + failed}/{total}</span>
-        <span>Completed: {completed}</span>
-        <span>Failed: {failed}</span>
+        {completed_span}
+        {failed_span}
         <span>Running: {running}</span>
         <span>Planned: {planned}</span>
       </div>
@@ -205,6 +230,8 @@ def _search_session_detail_html(session_row: pd.Series | None) -> str:
 def _best_tested_challenger(dm: DashboardDataManager) -> pd.Series | None:
     """Return the strongest non-champion benchmark row for summary cards."""
     if dm.run_metadata.empty:
+        return None
+    if "selected_county_mape_overall" not in dm.run_metadata.columns:
         return None
     challengers = dm.run_metadata.copy()
     if dm.champion_id is not None:
@@ -597,7 +624,7 @@ def _build_decision_strip(dm: DashboardDataManager) -> pn.FlexBox:
         if champion_mape is not None
         else "Champion unavailable",
         (
-            f"{champion_row['display_name']} | "
+            f"{champion_row.get('display_name', champion_row.get('run_id', ''))} | "
             f"{champion_row.get('reference_method_id', champion_row.get('selected_method_id', ''))}"
             if champion_row is not None
             else "No champion metadata found."
@@ -831,12 +858,24 @@ def _build_index_table(dm: DashboardDataManager) -> pn.Card:
         )
 
     display_df = dm.run_metadata.copy()
-    display_df["run"] = display_df["display_name"]
-    display_df["review_status"] = display_df["status_label"]
-    display_df["config"] = display_df["short_config"].replace("", pd.NA)
-    display_df["county_error_mape"] = display_df["selected_county_mape_overall"].round(3)
-    display_df["recent_state_error_ape"] = display_df["selected_state_ape_recent_short"].round(3)
-    display_df["run_date"] = display_df["run_date_label"]
+    display_df["run"] = display_df.get("display_name", pd.Series("", index=display_df.index))
+    display_df["review_status"] = display_df.get(
+        "status_label", pd.Series("", index=display_df.index)
+    )
+    display_df["config"] = display_df.get(
+        "short_config", pd.Series("", index=display_df.index)
+    ).replace("", pd.NA)
+    if "selected_county_mape_overall" in display_df.columns:
+        display_df["county_error_mape"] = display_df["selected_county_mape_overall"].round(3)
+    else:
+        display_df["county_error_mape"] = pd.NA
+    if "selected_state_ape_recent_short" in display_df.columns:
+        display_df["recent_state_error_ape"] = display_df["selected_state_ape_recent_short"].round(
+            3
+        )
+    else:
+        display_df["recent_state_error_ape"] = pd.NA
+    display_df["run_date"] = display_df.get("run_date_label", pd.Series("", index=display_df.index))
 
     columns = [
         column
@@ -1101,6 +1140,12 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
         sizing_mode="stretch_width",
         name="Live Log",
     )
+    log_card = pn.Card(
+        log_tail_pane,
+        title="Log Output",
+        collapsed=True,
+        sizing_mode="stretch_width",
+    )
     current_experiment_pane = pn.pane.HTML(sizing_mode="stretch_width")
 
     def _selected_session_row() -> pd.Series | None:
@@ -1129,14 +1174,53 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
         total = int(session_row.get("total", 0) or 0)
 
         # Process health indicator
-        if is_running:
+        if is_running and running_count > 0:
+            indicator = (
+                '<span style="color:#00B050;font-weight:600">&#9679; Running experiments</span>'
+            )
+        elif is_running:
             indicator = '<span style="color:#00B050;font-weight:600">&#9679; Process running</span>'
-        elif process_status == "stopped" and completed + failed >= total > 0:
+        elif process_status == "stopped" and completed + failed >= total > 0 and failed == 0:
             indicator = '<span style="color:#0563C1;font-weight:600">&#9632; Search complete</span>'
         elif process_status == "stopped":
             indicator = '<span style="color:#C00;font-weight:600">&#9632; Process stopped</span>'
         else:
             indicator = f'<span style="color:#5A6C84">Process: {process_status}</span>'
+
+        # Error banner — shown when process stopped abnormally
+        error_banner = ""
+        if (
+            not is_running
+            and process_status == "stopped"
+            and (failed > 0 or (completed + failed < total and total > 0))
+        ):
+            # Try to extract the error reason from the log tail
+            log_text = dm.search_session_log_tail(search_id, max_chars=2000)
+            error_reason = ""
+            if log_text:
+                for line in reversed(log_text.strip().splitlines()):
+                    if "error" in line.lower() or "stopping" in line.lower():
+                        # Strip timestamp prefix if present
+                        reason = line.strip()
+                        if reason.startswith("2"):
+                            parts = reason.split("] ", 1)
+                            if len(parts) > 1:
+                                reason = parts[1]
+                        error_reason = reason
+                        break
+            reason_html = (
+                f'<div style="margin-top:4px;font-size:0.88em;color:#5A1A00">{error_reason}</div>'
+                if error_reason
+                else ""
+            )
+            error_banner = (
+                f'<div style="background:#FFF0F0;border:1px solid #E8AAAA;border-radius:8px;'
+                f'padding:10px 14px;margin:8px 0">'
+                f'<span style="color:#C00;font-weight:600">Search stopped before completion</span>'
+                f" &mdash; {failed} failed, {completed} completed out of {total} planned."
+                f"{reason_html}"
+                f"</div>"
+            )
 
         # Currently running experiments
         activity = ""
@@ -1164,7 +1248,12 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
                 delta = dt.datetime.now(tz=dt.UTC) - start
                 hours, remainder = divmod(int(delta.total_seconds()), 3600)
                 mins, secs = divmod(remainder, 60)
-                elapsed = f"{hours}h {mins}m elapsed" if hours > 0 else f"{mins}m {secs}s elapsed"
+                if not is_running:
+                    elapsed = ""  # Don't show elapsed when stopped
+                elif hours > 0:
+                    elapsed = f"{hours}h {mins}m elapsed"
+                else:
+                    elapsed = f"{mins}m {secs}s elapsed"
             except (ValueError, TypeError):
                 pass
 
@@ -1175,6 +1264,7 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
             {indicator}
             <span style="color:#5A6C84;font-size:0.85em">{elapsed}</span>
         </div>
+        {error_banner}
         {activity}
         """
 
@@ -1193,12 +1283,9 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
             return
 
         session_select.options = options
-        desired = (
-            prefer_search_id
-            or session_select.value
-            or dm.active_search_id
-            or next(iter(options.values()))
-        )
+        # Always prefer: explicit request > active/running session > current dropdown > first
+        active = dm.active_search_id
+        desired = prefer_search_id or active or session_select.value or next(iter(options.values()))
         if desired not in options.values():
             desired = next(iter(options.values()))
         session_select.value = desired
@@ -1249,6 +1336,13 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
         )
         log_tail_pane.value = log_text
 
+        # Auto-expand log when there are errors, collapse when healthy
+        has_errors = selected is not None and (
+            int(selected.get("failed", 0) or 0) > 0
+            and not bool(selected.get("dashboard_process_running", False))
+        )
+        log_card.collapsed = not has_errors
+
     def _on_stop(event: Any) -> None:
         search_id = (session_select.value or "").strip()
         if search_id:
@@ -1277,7 +1371,7 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
         current_experiment_pane,
         progress_pane,
         best_candidates_box,
-        log_tail_pane,
+        log_card,
         title="Search Progress",
         sizing_mode="stretch_width",
     )

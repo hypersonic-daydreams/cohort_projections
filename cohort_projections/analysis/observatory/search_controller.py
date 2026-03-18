@@ -713,7 +713,15 @@ class AutonomousSearchController:
         workers_per_run: int = 0,
     ) -> subprocess.CompletedProcess[str]:
         script_path = worktree_path / "scripts" / "analysis" / "run_experiment.py"
-        cmd = [sys.executable, str(script_path), "--spec", str(spec_path)]
+        profile_dir = worktree_path / "config" / "method_profiles"
+        cmd = [
+            sys.executable,
+            str(script_path),
+            "--spec",
+            str(spec_path),
+            "--profile-dir",
+            str(profile_dir),
+        ]
         if workers_per_run > 0:
             cmd.extend(["--workers", str(workers_per_run)])
         result = subprocess.run(
