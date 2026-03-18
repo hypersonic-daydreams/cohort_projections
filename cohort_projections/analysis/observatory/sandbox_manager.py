@@ -166,11 +166,15 @@ class SandboxManager:
         for subdir in data_dirs:
             source = self.source_repo / "data" / subdir
             target = worktree_path / "data" / subdir
-            if source.is_dir() and not target.exists():
-                # Remove the (empty) gitkeep-only directory if present
-                if target.is_dir():
-                    shutil.rmtree(target)
-                target.symlink_to(source.resolve())
+            if not source.is_dir():
+                continue
+            if target.is_symlink():
+                continue  # Already symlinked
+            # Remove the (mostly empty) gitkeep-only directory left by
+            # git worktree add, then replace it with a symlink.
+            if target.is_dir():
+                shutil.rmtree(target)
+            target.symlink_to(source.resolve())
 
     def remove_worktree(self, context: WorktreeContext) -> None:
         """Remove a disposable worktree and its local branch."""

@@ -1424,16 +1424,16 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
         )
         log_card.collapsed = not has_errors
 
-        # Stop polling when no search process is actively running
+        # Reduce polling frequency when no search is actively running
         if _periodic_cb is not None:
             any_running = (
                 not dm.search_sessions.empty
                 and dm.search_sessions["dashboard_process_running"].any()
             )
-            if any_running and not _periodic_cb.running:
-                _periodic_cb.start()
-            elif not any_running and _periodic_cb.running:
-                _periodic_cb.stop()
+            if any_running and _periodic_cb.period != 5000:
+                _periodic_cb.period = 5000  # Fast polling while running
+            elif not any_running and _periodic_cb.period != 30000:
+                _periodic_cb.period = 30000  # Slow polling when idle
 
     def _on_stop(event: Any) -> None:
         search_id = (session_select.value or "").strip()
