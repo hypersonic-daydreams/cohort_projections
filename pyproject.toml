@@ -85,7 +85,7 @@ stats = [
 bayesian = [
     # Bayesian inference (Phase B - approved 2026-01-01)
     "pymc>=5.10",
-    "arviz>=0.17",
+    "arviz>=0.17,<0.23",
 ]
 pdf_export = [
     # PDF generation utilities
