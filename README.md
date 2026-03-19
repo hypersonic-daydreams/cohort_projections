@@ -79,8 +79,8 @@ python scripts/analysis/observatory_dashboard.py --no-open
 ```
 
 Start with [Projection Observatory Start Here](./docs/guides/observatory-start-here.md)
-for the current status, recommended reading order, and the follow-on
-improvement backlog. Use
+for the current status, recommended reading order, and the planning-doc
+inventory. Use
 [Projection Observatory Search-Loop Guide](./docs/guides/observatory-search-loop.md)
 when running bounded unattended queues.
 On Windows/WSL, run `scripts/windows/install_projection_observatory_shortcuts.cmd`

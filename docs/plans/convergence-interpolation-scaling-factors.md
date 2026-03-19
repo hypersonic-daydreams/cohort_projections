@@ -1,7 +1,7 @@
 ---
 title: "Wire Census Bureau Convergence Interpolation into Projection Engine"
 created: 2026-02-13T11:00:00-06:00
-status: planned
+status: historical-superseded-plan
 author: Claude Code (Opus 4.6)
 related_adrs:
   - ADR-036 (BEBR Multi-Period & Census Bureau Interpolation)
@@ -15,6 +15,11 @@ related_files:
 ---
 
 # Wire Census Bureau Convergence Interpolation into Projection Engine
+
+> Status note (2026-03-19): This February planning note is historical
+> reference. It was superseded by later Census-method implementation work and
+> should not be treated as an open backlog item. Use `DEVELOPMENT_TRACKER.md`
+> and `docs/plans/README.md` for current planning status.
 
 ## Context
 

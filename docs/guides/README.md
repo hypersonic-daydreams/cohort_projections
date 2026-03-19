@@ -9,7 +9,7 @@ Detailed procedural guides for common workflows. These expand on the concise rul
 | [environment-setup.md](./environment-setup.md) | Virtual environment, uv, pre-commit, IDE setup |
 | [testing-workflow.md](./testing-workflow.md) | Test commands, writing tests, pre-commit integration |
 | [benchmarking-workflow.md](./benchmarking-workflow.md) | How to run benchmark bundles, review challengers, and promote champions |
-| [observatory-start-here.md](./observatory-start-here.md) | Entry point for current Observatory status, operating docs, and follow-on backlog |
+| [observatory-start-here.md](./observatory-start-here.md) | Entry point for current Observatory status, operating docs, and planning-doc inventory |
 | [observatory-search-loop.md](./observatory-search-loop.md) | Safe bounded queue operation for the Projection Observatory |
 | [configuration-reference.md](./configuration-reference.md) | All configuration files and settings |
 | [data-sources-workflow.md](./data-sources-workflow.md) | Data acquisition, sources, and update procedures |
@@ -31,4 +31,4 @@ Detailed procedural guides for common workflows. These expand on the concise rul
 
 ---
 
-*Last Updated: 2026-03-13*
+*Last Updated: 2026-03-19*

@@ -1,7 +1,11 @@
 # Repository Evaluation Summary
 
+> Historical snapshot from 2025-12-28. This document is no longer the current
+> status source for the repository. Use `DEVELOPMENT_TRACKER.md` for active
+> state and `docs/plans/README.md` for the consolidated planning-doc inventory.
+
 **Date:** December 28, 2025
-**Status:** ~70-75% Complete
+**Status:** Historical snapshot; superseded by `DEVELOPMENT_TRACKER.md`
 
 ## Overview
 

@@ -5,7 +5,13 @@ Each entry is ready to be turned into an experiment spec via `/experiment`.
 
 **Base for all experiments:** `m2026r1 / cfg-20260309-college-fix-v1` (current candidate)
 
-**Last updated:** 2026-03-09
+**Last updated:** 2026-03-19
+
+> Status note (2026-03-19): This remains the active CF-001 experiment-idea
+> catalog. The 2026-03-09 sweep results below are still the last usable
+> benchmark evidence summarized here. Autonomous-search attempts logged on
+> 2026-03-18 were inconclusive because benchmark artifacts were incomplete or
+> missing, so those attempts do not close any catalog items.
 
 ---
 

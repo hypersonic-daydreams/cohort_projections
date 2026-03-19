@@ -30,11 +30,12 @@ Do not use this guide for:
 ## Related Observatory Docs
 
 - [Projection Observatory Start Here](./observatory-start-here.md) for status,
-  reading order, and the follow-on backlog
+  reading order, and the planning-doc inventory
 - [Projection Observatory Search-Loop Guide](./observatory-search-loop.md) for
   bounded unattended queueing
 - [Benchmarking Process Improvement Roadmap](../plans/benchmarking-process-improvement-roadmap.md)
-  for the remaining multi-session implementation queue
+  for historical rationale behind the delivered multi-session Observatory and
+  benchmarking improvements
 
 ## Preflight Checklist
 

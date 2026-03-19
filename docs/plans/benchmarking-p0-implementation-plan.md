@@ -1,7 +1,7 @@
 ---
 title: "P0/P0.5/P1 Implementation Plan — Agent Experiment Infrastructure"
 created: 2026-03-09
-status: ready-for-implementation
+status: implemented_2026-03-09
 parent: docs/plans/benchmarking-process-improvement-roadmap.md
 tracker_id: BM-001
 purpose: >
@@ -11,6 +11,10 @@ purpose: >
 ---
 
 # P0/P0.5/P1 Implementation Plan
+
+> Status note (2026-03-19): `BM-001` is complete. This file is kept as the
+> historical implementation plan; use `DEVELOPMENT_TRACKER.md` for the current
+> state and `docs/plans/README.md` for planning-doc status.
 
 ## Coordination Model
 

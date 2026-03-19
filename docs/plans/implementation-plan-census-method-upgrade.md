@@ -1,7 +1,7 @@
 ---
 title: "Implementation Plan: Census Bureau Method Upgrade"
 created: 2026-02-13T18:00:00-06:00
-status: implementation-plan
+status: historical-implementation-plan
 author: Claude Code (Opus 4.6)
 parent_document: docs/plans/census-method-assessment-and-path-forward.md
 purpose: >
@@ -19,6 +19,11 @@ decisions_resolved:
 ---
 
 # Implementation Plan: Census Bureau Method Upgrade
+
+> Status note (2026-03-19): This February implementation plan is historical
+> reference for the Census-method upgrade track. It is not the canonical
+> current backlog. Use `DEVELOPMENT_TRACKER.md` and `docs/plans/README.md` for
+> current planning status.
 
 ## Table of Contents
 

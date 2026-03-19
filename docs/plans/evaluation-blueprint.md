@@ -16,6 +16,11 @@ related_adrs:
 
 # Population Projection Evaluation Blueprint
 
+> Status note (2026-03-19): The evaluation framework described here was
+> implemented under `PP-006` / `ADR-063`. Keep this document as design
+> rationale, but use `DEVELOPMENT_TRACKER.md` and `docs/plans/README.md` for
+> current planning status.
+
 ## Purpose
 
 This blueprint defines a formal evaluation framework for population projection models for North Dakota and its counties. It is designed to support repeated, structured testing of projection methods across multiple horizons, geographies, demographic components, and parameter settings. The goal is to make it easy to identify where a model performs well, where it fails, and why.

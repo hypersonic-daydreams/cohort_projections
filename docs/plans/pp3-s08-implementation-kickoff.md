@@ -5,7 +5,7 @@
 | **Date** | 2026-02-28 |
 | **Reviewer** | Claude (AI Agent) -- requires human review before acceptance |
 | **Scope** | PP3-S08 execution-ready implementation task list for Phase 1 city/place projections |
-| **Status** | Draft |
+| **Status** | Historical reference — implementation completed 2026-03-01 |
 | **Related ADR** | ADR-033 |
 | **Scoping Gate** | PP3-S07 Approved 2026-02-28 |
 

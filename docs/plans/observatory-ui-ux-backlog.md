@@ -1,7 +1,7 @@
 ---
 title: "Projection Observatory UI/UX Review and Implementation Backlog"
 created: 2026-03-13T13:30:00-05:00
-status: active-backlog
+status: historical-backlog-complete
 author: Codex
 purpose: >
   Capture a first-time-user UX review of the Projection Observatory dashboard
@@ -15,6 +15,11 @@ related_docs:
 ---
 
 # Projection Observatory UI/UX Review and Implementation Backlog
+
+> Status note (2026-03-19): `OBS-UX-01` through `OBS-UX-38` are implemented.
+> This document is retained as historical implementation history, not an open
+> backlog. Use `DEVELOPMENT_TRACKER.md` for current work and
+> `docs/plans/README.md` for planning-doc status.
 
 ## Review Frame
 

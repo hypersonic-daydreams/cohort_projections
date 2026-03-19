@@ -5,7 +5,7 @@ resumable search loop without drifting from the governance rules in
 [SOP-003](../governance/sops/SOP-003-method-benchmarking-versioning-promotion.md).
 
 Start with [Projection Observatory Start Here](./observatory-start-here.md) if
-you need the current status, reading order, or the full follow-on backlog. This
+you need the current status, reading order, or the planning-doc inventory. This
 guide only covers safe queue operation.
 
 If you want deterministic code-driven search in isolated worktrees rather than

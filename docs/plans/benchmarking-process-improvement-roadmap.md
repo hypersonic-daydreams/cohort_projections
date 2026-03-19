@@ -1,7 +1,7 @@
 ---
 title: "Benchmarking Process Improvement Roadmap"
 created: 2026-03-09T17:00:00-05:00
-status: active-roadmap
+status: historical-roadmap-complete
 author: Codex
 purpose: >
   Capture the next improvements to the versioned benchmarking workflow so
@@ -17,6 +17,10 @@ related_adrs:
 ---
 
 # Benchmarking Process Improvement Roadmap
+
+> Status note (2026-03-19): All roadmap items documented here are implemented.
+> Use `DEVELOPMENT_TRACKER.md` for current work and `docs/plans/README.md` to
+> distinguish active planning docs from historical roadmap records.
 
 ## Purpose
 
@@ -53,10 +57,10 @@ That means future process improvements should optimize usability and rigor, not 
 
 ## How To Use This Roadmap
 
-Use this document for the full follow-on backlog after the Observatory
-foundation work. If you need a quicker entry point, start with
-`docs/guides/observatory-start-here.md` and then return here for the full item
-descriptions.
+Use this document as historical rationale for the delivered follow-on work that
+landed after the Observatory foundation. If you need the current entry point,
+start with `docs/guides/observatory-start-here.md` and
+`docs/plans/README.md`.
 
 ## Status Snapshot (2026-03-15)
 

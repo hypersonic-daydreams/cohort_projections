@@ -2,7 +2,7 @@
 
 Canonical instruction set for all AI agents working on this codebase.
 
-**Last Updated:** 2026-03-16 | **Version:** 1.9.0 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
+**Last Updated:** 2026-03-19 | **Version:** 1.9.1 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
 
 ---
 
@@ -81,7 +81,7 @@ Data deletion, security changes, breaking output formats, **methodology changes 
 - **Projections**: Use `scripts/projections/run_all_projections.py` for full pipeline runs.
 - **Backups**: Use `scripts/bisync.sh`. NEVER run raw `rclone` commands for syncing.
 - **Maintenance**: Use provided scripts in `scripts/maintenance/`.
-- **Benchmarking**: Use `scripts/analysis/run_benchmark_suite.py` for champion-vs-challenger runs. Use `scripts/analysis/run_experiment.py --spec <path>` for the full experiment pipeline (spec → profile → benchmark → evaluate → log). Use `scripts/analysis/build_experiment_dashboard.py` to generate an interactive HTML dashboard comparing all experiment results. Use `scripts/analysis/run_experiment_sweep.py` for batch sweeps (spec list, parameter grid, or pending queue). See `docs/guides/benchmarking-workflow.md` for the complete workflow, `docs/guides/observatory-start-here.md` for the Observatory entry point and follow-on backlog, and `config/benchmark_evaluation_policy.yaml` for gate thresholds.
+- **Benchmarking**: Use `scripts/analysis/run_benchmark_suite.py` for champion-vs-challenger runs. Use `scripts/analysis/run_experiment.py --spec <path>` for the full experiment pipeline (spec → profile → benchmark → evaluate → log). Use `scripts/analysis/build_experiment_dashboard.py` to generate an interactive HTML dashboard comparing all experiment results. Use `scripts/analysis/run_experiment_sweep.py` for batch sweeps (spec list, parameter grid, or pending queue). See `docs/guides/benchmarking-workflow.md` for the complete workflow, `docs/guides/observatory-start-here.md` for the Observatory entry point, `docs/plans/README.md` for planning-doc status, and `config/benchmark_evaluation_policy.yaml` for gate thresholds.
 - **Observatory**: The **live Panel dashboard** (`scripts/analysis/observatory_dashboard.py`) is the primary interface — launch it with `python scripts/analysis/observatory_dashboard.py` (default port 5006). It provides 7 interactive tabs with auto-refreshing progress tracking for `search-auto` sessions. The Command Center uses progressive disclosure: a one-click "Start Exploring" button launches autonomous search with smart defaults, and advanced controls are collapsed by default. The **CLI** (`scripts/analysis/observatory.py`) is the alternative for scripting and automation. Key CLI commands: `status`, `compare`, `rank`, `recommend`, `run-pending`, `run-recommended`, `search-auto`, `diff`, `history`, `report`. Config files: `config/observatory_config.yaml` (paths, metrics, thresholds), `config/observatory_variants.yaml` (variant definitions and grid sweeps). Package: `cohort_projections/analysis/observatory/`.
 
 ### Projection Observatory Naming
@@ -313,7 +313,7 @@ uv sync               # Install dependencies
 | [docs/guides/testing-workflow.md](./docs/guides/testing-workflow.md) | Test commands and patterns |
 | [docs/guides/environment-setup.md](./docs/guides/environment-setup.md) | Environment and tooling setup |
 | [docs/guides/benchmarking-workflow.md](./docs/guides/benchmarking-workflow.md) | Benchmark, review, and promotion workflow under SOP-003 |
-| [docs/guides/observatory-start-here.md](./docs/guides/observatory-start-here.md) | Projection Observatory entry point for status, reading order, and backlog |
+| [docs/guides/observatory-start-here.md](./docs/guides/observatory-start-here.md) | Projection Observatory entry point for status, reading order, and planning-doc inventory |
 | [docs/guides/observatory-search-loop.md](./docs/guides/observatory-search-loop.md) | Safe bounded queue operation for the Projection Observatory |
 | [docs/guides/configuration-reference.md](./docs/guides/configuration-reference.md) | Configuration options |
 | [docs/guides/data-sources-workflow.md](./docs/guides/data-sources-workflow.md) | Data acquisition and processing |
@@ -372,6 +372,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.9.1 | 2026-03-19 | Added planning-doc inventory reference, clarified Observatory guide wording after roadmap/backlog completion, and refreshed metadata date |
 | 1.9.0 | 2026-03-16 | Updated current focus to CF-001 / maintenance mode; PP-006 through PP-009 completion; Observatory maturation; updated place count to 355 active |
 | 1.8.2 | 2026-03-13 | Added Projection Observatory start-here and workflow-guide references to improve discoverability of Observatory status, operations, and follow-on backlog |
 | 1.8.1 | 2026-03-13 | Added canonical Projection Observatory naming, purpose, and prompt shorthand for future agent instructions |

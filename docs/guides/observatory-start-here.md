@@ -2,8 +2,8 @@
 
 Use this guide as the single entry point for continuing Projection Observatory
 work. It links the current status, the safe operating workflow, and the
-remaining improvement backlog so you do not have to reconstruct the navigation
-path from multiple documents.
+planning-doc inventory so you do not have to reconstruct the navigation path
+from multiple documents.
 
 ## Read In This Order
 
@@ -19,9 +19,13 @@ path from multiple documents.
 4. `docs/guides/benchmarking-workflow.md`
    - Read this for challenger review, decision records, and alias-promotion
      workflow under SOP-003.
-5. `docs/plans/benchmarking-process-improvement-roadmap.md`
-   - Read this for the full follow-on improvement backlog and rationale.
-6. `docs/guides/configuration-reference.md`
+5. `docs/plans/README.md`
+   - Read this to separate current planning docs from historical roadmaps and
+     completed backlogs.
+6. `docs/plans/benchmarking-process-improvement-roadmap.md`
+   - Read this only for historical roadmap rationale behind delivered
+     Observatory and benchmarking features.
+7. `docs/guides/configuration-reference.md`
    - Read the Observatory config sections when changing thresholds, paths, or
      variant-catalog behavior.
 
@@ -68,8 +72,9 @@ path from multiple documents.
 - Search-loop operator guide: `docs/guides/observatory-search-loop.md`
 - Autonomous search guide: `docs/guides/observatory-autonomous-search.md`
 - Full benchmark workflow guide: `docs/guides/benchmarking-workflow.md`
-- Full backlog roadmap: `docs/plans/benchmarking-process-improvement-roadmap.md`
-- Concrete UI/UX review + backlog: `docs/plans/observatory-ui-ux-backlog.md`
+- Planning-doc inventory: `docs/plans/README.md`
+- Historical roadmap rationale: `docs/plans/benchmarking-process-improvement-roadmap.md`
+- Historical UI/UX implementation backlog: `docs/plans/observatory-ui-ux-backlog.md`
 - Runtime config: `config/observatory_config.yaml`
 - Autonomous search policy: `config/observatory_search_policy.yaml`
 - Deterministic recipe catalog: `config/observatory_recipes.yaml`
@@ -156,4 +161,6 @@ When starting a new Observatory implementation session:
 2. Run `python scripts/analysis/observatory.py status`.
 3. Confirm whether the session is about operation, UI/UX, or follow-on
    capability work.
-4. Use the roadmap to select the next backlog item before editing code.
+4. If new Observatory work is opened, record it in `DEVELOPMENT_TRACKER.md`
+   first; use `docs/plans/README.md` to separate current tasks from historical
+   roadmap documents.

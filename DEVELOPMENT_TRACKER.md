@@ -18,6 +18,13 @@ Use this file for active status only. Historical session detail is archived to:
 2. Treat these sections as canonical: `Projection Development Backlog (Canonical)`, `Documentation Consistency Queue`, and `Deferred / Later Work`.
 3. Do not treat archived docs/reviews as open work unless the item is explicitly listed here.
 4. If new open work is discovered, add it here with a source link before ending the session.
+5. Use `docs/plans/README.md` to determine whether a planning document is current, supporting-only, or historical before treating it as open work.
+
+## Planning Document Inventory
+
+Use `docs/plans/README.md` as the consolidated registry of plan, backlog, and
+feature-idea documents. It marks which documents are current, which are
+supporting inputs, and which are historical reference only.
 
 ## Current Snapshot
 
@@ -88,7 +95,7 @@ Verified current state from live repository inspection on 2026-03-13:
 - Observatory CLI is present and functional for `status`, `compare`, `recommend`, `diff`, `history`, `report`, `run-pending`, and `run-recommended`, with queue preview/budget/retry/resume controls.
 - Observatory dashboard, store, comparator, recommender, and catalog modules are implemented under `cohort_projections/analysis/observatory/`.
 - Observatory-focused test slice passes: `249 passed` across CLI, catalog, store, comparator, recommender, dashboard, runtime-contract, status, and sweep-runner tests.
-- Live experiment corpus is still small: `8` benchmark runs, `11` catalog variants, `5` catalog entries currently untested, `3` of those runnable via `run-pending`, and `2` correctly classified as requiring code changes.
+- Repository refresh on 2026-03-19: the variant catalog still contains `11` variants and now reports `9` tested plus `2` untested items, both currently classified as requiring code changes (`EXP-F`, `EXP-G`). The local `data/analysis/benchmark_history/` directory contains `48` dated run folders from 2026-03-18 search sessions, but the canonical `index.csv` is currently absent, so `python scripts/analysis/observatory.py status` resolves `completed_runs: 0` until benchmark-history registration is rebuilt.
 
 ### Implementation Update (2026-03-13)
 
@@ -428,6 +435,7 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 |------|------|------|------|------|
 | DOC-001 | ADR-033 deferral rationale still cites unresolved state-county discrepancy as a blocker | closed_2026-02-28 | Completed: ADR-033 deferral section and revision history now reflect ADR-054 accepted/implemented state and sequencing-based deferral rationale | `docs/governance/adrs/033-city-level-projection-methodology.md`, `docs/governance/adrs/054-state-county-aggregation-reconciliation.md` |
 | DOC-002 | 2026-02-23 projection output review "minor issues" may be stale | closed_2026-02-28 | Completed: revalidation recorded in-place; both minor issues are now explicitly marked resolved/stale | `docs/reviews/2026-02-23-projection-output-review.md` |
+| DOC-003 | Planning/status docs drifted after recent Observatory follow-ons | closed_2026-03-19 | Completed: added consolidated planning-doc index, relabeled completed roadmaps/backlogs as historical, refreshed current-state pointers, and marked the December 2025 repository evaluation as historical-only | `docs/plans/README.md`, `docs/guides/observatory-start-here.md`, `docs/plans/benchmarking-process-improvement-roadmap.md`, `docs/plans/observatory-ui-ux-backlog.md`, `docs/REPOSITORY_EVALUATION.md` |
 
 ## Repo-Hygiene Batch State
 
@@ -492,7 +500,7 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 **Windows/WSL launcher convenience:** Added 2026-03-13. `scripts/windows/launch_projection_observatory.cmd` now provides a Windows-friendly launcher for the Panel dashboard, and `scripts/windows/install_projection_observatory_shortcuts.cmd` installs Desktop and Start Menu shortcuts backed by a local `%LOCALAPPDATA%` launcher copy so the dashboard is one click away from Windows even though it runs in WSL.
 
-**Follow-on entry point:** Use `docs/guides/observatory-start-here.md` to navigate current Observatory status, operating guides, and the now-implemented follow-on roadmap.
+**Follow-on entry point:** Use `docs/guides/observatory-start-here.md` for the current Observatory entry point, and `docs/plans/README.md` for the consolidated planning-doc inventory and historical roadmap references.
 
 **Runtime optimization progress:** Three `P6` slices landed on 2026-03-13. `scripts/analysis/sensitivity_analysis.py` now supports worker-based parallel execution with deterministic merge order and sequential fallback on worker failure. `scripts/analysis/walk_forward_validation.py` now supports county-level annual-validation parallelism plus precomputed county population/migration lookup caches, with deterministic merge order and per-county sequential fallback on worker failure, while preserving the existing origin-level worker path for direct callers. `scripts/analysis/run_benchmark_suite.py` now routes the shared `--workers` control into both sensitivity analysis and the deeper county-worker annual validation path, writes per-stage runtime metadata (`runtime_summary.json` plus manifest/execution-log runtime summaries), and the Observatory status layer now surfaces those runtime signals directly.
 
@@ -500,9 +508,11 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 1. Incorporate deferred stakeholder feedback in the next publication update cycle.
 2. Keep documentation consistency queue current.
-3. Review rolling-origin B-I vs B-II results with domain experts; confirm B-II retention rationale.
-4. Review `docs/reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md` and decide whether `m2026r1` should be promoted.
-5. If approved, promote via alias update tooling and re-run production projections under the promoted config.
+3. Rebuild `data/analysis/benchmark_history/index.csv` and validate benchmark-history registration after the 2026-03-18 search sessions; current `observatory.py status` resolves `completed_runs: 0` because the canonical history index is missing even though dated run directories exist.
+4. Investigate duplicate recipe-search experiment IDs in `data/analysis/experiments/experiment_log.csv`; the 2026-03-18 autonomous-search sessions recorded repeated entries for the same recipe IDs, which can distort dedup-based Observatory status and history views.
+5. Review rolling-origin B-I vs B-II results with domain experts; confirm B-II retention rationale.
+6. Review `docs/reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md` and decide whether `m2026r1` should be promoted.
+7. If approved, promote via alias update tooling and re-run production projections under the promoted config.
 
 ## Deferred / Later Work
 
@@ -511,7 +521,7 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 - Housing-unit method: update methodology docs with HU cross-validation narrative.
 - Benchmark/versioning follow-on work from SOP-003: broader scope coverage beyond county benchmarks.
 - ~~Richer comparison dashboards~~ — completed 2026-03-12: interactive experiment dashboard (`scripts/analysis/build_experiment_dashboard.py`) with 5 tabs (tracker, spaghetti plot, scorecard, horizon analysis, county heatmap), 19 tests.
-- Projection Observatory follow-on backlog and reading order tracked in `docs/guides/observatory-start-here.md`, `docs/plans/benchmarking-process-improvement-roadmap.md`, and `docs/plans/observatory-ui-ux-backlog.md` (promotion thresholds, hard-gate split, schema enforcement, runtime optimization, first-open orientation, decision-summary consolidation, progressive disclosure for diagnostics, longitudinal dashboard, promotion package builder, post-promotion revalidation, segmentation, place-scope extension, operational quality).
+- Projection Observatory historical roadmap rationale and implementation history are tracked in `docs/guides/observatory-start-here.md`, `docs/plans/README.md`, `docs/plans/benchmarking-process-improvement-roadmap.md`, and `docs/plans/observatory-ui-ux-backlog.md`. These documents should not be treated as an open backlog unless a new item is re-entered into this tracker.
 
 ## References
 
