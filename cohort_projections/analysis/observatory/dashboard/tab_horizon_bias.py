@@ -1023,6 +1023,14 @@ def build_horizon_bias_tab(
         ),
         pn.Card(
             pn.pane.Markdown(
+                dm.analytics_context("Horizon & Bias"),
+                sizing_mode="stretch_width",
+            ),
+            title="Why This Tab Matters Now",
+            sizing_mode="stretch_width",
+        ),
+        pn.Card(
+            pn.pane.Markdown(
                 "Does this candidate have weak counties or long-horizon bias that would make you hesitate to recommend it?",
                 sizing_mode="stretch_width",
             ),

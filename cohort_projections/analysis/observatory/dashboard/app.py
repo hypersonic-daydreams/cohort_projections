@@ -152,6 +152,14 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
         sizing_mode="stretch_width",
         stylesheets=[DASHBOARD_CSS],
     )
+    mode_switch = pn.widgets.RadioButtonGroup(
+        name="Experience Mode",
+        options={"Guided": "guided", "Explore Directly": "direct"},
+        value=dm.selection_state.experience_mode,
+        button_type="default",
+        sizing_mode="fixed",
+    )
+    state_pane = pn.pane.HTML(sizing_mode="stretch_width", stylesheets=[DASHBOARD_CSS])
 
     tabs.extend(
         [
@@ -165,11 +173,36 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
         ]
     )
     tabs.active = 0
-    tabs.stylesheets = [build_tabs_stylesheet(dm.selection_state.review_mode)]
+    tabs.stylesheets = [
+        build_tabs_stylesheet(
+            dm.selection_state.review_mode,
+            experience_mode=dm.selection_state.experience_mode,
+        )
+    ]
 
     def _refresh_tab_chrome() -> None:
         """Keep tab chrome aligned with guided-review emphasis."""
-        tabs.stylesheets = [build_tabs_stylesheet(dm.selection_state.review_mode)]
+        tabs.stylesheets = [
+            build_tabs_stylesheet(
+                dm.selection_state.review_mode,
+                experience_mode=dm.selection_state.experience_mode,
+            )
+        ]
+
+    def _refresh_state_summary() -> None:
+        """Keep the top-level workspace summary and stepper aligned."""
+        state = dm.workspace_state
+        dm.selection_state.workspace_state = str(state.get("state", "") or "")
+        mode_label = (
+            "Guided" if dm.selection_state.experience_mode == "guided" else "Explore Directly"
+        )
+        state_pane.object = (
+            '<div class="summary-card primary" style="max-width:none">'
+            f'<div class="eyebrow">Workspace</div>'
+            f'<div class="headline">{state.get("route_title", "Command Center")} | {mode_label}</div>'
+            f'<div class="detail">{state.get("summary", "")}</div>'
+            "</div>"
+        )
 
     # Stepper reactivity ------------------------------------------------
     def _on_tab_change(event: object) -> None:
@@ -177,9 +210,29 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
         step, completed = _resolve_stepper_state(dm, tabs.active)
         stepper_pane.object = _stepper_html(active=step, completed=completed)
         _refresh_tab_chrome()
+        _refresh_state_summary()
+
+    def _on_mode_change(event: object) -> None:
+        """Switch between guided and direct exploration modes."""
+        new_mode = str(getattr(event, "new", dm.selection_state.experience_mode) or "guided")
+        dm.selection_state.experience_mode = new_mode
+        if new_mode == "direct":
+            dm.selection_state.review_mode = False
+        else:
+            tabs.active = TAB_COMMAND_CENTER
+        _refresh_tab_chrome()
+        _refresh_state_summary()
 
     tabs.param.watch(_on_tab_change, "active")
     dm.selection_state.param.watch(lambda event: _refresh_tab_chrome(), "review_mode")
+    dm.selection_state.param.watch(
+        lambda event: setattr(mode_switch, "value", event.new)
+        if mode_switch.value != event.new
+        else None,
+        "experience_mode",
+    )
+    mode_switch.param.watch(_on_mode_change, "value")
+    _refresh_state_summary()
 
     if pn.state.curdoc is not None:
 
@@ -189,10 +242,13 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
             step, completed = _resolve_stepper_state(dm, tabs.active)
             stepper_pane.object = _stepper_html(active=step, completed=completed)
             _refresh_tab_chrome()
+            _refresh_state_summary()
 
         pn.state.add_periodic_callback(_refresh_stepper, period=5000, start=True)
 
     shell = pn.Column(
+        pn.Row(mode_switch, sizing_mode="stretch_width"),
+        state_pane,
         stepper_pane,
         tabs,
         css_classes=layout_mode_classes("obs-layout-shell"),

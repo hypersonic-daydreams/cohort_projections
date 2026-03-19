@@ -620,6 +620,11 @@ def build_scorecard_tab(
             tooltip="Compare selected challengers side-by-side against the current champion. County error uses MAPE and recent state error uses APE; lower is better on both.",
         ),
         widgets.markdown_card(
+            "Why This Tab Matters Now",
+            dm.analytics_context("Scorecards"),
+            min_width=420,
+        ),
+        widgets.markdown_card(
             "Review Question",
             "Does this candidate improve the most important error measures enough to justify deeper plausibility review?",
             min_width=420,

@@ -40,6 +40,17 @@ path from multiple documents.
   the portrait-oriented follow-up pass. The default UI is optimized to answer:
   what happened, whether the evidence is usable, what to open next, and
   whether the user is safe to recommend a result or needs help.
+- The local launcher now performs a workstation preflight before the full
+  dashboard renders. If dashboard dependencies or the shared Census archive are
+  missing, the user sees a dedicated readiness screen instead of a half-working
+  dashboard.
+- The dashboard now resolves one canonical workspace state across the launcher,
+  decision brief, and command center: `setup needed`, `start first
+  exploration`, `continue monitoring`, `review best candidate`, `prepare
+  recommendation`, `recover broken evidence`, or `ask for senior review`.
+- Guided mode remains the default, while a top-level `Explore Directly` mode
+  lets experienced users jump straight into the analytical tabs without the
+  guided-review emphasis.
 - The Observatory is ready for supervised comparison and bounded unattended
   search-loop execution with resume files and run budgets.
 - The Observatory is not an auto-promotion system. Promotion still requires
@@ -82,9 +93,14 @@ path from multiple documents.
 - Guided review now starts in `Decision Brief`, which acts as the review hub:
   verdict strip first, checklist second, then evidence quality, gains,
   tradeoffs, and escalation guidance.
+- When benchmark-backed evidence is strong enough, the Command Center now
+  surfaces a `Prepare Recommendation` route and can build a lightweight review
+  package for senior sign-off using the existing promotion-package workflow.
 - `Scorecards`, `Projections`, `Horizon & Bias`, and `Sensitivity` now lead
   with review questions and interpretation-first summaries rather than making
   the user start from raw tables/charts.
+- Every analytical tab now begins with a short workspace-state context strip so
+  junior users know why the tab matters before dropping into the details.
 - The dashboard now detects portrait-oriented viewports automatically. On the
   current workstation's `1440x2560` portrait monitor it stacks the primary
   workflow vertically, compresses shell chrome, keeps guided navigation sticky,

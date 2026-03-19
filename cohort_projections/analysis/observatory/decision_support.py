@@ -750,6 +750,7 @@ def build_search_session_summary(
     search_id: str,
     status: str = "",
     history_index_present: bool | None = None,
+    complete_bundle_count: int = 0,
     incomplete_bundle_count: int = 0,
 ) -> dict[str, Any]:
     """Return a session-level decision brief from candidate summaries."""
@@ -837,8 +838,21 @@ def build_search_session_summary(
         headline = "Search finished, but the reviewed candidates failed hard gates."
         recommendation = "Inspect the failed hard-gate evidence before continuing this search line."
 
+    history_not_reviewable = history_index_present is False or complete_bundle_count <= 0
+    if session_state in {"recommended", "ready_for_review"} and history_not_reviewable:
+        session_state = "blocked_by_data_or_runtime"
+        recommendation = "Repair the benchmark archive or rerun the session until a complete, indexed benchmark bundle is available."
+        blocker_summary = (
+            f"{blocker_summary} Benchmark-backed review is unavailable because the archive is incomplete."
+        ).strip()
+        headline = (
+            "Search finished, but benchmark-backed review is not trustworthy yet because "
+            "the archive is incomplete."
+        )
     if history_index_present is False:
-        extra = " Benchmark history index is missing, so benchmark-backed review tabs may be partially unavailable."
+        extra = (
+            " Benchmark history index is missing, so benchmark-backed review is not available yet."
+        )
         headline += extra
         blocker_summary = (
             f"{blocker_summary} Benchmark history index is missing.".strip()
@@ -884,6 +898,8 @@ def build_search_session_summary(
     focus_benchmark_completeness = (
         _clean_text(focus_row.get("benchmark_completeness")) if focus_row is not None else ""
     ) or ("full" if successful_benchmark_count > 0 else "none")
+    if session_state == "blocked_by_data_or_runtime" and history_not_reviewable:
+        focus_benchmark_completeness = "partial" if successful_benchmark_count > 0 else "none"
     focus_hard_gate = None
     if focus_row is not None and focus_row.get("hard_constraint_regression") is not None:
         focus_hard_gate = bool(focus_row.get("hard_constraint_regression"))
@@ -924,8 +940,74 @@ def build_benchmark_decision_brief(
     run_metadata: pd.DataFrame,
     *,
     champion_id: str | None,
+    history_snapshot: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Return a benchmark-backed decision brief from consolidated run metadata."""
+    history_snapshot = history_snapshot or {}
+    index_present = bool(history_snapshot.get("index_present", False))
+    complete_bundle_count = int(history_snapshot.get("complete_bundle_count", 0) or 0)
+    incomplete_bundle_count = int(history_snapshot.get("incomplete_bundle_count", 0) or 0)
+
+    if complete_bundle_count <= 0:
+        explanation = (
+            "Benchmark history does not contain a complete reviewable bundle yet, so the "
+            "dashboard cannot offer benchmark-backed review guidance."
+        )
+        if incomplete_bundle_count > 0:
+            explanation += f" {incomplete_bundle_count} incomplete bundle(s) were detected."
+        if not index_present:
+            explanation += " The benchmark index is also missing."
+        return {
+            "source": "benchmark",
+            "decision_state": "blocked_by_data_or_runtime",
+            "headline": "Benchmark archive is incomplete and not review-ready.",
+            "explanation": explanation,
+            "recommended_action": (
+                "Repair the benchmark archive or rerun the affected bundles before using the Observatory for benchmark-backed review."
+            ),
+            "recommendation_candidate_id": "",
+            **_user_decision_fields(
+                decision_state="blocked_by_data_or_runtime",
+                confidence="low",
+                explanation=explanation,
+                headline="Benchmark archive is incomplete and not review-ready.",
+                recommendation_text=(
+                    "Repair the benchmark archive or rerun the affected bundles before using the Observatory for benchmark-backed review."
+                ),
+                raw_subject_id="",
+                primary_subject_label="Benchmark archive",
+                benchmark_completeness="partial" if incomplete_bundle_count > 0 else "none",
+            ),
+        }
+
+    if not index_present:
+        explanation = (
+            "Benchmark bundles exist, but the benchmark index is missing, so archive review "
+            "state cannot be trusted yet."
+        )
+        return {
+            "source": "benchmark",
+            "decision_state": "blocked_by_data_or_runtime",
+            "headline": "Benchmark archive metadata is incomplete.",
+            "explanation": explanation,
+            "recommended_action": (
+                "Restore or rebuild the benchmark index before relying on benchmark-backed review guidance."
+            ),
+            "recommendation_candidate_id": "",
+            **_user_decision_fields(
+                decision_state="blocked_by_data_or_runtime",
+                confidence="low",
+                explanation=explanation,
+                headline="Benchmark archive metadata is incomplete.",
+                recommendation_text=(
+                    "Restore or rebuild the benchmark index before relying on benchmark-backed review guidance."
+                ),
+                raw_subject_id="",
+                primary_subject_label="Benchmark archive",
+                benchmark_completeness="partial",
+            ),
+        }
+
     if run_metadata.empty:
         return {
             "source": "benchmark",

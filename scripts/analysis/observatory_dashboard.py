@@ -51,14 +51,45 @@ def build_dashboard() -> pn.template.FastListTemplate:
         A new dashboard template backed by a newly created data manager.
     """
     _configure_panel_runtime()
+    import panel as pn
 
     from cohort_projections.analysis.observatory.dashboard.app import create_app
     from cohort_projections.analysis.observatory.dashboard.data_manager import (
         DashboardDataManager,
     )
+    from cohort_projections.analysis.observatory.dashboard.workspace_state import (
+        build_preflight_screen_markdown,
+        run_dashboard_preflight,
+    )
 
+    preflight = run_dashboard_preflight()
+    if not bool(preflight.get("ready_for_dashboard", False)):
+        return pn.template.FastListTemplate(
+            title="Projection Observatory Readiness",
+            main=[
+                pn.Column(
+                    pn.pane.Markdown(
+                        "# Projection Observatory Readiness",
+                        sizing_mode="stretch_width",
+                    ),
+                    pn.pane.Markdown(
+                        build_preflight_screen_markdown(preflight),
+                        sizing_mode="stretch_width",
+                    ),
+                    pn.pane.Markdown(
+                        "## Workspace Snapshot\n"
+                        f"- Benchmark history dir: `{preflight.get('history_dir', '')}`\n"
+                        f"- Search session dir: `{preflight.get('search_session_root', '')}`\n"
+                        f"- Shared Census archive: `{preflight.get('popest_root', 'not resolved')}`",
+                        sizing_mode="stretch_width",
+                    ),
+                    sizing_mode="stretch_width",
+                    max_width=980,
+                )
+            ],
+        )
     logging.getLogger(__name__).info("Initialising data manager …")
-    dm = DashboardDataManager()
+    dm = DashboardDataManager(preflight_report=preflight)
     logging.getLogger(__name__).info("Building dashboard …")
     return create_app(dm)
 

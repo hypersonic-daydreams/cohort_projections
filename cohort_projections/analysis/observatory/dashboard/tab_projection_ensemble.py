@@ -873,6 +873,11 @@ def build_projection_ensemble(
             tooltip="Overlay projection curves across selected runs and origin years. Use this view to judge whether forecast paths and endpoints look demographically plausible.",
         ),
         widgets.markdown_card(
+            "Why This Tab Matters Now",
+            dm.analytics_context("Projections"),
+            min_width=420,
+        ),
+        widgets.markdown_card(
             "Review Question",
             "Do the projected population paths and endpoints still look credible after the scorecard gains?",
             min_width=420,

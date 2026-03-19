@@ -21,6 +21,12 @@ import param
 import yaml
 
 from cohort_projections.analysis.observatory.comparator import ObservatoryComparator
+from cohort_projections.analysis.observatory.dashboard.workspace_state import (
+    WORKSPACE_EMPTY_READY,
+    resolve_workspace_state,
+    run_dashboard_preflight,
+    workspace_context_message,
+)
 from cohort_projections.analysis.observatory.decision_support import (
     build_benchmark_decision_brief,
     build_search_candidate_rows,
@@ -117,6 +123,9 @@ class DashboardSelectionState(param.Parameterized):
     # badges and "Next" navigation buttons.
     review_mode = param.Boolean(default=False)
     review_step = param.Integer(default=0)
+    experience_mode = param.String(default="guided")
+    workspace_state = param.String(default=WORKSPACE_EMPTY_READY)
+    recommendation_package_path = param.String(default="")
 
     def set_shortlist(self, run_ids: list[str]) -> None:
         """Persist a normalized shortlist."""
@@ -845,6 +854,7 @@ class DashboardDataManager:
         self,
         store: ResultsStore | None = None,
         config: dict[str, Any] | None = None,
+        preflight_report: dict[str, Any] | None = None,
     ) -> None:
         if store is not None:
             self._store = store
@@ -864,6 +874,7 @@ class DashboardDataManager:
         self._catalog = self._try_build_catalog()
         self._search_policy = load_search_policy()
         self.selection_state = DashboardSelectionState()
+        self._preflight_report = dict(preflight_report or run_dashboard_preflight())
 
     # ------------------------------------------------------------------
     # Helpers
@@ -960,6 +971,11 @@ class DashboardDataManager:
     def search_session_root(self) -> Path:
         """Directory holding persisted autonomous-search sessions."""
         return self._search_policy.session_root
+
+    @property
+    def preflight_report(self) -> dict[str, Any]:
+        """Launcher-style workstation readiness report."""
+        return self._preflight_report
 
     @functools.cached_property
     def benchmark_history_snapshot(self) -> dict[str, Any]:
@@ -1071,7 +1087,11 @@ class DashboardDataManager:
     @functools.cached_property
     def benchmark_review_data(self) -> dict[str, Any]:
         """Normalized benchmark-backed decision brief."""
-        brief = build_benchmark_decision_brief(self.run_metadata, champion_id=self.champion_id)
+        brief = build_benchmark_decision_brief(
+            self.run_metadata,
+            champion_id=self.champion_id,
+            history_snapshot=self.benchmark_history_snapshot,
+        )
         brief["history_snapshot"] = self.benchmark_history_snapshot
         return brief
 
@@ -1327,10 +1347,23 @@ class DashboardDataManager:
             search_id=search_id,
             status=str(session_row.get("status", "")) if session_row is not None else "",
             history_index_present=bool(self.benchmark_history_snapshot["index_present"]),
+            complete_bundle_count=int(self.benchmark_history_snapshot["complete_bundle_count"]),
             incomplete_bundle_count=int(self.benchmark_history_snapshot["incomplete_bundle_count"]),
         )
         summary["candidates"] = candidates
         return summary
+
+    @functools.cached_property
+    def workspace_state(self) -> dict[str, Any]:
+        """Canonical top-level workspace UX state."""
+        state = resolve_workspace_state(
+            preflight=self.preflight_report,
+            benchmark_brief=self.benchmark_review_data,
+            session_brief=self.session_review_data,
+            active_search_id=self.active_search_id,
+        )
+        self.selection_state.workspace_state = str(state.get("state", WORKSPACE_EMPTY_READY))
+        return state
 
     @functools.cached_property
     def decision_brief(self) -> dict[str, Any]:
@@ -1339,10 +1372,33 @@ class DashboardDataManager:
         Prefers benchmark-backed evidence when available; otherwise falls back
         to the latest search-session summary.
         """
+        workspace_state = str(self.workspace_state.get("state", "") or "")
+        if workspace_state in {
+            "recommendation_ready",
+            "review_ready",
+            "senior_judgment_needed",
+        }:
+            return self.benchmark_review_data
+        if workspace_state == "recovery_needed":
+            if self.benchmark_review_data.get("decision_state") == "blocked_by_data_or_runtime":
+                return self.benchmark_review_data
+            if (
+                self.session_review_data.get("session_decision_state")
+                == "blocked_by_data_or_runtime"
+            ):
+                return self.session_review_data
         benchmark = self.benchmark_review_data
         if benchmark.get("decision_state") != "not_executed" and not self.run_metadata.empty:
             return benchmark
         return self.session_review_data
+
+    def analytics_context(self, tab_name: str) -> str:
+        """Return a short tab-level context strip for the current workspace state."""
+        return workspace_context_message(
+            str(self.workspace_state.get("state", WORKSPACE_EMPTY_READY)),
+            tab_name,
+            direct_mode=(self.selection_state.experience_mode == "direct"),
+        )
 
     def search_session_report_markdown(self, search_id: str) -> str:
         """Return the Markdown search report for one session when available."""
@@ -1407,6 +1463,7 @@ class DashboardDataManager:
             "search_sessions",
             "active_search_id",
             "session_review_data",
+            "workspace_state",
             "decision_brief",
         ]:
             self.__dict__.pop(attr, None)
@@ -1453,6 +1510,7 @@ class DashboardDataManager:
             "search_sessions",
             "active_search_id",
             "session_review_data",
+            "workspace_state",
             "decision_brief",
         ]
         for attr in cached_attrs:
@@ -1468,6 +1526,7 @@ class DashboardDataManager:
             bounds_catalog=self._catalog,
         )
         self._search_policy = load_search_policy()
+        self.selection_state.workspace_state = WORKSPACE_EMPTY_READY
 
         logger.info("DashboardDataManager refreshed.")
 

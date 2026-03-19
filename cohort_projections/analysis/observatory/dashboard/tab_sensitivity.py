@@ -698,6 +698,14 @@ def build_sensitivity_tab(
         ),
         pn.Card(
             pn.pane.Markdown(
+                dm.analytics_context("Sensitivity"),
+                sizing_mode="stretch_width",
+            ),
+            title="Why This Tab Matters Now",
+            sizing_mode="stretch_width",
+        ),
+        pn.Card(
+            pn.pane.Markdown(
                 "What should you try next, and does that suggestion look like low-risk follow-up work or a broader exploratory branch?",
                 sizing_mode="stretch_width",
             ),

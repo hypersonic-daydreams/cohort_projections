@@ -1060,9 +1060,13 @@ _BASE_TABS_STYLESHEET = """
 """
 
 
-def build_tabs_stylesheet(review_mode: bool = False) -> str:
+def build_tabs_stylesheet(
+    review_mode: bool = False,
+    *,
+    experience_mode: str = "guided",
+) -> str:
     """Return the tabs stylesheet, optionally emphasizing guided review tabs."""
-    if not review_mode:
+    if not review_mode or experience_mode != "guided":
         return _BASE_TABS_STYLESHEET
 
     return (

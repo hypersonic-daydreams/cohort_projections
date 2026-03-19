@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -48,6 +49,9 @@ logger = logging.getLogger(__name__)
 
 _OBSERVATORY_SCRIPT = (
     Path(__file__).resolve().parents[4] / "scripts" / "analysis" / "observatory.py"
+)
+_PROMOTION_PACKAGE_SCRIPT = (
+    Path(__file__).resolve().parents[4] / "scripts" / "analysis" / "build_promotion_package.py"
 )
 _PROJECT_ROOT = Path(__file__).resolve().parents[4]
 
@@ -436,6 +440,172 @@ def _build_decision_brief_card(dm: DashboardDataManager) -> pn.Card:
     if raw_subject_id and raw_subject_id != subject:
         body.extend(["", f"**Reference ID:** `{raw_subject_id}`"])
     return markdown_card("Decision Brief", "\n".join(body), css_classes=["obs-compact-review-card"])
+
+
+def _recommendation_packet_markdown(dm: DashboardDataManager) -> str:
+    """Return the lightweight recommendation packet summary."""
+    brief = dm.decision_brief
+    run_id = dm.guided_review_run_id() or str(brief.get("raw_subject_id", "") or "")
+    package_path = str(dm.selection_state.recommendation_package_path or "").strip()
+    lines = [
+        f"**Candidate:** {brief.get('primary_subject_label', 'Current front-runner')}",
+        "",
+        f"**Evidence quality:** {brief.get('evidence_quality', 'Partial evidence')}",
+        "",
+        f"**Main gain:** {brief.get('main_gain', 'No confirmed gain recorded.') or 'No confirmed gain recorded.'}",
+        "",
+        f"**Main tradeoff:** {brief.get('main_tradeoff', 'No major tradeoff recorded.') or 'No major tradeoff recorded.'}",
+        "",
+        f"**Blockers cleared:** {'Yes' if brief.get('safe_to_recommend', False) else 'Not yet'}",
+        "",
+        f"**Still needs senior sign-off:** {brief.get('escalation_guidance', 'Senior review required before promotion.')}",
+        "",
+        f"**Benchmark run:** `{run_id or 'not resolved'}`",
+    ]
+    if package_path:
+        lines.extend(["", f"**Package written to:** `{package_path}`"])
+    return "\n".join(lines)
+
+
+def _build_primary_route_card(
+    dm: DashboardDataManager,
+    tabs: pn.Tabs | None = None,
+) -> pn.Card:
+    """Build the dominant outcome-driven route card for the Command Center."""
+    workspace_state = dm.workspace_state
+    brief = dm.decision_brief
+    state = str(workspace_state.get("state", "empty_ready") or "empty_ready")
+    route_title = str(workspace_state.get("route_title", "Start Here") or "Start Here")
+    route_body = [
+        f"**Workspace state:** {workspace_state.get('badge_label', 'Ready')}",
+        "",
+        f"**What is happening now:** {workspace_state.get('summary', '')}",
+        "",
+        f"**What you get next:** {workspace_state.get('next_step', '')}",
+        "",
+        f"**When to escalate:** {brief.get('escalation_guidance', 'Bring unclear results to a senior analyst.')}",
+    ]
+
+    action_output = pn.pane.HTML(sizing_mode="stretch_width")
+    btn_primary = pn.widgets.Button(
+        name=str(route_title),
+        button_type="primary",
+        width=220,
+    )
+    btn_secondary = pn.widgets.Button(
+        name="Open Details Directly",
+        button_type="light",
+        width=180,
+    )
+
+    def _write_recommendation_package() -> None:
+        run_id = dm.guided_review_run_id()
+        if not run_id:
+            action_output.object = terminal_output(
+                "No reviewable benchmark run is selected yet. Open the analytical tabs and pick a run first.",
+                max_height=120,
+            ).object
+            return
+        cmd = [
+            sys.executable,
+            str(_PROMOTION_PACKAGE_SCRIPT),
+            "--run-id",
+            run_id,
+        ]
+        try:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=120,
+                cwd=str(_PROJECT_ROOT),
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            action_output.object = terminal_output(
+                "Preparing the recommendation package timed out after 120 seconds.",
+                max_height=120,
+            ).object
+            return
+        output = (result.stdout or "").strip()
+        if result.returncode != 0:
+            stderr = (result.stderr or "").strip()
+            action_output.object = terminal_output(
+                f"Recommendation package failed.\n\n{stderr or output or 'No output.'}",
+                max_height=180,
+            ).object
+            return
+        dm.selection_state.recommendation_package_path = output
+        action_output.object = terminal_output(
+            f"Recommendation package prepared for `{run_id}`.\n\nOutput: {output}",
+            max_height=140,
+        ).object
+
+    def _primary_action(event: Any) -> None:
+        del event
+        if state == "recommendation_ready":
+            _write_recommendation_package()
+            if tabs is not None:
+                tabs.active = 1
+            return
+        if state in {"review_ready", "senior_judgment_needed", "recovery_needed"}:
+            _enter_guided_review(dm, tabs)
+            return
+        if state == "search_in_progress":
+            return
+        # Empty-ready path: launch the standard exploration preset directly.
+        _launch_search_auto(
+            search_id=_default_search_id(),
+            cpu_budget=min(12, os.cpu_count() or 12),
+            max_total_runs=20,
+            batch_run_budget=int(dm.search_policy.default_run_budget),
+            max_pending=int(dm.search_policy.default_max_pending),
+            max_recommended=int(dm.search_policy.default_max_recommended),
+            include_recipes=bool(dm.search_policy.include_recipe_catalog),
+            overwrite=False,
+            status_pane=action_output,
+            output_pane=action_output,
+            session_dir=dm.search_session_root,
+        )
+
+    def _open_details(event: Any) -> None:
+        del event
+        dm.selection_state.experience_mode = "direct"
+        dm.selection_state.review_mode = False
+        if tabs is not None:
+            tabs.active = 2 if state != "recommendation_ready" else 1
+
+    btn_primary.on_click(_primary_action)
+    btn_secondary.on_click(_open_details)
+
+    if state == "recommendation_ready":
+        route_body.extend(["", _recommendation_packet_markdown(dm)])
+        btn_primary.button_type = "success"
+        btn_primary.name = "Prepare Recommendation"
+    elif state == "search_in_progress":
+        btn_primary.button_type = "default"
+        btn_primary.name = "Continue Monitoring"
+    elif state == "recovery_needed":
+        btn_primary.button_type = "warning"
+        btn_primary.name = "Recover Broken Evidence"
+    elif state == "senior_judgment_needed":
+        btn_primary.button_type = "warning"
+        btn_primary.name = "Ask For Senior Review"
+    elif state == "review_ready":
+        btn_primary.button_type = "primary"
+        btn_primary.name = "Review Best Candidate"
+    else:
+        btn_primary.button_type = "success"
+        btn_primary.name = "Start First Exploration"
+
+    return pn.Card(
+        pn.pane.Markdown("\n".join(route_body), sizing_mode="stretch_width"),
+        pn.Row(btn_primary, btn_secondary, sizing_mode="stretch_width"),
+        action_output,
+        title=route_title,
+        sizing_mode="stretch_width",
+        css_classes=["obs-primary-workflow-card"],
+    )
 
 
 def _queue_health_snapshot(dm: DashboardDataManager) -> dict[str, Any]:
@@ -1627,6 +1797,7 @@ def _build_search_progress_card(
                 search_id=selected_search_id,
                 status=str(selected.get("status", "")) if selected is not None else "",
                 history_index_present=bool(dm.benchmark_history_snapshot["index_present"]),
+                complete_bundle_count=int(dm.benchmark_history_snapshot["complete_bundle_count"]),
                 incomplete_bundle_count=int(
                     dm.benchmark_history_snapshot["incomplete_bundle_count"]
                 ),
@@ -1984,14 +2155,16 @@ def build_command_center(
             sizing_mode="stretch_width",
         )
 
-    workflow_card = (
+    workflow_section = pn.Column(
+        _build_primary_route_card(dm, tabs=tabs),
         _build_search_progress_card(dm, tabs=tabs)
         if not dm.search_sessions.empty
-        else _build_onboarding_card(dm)
+        else _build_onboarding_card(dm),
+        sizing_mode="stretch_width",
     )
 
     sections: list[Any] = [
-        _layout_section("session", workflow_card),
+        _layout_section("session", workflow_section),
         _layout_section("launch", _build_launch_section(dm)),
         _layout_section("brief", _build_decision_brief_card(dm)),
         _layout_section("kpis", _build_kpi_grid(dm)),
@@ -2017,8 +2190,8 @@ def build_command_center(
         section_header(
             "Command Center",
             subtitle=(
-                "Compare projection variants, inspect decision evidence, and "
-                "decide what to run or promote next."
+                "Start in Guided mode for the safest next step, or jump straight into "
+                "the detailed analytical tabs when you want to inspect the evidence directly."
             ),
         ),
         command_center_grid,

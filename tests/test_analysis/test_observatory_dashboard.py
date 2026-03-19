@@ -305,7 +305,17 @@ def _make_dashboard_manager(
         experiment_log=experiment_log,
         run_ids=run_ids,
     )
-    return DashboardDataManager(store=cast(Any, store), config=store._config)
+    return DashboardDataManager(
+        store=cast(Any, store),
+        config=store._config,
+        preflight_report={
+            "state": "empty_ready",
+            "ready_for_dashboard": True,
+            "history_index_present": (history_dir / "index.csv").exists(),
+            "complete_bundle_count": len(run_ids or []),
+            "incomplete_bundle_count": 0,
+        },
+    )
 
 
 def test_build_comparison_rows_prefers_variant_rows_except_for_champion_bundle() -> None:
@@ -827,6 +837,7 @@ def test_build_search_session_summary_surfaces_blocked_search_state() -> None:
         search_id="search-one",
         status="finished",
         history_index_present=False,
+        complete_bundle_count=0,
         incomplete_bundle_count=2,
     )
 
@@ -867,6 +878,34 @@ def test_build_search_session_summary_surfaces_failed_hard_gate_state() -> None:
     assert "failed hard gates" in summary["session_headline"]
 
 
+def test_build_search_session_summary_downgrades_review_ready_when_archive_is_incomplete() -> None:
+    """Review-ready session summaries should be blocked if archive artifacts are incomplete."""
+    candidates = pd.DataFrame(
+        [
+            {
+                "candidate_id": "cand-1",
+                "decision_state": "ready_for_review",
+                "benchmark_completeness": "full",
+                "outcome": "passed_all_gates",
+                "best_metric_name": "county_mape_overall",
+                "best_metric_delta": -0.10,
+            }
+        ]
+    )
+
+    summary = build_search_session_summary(
+        candidates,
+        search_id="search-review",
+        history_index_present=False,
+        complete_bundle_count=0,
+        incomplete_bundle_count=1,
+    )
+
+    assert summary["session_decision_state"] == "blocked_by_data_or_runtime"
+    assert summary["safe_to_recommend"] is False
+    assert "archive is incomplete" in summary["session_headline"].lower()
+
+
 def test_build_benchmark_decision_brief_prefers_best_passed_challenger() -> None:
     """Benchmark-backed briefs should name the strongest fully benchmarked challenger."""
     index, scorecards, experiment_log = _build_fixture_frames()
@@ -877,7 +916,15 @@ def test_build_benchmark_decision_brief_prefers_best_passed_challenger() -> None
         champion_id="br-champion",
     )
 
-    brief = build_benchmark_decision_brief(metadata, champion_id="br-champion")
+    brief = build_benchmark_decision_brief(
+        metadata,
+        champion_id="br-champion",
+        history_snapshot={
+            "index_present": True,
+            "complete_bundle_count": 3,
+            "incomplete_bundle_count": 0,
+        },
+    )
 
     assert brief["source"] == "benchmark"
     assert brief["decision_state"] == "recommended"
@@ -902,7 +949,15 @@ def test_build_benchmark_decision_brief_handles_champion_only_archive() -> None:
         ]
     )
 
-    brief = build_benchmark_decision_brief(metadata, champion_id="br-champion")
+    brief = build_benchmark_decision_brief(
+        metadata,
+        champion_id="br-champion",
+        history_snapshot={
+            "index_present": True,
+            "complete_bundle_count": 1,
+            "incomplete_bundle_count": 0,
+        },
+    )
 
     assert brief["decision_state"] == "ready_for_review"
     assert "only benchmark-backed option" in brief["headline"]
@@ -931,10 +986,48 @@ def test_build_benchmark_decision_brief_surfaces_failed_hard_gate_front_runner()
         ]
     )
 
-    brief = build_benchmark_decision_brief(metadata, champion_id="br-champion")
+    brief = build_benchmark_decision_brief(
+        metadata,
+        champion_id="br-champion",
+        history_snapshot={
+            "index_present": True,
+            "complete_bundle_count": 2,
+            "incomplete_bundle_count": 0,
+        },
+    )
 
     assert brief["decision_state"] == "failed_hard_gate"
     assert "failed a hard gate" in brief["headline"]
+
+
+def test_build_benchmark_decision_brief_blocks_incomplete_archive() -> None:
+    """Benchmark briefs should not present incomplete archives as review-ready."""
+    metadata = pd.DataFrame(
+        [
+            {
+                "run_id": "br-champion",
+                "display_name": "Champion",
+                "selected_county_mape_overall": 8.86,
+                "reference_county_mape_overall": 8.86,
+                "status_code": "champion",
+                "run_date_sort": pd.Timestamp("2026-03-09"),
+            }
+        ]
+    )
+
+    brief = build_benchmark_decision_brief(
+        metadata,
+        champion_id="br-champion",
+        history_snapshot={
+            "index_present": False,
+            "complete_bundle_count": 0,
+            "incomplete_bundle_count": 4,
+        },
+    )
+
+    assert brief["decision_state"] == "blocked_by_data_or_runtime"
+    assert brief["safe_to_recommend"] is False
+    assert "incomplete" in brief["headline"].lower()
 
 
 def test_build_candidate_decision_summary_extracts_registration_blocker_from_log(
@@ -1082,8 +1175,12 @@ def test_build_decision_brief_tab_renders_cards() -> None:
 
     tab = build_decision_brief_tab(cast(DashboardDataManager, dm), tabs=None)
     header = cast(Any, tab[0])
-    verdict = cast(Any, tab[2])
-    flex_box = cast(Any, tab[3])
+    verdict = next(
+        child
+        for child in tab
+        if hasattr(child, "object") and "Safe to recommend?" in str(child.object)
+    )
+    flex_box = next(child for child in tab if isinstance(child, pn.FlexBox))
 
     assert "Decision Brief" in header.object
     assert "Safe to recommend?" in verdict.object
@@ -1124,7 +1221,7 @@ def test_build_decision_brief_tab_includes_candidate_snapshot_when_available() -
     )
 
     tab = build_decision_brief_tab(cast(DashboardDataManager, dm), tabs=None)
-    flex_box = cast(Any, tab[3])
+    flex_box = next(child for child in tab if isinstance(child, pn.FlexBox))
     assert len(flex_box.objects) == 4
 
 
@@ -1258,6 +1355,15 @@ def test_dashboard_data_manager_decision_brief_prefers_benchmark_when_available(
     """Unified decision brief should prefer benchmark-backed evidence over session fallback."""
     history_dir = tmp_path / "history"
     history_dir.mkdir()
+    for run_id in ["br-champion", "br-review", "br-passed"]:
+        run_dir = history_dir / run_id
+        run_dir.mkdir()
+        (run_dir / "summary_scorecard.csv").write_text("x\n1\n", encoding="utf-8")
+        (run_dir / "manifest.json").write_text("{}", encoding="utf-8")
+    (history_dir / "index.csv").write_text(
+        "run_id\nbr-champion\nbr-review\nbr-passed\n",
+        encoding="utf-8",
+    )
     session_root = tmp_path / "sessions"
     index, scorecards, experiment_log = _build_fixture_frames()
 
@@ -1352,7 +1458,17 @@ def test_dashboard_data_manager_refresh_clears_cached_views_and_rebuilds_policy(
     monkeypatch.setattr(DashboardDataManager, "_try_build_catalog", lambda self: None)
 
     store = _FakeResultsStore(history_dir=history_dir)
-    dm = DashboardDataManager(store=cast(Any, store), config=store._config)
+    dm = DashboardDataManager(
+        store=cast(Any, store),
+        config=store._config,
+        preflight_report={
+            "state": "empty_ready",
+            "ready_for_dashboard": True,
+            "history_index_present": False,
+            "complete_bundle_count": 0,
+            "incomplete_bundle_count": 0,
+        },
+    )
 
     _ = dm.search_policy
     _ = dm.search_sessions
@@ -1372,7 +1488,8 @@ def test_build_dashboard_returns_fresh_instances(monkeypatch) -> None:
     created_dms: list[object] = []
 
     class DummyDM:
-        pass
+        def __init__(self, *, preflight_report=None) -> None:
+            self.preflight_report = preflight_report
 
     def fake_create_app(dm: object) -> object:
         created_dms.append(dm)
@@ -1385,6 +1502,13 @@ def test_build_dashboard_returns_fresh_instances(monkeypatch) -> None:
 
     monkeypatch.setattr(app_module, "create_app", fake_create_app)
     monkeypatch.setattr(dm_module, "DashboardDataManager", DummyDM)
+    import cohort_projections.analysis.observatory.dashboard.workspace_state as workspace_state_module
+
+    monkeypatch.setattr(
+        workspace_state_module,
+        "run_dashboard_preflight",
+        lambda: {"ready_for_dashboard": True},
+    )
 
     first = dashboard_launcher.build_dashboard()
     second = dashboard_launcher.build_dashboard()
@@ -1392,6 +1516,35 @@ def test_build_dashboard_returns_fresh_instances(monkeypatch) -> None:
     assert first is not second
     assert len(created_dms) == 2
     assert created_dms[0] is not created_dms[1]
+
+
+def test_build_dashboard_returns_readiness_screen_when_preflight_blocks(monkeypatch) -> None:
+    """Launcher should return a readiness screen instead of a broken dashboard."""
+    monkeypatch.setattr(dashboard_launcher, "_configure_panel_runtime", lambda: None)
+
+    import cohort_projections.analysis.observatory.dashboard.workspace_state as workspace_state_module
+
+    monkeypatch.setattr(
+        workspace_state_module,
+        "run_dashboard_preflight",
+        lambda: {
+            "ready_for_dashboard": False,
+            "history_dir": "/tmp/history",
+            "search_session_root": "/tmp/sessions",
+            "popest_root": "not resolved",
+            "blocking_issues": [
+                {
+                    "label": "Shared Census archive is not configured",
+                    "impact": "Benchmarking will fail.",
+                    "action": "Set CENSUS_POPEST_DIR.",
+                }
+            ],
+        },
+    )
+
+    template = dashboard_launcher.build_dashboard()
+
+    assert template.title == "Projection Observatory Readiness"
 
 
 def test_scorecard_takeaway_prefers_best_selected_challenger() -> None:

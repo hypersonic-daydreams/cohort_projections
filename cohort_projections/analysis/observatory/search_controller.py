@@ -591,18 +591,31 @@ class AutonomousSearchController:
             )
         )
         history_index_present = (self.history_dir / "index.csv").exists()
+        complete_bundle_count = 0
         incomplete_bundle_count = 0
         if self.history_dir.exists():
+            complete_bundle_count = sum(
+                1
+                for run_dir in self.history_dir.iterdir()
+                if run_dir.is_dir()
+                and (run_dir / "summary_scorecard.csv").exists()
+                and (run_dir / "manifest.json").exists()
+            )
             incomplete_bundle_count = sum(
                 1
                 for run_dir in self.history_dir.iterdir()
-                if run_dir.is_dir() and not (run_dir / "summary_scorecard.csv").exists()
+                if run_dir.is_dir()
+                and not (
+                    (run_dir / "summary_scorecard.csv").exists()
+                    and (run_dir / "manifest.json").exists()
+                )
             )
         session_summary = build_search_session_summary(
             pd.DataFrame(candidate_rows),
             search_id=search_id,
             status=str(session.get("status", "")),
             history_index_present=history_index_present,
+            complete_bundle_count=complete_bundle_count,
             incomplete_bundle_count=incomplete_bundle_count,
         )
         lines = [

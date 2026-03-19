@@ -19,6 +19,11 @@ uv sync --extra dev --extra dashboard   # Install all dev + dashboard dependenci
 > Observatory Panel dashboard.  See [Dependency Groups](#dependency-groups)
 > for the full list.
 
+> **Projection Observatory note:** the local launcher now performs a readiness
+> preflight before the full dashboard renders. If dashboard dependencies or the
+> shared Census archive are missing, it will show a dedicated readiness screen
+> with the exact recovery actions instead of opening a partially broken UI.
+
 ---
 
 ## Virtual Environment

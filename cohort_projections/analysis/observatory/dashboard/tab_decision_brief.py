@@ -306,6 +306,21 @@ def build_decision_brief_tab(
     tabs: pn.Tabs | None = None,
 ) -> pn.Column:
     """Build the Decision Brief tab."""
+    context_card = markdown_card(
+        "Why Open This Now",
+        "\n".join(
+            [
+                f"**Workspace state:** {getattr(dm, 'workspace_state', {}).get('badge_label', 'Ready')}",
+                "",
+                getattr(dm, "workspace_state", {}).get(
+                    "next_step",
+                    "Use this tab to understand what happened, what matters most, and where to go next.",
+                ),
+            ]
+        ),
+        min_width=420,
+        css_classes=["obs-compact-review-card"],
+    )
     cards: list[Any] = [
         _review_checklist_card(dm),
         markdown_card(
@@ -322,6 +337,23 @@ def build_decision_brief_tab(
             css_classes=["obs-compact-review-card"],
         ),
     ]
+    if getattr(dm.selection_state, "recommendation_package_path", ""):
+        cards.append(
+            markdown_card(
+                "Recommendation Packet",
+                "\n".join(
+                    [
+                        "A review packet has been prepared for the current front-runner.",
+                        "",
+                        f"**Package path:** `{getattr(dm.selection_state, 'recommendation_package_path', '')}`",
+                        "",
+                        "Bring this forward for senior review after validating the details in the analytical tabs.",
+                    ]
+                ),
+                min_width=320,
+                css_classes=["obs-compact-review-card"],
+            )
+        )
     candidate_snapshot = _candidate_snapshot(dm)
     if len(candidate_snapshot) > 0:
         cards.append(
@@ -333,6 +365,21 @@ def build_decision_brief_tab(
                 css_classes=["obs-compact-review-card"],
             )
         )
+
+    btn_direct = pn.widgets.Button(
+        name="Open Details Directly",
+        button_type="light",
+        width=180,
+    )
+
+    def _open_details(event: object) -> None:
+        del event
+        dm.selection_state.experience_mode = "direct"
+        dm.selection_state.review_mode = False
+        if tabs is not None:
+            tabs.active = 2
+
+    btn_direct.on_click(_open_details)
 
     return pn.Column(
         section_header(
@@ -350,6 +397,8 @@ def build_decision_brief_tab(
             next_tab_index=2 if tabs is not None else None,
             next_tab_label="Scorecards",
         ),
+        context_card,
+        pn.Row(btn_direct, sizing_mode="stretch_width"),
         pn.pane.HTML(
             _verdict_strip_html(dm),
             sizing_mode="stretch_width",
