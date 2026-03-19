@@ -62,7 +62,7 @@ repos:
         stages: [pre-commit]
       - id: pytest-check
         name: pytest (fast tests only)
-        entry: .venv/bin/python -m pytest tests/ -x -q --ignore=tests/test_integration/ -m "not slow"
+        entry: .venv/bin/python -m pytest tests/ -x -q --ignore=tests/test_integration/ -m "not slow" --no-cov
         language: system
         pass_filenames: false
         always_run: false

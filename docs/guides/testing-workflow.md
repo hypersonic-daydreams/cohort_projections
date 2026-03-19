@@ -13,6 +13,9 @@ pytest tests/ -v                    # All tests, verbose
 pytest tests/ -q                    # Quick/quiet mode
 pytest tests/ -x                    # Stop on first failure
 pytest tests/ --tb=long             # Detailed tracebacks
+pytest tests/ -x -q --ignore=tests/test_integration/ -m "not slow" --no-cov
+                                  # Fast pre-commit-equivalent gate
+pytest tests/ -q                   # Default coverage run, parallel via xdist
 scripts/testing/run_relevant_tests.sh      # Relevant tests for current changes (fast)
 ```
 
@@ -196,14 +199,30 @@ The project's pre-commit configuration runs fast tests automatically on commits 
 ```yaml
 # From .pre-commit-config.yaml
 - id: pytest-check
-  entry: pytest tests/ -x -q --ignore=tests/test_integration/ -m "not slow"
+  entry: pytest tests/ -x -q --ignore=tests/test_integration/ -m "not slow" --no-cov
   files: ^cohort_projections/.*\.py$
 ```
 
 To run the same tests manually:
 
 ```bash
-pytest tests/ -x -q --ignore=tests/test_integration/ -m "not slow"
+pytest tests/ -x -q --ignore=tests/test_integration/ -m "not slow" --no-cov
+```
+
+Why this differs from the default `pytest` config:
+
+- the commit gate disables coverage to avoid paying `--cov` and `htmlcov`
+  generation costs on every edit loop
+- the default pytest config already applies `-n auto --dist loadfile`, so the
+  fast gate inherits parallelism automatically
+- if a future test proves unsafe under xdist, mark it `@pytest.mark.serial`
+  and handle it explicitly rather than turning off parallelism for the whole
+  suite
+
+To generate HTML coverage explicitly when needed:
+
+```bash
+pytest tests/ --cov-report=html:htmlcov
 ```
 
 ---

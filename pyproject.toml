@@ -55,6 +55,7 @@ dependencies = [
 dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
+    "pytest-xdist>=3.8.0",
     "pytest-timeout>=2.2.0",
     "ruff>=0.1.0",
     "mypy>=1.5.0",
@@ -295,11 +296,15 @@ addopts = [
     "--tb=short",
     "--cov=cohort_projections",
     "--cov-report=term-missing",
-    "--cov-report=html:htmlcov",
     "--timeout=300",
+    "-n",
+    "auto",
+    "--dist",
+    "loadfile",
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "serial: marks tests that should not be distributed across xdist workers",
     "data_fetch: marks tests that fetch external data",
     "integration: marks integration tests",
 ]
