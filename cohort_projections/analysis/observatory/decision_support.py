@@ -64,6 +64,12 @@ _BLOCKER_CATEGORY_LABELS: dict[str, str] = {
     "runtime_error": "Runtime error",
 }
 
+_OPERATIONAL_EVIDENCE_LABELS: dict[str, str] = {
+    "clean": "Operationally clean",
+    "review": "Needs operational review",
+    "blocked": "Operational blocker",
+}
+
 _NEXT_ACTION_LABELS: dict[str, str] = {
     "review": "Review Results",
     "resolve_blocker": "Resolve Blocker",
@@ -136,6 +142,27 @@ def _clean_text(value: object) -> str:
     except TypeError:
         pass
     return re.sub(r"\s+", " ", str(value)).strip()
+
+
+def _as_bool(value: object) -> bool | None:
+    """Return *value* as bool when possible."""
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):  # type: ignore[call-overload]
+            return None
+    except TypeError:
+        pass
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    text = str(value).strip().lower()
+    if text in {"true", "1", "yes", "y"}:
+        return True
+    if text in {"false", "0", "no", "n"}:
+        return False
+    return None
 
 
 def metric_display_label(metric_name: str) -> str:
@@ -229,10 +256,20 @@ def _next_action_route(state: str, status: str = "") -> str:
     return "continue_exploring"
 
 
-def _safe_to_recommend_label(state: str, safe_to_recommend: bool) -> str:
+def _safe_to_recommend_label(
+    state: str,
+    safe_to_recommend: bool,
+    *,
+    operational_blocked: bool = False,
+    operational_review_required: bool = False,
+) -> str:
     """Return a verdict sentence for the guided-review verdict row."""
     if safe_to_recommend:
         return "Yes — safe to bring forward for human review."
+    if operational_blocked:
+        return "No — the benchmark evidence is operationally blocked and should not be trusted yet."
+    if operational_review_required:
+        return "No — operational-quality warnings still need review before escalation."
     if state == "blocked_by_data_or_runtime":
         return "No — resolve the blocker before treating this as usable evidence."
     if state == "failed_hard_gate":
@@ -240,6 +277,74 @@ def _safe_to_recommend_label(state: str, safe_to_recommend: bool) -> str:
     if state == "mixed_signal":
         return "Not yet — tradeoffs still need senior judgment."
     return "Not yet — collect more evidence first."
+
+
+def _operational_quality_payload(
+    *,
+    classification_details: Mapping[str, Any] | None = None,
+    artifact_completeness_flag: object = None,
+    runtime_summary_present: object = None,
+    reproducibility_logging_flag: object = None,
+) -> dict[str, Any]:
+    """Return a normalized operational-quality summary payload."""
+    details = classification_details if isinstance(classification_details, Mapping) else {}
+    operational_results = details.get("operational_results", {})
+    operational_blocked = bool(details.get("operational_blocked", False))
+    operational_review_required = bool(details.get("operational_review_required", False))
+
+    artifact_complete = _as_bool(artifact_completeness_flag)
+    runtime_present = _as_bool(runtime_summary_present)
+    reproducibility_logging = _as_bool(reproducibility_logging_flag)
+
+    if artifact_complete is False:
+        operational_blocked = True
+    if artifact_complete is not False and runtime_present is False:
+        operational_blocked = True
+    if reproducibility_logging is False:
+        operational_review_required = True
+
+    detail_texts: list[str] = []
+    if isinstance(operational_results, Mapping):
+        for result in operational_results.values():
+            if not isinstance(result, Mapping):
+                continue
+            if bool(result.get("passed", True)):
+                continue
+            detail = _clean_text(result.get("detail"))
+            if detail:
+                detail_texts.append(detail)
+
+    if operational_blocked and not detail_texts:
+        if artifact_complete is False:
+            detail_texts.append("Benchmark artifacts are incomplete.")
+        elif runtime_present is False:
+            detail_texts.append("Runtime summary evidence is missing.")
+        else:
+            detail_texts.append("Operational evidence is incomplete.")
+    if operational_review_required and not detail_texts:
+        if reproducibility_logging is False:
+            detail_texts.append("Reproducibility logging was not recorded.")
+        else:
+            detail_texts.append("Operational-quality warnings need review.")
+
+    state = "clean"
+    if operational_blocked:
+        state = "blocked"
+    elif operational_review_required:
+        state = "review"
+
+    return {
+        "operational_state": state,
+        "operational_blocked": operational_blocked,
+        "operational_review_required": operational_review_required,
+        "operational_evidence_label": _OPERATIONAL_EVIDENCE_LABELS[state],
+        "operational_evidence_summary": " ".join(detail_texts).strip()
+        or (
+            "Operational evidence is clean."
+            if state == "clean"
+            else "Operational-quality warnings need review."
+        ),
+    }
 
 
 def _checklist_item(label: str, status: str, detail: str) -> dict[str, str]:
@@ -253,6 +358,9 @@ def _review_checklist(
     benchmark_completeness: str,
     blocker_label: str,
     hard_constraint_regression: bool | None,
+    operational_evidence_label: str = "",
+    operational_evidence_summary: str = "",
+    operational_status: str = "yes",
 ) -> list[dict[str, str]]:
     """Return the guided-review checklist for one decision summary."""
     if benchmark_completeness == "full":
@@ -297,6 +405,13 @@ def _review_checklist(
             hard_gate_detail,
         ),
         _checklist_item(
+            "Operational evidence is clean",
+            operational_status,
+            operational_evidence_summary
+            or operational_evidence_label
+            or "Operational quality has not been summarized.",
+        ),
+        _checklist_item(
             "Projections remain plausible",
             "no",
             "Check this in the Projections tab before advancing.",
@@ -324,6 +439,10 @@ def _user_decision_fields(
     metric_delta: float | None = None,
     hard_constraint_regression: bool | None = None,
     status: str = "",
+    operational_blocked: bool = False,
+    operational_review_required: bool = False,
+    operational_evidence_label: str = "",
+    operational_evidence_summary: str = "",
 ) -> dict[str, Any]:
     """Build the shared user-facing decision payload fields."""
     user_status_label = _USER_STATUS_LABELS.get(decision_state, "Needs more evidence")
@@ -334,7 +453,11 @@ def _user_decision_fields(
     escalation_guidance, requires_senior_review = _escalation_guidance(decision_state)
     next_action_route = _next_action_route(decision_state, status=status)
     next_action_label = _NEXT_ACTION_LABELS[next_action_route]
-    safe_to_recommend = decision_state in {"recommended", "ready_for_review"}
+    safe_to_recommend = (
+        decision_state in {"recommended", "ready_for_review"}
+        and not operational_blocked
+        and not operational_review_required
+    )
 
     risk_flags: list[str] = []
     if blocker_category_label:
@@ -345,23 +468,46 @@ def _user_decision_fields(
         risk_flags.append("Tradeoffs still need judgment")
     elif decision_state == "blocked_by_data_or_runtime" and not blocker_category_label:
         risk_flags.append("Operational blocker")
+    if (
+        operational_evidence_label
+        and operational_evidence_label != _OPERATIONAL_EVIDENCE_LABELS["clean"]
+    ):
+        risk_flags.append(operational_evidence_label)
 
     return {
         "user_status_label": user_status_label,
         "confidence_label": confidence_label,
         "safe_to_recommend": safe_to_recommend,
-        "safe_to_recommend_label": _safe_to_recommend_label(decision_state, safe_to_recommend),
+        "safe_to_recommend_label": _safe_to_recommend_label(
+            decision_state,
+            safe_to_recommend,
+            operational_blocked=operational_blocked,
+            operational_review_required=operational_review_required,
+        ),
         "primary_subject_label": primary_subject_label,
         "raw_subject_id": raw_subject_id,
         "next_action_label": next_action_label,
         "next_action_route": next_action_route,
         "blocker_category_label": blocker_category_label,
         "requires_senior_review": requires_senior_review,
+        "operational_blocked": operational_blocked,
+        "operational_review_required": operational_review_required,
+        "operational_evidence_label": operational_evidence_label
+        or _OPERATIONAL_EVIDENCE_LABELS["clean"],
+        "operational_evidence_summary": operational_evidence_summary
+        or "Operational evidence is clean.",
         "review_checklist": _review_checklist(
             decision_state=decision_state,
             benchmark_completeness=benchmark_completeness,
             blocker_label=blocker_category_label,
             hard_constraint_regression=hard_constraint_regression,
+            operational_evidence_label=operational_evidence_label
+            or _OPERATIONAL_EVIDENCE_LABELS["clean"],
+            operational_evidence_summary=operational_evidence_summary
+            or "Operational evidence is clean.",
+            operational_status="no"
+            if (operational_blocked or operational_review_required)
+            else "yes",
         ),
         "evidence_quality": evidence_quality,
         "main_reason": explanation or headline,
@@ -523,6 +669,12 @@ def build_candidate_decision_summary(
     blocker_type, blocker_detail = _extract_blocker_detail("\n".join([reason_text, log_text]))
 
     benchmark_completeness = "full" if has_run else "none"
+    operational_quality = _operational_quality_payload(
+        classification_details=classification_details,
+        artifact_completeness_flag=row.get("artifact_completeness_flag"),
+        runtime_summary_present=row.get("runtime_summary_present"),
+        reproducibility_logging_flag=row.get("reproducibility_logging_flag"),
+    )
     decision_state = "not_executed"
     if status in {"planned", "running", "launching"}:
         decision_state = "not_executed"
@@ -569,6 +721,8 @@ def build_candidate_decision_summary(
         explanation_parts.append(
             "The benchmark subprocess failed before producing a usable run bundle."
         )
+    if operational_quality["operational_state"] != "clean":
+        explanation_parts.append(str(operational_quality["operational_evidence_summary"]))
     elif decision_state == "blocked_by_data_or_runtime" and reason_text:
         explanation_parts.append(_clean_text(reason_text)[:320])
 
@@ -617,6 +771,10 @@ def build_candidate_decision_summary(
                 else None
             ),
             status=status,
+            operational_blocked=bool(operational_quality["operational_blocked"]),
+            operational_review_required=bool(operational_quality["operational_review_required"]),
+            operational_evidence_label=str(operational_quality["operational_evidence_label"]),
+            operational_evidence_summary=str(operational_quality["operational_evidence_summary"]),
         ),
     }
 
@@ -905,6 +1063,18 @@ def build_search_session_summary(
         focus_hard_gate = bool(focus_row.get("hard_constraint_regression"))
     elif session_state == "failed_hard_gate":
         focus_hard_gate = True
+    focus_operational_blocked = (
+        bool(focus_row.get("operational_blocked")) if focus_row is not None else False
+    )
+    focus_operational_review_required = (
+        bool(focus_row.get("operational_review_required")) if focus_row is not None else False
+    )
+    focus_operational_label = (
+        _clean_text(focus_row.get("operational_evidence_label")) if focus_row is not None else ""
+    )
+    focus_operational_summary = (
+        _clean_text(focus_row.get("operational_evidence_summary")) if focus_row is not None else ""
+    )
 
     return {
         "source": "search_session",
@@ -932,6 +1102,10 @@ def build_search_session_summary(
             metric_delta=focus_metric_delta,
             hard_constraint_regression=focus_hard_gate,
             status=status,
+            operational_blocked=focus_operational_blocked,
+            operational_review_required=focus_operational_review_required,
+            operational_evidence_label=focus_operational_label,
+            operational_evidence_summary=focus_operational_summary,
         ),
     }
 
@@ -1037,6 +1211,58 @@ def build_benchmark_decision_brief(
     if champion_id is not None:
         challengers = challengers[challengers["run_id"] != champion_id]
     challengers = challengers[challengers["selected_county_mape_overall"].notna()]
+    blocked_mask = pd.Series(False, index=challengers.index)
+    if "selected_artifact_completeness_flag" in challengers.columns:
+        blocked_mask = blocked_mask | challengers["selected_artifact_completeness_flag"].map(
+            lambda value: _as_bool(value) is False
+        )
+    if "selected_runtime_summary_present" in challengers.columns:
+        blocked_mask = blocked_mask | challengers["selected_runtime_summary_present"].map(
+            lambda value: _as_bool(value) is False
+        )
+    blocked_challengers = challengers[blocked_mask]
+    challengers = challengers[~blocked_mask]
+
+    if challengers.empty and not blocked_challengers.empty:
+        blocked = blocked_challengers.sort_values(
+            ["selected_county_mape_overall", "run_date_sort"],
+            ascending=[True, False],
+            na_position="last",
+        ).iloc[0]
+        best_name = _clean_text(blocked.get("display_name")) or _clean_text(blocked.get("run_id"))
+        explanation = f"{best_name} looks strongest on accuracy, but its benchmark bundle is operationally blocked and cannot support review or recommendation yet."
+        operational_quality = _operational_quality_payload(
+            artifact_completeness_flag=blocked.get("selected_artifact_completeness_flag"),
+            runtime_summary_present=blocked.get("selected_runtime_summary_present"),
+            reproducibility_logging_flag=blocked.get("selected_reproducibility_logging_flag"),
+        )
+        return {
+            "source": "benchmark",
+            "decision_state": "blocked_by_data_or_runtime",
+            "headline": f"Best visible challenger is blocked: {best_name}.",
+            "explanation": explanation,
+            "recommended_action": "Repair the benchmark bundle or rerun the benchmark before using this challenger for review.",
+            "recommendation_candidate_id": _clean_text(blocked.get("run_id")),
+            "best_label": best_name,
+            **_user_decision_fields(
+                decision_state="blocked_by_data_or_runtime",
+                confidence="low",
+                explanation=explanation,
+                headline=f"Best visible challenger is blocked: {best_name}.",
+                recommendation_text="Repair the benchmark bundle or rerun the benchmark before using this challenger for review.",
+                raw_subject_id=_clean_text(blocked.get("run_id")),
+                primary_subject_label=best_name,
+                benchmark_completeness="partial",
+                metric_name="county_mape_overall",
+                metric_delta=None,
+                operational_blocked=True,
+                operational_review_required=False,
+                operational_evidence_label=str(operational_quality["operational_evidence_label"]),
+                operational_evidence_summary=str(
+                    operational_quality["operational_evidence_summary"]
+                ),
+            ),
+        }
     if challengers.empty:
         champion_name = (
             _clean_text(champion_row.get("display_name"))
@@ -1079,11 +1305,18 @@ def build_benchmark_decision_brief(
         best_mape - champion_mape if best_mape is not None and champion_mape is not None else None
     )
     status_code = _clean_text(best.get("status_code")) or "needs_human_review"
+    operational_quality = _operational_quality_payload(
+        artifact_completeness_flag=best.get("selected_artifact_completeness_flag"),
+        runtime_summary_present=best.get("selected_runtime_summary_present"),
+        reproducibility_logging_flag=best.get("selected_reproducibility_logging_flag"),
+    )
 
     if status_code == "passed_all_gates" and (delta is None or delta <= 0):
         decision_state = "recommended"
-    elif status_code in {"passed_all_gates", "needs_human_review"}:
+    elif status_code == "passed_all_gates":
         decision_state = "ready_for_review"
+    elif status_code == "needs_human_review":
+        decision_state = "mixed_signal"
     elif status_code == "failed_hard_gate":
         decision_state = "failed_hard_gate"
     else:
@@ -1120,6 +1353,8 @@ def build_benchmark_decision_brief(
         recommended_action = (
             f"Inspect the tradeoffs for {best_name} before deciding whether to keep exploring."
         )
+    if operational_quality["operational_state"] != "clean":
+        explanation = f"{explanation} {operational_quality['operational_evidence_summary']}".strip()
 
     return {
         "source": "benchmark",
@@ -1142,5 +1377,9 @@ def build_benchmark_decision_brief(
             metric_name="county_mape_overall",
             metric_delta=delta,
             hard_constraint_regression=(decision_state == "failed_hard_gate"),
+            operational_blocked=bool(operational_quality["operational_blocked"]),
+            operational_review_required=bool(operational_quality["operational_review_required"]),
+            operational_evidence_label=str(operational_quality["operational_evidence_label"]),
+            operational_evidence_summary=str(operational_quality["operational_evidence_summary"]),
         ),
     }

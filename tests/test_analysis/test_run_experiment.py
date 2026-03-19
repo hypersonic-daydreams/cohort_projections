@@ -13,6 +13,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pandas as pd
 import pytest
 import yaml
 
@@ -261,3 +262,83 @@ class TestClassificationToAction:
         for _key, value in re_mod._CLASSIFICATION_TO_ACTION.items():
             assert isinstance(value, str)
             assert len(value) > 0
+
+
+class TestEvaluateResults:
+    def test_evaluate_results_marks_operational_warning_in_details(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        history_dir = tmp_path / "benchmark_history"
+        run_dir = history_dir / "br-test"
+        run_dir.mkdir(parents=True)
+        scorecard = pd.DataFrame(
+            [
+                {
+                    "run_id": "br-test",
+                    "method_id": "m2026",
+                    "config_id": "cfg-base",
+                    "negative_population_violations": 0,
+                    "scenario_order_violations": 0,
+                    "aggregation_violations": 0,
+                    "county_mape_rural": 0.10,
+                    "county_mape_bakken": 0.20,
+                    "county_mape_overall": 0.10,
+                    "sensitivity_instability_flag": False,
+                    "artifact_completeness_flag": True,
+                    "reproducibility_logging_flag": True,
+                    "runtime_summary_present": True,
+                    "runtime_total_seconds": 10.0,
+                    "slowest_stage_share": 0.40,
+                },
+                {
+                    "run_id": "br-test",
+                    "method_id": "m2026r1",
+                    "config_id": "cfg-test",
+                    "negative_population_violations": 0,
+                    "scenario_order_violations": 0,
+                    "aggregation_violations": 0,
+                    "county_mape_rural": 0.09,
+                    "county_mape_bakken": 0.18,
+                    "county_mape_overall": 0.08,
+                    "sensitivity_instability_flag": False,
+                    "artifact_completeness_flag": True,
+                    "reproducibility_logging_flag": False,
+                    "runtime_summary_present": True,
+                    "runtime_total_seconds": 10.0,
+                    "slowest_stage_share": 0.40,
+                },
+            ]
+        )
+        scorecard.to_csv(run_dir / "summary_scorecard.csv", index=False)
+
+        class _FakeStore:
+            @staticmethod
+            def from_config() -> object:
+                return _FakeStore()
+
+            def get_runtime_history(self) -> pd.DataFrame:
+                return pd.DataFrame(
+                    [
+                        {
+                            "run_id": "older-run",
+                            "total_duration_seconds": 9.0,
+                            "slowest_stage": "annual_validation",
+                        }
+                    ]
+                )
+
+        monkeypatch.setattr(re_mod, "DEFAULT_HISTORY_DIR", history_dir)
+        monkeypatch.setattr(re_mod, "ResultsStore", _FakeStore)
+
+        result = re_mod._evaluate_results(
+            "br-test",
+            "m2026r1",
+            "m2026",
+            re_mod.load_policy(),
+        )
+
+        assert result["classification"] == "needs_human_review"
+        assert result["operational_review_required"] is True
+        assert any("reproducibility" in reason.lower() for reason in result["reasons"])

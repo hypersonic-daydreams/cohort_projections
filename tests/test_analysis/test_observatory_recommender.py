@@ -362,6 +362,48 @@ class TestSuggestNextExperiments:
         sensitivity = rec.parameter_sensitivity_summary()
         assert set(sensitivity["run_id"]) == {"run-b"}
 
+    def test_excludes_inconclusive_operationally_blocked_runs_from_sensitivity(self) -> None:
+        scorecards = pd.DataFrame([CHAMPION, EXP_A, EXP_B])
+        manifests = {
+            "run-champ": {"champion_method_id": "m2026", "methods": [{"method_id": "m2026"}]},
+            "run-a": {
+                "champion_method_id": "m2026",
+                "methods": [{"method_id": "m2026"}, {"method_id": "m2026r1"}],
+            },
+            "run-b": {
+                "champion_method_id": "m2026",
+                "methods": [{"method_id": "m2026"}, {"method_id": "m2026r1"}],
+            },
+        }
+        run_configs = {
+            "run-champ": {"m2026": {"college_blend_factor": 0.5}},
+            "run-a": {
+                "m2026": {"college_blend_factor": 0.5},
+                "m2026r1": {"college_blend_factor": 0.7},
+            },
+            "run-b": {
+                "m2026": {"college_blend_factor": 0.5},
+                "m2026r1": {"college_blend_factor": 0.9},
+            },
+        }
+        experiment_log = pd.DataFrame(
+            [
+                {"run_id": "run-a", "outcome": "inconclusive"},
+                {"run_id": "run-b", "outcome": "passed_all_gates"},
+            ]
+        )
+        store, comparator = _make_store_and_comparator(
+            scorecards,
+            manifests,
+            run_configs,
+            experiment_log,
+        )
+        rec = ObservatoryRecommender(store=store, comparator=comparator)
+
+        sensitivity = rec.parameter_sensitivity_summary()
+
+        assert set(sensitivity["run_id"]) == {"run-b"}
+
 
 # ---------------------------------------------------------------------------
 # TestUntestedCatalog

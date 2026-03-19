@@ -179,6 +179,37 @@ This updates:
 
 - `config/method_profiles/aliases.yaml`
 - `data/analysis/benchmark_history/promotion_history.csv`
+- `data/analysis/benchmark_history/latest/<alias_name>/` convenience pointers
+
+If you use `--revalidate`, the promotion tool refreshes the convenience pointer
+after the clean post-promotion baseline bundle finishes, so
+`latest/<alias_name>/` tracks the newest benchmark evidence for the promoted
+immutable method/config pair rather than the older challenger run.
+
+### 7. Refresh Latest Pointers Manually When Needed
+
+The `latest/` layer is convenience-only. It is not canonical provenance and
+must never replace the dated run directories or `index.csv`.
+
+To rebuild the alias-aligned convenience view manually:
+
+```bash
+source .venv/bin/activate
+python scripts/analysis/refresh_latest_benchmark_pointers.py --scope county
+```
+
+To rebuild just one alias:
+
+```bash
+source .venv/bin/activate
+python scripts/analysis/refresh_latest_benchmark_pointers.py \
+  --scope county \
+  --alias county_champion
+```
+
+Each alias directory contains a real `pointer.json` metadata record plus
+symlinks to the current canonical benchmark artifacts when matching evidence
+exists.
 
 ## What To Read In A Scorecard
 
@@ -207,6 +238,39 @@ Constraint fields:
 - `scenario_order_violations`
 - `aggregation_violations`
 - `sensitivity_instability_flag`
+
+Operational-quality fields:
+
+- `artifact_completeness_flag`
+- `reproducibility_logging_flag`
+- `runtime_summary_present`
+- `runtime_total_seconds`
+- `slowest_stage_seconds`
+- `slowest_stage_share`
+
+## Operational Quality Policy
+
+The Projection Observatory now treats operational quality as decision evidence,
+not just metadata.
+
+Current policy:
+
+- incomplete benchmark artifacts classify a run as `inconclusive`
+- missing runtime summary evidence on an otherwise complete bundle also
+  classifies the run as `inconclusive`
+- missing reproducibility logging keeps the run usable, but downgrades it to
+  `needs_human_review`
+- runtime outliers are reviewed relative to the current benchmark archive
+  rather than against a hard-coded wall-clock threshold
+
+Practical implication:
+
+- `Prepare Recommendation` requires a complete benchmark bundle and clean
+  operational-quality evidence
+- a run may still be the strongest analytical challenger but stay on the
+  `Review Best Candidate` path when operational warnings are present
+- operational blockers should be fixed before treating the bundle as valid
+  benchmark evidence under SOP-003
 
 ## Decision Heuristics
 

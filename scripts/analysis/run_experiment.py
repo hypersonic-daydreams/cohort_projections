@@ -57,9 +57,13 @@ from cohort_projections.analysis.benchmarking import (  # noqa: E402
 from cohort_projections.analysis.evaluation_policy import (  # noqa: E402
     evaluate_scorecard,
     load_policy,
+    summarize_runtime_context,
 )
 from cohort_projections.analysis.experiment_log import (  # noqa: E402
     append_experiment_entry,
+)
+from cohort_projections.analysis.observatory.results_store import (  # noqa: E402
+    ResultsStore,
 )
 from cohort_projections.utils.reproducibility import log_execution  # noqa: E402
 
@@ -89,6 +93,21 @@ _CLASSIFICATION_TO_ACTION: dict[str, str] = {
     "needs_human_review": "flag_for_review",
     "inconclusive": "flag_for_review",
 }
+
+
+def _empty_evaluation(classification: str, reasons: list[str]) -> dict[str, Any]:
+    """Return a fully shaped empty evaluation payload."""
+    return {
+        "classification": classification,
+        "reasons": reasons,
+        "hard_gate_results": {},
+        "tradeoff_results": {},
+        "tradeoff_metrics": {},
+        "sensitivity_flag": False,
+        "operational_results": {},
+        "operational_blocked": classification == "inconclusive",
+        "operational_review_required": False,
+    }
 
 
 def _today_utc() -> dt.date:
@@ -157,14 +176,10 @@ def _load_spec(spec_path: Path) -> dict[str, Any]:
 
     missing = REQUIRED_SPEC_FIELDS - set(spec.keys())
     if missing:
-        raise ValueError(
-            f"Spec is missing required fields: {sorted(missing)} in {spec_path}"
-        )
+        raise ValueError(f"Spec is missing required fields: {sorted(missing)} in {spec_path}")
 
     if spec["scope"] != "county":
-        raise ValueError(
-            f"Only scope='county' is supported. Got: {spec['scope']!r}"
-        )
+        raise ValueError(f"Only scope='county' is supported. Got: {spec['scope']!r}")
 
     return spec
 
@@ -264,11 +279,7 @@ def _create_method_profile(
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> None:
     """Recursively merge *override* into *base* in-place."""
     for key, value in override.items():
-        if (
-            key in base
-            and isinstance(base[key], dict)
-            and isinstance(value, dict)
-        ):
+        if key in base and isinstance(base[key], dict) and isinstance(value, dict):
             _deep_merge(base[key], value)
         else:
             base[key] = value
@@ -296,14 +307,22 @@ def _run_benchmark_subprocess(
     cmd = [
         sys.executable,
         str(SCRIPT_DIR / "run_benchmark_suite.py"),
-        "--scope", scope,
-        "--champion-method", champion_method,
-        "--champion-config", champion_config,
-        "--challenger-method", challenger_method,
-        "--challenger-config", challenger_config,
-        "--benchmark-label", benchmark_label,
-        "--profile-dir", str(profile_dir),
-        "--workers", str(workers),
+        "--scope",
+        scope,
+        "--champion-method",
+        champion_method,
+        "--champion-config",
+        champion_config,
+        "--challenger-method",
+        challenger_method,
+        "--challenger-config",
+        challenger_config,
+        "--benchmark-label",
+        benchmark_label,
+        "--profile-dir",
+        str(profile_dir),
+        "--workers",
+        str(workers),
     ]
     print(f"Running benchmark suite: {' '.join(cmd)}")
     result = subprocess.run(
@@ -353,13 +372,7 @@ def _evaluate_results(
     """Load the scorecard and evaluate challenger against champion."""
     scorecard_path = DEFAULT_HISTORY_DIR / run_id / "summary_scorecard.csv"
     if not scorecard_path.exists():
-        return {
-            "classification": "inconclusive",
-            "reasons": [f"Scorecard not found: {scorecard_path}"],
-            "hard_gate_results": {},
-            "tradeoff_results": {},
-            "sensitivity_flag": False,
-        }
+        return _empty_evaluation("inconclusive", [f"Scorecard not found: {scorecard_path}"])
 
     scorecard = pd.read_csv(scorecard_path)
 
@@ -367,30 +380,35 @@ def _evaluate_results(
     champion_rows = scorecard[scorecard["method_id"] == champion_method]
 
     if challenger_rows.empty:
-        return {
-            "classification": "inconclusive",
-            "reasons": [
-                f"Challenger '{challenger_method}' not found in scorecard"
-            ],
-            "hard_gate_results": {},
-            "tradeoff_results": {},
-            "sensitivity_flag": False,
-        }
+        return _empty_evaluation(
+            "inconclusive",
+            [f"Challenger '{challenger_method}' not found in scorecard"],
+        )
     if champion_rows.empty:
-        return {
-            "classification": "inconclusive",
-            "reasons": [
-                f"Champion '{champion_method}' not found in scorecard"
-            ],
-            "hard_gate_results": {},
-            "tradeoff_results": {},
-            "sensitivity_flag": False,
-        }
+        return _empty_evaluation(
+            "inconclusive",
+            [f"Champion '{champion_method}' not found in scorecard"],
+        )
 
     challenger_row = challenger_rows.iloc[0].to_dict()
     champion_row = champion_rows.iloc[0].to_dict()
 
-    return evaluate_scorecard(challenger_row, champion_row, policy)
+    runtime_context: dict[str, Any] = {}
+    try:
+        store = ResultsStore.from_config()
+        runtime_context = summarize_runtime_context(
+            store.get_runtime_history(),
+            exclude_run_id=run_id,
+        )
+    except Exception:
+        runtime_context = {}
+
+    return evaluate_scorecard(
+        challenger_row,
+        champion_row,
+        policy,
+        runtime_context=runtime_context,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -415,24 +433,26 @@ def _config_delta_summary(config_delta: dict[str, Any]) -> str:
 def _key_metrics_summary(evaluation: dict[str, Any]) -> str:
     """Format key metric deltas from the evaluation result."""
     tradeoff = evaluation.get("tradeoff_results", {})
-    if not tradeoff:
-        return "no tradeoff metrics"
     parts = []
     for metric, detail in tradeoff.items():
         delta = detail.get("delta", 0.0)
         parts.append(f"{metric}: {delta:+.4f}")
-    return "; ".join(parts)
+    operational_results = evaluation.get("operational_results", {})
+    if isinstance(operational_results, dict):
+        if evaluation.get("operational_blocked"):
+            parts.append("operational_quality: blocked")
+        elif evaluation.get("operational_review_required"):
+            parts.append("operational_quality: review required")
+    return "; ".join(parts) if parts else "no tradeoff metrics"
 
 
-def _interpretation(
-    classification: str, reasons: list[str]
-) -> str:
+def _interpretation(classification: str, reasons: list[str]) -> str:
     """Auto-generate an interpretation from classification and reasons."""
     summary_map = {
         "passed_all_gates": "Challenger passed all hard gates and tradeoff thresholds.",
-        "needs_human_review": "Hard gates passed but one or more tradeoff thresholds were breached.",
+        "needs_human_review": "Hard gates passed, but review is still required because of tradeoffs or operational-quality warnings.",
         "failed_hard_gate": "One or more hard constraint gates were violated.",
-        "inconclusive": "Unable to fully evaluate — benchmark did not complete or data is missing.",
+        "inconclusive": "Unable to fully evaluate — benchmark evidence is incomplete, blocked, or missing.",
     }
     base = summary_map.get(classification, f"Classification: {classification}")
     failed_reasons = [r for r in reasons if "FAILED" in r or "BREACHED" in r]
@@ -507,13 +527,10 @@ def main() -> None:
             "This experiment requires code changes — classifying as inconclusive."
         )
         evaluation: dict[str, Any] = {
-            "classification": "inconclusive",
-            "reasons": [
-                f"Method '{method_id}' not in METHOD_DISPATCH — code changes required"
-            ],
-            "hard_gate_results": {},
-            "tradeoff_results": {},
-            "sensitivity_flag": False,
+            **_empty_evaluation(
+                "inconclusive",
+                [f"Method '{method_id}' not in METHOD_DISPATCH — code changes required"],
+            ),
         }
         completed_dir = DEFAULT_COMPLETED_DIR
         completed_dir.mkdir(parents=True, exist_ok=True)
@@ -536,7 +553,9 @@ def main() -> None:
         champion_alias = aliases.get(f"{scope}_champion", {})
         print("\nResolved experiment inputs:")
         print(f"  Scope: {scope}")
-        print(f"  Champion: {champion_alias.get('method_id', 'N/A')} / {champion_alias.get('config_id', 'N/A')}")
+        print(
+            f"  Champion: {champion_alias.get('method_id', 'N/A')} / {champion_alias.get('config_id', 'N/A')}"
+        )
         print(f"  Challenger: {method_id} / {config_id}")
         print(f"  Base method: {spec['base_method']} / {spec['base_config']}")
         print(f"  Config delta: {_config_delta_summary(config_delta)}")
@@ -568,9 +587,7 @@ def main() -> None:
             aliases = load_aliases()
             champion_alias = aliases.get(f"{scope}_champion", {})
             if not champion_alias:
-                raise ValueError(
-                    f"No champion alias found for '{scope}_champion' in aliases.yaml"
-                )
+                raise ValueError(f"No champion alias found for '{scope}_champion' in aliases.yaml")
             champion_method = champion_alias["method_id"]
             champion_config = champion_alias["config_id"]
 
@@ -590,22 +607,19 @@ def main() -> None:
 
             if not success:
                 evaluation = {
-                    "classification": "inconclusive",
-                    "reasons": [
-                        "Benchmark suite failed",
-                        stderr[:500] if stderr else "no stderr",
-                    ],
-                    "hard_gate_results": {},
-                    "tradeoff_results": {},
-                    "sensitivity_flag": False,
+                    **_empty_evaluation(
+                        "inconclusive",
+                        [
+                            "Benchmark suite failed",
+                            stderr[:500] if stderr else "no stderr",
+                        ],
+                    ),
                 }
             else:
                 # --- Step 6: Evaluate results against policy ---
                 policy_path = args.policy
                 policy = load_policy(policy_path) if policy_path else load_policy()
-                evaluation = _evaluate_results(
-                    run_id, method_id, champion_method, policy
-                )
+                evaluation = _evaluate_results(run_id, method_id, champion_method, policy)
 
     except Exception:
         # Catch-all: log inconclusive and re-print traceback
@@ -613,11 +627,7 @@ def main() -> None:
         print(f"Error during experiment execution:\n{tb}")
         if not evaluation:
             evaluation = {
-                "classification": "inconclusive",
-                "reasons": [f"Unhandled error: {tb[:500]}"],
-                "hard_gate_results": {},
-                "tradeoff_results": {},
-                "sensitivity_flag": False,
+                **_empty_evaluation("inconclusive", [f"Unhandled error: {tb[:500]}"]),
             }
 
     # --- Step 7: Write experiment log entry ---

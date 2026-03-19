@@ -7,6 +7,7 @@ import datetime as dt
 import fcntl
 import hashlib
 import json
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -24,7 +25,15 @@ DEFAULT_PROFILE_DIR = PROJECT_ROOT / "config" / "method_profiles"
 DEFAULT_ALIAS_PATH = DEFAULT_PROFILE_DIR / "aliases.yaml"
 DEFAULT_HISTORY_DIR = PROJECT_ROOT / "data" / "analysis" / "benchmark_history"
 DEFAULT_PROMOTION_HISTORY = DEFAULT_HISTORY_DIR / "promotion_history.csv"
+DEFAULT_LATEST_DIR = DEFAULT_HISTORY_DIR / "latest"
 BENCHMARK_CONTRACT_VERSION = "1.0"
+LATEST_POINTER_REQUIRED_ARTIFACTS: tuple[str, ...] = (
+    "manifest.json",
+    "summary_scorecard.csv",
+    "summary_scorecard.json",
+    "runtime_summary.json",
+)
+LATEST_POINTER_OPTIONAL_ARTIFACTS: tuple[str, ...] = ("comparison_to_champion.json",)
 
 BAKKEN_FIPS = {"38105", "38053", "38061", "38025", "38089"}
 RESERVATION_FIPS = {"38005", "38085", "38079"}
@@ -144,6 +153,250 @@ def update_alias_mapping(
     alias_path.parent.mkdir(parents=True, exist_ok=True)
     alias_path.write_text(yaml.safe_dump(aliases, sort_keys=False), encoding="utf-8")
     return prior, aliases[alias_name]
+
+
+def _read_index(index_path: Path) -> pd.DataFrame:
+    if not index_path.exists():
+        return pd.DataFrame(columns=BENCHMARK_INDEX_COLUMNS)
+    index = pd.read_csv(index_path)
+    validate_index_columns(index)
+    return index
+
+
+def _resolve_history_artifact_path(history_dir: Path, run_id: str, raw_path: str) -> Path:
+    candidate = Path(raw_path)
+    if candidate.is_absolute():
+        return candidate
+
+    run_dir = history_dir / run_id
+    possible_paths = [
+        history_dir / candidate,
+        run_dir / candidate,
+        run_dir / candidate.name,
+    ]
+    for path in possible_paths:
+        if path.exists():
+            return path
+    return run_dir / candidate.name
+
+
+def _latest_pointer_aliases(
+    aliases: dict[str, dict[str, str]],
+    *,
+    scope: str,
+    alias_name: str | None,
+) -> dict[str, dict[str, str]]:
+    if alias_name is not None:
+        if alias_name not in aliases:
+            raise ValueError(f"Alias not found in {DEFAULT_ALIAS_PATH.name}: {alias_name}")
+        return {alias_name: aliases[alias_name]}
+
+    prefix = f"{scope}_"
+    return {
+        name: mapping
+        for name, mapping in aliases.items()
+        if name.startswith(prefix) and isinstance(mapping, dict)
+    }
+
+
+def _find_latest_matching_run(
+    index: pd.DataFrame,
+    *,
+    scope: str,
+    method_id: str,
+    config_id: str,
+) -> dict[str, Any] | None:
+    if index.empty:
+        return None
+
+    matches = index[
+        (index["scope"] == scope)
+        & (index["method_id"] == method_id)
+        & (index["config_id"] == config_id)
+    ].copy()
+    if matches.empty:
+        return None
+
+    run_dates = pd.to_datetime(matches["run_date"], errors="coerce")
+    matches = matches.assign(_run_date_sort=run_dates.fillna(pd.Timestamp.min))
+    matches = matches.sort_values(
+        by=["_run_date_sort", "run_date", "run_id"],
+        ascending=[False, False, False],
+    )
+    selected = matches.iloc[0].drop(labels="_run_date_sort").to_dict()
+    return {str(key): value for key, value in selected.items()}
+
+
+def _load_latest_decision_metadata(
+    *,
+    alias_name: str,
+    method_id: str,
+    config_id: str,
+    promotion_history_path: Path,
+    decision_dir: Path,
+) -> dict[str, str]:
+    if not promotion_history_path.exists():
+        return {}
+
+    history = pd.read_csv(promotion_history_path).fillna("")
+    matches = history[
+        (history["alias_name"] == alias_name)
+        & (history["new_method_id"] == method_id)
+        & (history["new_config_id"] == config_id)
+    ].copy()
+    if matches.empty:
+        return {}
+
+    timestamps = pd.to_datetime(matches["promoted_at_utc"], errors="coerce", utc=True)
+    matches = matches.assign(
+        _promoted_at_sort=timestamps.fillna(pd.Timestamp.min.tz_localize("UTC"))
+    )
+    matches = matches.sort_values(
+        by=["_promoted_at_sort", "decision_id"],
+        ascending=[False, False],
+    )
+    decision_id = str(matches.iloc[0]["decision_id"]).strip()
+    if not decision_id:
+        return {}
+
+    metadata: dict[str, str] = {"decision_id": decision_id}
+    decision_path = decision_dir / f"{decision_id}.md"
+    if decision_path.exists():
+        metadata["decision_record_path"] = str(decision_path.resolve())
+    return metadata
+
+
+def _reset_pointer_directory(pointer_dir: Path) -> None:
+    if pointer_dir.exists() or pointer_dir.is_symlink():
+        if pointer_dir.is_symlink() or pointer_dir.is_file():
+            pointer_dir.unlink()
+        else:
+            shutil.rmtree(pointer_dir)
+    pointer_dir.mkdir(parents=True, exist_ok=True)
+
+
+def _write_pointer_metadata(pointer_dir: Path, payload: dict[str, Any]) -> None:
+    (pointer_dir / "pointer.json").write_text(
+        json.dumps(payload, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+
+
+def _safe_symlink(target: Path, link_path: Path) -> None:
+    if link_path.exists() or link_path.is_symlink():
+        link_path.unlink()
+    link_path.symlink_to(target)
+
+
+def refresh_latest_benchmark_pointers(
+    *,
+    history_dir: Path = DEFAULT_HISTORY_DIR,
+    alias_path: Path = DEFAULT_ALIAS_PATH,
+    scope: str = "county",
+    alias_name: str | None = None,
+    latest_dir: Path | None = None,
+    promotion_history_path: Path | None = None,
+    decision_dir: Path | None = None,
+) -> list[dict[str, Any]]:
+    """Rebuild convenience ``latest/`` pointers for alias-targeted benchmark runs."""
+    history_dir = Path(history_dir)
+    latest_dir = Path(latest_dir) if latest_dir is not None else history_dir / "latest"
+    promotion_history_path = (
+        Path(promotion_history_path)
+        if promotion_history_path is not None
+        else history_dir / "promotion_history.csv"
+    )
+    decision_dir = (
+        Path(decision_dir)
+        if decision_dir is not None
+        else PROJECT_ROOT / "docs" / "reviews" / "benchmark_decisions"
+    )
+
+    aliases = load_aliases(alias_path)
+    selected_aliases = _latest_pointer_aliases(aliases, scope=scope, alias_name=alias_name)
+    latest_dir.mkdir(parents=True, exist_ok=True)
+
+    if alias_name is None:
+        prefix = f"{scope}_"
+        expected = set(selected_aliases)
+        for child in latest_dir.iterdir():
+            if child.is_dir() and child.name.startswith(prefix) and child.name not in expected:
+                shutil.rmtree(child)
+
+    index = _read_index(history_dir / "index.csv")
+    refreshed_at = dt.datetime.now(dt.UTC).isoformat()
+    results: list[dict[str, Any]] = []
+
+    for current_alias_name, mapping in selected_aliases.items():
+        method_id = str(mapping["method_id"])
+        config_id = str(mapping["config_id"])
+        pointer_dir = latest_dir / current_alias_name
+        _reset_pointer_directory(pointer_dir)
+
+        decision_metadata = _load_latest_decision_metadata(
+            alias_name=current_alias_name,
+            method_id=method_id,
+            config_id=config_id,
+            promotion_history_path=promotion_history_path,
+            decision_dir=decision_dir,
+        )
+        selected_run = _find_latest_matching_run(
+            index,
+            scope=scope,
+            method_id=method_id,
+            config_id=config_id,
+        )
+        source_paths: dict[str, str] = {}
+        status = "missing_benchmark_evidence"
+        run_id = ""
+
+        if selected_run is not None:
+            run_id = str(selected_run["run_id"])
+            run_dir = history_dir / run_id
+            manifest_path = _resolve_history_artifact_path(
+                history_dir,
+                run_id,
+                str(selected_run["manifest_path"]),
+            )
+            scorecard_csv_path = _resolve_history_artifact_path(
+                history_dir,
+                run_id,
+                str(selected_run["summary_scorecard_path"]),
+            )
+            artifact_paths = {
+                "run_dir": run_dir.resolve(),
+                "manifest.json": manifest_path.resolve(),
+                "summary_scorecard.csv": scorecard_csv_path.resolve(),
+                "summary_scorecard.json": (run_dir / "summary_scorecard.json").resolve(),
+                "runtime_summary.json": (run_dir / "runtime_summary.json").resolve(),
+                "comparison_to_champion.json": (run_dir / "comparison_to_champion.json").resolve(),
+            }
+            for artifact_name in (
+                LATEST_POINTER_REQUIRED_ARTIFACTS + LATEST_POINTER_OPTIONAL_ARTIFACTS
+            ):
+                artifact_path = artifact_paths[artifact_name]
+                if artifact_path.exists():
+                    _safe_symlink(artifact_path, pointer_dir / artifact_name)
+                    source_paths[artifact_name] = str(artifact_path)
+            source_paths["run_dir"] = str(artifact_paths["run_dir"])
+            status = "linked_benchmark_evidence"
+
+        pointer_payload: dict[str, Any] = {
+            "alias_name": current_alias_name,
+            "scope": scope,
+            "method_id": method_id,
+            "config_id": config_id,
+            "run_id": run_id,
+            "status": status,
+            "refreshed_at_utc": refreshed_at,
+            "source_paths": source_paths,
+        }
+        if decision_metadata:
+            pointer_payload["decision"] = decision_metadata
+        _write_pointer_metadata(pointer_dir, pointer_payload)
+        results.append(pointer_payload)
+
+    return results
 
 
 def with_county_categories(annual_county: pd.DataFrame) -> pd.DataFrame:

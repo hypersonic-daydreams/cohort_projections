@@ -646,6 +646,11 @@ def build_run_metadata_frame(
                 "county_mape_overall",
                 "state_ape_recent_short",
                 "state_ape_recent_medium",
+                "artifact_completeness_flag",
+                "reproducibility_logging_flag",
+                "runtime_summary_present",
+                "runtime_total_seconds",
+                "slowest_stage_share",
             ]
             if col in comparison_rows.columns
         ]
@@ -657,6 +662,11 @@ def build_run_metadata_frame(
                 "county_mape_overall": "selected_county_mape_overall",
                 "state_ape_recent_short": "selected_state_ape_recent_short",
                 "state_ape_recent_medium": "selected_state_ape_recent_medium",
+                "artifact_completeness_flag": "selected_artifact_completeness_flag",
+                "reproducibility_logging_flag": "selected_reproducibility_logging_flag",
+                "runtime_summary_present": "selected_runtime_summary_present",
+                "runtime_total_seconds": "selected_runtime_total_seconds",
+                "slowest_stage_share": "selected_slowest_stage_share",
             }
         )
         metadata = metadata.merge(selected, on="run_id", how="left")

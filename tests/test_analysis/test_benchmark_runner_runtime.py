@@ -27,6 +27,7 @@ def test_build_runtime_summary_tracks_stage_shares_and_worker_config() -> None:
     assert summary["stage_shares"]["annual_validation"] == 0.6
     assert summary["slowest_stage"] == "annual_validation"
     assert summary["slowest_stage_seconds"] == 6.0
+    assert summary["slowest_stage_share"] == 0.6
     assert summary["worker_config"]["shared_workers_arg"] == 4
     assert summary["worker_config"]["annual_validation_county_workers_requested"] == 4
 
@@ -42,6 +43,7 @@ def test_build_runtime_summary_handles_empty_timings() -> None:
     assert summary["stage_shares"] == {}
     assert summary["slowest_stage"] is None
     assert summary["slowest_stage_seconds"] == 0.0
+    assert summary["slowest_stage_share"] == 0.0
 
 
 def test_register_dynamic_profile_methods_clones_search_only_dispatch() -> None:

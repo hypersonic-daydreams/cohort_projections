@@ -237,6 +237,8 @@ def resolve_workspace_state(
 
     benchmark_state = str(benchmark_brief.get("decision_state", "") or "")
     session_state = str(session_brief.get("session_decision_state", "") or "")
+    benchmark_operational_review = bool(benchmark_brief.get("operational_review_required", False))
+    session_operational_review = bool(session_brief.get("operational_review_required", False))
 
     if complete_bundle_count > 0 and index_present:
         if benchmark_state == "recommended":
@@ -257,6 +259,15 @@ def resolve_workspace_state(
                 "Ready for review",
                 "review",
             )
+        if benchmark_state == "mixed_signal" and benchmark_operational_review:
+            return _state_payload(
+                WORKSPACE_REVIEW_READY,
+                "Review Best Candidate",
+                "Benchmark evidence is available, but operational-quality warnings still need review.",
+                "Start in Decision Brief, confirm the operational warning, and validate the analytical evidence before escalating anything.",
+                "Review with caution",
+                "review",
+            )
         if benchmark_state in {"mixed_signal", "failed_hard_gate"}:
             return _state_payload(
                 WORKSPACE_SENIOR_JUDGMENT_NEEDED,
@@ -266,6 +277,16 @@ def resolve_workspace_state(
                 "Needs senior judgment",
                 "senior_review",
             )
+
+    if session_state == "mixed_signal" and session_operational_review:
+        return _state_payload(
+            WORKSPACE_REVIEW_READY,
+            "Review Best Candidate",
+            "The latest session produced benchmark evidence, but it still carries operational-quality warnings.",
+            "Review the best candidate in Decision Brief and the analytical tabs before deciding whether to escalate.",
+            "Review with caution",
+            "review",
+        )
 
     if session_state in {"mixed_signal", "failed_hard_gate"}:
         return _state_payload(

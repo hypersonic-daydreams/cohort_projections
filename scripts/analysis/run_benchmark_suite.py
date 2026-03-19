@@ -256,6 +256,10 @@ def _build_runtime_summary(
         "stage_shares": stage_shares,
         "slowest_stage": slowest_stage,
         "slowest_stage_seconds": round(slowest_seconds, 3),
+        "slowest_stage_share": round(
+            float(stage_shares.get(slowest_stage, 0.0)) if slowest_stage else 0.0,
+            4,
+        ),
         "worker_config": {
             "shared_workers_arg": workers_arg,
             "annual_validation_strategy": ("two_level" if workers_arg >= 8 else "county_only"),
@@ -460,8 +464,10 @@ def main() -> None:
             )
             scorecard["runtime_total_seconds"] = 0.0
             scorecard["slowest_stage_seconds"] = 0.0
+            scorecard["slowest_stage_share"] = 0.0
             scorecard["artifact_completeness_flag"] = False
             scorecard["reproducibility_logging_flag"] = bool(execution_log_run_id)
+            scorecard["runtime_summary_present"] = False
             comparison = build_comparison_to_champion(scorecard, args.champion_method)
             stage_timings["scorecard_build"] = round(time.perf_counter() - stage_start, 3)
 
@@ -503,6 +509,10 @@ def main() -> None:
             scorecard["slowest_stage_seconds"] = float(
                 runtime_summary.get("slowest_stage_seconds", 0.0)
             )
+            scorecard["slowest_stage_share"] = float(
+                runtime_summary.get("slowest_stage_share", 0.0)
+            )
+            scorecard["runtime_summary_present"] = True
             (run_dir / "runtime_summary.json").write_text(
                 json.dumps(runtime_summary, indent=2, sort_keys=True),
                 encoding="utf-8",
@@ -565,6 +575,7 @@ def main() -> None:
                 "operational_quality": {
                     "artifact_completeness_flag": False,
                     "reproducibility_logging_flag": bool(execution_log_run_id),
+                    "runtime_summary_present": True,
                     "baseline_only": bool(args.baseline_only),
                 },
             }

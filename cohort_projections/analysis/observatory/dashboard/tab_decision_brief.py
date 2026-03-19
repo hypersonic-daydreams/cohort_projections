@@ -67,6 +67,10 @@ def _decision_brief_markdown(dm: DashboardDataManager) -> str:
     safe_verdict = str(
         brief.get("safe_to_recommend_label", "") or "Not yet — collect more evidence first."
     )
+    operational_label = str(brief.get("operational_evidence_label", "") or "Operationally clean")
+    operational_summary = str(
+        brief.get("operational_evidence_summary", "") or "Operational evidence is clean."
+    )
 
     lines = [
         f"**Outcome:** {brief.get('user_status_label', status_labels.get(state, 'Needs more evidence'))}",
@@ -76,6 +80,10 @@ def _decision_brief_markdown(dm: DashboardDataManager) -> str:
         f"**Confidence:** {confidence_label}",
         "",
         f"**Main reason:** {main_reason}",
+        "",
+        f"**Operational quality:** {operational_label}",
+        "",
+        operational_summary,
         "",
         f"**Safe to recommend?** {safe_verdict}",
         "",
@@ -137,6 +145,10 @@ def _what_matters_markdown(dm: DashboardDataManager) -> str:
         brief.get("main_tradeoff", "") or "No blocking tradeoff is highlighted in the summary."
     )
     evidence_quality = str(brief.get("evidence_quality", "") or "Partial evidence")
+    operational_label = str(brief.get("operational_evidence_label", "") or "Operationally clean")
+    operational_summary = str(
+        brief.get("operational_evidence_summary", "") or "Operational evidence is clean."
+    )
     risk_flags = brief.get("risk_flags", [])
     if not isinstance(risk_flags, list):
         risk_flags = []
@@ -147,6 +159,10 @@ def _what_matters_markdown(dm: DashboardDataManager) -> str:
     return "\n".join(
         [
             f"**Evidence quality:** {evidence_quality}",
+            "",
+            f"**Operational quality:** {operational_label}",
+            "",
+            operational_summary,
             "",
             f"**Main gain:** {main_gain}",
             "",
@@ -209,6 +225,7 @@ def _verdict_strip_html(dm: DashboardDataManager) -> str:
     safe_verdict = str(
         brief.get("safe_to_recommend_label", "") or "Not yet — collect more evidence first."
     )
+    operational_label = str(brief.get("operational_evidence_label", "") or "Operationally clean")
     raw_subject_id = str(brief.get("raw_subject_id", "") or "")
     source = str(brief.get("source", "") or "")
 
@@ -222,6 +239,7 @@ def _verdict_strip_html(dm: DashboardDataManager) -> str:
         ("Outcome", status_label, False),
         ("Confidence", confidence_label, False),
         ("Main reason", main_reason, True),
+        ("Operational quality", operational_label, False),
         ("Next action", next_step, True),
         ("Escalation guidance", escalation, False),
     ]

@@ -30,6 +30,13 @@ SAMPLE_POLICY: dict[str, Any] = {
         "county_mape_bakken": {"max_regression": 0.50},
         "county_mape_overall": {"max_regression": 0.05},
     },
+    "operational_quality": {
+        "require_artifact_completeness": True,
+        "require_runtime_summary": True,
+        "review_if_reproducibility_logging_missing": True,
+        "warn_if_runtime_multiple_of_median_exceeds": 2.5,
+        "warn_if_slowest_stage_share_exceeds": 0.75,
+    },
     "agent_classification_rules": {},
 }
 
@@ -43,6 +50,11 @@ def _make_row(
     county_mape_bakken: float = 0.20,
     county_mape_overall: float = 0.03,
     sensitivity_instability_flag: bool = False,
+    artifact_completeness_flag: bool = True,
+    reproducibility_logging_flag: bool = True,
+    runtime_summary_present: bool = True,
+    runtime_total_seconds: float = 10.0,
+    slowest_stage_share: float = 0.50,
     **extra: Any,
 ) -> dict[str, Any]:
     """Build a synthetic scorecard row with sensible defaults."""
@@ -54,6 +66,11 @@ def _make_row(
         "county_mape_bakken": county_mape_bakken,
         "county_mape_overall": county_mape_overall,
         "sensitivity_instability_flag": sensitivity_instability_flag,
+        "artifact_completeness_flag": artifact_completeness_flag,
+        "reproducibility_logging_flag": reproducibility_logging_flag,
+        "runtime_summary_present": runtime_summary_present,
+        "runtime_total_seconds": runtime_total_seconds,
+        "slowest_stage_share": slowest_stage_share,
     }
     row.update(extra)
     return row
@@ -205,6 +222,50 @@ class TestEvaluateScorecard:
         assert result["classification"] == "failed_hard_gate"
         assert result["hard_gate_results"]["negative_population_violations"]["passed"] is False
         assert result["tradeoff_results"]["county_mape_rural"]["passed"] is False
+
+    def test_evaluate_inconclusive_when_artifacts_incomplete(
+        self,
+        policy: dict[str, Any],
+    ) -> None:
+        champion = _make_row()
+        challenger = _make_row(artifact_completeness_flag=False)
+
+        result = evaluate_scorecard(challenger, champion, policy)
+
+        assert result["classification"] == "inconclusive"
+        assert result["operational_blocked"] is True
+        assert result["operational_results"]["artifact_completeness"]["passed"] is False
+
+    def test_evaluate_needs_review_when_reproducibility_logging_missing(
+        self,
+        policy: dict[str, Any],
+    ) -> None:
+        champion = _make_row()
+        challenger = _make_row(reproducibility_logging_flag=False)
+
+        result = evaluate_scorecard(challenger, champion, policy)
+
+        assert result["classification"] == "needs_human_review"
+        assert result["operational_review_required"] is True
+        assert result["operational_results"]["reproducibility_logging"]["passed"] is False
+
+    def test_evaluate_needs_review_for_runtime_outlier(
+        self,
+        policy: dict[str, Any],
+    ) -> None:
+        champion = _make_row()
+        challenger = _make_row(runtime_total_seconds=30.0)
+
+        result = evaluate_scorecard(
+            challenger,
+            champion,
+            policy,
+            runtime_context={"median_duration_seconds": 10.0},
+        )
+
+        assert result["classification"] == "needs_human_review"
+        assert result["operational_review_required"] is True
+        assert result["operational_results"]["runtime_multiple_of_median"]["passed"] is False
 
     def test_evaluate_missing_fields_default_to_zero(self, policy: dict[str, Any]) -> None:
         """Challenger row missing gate fields should default to 0 and pass."""

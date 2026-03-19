@@ -30,6 +30,7 @@ def test_validate_manifest_accepts_required_fields() -> None:
         "execution_log_run_id": "exec-1",
         "duration_seconds": 1.2,
         "runtime_summary": {},
+        "operational_quality": {},
     }
     validate_manifest(manifest)
 

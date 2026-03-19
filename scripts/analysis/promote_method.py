@@ -9,19 +9,23 @@ from pathlib import Path
 
 from cohort_projections.analysis.benchmarking import (
     DEFAULT_ALIAS_PATH,
+    DEFAULT_HISTORY_DIR,
     DEFAULT_PROFILE_DIR,
     DEFAULT_PROMOTION_HISTORY,
     PROJECT_ROOT,
     append_promotion_history,
     decision_file_is_approved,
     load_method_profile,
+    refresh_latest_benchmark_pointers,
     update_alias_mapping,
 )
 
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Promote a method alias after approved review.")
-    parser.add_argument("--scope", default="county", help="Promotion scope; stored for operator context.")
+    parser.add_argument(
+        "--scope", default="county", help="Promotion scope; stored for operator context."
+    )
     parser.add_argument("--alias", required=True, help="Alias to update.")
     parser.add_argument("--method-id", required=True, help="Target immutable method ID.")
     parser.add_argument("--config-id", required=True, help="Target immutable config ID.")
@@ -49,6 +53,12 @@ def _parse_args() -> argparse.Namespace:
         type=Path,
         default=DEFAULT_PROMOTION_HISTORY,
         help="CSV file for alias promotion audit history.",
+    )
+    parser.add_argument(
+        "--history-dir",
+        type=Path,
+        default=DEFAULT_HISTORY_DIR,
+        help="Benchmark history directory containing canonical run bundles.",
     )
     parser.add_argument(
         "--revalidate",
@@ -105,6 +115,20 @@ def main() -> None:
             cmd,
             cwd=PROJECT_ROOT,
             check=True,
+        )
+
+    try:
+        refresh_latest_benchmark_pointers(
+            history_dir=args.history_dir,
+            alias_path=args.alias_path,
+            scope=args.scope,
+            alias_name=args.alias,
+            promotion_history_path=args.promotion_history,
+            decision_dir=args.decision_dir,
+        )
+    except Exception as exc:
+        print(
+            f"Warning: promotion succeeded but latest benchmark pointers were not refreshed: {exc}"
         )
     print(f"Updated {args.alias} -> {args.method_id} / {args.config_id}")
 

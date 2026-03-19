@@ -59,6 +59,13 @@ tradeoff_metrics:
   county_mape_college_heavy_non_core:
     max_regression: 0.15
 
+operational_quality:
+  require_artifact_completeness: true
+  require_runtime_summary: true
+  review_if_reproducibility_logging_missing: true
+  warn_if_runtime_multiple_of_median_exceeds: 2.5
+  warn_if_slowest_stage_share_exceeds: 0.75
+
 promotion_policy:
   state_ape_recent_short_min_improvement: 0.10
   state_ape_recent_medium_min_improvement: 0.25

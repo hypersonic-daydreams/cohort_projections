@@ -2,6 +2,7 @@
 
 from .benchmarking import (
     BENCHMARK_CONTRACT_VERSION,
+    DEFAULT_LATEST_DIR,
     append_benchmark_index,
     append_promotion_history,
     build_comparison_to_champion,
@@ -11,6 +12,7 @@ from .benchmarking import (
     decision_file_is_approved,
     load_aliases,
     load_method_profile,
+    refresh_latest_benchmark_pointers,
     render_benchmark_decision_record,
     update_alias_mapping,
     with_county_categories,
@@ -19,6 +21,7 @@ from .benchmarking import (
 
 __all__ = [
     "BENCHMARK_CONTRACT_VERSION",
+    "DEFAULT_LATEST_DIR",
     "append_benchmark_index",
     "append_promotion_history",
     "build_comparison_to_champion",
@@ -28,6 +31,7 @@ __all__ = [
     "decision_file_is_approved",
     "load_aliases",
     "load_method_profile",
+    "refresh_latest_benchmark_pointers",
     "render_benchmark_decision_record",
     "update_alias_mapping",
     "with_county_categories",

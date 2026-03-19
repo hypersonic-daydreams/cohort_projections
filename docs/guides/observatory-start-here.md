@@ -137,8 +137,16 @@ current codebase:
 - `P9` segmentation refinement is implemented in the benchmark scorecard with
   reservation, smallest-county, volatile-oil, and college-heavy non-core
   lenses.
-- `P10` operational-quality tracking is now recorded in benchmark artifacts and
-  Observatory status output.
+- `P10` operational-quality tracking is now active in policy-backed decisions:
+  benchmark artifacts still record runtime/reproducibility/completeness, and
+  the Observatory now uses those signals to block unusable evidence, downgrade
+  reproducibility/runtime warnings to review-required states, and require
+  operationally clean benchmark evidence before `Prepare Recommendation`
+  appears.
+- `P1` history smoke tests and the convenience latest-pointer updater are now
+  implemented. `data/analysis/benchmark_history/latest/` provides alias-aligned
+  quick lookup for the newest benchmark bundle matching the current immutable
+  alias target, while dated run directories and `index.csv` remain canonical.
 
 ## Session Start Shortcut
 

@@ -203,6 +203,32 @@ class TestCmdStatus:
             }
         )
         store.get_run_ids.return_value = ["run-001"]
+        store.get_consolidated_scorecards.return_value = pd.DataFrame(
+            [
+                {
+                    "run_id": "run-001",
+                    "method_id": "m2026",
+                    "config_id": "cfg-base",
+                    "status_at_run": "champion",
+                    "county_mape_overall": 8.5,
+                    "artifact_completeness_flag": True,
+                    "reproducibility_logging_flag": True,
+                    "runtime_summary_present": True,
+                    "runtime_total_seconds": 10.0,
+                    "slowest_stage_share": 0.40,
+                }
+            ]
+        )
+        store.get_runtime_history.return_value = pd.DataFrame(
+            [
+                {
+                    "run_id": "run-001",
+                    "total_duration_seconds": 10.0,
+                    "slowest_stage": "annual_validation",
+                }
+            ]
+        )
+        store.get_experiment_log.return_value = pd.DataFrame()
         args = cli_mod.build_parser().parse_args(["status"])
 
         catalog = MagicMock()
@@ -226,6 +252,8 @@ class TestCmdStatus:
         assert rc == 0
         out = capsys.readouterr().out
         assert "Completed runs: 1" in out
+        assert "P90 benchmark runtime" in out
+        assert "Operationally blocked bundles: 0" in out
         assert "Untested runnable: 1" in out
         assert "Untested requiring code changes: 1" in out
         assert "Blocked grids: 1" in out

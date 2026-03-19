@@ -49,8 +49,10 @@ SUMMARY_SCORECARD_COLUMNS: tuple[str, ...] = (
     "sensitivity_instability_flag",
     "artifact_completeness_flag",
     "reproducibility_logging_flag",
+    "runtime_summary_present",
     "runtime_total_seconds",
     "slowest_stage_seconds",
+    "slowest_stage_share",
 )
 
 MANIFEST_FIELDS: tuple[str, ...] = (
@@ -72,6 +74,7 @@ MANIFEST_FIELDS: tuple[str, ...] = (
     "execution_log_run_id",
     "duration_seconds",
     "runtime_summary",
+    "operational_quality",
 )
 
 

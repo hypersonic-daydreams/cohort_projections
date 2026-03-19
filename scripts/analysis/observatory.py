@@ -241,6 +241,87 @@ def _load_config(config_path: Path) -> dict[str, Any]:
         return {}
 
 
+def _select_run_operational_rows(scorecards: pd.DataFrame) -> pd.DataFrame:
+    """Collapse scorecards to one operational row per run."""
+    if scorecards.empty or "run_id" not in scorecards.columns:
+        return pd.DataFrame()
+
+    rows: list[pd.Series] = []
+    for _, group in scorecards.groupby("run_id", sort=False):
+        if "status_at_run" in group.columns:
+            non_champion = group[
+                group["status_at_run"].fillna("").astype(str).str.lower() != "champion"
+            ]
+            target = non_champion.iloc[0] if not non_champion.empty else group.iloc[0]
+        else:
+            target = group.iloc[0]
+        rows.append(target)
+    return pd.DataFrame(rows).reset_index(drop=True) if rows else pd.DataFrame()
+
+
+def _collect_operational_quality_summary(store: Any) -> dict[str, Any]:
+    """Summarize operational-quality health across benchmark bundles."""
+    try:
+        from cohort_projections.analysis.evaluation_policy import (
+            evaluate_operational_quality,
+            load_policy,
+            summarize_runtime_context,
+        )
+    except Exception:
+        return {}
+
+    try:
+        scorecards = store.get_consolidated_scorecards()
+    except Exception:
+        return {}
+    if not isinstance(scorecards, pd.DataFrame) or scorecards.empty:
+        return {}
+
+    run_rows = _select_run_operational_rows(scorecards)
+    if run_rows.empty:
+        return {}
+
+    try:
+        runtime_history = store.get_runtime_history()
+    except Exception:
+        runtime_history = pd.DataFrame()
+    if not isinstance(runtime_history, pd.DataFrame):
+        runtime_history = pd.DataFrame()
+    runtime_context = summarize_runtime_context(runtime_history)
+    policy = load_policy()
+
+    blocked_count = 0
+    review_count = 0
+    complete_count = 0
+    reproducibility_success_count = 0
+
+    for _, row in run_rows.iterrows():
+        evaluation = evaluate_operational_quality(row.to_dict(), policy, runtime_context)
+        if evaluation["blocked"]:
+            blocked_count += 1
+        elif evaluation["review_required"]:
+            review_count += 1
+
+        artifact_complete = bool(row.get("artifact_completeness_flag", False))
+        runtime_summary_present = bool(row.get("runtime_summary_present", False))
+        if artifact_complete and runtime_summary_present:
+            complete_count += 1
+            if bool(row.get("reproducibility_logging_flag", False)):
+                reproducibility_success_count += 1
+
+    reproducibility_success_rate = (
+        reproducibility_success_count / complete_count if complete_count > 0 else None
+    )
+
+    return {
+        "complete_bundle_count": complete_count,
+        "operationally_blocked_count": blocked_count,
+        "operational_review_required_count": review_count,
+        "reproducibility_success_rate_complete": reproducibility_success_rate,
+        **runtime_context,
+    }
+
+
 # ---------------------------------------------------------------------------
 # CLI argument parsing
 # ---------------------------------------------------------------------------
@@ -803,7 +884,9 @@ def build_parser() -> argparse.ArgumentParser:
         parents=[common],
         help="Render a Markdown report for one autonomous-search session.",
     )
-    search_report_parser.add_argument("--search-id", required=True, help="Search session identifier.")
+    search_report_parser.add_argument(
+        "--search-id", required=True, help="Search session identifier."
+    )
     search_report_parser.add_argument(
         "--output",
         type=Path,
@@ -976,22 +1059,11 @@ def cmd_status(
 
     runtime_data: dict[str, Any] = {}
     try:
-        runtime_history = store.get_runtime_history()
-        if not runtime_history.empty:
-            runtime_data = {
-                "median_duration_seconds": float(
-                    runtime_history["total_duration_seconds"].median()
-                ),
-                "slowest_stage_mode": str(
-                    runtime_history["slowest_stage"].mode(dropna=True).iloc[0]
-                )
-                if "slowest_stage" in runtime_history.columns
-                and not runtime_history["slowest_stage"].mode(dropna=True).empty
-                else "",
-            }
+        runtime_data = _collect_operational_quality_summary(store)
     except Exception as e:
         runtime_data["error"] = str(e)
     status_data["runtime"] = runtime_data
+    status_data["operational_quality"] = runtime_data
 
     # Variant catalog
     catalog = _load_variant_catalog(config)
@@ -1039,7 +1111,16 @@ def cmd_status(
             "grid_blocked": catalog_data.get("grid_blocked", ""),
             "grid_blocked_ids": ";".join(catalog_data.get("grid_blocked_ids", [])),
             "median_duration_seconds": runtime_data.get("median_duration_seconds", ""),
+            "p90_duration_seconds": runtime_data.get("p90_duration_seconds", ""),
             "slowest_stage_mode": runtime_data.get("slowest_stage_mode", ""),
+            "complete_bundle_count": runtime_data.get("complete_bundle_count", ""),
+            "operationally_blocked_count": runtime_data.get("operationally_blocked_count", ""),
+            "operational_review_required_count": runtime_data.get(
+                "operational_review_required_count", ""
+            ),
+            "reproducibility_success_rate_complete": runtime_data.get(
+                "reproducibility_success_rate_complete", ""
+            ),
         }
         writer = csv.DictWriter(sys.stdout, fieldnames=list(flat.keys()))
         writer.writeheader()
@@ -1065,10 +1146,26 @@ def cmd_status(
             "  Median benchmark runtime: "
             f"{runtime_data.get('median_duration_seconds', 0.0):.1f} seconds"
         )  # noqa: T201
-        if runtime_data.get("slowest_stage_mode"):
+        if runtime_data.get("p90_duration_seconds") is not None:
             print(
-                "  Most common bottleneck stage: "
-                f"{runtime_data['slowest_stage_mode']}"
+                "  P90 benchmark runtime: "
+                f"{runtime_data.get('p90_duration_seconds', 0.0):.1f} seconds"
+            )  # noqa: T201
+        if runtime_data.get("slowest_stage_mode"):
+            print(f"  Most common bottleneck stage: {runtime_data['slowest_stage_mode']}")  # noqa: T201
+        if runtime_data.get("complete_bundle_count") is not None:
+            reproducibility_rate = runtime_data.get("reproducibility_success_rate_complete")
+            print(
+                "  Complete bundles with reproducibility logging: "
+                f"{((reproducibility_rate or 0.0) * 100):.0f}%"
+            )  # noqa: T201
+            print(
+                "  Operationally blocked bundles: "
+                f"{runtime_data.get('operationally_blocked_count', 0)}"
+            )  # noqa: T201
+            print(
+                "  Bundles needing operational review: "
+                f"{runtime_data.get('operational_review_required_count', 0)}"
             )  # noqa: T201
 
     print()  # noqa: T201
@@ -2562,6 +2659,20 @@ def _get_champion_challenger(store: Any, primary_metric: str) -> dict[str, Any]:
     if candidates.empty or primary_metric not in candidates.columns:
         return result
 
+    try:
+        experiment_log = store.get_experiment_log()
+    except Exception:
+        experiment_log = pd.DataFrame()
+    if not isinstance(experiment_log, pd.DataFrame):
+        experiment_log = pd.DataFrame()
+    if not experiment_log.empty and {"run_id", "outcome"}.issubset(experiment_log.columns):
+        latest_outcomes = (
+            experiment_log[["run_id", "outcome"]]
+            .dropna(subset=["run_id"])
+            .drop_duplicates(subset=["run_id"], keep="last")
+        )
+        candidates = candidates.merge(latest_outcomes, on="run_id", how="left")
+
     champion_df = (
         candidates[candidates.get("status_at_run") == "champion"]
         if "status_at_run" in candidates.columns
@@ -2586,6 +2697,10 @@ def _get_champion_challenger(store: Any, primary_metric: str) -> dict[str, Any]:
         if "status_at_run" in candidates.columns
         else candidates.head(0)
     )
+    if "outcome" in non_champion.columns:
+        non_champion = non_champion[
+            non_champion["outcome"].fillna("").astype(str) != "inconclusive"
+        ]
     if not non_champion.empty:
         best_idx = non_champion[primary_metric].idxmin()
         best_challenger_id = non_champion.loc[best_idx].get("config_id", "unknown")
@@ -2627,6 +2742,20 @@ def _print_champion_challenger(store: Any, primary_metric: str) -> None:
     print()  # noqa: T201
 
     # Identify champion: rows where status_at_run == "champion"
+    try:
+        experiment_log = store.get_experiment_log()
+    except Exception:
+        experiment_log = pd.DataFrame()
+    if not isinstance(experiment_log, pd.DataFrame):
+        experiment_log = pd.DataFrame()
+    if not experiment_log.empty and {"run_id", "outcome"}.issubset(experiment_log.columns):
+        latest_outcomes = (
+            experiment_log[["run_id", "outcome"]]
+            .dropna(subset=["run_id"])
+            .drop_duplicates(subset=["run_id"], keep="last")
+        )
+        candidates = candidates.merge(latest_outcomes, on="run_id", how="left")
+
     champion_df = (
         candidates[candidates.get("status_at_run") == "champion"]
         if "status_at_run" in candidates.columns
@@ -2652,6 +2781,10 @@ def _print_champion_challenger(store: Any, primary_metric: str) -> None:
         if "status_at_run" in candidates.columns
         else candidates.head(0)
     )
+    if "outcome" in non_champion.columns:
+        non_champion = non_champion[
+            non_champion["outcome"].fillna("").astype(str) != "inconclusive"
+        ]
     if not non_champion.empty:
         best_idx = non_champion[primary_metric].idxmin()
         best_challenger_id = non_champion.loc[best_idx].get("config_id", "unknown")

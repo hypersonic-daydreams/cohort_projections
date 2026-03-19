@@ -64,6 +64,9 @@ from cohort_projections.analysis.observatory.dashboard.theme import (
     build_tabs_stylesheet,
     resolve_layout_mode,
 )
+from cohort_projections.analysis.observatory.dashboard.workspace_state import (
+    resolve_workspace_state,
+)
 from cohort_projections.analysis.observatory.decision_support import (
     build_benchmark_decision_brief,
     build_candidate_decision_summary,
@@ -107,6 +110,9 @@ def _build_fixture_frames() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
                 "status_at_run": "champion",
                 "county_mape_overall": 8.86,
                 "state_ape_recent_short": 0.95,
+                "artifact_completeness_flag": True,
+                "reproducibility_logging_flag": True,
+                "runtime_summary_present": True,
             },
             {
                 "run_id": "br-champion",
@@ -115,6 +121,9 @@ def _build_fixture_frames() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
                 "status_at_run": "candidate",
                 "county_mape_overall": 8.70,
                 "state_ape_recent_short": 0.87,
+                "artifact_completeness_flag": True,
+                "reproducibility_logging_flag": True,
+                "runtime_summary_present": True,
             },
             {
                 "run_id": "br-review",
@@ -123,6 +132,9 @@ def _build_fixture_frames() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
                 "status_at_run": "champion",
                 "county_mape_overall": 8.86,
                 "state_ape_recent_short": 0.95,
+                "artifact_completeness_flag": True,
+                "reproducibility_logging_flag": True,
+                "runtime_summary_present": True,
             },
             {
                 "run_id": "br-review",
@@ -131,6 +143,9 @@ def _build_fixture_frames() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
                 "status_at_run": "experiment",
                 "county_mape_overall": 8.84,
                 "state_ape_recent_short": 0.90,
+                "artifact_completeness_flag": True,
+                "reproducibility_logging_flag": False,
+                "runtime_summary_present": True,
             },
             {
                 "run_id": "br-passed",
@@ -139,6 +154,9 @@ def _build_fixture_frames() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
                 "status_at_run": "champion",
                 "county_mape_overall": 8.86,
                 "state_ape_recent_short": 0.95,
+                "artifact_completeness_flag": True,
+                "reproducibility_logging_flag": True,
+                "runtime_summary_present": True,
             },
             {
                 "run_id": "br-passed",
@@ -147,6 +165,9 @@ def _build_fixture_frames() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
                 "status_at_run": "experiment",
                 "county_mape_overall": 8.50,
                 "state_ape_recent_short": 0.82,
+                "artifact_completeness_flag": True,
+                "reproducibility_logging_flag": True,
+                "runtime_summary_present": True,
             },
         ]
     )
@@ -963,6 +984,69 @@ def test_build_benchmark_decision_brief_handles_champion_only_archive() -> None:
     assert "only benchmark-backed option" in brief["headline"]
 
 
+def test_build_benchmark_decision_brief_marks_reproducibility_warning_as_mixed_signal() -> None:
+    """Operational review warnings should block recommendation readiness."""
+    metadata = pd.DataFrame(
+        [
+            {
+                "run_id": "br-champion",
+                "display_name": "Champion",
+                "selected_county_mape_overall": 8.86,
+                "reference_county_mape_overall": 8.86,
+                "status_code": "champion",
+                "run_date_sort": pd.Timestamp("2026-03-09"),
+            },
+            {
+                "run_id": "br-review",
+                "display_name": "Careful Challenger",
+                "selected_county_mape_overall": 8.50,
+                "reference_county_mape_overall": 8.86,
+                "status_code": "needs_human_review",
+                "selected_artifact_completeness_flag": True,
+                "selected_runtime_summary_present": True,
+                "selected_reproducibility_logging_flag": False,
+                "run_date_sort": pd.Timestamp("2026-03-10"),
+            },
+        ]
+    )
+
+    brief = build_benchmark_decision_brief(
+        metadata,
+        champion_id="br-champion",
+        history_snapshot={
+            "index_present": True,
+            "complete_bundle_count": 2,
+            "incomplete_bundle_count": 0,
+        },
+    )
+
+    assert brief["decision_state"] == "mixed_signal"
+    assert brief["operational_review_required"] is True
+    assert brief["safe_to_recommend"] is False
+    assert brief["operational_evidence_label"] == "Needs operational review"
+
+
+def test_resolve_workspace_state_routes_operational_warning_to_review() -> None:
+    """Operational mixed signals should still route into guided review, not recommendation prep."""
+    state = resolve_workspace_state(
+        preflight={
+            "state": "review_ready",
+            "complete_bundle_count": 2,
+            "history_index_present": True,
+            "incomplete_bundle_count": 0,
+        },
+        benchmark_brief={
+            "decision_state": "mixed_signal",
+            "operational_review_required": True,
+        },
+        session_brief={},
+        active_search_id=None,
+    )
+
+    assert state["state"] == "review_ready"
+    assert state["dominant_route"] == "review"
+
+
 def test_build_benchmark_decision_brief_surfaces_failed_hard_gate_front_runner() -> None:
     """Failed hard-gate challengers should not be presented as review-ready."""
     metadata = pd.DataFrame(
@@ -1099,12 +1183,15 @@ def test_decision_brief_markdown_surfaces_state_headline_and_next_step() -> None
             "session_blocker_summary": "Required input data is missing at `/shared/cc-est2024-agesex-all.parquet`.",
             "session_recommendation": "Restore the missing input data and rerun the blocked candidates.",
             "recommendation_candidate_id": "",
+            "operational_evidence_label": "Operational blocker",
+            "operational_evidence_summary": "Runtime summary evidence is missing.",
         }
     )
 
     body = _decision_brief_markdown(cast(DashboardDataManager, dm))
 
     assert "**Outcome:** Blocked" in body
+    assert "**Operational quality:** Operational blocker" in body
     assert "Required input data is missing" in body
     assert "Restore the missing input data and rerun the blocked candidates." in body
 
