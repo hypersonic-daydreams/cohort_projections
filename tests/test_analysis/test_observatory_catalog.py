@@ -117,13 +117,21 @@ def experiment_log() -> pd.DataFrame:
 @pytest.fixture()
 def catalog(catalog_path: Path) -> VariantCatalog:
     """VariantCatalog with no experiment log."""
-    return VariantCatalog(catalog_path=catalog_path, experiment_log=pd.DataFrame())
+    return VariantCatalog(
+        catalog_path=catalog_path,
+        experiment_log=pd.DataFrame(),
+        ignore_catalog_results=False,
+    )
 
 
 @pytest.fixture()
 def catalog_with_log(catalog_path: Path, experiment_log: pd.DataFrame) -> VariantCatalog:
     """VariantCatalog cross-referenced with an experiment log."""
-    return VariantCatalog(catalog_path=catalog_path, experiment_log=experiment_log)
+    return VariantCatalog(
+        catalog_path=catalog_path,
+        experiment_log=experiment_log,
+        ignore_catalog_results=False,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -256,10 +264,29 @@ class TestListVariants:
         assert tested.iloc[0]["variant_id"] == "exp-b"
 
     def test_tested_with_inline_results(self, catalog_with_results_path: Path) -> None:
-        cat = VariantCatalog(catalog_path=catalog_with_results_path, experiment_log=pd.DataFrame())
+        cat = VariantCatalog(
+            catalog_path=catalog_with_results_path,
+            experiment_log=pd.DataFrame(),
+            ignore_catalog_results=False,
+        )
         df = cat.list_variants()
         tested = df[df["tested"]]
         assert len(tested) >= 1
+
+    def test_inline_results_ignored_in_fresh_start_mode(
+        self,
+        catalog_with_results_path: Path,
+        tmp_path: Path,
+    ) -> None:
+        marker = tmp_path / "fresh_start_state.json"
+        marker.write_text("{}", encoding="utf-8")
+        cat = VariantCatalog(
+            catalog_path=catalog_with_results_path,
+            experiment_log=pd.DataFrame(),
+            fresh_start_marker_path=marker,
+        )
+        df = cat.list_variants()
+        assert df["tested"].sum() == 0
 
 
 # ---------------------------------------------------------------------------

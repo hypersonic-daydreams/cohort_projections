@@ -69,6 +69,8 @@ from multiple documents.
   `scripts/windows/install_projection_observatory_shortcuts.cmd`
 - Static experiment dashboard builder:
   `scripts/analysis/build_experiment_dashboard.py`
+- Fresh-start reset utility:
+  `scripts/analysis/reset_observatory_workspace.py`
 - Search-loop operator guide: `docs/guides/observatory-search-loop.md`
 - Autonomous search guide: `docs/guides/observatory-autonomous-search.md`
 - Full benchmark workflow guide: `docs/guides/benchmarking-workflow.md`
@@ -115,6 +117,26 @@ from multiple documents.
   benchmark-history views across all runs, champion-at-run baselines, metric
   delta heatmaps, category-level trend lines, and accepted/rejected
   challenger history.
+
+## Clean Restart
+
+If you want to discard the current active Observatory workspace and begin from
+an empty first-run state, use the fresh-start reset script:
+
+```bash
+source .venv/bin/activate
+python scripts/analysis/reset_observatory_workspace.py
+```
+
+This operation is non-destructive. It archives the active benchmark history,
+experiment log, cache, and autonomous-search runtime/session state under
+`data/analysis/observatory_archives/`, then recreates an empty
+`benchmark_history/index.csv` plus an empty `experiment_log.csv`. By default it
+keeps `benchmark_history/promotion_history.csv` in place so alias-governance
+history is preserved even though active Observatory evidence is reset. The
+reset also activates a fresh-start marker under `data/analysis/observatory/`
+so the variant catalog ignores embedded historical `results` blocks until you
+remove that marker.
 
 ## Follow-On Roadmap Status
 

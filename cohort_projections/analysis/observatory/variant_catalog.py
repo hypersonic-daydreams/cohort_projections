@@ -41,11 +41,17 @@ import yaml
 from cohort_projections.analysis.experiment_log import (
     _match_config_delta,
 )
+from cohort_projections.analysis.observatory.results_store import (
+    load_observatory_config,
+)
 from cohort_projections.analysis.observatory.runtime_contract import (
     get_runtime_injectable_parameters,
 )
 from cohort_projections.analysis.observatory.status import (
     resolve_observatory_status,
+)
+from cohort_projections.analysis.observatory.workspace_reset import (
+    FRESH_START_MARKER_FILENAME,
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -53,6 +59,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CATALOG_PATH = PROJECT_ROOT / "config" / "observatory_variants.yaml"
 DEFAULT_PENDING_DIR = PROJECT_ROOT / "data" / "analysis" / "experiments" / "pending"
 DEFAULT_LOG_PATH = PROJECT_ROOT / "data" / "analysis" / "experiments" / "experiment_log.csv"
+DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config" / "observatory_config.yaml"
 
 
 # ---------------------------------------------------------------------------
@@ -141,6 +148,22 @@ def _expand_grid_parameters(
     return expanded
 
 
+def _resolve_project_path(raw_path: str | Path) -> Path:
+    path = Path(raw_path)
+    if path.is_absolute():
+        return path
+    return PROJECT_ROOT / path
+
+
+def _default_fresh_start_marker_path() -> Path:
+    try:
+        config = load_observatory_config(DEFAULT_CONFIG_PATH)
+        cache_dir = _resolve_project_path(config.get("cache_dir", "data/analysis/observatory"))
+    except Exception:
+        cache_dir = PROJECT_ROOT / "data" / "analysis" / "observatory"
+    return cache_dir.resolve() / FRESH_START_MARKER_FILENAME
+
+
 # ---------------------------------------------------------------------------
 # VariantCatalog
 # ---------------------------------------------------------------------------
@@ -156,6 +179,11 @@ class VariantCatalog:
         catalog_path: Path to the ``observatory_variants.yaml`` file.
         experiment_log: Pre-loaded experiment log DataFrame, or None to
             load from the default CSV path.
+        ignore_catalog_results: When ``True``, ignore inline historical
+            ``results`` blocks embedded in the catalog YAML and determine
+            tested status from fresh-start runtime evidence only.
+        fresh_start_marker_path: Optional override for the marker file that
+            activates fresh-start mode when present.
 
     Raises:
         FileNotFoundError: If the catalog YAML file does not exist.
@@ -166,6 +194,9 @@ class VariantCatalog:
         self,
         catalog_path: Path = DEFAULT_CATALOG_PATH,
         experiment_log: pd.DataFrame | None = None,
+        *,
+        ignore_catalog_results: bool | None = None,
+        fresh_start_marker_path: Path | None = None,
     ) -> None:
         if not catalog_path.exists():
             raise FileNotFoundError(f"Catalog file not found: {catalog_path}")
@@ -183,6 +214,16 @@ class VariantCatalog:
         self._grids: dict[str, dict[str, Any]] = raw.get("grids", {})
         self._parameter_bounds: dict[str, dict[str, Any]] = raw.get("parameter_bounds", {})
         self._runtime_params: frozenset[str] = get_runtime_injectable_parameters()
+        self._fresh_start_marker_path = (
+            Path(fresh_start_marker_path).resolve()
+            if fresh_start_marker_path is not None
+            else _default_fresh_start_marker_path()
+        )
+        self._ignore_catalog_results = (
+            bool(ignore_catalog_results)
+            if ignore_catalog_results is not None
+            else self._fresh_start_marker_path.exists()
+        )
 
         # Load or accept the experiment log
         if experiment_log is not None:
@@ -236,7 +277,7 @@ class VariantCatalog:
                 log_outcome = outcomes.iloc[-1]
 
         catalog_status = ""
-        if "results" in vdef:
+        if "results" in vdef and not self._ignore_catalog_results:
             catalog_status = str(vdef["results"].get("status", "") or "")
 
         tested = bool(catalog_status) or not matching_log.empty
