@@ -8,10 +8,11 @@ Panel dashboard.
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pandas as pd
+import panel as pn
 import pytest
 
 import scripts.analysis.observatory_dashboard as dashboard_launcher
@@ -30,6 +31,7 @@ from cohort_projections.analysis.observatory.dashboard.data_manager import (
     select_run_preset,
 )
 from cohort_projections.analysis.observatory.dashboard.tab_command_center import (
+    _build_onboarding_card,
     _command_center_summary,
     _enter_guided_review,
     _queue_health_snapshot,
@@ -37,6 +39,7 @@ from cohort_projections.analysis.observatory.dashboard.tab_command_center import
 )
 from cohort_projections.analysis.observatory.dashboard.tab_decision_brief import (
     _decision_brief_markdown,
+    _verdict_strip_html,
     build_decision_brief_tab,
 )
 from cohort_projections.analysis.observatory.dashboard.tab_history import (
@@ -46,13 +49,20 @@ from cohort_projections.analysis.observatory.dashboard.tab_horizon_bias import (
     _horizon_takeaway_text,
 )
 from cohort_projections.analysis.observatory.dashboard.tab_projection_ensemble import (
+    _build_projection_focus_summary,
     _projection_takeaway_text,
 )
 from cohort_projections.analysis.observatory.dashboard.tab_scorecard import (
+    _build_delta_bar_chart,
     _scorecard_takeaway_text,
 )
 from cohort_projections.analysis.observatory.dashboard.tab_sensitivity import (
+    _build_recommendation_cards,
     _sensitivity_takeaway_text,
+)
+from cohort_projections.analysis.observatory.dashboard.theme import (
+    build_tabs_stylesheet,
+    resolve_layout_mode,
 )
 from cohort_projections.analysis.observatory.decision_support import (
     build_benchmark_decision_brief,
@@ -244,12 +254,24 @@ def _make_dashboard_manager(
                 return None
             return str(champion.iloc[0]["run_id"])
 
+        def best_variant_per_group(self) -> dict[str, dict[str, object]]:
+            return {}
+
+        def county_group_impact(self) -> pd.DataFrame:
+            return pd.DataFrame()
+
     class DummyRecommender:
         def __init__(self, store, comparator=None, config=None, bounds_catalog=None) -> None:
             self._recommendations = list(recommendations or [])
 
-        def suggest_next_experiments(self, limit: int):
+        def suggest_next_experiments(self, limit: int = 5):
             return self._recommendations[:limit]
+
+        def identify_persistent_weaknesses(self) -> pd.DataFrame:
+            return pd.DataFrame()
+
+        def parameter_sensitivity_summary(self) -> pd.DataFrame:
+            return pd.DataFrame()
 
     monkeypatch.setattr(
         "cohort_projections.analysis.observatory.dashboard.data_manager.ObservatoryComparator",
@@ -261,7 +283,14 @@ def _make_dashboard_manager(
     )
     monkeypatch.setattr(
         "cohort_projections.analysis.observatory.dashboard.data_manager.load_search_policy",
-        lambda: SimpleNamespace(project_root=session_root.parent, session_root=session_root),
+        lambda: SimpleNamespace(
+            project_root=session_root.parent,
+            session_root=session_root,
+            default_run_budget=8,
+            default_max_pending=3,
+            default_max_recommended=2,
+            include_recipe_catalog=True,
+        ),
     )
     monkeypatch.setattr(
         DashboardDataManager,
@@ -276,7 +305,7 @@ def _make_dashboard_manager(
         experiment_log=experiment_log,
         run_ids=run_ids,
     )
-    return DashboardDataManager(store=store, config=store._config)
+    return DashboardDataManager(store=cast(Any, store), config=store._config)
 
 
 def test_build_comparison_rows_prefers_variant_rows_except_for_champion_bundle() -> None:
@@ -462,6 +491,33 @@ def test_build_status_timeline_aggregates_outcomes_by_date() -> None:
     assert counts[("2026-03-09", "champion")] == 1
     assert counts[("2026-03-09", "needs_human_review")] == 1
     assert counts[("2026-03-10", "passed_all_gates")] == 1
+
+
+def test_resolve_layout_mode_detects_portrait_orientation() -> None:
+    """Portrait layout should activate for tall desktop viewports, not only narrow ones."""
+    assert resolve_layout_mode(1440, 2560) == "portrait"
+    assert resolve_layout_mode(2560, 1440) == "standard"
+
+
+def test_build_tabs_stylesheet_deemphasizes_non_guided_tabs_in_review_mode() -> None:
+    """Guided review mode should visually prioritize the review-sequence tabs."""
+    stylesheet = build_tabs_stylesheet(review_mode=True)
+
+    assert "opacity: 0.62" in stylesheet
+    assert ".bk-tab:nth-child(2)" in stylesheet
+    assert ".bk-tab:nth-child(7)" in stylesheet
+
+
+def test_onboarding_card_explains_first_action_path() -> None:
+    """First-run Command Center state should explain the primary exploration flow."""
+    dm = SimpleNamespace(run_ids=[], benchmark_history_snapshot={"index_present": False})
+
+    card = _build_onboarding_card(cast(DashboardDataManager, dm))
+    body = "\n".join(str(getattr(obj, "object", "")) for obj in card.objects)
+
+    assert "Projection Observatory compares projection variants" in body
+    assert "What Start Exploring produces" in body
+    assert "Where blocked results go" in body
 
 
 def test_history_takeaway_summarizes_longitudinal_state() -> None:
@@ -979,6 +1035,30 @@ def test_decision_brief_markdown_includes_current_best_option_for_benchmark_brie
     assert "search-session evidence" not in body
 
 
+def test_verdict_strip_uses_user_facing_labels_instead_of_internal_codes() -> None:
+    """The verdict strip should show plain-language labels, not raw decision codes."""
+    dm = SimpleNamespace(
+        decision_brief={
+            "source": "search_session",
+            "session_decision_state": "blocked_by_data_or_runtime",
+            "user_status_label": "Blocked",
+            "confidence_label": "Low confidence",
+            "primary_subject_label": "College Blend 70",
+            "main_reason": "Benchmark history index is missing.",
+            "recommended_next_step": "Resolve the missing benchmark inputs.",
+            "safe_to_recommend_label": "Not yet — collect more evidence first.",
+            "safe_to_recommend": False,
+            "escalation_guidance": "Bring to a senior analyst now",
+        }
+    )
+
+    verdict_html = _verdict_strip_html(cast(DashboardDataManager, dm))
+
+    assert "Blocked" in verdict_html
+    assert "Safe to recommend?" in verdict_html
+    assert "blocked_by_data_or_runtime" not in verdict_html
+
+
 def test_build_decision_brief_tab_renders_cards() -> None:
     """Decision Brief tab should render the narrative cards without requiring benchmark data."""
     dm = SimpleNamespace(
@@ -1001,10 +1081,13 @@ def test_build_decision_brief_tab_renders_cards() -> None:
     )
 
     tab = build_decision_brief_tab(cast(DashboardDataManager, dm), tabs=None)
+    header = cast(Any, tab[0])
+    verdict = cast(Any, tab[2])
+    flex_box = cast(Any, tab[3])
 
-    assert "Decision Brief" in tab[0].object
-    flex_box = tab[2]
-    assert len(flex_box.objects) >= 2
+    assert "Decision Brief" in header.object
+    assert "Safe to recommend?" in verdict.object
+    assert len(flex_box.objects) >= 3
 
 
 def test_build_decision_brief_tab_includes_candidate_snapshot_when_available() -> None:
@@ -1041,9 +1124,8 @@ def test_build_decision_brief_tab_includes_candidate_snapshot_when_available() -
     )
 
     tab = build_decision_brief_tab(cast(DashboardDataManager, dm), tabs=None)
-
-    flex_box = tab[2]
-    assert len(flex_box.objects) == 5
+    flex_box = cast(Any, tab[3])
+    assert len(flex_box.objects) == 4
 
 
 def test_dashboard_data_manager_benchmark_snapshot_and_active_search_prefer_live_session(
@@ -1138,27 +1220,31 @@ def test_dashboard_data_manager_search_session_best_candidates_sort_completed_ro
     session_root = tmp_path / "sessions"
 
     dm = _make_dashboard_manager(monkeypatch, history_dir=history_dir, session_root=session_root)
-    dm.search_session_candidates = lambda search_id: pd.DataFrame(
-        [
-            {
-                "candidate_id": "cand-2",
-                "status": "completed",
-                "delta_county_mape_overall": -0.10,
-                "county_mape_overall": 8.8,
-            },
-            {
-                "candidate_id": "cand-1",
-                "status": "completed",
-                "delta_county_mape_overall": -0.30,
-                "county_mape_overall": 8.9,
-            },
-            {
-                "candidate_id": "cand-3",
-                "status": "running",
-                "delta_county_mape_overall": -0.50,
-                "county_mape_overall": 8.1,
-            },
-        ]
+    monkeypatch.setattr(
+        dm,
+        "search_session_candidates",
+        lambda search_id: pd.DataFrame(
+            [
+                {
+                    "candidate_id": "cand-2",
+                    "status": "completed",
+                    "delta_county_mape_overall": -0.10,
+                    "county_mape_overall": 8.8,
+                },
+                {
+                    "candidate_id": "cand-1",
+                    "status": "completed",
+                    "delta_county_mape_overall": -0.30,
+                    "county_mape_overall": 8.9,
+                },
+                {
+                    "candidate_id": "cand-3",
+                    "status": "running",
+                    "delta_county_mape_overall": -0.50,
+                    "county_mape_overall": 8.1,
+                },
+            ],
+        ),
     )
 
     best = dm.search_session_best_candidates("search-any")
@@ -1221,7 +1307,14 @@ def test_dashboard_data_manager_refresh_clears_cached_views_and_rebuilds_policy(
     def fake_load_search_policy():
         load_calls["count"] += 1
         root = session_root if load_calls["count"] == 1 else alt_session_root
-        return SimpleNamespace(project_root=tmp_path, session_root=root)
+        return SimpleNamespace(
+            project_root=tmp_path,
+            session_root=root,
+            default_run_budget=8,
+            default_max_pending=3,
+            default_max_recommended=2,
+            include_recipe_catalog=True,
+        )
 
     monkeypatch.setattr(
         "cohort_projections.analysis.observatory.dashboard.data_manager.load_search_policy",
@@ -1239,8 +1332,14 @@ def test_dashboard_data_manager_refresh_clears_cached_views_and_rebuilds_policy(
         def __init__(self, store, comparator=None, config=None, bounds_catalog=None) -> None:
             pass
 
-        def suggest_next_experiments(self, limit: int):
+        def suggest_next_experiments(self, limit: int = 5):
             return []
+
+        def identify_persistent_weaknesses(self) -> pd.DataFrame:
+            return pd.DataFrame()
+
+        def parameter_sensitivity_summary(self) -> pd.DataFrame:
+            return pd.DataFrame()
 
     monkeypatch.setattr(
         "cohort_projections.analysis.observatory.dashboard.data_manager.ObservatoryComparator",
@@ -1253,7 +1352,7 @@ def test_dashboard_data_manager_refresh_clears_cached_views_and_rebuilds_policy(
     monkeypatch.setattr(DashboardDataManager, "_try_build_catalog", lambda self: None)
 
     store = _FakeResultsStore(history_dir=history_dir)
-    dm = DashboardDataManager(store=store, config=store._config)
+    dm = DashboardDataManager(store=cast(Any, store), config=store._config)
 
     _ = dm.search_policy
     _ = dm.search_sessions
@@ -1322,6 +1421,16 @@ def test_scorecard_takeaway_prefers_best_selected_challenger() -> None:
     assert "What still needs judgment" in summary
 
 
+def test_scorecard_delta_chart_returns_placeholder_when_no_selection_exists() -> None:
+    """Empty scorecard comparisons should explain the gap instead of rendering a blank chart shell."""
+    dm = SimpleNamespace(comparison_rows=pd.DataFrame(), champion_id=None)
+
+    pane = _build_delta_bar_chart([], cast(DashboardDataManager, dm))
+
+    assert isinstance(pane, pn.pane.HTML)
+    assert "Select at least one challenger bundle" in pane.object
+
+
 def test_projection_takeaway_reports_endpoint_difference_vs_champion() -> None:
     """Projection summary should translate the curve comparison into a final-year delta."""
     index, scorecards, experiment_log = _build_fixture_frames()
@@ -1367,6 +1476,55 @@ def test_projection_takeaway_reports_endpoint_difference_vs_champion() -> None:
 
     assert "**Spotlight run:** College Blend 70" in summary
     assert "20,000 people higher than the champion" in summary
+
+
+def test_projection_focus_summary_surfaces_selected_paths_and_endpoint_note() -> None:
+    """Projection focus summary should replace the raw table as the first path-orientation cue."""
+    index, scorecards, experiment_log = _build_fixture_frames()
+    metadata = build_run_metadata_frame(
+        index=index,
+        scorecards=scorecards,
+        experiment_log=experiment_log,
+        champion_id="br-champion",
+    )
+    labels = _run_label_factory(metadata)
+    projection_curves = pd.DataFrame(
+        [
+            {
+                "origin_year": 2020,
+                "method": "m2026",
+                "year": 2055,
+                "projected_state": 900000.0,
+                "run_id": "br-champion",
+            },
+            {
+                "origin_year": 2020,
+                "method": "m2026r1",
+                "year": 2055,
+                "projected_state": 920000.0,
+                "run_id": "br-passed",
+            },
+        ]
+    )
+    dm = SimpleNamespace(
+        champion_id="br-champion",
+        champion_method_id="m2026",
+        projection_curves=projection_curves,
+        run_metadata=metadata,
+        run_label=lambda run_id, short=False: labels[str(run_id)],
+    )
+
+    pane = _build_projection_focus_summary(
+        "2020",
+        ["br-passed"],
+        True,
+        cast(DashboardDataManager, dm),
+    )
+
+    assert "Selected paths" in pane.object
+    assert "Champion" in pane.object
+    assert "College Blend 70" in pane.object
+    assert "20,000 people higher than" in pane.object
 
 
 def test_horizon_takeaway_summarizes_long_horizon_error_and_bias() -> None:
@@ -1455,6 +1613,39 @@ def test_sensitivity_takeaway_surfaces_recommendation_and_weakness_state() -> No
     )
     assert "1 tracked metric(s) still have no improving challenger." in summary
     assert "Most influential tested parameter so far: `college_blend_factor`." in summary
+
+
+def test_recommendation_cards_render_low_risk_and_exploratory_states() -> None:
+    """Portrait recommendation cards should explain both suggestion type and rationale."""
+    recommender = MagicMock()
+    recommender.suggest_next_experiments.return_value = [
+        SimpleNamespace(
+            priority=1,
+            parameter="college_blend_factor",
+            suggested_value=1.0,
+            expected_impact="Improve college-county fit",
+            direction="Could raise rural error slightly",
+            requires_code_change=False,
+            rationale="Largest tested improvement in urban-college counties.",
+        ),
+        SimpleNamespace(
+            priority=2,
+            parameter="migration_recipe",
+            suggested_value="college_fix_v2",
+            expected_impact="May reduce endpoint overshoot",
+            direction="Requires method registration work",
+            requires_code_change=True,
+            rationale="Current search results still over-project at the long horizon.",
+        ),
+    ]
+    dm = SimpleNamespace(recommender=recommender)
+
+    cards = _build_recommendation_cards(cast(DashboardDataManager, dm))
+    html = "\n".join(str(getattr(obj, "object", "")) for obj in cards.objects)
+
+    assert "Low-risk follow-up" in html
+    assert "Exploratory" in html
+    assert "Why the system is suggesting it" in html
 
 
 # ---------------------------------------------------------------------------
@@ -1633,7 +1824,7 @@ def test_enter_guided_review_sets_review_mode_and_navigates() -> None:
     )
     tabs = SimpleNamespace(active=0)
 
-    _enter_guided_review(cast(DashboardDataManager, dm), cast(object, tabs))
+    _enter_guided_review(cast(DashboardDataManager, dm), cast(pn.Tabs, tabs))
 
     assert seeded["called"] is True
     assert dm.selection_state.review_mode is True

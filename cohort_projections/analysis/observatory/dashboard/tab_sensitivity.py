@@ -7,6 +7,7 @@ residual diagnostics.
 
 from __future__ import annotations
 
+import html
 import logging
 from typing import Any
 
@@ -31,6 +32,7 @@ from cohort_projections.analysis.observatory.dashboard.widgets import (
     empty_placeholder,
     markdown_card,
     metric_table,
+    plotly_pane,
     section_header,
 )
 
@@ -242,7 +244,7 @@ def _build_tornado_chart(dm: DashboardDataManager) -> pn.pane.Plotly:
         height=max(350, len(fig.data[0].y) * 35 + 100) if fig.data else 400,
     )
 
-    return pn.pane.Plotly(fig, sizing_mode="stretch_width")
+    return plotly_pane(fig)
 
 
 # ---------------------------------------------------------------------------
@@ -387,7 +389,7 @@ def _build_parameter_response(dm: DashboardDataManager) -> pn.pane.Plotly:
         height=max(350, n_rows * 300),
     )
 
-    return pn.pane.Plotly(fig, sizing_mode="stretch_width")
+    return plotly_pane(fig)
 
 
 # ---------------------------------------------------------------------------
@@ -459,6 +461,63 @@ def _build_recommendations_table(dm: DashboardDataManager) -> pn.Column:
             "why_the_system_suggested_it",
         ],
     )
+
+
+def _build_recommendation_cards(dm: DashboardDataManager) -> pn.Column:
+    """Render portrait-friendly recommendation cards with the key tradeoffs."""
+    try:
+        recommendations = dm.recommender.suggest_next_experiments()
+    except Exception:
+        logger.exception("Failed to generate experiment recommendations.")
+        return pn.Column(empty_placeholder("Unable to generate recommendations."))
+
+    if not recommendations:
+        return pn.Column(
+            empty_placeholder(
+                "No experiment recommendations are available yet. Run more benchmark bundles to give the system a stronger decision trail."
+            )
+        )
+
+    cards: list[pn.pane.HTML] = []
+    for rec in recommendations:
+        parameter = html.escape(str(getattr(rec, "parameter", "Unknown parameter")))
+        suggested_value = html.escape(str(getattr(rec, "suggested_value", "Unknown")))
+        expected_upside = html.escape(str(getattr(rec, "expected_impact", "Not estimated yet")))
+        likely_tradeoff = html.escape(str(getattr(rec, "direction", "No tradeoff noted yet")))
+        rationale = html.escape(
+            str(
+                getattr(
+                    rec,
+                    "rationale",
+                    "The system does not yet have a readable rationale for this recommendation.",
+                )
+            )
+        )
+        requires_code_change = bool(getattr(rec, "requires_code_change", False))
+        suggestion_type = "Exploratory" if requires_code_change else "Low-risk follow-up"
+        priority = html.escape(str(getattr(rec, "priority", "Unranked")))
+
+        cards.append(
+            pn.pane.HTML(
+                (
+                    '<div class="obs-recommendation-card">'
+                    f'<div class="obs-recommendation-title">{parameter} -> {suggested_value}</div>'
+                    f'<div class="obs-recommendation-meta">Priority {priority} · {suggestion_type}</div>'
+                    '<div class="obs-recommendation-detail">'
+                    f"<strong>Expected upside:</strong> {expected_upside}"
+                    "</div>"
+                    '<div class="obs-recommendation-detail">'
+                    f"<strong>Likely tradeoff:</strong> {likely_tradeoff}"
+                    "</div>"
+                    '<div class="obs-recommendation-kicker">Why the system is suggesting it</div>'
+                    f'<div class="obs-recommendation-detail">{rationale}</div>'
+                    "</div>"
+                ),
+                sizing_mode="stretch_width",
+            )
+        )
+
+    return pn.Column(*cards, sizing_mode="stretch_width")
 
 
 # ---------------------------------------------------------------------------
@@ -637,7 +696,6 @@ def build_sensitivity_tab(
             "Sensitivity & Recommendations",
             tooltip="Explore parameter sensitivity, review experiment recommendations, and identify persistent weaknesses where no challenger improves on the champion.",
         ),
-        _build_sensitivity_takeaway(dm),
         pn.Card(
             pn.pane.Markdown(
                 "What should you try next, and does that suggestion look like low-risk follow-up work or a broader exploratory branch?",
@@ -648,6 +706,7 @@ def build_sensitivity_tab(
         )
         if dm.selection_state.review_mode
         else pn.Column(),
+        _build_sensitivity_takeaway(dm),
         # Section 1: Tornado Chart
         pn.layout.Divider(),
         section_header(
@@ -668,7 +727,13 @@ def build_sensitivity_tab(
             "What To Try Next",
             subtitle="Recommended next experiments, expected upside, likely tradeoff, and whether each idea is low-risk or exploratory",
         ),
-        _build_recommendations_table(dm),
+        _build_recommendation_cards(dm),
+        pn.Card(
+            _build_recommendations_table(dm),
+            title="Advanced: Raw Recommendation Table",
+            collapsed=True,
+            sizing_mode="stretch_width",
+        ),
         # Section 4: Persistent Weaknesses
         pn.layout.Divider(),
         section_header(
@@ -687,8 +752,8 @@ def build_sensitivity_tab(
         build_review_step_bar(
             dm.selection_state,
             tabs,
-            current_step=4,
-            total_steps=4,
+            current_step=5,
+            total_steps=5,
             next_tab_index=None,
             next_tab_label="",
         ),

@@ -7,6 +7,7 @@ summary alongside the charts.
 
 from __future__ import annotations
 
+import html
 import logging
 from typing import TYPE_CHECKING
 
@@ -255,6 +256,91 @@ def _build_selected_run_summary(
     )
 
 
+def _build_projection_focus_summary(
+    origin_year: str,
+    selected_runs: list[str],
+    show_champion_reference: bool,
+    dm: DashboardDataManager,
+) -> pn.pane.HTML:
+    """Render a compact portrait-friendly summary of what the charts show."""
+    selected_ids = list(selected_runs)
+    if show_champion_reference and dm.champion_id is not None:
+        selected_ids = [dm.champion_id, *selected_ids]
+    selected_ids = list(dict.fromkeys(run_id for run_id in selected_ids if run_id))
+
+    if not selected_ids:
+        return widgets.empty_placeholder(
+            "Select at least one benchmark bundle to see which projection paths and endpoints you are judging."
+        )
+
+    chip_html = "".join(
+        f'<span class="obs-chip{" champion" if run_id == dm.champion_id else ""}">'
+        f"{html.escape('Champion' if run_id == dm.champion_id else dm.run_label(run_id, short=True))}"
+        "</span>"
+        for run_id in selected_ids
+    )
+
+    spotlight_run = next((run_id for run_id in selected_runs if run_id), None)
+    if spotlight_run is None:
+        spotlight_run = dm.champion_id
+
+    callout = "Use the paths below to judge whether the shape and final endpoint still look demographically plausible."
+    if spotlight_run is not None:
+        spotlight_method = _selected_method(dm, spotlight_run)
+        spotlight_endpoint = _projection_endpoint(
+            dm,
+            spotlight_run,
+            method=spotlight_method,
+            origin_year=origin_year,
+        )
+        champion_endpoint = None
+        if (
+            show_champion_reference
+            and dm.champion_id is not None
+            and dm.champion_method_id is not None
+        ):
+            champion_endpoint = _projection_endpoint(
+                dm,
+                dm.champion_id,
+                method=dm.champion_method_id,
+                origin_year=origin_year,
+            )
+
+        if spotlight_endpoint is not None and champion_endpoint is not None:
+            end_year, end_pop = spotlight_endpoint
+            _, champion_pop = champion_endpoint
+            delta = end_pop - champion_pop
+            direction = (
+                "the same endpoint as"
+                if delta == 0
+                else f"{abs(delta):,.0f} people {'higher than' if delta > 0 else 'lower than'}"
+            )
+            callout = (
+                f"{dm.run_label(spotlight_run, short=True)} ends {direction} the champion in {end_year}. "
+                "Use the chart below to decide whether that endpoint difference looks credible."
+            )
+        elif spotlight_endpoint is not None:
+            end_year, end_pop = spotlight_endpoint
+            callout = (
+                f"{dm.run_label(spotlight_run, short=True)} ends near {end_pop:,.0f} in {end_year}. "
+                "Turn on the champion reference if you need a direct baseline comparison."
+            )
+
+    return pn.pane.HTML(
+        (
+            '<div class="obs-verdict-strip">'
+            '<div class="obs-verdict-item">'
+            '<div class="obs-verdict-label">Selected paths</div>'
+            f'<div class="obs-chip-row">{chip_html}</div>'
+            "</div>"
+            f'<div class="obs-reference-note">{html.escape(callout)}</div>'
+            "</div>"
+        ),
+        sizing_mode="stretch_width",
+        stylesheets=[theme.DASHBOARD_CSS],
+    )
+
+
 def _add_actual_series(fig: go.Figure, state_metrics: pd.DataFrame) -> None:
     """Add the actual state population line when available."""
     if state_metrics.empty:
@@ -290,10 +376,12 @@ def _build_spaghetti_plot(
     curves: pd.DataFrame,
     state_metrics: pd.DataFrame,
     dm: DashboardDataManager,
-) -> pn.pane.Plotly:
+) -> object:
     """Projection comparison with a champion reference overlay."""
     if curves.empty:
-        return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
+        return widgets.empty_placeholder(
+            "No projection curves are available yet. Run a benchmark bundle to inspect path plausibility."
+        )
 
     fig = go.Figure()
     _add_actual_series(fig, state_metrics)
@@ -308,7 +396,9 @@ def _build_spaghetti_plot(
         None,
     )
     if proj_col is None or year_col not in curves.columns:
-        return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
+        return widgets.empty_placeholder(
+            "Projection curves are missing the year or projected population columns needed for charting."
+        )
 
     if show_champion_reference and dm.champion_id is not None and dm.champion_method_id is not None:
         champion_curves = _filter_plot_frame(
@@ -340,7 +430,7 @@ def _build_spaghetti_plot(
     if not selected_runs:
         fig.update_layout(**theme.get_plotly_layout_defaults())
         fig.update_layout(title="State Population Projection Ensemble", height=520)
-        return pn.pane.Plotly(fig, sizing_mode="stretch_width")
+        return widgets.plotly_pane(fig)
 
     for run_id in selected_runs:
         method = _selected_method(dm, run_id)
@@ -385,7 +475,11 @@ def _build_spaghetti_plot(
         legend={"orientation": "h", "y": -0.18, "x": 0},
         height=540,
     )
-    return pn.pane.Plotly(fig, sizing_mode="stretch_width")
+    if not fig.data:
+        return widgets.empty_placeholder(
+            "No projection paths matched the current selection. Adjust the preset, origin year, or run list."
+        )
+    return widgets.plotly_pane(fig)
 
 
 def _build_error_over_time(
@@ -394,10 +488,12 @@ def _build_error_over_time(
     show_champion_reference: bool,
     state_metrics: pd.DataFrame,
     dm: DashboardDataManager,
-) -> pn.pane.Plotly:
+) -> object:
     """Line chart of state error vs forecast horizon."""
     if state_metrics.empty:
-        return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
+        return widgets.empty_placeholder(
+            "No state error summary is available for the selected benchmark bundles."
+        )
 
     horizon_col = next(
         (
@@ -416,7 +512,9 @@ def _build_error_over_time(
         None,
     )
     if horizon_col is None or error_col is None:
-        return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
+        return widgets.empty_placeholder(
+            "State error data is missing the forecast horizon or error columns needed for this chart."
+        )
 
     fig = go.Figure()
 
@@ -504,7 +602,9 @@ def _build_error_over_time(
         legend={"orientation": "h", "y": -0.18},
         height=420,
     )
-    return pn.pane.Plotly(fig, sizing_mode="stretch_width")
+    if not fig.data:
+        return widgets.empty_placeholder("No horizon error traces matched the current selection.")
+    return widgets.plotly_pane(fig)
 
 
 def _build_uncertainty_fan(
@@ -621,7 +721,7 @@ def _build_uncertainty_fan(
         yaxis_title="Population / Error Distribution",
         height=430,
     )
-    return pn.Column(pn.pane.Plotly(fig, sizing_mode="stretch_width"))
+    return pn.Column(widgets.plotly_pane(fig))
 
 
 def build_projection_ensemble(
@@ -712,6 +812,16 @@ def build_projection_ensemble(
         ),
         loading_indicator=True,
     )
+    projection_focus = pn.panel(
+        pn.bind(
+            _build_projection_focus_summary,
+            origin_year=origin_selector,
+            selected_runs=run_selector,
+            show_champion_reference=show_champion_reference,
+            dm=dm,
+        ),
+        loading_indicator=True,
+    )
     takeaway_card = pn.panel(
         pn.bind(
             _build_projection_takeaway,
@@ -770,6 +880,7 @@ def build_projection_ensemble(
         if dm.selection_state.review_mode
         else pn.Column(),
         takeaway_card,
+        projection_focus,
         filter_bar(
             preset_selector,
             origin_selector,
@@ -780,7 +891,7 @@ def build_projection_ensemble(
         pn.Card(
             selected_summary,
             title="Selected Bundles",
-            collapsed=False,
+            collapsed=True,
             sizing_mode="stretch_width",
         ),
         pn.Card(
@@ -804,8 +915,8 @@ def build_projection_ensemble(
         build_review_step_bar(
             dm.selection_state,
             tabs,
-            current_step=2,
-            total_steps=4,
+            current_step=3,
+            total_steps=5,
             next_tab_index=4,
             next_tab_label="Horizon & Bias",
         ),

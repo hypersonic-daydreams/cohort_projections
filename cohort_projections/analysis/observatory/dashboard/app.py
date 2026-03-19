@@ -11,7 +11,13 @@ import logging
 import panel as pn
 
 from .data_manager import DashboardDataManager
-from .theme import DASHBOARD_CSS, SDC_NAVY, SDC_WHITE, TABS_STYLESHEET
+from .theme import (
+    DASHBOARD_CSS,
+    SDC_NAVY,
+    SDC_WHITE,
+    build_tabs_stylesheet,
+    layout_mode_classes,
+)
 from .widgets import workflow_stepper
 
 logger = logging.getLogger(__name__)
@@ -159,15 +165,21 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
         ]
     )
     tabs.active = 0
-    tabs.stylesheets = [TABS_STYLESHEET]
+    tabs.stylesheets = [build_tabs_stylesheet(dm.selection_state.review_mode)]
+
+    def _refresh_tab_chrome() -> None:
+        """Keep tab chrome aligned with guided-review emphasis."""
+        tabs.stylesheets = [build_tabs_stylesheet(dm.selection_state.review_mode)]
 
     # Stepper reactivity ------------------------------------------------
     def _on_tab_change(event: object) -> None:
         """Update the workflow stepper when the active tab changes."""
         step, completed = _resolve_stepper_state(dm, tabs.active)
         stepper_pane.object = _stepper_html(active=step, completed=completed)
+        _refresh_tab_chrome()
 
     tabs.param.watch(_on_tab_change, "active")
+    dm.selection_state.param.watch(lambda event: _refresh_tab_chrome(), "review_mode")
 
     if pn.state.curdoc is not None:
 
@@ -176,8 +188,16 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
             dm.refresh_search_sessions()
             step, completed = _resolve_stepper_state(dm, tabs.active)
             stepper_pane.object = _stepper_html(active=step, completed=completed)
+            _refresh_tab_chrome()
 
         pn.state.add_periodic_callback(_refresh_stepper, period=5000, start=True)
+
+    shell = pn.Column(
+        stepper_pane,
+        tabs,
+        css_classes=layout_mode_classes("obs-layout-shell"),
+        sizing_mode="stretch_width",
+    )
 
     # Assemble template -------------------------------------------------
     template = pn.template.FastListTemplate(
@@ -186,7 +206,7 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
         header_color=SDC_WHITE,
         accent_base_color=SDC_NAVY,
         shadow=True,
-        main=[stepper_pane, tabs],
+        main=[shell],
         raw_css=[DASHBOARD_CSS],
         main_max_width="1600px",
     )

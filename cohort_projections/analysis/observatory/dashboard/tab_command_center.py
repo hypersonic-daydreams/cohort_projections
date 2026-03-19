@@ -1,8 +1,8 @@
 """Command Center tab for the Observatory dashboard.
 
-This is the dashboard home page.  It uses a two-column layout to surface
-the current champion error, decision context, live search progress, and
-a unified launch section for autonomous experiments.
+This is the dashboard home page. It prioritizes one primary action path:
+understand the current session outcome, launch the next search safely, and
+route the user into guided review only when the evidence is ready.
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ from cohort_projections.analysis.observatory.dashboard.theme import (
     SDC_BLUE,
     SDC_NAVY,
     STATUS_COLORS,
+    layout_mode_classes,
 )
 from cohort_projections.analysis.observatory.dashboard.widgets import (
     candidate_feed,
@@ -375,6 +376,34 @@ def _command_center_summary(dm: DashboardDataManager) -> str:
     return " ".join(summary_parts) or "No completed Observatory run history is available yet."
 
 
+def _build_onboarding_card(dm: DashboardDataManager) -> pn.Card:
+    """Explain the first action path when the dashboard has little or no history."""
+    has_archive = bool(dm.run_ids)
+    archive_note = (
+        "You can still inspect the existing benchmark archive below while you decide what to explore next."
+        if has_archive
+        else "The first completed benchmark bundle will unlock the guided review tabs automatically."
+    )
+    body = "\n".join(
+        [
+            "The Projection Observatory compares projection variants, tracks search sessions, and guides review decisions.",
+            "",
+            "**What Start Exploring produces:** a bounded search session, benchmark bundles for completed candidates, and a recommended next route when the run finishes.",
+            "",
+            "**When results become reviewable:** as soon as the first usable benchmark bundle lands, the dashboard can route you into Decision Brief and the guided review tabs.",
+            "",
+            "**Where blocked results go:** blocked or inconclusive sessions stay on the recovery path and send you to blocker resolution instead of deep analysis by default.",
+            "",
+            archive_note,
+        ]
+    )
+    return markdown_card(
+        "Start Here",
+        body,
+        css_classes=["obs-primary-workflow-card"],
+    )
+
+
 def _build_decision_brief_card(dm: DashboardDataManager) -> pn.Card:
     """Compact decision brief surfaced directly on the Command Center."""
     brief = dm.decision_brief
@@ -406,7 +435,7 @@ def _build_decision_brief_card(dm: DashboardDataManager) -> pn.Card:
     ]
     if raw_subject_id and raw_subject_id != subject:
         body.extend(["", f"**Reference ID:** `{raw_subject_id}`"])
-    return markdown_card("Decision Brief", "\n".join(body), min_width=420)
+    return markdown_card("Decision Brief", "\n".join(body), css_classes=["obs-compact-review-card"])
 
 
 def _queue_health_snapshot(dm: DashboardDataManager) -> dict[str, Any]:
@@ -569,6 +598,7 @@ def _build_kpi_grid(dm: DashboardDataManager) -> pn.FlexBox | pn.pane.HTML:
         *cards,
         flex_wrap="wrap",
         sizing_mode="stretch_width",
+        css_classes=layout_mode_classes("obs-kpi-grid"),
         styles={"gap": "10px"},
     )
 
@@ -816,13 +846,7 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
     }
 
     # --- Simple mode widgets ---
-    preset_selector = pn.widgets.RadioButtonGroup(
-        name="Search preset",
-        options=list(preset_defaults.keys()),
-        value="Standard exploration",
-        button_type="default",
-        sizing_mode="stretch_width",
-    )
+    preset_state: dict[str, str] = {"value": "Standard exploration"}
     launch_note = pn.pane.HTML(sizing_mode="stretch_width")
     cpu_slider = pn.widgets.IntSlider(
         name="CPU cores to use",
@@ -841,10 +865,15 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
         width=180,
     )
 
+    preset_buttons: dict[str, pn.widgets.Button] = {}
+
     def _apply_preset(preset_name: str) -> None:
+        preset_state["value"] = preset_name
         selected = preset_defaults[preset_name]
         cpu_slider.value = int(selected["cpu_budget"])
         max_runs_spinner.value = int(selected["max_total_runs"])
+        for name, button in preset_buttons.items():
+            button.button_type = "primary" if name == preset_name else "light"
         launch_note.object = (
             '<div style="color:#334E68;font-size:0.9em;margin:2px 0 10px 0">'
             f"<strong>{preset_name}:</strong> {selected['summary']} "
@@ -852,8 +881,31 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
             "</div>"
         )
 
-    preset_selector.param.watch(lambda event: _apply_preset(str(event.new)), "value")
-    _apply_preset(str(preset_selector.value))
+    def _make_preset_handler(preset_name: str) -> Any:
+        def _handler(event: Any) -> None:
+            del event
+            _apply_preset(preset_name)
+
+        return _handler
+
+    for preset_name in preset_defaults:
+        button = pn.widgets.Button(
+            name=preset_name,
+            button_type="light",
+            sizing_mode="stretch_width",
+            height=52,
+        )
+        button.on_click(_make_preset_handler(preset_name))
+        preset_buttons[preset_name] = button
+
+    preset_button_row = pn.FlexBox(
+        *preset_buttons.values(),
+        flex_wrap="wrap",
+        sizing_mode="stretch_width",
+        css_classes=layout_mode_classes("obs-preset-button-row"),
+        styles={"gap": "10px"},
+    )
+    _apply_preset(preset_state["value"])
 
     # --- Next-recommendation hint ---
     recommendations = dm.recommender.suggest_next_experiments(1)
@@ -894,7 +946,7 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
 
     # --- Simple Start button ---
     def _on_simple_start(event: Any) -> None:
-        preset_name = str(preset_selector.value)
+        preset_name = preset_state["value"]
         preset = preset_defaults[preset_name]
         _launch_search_auto(
             search_id=_default_search_id(),
@@ -1362,7 +1414,7 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
             "</div>",
             sizing_mode="stretch_width",
         ),
-        preset_selector,
+        preset_button_row,
         hint_pane,
         launch_note,
         pn.Row(btn_start, sizing_mode="stretch_width"),
@@ -1372,6 +1424,7 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
         advanced_card,
         title="Launch Experiments",
         sizing_mode="stretch_width",
+        css_classes=["obs-primary-launch-card"],
     )
 
 
@@ -1755,6 +1808,7 @@ def _build_search_progress_card(
         log_card,
         title="Search Progress",
         sizing_mode="stretch_width",
+        css_classes=["obs-primary-workflow-card"],
     )
 
 
@@ -1919,33 +1973,45 @@ def build_command_center(
     pn.Column
         The assembled command-center layout.
     """
-    # --- Left column (55%): hero, decision strip, search progress ---
-    left_items: list[Any] = [
-        _build_decision_brief_card(dm),
-        _build_hero_metric(dm),
-        _build_decision_strip(dm),
-        _build_search_progress_card(dm, tabs=tabs),
-    ]
-    left_col = pn.Column(*left_items, sizing_mode="stretch_width", min_width=400)
 
-    # --- Right column (45%): KPI grid, launch section, run index, champion ---
-    right_items: list[Any] = [
-        _build_kpi_grid(dm),
-        _build_launch_section(dm),
+    def _layout_section(area: str, *components: Any) -> pn.Column:
+        return pn.Column(
+            *components,
+            css_classes=layout_mode_classes(
+                "obs-command-center-section",
+                f"obs-cc-area-{area}",
+            ),
+            sizing_mode="stretch_width",
+        )
+
+    workflow_card = (
+        _build_search_progress_card(dm, tabs=tabs)
+        if not dm.search_sessions.empty
+        else _build_onboarding_card(dm)
+    )
+
+    sections: list[Any] = [
+        _layout_section("session", workflow_card),
+        _layout_section("launch", _build_launch_section(dm)),
+        _layout_section("brief", _build_decision_brief_card(dm)),
+        _layout_section("kpis", _build_kpi_grid(dm)),
+        _layout_section("hero", _build_hero_metric(dm)),
+        _layout_section("strip", _build_decision_strip(dm)),
     ]
 
-    # Only show detail cards when there is benchmark data to inspect
     if dm.run_ids:
-        right_items.extend(
+        sections.extend(
             [
-                _build_index_table(dm),
-                _build_champion_card(dm),
+                _layout_section("runindex", _build_index_table(dm)),
+                _layout_section("champion", _build_champion_card(dm)),
             ]
         )
 
-    right_col = pn.Column(*right_items, sizing_mode="stretch_width", min_width=350)
-
-    two_col_layout = pn.Row(left_col, right_col, sizing_mode="stretch_width")
+    command_center_grid = pn.FlexBox(
+        *sections,
+        css_classes=layout_mode_classes("obs-command-center-grid"),
+        sizing_mode="stretch_width",
+    )
 
     return pn.Column(
         section_header(
@@ -1955,6 +2021,6 @@ def build_command_center(
                 "decide what to run or promote next."
             ),
         ),
-        two_col_layout,
+        command_center_grid,
         sizing_mode="stretch_width",
     )

@@ -231,6 +231,42 @@ Implemented in this session:
   and interpretation-first summaries tailored to the junior-demographer
   workflow.
 
+## Portrait-Oriented Guided Review Follow-up (2026-03-19)
+
+Follow-up user story from the visual browser review on the workstation's
+portrait display:
+
+> "I am using the Projection Observatory on a `1440x2560` portrait monitor.
+> I need the dashboard to read top-to-bottom as a guided decision flow rather
+> than as a landscape expert console."
+
+| ID | Work Item | Priority | Status | Acceptance Criteria | Primary Touch Points |
+|----|-----------|----------|--------|---------------------|----------------------|
+| OBS-UX-35 | Add automatic portrait layout mode | P0 | implemented_2026-03-19 | Portrait-oriented viewports trigger stacked workflow layout, compact shell spacing, guided-tab emphasis, and hover-only Plotly chrome | `theme.py`, `app.py`, shared widgets |
+| OBS-UX-36 | Rebuild Command Center for portrait primary-path flow | P0 | implemented_2026-03-19 | Portrait mode orders `Session Outcome / Start Here -> Launch -> Decision Brief snapshot -> KPI grid -> secondary detail cards`, with preset buttons enlarged and reference panels demoted | `tab_command_center.py` |
+| OBS-UX-37 | Make Decision Brief and guided navigation verdict-first in portrait | P1 | implemented_2026-03-19 | Decision Brief starts with a verdict strip and checklist, keeps raw IDs/archive details secondary, and makes the guided next-step bar sticky in portrait | `tab_decision_brief.py`, `theme.py`, analytical tabs |
+| OBS-UX-38 | Replace portrait-first wide tables with stacked summaries and placeholders | P1 | implemented_2026-03-19 | Scorecards/Projections/Sensitivity lead with interpretation-first cards, wide raw tables collapse by default, and empty chart states render explanatory placeholders instead of blank plot shells | `tab_scorecard.py`, `tab_projection_ensemble.py`, `tab_sensitivity.py`, tests |
+
+Implemented in this session:
+
+- `OBS-UX-35`: added orientation-aware layout helpers and CSS that switch the
+  shell, `Command Center`, guided review tabs, filter bars, and next-step bar
+  into a compact portrait-friendly flow while also de-emphasizing the
+  `Experiment History` tab during guided review.
+- `OBS-UX-36`: reordered the `Command Center` around one primary action path,
+  added a real onboarding card when no search session exists, promoted the
+  `Session Outcome` / `Search Progress` card to the top of the flow, and
+  rendered preset launch options as large segmented buttons instead of a dense
+  radio strip.
+- `OBS-UX-37`: turned `Decision Brief` into a verdict-first hub with a visible
+  safe-to-recommend pill, standardized outcome/confidence/reason/next-action
+  ordering, and a sticky portrait next-step bar across the guided sequence.
+- `OBS-UX-38`: moved `Selected Bundles` and raw recommendation tables behind
+  collapsed advanced cards, introduced a compact projection chip summary and
+  stacked sensitivity recommendation cards, collapsed lower-signal scorecard
+  diagnostics by default, and replaced blank Plotly shells with explanatory
+  placeholders when the underlying data is missing.
+
 New tab layout (6 tabs):
 
 1. Command Center (two-column: hero metric + decision strip + search progress | KPI grid + launch + reference)
@@ -247,8 +283,12 @@ This review was based on:
 - live browser screenshots from a clean first-open session,
 - live rendering of all six tabs,
 - a narrower laptop-width check for the `Command Center`,
+- portrait-monitor rendering at `1440x2560`,
 - direct code inspection of the dashboard launcher and tab builders.
 - Module import verification and full dashboard test suite (18 tests passing)
   for the 2026-03-17 progressive disclosure changes.
 - 257 observatory tests passing, mypy clean, ruff clean for the 2026-03-18
   UI/UX overhaul (46 dashboard-specific tests including 28 new widget tests).
+- 79 dashboard tests passing and 292 observatory tests passing, with targeted
+  portrait-layout, decision-brief, projection-summary, and recommendation-card
+  regression coverage for the 2026-03-19 portrait follow-up.

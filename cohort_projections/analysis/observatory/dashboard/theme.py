@@ -77,6 +77,52 @@ EXPERIMENT_COLORS: list[str] = [
 ]
 
 # ---------------------------------------------------------------------------
+# Dashboard layout modes
+# ---------------------------------------------------------------------------
+LAYOUT_STANDARD = "standard"
+LAYOUT_PORTRAIT = "portrait"
+LAYOUT_AUTO = "auto"
+
+
+def resolve_layout_mode(
+    viewport_width: int | None,
+    viewport_height: int | None,
+    *,
+    default: str = LAYOUT_STANDARD,
+) -> str:
+    """Resolve a viewport into a dashboard layout mode.
+
+    The Observatory relies on CSS media queries for live browser behaviour,
+    but tests and static rendering still need a deterministic Python helper.
+    """
+    if viewport_width is None or viewport_height is None:
+        return default
+    if viewport_width <= 0 or viewport_height <= 0:
+        return default
+    return LAYOUT_PORTRAIT if viewport_height > viewport_width else LAYOUT_STANDARD
+
+
+def layout_mode_classes(
+    *base_classes: str,
+    layout_mode: str = LAYOUT_AUTO,
+) -> list[str]:
+    """Return standard CSS classes for layout-aware dashboard sections."""
+    normalized = (
+        layout_mode
+        if layout_mode
+        in {
+            LAYOUT_STANDARD,
+            LAYOUT_PORTRAIT,
+            LAYOUT_AUTO,
+        }
+        else LAYOUT_AUTO
+    )
+    classes = [cls for cls in base_classes if cls]
+    classes.extend(["obs-layout-managed", f"obs-layout-{normalized}"])
+    return classes
+
+
+# ---------------------------------------------------------------------------
 # Panel Dashboard CSS
 # ---------------------------------------------------------------------------
 DASHBOARD_CSS = """\
@@ -483,6 +529,199 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     }
 }
 
+/* --- Layout Shell --- */
+.obs-layout-shell {
+    gap: 12px;
+}
+
+/* --- Command Center Grid --- */
+.obs-command-center-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: 16px;
+    align-items: start;
+    grid-template-areas:
+        "session session"
+        "launch brief"
+        "launch kpis"
+        "hero strip"
+        "runindex champion";
+}
+.obs-command-center-section {
+    min-width: 0;
+}
+.obs-cc-area-session { grid-area: session; }
+.obs-cc-area-launch { grid-area: launch; }
+.obs-cc-area-brief { grid-area: brief; }
+.obs-cc-area-kpis { grid-area: kpis; }
+.obs-cc-area-hero { grid-area: hero; }
+.obs-cc-area-strip { grid-area: strip; }
+.obs-cc-area-runindex { grid-area: runindex; }
+.obs-cc-area-champion { grid-area: champion; }
+
+/* --- Decision Brief Grid --- */
+.obs-decision-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: 12px;
+    align-items: start;
+}
+
+/* --- Verdict Strip --- */
+.obs-verdict-strip {
+    background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%);
+    border: 1px solid #D9E3F0;
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: 0 8px 24px rgba(31, 56, 100, 0.06);
+}
+.obs-verdict-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.obs-verdict-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.obs-verdict-pill,
+.obs-safe-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.82em;
+    font-weight: 700;
+}
+.obs-verdict-pill {
+    background: #E9F1FC;
+    color: #1F3864;
+}
+.obs-safe-pill.safe {
+    background: #E2F3E8;
+    color: #0A6B3C;
+}
+.obs-safe-pill.caution {
+    background: #FFF3CC;
+    color: #7A5A00;
+}
+.obs-safe-pill.blocked {
+    background: #FBE6E6;
+    color: #9B1C1C;
+}
+.obs-verdict-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px 14px;
+    margin-top: 14px;
+}
+.obs-verdict-item {
+    min-width: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #E4ECF7;
+    background: #FFFFFF;
+}
+.obs-verdict-label {
+    color: #5A6C84;
+    font-size: 0.76em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+.obs-verdict-value {
+    color: #1F3864;
+    font-size: 0.96em;
+    font-weight: 600;
+    line-height: 1.45;
+}
+.obs-verdict-value.long {
+    color: #334E68;
+    font-weight: 500;
+}
+.obs-reference-note {
+    margin-top: 12px;
+    color: #5A6C84;
+    font-size: 0.82em;
+    line-height: 1.45;
+}
+
+/* --- Projection Chips --- */
+.obs-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.obs-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #E9F1FC;
+    color: #1F3864;
+    font-size: 0.82em;
+    font-weight: 700;
+}
+.obs-chip.champion {
+    background: #DBEAFE;
+}
+
+/* --- Recommendation Cards --- */
+.obs-recommendation-card {
+    border: 1px solid #D9E3F0;
+    border-radius: 12px;
+    background: #FFFFFF;
+    box-shadow: 0 8px 22px rgba(31, 56, 100, 0.06);
+    padding: 16px 18px;
+}
+.obs-recommendation-card + .obs-recommendation-card {
+    margin-top: 12px;
+}
+.obs-recommendation-title {
+    color: #1F3864;
+    font-size: 1.02em;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+.obs-recommendation-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.obs-recommendation-detail {
+    color: #334E68;
+    font-size: 0.9em;
+    line-height: 1.5;
+    margin-top: 6px;
+}
+.obs-recommendation-kicker {
+    color: #5A6C84;
+    font-size: 0.76em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+/* --- Filter Bar --- */
+.obs-filter-bar > * {
+    min-width: 180px;
+    flex: 1 1 180px;
+}
+
+/* --- Guided Review Cards --- */
+.obs-compact-review-card .bk-Card-header,
+.obs-compact-review-card .card-header {
+    min-height: 0;
+}
+
 /* --- Filter Bar --- */
 .obs-filter-bar {
     display: flex;
@@ -650,6 +889,100 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     box-shadow: 0 12px 36px rgba(31, 56, 100, 0.10);
 }
 
+@media (orientation: portrait), (max-aspect-ratio: 1/1) {
+    header.pn-header,
+    :host(.pn-header) {
+        min-height: 48px !important;
+    }
+
+    .card-container, .bk-Card {
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+
+    .obs-workflow-stepper {
+        padding: 8px 12px;
+        margin-bottom: 8px;
+    }
+
+    .obs-step {
+        padding: 4px 10px;
+        font-size: 0.8em;
+    }
+
+    .section-header h2 {
+        font-size: 1.08em;
+    }
+
+    .section-header .subtitle {
+        font-size: 0.82em;
+        line-height: 1.4;
+    }
+
+    .obs-command-center-grid {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "session"
+            "launch"
+            "brief"
+            "kpis"
+            "hero"
+            "strip"
+            "runindex"
+            "champion";
+    }
+
+    .obs-decision-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .obs-verdict-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .obs-filter-bar {
+        gap: 8px;
+        padding: 6px 0;
+    }
+
+    .obs-filter-bar > * {
+        flex: 1 1 280px;
+        min-width: 0;
+    }
+
+    .obs-preset-button-row {
+        display: grid !important;
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .obs-preset-button-row .bk-btn {
+        min-height: 52px;
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .obs-next-step-bar {
+        position: sticky;
+        bottom: 10px;
+        z-index: 30;
+        box-shadow: 0 12px 26px rgba(31, 56, 100, 0.12);
+        margin-top: 12px;
+    }
+
+    .js-plotly-plot .modebar {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transition: opacity 0.12s ease;
+    }
+
+    .js-plotly-plot:hover .modebar,
+    .js-plotly-plot:focus-within .modebar {
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+}
+
 @media (max-width: 700px) {
     .bk-Card {
         padding: 10px;
@@ -685,7 +1018,7 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
 }
 """
 
-TABS_STYLESHEET = """
+_BASE_TABS_STYLESHEET = """
 :host {
     overflow: visible;
 }
@@ -725,6 +1058,39 @@ TABS_STYLESHEET = """
     }
 }
 """
+
+
+def build_tabs_stylesheet(review_mode: bool = False) -> str:
+    """Return the tabs stylesheet, optionally emphasizing guided review tabs."""
+    if not review_mode:
+        return _BASE_TABS_STYLESHEET
+
+    return (
+        _BASE_TABS_STYLESHEET
+        + """
+
+.bk-tab {
+    opacity: 0.62;
+}
+
+.bk-tab:nth-child(2),
+.bk-tab:nth-child(3),
+.bk-tab:nth-child(4),
+.bk-tab:nth-child(5),
+.bk-tab:nth-child(6),
+.bk-tab.bk-active {
+    opacity: 1;
+}
+
+.bk-tab:nth-child(1),
+.bk-tab:nth-child(7) {
+    color: #7A8798;
+}
+"""
+    )
+
+
+TABS_STYLESHEET = build_tabs_stylesheet(review_mode=False)
 
 TABULATOR_STYLESHEET = """
 .tabulator {

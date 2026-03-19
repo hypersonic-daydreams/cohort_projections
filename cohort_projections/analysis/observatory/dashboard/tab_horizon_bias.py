@@ -1067,8 +1067,8 @@ def build_horizon_bias_tab(
         build_review_step_bar(
             dm.selection_state,
             tabs,
-            current_step=3,
-            total_steps=4,
+            current_step=4,
+            total_steps=5,
             next_tab_index=5,
             next_tab_label="Sensitivity",
         ),

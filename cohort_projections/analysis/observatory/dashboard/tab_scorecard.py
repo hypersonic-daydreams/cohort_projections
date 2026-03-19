@@ -276,15 +276,19 @@ def _build_scorecard_table(
 def _build_delta_bar_chart(
     selected_runs: list[str],
     dm: DashboardDataManager,
-) -> pn.pane.Plotly:
+) -> object:
     """Grouped bar chart of key MAPE deltas vs the global champion."""
     comparison = _selected_scorecard_rows(selected_runs, dm)
     if comparison.empty or dm.champion_id is None:
-        return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
+        return widgets.empty_placeholder(
+            "Select at least one challenger bundle to see county error change versus the champion."
+        )
 
     champion_rows = comparison[comparison["run_id"] == dm.champion_id]
     if champion_rows.empty:
-        return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
+        return widgets.empty_placeholder(
+            "Champion reference data is missing, so county error deltas cannot be computed."
+        )
     champion = champion_rows.iloc[0]
 
     fig = go.Figure()
@@ -322,23 +326,31 @@ def _build_delta_bar_chart(
         legend={"orientation": "h", "y": -0.18},
         height=420,
     )
-    return pn.pane.Plotly(fig, sizing_mode="stretch_width")
+    if not fig.data:
+        return widgets.empty_placeholder(
+            "No overlapping county-group metrics are available for the current comparison set."
+        )
+    return widgets.plotly_pane(fig)
 
 
 def _build_sentinel_chart(
     selected_runs: list[str],
     dm: DashboardDataManager,
-) -> pn.pane.Plotly:
+) -> object:
     """Grouped sentinel-county chart for the selected challengers."""
     comparison = _selected_scorecard_rows(selected_runs, dm)
     if comparison.empty:
-        return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
+        return widgets.empty_placeholder(
+            "Select benchmark bundles to compare priority county performance."
+        )
 
     available_sentinels = [
         (col, label) for col, label in _SENTINEL_LABELS.items() if col in comparison.columns
     ]
     if not available_sentinels:
-        return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
+        return widgets.empty_placeholder(
+            "Priority county metrics are not available for the current benchmark archive."
+        )
 
     fig = go.Figure()
     for _, row in comparison.iterrows():
@@ -363,7 +375,11 @@ def _build_sentinel_chart(
         legend={"orientation": "h", "y": -0.18},
         height=420,
     )
-    return pn.pane.Plotly(fig, sizing_mode="stretch_width")
+    if not fig.data:
+        return widgets.empty_placeholder(
+            "Priority county metrics are missing for the currently selected bundles."
+        )
+    return widgets.plotly_pane(fig)
 
 
 def _build_pareto_scatter(
@@ -371,15 +387,19 @@ def _build_pareto_scatter(
     x_metric: str,
     y_metric: str,
     dm: DashboardDataManager,
-) -> pn.pane.Plotly:
+) -> object:
     """Scatter selected bundles and highlight the local Pareto frontier."""
     comparison = _selected_scorecard_rows(selected_runs, dm)
     if comparison.empty or x_metric not in comparison.columns or y_metric not in comparison.columns:
-        return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
+        return widgets.empty_placeholder(
+            "Select bundles with comparable metrics to see the tradeoff frontier."
+        )
 
     filtered = comparison.dropna(subset=[x_metric, y_metric]).copy()
     if filtered.empty:
-        return pn.pane.Plotly(go.Figure(), sizing_mode="stretch_width")
+        return widgets.empty_placeholder(
+            "The selected bundles do not share enough metric coverage for a Pareto comparison."
+        )
 
     pareto_mask: list[bool] = []
     xs = filtered[x_metric].tolist()
@@ -447,7 +467,7 @@ def _build_pareto_scatter(
         yaxis_title=y_metric,
         height=470,
     )
-    return pn.pane.Plotly(fig, sizing_mode="stretch_width")
+    return widgets.plotly_pane(fig)
 
 
 def _build_county_group_table(dm: DashboardDataManager) -> pn.Column:
@@ -623,7 +643,7 @@ def build_scorecard_tab(
         pn.Card(
             sentinel_chart,
             title="Priority County Comparison",
-            collapsed=False,
+            collapsed=True,
             sizing_mode="stretch_width",
         ),
         pn.Card(
@@ -636,20 +656,20 @@ def build_scorecard_tab(
             ),
             pareto_chart,
             title="Pareto Frontier",
-            collapsed=False,
+            collapsed=True,
             sizing_mode="stretch_width",
         ),
         pn.Card(
             _build_county_group_table(dm),
             title="County Group Impact",
-            collapsed=False,
+            collapsed=True,
             sizing_mode="stretch_width",
         ),
         build_review_step_bar(
             dm.selection_state,
             tabs,
-            current_step=1,
-            total_steps=4,
+            current_step=2,
+            total_steps=5,
             next_tab_index=3,
             next_tab_label="Projections",
         ),

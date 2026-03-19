@@ -20,6 +20,7 @@ from cohort_projections.analysis.observatory.dashboard.theme import (
     SDC_NAVY,
     SDC_RED,
     TABULATOR_STYLESHEET,
+    layout_mode_classes,
 )
 
 # ---------------------------------------------------------------------------
@@ -307,6 +308,7 @@ def markdown_card(
     *,
     collapsed: bool = False,
     min_width: int | None = None,
+    css_classes: list[str] | None = None,
 ) -> pn.Card:
     """Render a simple Markdown-based card with shared dashboard styling.
 
@@ -327,6 +329,7 @@ def markdown_card(
         collapsed=collapsed,
         sizing_mode="stretch_width",
         min_width=min_width,
+        css_classes=list(css_classes or []),
     )
 
 
@@ -418,6 +421,30 @@ def progress_ring(
         f"</div></div>"
     )
     return pn.pane.HTML(html, width=130, height=130, stylesheets=[DASHBOARD_CSS])
+
+
+def plotly_pane(
+    figure: Any,
+    *,
+    sizing_mode: str = "stretch_width",
+) -> pn.pane.Plotly:
+    """Wrap a Plotly figure with consistent dashboard config."""
+    return pn.pane.Plotly(
+        figure,
+        sizing_mode=sizing_mode,
+        config={
+            "displayModeBar": "hover",
+            "displaylogo": False,
+            "responsive": True,
+        },
+    )
+
+
+def plotly_has_data(pane: Any) -> bool:
+    """Return whether a Plotly pane contains one or more traces."""
+    figure = getattr(pane, "object", None)
+    traces = getattr(figure, "data", None)
+    return bool(traces)
 
 
 # ---------------------------------------------------------------------------
@@ -549,7 +576,7 @@ def filter_bar(*widgets: Any) -> pn.Row:
     """
     return pn.Row(
         *widgets,
-        css_classes=["obs-filter-bar"],
+        css_classes=layout_mode_classes("obs-filter-bar"),
         sizing_mode="stretch_width",
         stylesheets=[DASHBOARD_CSS],
     )

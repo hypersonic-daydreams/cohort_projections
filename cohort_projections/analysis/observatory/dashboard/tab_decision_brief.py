@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import html
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 import panel as pn
 
+from cohort_projections.analysis.observatory.dashboard.theme import (
+    DASHBOARD_CSS,
+    layout_mode_classes,
+)
 from cohort_projections.analysis.observatory.dashboard.widgets import (
     build_review_step_bar,
     markdown_card,
@@ -176,6 +181,88 @@ def _review_checklist_card(dm: DashboardDataManager) -> pn.Card:
     return markdown_card("Review Checklist", "\n".join(lines).strip(), min_width=360)
 
 
+def _verdict_strip_html(dm: DashboardDataManager) -> str:
+    """Return a verdict-first HTML summary for the current brief."""
+    brief = dm.decision_brief
+    status_label = str(brief.get("user_status_label", "") or "Needs more evidence")
+    confidence_label = str(brief.get("confidence_label", "") or "Low confidence")
+    subject = str(
+        brief.get("primary_subject_label")
+        or brief.get("best_label")
+        or brief.get("recommendation_candidate_id")
+        or "Current focus"
+    )
+    main_reason = str(
+        brief.get("main_reason")
+        or brief.get("explanation")
+        or brief.get("session_headline")
+        or brief.get("headline")
+        or "No decision evidence is available yet."
+    )
+    next_step = str(
+        brief.get("recommended_next_step")
+        or brief.get("recommended_action")
+        or brief.get("session_recommendation")
+        or "Inspect the current evidence before deciding."
+    )
+    escalation = str(brief.get("escalation_guidance", "") or "Safe to continue alone")
+    safe_verdict = str(
+        brief.get("safe_to_recommend_label", "") or "Not yet — collect more evidence first."
+    )
+    raw_subject_id = str(brief.get("raw_subject_id", "") or "")
+    source = str(brief.get("source", "") or "")
+
+    safe_class = "caution"
+    if bool(brief.get("safe_to_recommend", False)):
+        safe_class = "safe"
+    elif "blocked" in status_label.lower() or "do not promote" in status_label.lower():
+        safe_class = "blocked"
+
+    fields = [
+        ("Outcome", status_label, False),
+        ("Confidence", confidence_label, False),
+        ("Main reason", main_reason, True),
+        ("Next action", next_step, True),
+        ("Escalation guidance", escalation, False),
+    ]
+    field_html = "".join(
+        (
+            '<div class="obs-verdict-item">'
+            f'<div class="obs-verdict-label">{html.escape(label)}</div>'
+            f'<div class="obs-verdict-value{" long" if is_long else ""}">{html.escape(value)}</div>'
+            "</div>"
+        )
+        for label, value, is_long in fields
+    )
+
+    reference_parts: list[str] = []
+    if raw_subject_id and raw_subject_id != subject:
+        reference_parts.append(f"Reference ID: {raw_subject_id}")
+    if source == "search_session":
+        reference_parts.append(
+            "Using the latest search-session evidence because benchmark-backed archive review is incomplete or unavailable."
+        )
+    reference_html = (
+        f'<div class="obs-reference-note">{html.escape(" ".join(reference_parts))}</div>'
+        if reference_parts
+        else ""
+    )
+
+    return (
+        '<div class="obs-verdict-strip">'
+        '<div class="obs-verdict-top">'
+        '<div class="obs-verdict-badges">'
+        f'<span class="obs-verdict-pill">{html.escape(status_label)}</span>'
+        f'<span class="obs-verdict-pill">Current focus: {html.escape(subject)}</span>'
+        "</div>"
+        f'<span class="obs-safe-pill {safe_class}">Safe to recommend? {html.escape(safe_verdict)}</span>'
+        "</div>"
+        f'<div class="obs-verdict-grid">{field_html}</div>'
+        f"{reference_html}"
+        "</div>"
+    )
+
+
 def _candidate_snapshot(dm: DashboardDataManager) -> pn.Column:
     """Return a small candidate snapshot table when session evidence exists."""
     session = dm.session_review_data
@@ -220,14 +307,32 @@ def build_decision_brief_tab(
 ) -> pn.Column:
     """Build the Decision Brief tab."""
     cards: list[Any] = [
-        markdown_card("Outcome Summary", _decision_brief_markdown(dm), min_width=420),
-        markdown_card("What Matters Most", _what_matters_markdown(dm), min_width=360),
-        markdown_card("Reviewability", _reviewability_markdown(dm), min_width=320),
         _review_checklist_card(dm),
+        markdown_card(
+            "What Matters Most",
+            _what_matters_markdown(dm),
+            min_width=360,
+            css_classes=["obs-compact-review-card"],
+        ),
+        markdown_card(
+            "Reviewability & Archive Details",
+            _reviewability_markdown(dm),
+            min_width=320,
+            collapsed=True,
+            css_classes=["obs-compact-review-card"],
+        ),
     ]
     candidate_snapshot = _candidate_snapshot(dm)
     if len(candidate_snapshot) > 0:
-        cards.append(candidate_snapshot)
+        cards.append(
+            pn.Card(
+                candidate_snapshot,
+                title="Candidate Snapshot",
+                collapsed=True,
+                sizing_mode="stretch_width",
+                css_classes=["obs-compact-review-card"],
+            )
+        )
 
     return pn.Column(
         section_header(
@@ -241,10 +346,21 @@ def build_decision_brief_tab(
             dm.selection_state,
             tabs,
             current_step=1,
-            total_steps=4,
+            total_steps=5,
             next_tab_index=2 if tabs is not None else None,
             next_tab_label="Scorecards",
         ),
-        pn.FlexBox(*cards, flex_wrap="wrap", sizing_mode="stretch_width", styles={"gap": "12px"}),
+        pn.pane.HTML(
+            _verdict_strip_html(dm),
+            sizing_mode="stretch_width",
+            stylesheets=[DASHBOARD_CSS],
+        ),
+        pn.FlexBox(
+            *cards,
+            flex_wrap="wrap",
+            sizing_mode="stretch_width",
+            css_classes=layout_mode_classes("obs-decision-grid"),
+            styles={"gap": "12px"},
+        ),
         sizing_mode="stretch_width",
     )
