@@ -95,7 +95,7 @@ Verified current state from live repository inspection on 2026-03-13:
 - Observatory CLI is present and functional for `status`, `compare`, `recommend`, `diff`, `history`, `report`, `run-pending`, and `run-recommended`, with queue preview/budget/retry/resume controls.
 - Observatory dashboard, store, comparator, recommender, and catalog modules are implemented under `cohort_projections/analysis/observatory/`.
 - Observatory-focused test slice passes: `249 passed` across CLI, catalog, store, comparator, recommender, dashboard, runtime-contract, status, and sweep-runner tests.
-- Repository refresh on 2026-03-19: the variant catalog still contains `11` variants and now reports `9` tested plus `2` untested items, both currently classified as requiring code changes (`EXP-F`, `EXP-G`). The local `data/analysis/benchmark_history/` directory contains `48` dated run folders from 2026-03-18 search sessions, but the canonical `index.csv` is currently absent, so `python scripts/analysis/observatory.py status` resolves `completed_runs: 0` until benchmark-history registration is rebuilt.
+- Repository refresh on 2026-03-19: the variant catalog still contains `11` variants and now reports `9` tested plus `2` untested items, both currently classified as requiring code changes (`EXP-F`, `EXP-G`). The local `data/analysis/benchmark_history/` directory contains `48` dated run folders from 2026-03-18 search sessions. On 2026-03-19, `scripts/analysis/rebuild_benchmark_history_index.py` rebuilt `index.csv` as a header-only ledger and confirmed `0` complete bundles plus `48` incomplete bundles, so `python scripts/analysis/observatory.py status` still resolves `completed_runs: 0` for the correct reason rather than because archive metadata is missing.
 
 ### Implementation Update (2026-03-13)
 
@@ -508,11 +508,10 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 1. Incorporate deferred stakeholder feedback in the next publication update cycle.
 2. Keep documentation consistency queue current.
-3. Rebuild `data/analysis/benchmark_history/index.csv` and validate benchmark-history registration after the 2026-03-18 search sessions; current `observatory.py status` resolves `completed_runs: 0` because the canonical history index is missing even though dated run directories exist.
-4. Investigate duplicate recipe-search experiment IDs in `data/analysis/experiments/experiment_log.csv`; the 2026-03-18 autonomous-search sessions recorded repeated entries for the same recipe IDs, which can distort dedup-based Observatory status and history views.
-5. Review rolling-origin B-I vs B-II results with domain experts; confirm B-II retention rationale.
-6. Review `docs/reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md` and decide whether `m2026r1` should be promoted.
-7. If approved, promote via alias update tooling and re-run production projections under the promoted config.
+3. Repair or rerun the `48` incomplete 2026-03-18 autonomous-search benchmark bundles; `data/analysis/benchmark_history/index.csv` was rebuilt on 2026-03-19 and confirmed there are currently `0` complete bundles available for registration.
+4. Review rolling-origin B-I vs B-II results with domain experts; confirm B-II retention rationale.
+5. Review `docs/reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md` and decide whether `m2026r1` should be promoted.
+6. If approved, promote via alias update tooling and re-run production projections under the promoted config.
 
 ## Deferred / Later Work
 
@@ -520,6 +519,7 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 - Stakeholder feedback incorporation (deferred by owner override 2026-03-01).
 - Housing-unit method: update methodology docs with HU cross-validation narrative.
 - Benchmark/versioning follow-on work from SOP-003: broader scope coverage beyond county benchmarks.
+- Optional archival cleanup of the repeated 2026-03-18 recipe-search rows in the raw append-only `data/analysis/experiments/experiment_log.csv`; canonical status/history consumers now de-duplicate by `experiment_id`, and autonomous search now skips already-logged recipe candidates before planning or execution.
 - ~~Richer comparison dashboards~~ — completed 2026-03-12: interactive experiment dashboard (`scripts/analysis/build_experiment_dashboard.py`) with 5 tabs (tracker, spaghetti plot, scorecard, horizon analysis, county heatmap), 19 tests.
 - Projection Observatory historical roadmap rationale and implementation history are tracked in `docs/guides/observatory-start-here.md`, `docs/plans/README.md`, `docs/plans/benchmarking-process-improvement-roadmap.md`, and `docs/plans/observatory-ui-ux-backlog.md`. These documents should not be treated as an open backlog unless a new item is re-entered into this tracker.
 

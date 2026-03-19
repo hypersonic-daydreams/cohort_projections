@@ -452,6 +452,45 @@ class TestExperimentLog:
         assert not log.empty
         assert len(log) == 1
 
+    def test_log_deduplicates_repeated_experiment_ids(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Dashboard-facing log loads should collapse duplicate experiment IDs."""
+        hdir = tmp_path / "history"
+        hdir.mkdir()
+        _write_index(hdir, [])
+
+        log_path = tmp_path / "experiment_log.csv"
+        pd.DataFrame(
+            [
+                {
+                    "experiment_id": "exp-1",
+                    "run_date": "2026-03-18",
+                    "interpretation": "first",
+                },
+                {
+                    "experiment_id": "exp-1",
+                    "run_date": "2026-03-19",
+                    "interpretation": "second",
+                },
+            ]
+        ).to_csv(log_path, index=False)
+
+        monkeypatch.setattr(
+            "cohort_projections.analysis.observatory.results_store._resolve_path",
+            lambda rel: tmp_path / rel,
+        )
+
+        store = ResultsStore(
+            history_dir=hdir,
+            config={"experiment_log": "experiment_log.csv"},
+        )
+        log = store.get_experiment_log()
+        assert len(log) == 1
+        assert log.iloc[0]["interpretation"] == "second"
+
 
 # ---------------------------------------------------------------------------
 # TestRepr

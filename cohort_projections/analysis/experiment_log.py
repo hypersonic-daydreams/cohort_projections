@@ -101,11 +101,21 @@ def append_experiment_entry(
 
 def read_experiment_log(
     log_path: Path = DEFAULT_LOG_PATH,
+    *,
+    dedupe_by_experiment_id: bool = False,
 ) -> pd.DataFrame:
     """Read the full experiment log as a DataFrame.
 
     Returns an empty DataFrame with LOG_COLUMNS if the file does not exist
     or contains only a header row.
+
+    Args:
+        log_path: Path to the CSV log file.
+        dedupe_by_experiment_id: When True, collapse repeated
+            ``experiment_id`` rows by keeping the latest row for each
+            identifier. This is useful for dashboard/status consumers that
+            need one current view per experiment while preserving the
+            append-only on-disk journal.
     """
     if not log_path.exists():
         return pd.DataFrame(columns=LOG_COLUMNS)
@@ -115,7 +125,31 @@ def read_experiment_log(
     if df.empty:
         return pd.DataFrame(columns=LOG_COLUMNS)
 
+    if dedupe_by_experiment_id:
+        df = _deduplicate_experiment_rows(df)
+
     return df
+
+
+def _deduplicate_experiment_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """Return one latest row per ``experiment_id`` while preserving column order."""
+    if df.empty or "experiment_id" not in df.columns:
+        return df
+
+    working = df.copy()
+    working["_row_order"] = range(len(working))
+    run_dates = (
+        working["run_date"] if "run_date" in working.columns else pd.Series(index=working.index)
+    )
+    working["_run_date_sort"] = pd.to_datetime(run_dates, errors="coerce")
+    working = working.sort_values(
+        by=["experiment_id", "_run_date_sort", "_row_order"],
+        ascending=[True, True, True],
+        kind="stable",
+    )
+    working = working.drop_duplicates(subset=["experiment_id"], keep="last")
+    working = working.sort_values(by="_row_order", kind="stable")
+    return working.drop(columns=["_row_order", "_run_date_sort"]).reset_index(drop=True)
 
 
 def get_tested_hypotheses(

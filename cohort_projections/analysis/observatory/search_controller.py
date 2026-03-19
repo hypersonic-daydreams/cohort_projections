@@ -194,6 +194,7 @@ class AutonomousSearchController:
         seen: set[str] = set()
         candidates: list[dict[str, Any]] = []
         requested_by = "system"
+        logged_experiment_ids = get_tested_hypotheses(self.experiment_log_path)
 
         resolved_base_revision = self._resolve_git_revision(base_revision)
         pending_limit = self.policy.default_max_pending if max_pending is None else max_pending
@@ -224,6 +225,8 @@ class AutonomousSearchController:
                     ],
                 )
                 spec = yaml.safe_load(spec_path.read_text(encoding="utf-8"))
+                if str(spec["experiment_id"]) in logged_experiment_ids:
+                    continue
                 fingerprint = _spec_fingerprint(
                     execution_mode="config_only",
                     spec=spec,
@@ -271,6 +274,8 @@ class AutonomousSearchController:
                 )
                 if spec is None:
                     continue
+                if str(spec["experiment_id"]) in logged_experiment_ids:
+                    continue
                 fingerprint = _spec_fingerprint(execution_mode="config_only", spec=spec)
                 if fingerprint in seen:
                     continue
@@ -312,6 +317,8 @@ class AutonomousSearchController:
                 if execution_mode == "code_recipe" and not (
                     spec.get("method_id_override") or recipe.get("allow_shared_method_patch", False)
                 ):
+                    continue
+                if str(spec["experiment_id"]) in logged_experiment_ids:
                     continue
                 fingerprint = _spec_fingerprint(
                     execution_mode=execution_mode,
@@ -392,6 +399,19 @@ class AutonomousSearchController:
         executed = 0
         for candidate in session["candidates"]:
             if candidate["status"] != "planned":
+                continue
+            existing_log_row = self._latest_logged_experiment_entry(
+                str(candidate["spec"]["experiment_id"])
+            )
+            if existing_log_row is not None:
+                candidate["status"] = "completed"
+                candidate["completed_at"] = _utc_now()
+                candidate["result"] = self._logged_candidate_result(
+                    candidate=candidate,
+                    log_row=existing_log_row,
+                )
+                candidate["last_error"] = ""
+                self._persist_session_update(session)
                 continue
             if budget is not None and executed >= budget:
                 break
@@ -964,7 +984,56 @@ class AutonomousSearchController:
         )
 
     def _read_canonical_experiment_log(self) -> pd.DataFrame:
-        return read_experiment_log(self.experiment_log_path)
+        return read_experiment_log(self.experiment_log_path, dedupe_by_experiment_id=True)
+
+    def _latest_logged_experiment_entry(self, experiment_id: str) -> dict[str, Any] | None:
+        """Return the latest canonical experiment-log row for one experiment."""
+        canonical_log = self._read_canonical_experiment_log()
+        if canonical_log.empty or "experiment_id" not in canonical_log.columns:
+            return None
+        matching = canonical_log[canonical_log["experiment_id"].astype(str) == experiment_id]
+        if matching.empty:
+            return None
+        return cast(dict[str, Any], matching.iloc[-1].to_dict())
+
+    def _logged_candidate_result(
+        self,
+        *,
+        candidate: dict[str, Any],
+        log_row: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Build a candidate-result payload from an existing experiment-log row."""
+        spec = cast(dict[str, Any], candidate["spec"])
+        method_id = _predict_method_id(spec)
+        config_id = _predict_config_id(spec)
+        raw_run_id = str(log_row.get("run_id", "") or "")
+        run_id = "" if raw_run_id == "not_run" else raw_run_id
+        benchmark_summary = {}
+        if run_id:
+            benchmark_summary = self._extract_benchmark_summary_from_history_dir(
+                history_dir=self.history_dir,
+                run_id=run_id,
+                method_id=method_id,
+                config_id=config_id,
+            )
+        return {
+            "outcome": str(log_row.get("outcome", "") or ""),
+            "run_id": run_id,
+            "method_id": method_id,
+            "config_id": config_id,
+            "spec_path": str(log_row.get("spec_path", "") or candidate.get("spec_path", "")),
+            "patch_path": "",
+            "patch_manifest_path": "",
+            "stdout_log": "",
+            "stderr_log": "",
+            "profile_path": "",
+            "changed_files": [],
+            "classification_details": {},
+            "key_metrics_summary": str(log_row.get("key_metrics_summary", "") or ""),
+            "interpretation": str(log_row.get("interpretation", "") or ""),
+            "next_action": str(log_row.get("next_action", "") or ""),
+            "benchmark_summary": benchmark_summary,
+        }
 
     def _session_dir(self, search_id: str) -> Path:
         return self.policy.session_root / search_id
@@ -1029,9 +1098,26 @@ class AutonomousSearchController:
         config_id: str,
     ) -> dict[str, Any]:
         """Extract decision-useful metrics for one completed benchmark run."""
+        history_dir = worktree_path / "data" / "analysis" / "benchmark_history"
+        return self._extract_benchmark_summary_from_history_dir(
+            history_dir=history_dir,
+            run_id=run_id,
+            method_id=method_id,
+            config_id=config_id,
+        )
+
+    def _extract_benchmark_summary_from_history_dir(
+        self,
+        *,
+        history_dir: Path,
+        run_id: str,
+        method_id: str,
+        config_id: str,
+    ) -> dict[str, Any]:
+        """Extract decision-useful metrics for one completed benchmark run."""
         if not run_id:
             return {}
-        run_dir = worktree_path / "data" / "analysis" / "benchmark_history" / run_id
+        run_dir = history_dir / run_id
         scorecard_path = run_dir / "summary_scorecard.csv"
         comparison_path = run_dir / "comparison_to_champion.json"
         if not scorecard_path.exists():

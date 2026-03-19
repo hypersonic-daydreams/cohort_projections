@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import subprocess
 from pathlib import Path
 
+import pandas as pd
 import pytest
 import yaml
 
@@ -444,6 +446,117 @@ class TestSearchController:
         assert session["summary"]["total"] == 0
         assert session["summary"]["planned"] == 0
         assert session["candidates"] == []
+
+    def test_plan_session_skips_recipe_candidates_already_logged(
+        self, search_project: Path
+    ) -> None:
+        log_path = search_project / "data" / "analysis" / "experiments" / "experiment_log.csv"
+        today = dt.datetime.now(tz=dt.UTC).strftime("%Y%m%d")
+        pd.DataFrame(
+            [
+                {
+                    "experiment_id": f"exp-{today}-recipe-safe",
+                    "run_date": "2026-03-19",
+                    "hypothesis": "already tested",
+                    "base_method": "m2026r1",
+                    "config_delta_summary": "",
+                    "run_id": "not_run",
+                    "outcome": "inconclusive",
+                    "key_metrics_summary": "",
+                    "interpretation": "prior attempt",
+                    "next_action": "flag_for_review",
+                    "agent_or_human": "system",
+                    "spec_path": "data/analysis/experiments/completed/exp-test.yaml",
+                }
+            ]
+        ).to_csv(log_path, mode="a", header=False, index=False)
+
+        controller = AutonomousSearchController(
+            store=None,
+            observatory_config={
+                "history_dir": "data/analysis/benchmark_history",
+                "experiment_log": "data/analysis/experiments/experiment_log.csv",
+                "variant_catalog": "config/observatory_variants.yaml",
+            },
+            policy_path=search_project / "config" / "observatory_search_policy.yaml",
+            project_root=search_project,
+            source_repo=search_project,
+        )
+        session = controller.plan_session(
+            search_id="search-skip-logged-recipe",
+            max_pending=0,
+            max_recommended=0,
+            include_recipe_catalog=True,
+        )
+
+        assert session["summary"]["total"] == 0
+        assert session["candidates"] == []
+
+    def test_run_session_marks_logged_candidates_completed_without_execution(
+        self,
+        search_project: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        controller = AutonomousSearchController(
+            store=None,
+            observatory_config={
+                "history_dir": "data/analysis/benchmark_history",
+                "experiment_log": "data/analysis/experiments/experiment_log.csv",
+                "variant_catalog": "config/observatory_variants.yaml",
+            },
+            policy_path=search_project / "config" / "observatory_search_policy.yaml",
+            project_root=search_project,
+            source_repo=search_project,
+        )
+        controller.plan_session(
+            search_id="search-runtime-skip",
+            max_pending=0,
+            max_recommended=0,
+            include_recipe_catalog=True,
+        )
+
+        log_path = search_project / "data" / "analysis" / "experiments" / "experiment_log.csv"
+        today = dt.datetime.now(tz=dt.UTC).strftime("%Y%m%d")
+        pd.DataFrame(
+            [
+                {
+                    "experiment_id": f"exp-{today}-recipe-safe",
+                    "run_date": "2026-03-19",
+                    "hypothesis": "already tested",
+                    "base_method": "m2026r1",
+                    "config_delta_summary": "",
+                    "run_id": "not_run",
+                    "outcome": "inconclusive",
+                    "key_metrics_summary": "existing result",
+                    "interpretation": "prior attempt",
+                    "next_action": "flag_for_review",
+                    "agent_or_human": "system",
+                    "spec_path": "data/analysis/experiments/completed/exp-test.yaml",
+                }
+            ]
+        ).to_csv(log_path, mode="a", header=False, index=False)
+
+        def _unexpected_create_worktree(*args: object, **kwargs: object) -> None:
+            raise AssertionError("create_worktree should not be called for logged candidates")
+
+        monkeypatch.setattr(controller.sandbox_manager, "assert_live_checkout_clean", lambda: None)
+        monkeypatch.setattr(controller.sandbox_manager, "live_checkout_signature", lambda: "")
+        monkeypatch.setattr(
+            controller.sandbox_manager,
+            "assert_live_checkout_unchanged",
+            lambda signature: None,
+        )
+        monkeypatch.setattr(
+            controller.sandbox_manager, "create_worktree", _unexpected_create_worktree
+        )
+
+        result = controller.run_session(search_id="search-runtime-skip", run_budget=1)
+        session = controller.load_session("search-runtime-skip")
+
+        assert result["executed"] == 0
+        assert session["candidates"][0]["status"] == "completed"
+        assert session["candidates"][0]["result"]["outcome"] == "inconclusive"
+        assert session["candidates"][0]["result"]["key_metrics_summary"] == "existing result"
 
 
 def test_repo_recipe_catalog_has_unique_search_lattice() -> None:

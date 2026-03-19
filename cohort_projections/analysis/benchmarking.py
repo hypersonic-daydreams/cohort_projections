@@ -18,6 +18,8 @@ import yaml
 from cohort_projections.analysis.benchmark_contract import (
     BENCHMARK_INDEX_COLUMNS,
     validate_index_columns,
+    validate_manifest,
+    validate_scorecard_columns,
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -706,6 +708,86 @@ def append_benchmark_index(
         finally:
             fcntl.flock(handle, fcntl.LOCK_UN)
     validate_index_columns(pd.read_csv(index_path))
+
+
+def rebuild_benchmark_index(
+    *,
+    history_dir: Path = DEFAULT_HISTORY_DIR,
+    index_path: Path | None = None,
+) -> dict[str, Any]:
+    """Rebuild ``benchmark_history/index.csv`` from complete run bundles.
+
+    Args:
+        history_dir: Benchmark history root containing dated run bundles.
+        index_path: Override output path for the rebuilt index. Defaults to
+            ``history_dir / "index.csv"``.
+
+    Returns:
+        Summary metadata describing which bundles were registered or skipped.
+    """
+    history_dir = Path(history_dir)
+    index_path = Path(index_path) if index_path is not None else history_dir / "index.csv"
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+
+    registered_run_ids: list[str] = []
+    skipped_incomplete: list[str] = []
+    skipped_invalid: list[str] = []
+
+    temp_index_path = index_path.with_suffix(index_path.suffix + ".tmp")
+    if temp_index_path.exists():
+        temp_index_path.unlink()
+
+    run_dirs = [
+        path
+        for path in sorted(history_dir.iterdir())
+        if path.is_dir() and path.name != "latest" and path.name.startswith("br-")
+    ]
+
+    for run_dir in run_dirs:
+        manifest_path = run_dir / "manifest.json"
+        scorecard_path = run_dir / "summary_scorecard.csv"
+        if not (manifest_path.exists() and scorecard_path.exists()):
+            skipped_incomplete.append(run_dir.name)
+            continue
+
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            validate_manifest(manifest)
+            scorecard = pd.read_csv(scorecard_path)
+            validate_scorecard_columns(scorecard)
+            append_benchmark_index(
+                index_path=temp_index_path,
+                scorecard=scorecard,
+                manifest_path=manifest_path,
+                benchmark_label=str(manifest.get("benchmark_label", "")),
+                benchmark_contract_version=str(manifest.get("benchmark_contract_version", "")),
+                git_commit=str(manifest.get("git_commit", "")),
+                champion_method_id=str(manifest.get("champion_method_id", "")),
+                decision_id=str(manifest.get("decision_id", "")) or None,
+                decision_status=str(manifest.get("decision_status", "pending")),
+            )
+            registered_run_ids.append(run_dir.name)
+        except Exception:
+            skipped_invalid.append(run_dir.name)
+
+    if temp_index_path.exists():
+        temp_index_path.replace(index_path)
+        rebuilt_index = pd.read_csv(index_path)
+        row_count = len(rebuilt_index)
+    else:
+        pd.DataFrame(columns=BENCHMARK_INDEX_COLUMNS).to_csv(index_path, index=False)
+        row_count = 0
+
+    return {
+        "history_dir": str(history_dir),
+        "index_path": str(index_path),
+        "registered_runs": registered_run_ids,
+        "skipped_incomplete_runs": skipped_incomplete,
+        "skipped_invalid_runs": skipped_invalid,
+        "run_dir_count": len(run_dirs),
+        "registered_run_count": len(registered_run_ids),
+        "row_count": row_count,
+    }
 
 
 def render_benchmark_decision_record(

@@ -134,6 +134,38 @@ class TestReadExperimentLog:
         df = read_experiment_log(log_path)
         assert df.empty
 
+    def test_read_can_deduplicate_by_experiment_id(self, tmp_path: Path) -> None:
+        """De-duplicated reads keep the latest row for each experiment_id."""
+        log_path = tmp_path / "log.csv"
+        append_experiment_entry(
+            _make_entry(
+                experiment_id="EXP-001",
+                run_date="2026-03-18",
+                interpretation="first",
+            ),
+            log_path=log_path,
+        )
+        append_experiment_entry(
+            _make_entry(
+                experiment_id="EXP-001",
+                run_date="2026-03-19",
+                interpretation="second",
+            ),
+            log_path=log_path,
+        )
+        append_experiment_entry(
+            _make_entry(
+                experiment_id="EXP-002",
+                run_date="2026-03-19",
+                interpretation="third",
+            ),
+            log_path=log_path,
+        )
+
+        df = read_experiment_log(log_path, dedupe_by_experiment_id=True)
+        assert list(df["experiment_id"]) == ["EXP-001", "EXP-002"]
+        assert df.iloc[0]["interpretation"] == "second"
+
 
 class TestGetTestedHypotheses:
     """Tests for get_tested_hypotheses."""

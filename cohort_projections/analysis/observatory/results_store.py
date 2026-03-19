@@ -19,6 +19,7 @@ import pandas as pd
 import yaml
 
 from cohort_projections.analysis.benchmark_contract import validate_index_columns
+from cohort_projections.analysis.experiment_log import read_experiment_log
 
 logger = logging.getLogger(__name__)
 
@@ -301,7 +302,7 @@ class ResultsStore:
         if not log_path.exists():
             logger.warning("Experiment log not found: %s", log_path)
             return pd.DataFrame()
-        return pd.read_csv(log_path)
+        return read_experiment_log(log_path, dedupe_by_experiment_id=True)
 
     def get_runtime_history(self) -> pd.DataFrame:
         """Load runtime summaries from every benchmark bundle."""

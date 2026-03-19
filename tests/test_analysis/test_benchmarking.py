@@ -24,6 +24,7 @@ from cohort_projections.analysis.benchmarking import (
     decision_file_is_approved,
     load_aliases,
     load_method_profile,
+    rebuild_benchmark_index,
     refresh_latest_benchmark_pointers,
     render_benchmark_decision_record,
     update_alias_mapping,
@@ -602,6 +603,46 @@ def test_refresh_latest_benchmark_pointers_selects_newest_matching_run(tmp_path:
     assert (history_dir / "latest" / "county_champion" / "manifest.json").resolve() == (
         history_dir / "br-20260311-090000-m2026-bbbbbbb" / "manifest.json"
     )
+
+
+def test_rebuild_benchmark_index_registers_only_complete_runs(tmp_path: Path) -> None:
+    history_dir = tmp_path / "benchmark_history"
+    history_dir.mkdir()
+    _write_benchmark_run(
+        history_dir,
+        run_id="br-20260311-090000-m2026-bbbbbbb",
+        run_date="20260311",
+        method_id="m2026",
+        config_id="cfg-champion",
+        status_at_run="champion",
+    )
+    incomplete_run = history_dir / "br-20260312-090000-m2026r1-ccccccc"
+    incomplete_run.mkdir()
+    (incomplete_run / "resolved_configs").mkdir()
+
+    result = rebuild_benchmark_index(history_dir=history_dir)
+
+    assert result["registered_run_count"] == 1
+    assert result["registered_runs"] == ["br-20260311-090000-m2026-bbbbbbb"]
+    assert result["skipped_incomplete_runs"] == ["br-20260312-090000-m2026r1-ccccccc"]
+
+    index_df = pd.read_csv(history_dir / "index.csv")
+    assert list(index_df["run_id"].unique()) == ["br-20260311-090000-m2026-bbbbbbb"]
+
+
+def test_rebuild_benchmark_index_writes_header_only_when_no_complete_runs(tmp_path: Path) -> None:
+    history_dir = tmp_path / "benchmark_history"
+    history_dir.mkdir()
+    incomplete_run = history_dir / "br-20260312-090000-m2026r1-ccccccc"
+    incomplete_run.mkdir()
+
+    result = rebuild_benchmark_index(history_dir=history_dir)
+
+    index_df = pd.read_csv(history_dir / "index.csv")
+    assert index_df.empty
+    assert list(index_df.columns) == list(BENCHMARK_INDEX_COLUMNS)
+    assert result["registered_run_count"] == 0
+    assert result["skipped_incomplete_runs"] == ["br-20260312-090000-m2026r1-ccccccc"]
 
 
 def test_refresh_latest_benchmark_pointers_writes_missing_pointer_without_crashing(
