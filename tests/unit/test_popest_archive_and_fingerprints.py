@@ -8,7 +8,12 @@ from pathlib import Path
 import pyarrow as pa
 import pytest
 
-from cohort_projections.data.popest_shared import schema_fingerprint
+from cohort_projections.data.popest_shared import (
+    resolve_popest_file,
+    resolve_popest_paths,
+    resolve_popest_root,
+    schema_fingerprint,
+)
 from scripts.data.archive_popest_raw_by_vintage import _verify_zip_against_manifest
 
 
@@ -63,3 +68,33 @@ def test_verify_zip_against_manifest_fails_on_md5(tmp_path: Path) -> None:
 
     with pytest.raises(RuntimeError, match="MD5 mismatch"):
         _verify_zip_against_manifest(zip_path, manifest)
+
+
+def test_resolve_popest_root_uses_env_var(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    popest_root = tmp_path / "shared-data" / "census" / "popest"
+    popest_root.mkdir(parents=True)
+    monkeypatch.setenv("CENSUS_POPEST_DIR", str(popest_root))
+
+    assert resolve_popest_root() == popest_root
+    assert resolve_popest_paths(None).base_dir == popest_root
+
+
+def test_resolve_popest_root_falls_back_to_workspace_workspace_layout(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    fallback_root = tmp_path / "workspace" / "workspace" / "shared-data" / "census" / "popest"
+    fallback_root.mkdir(parents=True)
+    monkeypatch.delenv("CENSUS_POPEST_DIR", raising=False)
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+
+    assert resolve_popest_root() == fallback_root
+
+
+def test_resolve_popest_file_raises_clear_error_when_missing(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.delenv("CENSUS_POPEST_DIR", raising=False)
+    monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
+
+    with pytest.raises(FileNotFoundError, match="CENSUS_POPEST_DIR"):
+        resolve_popest_file("parquet/2020-2024/county/cc-est2024-agesex-all.parquet")

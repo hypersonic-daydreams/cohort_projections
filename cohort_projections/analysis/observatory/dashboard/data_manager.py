@@ -21,6 +21,11 @@ import param
 import yaml
 
 from cohort_projections.analysis.observatory.comparator import ObservatoryComparator
+from cohort_projections.analysis.observatory.decision_support import (
+    build_benchmark_decision_brief,
+    build_search_candidate_rows,
+    build_search_session_summary,
+)
 from cohort_projections.analysis.observatory.recommender import ObservatoryRecommender
 from cohort_projections.analysis.observatory.results_store import (
     ResultsStore,
@@ -945,6 +950,28 @@ class DashboardDataManager:
         """Directory holding persisted autonomous-search sessions."""
         return self._search_policy.session_root
 
+    @functools.cached_property
+    def benchmark_history_snapshot(self) -> dict[str, Any]:
+        """Filesystem-level snapshot of benchmark history completeness."""
+        history_dir: Path = self._store._history_dir  # noqa: SLF001
+        run_dirs = (
+            [path for path in history_dir.iterdir() if path.is_dir()]
+            if history_dir.exists()
+            else []
+        )
+        complete_bundle_count = sum(
+            1
+            for run_dir in run_dirs
+            if (run_dir / "summary_scorecard.csv").exists() and (run_dir / "manifest.json").exists()
+        )
+        return {
+            "history_dir": history_dir,
+            "index_present": (history_dir / "index.csv").exists(),
+            "bundle_count": len(run_dirs),
+            "complete_bundle_count": complete_bundle_count,
+            "incomplete_bundle_count": max(0, len(run_dirs) - complete_bundle_count),
+        }
+
     # ------------------------------------------------------------------
     # Convenience index properties
     # ------------------------------------------------------------------
@@ -1029,6 +1056,13 @@ class DashboardDataManager:
             champion_id=self.champion_id,
             limit=limit,
         )
+
+    @functools.cached_property
+    def benchmark_review_data(self) -> dict[str, Any]:
+        """Normalized benchmark-backed decision brief."""
+        brief = build_benchmark_decision_brief(self.run_metadata, champion_id=self.champion_id)
+        brief["history_snapshot"] = self.benchmark_history_snapshot
+        return brief
 
     def initialize_shortlist(self, preset: str = _PRESET_TOP_CHALLENGERS) -> list[str]:
         """Populate shared shortlist state once and return it."""
@@ -1173,40 +1207,22 @@ class DashboardDataManager:
         """Return candidate-level rows for one autonomous-search session."""
         session_dir = self.search_session_root / search_id
         summary_csv = session_dir / "candidate_summary.csv"
+        seed_rows = pd.DataFrame()
         if summary_csv.exists():
             try:
-                return pd.read_csv(summary_csv)
+                seed_rows = pd.read_csv(summary_csv)
             except Exception:
                 logger.warning("Failed to read %s", summary_csv)
 
         session = self.load_search_session(search_id)
         if not session:
-            return pd.DataFrame()
+            return seed_rows
 
-        rows: list[dict[str, Any]] = []
-        for candidate in session.get("candidates", []):
-            if not isinstance(candidate, dict):
-                continue
-            result = candidate.get("result", {})
-            spec = candidate.get("spec", {})
-            if not isinstance(result, dict):
-                result = {}
-            if not isinstance(spec, dict):
-                spec = {}
-            rows.append(
-                {
-                    "candidate_id": str(candidate.get("candidate_id", "") or ""),
-                    "source": str(candidate.get("source", "") or ""),
-                    "execution_mode": str(candidate.get("execution_mode", "") or ""),
-                    "status": str(candidate.get("status", "") or ""),
-                    "recipe_id": str(candidate.get("recipe_id", "") or ""),
-                    "experiment_id": str(spec.get("experiment_id", "") or ""),
-                    "method_id": str(result.get("method_id", "") or ""),
-                    "config_id": str(result.get("config_id", "") or ""),
-                    "outcome": str(result.get("outcome", "") or ""),
-                    "run_id": str(result.get("run_id", "") or ""),
-                }
-            )
+        rows = build_search_candidate_rows(
+            session,
+            project_root=self.search_policy.project_root,
+            seed_rows=seed_rows,
+        )
         return pd.DataFrame(rows)
 
     def search_session_row(self, search_id: str) -> pd.Series | None:
@@ -1240,6 +1256,47 @@ class DashboardDataManager:
         if sort_cols:
             completed = completed.sort_values(sort_cols, ascending=ascending, na_position="last")
         return completed.head(limit).reset_index(drop=True)
+
+    @functools.cached_property
+    def session_review_data(self) -> dict[str, Any]:
+        """Normalized review summary for the active or latest search session."""
+        search_id = self.active_search_id
+        if not search_id:
+            return {
+                "source": "search_session",
+                "search_id": "",
+                "session_decision_state": "not_executed",
+                "session_headline": "No autonomous-search session is available yet.",
+                "session_recommendation": "Run a search session to populate candidate evidence.",
+                "session_blocker_summary": "",
+                "successful_benchmark_count": 0,
+                "inconclusive_count": 0,
+                "recommendation_candidate_id": "",
+                "recommended_next_step": "Run a search session.",
+            }
+        session_row = self.search_session_row(search_id)
+        candidates = self.search_session_candidates(search_id)
+        summary = build_search_session_summary(
+            candidates,
+            search_id=search_id,
+            status=str(session_row.get("status", "")) if session_row is not None else "",
+            history_index_present=bool(self.benchmark_history_snapshot["index_present"]),
+            incomplete_bundle_count=int(self.benchmark_history_snapshot["incomplete_bundle_count"]),
+        )
+        summary["candidates"] = candidates
+        return summary
+
+    @functools.cached_property
+    def decision_brief(self) -> dict[str, Any]:
+        """Unified dashboard decision brief.
+
+        Prefers benchmark-backed evidence when available; otherwise falls back
+        to the latest search-session summary.
+        """
+        benchmark = self.benchmark_review_data
+        if benchmark.get("decision_state") != "not_executed" and not self.run_metadata.empty:
+            return benchmark
+        return self.session_review_data
 
     def search_session_report_markdown(self, search_id: str) -> str:
         """Return the Markdown search report for one session when available."""
@@ -1300,7 +1357,12 @@ class DashboardDataManager:
 
     def refresh_search_sessions(self) -> None:
         """Clear cached autonomous-search session views without reloading run history."""
-        for attr in ["search_sessions", "active_search_id"]:
+        for attr in [
+            "search_sessions",
+            "active_search_id",
+            "session_review_data",
+            "decision_brief",
+        ]:
             self.__dict__.pop(attr, None)
 
     # ------------------------------------------------------------------
@@ -1324,6 +1386,8 @@ class DashboardDataManager:
             "run_metadata",
             "ordered_run_ids",
             "champion_method_id",
+            "benchmark_history_snapshot",
+            "benchmark_review_data",
             "index",
             "experiment_log",
             "scorecards",
@@ -1342,6 +1406,8 @@ class DashboardDataManager:
             "status_timeline",
             "search_sessions",
             "active_search_id",
+            "session_review_data",
+            "decision_brief",
         ]
         for attr in cached_attrs:
             self.__dict__.pop(attr, None)

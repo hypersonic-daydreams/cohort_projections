@@ -121,6 +121,20 @@ Values that belong in config:
 - Geographic codes
 - Race/ethnicity categories
 
+### Shared Census Archive
+
+Benchmarking, walk-forward validation, and some export scripts depend on the
+shared Census PEP archive. The preferred setup is to point `CENSUS_POPEST_DIR`
+at the POPEST root:
+
+```bash
+export CENSUS_POPEST_DIR=~/workspace/shared-data/census/popest
+```
+
+The code now falls back to common workspace layouts when this variable is not
+set, but the environment variable is still the canonical cross-machine setup and
+should be configured on every development machine.
+
 ---
 
 ## Pre-commit Hooks

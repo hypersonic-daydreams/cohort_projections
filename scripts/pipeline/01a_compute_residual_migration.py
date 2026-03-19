@@ -30,6 +30,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
+from cohort_projections.data.popest_shared import resolve_popest_file  # noqa: E402
 from cohort_projections.data.process.residual_migration import (  # noqa: E402
     run_residual_migration_pipeline,
 )
@@ -63,7 +64,11 @@ def _log_path_status(label: str, paths: Iterable[Path]) -> list[Path]:
 def _dry_run_validate_inputs(config: dict, root: Path) -> bool:
     """Validate key input dependencies without running the pipeline."""
     data_paths = config.get("data_paths", {})
-    shared_data_root = Path.home() / "workspace" / "shared-data"
+    pep_2020_2024_path = data_paths.get("pep_2020_2024_county_age_sex")
+    if pep_2020_2024_path is None:
+        pep_2020_2024_path = str(
+            resolve_popest_file("parquet/2020-2024/county/cc-est2024-agesex-all.parquet")
+        )
 
     required_inputs = [
         _resolve_path(
@@ -97,18 +102,7 @@ def _dry_run_validate_inputs(config: dict, root: Path) -> bool:
             root,
         ),
         _resolve_path(
-            data_paths.get(
-                "pep_2020_2024_county_age_sex",
-                str(
-                    shared_data_root
-                    / "census"
-                    / "popest"
-                    / "parquet"
-                    / "2020-2024"
-                    / "county"
-                    / "cc-est2024-agesex-all.parquet"
-                ),
-            ),
+            pep_2020_2024_path,
             root,
         ),
         _resolve_path(
@@ -135,7 +129,9 @@ def _dry_run_validate_inputs(config: dict, root: Path) -> bool:
 
     missing_inputs = _log_path_status("input", required_inputs)
 
-    residual_cfg = config.get("rates", {}).get("migration", {}).get("domestic", {}).get("residual", {})
+    residual_cfg = (
+        config.get("rates", {}).get("migration", {}).get("domestic", {}).get("residual", {})
+    )
 
     gq_cfg = residual_cfg.get("gq_correction", {})
     if gq_cfg.get("enabled", False):

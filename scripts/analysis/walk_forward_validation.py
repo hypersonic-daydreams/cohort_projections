@@ -69,8 +69,9 @@ Inputs
   Age and Sex.xlsx — Census 2000 county age-sex population (also covers 2005).
 - data/raw/nd_sdc_2024_projections/source_files/reference/cc-est2019-agesex-38
   (1).xlsx — PEP 2010-2019 county age-sex population.
-- ~/workspace/shared-data/census/popest/parquet/2020-2024/county/
-  cc-est2024-agesex-all.parquet — PEP 2020-2024 county age-sex population.
+- Census PEP shared archive (`$CENSUS_POPEST_DIR` or compatible shared-data
+  fallback): parquet/2020-2024/county/cc-est2024-agesex-all.parquet — PEP
+  2020-2024 county age-sex population.
 - data/processed/migration/residual_migration_rates.parquet — Annualized
   residual migration rates by county, age group, sex, period (5 periods).
 - data/processed/sdc_2024/survival_rates_sdc_2024_full.csv — CDC ND 2020 life
@@ -125,6 +126,7 @@ from cohort_projections.data.load.census_age_sex_population import (
     load_pep_2010_2019_county_age_sex,
     load_pep_2020_2024_county_age_sex,
 )
+from cohort_projections.data.popest_shared import resolve_popest_file
 
 # Reverse mapping: FIPS -> county name
 FIPS_TO_COUNTY_NAME: dict[str, str] = {v: k for k, v in _ND_COUNTY_NAME_TO_FIPS.items()}
@@ -134,7 +136,6 @@ FIPS_TO_COUNTY_NAME: dict[str, str] = {v: k for k, v in _ND_COUNTY_NAME_TO_FIPS.
 # ---------------------------------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SHARED_DATA = Path.home() / "workspace" / "shared-data"
 
 # Data file paths
 CENSUS_2000_PATH = (
@@ -155,15 +156,7 @@ PEP_2010_PATH = (
     / "reference"
     / "cc-est2019-agesex-38 (1).xlsx"
 )
-PEP_2024_PATH = (
-    SHARED_DATA
-    / "census"
-    / "popest"
-    / "parquet"
-    / "2020-2024"
-    / "county"
-    / "cc-est2024-agesex-all.parquet"
-)
+PEP_2024_RELATIVE_PATH = Path("parquet") / "2020-2024" / "county" / "cc-est2024-agesex-all.parquet"
 MIGRATION_PATH = (
     PROJECT_ROOT / "data" / "processed" / "migration" / "residual_migration_rates.parquet"
 )
@@ -373,7 +366,8 @@ def load_population_snapshot(year: int) -> pd.DataFrame:
     elif 2010 <= year <= 2019:
         return load_pep_2010_2019_county_age_sex(PEP_2010_PATH, state_fips="38", year=year)
     elif 2020 <= year <= 2024:
-        return load_pep_2020_2024_county_age_sex(PEP_2024_PATH, state_fips="38", year=year)
+        pep_2024_path = resolve_popest_file(PEP_2024_RELATIVE_PATH)
+        return load_pep_2020_2024_county_age_sex(pep_2024_path, state_fips="38", year=year)
     else:
         raise ValueError(f"No loader available for year {year}")
 

@@ -37,9 +37,10 @@ Key design decisions
   2010-2019, and co-est2024 for 2020-2024 to get the best-available (revised)
   estimates for each decade. Intercensal revisions are preferred over postcensal
   where available.
-- **Shared-data parquet files**: Reads from ~/workspace/shared-data/census/popest/
-  parquet directory (managed by scripts/data/download_census_pep.py) with fallback
-  to CSV files in data/raw/population/ for the 2020-2024 vintage.
+- **Shared-data parquet files**: Reads from the shared Census archive resolved
+  via `CENSUS_POPEST_DIR` (with compatibility fallback search for legacy
+  workspaces), managed by scripts/data/download_census_pep.py, with fallback to
+  CSV files in data/raw/population/ for the 2020-2024 vintage.
 - **2025 from nd_county_population.csv**: The PEP Vintage 2025 pre-release
   provides the authoritative 2025 base year population used by projections.
 - **Standalone HTML**: Keeps this report independent from the main interactive
@@ -47,8 +48,8 @@ Key design decisions
 
 Inputs
 ------
-- ~/workspace/shared-data/census/popest/parquet/2000-2009/county/co-est2009-alldata.parquet
-- ~/workspace/shared-data/census/popest/parquet/2010-2020/county/cc-est2020int-alldata.parquet
+- Shared Census archive: parquet/2000-2009/county/co-est2009-alldata.parquet
+- Shared Census archive: parquet/2010-2020/county/cc-est2020int-alldata.parquet
 - data/raw/population/co-est2024-alldata.csv (fallback for 2020-2024)
 - data/raw/population/nd_county_population.csv (2025 population)
 - data/exports/{scenario}/summaries/state_total_population_by_year.csv
@@ -65,7 +66,6 @@ Usage:
 """
 
 import argparse
-import logging
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -85,6 +85,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 import _report_theme as theme  # noqa: E402
 from project_utils import setup_logger  # noqa: E402
 
+from cohort_projections.data.popest_shared import resolve_popest_root  # noqa: E402
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -92,8 +94,12 @@ logger = setup_logger(__name__, log_level="INFO")
 TODAY = datetime.now(tz=UTC).date()
 DATE_STAMP = TODAY.strftime("%Y%m%d")
 
-# Shared Census PEP data directory
-SHARED_POPEST_DIR = Path.home() / "workspace" / "shared-data" / "census" / "popest"
+
+def _shared_popest_dir() -> Path:
+    """Resolve the shared Census PEP archive root."""
+
+    return resolve_popest_root(None)
+
 
 # Scenario definitions
 SCENARIOS = ["baseline", "high_growth", "restricted_growth"]
@@ -147,8 +153,7 @@ def _load_historical_2000_2009() -> pd.DataFrame:
     Returns DataFrame with columns: [fips, year, population, county_name].
     """
     pq_path = (
-        SHARED_POPEST_DIR / "parquet" / "2000-2009" / "county"
-        / "co-est2009-alldata.parquet"
+        _shared_popest_dir() / "parquet" / "2000-2009" / "county" / "co-est2009-alldata.parquet"
     )
 
     if not pq_path.exists():
@@ -158,7 +163,6 @@ def _load_historical_2000_2009() -> pd.DataFrame:
     df = pd.read_parquet(pq_path)
     nd = df[df["STNAME"] == "North Dakota"].copy()
 
-    pop_cols = [f"POPESTIMATE{y}" for y in range(2000, 2010)]
     records = []
     for _, row in nd.iterrows():
         county_str = str(row["COUNTY"]).zfill(3)
@@ -167,17 +171,20 @@ def _load_historical_2000_2009() -> pd.DataFrame:
         for y in range(2000, 2010):
             col = f"POPESTIMATE{y}"
             if col in nd.columns:
-                records.append({
-                    "fips": fips,
-                    "year": y,
-                    "population": int(row[col]),
-                    "county_name": name,
-                })
+                records.append(
+                    {
+                        "fips": fips,
+                        "year": y,
+                        "population": int(row[col]),
+                        "county_name": name,
+                    }
+                )
 
     result = pd.DataFrame(records)
     logger.info(
         "Loaded 2000-2009 historical: %d rows, %d counties",
-        len(result), result["fips"].nunique(),
+        len(result),
+        result["fips"].nunique(),
     )
     return result
 
@@ -189,8 +196,7 @@ def _load_historical_2010_2019() -> pd.DataFrame:
     Returns DataFrame with columns: [fips, year, population, county_name].
     """
     pq_path = (
-        SHARED_POPEST_DIR / "parquet" / "2010-2020" / "county"
-        / "cc-est2020int-alldata.parquet"
+        _shared_popest_dir() / "parquet" / "2010-2020" / "county" / "cc-est2020int-alldata.parquet"
     )
 
     if not pq_path.exists():
@@ -208,17 +214,20 @@ def _load_historical_2010_2019() -> pd.DataFrame:
         county_str = str(row["COUNTY"]).zfill(3)
         fips = f"38{county_str}"
         cal_year = INTERCENSAL_YEAR_MAP[str(row["YEAR"])]
-        records.append({
-            "fips": fips,
-            "year": cal_year,
-            "population": int(row["TOT_POP"]),
-            "county_name": str(row["CTYNAME"]),
-        })
+        records.append(
+            {
+                "fips": fips,
+                "year": cal_year,
+                "population": int(row["TOT_POP"]),
+                "county_name": str(row["CTYNAME"]),
+            }
+        )
 
     result = pd.DataFrame(records)
     logger.info(
         "Loaded 2010-2019 historical: %d rows, %d counties",
-        len(result), result["fips"].nunique(),
+        len(result),
+        result["fips"].nunique(),
     )
     return result
 
@@ -230,8 +239,7 @@ def _load_historical_2020_2024() -> pd.DataFrame:
     """
     # Try parquet first, then CSV
     pq_path = (
-        SHARED_POPEST_DIR / "parquet" / "2020-2024" / "county"
-        / "co-est2024-alldata.parquet"
+        _shared_popest_dir() / "parquet" / "2020-2024" / "county" / "co-est2024-alldata.parquet"
     )
     csv_path = PROJECT_ROOT / "data" / "raw" / "population" / "co-est2024-alldata.csv"
 
@@ -251,7 +259,6 @@ def _load_historical_2020_2024() -> pd.DataFrame:
     else:
         nd = df[state_col == 38].copy()
 
-    pop_cols = [f"POPESTIMATE{y}" for y in range(2020, 2025)]
     records = []
     for _, row in nd.iterrows():
         county_val = str(row["COUNTY"]).zfill(3)
@@ -260,17 +267,20 @@ def _load_historical_2020_2024() -> pd.DataFrame:
         for y in range(2020, 2025):
             col = f"POPESTIMATE{y}"
             if col in nd.columns:
-                records.append({
-                    "fips": fips,
-                    "year": y,
-                    "population": int(row[col]),
-                    "county_name": name,
-                })
+                records.append(
+                    {
+                        "fips": fips,
+                        "year": y,
+                        "population": int(row[col]),
+                        "county_name": name,
+                    }
+                )
 
     result = pd.DataFrame(records)
     logger.info(
         "Loaded 2020-2024 historical: %d rows, %d counties",
-        len(result), result["fips"].nunique(),
+        len(result),
+        result["fips"].nunique(),
     )
     return result
 
@@ -289,12 +299,14 @@ def _load_historical_2025() -> pd.DataFrame:
     records = []
     for _, row in df.iterrows():
         fips = str(int(row["county_fips"])).zfill(5)
-        records.append({
-            "fips": fips,
-            "year": 2025,
-            "population": int(row["population_2025"]),
-            "county_name": str(row["county_name"]),
-        })
+        records.append(
+            {
+                "fips": fips,
+                "year": 2025,
+                "population": int(row["population_2025"]),
+                "county_name": str(row["county_name"]),
+            }
+        )
 
     result = pd.DataFrame(records)
     logger.info("Loaded 2025 population: %d counties", len(result))
@@ -326,11 +338,7 @@ def load_historical_population() -> pd.DataFrame:
 
     # Build state totals by summing counties (exclude state-level row if present)
     county_data = combined[combined["fips"] != "38000"].copy()
-    state_totals = (
-        county_data.groupby("year")["population"]
-        .sum()
-        .reset_index()
-    )
+    state_totals = county_data.groupby("year")["population"].sum().reset_index()
     state_totals["fips"] = "38"
     state_totals["county_name"] = "North Dakota"
 
@@ -363,11 +371,19 @@ def load_projection_data() -> dict[str, pd.DataFrame]:
     result = {}
     for scenario in SCENARIOS:
         state_path = (
-            PROJECT_ROOT / "data" / "exports" / scenario / "summaries"
+            PROJECT_ROOT
+            / "data"
+            / "exports"
+            / scenario
+            / "summaries"
             / "state_total_population_by_year.csv"
         )
         county_path = (
-            PROJECT_ROOT / "data" / "exports" / scenario / "summaries"
+            PROJECT_ROOT
+            / "data"
+            / "exports"
+            / scenario
+            / "summaries"
             / "county_total_population_by_year.csv"
         )
 
@@ -395,8 +411,10 @@ def load_projection_data() -> dict[str, pd.DataFrame]:
             result[scenario] = combined
             logger.info(
                 "Loaded %s projections: %d rows, years %d-%d",
-                scenario, len(combined),
-                combined["year"].min(), combined["year"].max(),
+                scenario,
+                len(combined),
+                combined["year"].min(),
+                combined["year"].max(),
             )
 
     return result
@@ -434,44 +452,43 @@ def build_state_trend_chart(
     state_hist = historical[historical["fips"] == "38"].sort_values("year")
 
     if not state_hist.empty:
-        fig.add_trace(go.Scatter(
-            x=state_hist["year"],
-            y=state_hist["population"],
-            name="Historical (PEP)",
-            mode="lines+markers",
-            line={"color": HISTORICAL_COLOR, "width": 3},
-            marker={"size": 4, "color": HISTORICAL_COLOR},
-            hovertemplate=(
-                "<b>Historical</b><br>"
-                "Year: %{x}<br>"
-                "Population: %{y:,.0f}<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=state_hist["year"],
+                y=state_hist["population"],
+                name="Historical (PEP)",
+                mode="lines+markers",
+                line={"color": HISTORICAL_COLOR, "width": 3},
+                marker={"size": 4, "color": HISTORICAL_COLOR},
+                hovertemplate=(
+                    "<b>Historical</b><br>Year: %{x}<br>Population: %{y:,.0f}<extra></extra>"
+                ),
+            )
+        )
 
         # Census year markers (2000, 2010, 2020)
         census_years = [2000, 2010, 2020]
         census_data = state_hist[state_hist["year"].isin(census_years)]
         if not census_data.empty:
-            fig.add_trace(go.Scatter(
-                x=census_data["year"],
-                y=census_data["population"],
-                name="Census Years",
-                mode="markers+text",
-                marker={
-                    "size": 12,
-                    "color": HISTORICAL_COLOR,
-                    "symbol": "diamond",
-                    "line": {"width": 2, "color": "white"},
-                },
-                text=[f"{int(p):,}" for p in census_data["population"]],
-                textposition="top center",
-                textfont={"size": 10, "color": HISTORICAL_COLOR},
-                hovertemplate=(
-                    "<b>Census %{x}</b><br>"
-                    "Population: %{y:,.0f}<extra></extra>"
-                ),
-                showlegend=True,
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=census_data["year"],
+                    y=census_data["population"],
+                    name="Census Years",
+                    mode="markers+text",
+                    marker={
+                        "size": 12,
+                        "color": HISTORICAL_COLOR,
+                        "symbol": "diamond",
+                        "line": {"width": 2, "color": "white"},
+                    },
+                    text=[f"{int(p):,}" for p in census_data["population"]],
+                    textposition="top center",
+                    textfont={"size": 10, "color": HISTORICAL_COLOR},
+                    hovertemplate=("<b>Census %{x}</b><br>Population: %{y:,.0f}<extra></extra>"),
+                    showlegend=True,
+                )
+            )
 
     # Projection cone (shaded area between high and restricted)
     if "high_growth" in projections and "restricted_growth" in projections:
@@ -491,16 +508,18 @@ def build_state_trend_chart(
             cone = merged[merged["year"] >= 2026]
 
             if not cone.empty:
-                fig.add_trace(go.Scatter(
-                    x=pd.concat([cone["year"], cone["year"][::-1]]),
-                    y=pd.concat([cone["population_high"], cone["population_low"][::-1]]),
-                    fill="toself",
-                    fillcolor=PROJECTION_CONE_FILL,
-                    line={"color": "rgba(0,0,0,0)"},
-                    name="Projection Range",
-                    showlegend=True,
-                    hoverinfo="skip",
-                ))
+                fig.add_trace(
+                    go.Scatter(
+                        x=pd.concat([cone["year"], cone["year"][::-1]]),
+                        y=pd.concat([cone["population_high"], cone["population_low"][::-1]]),
+                        fill="toself",
+                        fillcolor=PROJECTION_CONE_FILL,
+                        line={"color": "rgba(0,0,0,0)"},
+                        name="Projection Range",
+                        showlegend=True,
+                        hoverinfo="skip",
+                    )
+                )
 
     # Projection scenario lines
     for scenario in SCENARIOS:
@@ -518,22 +537,25 @@ def build_state_trend_chart(
         color = SCENARIO_COLORS[scenario]
         dash = SCENARIO_DASHES[scenario]
 
-        fig.add_trace(go.Scatter(
-            x=state_proj["year"],
-            y=state_proj["population"],
-            name=f"{label} Projection",
-            mode="lines",
-            line={"color": color, "width": 2.5, "dash": dash},
-            hovertemplate=(
-                f"<b>{label}</b><br>"
-                "Year: %{x}<br>"
-                "Population: %{y:,.0f}<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=state_proj["year"],
+                y=state_proj["population"],
+                name=f"{label} Projection",
+                mode="lines",
+                line={"color": color, "width": 2.5, "dash": dash},
+                hovertemplate=(
+                    f"<b>{label}</b><br>Year: %{{x}}<br>Population: %{{y:,.0f}}<extra></extra>"
+                ),
+            )
+        )
 
     # Vertical line at base year 2025
     fig.add_vline(
-        x=2025, line_dash="dot", line_color="#808080", line_width=1.5,
+        x=2025,
+        line_dash="dot",
+        line_color="#808080",
+        line_width=1.5,
         annotation_text="Base Year 2025",
         annotation_position="top left",
         annotation_font_size=11,
@@ -542,13 +564,22 @@ def build_state_trend_chart(
 
     # Growth rate annotations
     if not state_hist.empty:
-        pop_2000 = state_hist[state_hist["year"] == 2000]["population"].iloc[0] if 2000 in state_hist["year"].values else None
-        pop_2025 = state_hist[state_hist["year"] == 2025]["population"].iloc[0] if 2025 in state_hist["year"].values else None
+        pop_2000 = (
+            state_hist[state_hist["year"] == 2000]["population"].iloc[0]
+            if 2000 in state_hist["year"].values
+            else None
+        )
+        pop_2025 = (
+            state_hist[state_hist["year"] == 2025]["population"].iloc[0]
+            if 2025 in state_hist["year"].values
+            else None
+        )
 
         if pop_2000 is not None and pop_2025 is not None:
             hist_growth = (pop_2025 - pop_2000) / pop_2000 * 100
             fig.add_annotation(
-                x=2012, y=pop_2000 + (pop_2025 - pop_2000) * 0.3,
+                x=2012,
+                y=pop_2000 + (pop_2025 - pop_2000) * 0.3,
                 text=f"Historical: +{hist_growth:.1f}% (2000-2025)",
                 showarrow=False,
                 font={"size": 11, "color": HISTORICAL_COLOR},
@@ -569,7 +600,8 @@ def build_state_trend_chart(
                 p55 = pop_2055_proj.iloc[0]
                 proj_growth = (p55 - p25) / p25 * 100
                 fig.add_annotation(
-                    x=2042, y=p55 * 0.97,
+                    x=2042,
+                    y=p55 * 0.97,
                     text=f"Baseline: +{proj_growth:.1f}% (2025-2055)",
                     showarrow=False,
                     font={"size": 11, "color": SCENARIO_COLORS["baseline"]},
@@ -613,12 +645,8 @@ def build_county_dropdown_chart(
 
     Returns HTML+JS for an interactive chart where users can select any county.
     """
-    template_name = theme.register_template()
-
     # Get list of all county FIPS (exclude state)
-    all_fips = sorted(
-        [f for f in historical["fips"].unique() if f != "38" and f != "38000"]
-    )
+    all_fips = sorted([f for f in historical["fips"].unique() if f != "38" and f != "38000"])
 
     # Prepare data as JSON for JavaScript
     county_data: dict[str, dict[str, Any]] = {}
@@ -643,13 +671,14 @@ def build_county_dropdown_chart(
         county_data[fips] = entry
 
     import json
+
     data_json = json.dumps(county_data)
 
     # Build dropdown options HTML
     options_html = ""
     for fips in all_fips:
         name = name_map.get(fips, fips)
-        selected = ' selected' if fips == "38017" else ''  # Default to Cass
+        selected = " selected" if fips == "38017" else ""  # Default to Cass
         options_html += f'<option value="{fips}"{selected}>{name} ({fips})</option>\n'
 
     html = f"""
@@ -789,13 +818,14 @@ def build_small_multiples(
 
     n_counties = len(KEY_COUNTIES)
     fig = make_subplots(
-        rows=2, cols=3,
-        subplot_titles=[v for v in KEY_COUNTIES.values()],
+        rows=2,
+        cols=3,
+        subplot_titles=list(KEY_COUNTIES.values()),
         horizontal_spacing=0.08,
         vertical_spacing=0.12,
     )
 
-    for idx, (fips, display_name) in enumerate(KEY_COUNTIES.items()):
+    for idx, (fips, _display_name) in enumerate(KEY_COUNTIES.items()):
         row = idx // 3 + 1
         col = idx % 3 + 1
 
@@ -804,14 +834,16 @@ def build_small_multiples(
         if not hist.empty:
             fig.add_trace(
                 go.Scatter(
-                    x=hist["year"], y=hist["population"],
+                    x=hist["year"],
+                    y=hist["population"],
                     mode="lines",
                     line={"color": HISTORICAL_COLOR, "width": 2},
                     showlegend=(idx == 0),
                     name="Historical",
                     hovertemplate="Year: %{x}<br>Pop: %{y:,.0f}<extra></extra>",
                 ),
-                row=row, col=col,
+                row=row,
+                col=col,
             )
 
         # Baseline projection
@@ -822,14 +854,16 @@ def build_small_multiples(
             if not county_proj.empty:
                 fig.add_trace(
                     go.Scatter(
-                        x=county_proj["year"], y=county_proj["population"],
+                        x=county_proj["year"],
+                        y=county_proj["population"],
                         mode="lines",
                         line={"color": SCENARIO_COLORS["baseline"], "width": 2},
                         showlegend=(idx == 0),
                         name="Baseline",
                         hovertemplate="Year: %{x}<br>Pop: %{y:,.0f}<extra></extra>",
                     ),
-                    row=row, col=col,
+                    row=row,
+                    col=col,
                 )
 
         # High growth
@@ -840,14 +874,20 @@ def build_small_multiples(
             if not county_proj.empty:
                 fig.add_trace(
                     go.Scatter(
-                        x=county_proj["year"], y=county_proj["population"],
+                        x=county_proj["year"],
+                        y=county_proj["population"],
                         mode="lines",
-                        line={"color": SCENARIO_COLORS["high_growth"], "width": 1.5, "dash": "dash"},
+                        line={
+                            "color": SCENARIO_COLORS["high_growth"],
+                            "width": 1.5,
+                            "dash": "dash",
+                        },
                         showlegend=(idx == 0),
                         name="High Growth",
                         hovertemplate="Year: %{x}<br>Pop: %{y:,.0f}<extra></extra>",
                     ),
-                    row=row, col=col,
+                    row=row,
+                    col=col,
                 )
 
         # Restricted
@@ -858,20 +898,30 @@ def build_small_multiples(
             if not county_proj.empty:
                 fig.add_trace(
                     go.Scatter(
-                        x=county_proj["year"], y=county_proj["population"],
+                        x=county_proj["year"],
+                        y=county_proj["population"],
                         mode="lines",
-                        line={"color": SCENARIO_COLORS["restricted_growth"], "width": 1.5, "dash": "dash"},
+                        line={
+                            "color": SCENARIO_COLORS["restricted_growth"],
+                            "width": 1.5,
+                            "dash": "dash",
+                        },
                         showlegend=(idx == 0),
                         name="Restricted",
                         hovertemplate="Year: %{x}<br>Pop: %{y:,.0f}<extra></extra>",
                     ),
-                    row=row, col=col,
+                    row=row,
+                    col=col,
                 )
 
         # Base year marker
         fig.add_vline(
-            x=2025, line_dash="dot", line_color="#808080", line_width=1,
-            row=row, col=col,
+            x=2025,
+            line_dash="dot",
+            line_color="#808080",
+            line_width=1,
+            row=row,
+            col=col,
         )
 
     fig.update_layout(
@@ -926,27 +976,35 @@ def build_growth_era_chart(
         change = None
         if source == "historical":
             if start in state_hist.index and end in state_hist.index:
-                change = int(state_hist.loc[end, "population"]) - int(state_hist.loc[start, "population"])
-        else:
-            if baseline_proj is not None:
-                if start in baseline_proj.index and end in baseline_proj.index:
-                    change = baseline_proj.loc[end, "population"] - baseline_proj.loc[start, "population"]
+                change = int(state_hist.loc[end, "population"]) - int(
+                    state_hist.loc[start, "population"]
+                )
+        elif (
+            baseline_proj is not None
+            and start in baseline_proj.index
+            and end in baseline_proj.index
+        ):
+            change = baseline_proj.loc[end, "population"] - baseline_proj.loc[start, "population"]
 
         era_labels.append(label)
         era_changes.append(round(change) if change is not None else 0)
-        era_colors.append(HISTORICAL_COLOR if source == "historical" else SCENARIO_COLORS["baseline"])
+        era_colors.append(
+            HISTORICAL_COLOR if source == "historical" else SCENARIO_COLORS["baseline"]
+        )
 
     fig = go.Figure()
 
-    fig.add_trace(go.Bar(
-        x=era_labels,
-        y=era_changes,
-        marker_color=era_colors,
-        text=[f"{c:+,}" for c in era_changes],
-        textposition="outside",
-        textfont={"size": 12},
-        hovertemplate="<b>%{x}</b><br>Population Change: %{y:+,.0f}<extra></extra>",
-    ))
+    fig.add_trace(
+        go.Bar(
+            x=era_labels,
+            y=era_changes,
+            marker_color=era_colors,
+            text=[f"{c:+,}" for c in era_changes],
+            textposition="outside",
+            textfont={"size": 12},
+            hovertemplate="<b>%{x}</b><br>Population Change: %{y:+,.0f}<extra></extra>",
+        )
+    )
 
     fig.update_layout(
         template=template_name,
@@ -960,7 +1018,10 @@ def build_growth_era_chart(
 
     # Add a legend-like annotation
     fig.add_annotation(
-        x=0.5, y=1.08, xref="paper", yref="paper",
+        x=0.5,
+        y=1.08,
+        xref="paper",
+        yref="paper",
         text=(
             f'<span style="color:{HISTORICAL_COLOR};">&#9632;</span> Historical &nbsp;&nbsp;'
             f'<span style="color:{SCENARIO_COLORS["baseline"]};">&#9632;</span> Projected (Baseline)'
@@ -982,7 +1043,11 @@ def build_county_growth_era_chart(
     template_name = theme.register_template()
 
     # Select top counties by 2025 population
-    pop_2025 = historical[(historical["year"] == 2025) & (historical["fips"] != "38") & (historical["fips"] != "38000")]
+    pop_2025 = historical[
+        (historical["year"] == 2025)
+        & (historical["fips"] != "38")
+        & (historical["fips"] != "38000")
+    ]
     top_counties = pop_2025.nlargest(6, "population")["fips"].tolist()
 
     eras = [
@@ -1021,13 +1086,15 @@ def build_county_growth_era_chart(
                         change = round(proj.loc[end, "population"] - proj.loc[start, "population"])
             changes.append(change)
 
-        fig.add_trace(go.Bar(
-            x=county_labels,
-            y=changes,
-            name=label,
-            marker_color=era_palette[era_idx],
-            hovertemplate=f"<b>{label}</b><br>" + "%{x}<br>Change: %{y:+,.0f}<extra></extra>",
-        ))
+        fig.add_trace(
+            go.Bar(
+                x=county_labels,
+                y=changes,
+                name=label,
+                marker_color=era_palette[era_idx],
+                hovertemplate=f"<b>{label}</b><br>" + "%{x}<br>Change: %{y:+,.0f}<extra></extra>",
+            )
+        )
 
     fig.update_layout(
         template=template_name,
@@ -1062,22 +1129,23 @@ def build_growth_rate_chart(
         hist_years = state_hist["year"].values
         hist_pop = state_hist["population"].values
         growth_years = hist_years[1:]
-        growth_rates = [(hist_pop[i] - hist_pop[i - 1]) / hist_pop[i - 1] * 100
-                        for i in range(1, len(hist_pop))]
+        growth_rates = [
+            (hist_pop[i] - hist_pop[i - 1]) / hist_pop[i - 1] * 100 for i in range(1, len(hist_pop))
+        ]
 
-        fig.add_trace(go.Scatter(
-            x=growth_years.tolist(),
-            y=growth_rates,
-            name="Historical Growth Rate",
-            mode="lines+markers",
-            line={"color": HISTORICAL_COLOR, "width": 2},
-            marker={"size": 3},
-            hovertemplate=(
-                "<b>Historical</b><br>"
-                "Year: %{x}<br>"
-                "Growth Rate: %{y:.2f}%<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=growth_years.tolist(),
+                y=growth_rates,
+                name="Historical Growth Rate",
+                mode="lines+markers",
+                line={"color": HISTORICAL_COLOR, "width": 2},
+                marker={"size": 3},
+                hovertemplate=(
+                    "<b>Historical</b><br>Year: %{x}<br>Growth Rate: %{y:.2f}%<extra></extra>"
+                ),
+            )
+        )
 
     # Projected growth rates per scenario
     for scenario in SCENARIOS:
@@ -1091,32 +1159,37 @@ def build_growth_rate_chart(
             proj_years = state_proj["year"].values
             proj_pop = state_proj["population"].values
             g_years = proj_years[1:]
-            g_rates = [(proj_pop[i] - proj_pop[i - 1]) / proj_pop[i - 1] * 100
-                       for i in range(1, len(proj_pop))]
+            g_rates = [
+                (proj_pop[i] - proj_pop[i - 1]) / proj_pop[i - 1] * 100
+                for i in range(1, len(proj_pop))
+            ]
 
             label = SCENARIO_LABELS[scenario]
             color = SCENARIO_COLORS[scenario]
             dash = SCENARIO_DASHES[scenario]
 
-            fig.add_trace(go.Scatter(
-                x=g_years.tolist(),
-                y=g_rates,
-                name=f"{label} Growth Rate",
-                mode="lines",
-                line={"color": color, "width": 2, "dash": dash},
-                hovertemplate=(
-                    f"<b>{label}</b><br>"
-                    "Year: %{x}<br>"
-                    "Growth Rate: %{y:.2f}%<extra></extra>"
-                ),
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=g_years.tolist(),
+                    y=g_rates,
+                    name=f"{label} Growth Rate",
+                    mode="lines",
+                    line={"color": color, "width": 2, "dash": dash},
+                    hovertemplate=(
+                        f"<b>{label}</b><br>Year: %{{x}}<br>Growth Rate: %{{y:.2f}}%<extra></extra>"
+                    ),
+                )
+            )
 
     # Zero line
     fig.add_hline(y=0, line_dash="solid", line_color="#D9D9D9", line_width=1)
 
     # Base year marker
     fig.add_vline(
-        x=2025, line_dash="dot", line_color="#808080", line_width=1.5,
+        x=2025,
+        line_dash="dot",
+        line_color="#808080",
+        line_width=1.5,
         annotation_text="Base Year",
         annotation_position="top left",
         annotation_font_size=11,
@@ -1149,6 +1222,7 @@ def get_plotly_js_tag(inline: bool = True) -> str:
 
     try:
         import plotly
+
         plotly_dir = Path(plotly.__file__).parent / "package_data" / "plotly.min.js"
         if plotly_dir.exists():
             js_content = plotly_dir.read_text(encoding="utf-8")

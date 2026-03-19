@@ -20,26 +20,34 @@ logger = logging.getLogger(__name__)
 # Tab index constants — import these instead of hard-coding integers.
 # ---------------------------------------------------------------------------
 TAB_COMMAND_CENTER = 0
-TAB_EXPERIMENT_HISTORY = 1
+TAB_DECISION_BRIEF = 1
 TAB_SCORECARDS = 2
 TAB_PROJECTIONS = 3
 TAB_HORIZON_BIAS = 4
 TAB_SENSITIVITY = 5
+TAB_EXPERIMENT_HISTORY = 6
 
 _WORKFLOW_STEPS = ["Launch", "Monitor", "Review", "Decide"]
 
 # Mapping from tab index to stepper step index.
 _TAB_TO_STEP: dict[int, int] = {
     TAB_COMMAND_CENTER: 0,  # Launch (or Monitor when search running)
-    TAB_EXPERIMENT_HISTORY: 2,  # Review
+    TAB_DECISION_BRIEF: 2,  # Review
     TAB_SCORECARDS: 2,  # Review
     TAB_PROJECTIONS: 2,  # Review
     TAB_HORIZON_BIAS: 2,  # Review
     TAB_SENSITIVITY: 3,  # Decide
+    TAB_EXPERIMENT_HISTORY: 2,  # Review / audit trail
 }
 
 # Review-mode tab sequence for the "Next Step" navigation.
-REVIEW_TAB_SEQUENCE = [TAB_SCORECARDS, TAB_PROJECTIONS, TAB_HORIZON_BIAS, TAB_SENSITIVITY]
+REVIEW_TAB_SEQUENCE = [
+    TAB_DECISION_BRIEF,
+    TAB_SCORECARDS,
+    TAB_PROJECTIONS,
+    TAB_HORIZON_BIAS,
+    TAB_SENSITIVITY,
+]
 
 
 def _stepper_html(active: int, completed: list[int] | None = None) -> str:
@@ -70,6 +78,7 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
     # are needed and to tolerate import-time issues in individual tabs.
     # ------------------------------------------------------------------
     from .tab_command_center import build_command_center
+    from .tab_decision_brief import build_decision_brief_tab
     from .tab_experiment_history import build_experiment_history
     from .tab_horizon_bias import build_horizon_bias_tab
     from .tab_projection_ensemble import build_projection_ensemble
@@ -94,11 +103,12 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
     tabs.extend(
         [
             ("Command Center", build_command_center(dm, tabs=tabs)),
-            ("Experiment History", build_experiment_history(dm)),
+            ("Decision Brief", build_decision_brief_tab(dm, tabs=tabs)),
             ("Scorecards", build_scorecard_tab(dm, tabs=tabs)),
             ("Projections", build_projection_ensemble(dm, tabs=tabs)),
             ("Horizon & Bias", build_horizon_bias_tab(dm, tabs=tabs)),
             ("Sensitivity", build_sensitivity_tab(dm, tabs=tabs)),
+            ("Experiment History", build_experiment_history(dm)),
         ]
     )
     tabs.active = 0
@@ -115,6 +125,7 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
 
         # If in review mode, lock stepper to "Review".
         if dm.selection_state.review_mode and active_tab in (
+            TAB_DECISION_BRIEF,
             TAB_SCORECARDS,
             TAB_PROJECTIONS,
             TAB_HORIZON_BIAS,

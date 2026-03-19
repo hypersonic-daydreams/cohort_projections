@@ -31,6 +31,10 @@ from cohort_projections.analysis.observatory.dashboard.tab_command_center import
     _queue_health_snapshot,
     _search_progress_html,
 )
+from cohort_projections.analysis.observatory.dashboard.tab_decision_brief import (
+    _decision_brief_markdown,
+    build_decision_brief_tab,
+)
 from cohort_projections.analysis.observatory.dashboard.tab_history import (
     _history_takeaway_text,
 )
@@ -45,6 +49,11 @@ from cohort_projections.analysis.observatory.dashboard.tab_scorecard import (
 )
 from cohort_projections.analysis.observatory.dashboard.tab_sensitivity import (
     _sensitivity_takeaway_text,
+)
+from cohort_projections.analysis.observatory.decision_support import (
+    build_benchmark_decision_brief,
+    build_search_candidate_rows,
+    build_search_session_summary,
 )
 
 
@@ -454,6 +463,162 @@ def test_stop_search_session_terminates_process_group(monkeypatch: pytest.Monkey
 
     assert "Sent SIGTERM" in message
     assert killed
+
+
+def test_build_search_candidate_rows_classifies_missing_input_as_blocked(
+    tmp_path,
+) -> None:
+    """Candidate summaries should surface missing shared-data inputs as blockers."""
+    log_dir = tmp_path / "data" / "analysis" / "experiments" / "search_runs" / "search-one" / "logs"
+    log_dir.mkdir(parents=True)
+    log_rel = "data/analysis/experiments/search_runs/search-one/logs/cand-1.stdout.log"
+    (tmp_path / log_rel).write_text(
+        "\n".join(
+            [
+                "Benchmark suite failed (rc=1)",
+                "FileNotFoundError: PEP 2020-2024 file not found: /shared/cc-est2024-agesex-all.parquet",
+                "{",
+                '  "outcome": "inconclusive",',
+                '  "run_id": null,',
+                '  "classification_details": {',
+                '    "classification": "inconclusive",',
+                '    "reasons": [',
+                '      "Benchmark suite failed",',
+                '      "FileNotFoundError: PEP 2020-2024 file not found: /shared/cc-est2024-agesex-all.parquet"',
+                "    ]",
+                "  }",
+                "}",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    session = {
+        "candidates": [
+            {
+                "candidate_id": "cand-1",
+                "source": "recipe_catalog",
+                "source_id": "RX-1",
+                "execution_mode": "code_recipe",
+                "status": "completed",
+                "result": {
+                    "outcome": "inconclusive",
+                    "run_id": "not_run",
+                    "stdout_log": log_rel,
+                },
+            }
+        ]
+    }
+
+    rows = build_search_candidate_rows(session, project_root=tmp_path)
+
+    assert rows[0]["decision_state"] == "blocked_by_data_or_runtime"
+    assert rows[0]["blocker_type"] == "missing_input_data"
+    assert rows[0]["blocker_detail"] == "/shared/cc-est2024-agesex-all.parquet"
+    assert "Restore the missing input data" in rows[0]["recommended_action"]
+
+
+def test_build_search_session_summary_surfaces_blocked_search_state() -> None:
+    """Session summary should clearly distinguish blocked searches from no-winner cases."""
+    candidates = pd.DataFrame(
+        [
+            {
+                "candidate_id": "cand-1",
+                "decision_state": "blocked_by_data_or_runtime",
+                "benchmark_completeness": "none",
+                "outcome": "inconclusive",
+                "blocker_detail": "/shared/cc-est2024-agesex-all.parquet",
+                "recommended_action": "Restore the missing input data and rerun.",
+            },
+            {
+                "candidate_id": "cand-2",
+                "decision_state": "blocked_by_data_or_runtime",
+                "benchmark_completeness": "none",
+                "outcome": "inconclusive",
+                "blocker_detail": "/shared/cc-est2024-agesex-all.parquet",
+                "recommended_action": "Restore the missing input data and rerun.",
+            },
+        ]
+    )
+
+    summary = build_search_session_summary(
+        candidates,
+        search_id="search-one",
+        status="finished",
+        history_index_present=False,
+        incomplete_bundle_count=2,
+    )
+
+    assert summary["session_decision_state"] == "blocked_by_data_or_runtime"
+    assert summary["successful_benchmark_count"] == 0
+    assert summary["inconclusive_count"] == 2
+    assert "none of the 2 candidate(s) produced a usable benchmark" in summary["session_headline"]
+    assert "Benchmark history index is missing" in summary["session_blocker_summary"]
+
+
+def test_build_benchmark_decision_brief_prefers_best_passed_challenger() -> None:
+    """Benchmark-backed briefs should name the strongest fully benchmarked challenger."""
+    index, scorecards, experiment_log = _build_fixture_frames()
+    metadata = build_run_metadata_frame(
+        index=index,
+        scorecards=scorecards,
+        experiment_log=experiment_log,
+        champion_id="br-champion",
+    )
+
+    brief = build_benchmark_decision_brief(metadata, champion_id="br-champion")
+
+    assert brief["source"] == "benchmark"
+    assert brief["decision_state"] == "recommended"
+    assert "College Blend 70" in brief["headline"]
+    assert "improves county error" in brief["explanation"]
+
+
+def test_decision_brief_markdown_surfaces_state_headline_and_next_step() -> None:
+    """Decision brief markdown should include the state, headline, and next action."""
+    dm = SimpleNamespace(
+        decision_brief={
+            "source": "search_session",
+            "session_decision_state": "blocked_by_data_or_runtime",
+            "session_headline": "Search finished, but none of the candidates produced a usable benchmark.",
+            "session_blocker_summary": "Required input data is missing at `/shared/cc-est2024-agesex-all.parquet`.",
+            "session_recommendation": "Restore the missing input data and rerun the blocked candidates.",
+            "recommendation_candidate_id": "",
+        }
+    )
+
+    body = _decision_brief_markdown(cast(DashboardDataManager, dm))
+
+    assert "**Decision state:** `blocked_by_data_or_runtime`" in body
+    assert "Search finished, but none of the candidates produced a usable benchmark." in body
+    assert "Restore the missing input data and rerun the blocked candidates." in body
+
+
+def test_build_decision_brief_tab_renders_cards() -> None:
+    """Decision Brief tab should render the narrative cards without requiring benchmark data."""
+    dm = SimpleNamespace(
+        decision_brief={
+            "source": "search_session",
+            "session_decision_state": "blocked_by_data_or_runtime",
+            "session_headline": "Search finished, but none of the candidates produced a usable benchmark.",
+            "session_blocker_summary": "Required input data is missing at `/shared/cc-est2024-agesex-all.parquet`.",
+            "session_recommendation": "Restore the missing input data and rerun the blocked candidates.",
+            "recommendation_candidate_id": "",
+        },
+        benchmark_history_snapshot={
+            "index_present": False,
+            "bundle_count": 9,
+            "complete_bundle_count": 0,
+            "incomplete_bundle_count": 9,
+        },
+        session_review_data={"candidates": pd.DataFrame()},
+        selection_state=SimpleNamespace(review_mode=False, review_step=0),
+    )
+
+    tab = build_decision_brief_tab(cast(DashboardDataManager, dm), tabs=None)
+
+    assert "Decision Brief" in tab[0].object
+    flex_box = tab[2]
+    assert len(flex_box.objects) >= 2
 
 
 def test_build_dashboard_returns_fresh_instances(monkeypatch) -> None:

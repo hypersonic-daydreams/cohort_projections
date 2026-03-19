@@ -43,6 +43,7 @@ from cohort_projections.data.load.census_age_sex_population import (
     load_pep_2010_2019_county_age_sex,
     load_pep_2020_2024_county_age_sex,
 )
+from cohort_projections.data.popest_shared import resolve_popest_file
 from cohort_projections.utils import (
     get_logger_from_config,
     load_projection_config,
@@ -314,34 +315,12 @@ def assemble_period_populations(
         ),
     )
 
-    # PEP 2010-2020 intercensal file (shared data)
-    shared_data_root = Path.home() / "workspace" / "shared-data"
-    data_paths.get(
-        "pep_2020_intercensal",
-        str(
-            shared_data_root
-            / "census"
-            / "popest"
-            / "parquet"
-            / "2010-2020"
-            / "county"
-            / "cc-est2020int-alldata.parquet"
-        ),
-    )
-
     # PEP 2020-2024 file (shared data)
-    pep_2020_2024_path = data_paths.get(
-        "pep_2020_2024_county_age_sex",
-        str(
-            shared_data_root
-            / "census"
-            / "popest"
-            / "parquet"
-            / "2020-2024"
-            / "county"
-            / "cc-est2024-agesex-all.parquet"
-        ),
-    )
+    pep_2020_2024_path = data_paths.get("pep_2020_2024_county_age_sex")
+    if pep_2020_2024_path is None:
+        pep_2020_2024_path = str(
+            resolve_popest_file("parquet/2020-2024/county/cc-est2024-agesex-all.parquet")
+        )
 
     # SDC 2024 base population (supports env/sibling/in-repo resolution)
     base_pop_2020_path = data_paths.get(

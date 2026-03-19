@@ -34,6 +34,7 @@ from cohort_projections.analysis.observatory.dashboard.widgets import (
     empty_placeholder,
     hero_metric,
     kpi_card,
+    markdown_card,
     metric_table,
     progress_ring,
     section_header,
@@ -284,6 +285,17 @@ def _search_session_detail_html(session_row: pd.Series | None) -> str:
 
 def _command_center_summary(dm: DashboardDataManager) -> str:
     """Return a plain-language summary of the current decision state."""
+    brief = getattr(dm, "decision_brief", {})
+    source = str(brief.get("source", "") or "")
+    if source == "search_session":
+        headline = str(brief.get("session_headline", "") or "")
+        recommendation = str(brief.get("session_recommendation", "") or "")
+        blocker = str(brief.get("session_blocker_summary", "") or "")
+        summary = f"{headline} {recommendation}".strip()
+        if blocker:
+            summary = f"{summary} Blocker: {blocker}".strip()
+        return summary or "No completed Observatory run history is available yet."
+
     champion_row = (
         dm.run_metadata[dm.run_metadata["run_id"] == dm.champion_id].iloc[0]
         if dm.champion_id is not None
@@ -334,6 +346,40 @@ def _command_center_summary(dm: DashboardDataManager) -> str:
         )
 
     return " ".join(summary_parts) or "No completed Observatory run history is available yet."
+
+
+def _build_decision_brief_card(dm: DashboardDataManager) -> pn.Card:
+    """Compact decision brief surfaced directly on the Command Center."""
+    brief = dm.decision_brief
+    state = str(
+        brief.get("decision_state") or brief.get("session_decision_state") or "not_executed"
+    )
+    headline = str(
+        brief.get("headline")
+        or brief.get("session_headline")
+        or "No decision evidence is available yet."
+    )
+    explanation = str(brief.get("explanation") or brief.get("session_blocker_summary") or headline)
+    next_step = str(
+        brief.get("recommended_action")
+        or brief.get("session_recommendation")
+        or brief.get("recommended_next_step")
+        or "Inspect the current evidence."
+    )
+    recommendation_id = str(brief.get("recommendation_candidate_id", "") or "")
+
+    body = [
+        f"**Decision state:** `{state}`",
+        "",
+        f"**What happened:** {headline}",
+        "",
+        f"**Why it matters:** {explanation}",
+        "",
+    ]
+    if recommendation_id:
+        body.extend([f"**Best available option:** `{recommendation_id}`", ""])
+    body.append(f"**Next action:** {next_step}")
+    return markdown_card("Decision Brief", "\n".join(body), min_width=420)
 
 
 def _queue_health_snapshot(dm: DashboardDataManager) -> dict[str, Any]:
@@ -1363,12 +1409,24 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
 
         if search_done:
             # Completion state -- show banner instead of ring
+            session_candidates = (
+                dm.search_session_candidates(selected_search_id)
+                if selected_search_id
+                else pd.DataFrame()
+            )
             best_candidates = (
                 dm.search_session_best_candidates(selected_search_id)
                 if selected_search_id
                 else pd.DataFrame()
             )
-            if failed > 0 and completed == 0:
+            all_blocked = (
+                not session_candidates.empty
+                and "decision_state" in session_candidates.columns
+                and (
+                    session_candidates["decision_state"].astype(str) == "blocked_by_data_or_runtime"
+                ).all()
+            )
+            if all_blocked or (failed > 0 and completed == 0):
                 banner = completion_banner(total, status="failed")
             elif failed > 0:
                 banner = completion_banner(total, status="mixed")
@@ -1418,9 +1476,11 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
                 col
                 for col in [
                     "candidate_id",
+                    "decision_label",
                     "outcome",
                     "county_mape_overall",
                     "delta_county_mape_overall",
+                    "headline",
                 ]
                 if col in best_candidates.columns
             ]
@@ -1663,6 +1723,7 @@ def build_command_center(
     """
     # --- Left column (55%): hero, decision strip, search progress ---
     left_items: list[Any] = [
+        _build_decision_brief_card(dm),
         _build_hero_metric(dm),
         _build_decision_strip(dm),
         _build_search_progress_card(dm),

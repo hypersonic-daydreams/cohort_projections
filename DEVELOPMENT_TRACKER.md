@@ -2,8 +2,8 @@
 
 Canonical, current-state tracker for the North Dakota cohort projections repository.
 
-**Last Updated:** 2026-03-15
-**Projection Horizon:** 2025-2055  
+**Last Updated:** 2026-03-18
+**Projection Horizon:** 2025-2055
 **Status:** Core projection development complete; PP-001 publication sign-off and PP-002 cadence closeout completed on 2026-03-01; PP-005 Phase 2+ enhancements implemented (rolling-origin backtests, multi-county splitting, TIGER/geospatial exports, housing-unit method); PP-007 Projection Observatory operational hardening completed on 2026-03-13.
 
 ## Purpose
@@ -29,7 +29,7 @@ Use this file for active status only. Historical session detail is archived to:
 | Repo-hygiene program | complete | B00-B06 implemented; full adjudicated replay `27/27` passing; RB-003 and RB-004 remediated and closed. |
 | Test health baseline | stable | Latest recorded baseline: `1624 passed, 5 skipped` (`pytest tests/ -q`, 2026-03-09 BM-001 completion). ADR-056 accepted; PP4-01 through PP4-06 complete; PP-005 adds 129 tests; BM-001 adds 42 tests. |
 | Claim replay health | stable | `27/27` adjudicated claims passing (latest full replay: 2026-02-27T18:14:03Z). |
-| Projection Observatory readiness | stable | OBS-01 through OBS-09 complete. Bounded unattended queueing (PP-007), deterministic autonomous search sandbox (PP-008), longitudinal history dashboard (PP-009), and full follow-on roadmap all implemented. See PP-007/PP-008/PP-009 rows and detail sections below for specifics. |
+| Projection Observatory readiness | stable | OBS-01 through OBS-09 complete. Bounded unattended queueing (PP-007), deterministic autonomous search sandbox (PP-008), longitudinal history dashboard (PP-009), and 2026-03-18 guided decision-brief / benchmark-blocker UX improvements implemented. See PP-007/PP-008/PP-009 rows and detail sections below for specifics. |
 
 ## Projection Development Backlog (Canonical)
 
@@ -55,6 +55,12 @@ Incremental follow-ups on 2026-03-15:
 - Broadened the recipe catalog into an experimental lattice (convergence-window, mortality sensitivity) for more decision-useful comparative statistics
 - Surfaced autonomous-search preview/launch/progress in the Observatory dashboard Command Center via persisted session summaries and candidate previews
 - Added dashboard-managed background-process sidecars for stop/preview of search reports, launch logs, and best candidates without leaving the dashboard
+
+Incremental follow-ups on 2026-03-18:
+
+- Added a guided Decision Brief to the Projection Observatory dashboard so completed runs summarize what happened, whether the evidence is usable, the current best candidate, the main tradeoffs, blockers, and the recommended next action in plain language.
+- Added a canonical candidate/session decision-state layer so search-only artifacts, incomplete benchmark bundles, and hard-gate failures now produce actionable review states instead of empty or misleading dashboard outcomes.
+- Made benchmark and migration consumers resolve the shared Census PEP archive via `CENSUS_POPEST_DIR` with compatibility fallbacks for legacy workspace layouts, so Observatory benchmarking and walk-forward validation are portable across machines and surface clearer missing-data-path errors.
 
 ## PP-007 Projection Observatory Operational Hardening (Canonical)
 
