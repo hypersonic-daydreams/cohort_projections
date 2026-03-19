@@ -52,8 +52,10 @@ from cohort_projections.analysis.observatory.dashboard.tab_sensitivity import (
 )
 from cohort_projections.analysis.observatory.decision_support import (
     build_benchmark_decision_brief,
+    build_candidate_decision_summary,
     build_search_candidate_rows,
     build_search_session_summary,
+    finalize_candidate_recommendations,
 )
 
 
@@ -158,6 +160,119 @@ def _build_fixture_frames() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
 def _run_label_factory(metadata: pd.DataFrame) -> dict[str, str]:
     """Return short run labels keyed by run ID."""
     return {str(row["run_id"]): str(row["legend_label"]) for _, row in metadata.iterrows()}
+
+
+class _FakeResultsStore:
+    """Minimal ResultsStore test double for DashboardDataManager tests."""
+
+    def __init__(
+        self,
+        *,
+        history_dir,
+        config: dict | None = None,
+        index: pd.DataFrame | None = None,
+        scorecards: pd.DataFrame | None = None,
+        experiment_log: pd.DataFrame | None = None,
+        run_ids: list[str] | None = None,
+    ) -> None:
+        self._history_dir = history_dir
+        self._config = config or {"recommender": {}}
+        self._index = index if index is not None else pd.DataFrame()
+        self._scorecards = scorecards if scorecards is not None else pd.DataFrame()
+        self._experiment_log = experiment_log if experiment_log is not None else pd.DataFrame()
+        self._run_ids = run_ids or []
+        self.refreshed = False
+
+    def get_index(self) -> pd.DataFrame:
+        return self._index
+
+    def get_experiment_log(self) -> pd.DataFrame:
+        return self._experiment_log
+
+    def get_consolidated_scorecards(self) -> pd.DataFrame:
+        return self._scorecards
+
+    def get_consolidated_county_metrics(self) -> pd.DataFrame:
+        return pd.DataFrame()
+
+    def get_consolidated_state_metrics(self) -> pd.DataFrame:
+        return pd.DataFrame()
+
+    def get_consolidated_projection_curves(self) -> pd.DataFrame:
+        return pd.DataFrame()
+
+    def get_consolidated_sensitivity_summary(self) -> pd.DataFrame:
+        return pd.DataFrame()
+
+    def get_run_ids(self) -> list[str]:
+        return list(self._run_ids)
+
+    def refresh(self) -> None:
+        self.refreshed = True
+
+
+def _make_dashboard_manager(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    history_dir,
+    session_root,
+    index: pd.DataFrame | None = None,
+    scorecards: pd.DataFrame | None = None,
+    experiment_log: pd.DataFrame | None = None,
+    run_ids: list[str] | None = None,
+    catalog: object | None = None,
+    recommendations: list[object] | None = None,
+) -> DashboardDataManager:
+    """Build a DashboardDataManager with isolated fake dependencies."""
+
+    class DummyComparator:
+        def __init__(self, store, config=None) -> None:
+            self.store = store
+
+        def _resolve_champion(self, scorecards: pd.DataFrame) -> str | None:
+            if scorecards.empty or "run_id" not in scorecards.columns:
+                return None
+            champion = scorecards[
+                scorecards.get("status_at_run", pd.Series(dtype=object)).astype(str).str.lower()
+                == "champion"
+            ]
+            if champion.empty:
+                return None
+            return str(champion.iloc[0]["run_id"])
+
+    class DummyRecommender:
+        def __init__(self, store, comparator=None, config=None, bounds_catalog=None) -> None:
+            self._recommendations = list(recommendations or [])
+
+        def suggest_next_experiments(self, limit: int):
+            return self._recommendations[:limit]
+
+    monkeypatch.setattr(
+        "cohort_projections.analysis.observatory.dashboard.data_manager.ObservatoryComparator",
+        DummyComparator,
+    )
+    monkeypatch.setattr(
+        "cohort_projections.analysis.observatory.dashboard.data_manager.ObservatoryRecommender",
+        DummyRecommender,
+    )
+    monkeypatch.setattr(
+        "cohort_projections.analysis.observatory.dashboard.data_manager.load_search_policy",
+        lambda: SimpleNamespace(project_root=session_root.parent, session_root=session_root),
+    )
+    monkeypatch.setattr(
+        DashboardDataManager,
+        "_try_build_catalog",
+        lambda self: catalog,
+    )
+
+    store = _FakeResultsStore(
+        history_dir=history_dir,
+        index=index,
+        scorecards=scorecards,
+        experiment_log=experiment_log,
+        run_ids=run_ids,
+    )
+    return DashboardDataManager(store=store, config=store._config)
 
 
 def test_build_comparison_rows_prefers_variant_rows_except_for_champion_bundle() -> None:
@@ -269,6 +384,23 @@ def test_command_center_summary_surfaces_current_decision_context() -> None:
     assert "Best tested challenger: College Blend 70" in summary
     assert "1 run(s) currently need human review." in summary
     assert "college_blend_factor -> 1.0" in summary
+
+
+def test_command_center_summary_uses_search_session_brief_when_benchmark_data_missing() -> None:
+    """Command Center summary should use the session brief when benchmark review is unavailable."""
+    dm = SimpleNamespace(
+        decision_brief={
+            "source": "search_session",
+            "session_headline": "Search finished, but none of the candidates produced a usable benchmark.",
+            "session_recommendation": "Restore the missing input data and rerun the blocked candidates.",
+            "session_blocker_summary": "Benchmark history index is missing.",
+        }
+    )
+
+    summary = _command_center_summary(cast(DashboardDataManager, dm))
+
+    assert "none of the candidates produced a usable benchmark" in summary
+    assert "Blocker: Benchmark history index is missing." in summary
 
 
 def test_build_longitudinal_run_history_adds_delta_columns() -> None:
@@ -415,6 +547,21 @@ def test_build_search_session_frame_includes_launch_sidecars(
     assert row["dashboard_launch_log"].endswith("dashboard.log")
 
 
+def test_build_search_session_frame_ignores_invalid_yaml_payloads(tmp_path) -> None:
+    """Invalid YAML shapes should not crash session discovery."""
+    session_dir = tmp_path / "search-invalid"
+    session_dir.mkdir(parents=True)
+    (session_dir / "session.yaml").write_text("- not-a-mapping\n", encoding="utf-8")
+
+    frame = build_search_session_frame(tmp_path)
+
+    assert len(frame) == 1
+    row = frame.iloc[0]
+    assert row["search_id"] == "search-invalid"
+    assert row["status"] == "unknown"
+    assert row["total"] == 0
+
+
 def test_search_progress_html_shows_selected_session_metrics() -> None:
     """Search progress HTML should surface counts and progress values."""
     row = pd.Series(
@@ -435,6 +582,28 @@ def test_search_progress_html_shows_selected_session_metrics() -> None:
     assert "search-one" in html
     assert "Progress: 6/10" in html
     assert "width:60.0%" in html
+
+
+def test_search_progress_html_marks_stopped_failed_session() -> None:
+    """Stopped sessions with only failures should render the STOPPED state."""
+    row = pd.Series(
+        {
+            "search_id": "search-failed",
+            "status": "running",
+            "progress_pct": 100.0,
+            "total": 4,
+            "planned": 0,
+            "running": 0,
+            "completed": 0,
+            "failed": 4,
+            "dashboard_process_running": False,
+        }
+    )
+
+    html = _search_progress_html(row)
+
+    assert "STOPPED" in html
+    assert "Failed: 4" in html
 
 
 def test_stop_search_session_terminates_process_group(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -463,6 +632,18 @@ def test_stop_search_session_terminates_process_group(monkeypatch: pytest.Monkey
 
     assert "Sent SIGTERM" in message
     assert killed
+
+
+def test_stop_search_session_reports_missing_pid() -> None:
+    """Missing dashboard PIDs should produce a clear stop message."""
+    dm = SimpleNamespace(search_session_row=lambda search_id: pd.Series({"dashboard_pid": None}))
+
+    message = DashboardDataManager.stop_search_session(
+        cast(DashboardDataManager, dm),
+        "search-one",
+    )
+
+    assert "No dashboard-managed process PID" in message
 
 
 def test_build_search_candidate_rows_classifies_missing_input_as_blocked(
@@ -517,6 +698,44 @@ def test_build_search_candidate_rows_classifies_missing_input_as_blocked(
     assert "Restore the missing input data" in rows[0]["recommended_action"]
 
 
+def test_build_search_candidate_rows_promotes_best_ready_candidate_to_recommended() -> None:
+    """Completed passed-all-gates candidates should yield one recommended winner."""
+    session = {
+        "candidates": [
+            {
+                "candidate_id": "cand-b",
+                "status": "completed",
+                "result": {
+                    "outcome": "passed_all_gates",
+                    "run_id": "br-b",
+                    "benchmark_summary": {
+                        "primary_metric": "county_mape_overall",
+                        "deltas": {"county_mape_overall": -0.10},
+                    },
+                },
+            },
+            {
+                "candidate_id": "cand-a",
+                "status": "completed",
+                "result": {
+                    "outcome": "passed_all_gates",
+                    "run_id": "br-a",
+                    "benchmark_summary": {
+                        "primary_metric": "county_mape_overall",
+                        "deltas": {"county_mape_overall": -0.30},
+                    },
+                },
+            },
+        ]
+    }
+
+    rows = build_search_candidate_rows(session)
+
+    recommended = [row for row in rows if row["decision_state"] == "recommended"]
+    assert len(recommended) == 1
+    assert recommended[0]["candidate_id"] == "cand-a"
+
+
 def test_build_search_session_summary_surfaces_blocked_search_state() -> None:
     """Session summary should clearly distinguish blocked searches from no-winner cases."""
     candidates = pd.DataFrame(
@@ -555,6 +774,33 @@ def test_build_search_session_summary_surfaces_blocked_search_state() -> None:
     assert "Benchmark history index is missing" in summary["session_blocker_summary"]
 
 
+def test_build_search_session_summary_handles_empty_candidates() -> None:
+    """Empty sessions should render a specific not-executed brief."""
+    summary = build_search_session_summary(pd.DataFrame(), search_id="search-empty")
+
+    assert summary["session_decision_state"] == "not_executed"
+    assert "No search candidates" in summary["session_headline"]
+
+
+def test_build_search_session_summary_surfaces_failed_hard_gate_state() -> None:
+    """Hard-gate-only sessions should explain that no candidate can advance."""
+    candidates = pd.DataFrame(
+        [
+            {
+                "candidate_id": "cand-1",
+                "decision_state": "failed_hard_gate",
+                "benchmark_completeness": "full",
+                "outcome": "failed_hard_gate",
+            }
+        ]
+    )
+
+    summary = build_search_session_summary(candidates, search_id="search-hard-gate")
+
+    assert summary["session_decision_state"] == "failed_hard_gate"
+    assert "failed hard gates" in summary["session_headline"]
+
+
 def test_build_benchmark_decision_brief_prefers_best_passed_challenger() -> None:
     """Benchmark-backed briefs should name the strongest fully benchmarked challenger."""
     index, scorecards, experiment_log = _build_fixture_frames()
@@ -571,6 +817,115 @@ def test_build_benchmark_decision_brief_prefers_best_passed_challenger() -> None
     assert brief["decision_state"] == "recommended"
     assert "College Blend 70" in brief["headline"]
     assert "improves county error" in brief["explanation"]
+
+
+def test_build_benchmark_decision_brief_handles_champion_only_archive() -> None:
+    """Champion-only benchmark archives should stay review-ready, not recommended."""
+    metadata = pd.DataFrame(
+        [
+            {
+                "run_id": "br-champion",
+                "display_name": "Champion",
+                "selected_county_mape_overall": 8.86,
+                "reference_county_mape_overall": 8.86,
+                "status_code": "champion",
+                "run_date_sort": pd.Timestamp("2026-03-09"),
+            }
+        ]
+    )
+
+    brief = build_benchmark_decision_brief(metadata, champion_id="br-champion")
+
+    assert brief["decision_state"] == "ready_for_review"
+    assert "only benchmark-backed option" in brief["headline"]
+
+
+def test_build_benchmark_decision_brief_surfaces_failed_hard_gate_front_runner() -> None:
+    """Failed hard-gate challengers should not be presented as review-ready."""
+    metadata = pd.DataFrame(
+        [
+            {
+                "run_id": "br-champion",
+                "display_name": "Champion",
+                "selected_county_mape_overall": 8.86,
+                "reference_county_mape_overall": 8.86,
+                "status_code": "champion",
+                "run_date_sort": pd.Timestamp("2026-03-09"),
+            },
+            {
+                "run_id": "br-failed",
+                "display_name": "Risky Challenger",
+                "selected_county_mape_overall": 8.20,
+                "reference_county_mape_overall": 8.86,
+                "status_code": "failed_hard_gate",
+                "run_date_sort": pd.Timestamp("2026-03-10"),
+            },
+        ]
+    )
+
+    brief = build_benchmark_decision_brief(metadata, champion_id="br-champion")
+
+    assert brief["decision_state"] == "failed_hard_gate"
+    assert "failed a hard gate" in brief["headline"]
+
+
+def test_build_candidate_decision_summary_extracts_registration_blocker_from_log(
+    tmp_path,
+) -> None:
+    """Trailing result JSON in logs should populate blocker classification."""
+    log_path = tmp_path / "logs" / "candidate.log"
+    log_path.parent.mkdir(parents=True)
+    log_path.write_text(
+        "prefix\n{\n"
+        '  "outcome": "inconclusive",\n'
+        '  "classification_details": {\n'
+        '    "reasons": ["code changes required", "method not in METHOD_DISPATCH"]\n'
+        "  }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    row = {
+        "candidate_id": "cand-registration",
+        "status": "completed",
+        "outcome": "inconclusive",
+        "run_id": "not_run",
+        "stdout_log": "logs/candidate.log",
+    }
+
+    summary = build_candidate_decision_summary(row, project_root=tmp_path)
+
+    assert summary["decision_state"] == "blocked_by_data_or_runtime"
+    assert summary["blocker_type"] == "code_registration_required"
+    assert "needs code registration" in summary["explanation"]
+
+
+def test_finalize_candidate_recommendations_promotes_lowest_delta() -> None:
+    """The strongest ready-for-review candidate should be promoted to recommended."""
+    rows = [
+        {
+            "candidate_id": "cand-b",
+            "decision_state": "ready_for_review",
+            "decision_label": "Ready for review",
+            "confidence": "high",
+            "best_metric_delta": -0.10,
+            "explanation": "Candidate B explanation.",
+        },
+        {
+            "candidate_id": "cand-a",
+            "decision_state": "ready_for_review",
+            "decision_label": "Ready for review",
+            "confidence": "high",
+            "best_metric_delta": -0.25,
+            "explanation": "Candidate A explanation.",
+        },
+    ]
+
+    result = finalize_candidate_recommendations(rows)
+    recommended = [row for row in result if row["decision_state"] == "recommended"]
+
+    assert len(recommended) == 1
+    assert recommended[0]["candidate_id"] == "cand-a"
+    assert "best fully benchmarked candidate" in recommended[0]["explanation"]
 
 
 def test_decision_brief_markdown_surfaces_state_headline_and_next_step() -> None:
@@ -591,6 +946,25 @@ def test_decision_brief_markdown_surfaces_state_headline_and_next_step() -> None
     assert "**Decision state:** `blocked_by_data_or_runtime`" in body
     assert "Search finished, but none of the candidates produced a usable benchmark." in body
     assert "Restore the missing input data and rerun the blocked candidates." in body
+
+
+def test_decision_brief_markdown_includes_current_best_option_for_benchmark_briefs() -> None:
+    """Benchmark-backed briefs should show the current best option when present."""
+    dm = SimpleNamespace(
+        decision_brief={
+            "source": "benchmark",
+            "decision_state": "recommended",
+            "headline": "Best benchmark-backed candidate: College Blend 70.",
+            "explanation": "It improves county error.",
+            "recommended_action": "Review it in Scorecards.",
+            "recommendation_candidate_id": "br-passed",
+        }
+    )
+
+    body = _decision_brief_markdown(cast(DashboardDataManager, dm))
+
+    assert "**Current best option:** `br-passed`" in body
+    assert "search-session evidence" not in body
 
 
 def test_build_decision_brief_tab_renders_cards() -> None:
@@ -619,6 +993,267 @@ def test_build_decision_brief_tab_renders_cards() -> None:
     assert "Decision Brief" in tab[0].object
     flex_box = tab[2]
     assert len(flex_box.objects) >= 2
+
+
+def test_build_decision_brief_tab_includes_candidate_snapshot_when_available() -> None:
+    """Session-backed briefs should render a candidate table when session rows exist."""
+    dm = SimpleNamespace(
+        decision_brief={
+            "source": "search_session",
+            "session_decision_state": "ready_for_review",
+            "session_headline": "Search finished with one usable benchmark.",
+            "session_recommendation": "Review cand-1 next.",
+            "recommendation_candidate_id": "cand-1",
+        },
+        benchmark_history_snapshot={
+            "index_present": True,
+            "bundle_count": 1,
+            "complete_bundle_count": 1,
+            "incomplete_bundle_count": 0,
+        },
+        session_review_data={
+            "candidates": pd.DataFrame(
+                [
+                    {
+                        "candidate_id": "cand-1",
+                        "decision_label": "Ready for review",
+                        "outcome": "passed_all_gates",
+                        "best_metric_name": "county_mape_overall",
+                        "best_metric_delta": -0.2,
+                        "headline": "cand-1 produced a usable benchmark.",
+                    }
+                ]
+            )
+        },
+        selection_state=SimpleNamespace(review_mode=False, review_step=0),
+    )
+
+    tab = build_decision_brief_tab(cast(DashboardDataManager, dm), tabs=None)
+
+    flex_box = tab[2]
+    assert len(flex_box.objects) == 3
+
+
+def test_dashboard_data_manager_benchmark_snapshot_and_active_search_prefer_live_session(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Manager should count incomplete bundles and prefer truly active search sessions."""
+    history_dir = tmp_path / "history"
+    history_dir.mkdir()
+    complete_run = history_dir / "br-complete"
+    complete_run.mkdir()
+    (complete_run / "summary_scorecard.csv").write_text("x\n1\n", encoding="utf-8")
+    (complete_run / "manifest.json").write_text("{}", encoding="utf-8")
+    incomplete_run = history_dir / "br-incomplete"
+    incomplete_run.mkdir()
+    (history_dir / "index.csv").write_text("run_id\nbr-complete\n", encoding="utf-8")
+
+    session_root = tmp_path / "sessions"
+    active_dir = session_root / "search-active"
+    active_dir.mkdir(parents=True)
+    (active_dir / "session.yaml").write_text(
+        (
+            "search_id: search-active\n"
+            "status: running\n"
+            "created_at: 2026-03-18T10:00:00+00:00\n"
+            "updated_at: 2026-03-18T10:05:00+00:00\n"
+            "summary:\n"
+            "  total: 2\n"
+            "  running: 1\n"
+            "  completed: 1\n"
+            "  failed: 0\n"
+        ),
+        encoding="utf-8",
+    )
+    stopped_dir = session_root / "search-stopped"
+    stopped_dir.mkdir(parents=True)
+    (stopped_dir / "session.yaml").write_text(
+        (
+            "search_id: search-stopped\n"
+            "status: planned\n"
+            "created_at: 2026-03-18T09:00:00+00:00\n"
+            "updated_at: 2026-03-18T09:30:00+00:00\n"
+            "summary:\n"
+            "  total: 4\n"
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        "cohort_projections.analysis.observatory.dashboard.data_manager._is_search_process_running",
+        lambda pid, search_id: search_id == "search-active",
+    )
+
+    dm = _make_dashboard_manager(monkeypatch, history_dir=history_dir, session_root=session_root)
+
+    snapshot = dm.benchmark_history_snapshot
+
+    assert snapshot["index_present"] is True
+    assert snapshot["bundle_count"] == 2
+    assert snapshot["complete_bundle_count"] == 1
+    assert snapshot["incomplete_bundle_count"] == 1
+    assert dm.active_search_id == "search-active"
+
+
+def test_dashboard_data_manager_search_session_candidates_fall_back_to_seed_rows(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Candidate summaries should return CSV seed rows when session YAML is missing."""
+    history_dir = tmp_path / "history"
+    history_dir.mkdir()
+    session_root = tmp_path / "sessions"
+    session_dir = session_root / "search-seeded"
+    session_dir.mkdir(parents=True)
+    (session_dir / "candidate_summary.csv").write_text(
+        "candidate_id,status,delta_county_mape_overall\ncand-1,completed,-0.3\n",
+        encoding="utf-8",
+    )
+
+    dm = _make_dashboard_manager(monkeypatch, history_dir=history_dir, session_root=session_root)
+
+    candidates = dm.search_session_candidates("search-seeded")
+
+    assert list(candidates["candidate_id"]) == ["cand-1"]
+    assert candidates.iloc[0]["status"] == "completed"
+
+
+def test_dashboard_data_manager_search_session_best_candidates_sort_completed_rows(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Best-candidate view should sort by improvement among completed candidates."""
+    history_dir = tmp_path / "history"
+    history_dir.mkdir()
+    session_root = tmp_path / "sessions"
+
+    dm = _make_dashboard_manager(monkeypatch, history_dir=history_dir, session_root=session_root)
+    dm.search_session_candidates = lambda search_id: pd.DataFrame(
+        [
+            {
+                "candidate_id": "cand-2",
+                "status": "completed",
+                "delta_county_mape_overall": -0.10,
+                "county_mape_overall": 8.8,
+            },
+            {
+                "candidate_id": "cand-1",
+                "status": "completed",
+                "delta_county_mape_overall": -0.30,
+                "county_mape_overall": 8.9,
+            },
+            {
+                "candidate_id": "cand-3",
+                "status": "running",
+                "delta_county_mape_overall": -0.50,
+                "county_mape_overall": 8.1,
+            },
+        ]
+    )
+
+    best = dm.search_session_best_candidates("search-any")
+
+    assert best["candidate_id"].tolist() == ["cand-1", "cand-2"]
+
+
+def test_dashboard_data_manager_decision_brief_prefers_benchmark_when_available(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Unified decision brief should prefer benchmark-backed evidence over session fallback."""
+    history_dir = tmp_path / "history"
+    history_dir.mkdir()
+    session_root = tmp_path / "sessions"
+    index, scorecards, experiment_log = _build_fixture_frames()
+
+    dm = _make_dashboard_manager(
+        monkeypatch,
+        history_dir=history_dir,
+        session_root=session_root,
+        index=index,
+        scorecards=scorecards,
+        experiment_log=experiment_log,
+        run_ids=["br-champion", "br-review", "br-passed"],
+    )
+
+    brief = dm.decision_brief
+
+    assert brief["source"] == "benchmark"
+    assert brief["decision_state"] == "recommended"
+
+
+def test_dashboard_data_manager_session_review_data_handles_no_sessions(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Session review data should return a specific empty-state summary."""
+    history_dir = tmp_path / "history"
+    history_dir.mkdir()
+    session_root = tmp_path / "sessions"
+
+    dm = _make_dashboard_manager(monkeypatch, history_dir=history_dir, session_root=session_root)
+
+    summary = dm.session_review_data
+
+    assert summary["session_decision_state"] == "not_executed"
+    assert "No autonomous-search session" in summary["session_headline"]
+
+
+def test_dashboard_data_manager_refresh_clears_cached_views_and_rebuilds_policy(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Refresh should clear cached properties and rebuild store-backed dependencies."""
+    history_dir = tmp_path / "history"
+    history_dir.mkdir()
+    session_root = tmp_path / "sessions"
+    alt_session_root = tmp_path / "sessions-refreshed"
+
+    load_calls = {"count": 0}
+
+    def fake_load_search_policy():
+        load_calls["count"] += 1
+        root = session_root if load_calls["count"] == 1 else alt_session_root
+        return SimpleNamespace(project_root=tmp_path, session_root=root)
+
+    monkeypatch.setattr(
+        "cohort_projections.analysis.observatory.dashboard.data_manager.load_search_policy",
+        fake_load_search_policy,
+    )
+
+    class DummyComparator:
+        def __init__(self, store, config=None) -> None:
+            self.store = store
+
+        def _resolve_champion(self, scorecards: pd.DataFrame) -> str | None:
+            return None
+
+    class DummyRecommender:
+        def __init__(self, store, comparator=None, config=None, bounds_catalog=None) -> None:
+            pass
+
+        def suggest_next_experiments(self, limit: int):
+            return []
+
+    monkeypatch.setattr(
+        "cohort_projections.analysis.observatory.dashboard.data_manager.ObservatoryComparator",
+        DummyComparator,
+    )
+    monkeypatch.setattr(
+        "cohort_projections.analysis.observatory.dashboard.data_manager.ObservatoryRecommender",
+        DummyRecommender,
+    )
+    monkeypatch.setattr(DashboardDataManager, "_try_build_catalog", lambda self: None)
+
+    store = _FakeResultsStore(history_dir=history_dir)
+    dm = DashboardDataManager(store=store, config=store._config)
+
+    _ = dm.search_policy
+    _ = dm.search_sessions
+    _ = dm.decision_brief
+
+    dm.refresh()
+
+    assert store.refreshed is True
+    assert dm.search_policy.session_root == alt_session_root
+    assert "search_sessions" not in dm.__dict__
+    assert "decision_brief" not in dm.__dict__
+    assert load_calls["count"] >= 2
 
 
 def test_build_dashboard_returns_fresh_instances(monkeypatch) -> None:

@@ -2,7 +2,7 @@
 
 Canonical, current-state tracker for the North Dakota cohort projections repository.
 
-**Last Updated:** 2026-03-18
+**Last Updated:** 2026-03-19
 **Projection Horizon:** 2025-2055
 **Status:** Core projection development complete; PP-001 publication sign-off and PP-002 cadence closeout completed on 2026-03-01; PP-005 Phase 2+ enhancements implemented (rolling-origin backtests, multi-county splitting, TIGER/geospatial exports, housing-unit method); PP-007 Projection Observatory operational hardening completed on 2026-03-13.
 
@@ -27,7 +27,7 @@ Use this file for active status only. Historical session detail is archived to:
 | Data processing pipeline | complete | Inputs and transforms are in place; no active blocker. |
 | Documentation alignment | complete | B01 documentation harmonization complete. |
 | Repo-hygiene program | complete | B00-B06 implemented; full adjudicated replay `27/27` passing; RB-003 and RB-004 remediated and closed. |
-| Test health baseline | stable | Latest recorded baseline: `1624 passed, 5 skipped` (`pytest tests/ -q`, 2026-03-09 BM-001 completion). ADR-056 accepted; PP4-01 through PP4-06 complete; PP-005 adds 129 tests; BM-001 adds 42 tests. |
+| Test health baseline | stable | Latest recorded baseline: `2184 passed, 6 skipped` (`pytest tests/ -q -rs`, 2026-03-19) with no warnings after evaluation warning cleanup, geospatial dependency enablement, shapefile export warning suppression, and restoration of the optional `sdc_2024_replication` sibling-repo test surface. ADR-056 accepted; PP4-01 through PP4-06 complete; PP-005 adds 129 tests; BM-001 adds 42 tests. |
 | Claim replay health | stable | `27/27` adjudicated claims passing (latest full replay: 2026-02-27T18:14:03Z). |
 | Projection Observatory readiness | stable | OBS-01 through OBS-09 complete. Bounded unattended queueing (PP-007), deterministic autonomous search sandbox (PP-008), longitudinal history dashboard (PP-009), and 2026-03-18 guided decision-brief / benchmark-blocker UX improvements implemented. See PP-007/PP-008/PP-009 rows and detail sections below for specifics. |
 
@@ -61,6 +61,12 @@ Incremental follow-ups on 2026-03-18:
 - Added a guided Decision Brief to the Projection Observatory dashboard so completed runs summarize what happened, whether the evidence is usable, the current best candidate, the main tradeoffs, blockers, and the recommended next action in plain language.
 - Added a canonical candidate/session decision-state layer so search-only artifacts, incomplete benchmark bundles, and hard-gate failures now produce actionable review states instead of empty or misleading dashboard outcomes.
 - Made benchmark and migration consumers resolve the shared Census PEP archive via `CENSUS_POPEST_DIR` with compatibility fallbacks for legacy workspace layouts, so Observatory benchmarking and walk-forward validation are portable across machines and surface clearer missing-data-path errors.
+
+Incremental follow-ups on 2026-03-19:
+
+- Cleaned up evaluation/runtime warnings surfaced by the full test suite: constant-input rank-correlation handling, degenerate-geometry structural-realism skew handling, and explicit matplotlib figure cleanup in evaluation tests.
+- Installed the geospatial test stack in the project virtual environment, verified the TIGER shapefiles already existed at the configured paths and via `rclone`, and made shapefile export field naming explicit so ESRI field-truncation warnings no longer appear.
+- Restored the optional `sdc_2024_replication` test surface to the intended sibling-repository layout and removed the in-repo fallback from `sdc_paths.py`, so external-data tests now reflect the documented cross-repo contract rather than a temporary in-repo restore.
 
 ## PP-007 Projection Observatory Operational Hardening (Canonical)
 

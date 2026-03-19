@@ -17,7 +17,6 @@ def get_sdc_replication_candidates(project_root: Path | None = None) -> list[Pat
     Candidate order:
     1. `SDC_2024_REPLICATION_ROOT` environment variable (if set)
     2. sibling repo under the shared demography workspace
-    3. in-repo fallback path (pre-extraction compatibility)
 
     Args:
         project_root: Optional project root override.
@@ -33,7 +32,6 @@ def get_sdc_replication_candidates(project_root: Path | None = None) -> list[Pat
         candidates.append(Path(env_root).expanduser())
 
     candidates.append(root.parent / "sdc_2024_replication")
-    candidates.append(root / "sdc_2024_replication")
 
     deduped: list[Path] = []
     seen: set[str] = set()
@@ -67,6 +65,9 @@ def resolve_sdc_replication_root(
     candidates = get_sdc_replication_candidates(project_root=project_root)
 
     if not must_exist:
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate.resolve()
         return candidates[0]
 
     for candidate in candidates:

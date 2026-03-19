@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -281,6 +283,36 @@ class TestRankDirectionTests:
         assert "directional_accuracy" in names
         assert "top_decile_capture" in names
         assert "bottom_decile_capture" in names
+
+    def test_constant_growth_inputs_do_not_emit_scipy_constant_input_warning(
+        self, module: ForecastAccuracyModule
+    ) -> None:
+        rows = []
+        for county in ["38017", "38035", "38105"]:
+            rows.append(
+                {
+                    "run_id": "run1",
+                    "geography": county,
+                    "geography_type": "county",
+                    "year": 2025,
+                    "horizon": 5,
+                    "sex": "total",
+                    "age_group": "total",
+                    "target": "population",
+                    "projected_value": 110.0,
+                    "actual_value": 110.0,
+                    "base_value": 100.0,
+                }
+            )
+        df = pd.DataFrame(rows)
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("error")
+            result = module.rank_direction_tests(df)
+
+        assert not caught
+        spearman = result[result["metric_name"] == "spearman_rank_correlation"]
+        assert spearman["value"].isna().all()
 
 
 # ---------------------------------------------------------------------------

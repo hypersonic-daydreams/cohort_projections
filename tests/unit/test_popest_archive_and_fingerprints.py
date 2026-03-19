@@ -98,3 +98,20 @@ def test_resolve_popest_file_raises_clear_error_when_missing(
 
     with pytest.raises(FileNotFoundError, match="CENSUS_POPEST_DIR"):
         resolve_popest_file("parquet/2020-2024/county/cc-est2024-agesex-all.parquet")
+
+
+def test_resolve_popest_root_explicit_path_is_strict(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError, match="POPEST directory not found"):
+        resolve_popest_root(str(tmp_path / "missing-popest"))
+
+
+def test_resolve_popest_file_allows_nonexistent_path_when_not_required(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    popest_root = tmp_path / "shared-data" / "census" / "popest"
+    popest_root.mkdir(parents=True)
+    monkeypatch.setenv("CENSUS_POPEST_DIR", str(popest_root))
+
+    path = resolve_popest_file("parquet/2020-2024/county/missing.parquet", must_exist=False)
+
+    assert path == popest_root / "parquet" / "2020-2024" / "county" / "missing.parquet"

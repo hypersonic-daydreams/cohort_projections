@@ -113,6 +113,15 @@ def results_df() -> pd.DataFrame:
     return _make_results_df()
 
 
+@pytest.fixture(autouse=True)
+def _close_figures() -> None:
+    """Close matplotlib figures created during each test."""
+    yield
+    import matplotlib.pyplot as plt
+
+    plt.close("all")
+
+
 # ---------------------------------------------------------------------------
 # Config loading
 # ---------------------------------------------------------------------------

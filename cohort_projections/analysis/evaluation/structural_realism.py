@@ -137,6 +137,23 @@ def _compute_divergence_metrics(
     return records
 
 
+def _safe_skew(values: np.ndarray) -> float:
+    """Return skewness without warning on degenerate inputs."""
+    arr = np.asarray(values, dtype=float)
+    if arr.size < 3:
+        return 0.0
+    arr = arr[np.isfinite(arr)]
+    if arr.size < 3:
+        return 0.0
+    if np.ptp(arr) <= 1e-12:
+        return 0.0
+
+    from scipy.stats import skew as scipy_skew  # noqa: PLC0415
+
+    skew = float(scipy_skew(arr))
+    return 0.0 if not np.isfinite(skew) else skew
+
+
 class StructuralRealismModule:
     """Module 2 of the Evaluation Blueprint: structural realism checks.
 
@@ -812,10 +829,8 @@ class StructuralRealismModule:
                 )
 
             # Skewness comparison
-            from scipy.stats import skew as scipy_skew  # noqa: PLC0415
-
-            proj_skew = float(scipy_skew(proj_sizes))
-            act_skew = float(scipy_skew(act_sizes))
+            proj_skew = _safe_skew(proj_sizes)
+            act_skew = _safe_skew(act_sizes)
             records.append(
                 _realism_diagnostic(
                     run_id=run_id,
@@ -853,8 +868,8 @@ class StructuralRealismModule:
                         )
 
                     # Growth rate skewness difference
-                    pg_skew = float(scipy_skew(proj_growth))
-                    ag_skew = float(scipy_skew(act_growth))
+                    pg_skew = _safe_skew(proj_growth)
+                    ag_skew = _safe_skew(act_growth)
                     records.append(
                         _realism_diagnostic(
                             run_id=run_id,

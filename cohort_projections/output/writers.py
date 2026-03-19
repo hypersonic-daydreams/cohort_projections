@@ -769,9 +769,42 @@ def write_projection_shapefile(
     if format_type == "geojson":
         geo_df.to_file(str(output_path), driver="GeoJSON")
     elif format_type == "shapefile":
+        geo_df = _prepare_shapefile_columns(geo_df)
         geo_df.to_file(str(output_path), driver="ESRI Shapefile")
     else:
         raise ValueError(f"Unsupported format_type: {format_type!r}")
 
     logger.info(f"Geospatial export complete: {output_path}")
     return output_path
+
+
+def _prepare_shapefile_columns(geo_df: "gpd.GeoDataFrame") -> "gpd.GeoDataFrame":
+    """Rename fields to deterministic <=10-char aliases for ESRI Shapefile export."""
+    alias_map = {
+        "county_fips": "cty_fips",
+        "county_name": "cty_name",
+        "place_fips": "plc_fips",
+        "place_name": "plc_name",
+        "population": "population",
+        "geometry": "geometry",
+    }
+    used_names: set[str] = set()
+    rename_map: dict[str, str] = {}
+
+    for column in geo_df.columns:
+        preferred = alias_map.get(column, column[:10])
+        candidate = preferred[:10]
+        suffix = 1
+        while candidate in used_names and candidate != column:
+            stem = preferred[: max(1, 10 - len(str(suffix)))]
+            candidate = f"{stem}{suffix}"
+            suffix += 1
+        used_names.add(candidate)
+        if candidate != column:
+            rename_map[column] = candidate
+
+    if rename_map:
+        logger.info("Using shapefile-safe field aliases: %s", rename_map)
+        return geo_df.rename(columns=rename_map)
+
+    return geo_df

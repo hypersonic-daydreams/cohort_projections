@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -335,6 +337,40 @@ class TestDistributionalRealism:
 
         var_ratio = result[result["metric_name"] == "county_size_variance_ratio"]
         assert all(abs(v - 1.0) < 0.01 for v in var_ratio["value"])
+
+    def test_constant_growth_distribution_does_not_emit_precision_warning(
+        self, module: StructuralRealismModule
+    ) -> None:
+        rows = []
+        for idx, county in enumerate([f"380{i:02d}" for i in range(10)]):
+            base_value = 100.0 + idx
+            actual_value = base_value * 1.05
+            projected_value = actual_value
+            rows.append(
+                {
+                    "run_id": "test-run",
+                    "geography": county,
+                    "geography_type": "county",
+                    "year": 2025,
+                    "horizon": 5,
+                    "sex": "total",
+                    "age_group": "total",
+                    "target": "population",
+                    "projected_value": projected_value,
+                    "actual_value": actual_value,
+                    "base_value": base_value,
+                }
+            )
+        df = pd.DataFrame(rows)
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("error")
+            result = module.distributional_realism(df)
+
+        assert not caught
+        skew_rows = result[result["metric_name"] == "county_growth_skewness_diff"]
+        assert not skew_rows.empty
+        assert (skew_rows["value"] == 0.0).all()
 
 
 class TestComputeAllChecks:

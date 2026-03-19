@@ -12,6 +12,7 @@ shapefiles are not required.
 from __future__ import annotations
 
 import json
+import warnings
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -332,16 +333,19 @@ class TestShapefileExport:
         from cohort_projections.output.writers import write_projection_shapefile
 
         out = tmp_path / "output" / "counties.shp"
-        write_projection_shapefile(
-            projection_df=sample_county_projection,
-            geography_level="county",
-            output_path=out,
-            year=2025,
-            format_type="shapefile",
-        )
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("error")
+            write_projection_shapefile(
+                projection_df=sample_county_projection,
+                geography_level="county",
+                output_path=out,
+                year=2025,
+                format_type="shapefile",
+            )
         assert out.exists()
         assert out.with_suffix(".shx").exists()
         assert out.with_suffix(".dbf").exists()
+        assert not caught
 
 
 # ---------------------------------------------------------------------------

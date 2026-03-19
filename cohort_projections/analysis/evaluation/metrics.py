@@ -113,6 +113,8 @@ def spearman_rank_correlation(
     projected, actual = np.asarray(projected, dtype=float), np.asarray(actual, dtype=float)
     if len(projected) < 3:
         return float("nan")
+    if np.ptp(projected) == 0 or np.ptp(actual) == 0:
+        return float("nan")
     corr, _ = scipy_stats.spearmanr(projected, actual)
     return float(corr)
 

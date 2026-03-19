@@ -22,6 +22,15 @@ from cohort_projections.analysis.evaluation.visualization import (
 pytestmark = pytest.mark.skipif(not MATPLOTLIB_AVAILABLE, reason="matplotlib not installed")
 
 
+@pytest.fixture(autouse=True)
+def _close_figures() -> None:
+    """Close matplotlib figures created during each test."""
+    yield
+    import matplotlib.pyplot as plt
+
+    plt.close("all")
+
+
 @pytest.fixture()
 def diagnostics_df() -> pd.DataFrame:
     """Synthetic diagnostics DataFrame covering two models and multiple horizons."""
