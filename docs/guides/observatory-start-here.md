@@ -25,7 +25,7 @@ path from multiple documents.
    - Read the Observatory config sections when changing thresholds, paths, or
      variant-catalog behavior.
 
-## Current State (2026-03-17)
+## Current State (2026-03-19)
 
 - BM-001 experiment infrastructure is implemented.
 - OBS-001 Observatory analysis, CLI, dashboard, and reporting layer is
@@ -36,6 +36,10 @@ path from multiple documents.
 - The recipe catalog now includes enabled search-only benchmark methods that
   clone the challenger under unique sandbox-only method IDs for recent-window
   and mortality-factor search.
+- The live dashboard now includes the junior-demographer guided-review pass and
+  the portrait-oriented follow-up pass. The default UI is optimized to answer:
+  what happened, whether the evidence is usable, what to open next, and
+  whether the user is safe to recommend a result or needs help.
 - The Observatory is ready for supervised comparison and bounded unattended
   search-loop execution with resume files and run budgets.
 - The Observatory is not an auto-promotion system. Promotion still requires
@@ -65,15 +69,31 @@ path from multiple documents.
   mortality-improvement sensitivity, and selected interaction terms around
   `m2026r1` without touching production aliases.
 - The dashboard `Command Center` uses progressive disclosure to reduce
-  first-open cognitive load. A `Quick Start` card provides a one-click
-  "Start Exploring" button with smart defaults. A `Search Progress` card
-  shows live progress and best candidates for the active session. Advanced
-  controls (full search configuration, manual sweep actions, queue health,
-  champion snapshot, run index, persistent weaknesses) are available in
-  collapsed cards that expand on demand.
-- A dedicated `History` tab now provides longitudinal benchmark-history views
-  across all runs, champion-at-run baselines, metric delta heatmaps,
-  category-level trend lines, and accepted/rejected challenger history.
+  first-open cognitive load. The top-to-bottom flow is now:
+  `Session Outcome / Start Here -> Launch Experiments -> Decision Brief ->
+  Scorecards -> Projections -> Horizon & Bias -> Sensitivity`.
+- The `Launch Experiments` card centers on a one-click `Start Exploring`
+  action with `Quick check`, `Standard exploration`, and `Deeper search`
+  presets. CPU/run-budget controls, manual sweep actions, and other operator
+  controls remain available in collapsed advanced cards.
+- Completed searches now end in a `Session Outcome` card with one dominant
+  CTA chosen from the evidence state: `Review Results`, `Resolve Blocker`,
+  `Continue Exploring`, or `Ask For Senior Review`.
+- Guided review now starts in `Decision Brief`, which acts as the review hub:
+  verdict strip first, checklist second, then evidence quality, gains,
+  tradeoffs, and escalation guidance.
+- `Scorecards`, `Projections`, `Horizon & Bias`, and `Sensitivity` now lead
+  with review questions and interpretation-first summaries rather than making
+  the user start from raw tables/charts.
+- The dashboard now detects portrait-oriented viewports automatically. On the
+  current workstation's `1440x2560` portrait monitor it stacks the primary
+  workflow vertically, compresses shell chrome, keeps guided navigation sticky,
+  de-emphasizes `Experiment History` during guided review, and hides Plotly
+  modebars until hover.
+- `Experiment History` remains the archive/reference tab for longitudinal
+  benchmark-history views across all runs, champion-at-run baselines, metric
+  delta heatmaps, category-level trend lines, and accepted/rejected
+  challenger history.
 
 ## Follow-On Roadmap Status
 
@@ -81,6 +101,10 @@ The previously documented follow-on roadmap items are now implemented in the
 current codebase:
 
 - `OBS-UX-09` through `OBS-UX-16` are complete (see
+  `docs/plans/observatory-ui-ux-backlog.md`).
+- `OBS-UX-17` through `OBS-UX-38` are also complete, including workflow
+  stepper/guided review, the junior-demographer decision-support pass, and the
+  portrait-oriented dashboard follow-up (see
   `docs/plans/observatory-ui-ux-backlog.md`).
 - `P1`/`P2` promotion-threshold formalization and hard-gate vs tradeoff split
   are implemented in the machine-readable evaluation policy.
