@@ -50,6 +50,53 @@ REVIEW_TAB_SEQUENCE = [
 ]
 
 
+def _has_running_search(dm: DashboardDataManager) -> bool:
+    """Return whether the Observatory currently has a live search session."""
+    try:
+        search_id = dm.active_search_id
+        if not search_id:
+            return False
+        session_row = dm.search_session_row(search_id)
+        if session_row is None:
+            return False
+        return bool(session_row.get("dashboard_process_running", False))
+    except Exception:  # pragma: no cover - defensive UI guard
+        logger.exception("Failed to inspect autonomous-search state for stepper.")
+        return False
+
+
+def _resolve_stepper_state(
+    dm: DashboardDataManager,
+    active_tab: int,
+) -> tuple[int, list[int]]:
+    """Return the current stepper active index and completed steps."""
+    step = _TAB_TO_STEP.get(active_tab, 0)
+    completed: list[int] = []
+
+    if dm.selection_state.review_mode and active_tab in (
+        TAB_DECISION_BRIEF,
+        TAB_SCORECARDS,
+        TAB_PROJECTIONS,
+        TAB_HORIZON_BIAS,
+        TAB_SENSITIVITY,
+    ):
+        return 2, [0, 1]
+
+    has_runs = len(dm.run_ids) > 0
+    has_search_history = not dm.search_sessions.empty
+
+    if active_tab == TAB_COMMAND_CENTER:
+        if _has_running_search(dm):
+            return 1, [0]
+        if has_runs or has_search_history:
+            return 0, [0, 1]
+        return 0, []
+
+    if has_runs or active_tab >= TAB_SCORECARDS:
+        completed = [0, 1]
+    return step, completed
+
+
 def _stepper_html(active: int, completed: list[int] | None = None) -> str:
     """Return the raw HTML string for the workflow stepper at a given state."""
     pane = workflow_stepper(_WORKFLOW_STEPS, active=active, completed=completed)
@@ -117,30 +164,20 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
     # Stepper reactivity ------------------------------------------------
     def _on_tab_change(event: object) -> None:
         """Update the workflow stepper when the active tab changes."""
-        active_tab = tabs.active
-        step = _TAB_TO_STEP.get(active_tab, 0)
-
-        # Determine completed steps.
-        completed: list[int] = []
-
-        # If in review mode, lock stepper to "Review".
-        if dm.selection_state.review_mode and active_tab in (
-            TAB_DECISION_BRIEF,
-            TAB_SCORECARDS,
-            TAB_PROJECTIONS,
-            TAB_HORIZON_BIAS,
-            TAB_SENSITIVITY,
-        ):
-            step = 2
-            completed = [0, 1]
-        else:
-            has_runs = len(dm.run_ids) > 0
-            if has_runs or active_tab >= TAB_SCORECARDS:
-                completed = [0, 1]
-
+        step, completed = _resolve_stepper_state(dm, tabs.active)
         stepper_pane.object = _stepper_html(active=step, completed=completed)
 
     tabs.param.watch(_on_tab_change, "active")
+
+    if pn.state.curdoc is not None:
+
+        def _refresh_stepper() -> None:
+            """Keep the workflow stepper aligned with live search activity."""
+            dm.refresh_search_sessions()
+            step, completed = _resolve_stepper_state(dm, tabs.active)
+            stepper_pane.object = _stepper_html(active=step, completed=completed)
+
+        pn.state.add_periodic_callback(_refresh_stepper, period=5000, start=True)
 
     # Assemble template -------------------------------------------------
     template = pn.template.FastListTemplate(

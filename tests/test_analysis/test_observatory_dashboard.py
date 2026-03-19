@@ -15,6 +15,9 @@ import pandas as pd
 import pytest
 
 import scripts.analysis.observatory_dashboard as dashboard_launcher
+from cohort_projections.analysis.observatory.dashboard.app import (
+    _resolve_stepper_state,
+)
 from cohort_projections.analysis.observatory.dashboard.data_manager import (
     DashboardDataManager,
     _search_sidecar_path,
@@ -28,6 +31,7 @@ from cohort_projections.analysis.observatory.dashboard.data_manager import (
 )
 from cohort_projections.analysis.observatory.dashboard.tab_command_center import (
     _command_center_summary,
+    _enter_guided_review,
     _queue_health_snapshot,
     _search_progress_html,
 )
@@ -1584,18 +1588,52 @@ class TestCompletionBanner:
         assert "20 experiment(s) finished" in html
         assert "cand-best" in html
         assert "0.36pp" in html
+        assert "Review Results" in html
+        assert "Scorecards" in html
+        assert "Experiment History" in html
+        assert "Experiments" not in html
 
     def test_mixed_variant(self) -> None:
         pane = completion_banner(15, status="mixed")
         html = pane.object
         assert "obs-completion-banner mixed" in html
         assert "errors" in html.lower()
+        assert "Decision Brief" in html
+        assert "Experiment History" in html
 
     def test_failed_variant(self) -> None:
         pane = completion_banner(5, status="failed")
         html = pane.object
         assert "obs-completion-banner failed" in html
         assert "failed" in html.lower()
+
+
+def test_enter_guided_review_sets_review_mode_and_navigates() -> None:
+    """Guided review entry should enable review mode and open Decision Brief."""
+    dm = SimpleNamespace(selection_state=SimpleNamespace(review_mode=False, review_step=0))
+    tabs = SimpleNamespace(active=0)
+
+    _enter_guided_review(cast(DashboardDataManager, dm), cast(object, tabs))
+
+    assert dm.selection_state.review_mode is True
+    assert dm.selection_state.review_step == 1
+    assert tabs.active == 1
+
+
+def test_resolve_stepper_state_uses_monitor_step_for_running_search() -> None:
+    """The workflow stepper should show the monitor step during a live search."""
+    dm = SimpleNamespace(
+        selection_state=SimpleNamespace(review_mode=False),
+        run_ids=[],
+        search_sessions=pd.DataFrame([{"search_id": "search-1"}]),
+        active_search_id="search-1",
+        search_session_row=lambda search_id: pd.Series({"dashboard_process_running": True}),
+    )
+
+    active, completed = _resolve_stepper_state(cast(DashboardDataManager, dm), active_tab=0)
+
+    assert active == 1
+    assert completed == [0]
 
 
 class TestInfoTooltip:

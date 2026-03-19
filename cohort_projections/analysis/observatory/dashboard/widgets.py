@@ -636,8 +636,8 @@ def completion_banner(
             "<ol>"
             "<li>Review the <em>candidates table</em> below for successful results</li>"
             "<li>Expand <em>Log Output</em> to diagnose any failures</li>"
-            "<li>Switch to the <strong>Experiments</strong> tab for detailed scorecards</li>"
-            "<li>Switch to the <strong>History</strong> tab to see how results compare over time</li>"
+            "<li>Open the <strong>Decision Brief</strong> tab to see what is usable, blocked, or inconclusive</li>"
+            "<li>Open the <strong>Experiment History</strong> tab to compare results over time</li>"
             "</ol>"
         )
     else:
@@ -645,9 +645,10 @@ def completion_banner(
             "<strong>Next steps:</strong>"
             "<ol>"
             "<li>Review the <em>candidates table</em> below to see all results</li>"
-            "<li>Switch to the <strong>Experiments</strong> tab for detailed scorecards</li>"
-            "<li>Switch to the <strong>History</strong> tab to compare results over time</li>"
-            "<li>Switch to the <strong>Projections</strong> tab to visualise population curves</li>"
+            "<li>Click <em>Review Results</em> to start the guided review flow</li>"
+            "<li>Open <strong>Scorecards</strong> for detailed comparisons</li>"
+            "<li>Open <strong>Experiment History</strong> to compare results over time</li>"
+            "<li>Open <strong>Projections</strong> to visualize population curves</li>"
             "<li>Click <em>Start Exploring</em> to search further with different parameters</li>"
             "</ol>"
         )

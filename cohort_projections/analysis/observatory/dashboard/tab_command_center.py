@@ -449,6 +449,17 @@ def _make_tab_button(
     return button
 
 
+def _enter_guided_review(
+    dm: DashboardDataManager,
+    tabs: pn.Tabs | None = None,
+) -> None:
+    """Enable guided review mode and navigate to the Decision Brief when possible."""
+    dm.selection_state.review_mode = True
+    dm.selection_state.review_step = 1
+    if tabs is not None:
+        tabs.active = 1
+
+
 # ---------------------------------------------------------------------------
 # Hero metric
 # ---------------------------------------------------------------------------
@@ -458,7 +469,7 @@ def _build_hero_metric(dm: DashboardDataManager) -> pn.pane.HTML:
     """Render the champion MAPE as the primary hero metric with challenger delta."""
     champ_mape = _champion_mape(dm)
     if champ_mape is None:
-        return hero_metric("N/A", "Champion County Error (MAPE)")
+        return hero_metric("N/A", "Champion County Error")
 
     best = _best_tested_challenger(dm)
     best_mape = _as_float(best.get("selected_county_mape_overall")) if best is not None else None
@@ -468,7 +479,7 @@ def _build_hero_metric(dm: DashboardDataManager) -> pn.pane.HTML:
 
     return hero_metric(
         f"{champ_mape:.2f}%",
-        "Champion County Error (MAPE)",
+        "Champion County Error",
         delta=delta,
         color=SDC_BLUE,
     )
@@ -762,14 +773,27 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
     # --- Next-recommendation hint ---
     recommendations = dm.recommender.suggest_next_experiments(1)
     top_rec = recommendations[0] if recommendations else None
-    hint_text = (
-        f'<div style="color:#5A6C84;font-size:0.88em;margin:4px 0 8px 0">'
-        f"Next suggestion: <strong>{top_rec.parameter}</strong> "
-        f"-> <strong>{top_rec.suggested_value}</strong></div>"
-        if top_rec is not None
-        else '<div style="color:#5A6C84;font-size:0.88em;margin:4px 0 8px 0">'
-        "No recommendation available yet.</div>"
-    )
+    if top_rec is not None:
+        code_change_note = (
+            " This suggestion needs a code change before it can run from this screen."
+            if getattr(top_rec, "requires_code_change", False)
+            else ""
+        )
+        hint_text = (
+            '<div style="color:#334E68;font-size:0.9em;margin:4px 0 6px 0">'
+            "<strong>Suggested next test:</strong> "
+            f"Try <strong>{top_rec.parameter} = {top_rec.suggested_value}</strong>."
+            "</div>"
+            f'<div style="color:#5A6C84;font-size:0.85em;margin:0 0 8px 0">'
+            f"Why: {top_rec.rationale}{code_change_note}"
+            "</div>"
+        )
+    else:
+        hint_text = (
+            '<div style="color:#5A6C84;font-size:0.88em;margin:4px 0 8px 0">'
+            "No recommendation available yet. Run more tested history to unlock suggested next experiments."
+            "</div>"
+        )
     hint_pane = pn.pane.HTML(hint_text, sizing_mode="stretch_width")
 
     # Active session notice
@@ -1248,7 +1272,10 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
 # ---------------------------------------------------------------------------
 
 
-def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
+def _build_search_progress_card(
+    dm: DashboardDataManager,
+    tabs: pn.Tabs | None = None,
+) -> pn.Card:
     """Live-progress view for active search sessions.
 
     Shows progress ring, process health badges, candidate feed during
@@ -1261,6 +1288,7 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
         sizing_mode="stretch_width",
     )
     progress_area = pn.Column(sizing_mode="stretch_width")
+    review_action_row = pn.Row(sizing_mode="stretch_width")
     best_candidates_box = pn.Column(sizing_mode="stretch_width")
     log_pane = pn.pane.HTML(sizing_mode="stretch_width")
     log_card = pn.Card(
@@ -1270,6 +1298,14 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
         sizing_mode="stretch_width",
     )
     current_experiment_pane = pn.pane.HTML(sizing_mode="stretch_width")
+
+    btn_review_results = pn.widgets.Button(
+        name="Review Results",
+        button_type="primary",
+        width=170,
+        visible=False,
+    )
+    btn_review_results.on_click(lambda event: _enter_guided_review(dm, tabs))
 
     def _selected_session_row() -> pd.Series | None:
         sessions = dm.search_sessions
@@ -1370,6 +1406,7 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
             progress_area[:] = [
                 empty_placeholder("No search results yet. Use the Launch Section to begin.")
             ]
+            review_action_row[:] = []
             current_experiment_pane.object = ""
             best_candidates_box[:] = [empty_placeholder("No search results yet.")]
             log_pane.object = ""
@@ -1442,6 +1479,19 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
                     total, best_name=best_name, best_delta=best_delta, status="success"
                 )
             progress_area[:] = [banner]
+            btn_review_results.visible = True
+            review_action_row[:] = [
+                btn_review_results,
+                pn.pane.HTML(
+                    (
+                        '<div style="color:#5A6C84;font-size:0.88em;padding-top:8px">'
+                        "Open the guided review flow to see what happened, what is blocked, "
+                        "and which evidence to inspect next."
+                        "</div>"
+                    ),
+                    sizing_mode="stretch_width",
+                ),
+            ]
         else:
             # Running / not started -- show progress ring + status text
             ring_status = "running" if is_running else "mixed" if failed > 0 else "running"
@@ -1459,6 +1509,8 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
             status_html = pn.pane.HTML(status_text, sizing_mode="stretch_width")
 
             progress_area[:] = [pn.Row(ring, status_html, sizing_mode="stretch_width")]
+            btn_review_results.visible = False
+            review_action_row[:] = []
 
         # Process health badges
         current_experiment_pane.object = _process_health_badge(selected, selected_search_id)
@@ -1553,6 +1605,7 @@ def _build_search_progress_card(dm: DashboardDataManager) -> pn.Card:
         pn.Row(session_select, btn_refresh, btn_stop, sizing_mode="stretch_width"),
         current_experiment_pane,
         progress_area,
+        review_action_row,
         best_candidates_box,
         log_card,
         title="Search Progress",
@@ -1599,7 +1652,7 @@ def _build_champion_card(dm: DashboardDataManager) -> pn.Card:
     sentinel_html = ""
     if sentinel_rows:
         sentinel_html = (
-            '<h4 style="margin:12px 0 6px 0;color:#1F3864">Highest Sentinel County Errors (MAPE)</h4>'
+            '<h4 style="margin:12px 0 6px 0;color:#1F3864">Highest Priority County Errors</h4>'
             '<table style="width:100%;border-collapse:collapse">'
             + "".join(
                 (
@@ -1617,9 +1670,9 @@ def _build_champion_card(dm: DashboardDataManager) -> pn.Card:
         <tr><td style="padding:4px 12px 4px 0;color:#5A6C84;width:150px">Run</td><td style="padding:4px 0;font-weight:600">{dm.run_label(champion_id)}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Method</td><td style="padding:4px 0;font-weight:600">{champion.get("method_id", "N/A")}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Config</td><td style="padding:4px 0;font-weight:600">{champion.get("config_id", "N/A")}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">County Error (MAPE)</td><td style="padding:4px 0;font-weight:700;color:{SDC_NAVY}">{_fmt_metric(champion.get("county_mape_overall"))}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Recent State Error (APE, short)</td><td style="padding:4px 0;font-weight:600">{_fmt_metric(champion.get("state_ape_recent_short"))}</td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Recent State Error (APE, medium)</td><td style="padding:4px 0;font-weight:600">{_fmt_metric(champion.get("state_ape_recent_medium"))}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">County Error</td><td style="padding:4px 0;font-weight:700;color:{SDC_NAVY}">{_fmt_metric(champion.get("county_mape_overall"))}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Recent State Error (short window)</td><td style="padding:4px 0;font-weight:600">{_fmt_metric(champion.get("state_ape_recent_short"))}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#5A6C84">Recent State Error (medium window)</td><td style="padding:4px 0;font-weight:600">{_fmt_metric(champion.get("state_ape_recent_medium"))}</td></tr>
       </table>
       {sentinel_html}
     </div>
@@ -1726,7 +1779,7 @@ def build_command_center(
         _build_decision_brief_card(dm),
         _build_hero_metric(dm),
         _build_decision_strip(dm),
-        _build_search_progress_card(dm),
+        _build_search_progress_card(dm, tabs=tabs),
     ]
     left_col = pn.Column(*left_items, sizing_mode="stretch_width", min_width=400)
 
