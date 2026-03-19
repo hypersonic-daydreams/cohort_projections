@@ -700,6 +700,9 @@ def test_build_search_candidate_rows_classifies_missing_input_as_blocked(
     assert rows[0]["blocker_type"] == "missing_input_data"
     assert rows[0]["blocker_detail"] == "/shared/cc-est2024-agesex-all.parquet"
     assert "Restore the missing input data" in rows[0]["recommended_action"]
+    assert rows[0]["user_status_label"] == "Blocked"
+    assert rows[0]["next_action_label"] == "Resolve Blocker"
+    assert rows[0]["blocker_category_label"] == "Missing input data"
 
 
 def test_build_search_candidate_rows_promotes_best_ready_candidate_to_recommended() -> None:
@@ -776,6 +779,9 @@ def test_build_search_session_summary_surfaces_blocked_search_state() -> None:
     assert summary["inconclusive_count"] == 2
     assert "none of the 2 candidate(s) produced a usable benchmark" in summary["session_headline"]
     assert "Benchmark history index is missing" in summary["session_blocker_summary"]
+    assert summary["user_status_label"] == "Blocked"
+    assert summary["next_action_label"] == "Resolve Blocker"
+    assert summary["safe_to_recommend"] is False
 
 
 def test_build_search_session_summary_handles_empty_candidates() -> None:
@@ -821,6 +827,8 @@ def test_build_benchmark_decision_brief_prefers_best_passed_challenger() -> None
     assert brief["decision_state"] == "recommended"
     assert "College Blend 70" in brief["headline"]
     assert "improves county error" in brief["explanation"]
+    assert brief["user_status_label"] == "Best candidate so far"
+    assert brief["next_action_label"] == "Review Results"
 
 
 def test_build_benchmark_decision_brief_handles_champion_only_archive() -> None:
@@ -947,8 +955,8 @@ def test_decision_brief_markdown_surfaces_state_headline_and_next_step() -> None
 
     body = _decision_brief_markdown(cast(DashboardDataManager, dm))
 
-    assert "**Decision state:** `blocked_by_data_or_runtime`" in body
-    assert "Search finished, but none of the candidates produced a usable benchmark." in body
+    assert "**Outcome:** Blocked" in body
+    assert "Required input data is missing" in body
     assert "Restore the missing input data and rerun the blocked candidates." in body
 
 
@@ -967,7 +975,7 @@ def test_decision_brief_markdown_includes_current_best_option_for_benchmark_brie
 
     body = _decision_brief_markdown(cast(DashboardDataManager, dm))
 
-    assert "**Current best option:** `br-passed`" in body
+    assert "**Current focus:** br-passed" in body
     assert "search-session evidence" not in body
 
 
@@ -1035,7 +1043,7 @@ def test_build_decision_brief_tab_includes_candidate_snapshot_when_available() -
     tab = build_decision_brief_tab(cast(DashboardDataManager, dm), tabs=None)
 
     flex_box = tab[2]
-    assert len(flex_box.objects) == 3
+    assert len(flex_box.objects) == 5
 
 
 def test_dashboard_data_manager_benchmark_snapshot_and_active_search_prefer_live_session(
@@ -1311,7 +1319,7 @@ def test_scorecard_takeaway_prefers_best_selected_challenger() -> None:
     )
 
     assert "**Best selected challenger:** College Blend 70" in summary
-    assert "Recommended next step" in summary
+    assert "What still needs judgment" in summary
 
 
 def test_projection_takeaway_reports_endpoint_difference_vs_champion() -> None:
@@ -1406,7 +1414,7 @@ def test_horizon_takeaway_summarizes_long_horizon_error_and_bias() -> None:
         "All",
     )
 
-    assert "Average county error rises to 12.3% by horizon 20." in summary
+    assert "Average county error (MAPE) rises to 12.3% by horizon 20." in summary
     assert "under-projects on average" in summary
 
 
@@ -1440,7 +1448,11 @@ def test_sensitivity_takeaway_surfaces_recommendation_and_weakness_state() -> No
 
     summary = _sensitivity_takeaway_text(cast(DashboardDataManager, dm))
 
-    assert "**Top recommended next experiment:** college_blend_factor -> 1.0." in summary
+    assert "**What to try next:** college_blend_factor -> 1.0." in summary
+    assert (
+        "**Why the system is suggesting it:** Largest tested improvement in college counties."
+        in summary
+    )
     assert "1 tracked metric(s) still have no improving challenger." in summary
     assert "Most influential tested parameter so far: `college_blend_factor`." in summary
 
@@ -1610,11 +1622,20 @@ class TestCompletionBanner:
 
 def test_enter_guided_review_sets_review_mode_and_navigates() -> None:
     """Guided review entry should enable review mode and open Decision Brief."""
-    dm = SimpleNamespace(selection_state=SimpleNamespace(review_mode=False, review_step=0))
+    seeded = {"called": False}
+
+    def _seed() -> None:
+        seeded["called"] = True
+
+    dm = SimpleNamespace(
+        selection_state=SimpleNamespace(review_mode=False, review_step=0),
+        initialize_guided_review_shortlist=_seed,
+    )
     tabs = SimpleNamespace(active=0)
 
     _enter_guided_review(cast(DashboardDataManager, dm), cast(object, tabs))
 
+    assert seeded["called"] is True
     assert dm.selection_state.review_mode is True
     assert dm.selection_state.review_step == 1
     assert tabs.active == 1

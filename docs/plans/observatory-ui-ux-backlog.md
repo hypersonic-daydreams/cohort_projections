@@ -191,6 +191,46 @@ Implemented in this session:
 - `OBS-UX-27` through `OBS-UX-28`: Illustrated empty states and column priority
   reduce visual clutter and improve first-run experience.
 
+## Junior-Demographer Guided Journey (2026-03-19)
+
+New user story driving this slice:
+
+> "I am a junior demographer using the Projection Observatory to improve the
+> projections. I want the dashboard to tell me what happened, what matters
+> most, what I should look at next, and whether I am safe to make a
+> recommendation or need help."
+
+| ID | Work Item | Priority | Status | Acceptance Criteria | Primary Touch Points |
+|----|-----------|----------|--------|---------------------|----------------------|
+| OBS-UX-29 | Add user-facing decision-state layer | P0 | implemented_2026-03-19 | Decision summaries expose plain-language status, confidence, CTA route, escalation guidance, and review checklist fields instead of only internal state codes | `decision_support.py`, dashboard decision surfaces |
+| OBS-UX-30 | Make launch flow preset-first | P0 | implemented_2026-03-19 | `Launch Experiments` defaults to Quick/Standard/Deeper presets, while CPU/run-budget controls move behind collapsed customization | `tab_command_center.py` |
+| OBS-UX-31 | Add state-aware post-search dominant CTA | P0 | implemented_2026-03-19 | Search completion routes to `Review Results`, `Resolve Blocker`, `Continue Exploring`, or `Ask For Senior Review` based on session evidence state | `tab_command_center.py`, `decision_support.py` |
+| OBS-UX-32 | Seed guided review with one primary comparison | P1 | implemented_2026-03-19 | Entering guided review auto-selects the strongest available comparison run and preserves it across analytical tabs | `data_manager.py`, `tab_command_center.py` |
+| OBS-UX-33 | Turn Decision Brief into a review hub | P1 | implemented_2026-03-19 | Decision Brief shows outcome summary, evidence quality, gain/tradeoff framing, risk flags, safe-to-recommend verdict, and checklist before dense tables | `tab_decision_brief.py` |
+| OBS-UX-34 | Add interpretation-first review prompts across analytical tabs | P1 | implemented_2026-03-19 | Scorecards, Projections, Horizon & Bias, and Sensitivity begin with review questions and interpretation-first takeaways rather than chart-first expert framing | analytical tab modules |
+
+Implemented in this session:
+
+- `OBS-UX-29`: central decision payloads now include stable user-facing fields
+  such as `user_status_label`, `confidence_label`, `next_action_label`,
+  `next_action_route`, `safe_to_recommend`, `blocker_category_label`,
+  `escalation_guidance`, and `review_checklist`.
+- `OBS-UX-30`: the launch surface now centers on `Quick check`, `Standard
+  exploration`, and `Deeper search`, while CPU and max-run controls moved into
+  a collapsed `Customize Launch Settings` card.
+- `OBS-UX-31`: post-search monitoring now ends with a `Session Outcome` card
+  and a single dominant CTA chosen from the current evidence state instead of
+  always pushing the user into the same review path.
+- `OBS-UX-32`: guided review now seeds the shortlist with the strongest
+  available run so the analytical tabs open on a focused comparison rather
+  than a generic multi-run state.
+- `OBS-UX-33`: the `Decision Brief` tab now acts as the review hub with
+  outcome summary, gain/tradeoff/risk framing, reviewability context, and a
+  structured checklist.
+- `OBS-UX-34`: analytical tabs now open with plain-language review questions
+  and interpretation-first summaries tailored to the junior-demographer
+  workflow.
+
 New tab layout (6 tabs):
 
 1. Command Center (two-column: hero metric + decision strip + search progress | KPI grid + launch + reference)

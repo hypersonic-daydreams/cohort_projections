@@ -65,7 +65,7 @@ def _scorecard_takeaway_text(
     if comparison.empty:
         return (
             "Select at least one challenger bundle to see whether it beats the "
-            "current champion on the tracked scorecard metrics."
+            "current champion on county error and recent state error."
         )
 
     champion = (
@@ -80,7 +80,7 @@ def _scorecard_takeaway_text(
     if challengers.empty:
         return (
             "Only the champion is visible right now. Add one or more challenger "
-            "bundles above to compare county-group error side by side."
+            "bundles above to compare where each option improves and where it slips."
         )
 
     best = challengers.sort_values("county_mape_overall", ascending=True, na_position="last").iloc[
@@ -93,7 +93,7 @@ def _scorecard_takeaway_text(
     details: list[str] = [f"**Best selected challenger:** {best_label}."]
     if pd.notna(best_mape):
         details[0] = (
-            f"**Best selected challenger:** {best_label} at {float(best_mape):.2f}% county error."
+            f"**Best selected challenger:** {best_label} at {float(best_mape):.2f}% county error (MAPE)."
         )
 
     if (
@@ -119,21 +119,20 @@ def _scorecard_takeaway_text(
             and float(best[col]) > float(champion[col])
         ]
         details.append(
-            f"**Where it improves:** {', '.join(improved) if improved else 'none of the tracked county groups'}."
+            f"**What improved:** {', '.join(improved) if improved else 'No tracked county groups improved.'}"
         )
         details.append(
-            f"**Where it slips:** {', '.join(worse) if worse else 'no tracked county groups'}."
+            f"**What worsened:** {', '.join(worse) if worse else 'No tracked county groups worsened.'}"
         )
         if delta <= 0:
             details.append(
-                "**Recommended next step:** Open `Projections` to check whether the "
-                "stronger scorecard produces a plausible population path."
+                "**What still needs judgment:** The scorecard is stronger, but you still need to confirm "
+                "that the projection path looks plausible before recommending it."
             )
         else:
             details.append(
-                "**Recommended next step:** Keep comparing bundles here or inspect "
-                "whether the challenger still helps a county group that matters enough "
-                "to justify the regression."
+                "**What still needs judgment:** Decide whether the targeted gain is important enough "
+                "to justify the overall regression."
             )
     else:
         details.append(
@@ -143,11 +142,11 @@ def _scorecard_takeaway_text(
 
     if status.lower() == "review":
         details.append(
-            "**Governance note:** This bundle still needs human review before promotion."
+            "**Decision note:** This bundle is promising, but it still needs human review before promotion."
         )
     elif status.lower() == "failed":
         details.append(
-            "**Governance note:** This bundle failed a hard gate and is not promotion-ready."
+            "**Decision note:** This bundle failed a hard gate and is not promotion-ready."
         )
 
     return "\n\n".join(details)
@@ -245,6 +244,12 @@ def _build_scorecard_table(
             "method_id": "method",
             "config_id": "config",
             "run_id": "exact_run_id",
+            "county_mape_overall": "county_error_mape",
+            "county_mape_rural": "rural_error_mape",
+            "county_mape_bakken": "bakken_error_mape",
+            "county_mape_urban_college": "college_area_error_mape",
+            "state_ape_recent_short": "recent_state_error_ape",
+            "state_ape_recent_medium": "medium_window_state_error_ape",
         }
     )
 
@@ -592,8 +597,15 @@ def build_scorecard_tab(
     return pn.Column(
         widgets.section_header(
             "Scorecard Comparison",
-            tooltip="Compare selected challengers side-by-side against the current champion. Check accuracy improvements and regressions across county groups.",
+            tooltip="Compare selected challengers side-by-side against the current champion. County error uses MAPE and recent state error uses APE; lower is better on both.",
         ),
+        widgets.markdown_card(
+            "Review Question",
+            "Does this candidate improve the most important error measures enough to justify deeper plausibility review?",
+            min_width=420,
+        )
+        if dm.selection_state.review_mode
+        else pn.Column(),
         takeaway_card,
         filter_bar(preset_selector, run_selector),
         pn.Card(
@@ -604,13 +616,13 @@ def build_scorecard_tab(
         ),
         pn.Card(
             delta_chart,
-            title="MAPE Delta vs Champion",
+            title="County Error Change vs Champion",
             collapsed=False,
             sizing_mode="stretch_width",
         ),
         pn.Card(
             sentinel_chart,
-            title="Sentinel County Comparison",
+            title="Priority County Comparison",
             collapsed=False,
             sizing_mode="stretch_width",
         ),

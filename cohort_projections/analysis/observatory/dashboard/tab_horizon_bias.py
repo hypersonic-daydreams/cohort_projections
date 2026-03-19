@@ -128,7 +128,9 @@ def _horizon_takeaway_text(
         + (f" Category filter: {category}." if category != "All" else "")
     ]
     if pd.notna(mape) and horizon is not None:
-        parts.append(f"Average county error rises to {float(mape):.1f}% by horizon {horizon}.")
+        parts.append(
+            f"Average county error (MAPE) rises to {float(mape):.1f}% by horizon {horizon}."
+        )
     if pd.notna(mpe):
         bias = float(mpe)
         if bias <= -0.5:
@@ -140,9 +142,9 @@ def _horizon_takeaway_text(
         parts.append(f"At the long horizon, the run {direction} on average ({bias:+.1f}%).")
 
     parts.append(
-        "**Recommended read order:** Start with the horizon profile, then the county heatmap. "
-        "Open the collapsed diagnostic sections only if you need to explain where the long-horizon "
-        "problems come from."
+        "**Where this candidate struggles:** Start with the horizon profile, then the county heatmap. "
+        "Open the collapsed diagnostic sections only if you need to explain why those long-horizon "
+        "weaknesses appear."
     )
     return "\n\n".join(parts)
 
@@ -1019,6 +1021,16 @@ def build_horizon_bias_tab(
             "Horizon & Bias Analysis",
             tooltip="Analyze projection accuracy by forecast horizon, explore county-level error patterns, and identify systematic over- or under-projection bias.",
         ),
+        pn.Card(
+            pn.pane.Markdown(
+                "Does this candidate have weak counties or long-horizon bias that would make you hesitate to recommend it?",
+                sizing_mode="stretch_width",
+            ),
+            title="Review Question",
+            sizing_mode="stretch_width",
+        )
+        if dm.selection_state.review_mode
+        else pn.Column(),
         takeaway_card,
         filter_bar(run_selector, category_selector),
         pn.Card(
@@ -1030,25 +1042,25 @@ def build_horizon_bias_tab(
         pn.Card(
             county_heatmap,
             top_counties,
-            title="County MAPE Heatmap",
+            title="Where This Candidate Struggles",
             collapsed=False,
             sizing_mode="stretch_width",
         ),
         pn.Card(
             bias_heatmap,
-            title="Advanced Diagnostic: Bias Direction",
+            title="Optional Diagnostic: Bias Direction",
             collapsed=True,
             sizing_mode="stretch_width",
         ),
         pn.Card(
             report_cards,
-            title="Advanced Diagnostic: County Report Cards",
+            title="Optional Diagnostic: County Report Cards",
             collapsed=True,
             sizing_mode="stretch_width",
         ),
         pn.Card(
             outlier_scatter,
-            title="Advanced Diagnostic: Outlier Flags",
+            title="Optional Diagnostic: Outlier Flags",
             collapsed=True,
             sizing_mode="stretch_width",
         ),

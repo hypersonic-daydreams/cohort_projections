@@ -111,9 +111,9 @@ def _projection_takeaway_text(
 
     parts = [f"**Spotlight run:** {label}."]
     if pd.notna(county_error):
-        parts[0] = f"**Spotlight run:** {label} at {float(county_error):.2f}% county error."
+        parts[0] = f"**Spotlight run:** {label} at {float(county_error):.2f}% county error (MAPE)."
     if pd.notna(state_error):
-        parts.append(f"Recent state error for this run is {float(state_error):.2f}%.")
+        parts.append(f"Recent state error (APE) for this run is {float(state_error):.2f}%.")
 
     endpoint = _projection_endpoint(
         dm,
@@ -147,8 +147,8 @@ def _projection_takeaway_text(
                 f"in {origin_label}."
             )
         parts.append(
-            "**Recommended next step:** If that path looks plausible, open `Horizon & Bias` "
-            "to see where the gain holds up and where it breaks down."
+            "**What still needs judgment:** Decide whether the path shape and endpoint behavior "
+            "look plausible enough to keep advancing this candidate."
         )
     elif endpoint is not None:
         end_year, end_pop = endpoint
@@ -239,7 +239,13 @@ def _build_selected_run_summary(
             ]
             if col in summary.columns
         ]
-    ].rename(columns={"run_id": "exact_run_id"})
+    ].rename(
+        columns={
+            "overall_mape": "county_error_mape",
+            "state_ape_short": "recent_state_error_ape",
+            "run_id": "exact_run_id",
+        }
+    )
 
     return widgets.metric_table(
         display_df,
@@ -754,8 +760,15 @@ def build_projection_ensemble(
     return pn.Column(
         widgets.section_header(
             "Projection Ensemble",
-            tooltip="Overlay projection curves across selected runs and origin years. Check forecast path plausibility and endpoint convergence.",
+            tooltip="Overlay projection curves across selected runs and origin years. Use this view to judge whether forecast paths and endpoints look demographically plausible.",
         ),
+        widgets.markdown_card(
+            "Review Question",
+            "Do the projected population paths and endpoints still look credible after the scorecard gains?",
+            min_width=420,
+        )
+        if dm.selection_state.review_mode
+        else pn.Column(),
         takeaway_card,
         filter_bar(
             preset_selector,
@@ -772,7 +785,7 @@ def build_projection_ensemble(
         ),
         pn.Card(
             spaghetti,
-            title="State-Level Projection Curves",
+            title="State-Level Projection Paths",
             collapsed=False,
             sizing_mode="stretch_width",
         ),

@@ -54,13 +54,11 @@ def _sensitivity_takeaway_text(dm: DashboardDataManager) -> str:
 
     if recommendations:
         top = recommendations[0]
-        summary_parts.append(
-            f"**Top recommended next experiment:** {top.parameter} -> {top.suggested_value}."
-        )
-        summary_parts.append(top.rationale)
+        summary_parts.append(f"**What to try next:** {top.parameter} -> {top.suggested_value}.")
+        summary_parts.append(f"**Why the system is suggesting it:** {top.rationale}")
     else:
         summary_parts.append(
-            "No recommendation is available yet because the recommender needs more tested history."
+            "**What to try next:** No recommendation is available yet because the recommender needs more tested history."
         )
 
     try:
@@ -100,8 +98,7 @@ def _sensitivity_takeaway_text(dm: DashboardDataManager) -> str:
                 )
 
     summary_parts.append(
-        "**Recommended next step:** Review the recommendation and persistent-weakness sections first. "
-        "Open residual diagnostics only when a candidate still looks promising and you need QA evidence."
+        "**What still needs judgment:** Decide whether the next recommendation is low-risk follow-up work or a broader exploratory branch."
     )
     return "\n\n".join(summary_parts)
 
@@ -433,10 +430,12 @@ def _build_recommendations_table(dm: DashboardDataManager) -> pn.Column:
             "priority": rec.priority,
             "parameter": rec.parameter,
             "suggested_value": str(rec.suggested_value),
-            "direction": rec.direction,
-            "rationale": rec.rationale,
-            "expected_impact": rec.expected_impact,
-            "requires_code_change": rec.requires_code_change,
+            "expected_upside": rec.expected_impact,
+            "likely_tradeoff": rec.direction,
+            "suggestion_type": (
+                "Exploratory or code-backed" if rec.requires_code_change else "Low-risk follow-up"
+            ),
+            "why_the_system_suggested_it": rec.rationale,
         }
         for rec in recommendations
     ]
@@ -450,6 +449,15 @@ def _build_recommendations_table(dm: DashboardDataManager) -> pn.Column:
         rec_df,
         title="Experiment Recommendations",
         page_size=0,
+        priority_columns=[
+            "priority",
+            "parameter",
+            "suggested_value",
+            "suggestion_type",
+            "expected_upside",
+            "likely_tradeoff",
+            "why_the_system_suggested_it",
+        ],
     )
 
 
@@ -630,6 +638,16 @@ def build_sensitivity_tab(
             tooltip="Explore parameter sensitivity, review experiment recommendations, and identify persistent weaknesses where no challenger improves on the champion.",
         ),
         _build_sensitivity_takeaway(dm),
+        pn.Card(
+            pn.pane.Markdown(
+                "What should you try next, and does that suggestion look like low-risk follow-up work or a broader exploratory branch?",
+                sizing_mode="stretch_width",
+            ),
+            title="Review Question",
+            sizing_mode="stretch_width",
+        )
+        if dm.selection_state.review_mode
+        else pn.Column(),
         # Section 1: Tornado Chart
         pn.layout.Divider(),
         section_header(
@@ -641,28 +659,28 @@ def build_sensitivity_tab(
         pn.layout.Divider(),
         section_header(
             "Parameter Response Curves",
-            subtitle="How each varied parameter affects the overall MAPE delta",
+            subtitle="How each varied parameter affects county error (MAPE) relative to the champion",
         ),
         _build_parameter_response(dm),
         # Section 3: Recommendations Table
         pn.layout.Divider(),
         section_header(
-            "Experiment Recommendations",
-            subtitle="Automated suggestions for the next experiments to run",
+            "What To Try Next",
+            subtitle="Recommended next experiments, expected upside, likely tradeoff, and whether each idea is low-risk or exploratory",
         ),
         _build_recommendations_table(dm),
         # Section 4: Persistent Weaknesses
         pn.layout.Divider(),
         section_header(
-            "Persistent Weaknesses",
-            subtitle="Metrics where no tested variant improves over the champion",
+            "Why The System Is Suggesting It",
+            subtitle="Persistent weaknesses and remaining gaps that explain why the recommendations matter",
         ),
         _build_weakness_cards(dm),
         # Section 5: Residual Diagnostics
         pn.layout.Divider(),
         pn.Card(
             _build_residual_diagnostics(dm),
-            title="Advanced Diagnostic: Residual Health",
+            title="Optional Diagnostic: Residual Health",
             collapsed=True,
             sizing_mode="stretch_width",
         ),

@@ -67,6 +67,7 @@ Incremental follow-ups on 2026-03-19:
 - Cleaned up evaluation/runtime warnings surfaced by the full test suite: constant-input rank-correlation handling, degenerate-geometry structural-realism skew handling, and explicit matplotlib figure cleanup in evaluation tests.
 - Installed the geospatial test stack in the project virtual environment, verified the TIGER shapefiles already existed at the configured paths and via `rclone`, and made shapefile export field naming explicit so ESRI field-truncation warnings no longer appear.
 - Restored the optional `sdc_2024_replication` test surface to the intended sibling-repository layout and removed the in-repo fallback from `sdc_paths.py`, so external-data tests now reflect the documented cross-repo contract rather than a temporary in-repo restore.
+- Implemented the junior-demographer guided-journey UX pass in the Projection Observatory dashboard: user-facing decision labels and escalation guidance, preset-first launch flow with collapsed customization, state-aware post-search CTA routing, auto-seeded guided-review shortlist selection, a Decision Brief review hub with checklist/risk framing, and interpretation-first review questions/takeaways across Scorecards, Projections, Horizon & Bias, and Sensitivity.
 
 ## PP-007 Projection Observatory Operational Hardening (Canonical)
 

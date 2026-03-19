@@ -109,6 +109,8 @@ class DashboardSelectionState(param.Parameterized):
 
     shortlist_runs = param.List(default=[])
     shortlist_preset = param.String(default=_PRESET_TOP_CHALLENGERS)
+    primary_review_run = param.String(default="")
+    primary_review_label = param.String(default="")
 
     # Guided review mode — activated after a search completes and the user
     # clicks "Review Results".  While active, analytical tabs show step
@@ -121,6 +123,15 @@ class DashboardSelectionState(param.Parameterized):
         normalized = [str(run_id) for run_id in run_ids if str(run_id).strip()]
         if normalized != list(self.shortlist_runs):
             self.shortlist_runs = normalized
+
+    def seed_guided_review(self, run_id: str, label: str = "") -> None:
+        """Persist the primary guided-review run and shortlist selection."""
+        normalized_run = str(run_id).strip()
+        self.primary_review_run = normalized_run
+        self.primary_review_label = str(label).strip()
+        if normalized_run:
+            self.shortlist_preset = "Guided Review"
+            self.set_shortlist([normalized_run])
 
 
 def _status_label(value: object) -> str:
@@ -1071,6 +1082,45 @@ class DashboardDataManager:
             self.selection_state.set_shortlist(self.preset_run_ids(preset))
         return list(self.selection_state.shortlist_runs)
 
+    def guided_review_run_id(self) -> str | None:
+        """Return the best single run to focus on during guided review."""
+        brief = self.decision_brief
+        raw_subject_id = str(brief.get("raw_subject_id", "") or "")
+        recommendation_candidate_id = str(brief.get("recommendation_candidate_id", "") or "")
+
+        for candidate_run_id in [raw_subject_id, recommendation_candidate_id]:
+            if candidate_run_id and candidate_run_id in set(self.run_ids):
+                return candidate_run_id
+
+        if recommendation_candidate_id:
+            candidates = self.session_review_data.get("candidates")
+            if isinstance(candidates, pd.DataFrame) and not candidates.empty:
+                matches = candidates[
+                    candidates["candidate_id"].astype(str) == recommendation_candidate_id
+                ]
+                if not matches.empty:
+                    run_id = str(matches.iloc[0].get("run_id", "") or "")
+                    if run_id and run_id != "not_run" and run_id in set(self.run_ids):
+                        return run_id
+
+        benchmark_run_id = str(
+            self.benchmark_review_data.get("recommendation_candidate_id", "") or ""
+        )
+        if benchmark_run_id and benchmark_run_id in set(self.run_ids):
+            return benchmark_run_id
+
+        preset = self.preset_run_ids(_PRESET_TOP_CHALLENGERS, limit=1)
+        return preset[0] if preset else None
+
+    def initialize_guided_review_shortlist(self) -> list[str]:
+        """Seed shortlist state for guided review with one primary comparison run."""
+        run_id = self.guided_review_run_id()
+        if not run_id:
+            return list(self.selection_state.shortlist_runs)
+        label = self.run_label(run_id, short=True)
+        self.selection_state.seed_guided_review(run_id, label=label)
+        return list(self.selection_state.shortlist_runs)
+
     @functools.cached_property
     def index(self) -> pd.DataFrame:
         """The benchmark index DataFrame."""
@@ -1262,18 +1312,14 @@ class DashboardDataManager:
         """Normalized review summary for the active or latest search session."""
         search_id = self.active_search_id
         if not search_id:
-            return {
-                "source": "search_session",
-                "search_id": "",
-                "session_decision_state": "not_executed",
-                "session_headline": "No autonomous-search session is available yet.",
-                "session_recommendation": "Run a search session to populate candidate evidence.",
-                "session_blocker_summary": "",
-                "successful_benchmark_count": 0,
-                "inconclusive_count": 0,
-                "recommendation_candidate_id": "",
-                "recommended_next_step": "Run a search session.",
-            }
+            summary = build_search_session_summary(pd.DataFrame(), search_id="")
+            summary["session_headline"] = "No autonomous-search session is available yet."
+            summary["session_recommendation"] = (
+                "Run a search session to populate candidate evidence."
+            )
+            summary["recommended_next_step"] = "Run a search session."
+            summary["primary_subject_label"] = "Search session"
+            return summary
         session_row = self.search_session_row(search_id)
         candidates = self.search_session_candidates(search_id)
         summary = build_search_session_summary(

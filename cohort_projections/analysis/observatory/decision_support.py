@@ -11,7 +11,7 @@ import json
 import re
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 
@@ -39,6 +39,69 @@ _DECISION_META: dict[str, dict[str, str]] = {
     "not_executed": {
         "label": "Not executed",
         "confidence": "low",
+    },
+}
+
+_USER_STATUS_LABELS: dict[str, str] = {
+    "recommended": "Best candidate so far",
+    "ready_for_review": "Ready for human review",
+    "mixed_signal": "Needs judgment",
+    "blocked_by_data_or_runtime": "Blocked",
+    "failed_hard_gate": "Do not promote",
+    "not_executed": "Needs more evidence",
+}
+
+_CONFIDENCE_LABELS: dict[str, str] = {
+    "high": "High confidence",
+    "medium": "Use judgment",
+    "low": "Low confidence",
+}
+
+_BLOCKER_CATEGORY_LABELS: dict[str, str] = {
+    "missing_input_data": "Missing input data",
+    "code_registration_required": "Code registration needed",
+    "benchmark_execution_failure": "Benchmark execution failed",
+    "runtime_error": "Runtime error",
+}
+
+_NEXT_ACTION_LABELS: dict[str, str] = {
+    "review": "Review Results",
+    "resolve_blocker": "Resolve Blocker",
+    "continue_exploring": "Continue Exploring",
+    "senior_review": "Ask For Senior Review",
+    "monitor": "Keep Monitoring",
+}
+
+_METRIC_GLOSSARY: dict[str, dict[str, str]] = {
+    "county_mape_overall": {
+        "label": "County error",
+        "technical": "MAPE",
+        "tooltip": "Mean absolute percentage error across counties. Lower is better.",
+    },
+    "county_mape_rural": {
+        "label": "Rural county error",
+        "technical": "MAPE",
+        "tooltip": "Mean absolute percentage error for rural counties. Lower is better.",
+    },
+    "county_mape_bakken": {
+        "label": "Bakken county error",
+        "technical": "MAPE",
+        "tooltip": "Mean absolute percentage error for Bakken counties. Lower is better.",
+    },
+    "county_mape_urban_college": {
+        "label": "College-area county error",
+        "technical": "MAPE",
+        "tooltip": "Mean absolute percentage error for urban and college-heavy counties. Lower is better.",
+    },
+    "state_ape_recent_short": {
+        "label": "Recent state error",
+        "technical": "APE",
+        "tooltip": "Absolute percentage error for the short recent state backtest window. Lower is better.",
+    },
+    "state_ape_recent_medium": {
+        "label": "Medium-window state error",
+        "technical": "APE",
+        "tooltip": "Absolute percentage error for the medium recent state backtest window. Lower is better.",
     },
 }
 
@@ -73,6 +136,241 @@ def _clean_text(value: object) -> str:
     except TypeError:
         pass
     return re.sub(r"\s+", " ", str(value)).strip()
+
+
+def metric_display_label(metric_name: str) -> str:
+    """Return a paired plain-language + technical label for one metric."""
+    metric = _METRIC_GLOSSARY.get(metric_name)
+    if metric is not None:
+        return f"{metric['label']} ({metric['technical']})"
+    humanized = metric_name.replace("_", " ").strip().title()
+    return humanized or "Tracked metric"
+
+
+def metric_display_tooltip(metric_name: str) -> str:
+    """Return explanatory help text for one metric label."""
+    metric = _METRIC_GLOSSARY.get(metric_name)
+    if metric is not None:
+        return metric["tooltip"]
+    return "Lower values indicate less projection error."
+
+
+def _humanize_identifier(value: object) -> str:
+    """Return a readable title-cased label for a slug-like identifier."""
+    text = _clean_text(value)
+    if not text:
+        return ""
+    text = text.replace("_", " ").replace("-", " ")
+    return re.sub(r"\s+", " ", text).strip().title()
+
+
+def _primary_subject_label(raw_id: str, explicit_label: str = "") -> str:
+    """Return the preferred user-facing subject label for a candidate or run."""
+    if explicit_label:
+        return explicit_label
+    if not raw_id:
+        return ""
+    return _humanize_identifier(raw_id)
+
+
+def _metric_change_summary(metric_name: str, metric_delta: float | None) -> tuple[str, str]:
+    """Return a main-gain and main-tradeoff summary for one tracked metric."""
+    if metric_delta is None or not metric_name:
+        return "", ""
+
+    label = metric_display_label(metric_name)
+    if metric_delta < 0:
+        return (
+            f"{label} improved by {abs(metric_delta):.2f} percentage points versus the champion.",
+            "",
+        )
+    if metric_delta > 0:
+        return (
+            "",
+            f"{label} is {metric_delta:.2f} percentage points worse than the champion.",
+        )
+    return "", f"{label} is unchanged versus the champion."
+
+
+def _evidence_quality_label(state: str, benchmark_completeness: str) -> str:
+    """Return a short plain-language description of evidence quality."""
+    if benchmark_completeness == "full":
+        if state in {"recommended", "ready_for_review"}:
+            return "Benchmark-backed and reviewable"
+        if state in {"mixed_signal", "failed_hard_gate"}:
+            return "Benchmark-backed but not decision-ready"
+    if state == "blocked_by_data_or_runtime":
+        return "Blocked before a usable benchmark"
+    if state == "not_executed":
+        return "Not enough evidence yet"
+    return "Partial evidence"
+
+
+def _escalation_guidance(state: str) -> tuple[str, bool]:
+    """Return guidance text plus whether the result should escalate now."""
+    if state in {"recommended", "ready_for_review"}:
+        return "Review before recommending", True
+    if state in {"mixed_signal", "failed_hard_gate"}:
+        return "Bring to a senior analyst now", True
+    return "Safe to continue alone", False
+
+
+def _next_action_route(state: str, status: str = "") -> str:
+    """Return the dashboard routing intent for the dominant next action."""
+    lowered_status = _clean_text(status).lower()
+    if lowered_status in {"planned", "running", "launching"}:
+        return "monitor"
+    if state in {"recommended", "ready_for_review"}:
+        return "review"
+    if state == "blocked_by_data_or_runtime":
+        return "resolve_blocker"
+    if state in {"mixed_signal", "failed_hard_gate"}:
+        return "senior_review"
+    return "continue_exploring"
+
+
+def _safe_to_recommend_label(state: str, safe_to_recommend: bool) -> str:
+    """Return a verdict sentence for the guided-review verdict row."""
+    if safe_to_recommend:
+        return "Yes — safe to bring forward for human review."
+    if state == "blocked_by_data_or_runtime":
+        return "No — resolve the blocker before treating this as usable evidence."
+    if state == "failed_hard_gate":
+        return "No — this result should not advance."
+    if state == "mixed_signal":
+        return "Not yet — tradeoffs still need senior judgment."
+    return "Not yet — collect more evidence first."
+
+
+def _checklist_item(label: str, status: str, detail: str) -> dict[str, str]:
+    """Build one review-checklist row."""
+    return {"label": label, "status": status, "detail": detail}
+
+
+def _review_checklist(
+    *,
+    decision_state: str,
+    benchmark_completeness: str,
+    blocker_label: str,
+    hard_constraint_regression: bool | None,
+) -> list[dict[str, str]]:
+    """Return the guided-review checklist for one decision summary."""
+    if benchmark_completeness == "full":
+        benchmark_status = "yes"
+        benchmark_detail = "A benchmark bundle is available for review."
+    elif decision_state == "blocked_by_data_or_runtime":
+        benchmark_status = "no"
+        benchmark_detail = blocker_label or "A usable benchmark bundle was not produced."
+    else:
+        benchmark_status = "no"
+        benchmark_detail = "A full benchmark bundle is not available yet."
+
+    if decision_state == "failed_hard_gate" or hard_constraint_regression is True:
+        hard_gate_status = "no"
+        hard_gate_detail = "A hard constraint regressed."
+    elif benchmark_completeness == "full":
+        hard_gate_status = "yes"
+        hard_gate_detail = "No hard-constraint regression is flagged."
+    else:
+        hard_gate_status = "no"
+        hard_gate_detail = "Hard constraints cannot be confirmed yet."
+
+    if decision_state in {"recommended", "ready_for_review"}:
+        tradeoff_status = "yes"
+        tradeoff_detail = "The current summary says the tradeoffs are acceptable for review."
+    elif decision_state in {"mixed_signal", "failed_hard_gate", "blocked_by_data_or_runtime"}:
+        tradeoff_status = "no"
+        tradeoff_detail = "The current summary does not support a clean review recommendation."
+    else:
+        tradeoff_status = "no"
+        tradeoff_detail = "Tradeoffs still need evidence."
+
+    return [
+        _checklist_item(
+            "Benchmark completed successfully",
+            benchmark_status,
+            benchmark_detail,
+        ),
+        _checklist_item(
+            "No hard-constraint regression",
+            hard_gate_status,
+            hard_gate_detail,
+        ),
+        _checklist_item(
+            "Projections remain plausible",
+            "no",
+            "Check this in the Projections tab before advancing.",
+        ),
+        _checklist_item(
+            "Tradeoffs are acceptable for review",
+            tradeoff_status,
+            tradeoff_detail,
+        ),
+    ]
+
+
+def _user_decision_fields(
+    *,
+    decision_state: str,
+    confidence: str,
+    explanation: str,
+    headline: str,
+    recommendation_text: str,
+    raw_subject_id: str,
+    primary_subject_label: str,
+    blocker_type: str = "",
+    benchmark_completeness: str = "none",
+    metric_name: str = "",
+    metric_delta: float | None = None,
+    hard_constraint_regression: bool | None = None,
+    status: str = "",
+) -> dict[str, Any]:
+    """Build the shared user-facing decision payload fields."""
+    user_status_label = _USER_STATUS_LABELS.get(decision_state, "Needs more evidence")
+    confidence_label = _CONFIDENCE_LABELS.get(confidence, "Low confidence")
+    blocker_category_label = _BLOCKER_CATEGORY_LABELS.get(blocker_type, "")
+    evidence_quality = _evidence_quality_label(decision_state, benchmark_completeness)
+    main_gain, main_tradeoff = _metric_change_summary(metric_name, metric_delta)
+    escalation_guidance, requires_senior_review = _escalation_guidance(decision_state)
+    next_action_route = _next_action_route(decision_state, status=status)
+    next_action_label = _NEXT_ACTION_LABELS[next_action_route]
+    safe_to_recommend = decision_state in {"recommended", "ready_for_review"}
+
+    risk_flags: list[str] = []
+    if blocker_category_label:
+        risk_flags.append(blocker_category_label)
+    if decision_state == "failed_hard_gate":
+        risk_flags.append("Failed a hard constraint")
+    elif decision_state == "mixed_signal":
+        risk_flags.append("Tradeoffs still need judgment")
+    elif decision_state == "blocked_by_data_or_runtime" and not blocker_category_label:
+        risk_flags.append("Operational blocker")
+
+    return {
+        "user_status_label": user_status_label,
+        "confidence_label": confidence_label,
+        "safe_to_recommend": safe_to_recommend,
+        "safe_to_recommend_label": _safe_to_recommend_label(decision_state, safe_to_recommend),
+        "primary_subject_label": primary_subject_label,
+        "raw_subject_id": raw_subject_id,
+        "next_action_label": next_action_label,
+        "next_action_route": next_action_route,
+        "blocker_category_label": blocker_category_label,
+        "requires_senior_review": requires_senior_review,
+        "review_checklist": _review_checklist(
+            decision_state=decision_state,
+            benchmark_completeness=benchmark_completeness,
+            blocker_label=blocker_category_label,
+            hard_constraint_regression=hard_constraint_regression,
+        ),
+        "evidence_quality": evidence_quality,
+        "main_reason": explanation or headline,
+        "main_gain": main_gain,
+        "main_tradeoff": main_tradeoff,
+        "risk_flags": risk_flags,
+        "escalation_guidance": escalation_guidance,
+        "recommended_next_step": recommendation_text,
+    }
 
 
 def _best_metric(row: Mapping[str, Any]) -> tuple[str, float | None]:
@@ -240,6 +538,7 @@ def build_candidate_decision_summary(
     metric_name, metric_delta = _best_metric(row)
     decision_meta = _DECISION_META[decision_state]
     candidate_label = candidate_id.replace("-", " ")
+    primary_subject_label = _primary_subject_label(candidate_id)
 
     if decision_state == "ready_for_review":
         headline = f"{candidate_id} produced a usable benchmark and is ready for review."
@@ -295,6 +594,30 @@ def build_candidate_decision_summary(
         "benchmark_completeness": benchmark_completeness,
         "best_metric_name": metric_name,
         "best_metric_delta": metric_delta,
+        **_user_decision_fields(
+            decision_state=decision_state,
+            confidence=decision_meta["confidence"],
+            explanation=explanation,
+            headline=headline,
+            recommendation_text=_recommended_action(
+                decision_state,
+                blocker_type=blocker_type,
+                blocker_detail=blocker_detail,
+                candidate_label=candidate_label,
+            ),
+            raw_subject_id=candidate_id,
+            primary_subject_label=primary_subject_label,
+            blocker_type=blocker_type,
+            benchmark_completeness=benchmark_completeness,
+            metric_name=metric_name,
+            metric_delta=metric_delta,
+            hard_constraint_regression=(
+                bool(row.get("hard_constraint_regression"))
+                if row.get("hard_constraint_regression") is not None
+                else None
+            ),
+            status=status,
+        ),
     }
 
 
@@ -461,9 +784,11 @@ def build_search_session_summary(
     recommendation = "Inspect the candidate list and logs to understand what happened."
     blocker_summary = ""
     recommendation_candidate_id = ""
+    focus_row: Mapping[str, Any] | None = None
 
     if not recommended_rows.empty:
         top = recommended_rows.iloc[0]
+        focus_row = cast(Mapping[str, Any], top)
         recommendation_candidate_id = _clean_text(top.get("candidate_id"))
         session_state = "recommended"
         headline = f"Search finished. Best available candidate: {recommendation_candidate_id}."
@@ -474,6 +799,7 @@ def build_search_session_summary(
             ascending=[True, True],
             na_position="last",
         ).iloc[0]
+        focus_row = cast(Mapping[str, Any], top)
         recommendation_candidate_id = _clean_text(top.get("candidate_id"))
         session_state = "ready_for_review"
         headline = (
@@ -487,12 +813,14 @@ def build_search_session_summary(
             ascending=[True, True],
             na_position="last",
         ).iloc[0]
+        focus_row = cast(Mapping[str, Any], top)
         recommendation_candidate_id = _clean_text(top.get("candidate_id"))
         session_state = "mixed_signal"
         headline = f"Search finished, but the best available candidate still has unresolved tradeoffs: {recommendation_candidate_id}."
         recommendation = f"Inspect tradeoffs for {recommendation_candidate_id} in Scorecards and Horizon & Bias before deciding whether to keep exploring."
     elif len(blocked_rows) == total:
         top = blocked_rows.iloc[0]
+        focus_row = cast(Mapping[str, Any], top)
         blocker_summary = _clean_text(top.get("blocker_detail")) or _clean_text(top.get("headline"))
         session_state = "blocked_by_data_or_runtime"
         headline = (
@@ -502,6 +830,9 @@ def build_search_session_summary(
             "Resolve the blocking issue and rerun the affected candidates."
         )
     elif state_counts.get("failed_hard_gate", 0):
+        failed_rows = candidates[candidates["decision_state"] == "failed_hard_gate"]
+        if not failed_rows.empty:
+            focus_row = cast(Mapping[str, Any], failed_rows.iloc[0])
         session_state = "failed_hard_gate"
         headline = "Search finished, but the reviewed candidates failed hard gates."
         recommendation = "Inspect the failed hard-gate evidence before continuing this search line."
@@ -526,6 +857,39 @@ def build_search_session_summary(
     if status:
         headline = f"{headline} Session status: {status}."
 
+    focus_primary_label = ""
+    raw_subject_id = recommendation_candidate_id or search_id
+    if focus_row is not None:
+        focus_primary_label = _clean_text(focus_row.get("primary_subject_label"))
+    if not focus_primary_label:
+        focus_primary_label = _primary_subject_label(
+            raw_subject_id,
+            explicit_label=(
+                f"Search Session {search_id}" if not recommendation_candidate_id else ""
+            ),
+        )
+
+    focus_metric_name = (
+        _clean_text(focus_row.get("best_metric_name")) if focus_row is not None else ""
+    )
+    focus_metric_delta = (
+        _as_float(focus_row.get("best_metric_delta")) if focus_row is not None else None
+    )
+    focus_blocker_type = _clean_text(focus_row.get("blocker_type")) if focus_row is not None else ""
+    focus_confidence = (
+        _clean_text(focus_row.get("confidence"))
+        if focus_row is not None
+        else _DECISION_META[session_state]["confidence"]
+    ) or _DECISION_META[session_state]["confidence"]
+    focus_benchmark_completeness = (
+        _clean_text(focus_row.get("benchmark_completeness")) if focus_row is not None else ""
+    ) or ("full" if successful_benchmark_count > 0 else "none")
+    focus_hard_gate = None
+    if focus_row is not None and focus_row.get("hard_constraint_regression") is not None:
+        focus_hard_gate = bool(focus_row.get("hard_constraint_regression"))
+    elif session_state == "failed_hard_gate":
+        focus_hard_gate = True
+
     return {
         "source": "search_session",
         "search_id": search_id,
@@ -538,6 +902,21 @@ def build_search_session_summary(
         "recommendation_candidate_id": recommendation_candidate_id,
         "recommended_next_step": recommendation,
         "state_counts": state_counts,
+        **_user_decision_fields(
+            decision_state=session_state,
+            confidence=focus_confidence,
+            explanation=blocker_summary or headline,
+            headline=headline,
+            recommendation_text=recommendation,
+            raw_subject_id=raw_subject_id,
+            primary_subject_label=focus_primary_label,
+            blocker_type=focus_blocker_type,
+            benchmark_completeness=focus_benchmark_completeness,
+            metric_name=focus_metric_name,
+            metric_delta=focus_metric_delta,
+            hard_constraint_regression=focus_hard_gate,
+            status=status,
+        ),
     }
 
 
@@ -555,6 +934,16 @@ def build_benchmark_decision_brief(
             "explanation": "Benchmark history is empty or incomplete, so the dashboard cannot build a benchmark-backed recommendation.",
             "recommended_action": "Use the latest search session or run a benchmark to populate review evidence.",
             "recommendation_candidate_id": "",
+            **_user_decision_fields(
+                decision_state="not_executed",
+                confidence="low",
+                explanation="Benchmark history is empty or incomplete, so the dashboard cannot build a benchmark-backed recommendation.",
+                headline="No benchmark-backed decision evidence is available yet.",
+                recommendation_text="Use the latest search session or run a benchmark to populate review evidence.",
+                raw_subject_id="",
+                primary_subject_label="Benchmark archive",
+                benchmark_completeness="none",
+            ),
         }
 
     champion_row = (
@@ -579,6 +968,18 @@ def build_benchmark_decision_brief(
             "explanation": "No challenger bundle with readable scorecard data is available yet.",
             "recommended_action": "Run or register a challenger benchmark bundle before making a new decision.",
             "recommendation_candidate_id": "",
+            **_user_decision_fields(
+                decision_state="ready_for_review",
+                confidence="high",
+                explanation="No challenger bundle with readable scorecard data is available yet.",
+                headline=f"{champion_name} is still the only benchmark-backed option on record.",
+                recommendation_text="Run or register a challenger benchmark bundle before making a new decision.",
+                raw_subject_id=str(champion_id or ""),
+                primary_subject_label=champion_name,
+                benchmark_completeness="full",
+                metric_name="county_mape_overall",
+                metric_delta=0.0,
+            ),
         }
 
     best = challengers.sort_values(
@@ -647,4 +1048,17 @@ def build_benchmark_decision_brief(
         "recommendation_candidate_id": _clean_text(best.get("run_id")),
         "best_label": best_name,
         "best_delta": delta,
+        **_user_decision_fields(
+            decision_state=decision_state,
+            confidence=_DECISION_META[decision_state]["confidence"],
+            explanation=explanation,
+            headline=headline,
+            recommendation_text=recommended_action,
+            raw_subject_id=_clean_text(best.get("run_id")),
+            primary_subject_label=best_name,
+            benchmark_completeness="full",
+            metric_name="county_mape_overall",
+            metric_delta=delta,
+            hard_constraint_regression=(decision_state == "failed_hard_gate"),
+        ),
     }

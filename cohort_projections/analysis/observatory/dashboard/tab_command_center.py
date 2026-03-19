@@ -12,7 +12,7 @@ import logging
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 import pandas as pd
 import panel as pn
@@ -30,7 +30,6 @@ from cohort_projections.analysis.observatory.dashboard.theme import (
 )
 from cohort_projections.analysis.observatory.dashboard.widgets import (
     candidate_feed,
-    completion_banner,
     empty_placeholder,
     hero_metric,
     kpi_card,
@@ -40,6 +39,9 @@ from cohort_projections.analysis.observatory.dashboard.widgets import (
     section_header,
     terminal_output,
 )
+from cohort_projections.analysis.observatory.decision_support import (
+    build_search_session_summary,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,15 @@ _OBSERVATORY_SCRIPT = (
     Path(__file__).resolve().parents[4] / "scripts" / "analysis" / "observatory.py"
 )
 _PROJECT_ROOT = Path(__file__).resolve().parents[4]
+
+
+class _LaunchPreset(TypedDict):
+    """Structured settings for one simple launch preset."""
+
+    cpu_budget: int
+    max_total_runs: int
+    batch_run_budget: int
+    summary: str
 
 
 # ---------------------------------------------------------------------------
@@ -286,15 +297,31 @@ def _search_session_detail_html(session_row: pd.Series | None) -> str:
 def _command_center_summary(dm: DashboardDataManager) -> str:
     """Return a plain-language summary of the current decision state."""
     brief = getattr(dm, "decision_brief", {})
-    source = str(brief.get("source", "") or "")
-    if source == "search_session":
-        headline = str(brief.get("session_headline", "") or "")
-        recommendation = str(brief.get("session_recommendation", "") or "")
-        blocker = str(brief.get("session_blocker_summary", "") or "")
-        summary = f"{headline} {recommendation}".strip()
+    main_reason = str(
+        brief.get("main_reason") or brief.get("session_headline") or brief.get("headline") or ""
+    )
+    next_step = str(
+        brief.get("recommended_next_step")
+        or brief.get("recommended_action")
+        or brief.get("session_recommendation")
+        or ""
+    )
+    status_label = str(brief.get("user_status_label", "") or "")
+    escalation = str(brief.get("escalation_guidance", "") or "")
+    blocker = str(brief.get("session_blocker_summary", "") or "")
+    if status_label or main_reason or next_step:
+        parts = []
+        if status_label:
+            parts.append(f"Current decision state: {status_label}.")
+        if main_reason:
+            parts.append(main_reason)
+        if next_step:
+            parts.append(f"Next step: {next_step}")
         if blocker:
-            summary = f"{summary} Blocker: {blocker}".strip()
-        return summary or "No completed Observatory run history is available yet."
+            parts.append(f"Blocker: {blocker}")
+        if escalation:
+            parts.append(f"Escalation: {escalation}.")
+        return " ".join(parts).strip()
 
     champion_row = (
         dm.run_metadata[dm.run_metadata["run_id"] == dm.champion_id].iloc[0]
@@ -351,34 +378,34 @@ def _command_center_summary(dm: DashboardDataManager) -> str:
 def _build_decision_brief_card(dm: DashboardDataManager) -> pn.Card:
     """Compact decision brief surfaced directly on the Command Center."""
     brief = dm.decision_brief
-    state = str(
-        brief.get("decision_state") or brief.get("session_decision_state") or "not_executed"
+    subject = str(brief.get("primary_subject_label", "") or "Current front-runner")
+    raw_subject_id = str(brief.get("raw_subject_id", "") or "")
+    status_label = str(brief.get("user_status_label", "") or "Needs more evidence")
+    confidence_label = str(brief.get("confidence_label", "") or "Low confidence")
+    main_reason = str(brief.get("main_reason", "") or "No decision evidence is available yet.")
+    next_step = str(brief.get("recommended_next_step", "") or "Inspect the current evidence.")
+    escalation = str(brief.get("escalation_guidance", "") or "Safe to continue alone")
+    safe_verdict = str(
+        brief.get("safe_to_recommend_label", "") or "Not yet — collect more evidence first."
     )
-    headline = str(
-        brief.get("headline")
-        or brief.get("session_headline")
-        or "No decision evidence is available yet."
-    )
-    explanation = str(brief.get("explanation") or brief.get("session_blocker_summary") or headline)
-    next_step = str(
-        brief.get("recommended_action")
-        or brief.get("session_recommendation")
-        or brief.get("recommended_next_step")
-        or "Inspect the current evidence."
-    )
-    recommendation_id = str(brief.get("recommendation_candidate_id", "") or "")
 
     body = [
-        f"**Decision state:** `{state}`",
+        f"**Outcome:** {status_label}",
         "",
-        f"**What happened:** {headline}",
+        f"**Current focus:** {subject}",
         "",
-        f"**Why it matters:** {explanation}",
+        f"**Confidence:** {confidence_label}",
         "",
+        f"**Main reason:** {main_reason}",
+        "",
+        f"**Next action:** {next_step}",
+        "",
+        f"**Escalation guidance:** {escalation}",
+        "",
+        f"**Safe to recommend?** {safe_verdict}",
     ]
-    if recommendation_id:
-        body.extend([f"**Best available option:** `{recommendation_id}`", ""])
-    body.append(f"**Next action:** {next_step}")
+    if raw_subject_id and raw_subject_id != subject:
+        body.extend(["", f"**Reference ID:** `{raw_subject_id}`"])
     return markdown_card("Decision Brief", "\n".join(body), min_width=420)
 
 
@@ -454,6 +481,11 @@ def _enter_guided_review(
     tabs: pn.Tabs | None = None,
 ) -> None:
     """Enable guided review mode and navigate to the Decision Brief when possible."""
+    if hasattr(dm, "initialize_guided_review_shortlist"):
+        try:
+            dm.initialize_guided_review_shortlist()
+        except Exception:  # pragma: no cover - defensive UI guard
+            logger.exception("Failed to seed guided-review shortlist.")
     dm.selection_state.review_mode = True
     dm.selection_state.review_step = 1
     if tabs is not None:
@@ -469,7 +501,7 @@ def _build_hero_metric(dm: DashboardDataManager) -> pn.pane.HTML:
     """Render the champion MAPE as the primary hero metric with challenger delta."""
     champ_mape = _champion_mape(dm)
     if champ_mape is None:
-        return hero_metric("N/A", "Champion County Error")
+        return hero_metric("N/A", "Champion County Error (MAPE)")
 
     best = _best_tested_challenger(dm)
     best_mape = _as_float(best.get("selected_county_mape_overall")) if best is not None else None
@@ -479,7 +511,7 @@ def _build_hero_metric(dm: DashboardDataManager) -> pn.pane.HTML:
 
     return hero_metric(
         f"{champ_mape:.2f}%",
-        "Champion County Error",
+        "Champion County Error (MAPE)",
         delta=delta,
         color=SDC_BLUE,
     )
@@ -752,12 +784,51 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
     default_max_total = 20
     default_include_recipes = bool(dm.search_policy.include_recipe_catalog)
 
+    preset_defaults: dict[str, _LaunchPreset] = {
+        "Quick check": {
+            "cpu_budget": min(max(2, available_cores // 3), 8),
+            "max_total_runs": 8,
+            "batch_run_budget": max(1, min(default_batch_budget, 2)),
+            "summary": (
+                "Runs a small safe batch to see whether the direction looks promising. "
+                "Use this when you want a quick signal before investing in a larger search."
+            ),
+        },
+        "Standard exploration": {
+            "cpu_budget": default_workers,
+            "max_total_runs": default_max_total,
+            "batch_run_budget": default_batch_budget,
+            "summary": (
+                "Runs the recommended balanced search. This is the default starting point for "
+                "a junior demographer because it usually produces reviewable evidence without "
+                "opening too many branches at once."
+            ),
+        },
+        "Deeper search": {
+            "cpu_budget": min(available_cores, max(default_workers, 16)),
+            "max_total_runs": 36,
+            "batch_run_budget": max(default_batch_budget, 4),
+            "summary": (
+                "Runs a larger search budget to explore more variants after the first pass. "
+                "Use this when the earlier review ended in mixed signal or no clear winner."
+            ),
+        },
+    }
+
     # --- Simple mode widgets ---
+    preset_selector = pn.widgets.RadioButtonGroup(
+        name="Search preset",
+        options=list(preset_defaults.keys()),
+        value="Standard exploration",
+        button_type="default",
+        sizing_mode="stretch_width",
+    )
+    launch_note = pn.pane.HTML(sizing_mode="stretch_width")
     cpu_slider = pn.widgets.IntSlider(
         name="CPU cores to use",
         start=2,
         end=available_cores,
-        step=2,
+        step=1,
         value=default_workers,
         width=280,
     )
@@ -767,8 +838,22 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
         step=5,
         start=1,
         end=200,
-        width=160,
+        width=180,
     )
+
+    def _apply_preset(preset_name: str) -> None:
+        selected = preset_defaults[preset_name]
+        cpu_slider.value = int(selected["cpu_budget"])
+        max_runs_spinner.value = int(selected["max_total_runs"])
+        launch_note.object = (
+            '<div style="color:#334E68;font-size:0.9em;margin:2px 0 10px 0">'
+            f"<strong>{preset_name}:</strong> {selected['summary']} "
+            "Results become reviewable after the first completed benchmark bundle is written."
+            "</div>"
+        )
+
+    preset_selector.param.watch(lambda event: _apply_preset(str(event.new)), "value")
+    _apply_preset(str(preset_selector.value))
 
     # --- Next-recommendation hint ---
     recommendations = dm.recommender.suggest_next_experiments(1)
@@ -809,11 +894,13 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
 
     # --- Simple Start button ---
     def _on_simple_start(event: Any) -> None:
+        preset_name = str(preset_selector.value)
+        preset = preset_defaults[preset_name]
         _launch_search_auto(
             search_id=_default_search_id(),
             cpu_budget=cpu_slider.value,
             max_total_runs=max_runs_spinner.value,
-            batch_run_budget=default_batch_budget,
+            batch_run_budget=int(preset["batch_run_budget"]),
             max_pending=int(dm.search_policy.default_max_pending),
             max_recommended=int(dm.search_policy.default_max_recommended),
             include_recipes=default_include_recipes,
@@ -831,10 +918,23 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
     )
     btn_start.on_click(_on_simple_start)
 
-    resource_row = pn.Row(
+    resource_row = pn.FlexBox(
         cpu_slider,
-        pn.Spacer(width=20),
         max_runs_spinner,
+        flex_wrap="wrap",
+        sizing_mode="stretch_width",
+        styles={"gap": "14px"},
+    )
+    customize_card = pn.Card(
+        resource_row,
+        pn.pane.HTML(
+            '<div style="color:#5A6C84;font-size:0.85em">'
+            "Use these controls only when you need to override the preset defaults."
+            "</div>",
+            sizing_mode="stretch_width",
+        ),
+        title="Customize Launch Settings",
+        collapsed=True,
         sizing_mode="stretch_width",
     )
 
@@ -1256,11 +1356,19 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
     )
 
     return pn.Card(
-        resource_row,
+        pn.pane.HTML(
+            '<div style="color:#1F3864;font-size:0.95em;font-weight:600;margin-bottom:4px">'
+            "Choose how broad the next search should be."
+            "</div>",
+            sizing_mode="stretch_width",
+        ),
+        preset_selector,
         hint_pane,
+        launch_note,
         pn.Row(btn_start, sizing_mode="stretch_width"),
         status_pane,
         output_pane,
+        customize_card,
         advanced_card,
         title="Launch Experiments",
         sizing_mode="stretch_width",
@@ -1299,13 +1407,23 @@ def _build_search_progress_card(
     )
     current_experiment_pane = pn.pane.HTML(sizing_mode="stretch_width")
 
-    btn_review_results = pn.widgets.Button(
+    btn_primary_action = pn.widgets.Button(
         name="Review Results",
         button_type="primary",
-        width=170,
+        width=190,
         visible=False,
     )
-    btn_review_results.on_click(lambda event: _enter_guided_review(dm, tabs))
+    primary_action_route: dict[str, str] = {"value": "review"}
+
+    def _on_primary_action(event: Any) -> None:
+        route = primary_action_route["value"]
+        if route in {"review", "resolve_blocker", "senior_review"}:
+            _enter_guided_review(dm, tabs)
+            return
+        if tabs is not None:
+            tabs.active = 0
+
+    btn_primary_action.on_click(_on_primary_action)
 
     def _selected_session_row() -> pd.Series | None:
         sessions = dm.search_sessions
@@ -1451,42 +1569,69 @@ def _build_search_progress_card(
                 if selected_search_id
                 else pd.DataFrame()
             )
+            session_summary = build_search_session_summary(
+                session_candidates,
+                search_id=selected_search_id,
+                status=str(selected.get("status", "")) if selected is not None else "",
+                history_index_present=bool(dm.benchmark_history_snapshot["index_present"]),
+                incomplete_bundle_count=int(
+                    dm.benchmark_history_snapshot["incomplete_bundle_count"]
+                ),
+            )
             best_candidates = (
                 dm.search_session_best_candidates(selected_search_id)
                 if selected_search_id
                 else pd.DataFrame()
             )
-            all_blocked = (
-                not session_candidates.empty
-                and "decision_state" in session_candidates.columns
-                and (
-                    session_candidates["decision_state"].astype(str) == "blocked_by_data_or_runtime"
-                ).all()
+            outcome_body = [
+                f"**Outcome:** {session_summary.get('user_status_label', 'Needs more evidence')}",
+                "",
+                f"**Confidence:** {session_summary.get('confidence_label', 'Low confidence')}",
+                "",
+                f"**Evidence quality:** {session_summary.get('evidence_quality', 'Partial evidence')}",
+                "",
+                f"**Main reason:** {session_summary.get('main_reason', session_summary.get('session_headline', ''))}",
+            ]
+            main_gain = str(session_summary.get("main_gain", "") or "")
+            if main_gain:
+                outcome_body.extend(["", f"**Main gain:** {main_gain}"])
+            main_tradeoff = str(session_summary.get("main_tradeoff", "") or "")
+            if main_tradeoff:
+                outcome_body.extend(["", f"**Main tradeoff:** {main_tradeoff}"])
+            outcome_body.extend(
+                [
+                    "",
+                    f"**Next action:** {session_summary.get('recommended_next_step', 'Inspect the session details.')}",
+                    "",
+                    f"**Escalation guidance:** {session_summary.get('escalation_guidance', 'Safe to continue alone')}",
+                ]
             )
-            if all_blocked or (failed > 0 and completed == 0):
-                banner = completion_banner(total, status="failed")
-            elif failed > 0:
-                banner = completion_banner(total, status="mixed")
-            else:
-                best_name = ""
-                best_delta = 0.0
-                if not best_candidates.empty:
-                    top = best_candidates.iloc[0]
-                    best_name = str(top.get("candidate_id", ""))
-                    d = _as_float(top.get("delta_county_mape_overall"))
-                    best_delta = d if d is not None else 0.0
-                banner = completion_banner(
-                    total, best_name=best_name, best_delta=best_delta, status="success"
+            progress_area[:] = [
+                markdown_card(
+                    "Session Outcome",
+                    "\n".join(outcome_body),
+                    min_width=420,
                 )
-            progress_area[:] = [banner]
-            btn_review_results.visible = True
+            ]
+            primary_action_route["value"] = str(session_summary.get("next_action_route", "review"))
+            btn_primary_action.name = str(
+                session_summary.get("next_action_label", "Review Results")
+            )
+            btn_primary_action.button_type = {
+                "review": "primary",
+                "resolve_blocker": "warning",
+                "continue_exploring": "success",
+                "senior_review": "warning",
+                "monitor": "default",
+            }.get(primary_action_route["value"], "primary")
+            btn_primary_action.visible = True
             review_action_row[:] = [
-                btn_review_results,
+                btn_primary_action,
                 pn.pane.HTML(
                     (
                         '<div style="color:#5A6C84;font-size:0.88em;padding-top:8px">'
-                        "Open the guided review flow to see what happened, what is blocked, "
-                        "and which evidence to inspect next."
+                        "The button above follows the recommended route from the current session "
+                        "outcome instead of sending every result into the same review path."
                         "</div>"
                     ),
                     sizing_mode="stretch_width",
@@ -1509,7 +1654,7 @@ def _build_search_progress_card(
             status_html = pn.pane.HTML(status_text, sizing_mode="stretch_width")
 
             progress_area[:] = [pn.Row(ring, status_html, sizing_mode="stretch_width")]
-            btn_review_results.visible = False
+            btn_primary_action.visible = False
             review_action_row[:] = []
 
         # Process health badges
