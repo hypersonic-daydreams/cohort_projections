@@ -63,7 +63,7 @@ import logging
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -117,14 +117,23 @@ FONT_FAMILY = "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
 
 # Oil patch counties strongly affected by Bakken boom
 BAKKEN_COUNTIES = [
-    "McKenzie", "Williams", "Mountrail", "Dunn", "Stark",
-    "Divide", "Burke", "Bowman", "Billings", "Golden Valley",
+    "McKenzie",
+    "Williams",
+    "Mountrail",
+    "Dunn",
+    "Stark",
+    "Divide",
+    "Burke",
+    "Bowman",
+    "Billings",
+    "Golden Valley",
 ]
 
 
 # ===================================================================
 # Plotly template
 # ===================================================================
+
 
 def _get_plotly_template() -> str:
     """Register and return the walk-forward report template name."""
@@ -179,6 +188,7 @@ def _get_plotly_template() -> str:
 # Formatting helpers
 # ===================================================================
 
+
 def _fmt_pop(n: float | int) -> str:
     """Format a population number with commas."""
     return f"{int(round(n)):,}"
@@ -204,6 +214,7 @@ def _method_color(method: str) -> str:
 # Data Loading
 # ===================================================================
 
+
 def _load_csv_safe(path: Path, **kwargs: Any) -> pd.DataFrame | None:
     """Load a CSV file, returning None on failure."""
     if not path.exists():
@@ -225,7 +236,7 @@ def _load_fips_names() -> dict[int, str]:
     df = _load_csv_safe(path)
     if df is None:
         return {}
-    return dict(zip(df["county_fips"].astype(int), df["county_name"].astype(str)))
+    return dict(zip(df["county_fips"].astype(int), df["county_name"].astype(str), strict=False))
 
 
 def load_data() -> dict[str, pd.DataFrame | None]:
@@ -255,9 +266,7 @@ def load_data() -> dict[str, pd.DataFrame | None]:
         data["method_comparison"] = annual_comparison
         data["data_mode"] = "annual"
     else:
-        logger.info(
-            "Annual data files not found; falling back to 5-year-interval data."
-        )
+        logger.info("Annual data files not found; falling back to 5-year-interval data.")
         data["state_results"] = _load_csv_safe(DATA_DIR / "state_results.csv")
         data["county_detail"] = _load_csv_safe(DATA_DIR / "county_detail.csv")
         data["horizon_summary"] = _load_csv_safe(DATA_DIR / "horizon_summary.csv")
@@ -276,6 +285,7 @@ def load_data() -> dict[str, pd.DataFrame | None]:
 # ===================================================================
 # Chart 1: Projection Curves vs Actuals (State Level)
 # ===================================================================
+
 
 def _build_projection_curves(
     data: dict[str, Any],
@@ -307,8 +317,7 @@ def _build_projection_curves(
     fig = make_subplots(
         rows=2,
         cols=2,
-        subplot_titles=[f"Origin: {yr}" for yr in origins]
-        + [""] * (4 - n_origins),
+        subplot_titles=[f"Origin: {yr}" for yr in origins] + [""] * (4 - n_origins),
         horizontal_spacing=0.08,
         vertical_spacing=0.12,
     )
@@ -322,11 +331,10 @@ def _build_projection_curves(
         origin_state = state_df[state_df["origin_year"] == origin]
 
         # Plot actual population line
-        actual_points = (
-            origin_state[origin_state["method"] == origin_state["method"].iloc[0]]
-            .sort_values("validation_year")
-        )
-        actual_years = [origin] + list(actual_points["validation_year"])
+        actual_points = origin_state[
+            origin_state["method"] == origin_state["method"].iloc[0]
+        ].sort_values("validation_year")
+        [origin] + list(actual_points["validation_year"])
         # For origin year, we can infer actual from projected - error at origin
         # but more simply, the actual population at origin is the starting pop
         actual_vals_from_data = list(actual_points["actual_state"])
@@ -335,13 +343,10 @@ def _build_projection_curves(
         if curves_df is not None:
             # Try to get the origin year actual from curves
             origin_curve = curves_df[
-                (curves_df["origin_year"] == origin)
-                & (curves_df["method"] == "sdc_2024")
+                (curves_df["origin_year"] == origin) & (curves_df["method"] == "sdc_2024")
             ]
             if not origin_curve.empty:
-                origin_pop = origin_curve[
-                    origin_curve["year"] == origin
-                ]["projected_state"]
+                origin_pop = origin_curve[origin_curve["year"] == origin]["projected_state"]
                 if not origin_pop.empty:
                     actual_years_full = [origin] + list(actual_points["validation_year"])
                     actual_vals_full = [float(origin_pop.iloc[0])] + actual_vals_from_data
@@ -366,8 +371,7 @@ def _build_projection_curves(
                 legendgroup="actual",
                 showlegend=show_legend,
                 hovertemplate=(
-                    "<b>Actual</b><br>Year: %{x}<br>"
-                    "Population: %{y:,.0f}<extra></extra>"
+                    "<b>Actual</b><br>Year: %{x}<br>Population: %{y:,.0f}<extra></extra>"
                 ),
             ),
             row=row,
@@ -382,18 +386,13 @@ def _build_projection_curves(
             if curves_df is not None:
                 # Use full projection curves
                 method_curve = curves_df[
-                    (curves_df["origin_year"] == origin)
-                    & (curves_df["method"] == method)
+                    (curves_df["origin_year"] == origin) & (curves_df["method"] == method)
                 ].sort_values("year")
 
                 if not method_curve.empty:
                     # Split into validated (through 2024) and future
-                    validated = method_curve[
-                        method_curve["year"] <= LAST_ACTUAL_YEAR
-                    ]
-                    future = method_curve[
-                        method_curve["year"] >= LAST_ACTUAL_YEAR
-                    ]
+                    validated = method_curve[method_curve["year"] <= LAST_ACTUAL_YEAR]
+                    future = method_curve[method_curve["year"] >= LAST_ACTUAL_YEAR]
 
                     # Validated portion (solid)
                     if not validated.empty:
@@ -442,9 +441,9 @@ def _build_projection_curves(
                     continue
 
             # Fallback: use state_results data points
-            method_data = origin_state[
-                origin_state["method"] == method
-            ].sort_values("validation_year")
+            method_data = origin_state[origin_state["method"] == method].sort_values(
+                "validation_year"
+            )
 
             if not method_data.empty:
                 fig.add_trace(
@@ -467,7 +466,7 @@ def _build_projection_curves(
                 )
 
     # Add Bakken boom shaded region to each subplot
-    for idx, origin in enumerate(origins):
+    for idx, _origin in enumerate(origins):
         row = idx // 2 + 1
         col = idx % 2 + 1
         fig.add_vrect(
@@ -517,6 +516,7 @@ def _build_projection_curves(
 # Chart 2: State-Level Error Trajectory by Origin
 # ===================================================================
 
+
 def _build_error_trajectory(
     data: dict[str, Any],
     template_name: str,
@@ -540,8 +540,7 @@ def _build_error_trajectory(
     fig = make_subplots(
         rows=2,
         cols=2,
-        subplot_titles=[f"Origin: {yr}" for yr in origins]
-        + [""] * (4 - n_origins),
+        subplot_titles=[f"Origin: {yr}" for yr in origins] + [""] * (4 - n_origins),
         horizontal_spacing=0.08,
         vertical_spacing=0.12,
     )
@@ -557,7 +556,7 @@ def _build_error_trajectory(
         # Add shaded acceptable zone (+/-5%)
         fig.add_trace(
             go.Scatter(
-                x=list(range(0, max_horizon + 2)),
+                x=list(range(max_horizon + 2)),
                 y=[5] * (max_horizon + 2),
                 fill=None,
                 mode="lines",
@@ -570,7 +569,7 @@ def _build_error_trajectory(
         )
         fig.add_trace(
             go.Scatter(
-                x=list(range(0, max_horizon + 2)),
+                x=list(range(max_horizon + 2)),
                 y=[-5] * (max_horizon + 2),
                 fill="tonexty",
                 mode="lines",
@@ -597,9 +596,7 @@ def _build_error_trajectory(
 
         # Plot error lines for each method
         for method in ["sdc_2024", "m2026"]:
-            method_data = origin_data[
-                origin_data["method"] == method
-            ].sort_values("horizon")
+            method_data = origin_data[origin_data["method"] == method].sort_values("horizon")
             if method_data.empty:
                 continue
 
@@ -651,6 +648,7 @@ def _build_error_trajectory(
 # Chart 3: Average Error by Forecast Horizon
 # ===================================================================
 
+
 def _build_avg_error_by_horizon(
     data: dict[str, Any],
     template_name: str,
@@ -665,9 +663,7 @@ def _build_avg_error_by_horizon(
 
     horizon_df = data.get("horizon_summary")
     if horizon_df is None:
-        parts.append(
-            '<p class="placeholder">Horizon summary data not available.</p>'
-        )
+        parts.append('<p class="placeholder">Horizon summary data not available.</p>')
         return "\n".join(parts)
 
     fig = go.Figure()
@@ -692,9 +688,7 @@ def _build_avg_error_by_horizon(
                     f"MAPE: %{{y:.2f}}%<br>"
                     f"Origins: %{{customdata[0]}}<extra></extra>"
                 ),
-                customdata=list(
-                    zip(method_data["n_origins"])
-                ),
+                customdata=list(zip(method_data["n_origins"])),
             )
         )
 
@@ -709,7 +703,7 @@ def _build_avg_error_by_horizon(
             sdc_v = float(sdc_val.iloc[0])
             m26_v = float(m26_val.iloc[0])
             winner = "SDC" if sdc_v < m26_v else "2026"
-            diff = abs(sdc_v - m26_v)
+            abs(sdc_v - m26_v)
             max_val = max(sdc_v, m26_v)
             annotations.append(
                 {
@@ -719,9 +713,7 @@ def _build_avg_error_by_horizon(
                     "showarrow": False,
                     "font": {
                         "size": 9,
-                        "color": _method_color(
-                            "sdc_2024" if winner == "SDC" else "m2026"
-                        ),
+                        "color": _method_color("sdc_2024" if winner == "SDC" else "m2026"),
                     },
                 }
             )
@@ -754,6 +746,7 @@ def _build_avg_error_by_horizon(
 # Chart 4: County MAPE Heatmap
 # ===================================================================
 
+
 def _build_county_heatmap(
     data: dict[str, Any],
     template_name: str,
@@ -771,17 +764,13 @@ def _build_county_heatmap(
     fips_names = data.get("fips_names", {})
 
     if county_df is None:
-        parts.append(
-            '<p class="placeholder">County detail data not available.</p>'
-        )
+        parts.append('<p class="placeholder">County detail data not available.</p>')
         return "\n".join(parts)
 
     # Add county names
     county_df = county_df.copy()
     county_df["county_name"] = county_df["county_fips"].map(fips_names)
-    county_df["county_name"] = county_df["county_name"].fillna(
-        county_df["county_fips"].astype(str)
-    )
+    county_df["county_name"] = county_df["county_name"].fillna(county_df["county_fips"].astype(str))
     county_df["abs_pct_error"] = county_df["pct_error"].abs()
 
     # Build pivot: rows=county, cols=horizon, values=mean abs pct error
@@ -790,25 +779,20 @@ def _build_county_heatmap(
 
     # Rank counties by overall mean APE
     county_avg = (
-        county_df.groupby("county_name")["abs_pct_error"]
-        .mean()
-        .sort_values(ascending=True)
+        county_df.groupby("county_name")["abs_pct_error"].mean().sort_values(ascending=True)
     )
     top_counties = list(county_avg.tail(20).index)  # worst 20
 
     fig = make_subplots(
         rows=1,
         cols=2,
-        subplot_titles=[
-            f"{_method_label(m)} - County MAPE by Horizon" for m in methods
-        ],
+        subplot_titles=[f"{_method_label(m)} - County MAPE by Horizon" for m in methods],
         horizontal_spacing=0.12,
     )
 
     for col_idx, method in enumerate(methods, 1):
         method_data = county_df[
-            (county_df["method"] == method)
-            & (county_df["county_name"].isin(top_counties))
+            (county_df["method"] == method) & (county_df["county_name"].isin(top_counties))
         ]
 
         pivot = method_data.pivot_table(
@@ -825,18 +809,17 @@ def _build_county_heatmap(
         horizons = sorted(pivot.columns)
         counties = list(pivot.index)
 
-        z_vals = []
-        hover_text = []
+        z_vals: list[list[float | None]] = []
+        hover_text: list[list[str]] = []
         for county in counties:
-            row_vals = []
-            row_hover = []
+            row_vals: list[float | None] = []
+            row_hover: list[str] = []
             for h in horizons:
                 val = pivot.loc[county, h] if h in pivot.columns else None
-                if pd.notna(val):
-                    row_vals.append(round(float(val), 1))
-                    row_hover.append(
-                        f"{county}<br>Horizon: {h} yrs<br>MAPE: {val:.1f}%"
-                    )
+                if val is not None and pd.notna(val):
+                    val_float = float(val)
+                    row_vals.append(round(val_float, 1))
+                    row_hover.append(f"{county}<br>Horizon: {h} yrs<br>MAPE: {val:.1f}%")
                 else:
                     row_vals.append(None)
                     row_hover.append(f"{county}<br>Horizon: {h} yrs<br>No data")
@@ -882,6 +865,7 @@ def _build_county_heatmap(
 # Chart 4b: County MAPE Difference Heatmap
 # ===================================================================
 
+
 def _build_county_diff_heatmap(
     data: dict[str, Any],
     template_name: str,
@@ -909,16 +893,12 @@ def _build_county_diff_heatmap(
     fips_names = data.get("fips_names", {})
 
     if county_df is None:
-        parts.append(
-            '<p class="placeholder">County detail data not available.</p>'
-        )
+        parts.append('<p class="placeholder">County detail data not available.</p>')
         return "\n".join(parts)
 
     county_df = county_df.copy()
     county_df["county_name"] = county_df["county_fips"].map(fips_names)
-    county_df["county_name"] = county_df["county_name"].fillna(
-        county_df["county_fips"].astype(str)
-    )
+    county_df["county_name"] = county_df["county_name"].fillna(county_df["county_fips"].astype(str))
     county_df["abs_pct_error"] = county_df["pct_error"].abs()
 
     # Pivot each method separately: rows=county, cols=horizon, values=mean APE
@@ -963,13 +943,14 @@ def _build_county_diff_heatmap(
                 else None
             )
 
-            if pd.notna(d_val):
-                row_vals.append(round(float(d_val), 2))
+            if d_val is not None and pd.notna(d_val):
+                d_val_num = float(d_val)
+                row_vals.append(round(d_val_num, 2))
                 winner = (
                     "2026 Method better"
-                    if d_val < -0.5
+                    if d_val_num < -0.5
                     else "SDC 2024 better"
-                    if d_val > 0.5
+                    if d_val_num > 0.5
                     else "Similar"
                 )
                 hover_parts = [
@@ -977,7 +958,7 @@ def _build_county_diff_heatmap(
                     f"Horizon: {h} yrs",
                     f"m2026 MAPE: {m2026_val:.1f}%" if pd.notna(m2026_val) else "m2026: N/A",
                     f"SDC MAPE: {sdc_val:.1f}%" if pd.notna(sdc_val) else "SDC: N/A",
-                    f"Difference: {d_val:+.1f}pp",
+                    f"Difference: {d_val_num:+.1f}pp",
                     f"<i>{winner}</i>",
                 ]
                 row_hover.append("<br>".join(hover_parts))
@@ -1004,11 +985,11 @@ def _build_county_diff_heatmap(
             x=[str(h) for h in horizons],
             y=counties,
             colorscale=[
-                [0.0, "#08519c"],     # strong blue (m2026 much better)
-                [0.25, "#6baed6"],    # light blue
-                [0.5, "#ffffff"],     # white (no difference)
-                [0.75, "#fb6a4a"],    # light red
-                [1.0, "#a50f15"],     # strong red (SDC much better)
+                [0.0, "#08519c"],  # strong blue (m2026 much better)
+                [0.25, "#6baed6"],  # light blue
+                [0.5, "#ffffff"],  # white (no difference)
+                [0.75, "#fb6a4a"],  # light red
+                [1.0, "#a50f15"],  # strong red (SDC much better)
             ],
             zmid=0,
             zmin=-max_abs,
@@ -1048,6 +1029,7 @@ def _build_county_diff_heatmap(
 # Chart 5: Method Comparison Dashboard
 # ===================================================================
 
+
 def _build_comparison_dashboard(
     data: dict[str, Any],
     template_name: str,
@@ -1064,9 +1046,7 @@ def _build_comparison_dashboard(
     comparison_df = data.get("method_comparison")
 
     if horizon_df is None:
-        parts.append(
-            '<p class="placeholder">Horizon summary data not available.</p>'
-        )
+        parts.append('<p class="placeholder">Horizon summary data not available.</p>')
         return "\n".join(parts)
 
     # Classify horizons into short/medium/long
@@ -1079,9 +1059,7 @@ def _build_comparison_dashboard(
     cards_html = ['<div class="dashboard-cards">']
 
     for range_label, (lo, hi) in horizon_ranges.items():
-        range_data = horizon_df[
-            (horizon_df["horizon"] >= lo) & (horizon_df["horizon"] <= hi)
-        ]
+        range_data = horizon_df[(horizon_df["horizon"] >= lo) & (horizon_df["horizon"] <= hi)]
         if range_data.empty:
             cards_html.append(
                 f'<div class="card">'
@@ -1091,12 +1069,8 @@ def _build_comparison_dashboard(
             )
             continue
 
-        sdc_avg = range_data[range_data["method"] == "sdc_2024"][
-            "mean_state_ape"
-        ].mean()
-        m26_avg = range_data[range_data["method"] == "m2026"][
-            "mean_state_ape"
-        ].mean()
+        sdc_avg = range_data[range_data["method"] == "sdc_2024"]["mean_state_ape"].mean()
+        m26_avg = range_data[range_data["method"] == "m2026"]["mean_state_ape"].mean()
 
         if pd.isna(sdc_avg) or pd.isna(m26_avg):
             winner = "Insufficient data"
@@ -1119,7 +1093,7 @@ def _build_comparison_dashboard(
             f'<div class="card-title">{range_label}</div>'
             f'<div class="card-value" style="color:{winner_color};">{winner}</div>'
             f'<div class="card-detail">'
-            f'SDC: {sdc_str} &nbsp;|&nbsp; 2026: {m26_str}'
+            f"SDC: {sdc_str} &nbsp;|&nbsp; 2026: {m26_str}"
             f"</div></div>"
         )
 
@@ -1139,9 +1113,8 @@ def _build_comparison_dashboard(
         )
     elif comparison_df is not None and "sdc_state_ape" in comparison_df.columns:
         # Annual format — compute struggle from APE columns
-        struggle_mask = (
-            (comparison_df["sdc_state_ape"] > 10)
-            & (comparison_df["m2026_state_ape"] > 10)
+        struggle_mask = (comparison_df["sdc_state_ape"] > 10) & (
+            comparison_df["m2026_state_ape"] > 10
         )
         n_struggle = int(struggle_mask.sum())
         total = len(comparison_df)
@@ -1235,10 +1208,22 @@ def _build_comparison_dashboard(
                 state_winner = str(row.get("winner_state", ""))
                 county_winner = str(row.get("winner_county", ""))
 
-                state_w_label = _method_label(state_winner) if state_winner in METHOD_CONFIG else state_winner.title()
-                county_w_label = _method_label(county_winner) if county_winner in METHOD_CONFIG else county_winner.title()
-                state_w_color = _method_color(state_winner) if state_winner in METHOD_CONFIG else DARK_GRAY
-                county_w_color = _method_color(county_winner) if county_winner in METHOD_CONFIG else DARK_GRAY
+                state_w_label = (
+                    _method_label(state_winner)
+                    if state_winner in METHOD_CONFIG
+                    else state_winner.title()
+                )
+                county_w_label = (
+                    _method_label(county_winner)
+                    if county_winner in METHOD_CONFIG
+                    else county_winner.title()
+                )
+                state_w_color = (
+                    _method_color(state_winner) if state_winner in METHOD_CONFIG else DARK_GRAY
+                )
+                county_w_color = (
+                    _method_color(county_winner) if county_winner in METHOD_CONFIG else DARK_GRAY
+                )
 
                 parts.append(
                     f"<tr>"
@@ -1261,6 +1246,7 @@ def _build_comparison_dashboard(
 # Chart 6: Direction of Error Analysis
 # ===================================================================
 
+
 def _build_direction_analysis(
     data: dict[str, Any],
     template_name: str,
@@ -1276,15 +1262,13 @@ def _build_direction_analysis(
 
     horizon_df = data.get("horizon_summary")
     if horizon_df is None:
-        parts.append(
-            '<p class="placeholder">Horizon summary data not available.</p>'
-        )
+        parts.append('<p class="placeholder">Horizon summary data not available.</p>')
         return "\n".join(parts)
 
     fig = go.Figure()
 
     # Zero reference line
-    horizons_all = sorted(horizon_df["horizon"].unique())
+    sorted(horizon_df["horizon"].unique())
     fig.add_hline(y=0, line_dash="solid", line_color=MID_GRAY, line_width=1)
 
     # Add shaded zone
@@ -1381,6 +1365,7 @@ def _build_direction_analysis(
 # Chart 7: Scatter Plot — SDC Error vs 2026 Error per County
 # ===================================================================
 
+
 def _build_scatter_comparison(
     data: dict[str, Any],
     template_name: str,
@@ -1415,7 +1400,8 @@ def _build_scatter_comparison(
     ].rename(columns={"abs_pct_error": "m2026_ape"})
 
     merged = pd.merge(
-        sdc, m26,
+        sdc,
+        m26,
         on=["origin_year", "horizon", "county_name"],
         how="inner",
     )
@@ -1479,9 +1465,7 @@ def _build_scatter_comparison(
                     "size": 5,
                     "color": color,
                     "opacity": 0.6,
-                    "symbol": [
-                        "diamond" if b else "circle" for b in is_bakken
-                    ],
+                    "symbol": ["diamond" if b else "circle" for b in is_bakken],
                 },
                 name=f"Origin {origin}",
                 customdata=list(
@@ -1490,6 +1474,7 @@ def _build_scatter_comparison(
                         od["horizon"],
                         od["sdc_ape"].round(1),
                         od["m2026_ape"].round(1),
+                        strict=False,
                     )
                 ),
                 hovertemplate=(
@@ -1534,7 +1519,7 @@ def _build_scatter_comparison(
         f"<li><b>SDC 2024 wins</b> in {n_sdc_better} combinations "
         f"({100 * n_sdc_better / len(merged):.0f}%)</li>"
         f"<li><b>Ties</b>: {n_tie}</li>"
-        f'<li>Diamond markers indicate Bakken oil-patch counties</li>'
+        f"<li>Diamond markers indicate Bakken oil-patch counties</li>"
         "</ul></div>"
     )
 
@@ -1544,6 +1529,7 @@ def _build_scatter_comparison(
 # ===================================================================
 # Chart 8: County Deep-Dive (dropdown-based)
 # ===================================================================
+
 
 def _build_county_deep_dive(
     data: dict[str, Any],
@@ -1564,9 +1550,7 @@ def _build_county_deep_dive(
 
     county_df = data.get("county_detail")
     if county_df is None:
-        parts.append(
-            '<p class="placeholder">County detail data not available.</p>'
-        )
+        parts.append('<p class="placeholder">County detail data not available.</p>')
         return "\n".join(parts)
 
     df = county_df.copy()
@@ -1599,7 +1583,7 @@ def _build_county_deep_dive(
 
         for origin in sorted(cdf["origin_year"].unique()):
             origin_data = cdf[cdf["origin_year"] == origin]
-            ocolor = origin_colors_map.get(origin, "#808080")
+            origin_colors_map.get(origin, "#808080")
 
             # Actual line (only once per origin — use first method)
             first_method_data = origin_data[
@@ -1628,9 +1612,7 @@ def _build_county_deep_dive(
             county_traces.append(len(fig.data) - 1)
 
             for method in ["sdc_2024", "m2026"]:
-                mdata = origin_data[origin_data["method"] == method].sort_values(
-                    "validation_year"
-                )
+                mdata = origin_data[origin_data["method"] == method].sort_values("validation_year")
                 if mdata.empty:
                     continue
 
@@ -1742,6 +1724,7 @@ def _build_county_deep_dive(
 # Chart 9: Method Delta Visualization
 # ===================================================================
 
+
 def _build_method_delta(
     data: dict[str, Any],
     template_name: str,
@@ -1761,9 +1744,7 @@ def _build_method_delta(
 
     comparison_df = data.get("method_comparison")
     if comparison_df is None:
-        parts.append(
-            '<p class="placeholder">Method comparison data not available.</p>'
-        )
+        parts.append('<p class="placeholder">Method comparison data not available.</p>')
         return "\n".join(parts)
 
     comp = comparison_df.copy().sort_values("horizon")
@@ -1778,14 +1759,10 @@ def _build_method_delta(
             x=list(comp["horizon"]),
             y=list(comp["state_delta"]),
             name="State-Level Delta",
-            marker_color=[
-                GREEN if v < 0 else ORANGE for v in comp["state_delta"]
-            ],
+            marker_color=[GREEN if v < 0 else ORANGE for v in comp["state_delta"]],
             opacity=0.85,
             hovertemplate=(
-                "Horizon: %{x} yrs<br>"
-                "Delta: %{y:+.2f} pp<br>"
-                "<extra>State Level</extra>"
+                "Horizon: %{x} yrs<br>Delta: %{y:+.2f} pp<br><extra>State Level</extra>"
             ),
         )
     )
@@ -1800,9 +1777,7 @@ def _build_method_delta(
             line={"color": NAVY, "width": 2.5},
             marker={"size": 7},
             hovertemplate=(
-                "Horizon: %{x} yrs<br>"
-                "Delta: %{y:+.2f} pp<br>"
-                "<extra>County Average</extra>"
+                "Horizon: %{x} yrs<br>Delta: %{y:+.2f} pp<br><extra>County Average</extra>"
             ),
         )
     )
@@ -1865,6 +1840,7 @@ def _build_method_delta(
 # Chart 10: Error Distribution Histograms
 # ===================================================================
 
+
 def _build_error_distributions(
     data: dict[str, Any],
     template_name: str,
@@ -1880,9 +1856,7 @@ def _build_error_distributions(
 
     county_df = data.get("county_detail")
     if county_df is None:
-        parts.append(
-            '<p class="placeholder">County detail data not available.</p>'
-        )
+        parts.append('<p class="placeholder">County detail data not available.</p>')
         return "\n".join(parts)
 
     df = county_df.copy()
@@ -1898,7 +1872,7 @@ def _build_error_distributions(
     fig = go.Figure()
     buttons = []
 
-    for group_idx, (group_label, (lo, hi)) in enumerate(horizon_groups.items()):
+    for group_idx, (_group_label, (lo, hi)) in enumerate(horizon_groups.items()):
         gdf = df[(df["horizon"] >= lo) & (df["horizon"] <= hi)]
 
         for method in ["sdc_2024", "m2026"]:
@@ -2012,9 +1986,10 @@ def _build_error_distributions(
 # Key Takeaways & Methodology Summary
 # ===================================================================
 
+
 def _build_key_takeaways(data: dict[str, Any]) -> str:
     """Build a Key Takeaways section derived from the actual data."""
-    parts = ['<h2>Key Takeaways</h2>']
+    parts = ["<h2>Key Takeaways</h2>"]
 
     # Compute takeaway metrics from available data
     horizon_df = data.get("horizon_summary")
@@ -2147,6 +2122,7 @@ def _build_key_takeaways(data: dict[str, Any]) -> str:
 # Data Table section
 # ===================================================================
 
+
 def _error_class(abs_pct: float) -> str:
     """Return CSS class for color-coding error magnitude."""
     if abs_pct < 3:
@@ -2173,7 +2149,7 @@ def _build_data_table(data: dict[str, Any]) -> str:
     # Filter controls
     origins = sorted(state_df["origin_year"].unique())
     parts.append('<div class="table-filter">')
-    parts.append('<label>Origin:</label>')
+    parts.append("<label>Origin:</label>")
     parts.append(
         '<select id="filter-origin" '
         "onchange=\"filterTableByColumn('tbl-raw',this.id,0)\">"
@@ -2183,7 +2159,7 @@ def _build_data_table(data: dict[str, Any]) -> str:
         parts.append(f'<option value="{int(o)}">{int(o)}</option>')
     parts.append("</select>")
 
-    parts.append('<label>Method:</label>')
+    parts.append("<label>Method:</label>")
     parts.append(
         '<select id="filter-method" '
         "onchange=\"filterTableByColumn('tbl-raw',this.id,1)\">"
@@ -2193,7 +2169,7 @@ def _build_data_table(data: dict[str, Any]) -> str:
         "</select>"
     )
 
-    parts.append('<label>Search:</label>')
+    parts.append("<label>Search:</label>")
     parts.append(
         '<input type="text" id="filter-raw-text" placeholder="Type to filter..." '
         "oninput=\"filterTable('tbl-raw','filter-raw-text')\">"
@@ -2217,9 +2193,7 @@ def _build_data_table(data: dict[str, Any]) -> str:
         "</tr></thead><tbody>"
     )
 
-    sorted_df = state_df.sort_values(
-        ["origin_year", "validation_year", "method"]
-    )
+    sorted_df = state_df.sort_values(["origin_year", "validation_year", "method"])
 
     for _, row in sorted_df.iterrows():
         pct_err = float(row["pct_error"])
@@ -2249,6 +2223,7 @@ def _build_data_table(data: dict[str, Any]) -> str:
 # ===================================================================
 # HTML Assembly
 # ===================================================================
+
 
 def _build_html(
     tab1: str,
@@ -2635,11 +2610,11 @@ def _build_html(
     <div class="legend-strip">
         <span style="font-weight:600;">Legend:</span>
         <div class="legend-item">
-            <div class="legend-swatch" style="background:{METHOD_CONFIG['sdc_2024']['color']};"></div>
+            <div class="legend-swatch" style="background:{METHOD_CONFIG["sdc_2024"]["color"]};"></div>
             <span>SDC 2024</span>
         </div>
         <div class="legend-item">
-            <div class="legend-swatch" style="background:{METHOD_CONFIG['m2026']['color']};"></div>
+            <div class="legend-swatch" style="background:{METHOD_CONFIG["m2026"]["color"]};"></div>
             <span>2026 Method</span>
         </div>
         <div class="legend-item">
@@ -2719,7 +2694,7 @@ def _build_html(
     <div class="footer">
         North Dakota Population Projections |
         Walk-Forward Validation Report |
-        Generated {TODAY.strftime('%B %d, %Y')} |
+        Generated {TODAY.strftime("%B %d, %Y")} |
         Data: Census PEP 2025 Vintage
     </div>
 
@@ -2853,6 +2828,7 @@ def _build_html(
 # Report Builder
 # ===================================================================
 
+
 def build_report(output_path: Path) -> Path:
     """Build the complete walk-forward validation HTML report.
 
@@ -2877,7 +2853,7 @@ def build_report(output_path: Path) -> Path:
     # Load data
     logger.info("Loading walk-forward validation data...")
     data = load_data()
-    data_mode = data.get("data_mode", "5year")
+    data_mode = cast(str, data.get("data_mode", "5year"))
     logger.info("  Data mode: %s", data_mode)
 
     # Build sections — original charts
@@ -2963,6 +2939,7 @@ def build_report(output_path: Path) -> Path:
 # ===================================================================
 # CLI
 # ===================================================================
+
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""

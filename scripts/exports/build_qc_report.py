@@ -126,6 +126,7 @@ CATEGORY_COLORS = {
 # Plotly template
 # ===================================================================
 
+
 def _get_plotly_template() -> str:
     """Register and return the QC report template name."""
     template_name = "qc_report"
@@ -178,6 +179,7 @@ def _get_plotly_template() -> str:
 # Helpers
 # ===================================================================
 
+
 def _load_csv(name: str, **kwargs: Any) -> pd.DataFrame | None:
     """Load a CSV from the walk-forward data directory."""
     path = DATA_DIR / name
@@ -226,6 +228,7 @@ def _chart_html(fig: go.Figure) -> str:
 # Data loading
 # ===================================================================
 
+
 def load_all_data() -> dict[str, pd.DataFrame | None]:
     """Load all CSV files needed for the report."""
     return {
@@ -244,6 +247,7 @@ def load_all_data() -> dict[str, pd.DataFrame | None]:
 # ===================================================================
 # Tab 1: Overview / Summary
 # ===================================================================
+
 
 def _build_overview(data: dict[str, Any]) -> str:
     """Build the overview / summary tab with key findings from all analyses."""
@@ -274,8 +278,8 @@ def _build_overview(data: dict[str, Any]) -> str:
                 f'<div class="card-title">{_esc(label)} Report Card</div>'
                 f'<div class="card-value">{a_b}/{total} A/B</div>'
                 f'<div class="card-detail">Avg MAPE: {avg_mape:.1f}% | '
-                f'A:{grade_counts.get("A", 0)} B:{grade_counts.get("B", 0)} '
-                f'C:{grade_counts.get("C", 0)} D:{grade_counts.get("D", 0)}</div>'
+                f"A:{grade_counts.get('A', 0)} B:{grade_counts.get('B', 0)} "
+                f"C:{grade_counts.get('C', 0)} D:{grade_counts.get('D', 0)}</div>"
                 f"</div>"
             )
 
@@ -292,7 +296,7 @@ def _build_overview(data: dict[str, Any]) -> str:
                     f'<div class="card-title">{_esc(label)} Top Sensitivity</div>'
                     f'<div class="card-value">{_esc(str(top["parameter"]))}</div>'
                     f'<div class="card-detail">State error swing: '
-                    f'{top["swing_state_error"]:.1f} pp</div>'
+                    f"{top['swing_state_error']:.1f} pp</div>"
                     f"</div>"
                 )
 
@@ -311,18 +315,14 @@ def _build_overview(data: dict[str, Any]) -> str:
                     f'<div class="card-title">{_esc(label)} 10yr 95% PI Width</div>'
                     f'<div class="card-value">{width:.1f} pp</div>'
                     f'<div class="card-detail">P5: {row["p5"]:.1f}% | '
-                    f'P95: {row["p95"]:.1f}%</div>'
+                    f"P95: {row['p95']:.1f}%</div>"
                     f"</div>"
                 )
 
     parts.append("</div>")  # dashboard-cards
 
     # Key findings narrative
-    parts.append(
-        '<div class="interpretation">'
-        "<h3>Key Findings</h3>"
-        "<ul>"
-    )
+    parts.append('<div class="interpretation"><h3>Key Findings</h3><ul>')
 
     # Sensitivity finding
     if tornado is not None and not tornado.empty:
@@ -383,6 +383,7 @@ def _build_overview(data: dict[str, Any]) -> str:
 # Tab 2: Sensitivity — Tornado Diagrams
 # ===================================================================
 
+
 def _build_sensitivity_tornado(data: dict[str, Any], tmpl: str) -> str:
     """Build tornado diagrams for both methods."""
     parts: list[str] = []
@@ -405,37 +406,41 @@ def _build_sensitivity_tornado(data: dict[str, Any], tmpl: str) -> str:
             continue
         mt = mt.sort_values("swing_state_error", ascending=True)
         label = _method_label(method)
-        color = _method_color(method)
+        _method_color(method)
 
         fig = go.Figure()
 
         # Low side (negative deviation)
-        fig.add_trace(go.Bar(
-            y=mt["parameter"],
-            x=mt["low_deviation"],
-            orientation="h",
-            name="Low perturbation",
-            marker_color="rgba(31, 119, 180, 0.7)",
-            customdata=list(mt["low_label"]),
-            hovertemplate=(
-                "<b>%{y}</b><br>Perturbation: %{customdata}<br>"
-                "State error deviation: %{x:.2f} pp<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Bar(
+                y=mt["parameter"],
+                x=mt["low_deviation"],
+                orientation="h",
+                name="Low perturbation",
+                marker_color="rgba(31, 119, 180, 0.7)",
+                customdata=list(mt["low_label"]),
+                hovertemplate=(
+                    "<b>%{y}</b><br>Perturbation: %{customdata}<br>"
+                    "State error deviation: %{x:.2f} pp<extra></extra>"
+                ),
+            )
+        )
 
         # High side (positive deviation)
-        fig.add_trace(go.Bar(
-            y=mt["parameter"],
-            x=mt["high_deviation"],
-            orientation="h",
-            name="High perturbation",
-            marker_color="rgba(214, 39, 40, 0.7)",
-            customdata=list(mt["high_label"]),
-            hovertemplate=(
-                "<b>%{y}</b><br>Perturbation: %{customdata}<br>"
-                "State error deviation: %{x:.2f} pp<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Bar(
+                y=mt["parameter"],
+                x=mt["high_deviation"],
+                orientation="h",
+                name="High perturbation",
+                marker_color="rgba(214, 39, 40, 0.7)",
+                customdata=list(mt["high_label"]),
+                hovertemplate=(
+                    "<b>%{y}</b><br>Perturbation: %{customdata}<br>"
+                    "State error deviation: %{x:.2f} pp<extra></extra>"
+                ),
+            )
+        )
 
         # Zero reference
         fig.add_vline(x=0, line_dash="solid", line_color=MID_GRAY, line_width=1)
@@ -453,30 +458,34 @@ def _build_sensitivity_tornado(data: dict[str, Any], tmpl: str) -> str:
 
         # Also show MAPE tornado
         fig2 = go.Figure()
-        fig2.add_trace(go.Bar(
-            y=mt["parameter"],
-            x=mt["mape_low_deviation"],
-            orientation="h",
-            name="Low perturbation",
-            marker_color="rgba(31, 119, 180, 0.5)",
-            customdata=list(mt["low_label"]),
-            hovertemplate=(
-                "<b>%{y}</b><br>Perturbation: %{customdata}<br>"
-                "MAPE deviation: %{x:.2f} pp<extra></extra>"
-            ),
-        ))
-        fig2.add_trace(go.Bar(
-            y=mt["parameter"],
-            x=mt["mape_high_deviation"],
-            orientation="h",
-            name="High perturbation",
-            marker_color="rgba(214, 39, 40, 0.5)",
-            customdata=list(mt["high_label"]),
-            hovertemplate=(
-                "<b>%{y}</b><br>Perturbation: %{customdata}<br>"
-                "MAPE deviation: %{x:.2f} pp<extra></extra>"
-            ),
-        ))
+        fig2.add_trace(
+            go.Bar(
+                y=mt["parameter"],
+                x=mt["mape_low_deviation"],
+                orientation="h",
+                name="Low perturbation",
+                marker_color="rgba(31, 119, 180, 0.5)",
+                customdata=list(mt["low_label"]),
+                hovertemplate=(
+                    "<b>%{y}</b><br>Perturbation: %{customdata}<br>"
+                    "MAPE deviation: %{x:.2f} pp<extra></extra>"
+                ),
+            )
+        )
+        fig2.add_trace(
+            go.Bar(
+                y=mt["parameter"],
+                x=mt["mape_high_deviation"],
+                orientation="h",
+                name="High perturbation",
+                marker_color="rgba(214, 39, 40, 0.5)",
+                customdata=list(mt["high_label"]),
+                hovertemplate=(
+                    "<b>%{y}</b><br>Perturbation: %{customdata}<br>"
+                    "MAPE deviation: %{x:.2f} pp<extra></extra>"
+                ),
+            )
+        )
         fig2.add_vline(x=0, line_dash="solid", line_color=MID_GRAY, line_width=1)
         fig2.update_layout(
             template=tmpl,
@@ -496,6 +505,7 @@ def _build_sensitivity_tornado(data: dict[str, Any], tmpl: str) -> str:
 # Tab 3: Sensitivity — Parameter Sweeps
 # ===================================================================
 
+
 def _build_sensitivity_sweeps(data: dict[str, Any], tmpl: str) -> str:
     """Build parameter sweep line charts and radar/spider charts."""
     parts: list[str] = []
@@ -512,10 +522,14 @@ def _build_sensitivity_sweeps(data: dict[str, Any], tmpl: str) -> str:
         return "\n".join(parts)
 
     # Average across origin years for each method x parameter x perturbation
-    avg = sr.groupby(["method", "parameter", "perturbation_level"]).agg(
-        state_pct_error=("state_pct_error", "mean"),
-        county_mape=("county_mape", "mean"),
-    ).reset_index()
+    avg = (
+        sr.groupby(["method", "parameter", "perturbation_level"])
+        .agg(
+            state_pct_error=("state_pct_error", "mean"),
+            county_mape=("county_mape", "mean"),
+        )
+        .reset_index()
+    )
 
     parameters = sorted(avg["parameter"].unique())
 
@@ -523,7 +537,8 @@ def _build_sensitivity_sweeps(data: dict[str, Any], tmpl: str) -> str:
         pdata = avg[avg["parameter"] == param]
 
         fig = make_subplots(
-            rows=1, cols=2,
+            rows=1,
+            cols=2,
             subplot_titles=["State % Error", "County MAPE"],
             horizontal_spacing=0.12,
         )
@@ -539,9 +554,9 @@ def _build_sensitivity_sweeps(data: dict[str, Any], tmpl: str) -> str:
             md = md.copy()
             # Try numeric sort first
             try:
-                md["sort_key"] = md["perturbation_level"].str.extract(
-                    r"([-+]?\d*\.?\d+)"
-                )[0].astype(float)
+                md["sort_key"] = (
+                    md["perturbation_level"].str.extract(r"([-+]?\d*\.?\d+)")[0].astype(float)
+                )
             except Exception:
                 md["sort_key"] = range(len(md))
             md = md.sort_values("sort_key")
@@ -563,7 +578,8 @@ def _build_sensitivity_sweeps(data: dict[str, Any], tmpl: str) -> str:
                         f"State Error: %{{y:.2f}}%<extra></extra>"
                     ),
                 ),
-                row=1, col=1,
+                row=1,
+                col=1,
             )
             fig.add_trace(
                 go.Scatter(
@@ -580,7 +596,8 @@ def _build_sensitivity_sweeps(data: dict[str, Any], tmpl: str) -> str:
                         f"County MAPE: %{{y:.2f}}%<extra></extra>"
                     ),
                 ),
-                row=1, col=2,
+                row=1,
+                col=2,
             )
 
         param_display = param.replace("_", " ").title()
@@ -611,14 +628,16 @@ def _build_sensitivity_sweeps(data: dict[str, Any], tmpl: str) -> str:
             # Close the polygon
             categories_closed = categories + [categories[0]]
             values_closed = values + [values[0]]
-            fig.add_trace(go.Scatterpolar(
-                r=values_closed,
-                theta=categories_closed,
-                fill="toself",
-                name=_method_label(method),
-                line_color=_method_color(method),
-                opacity=0.6,
-            ))
+            fig.add_trace(
+                go.Scatterpolar(
+                    r=values_closed,
+                    theta=categories_closed,
+                    fill="toself",
+                    name=_method_label(method),
+                    line_color=_method_color(method),
+                    opacity=0.6,
+                )
+            )
         fig.update_layout(
             template=tmpl,
             title="Sensitivity Spider: County MAPE Swing by Parameter",
@@ -633,6 +652,7 @@ def _build_sensitivity_sweeps(data: dict[str, Any], tmpl: str) -> str:
 # ===================================================================
 # Tab 4: Uncertainty — Fan Charts
 # ===================================================================
+
 
 def _build_uncertainty_fan_charts(data: dict[str, Any], tmpl: str) -> str:
     """Build state + county fan charts with dropdown for all 53 counties."""
@@ -665,43 +685,52 @@ def _build_uncertainty_fan_charts(data: dict[str, Any], tmpl: str) -> str:
         fig = go.Figure()
 
         # 95% band
-        fig.add_trace(go.Scatter(
-            x=years + years[::-1],
-            y=list(ms["upper_95"]) + list(ms["lower_95"])[::-1],
-            fill="toself",
-            fillcolor=f"rgba({','.join(str(int(color.lstrip('#')[i:i+2], 16)) for i in (0, 2, 4))}, 0.1)",
-            line={"width": 0},
-            name="95% PI",
-            hoverinfo="skip",
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=years + years[::-1],
+                y=list(ms["upper_95"]) + list(ms["lower_95"])[::-1],
+                fill="toself",
+                fillcolor=f"rgba({','.join(str(int(color.lstrip('#')[i : i + 2], 16)) for i in (0, 2, 4))}, 0.1)",
+                line={"width": 0},
+                name="95% PI",
+                hoverinfo="skip",
+            )
+        )
         # 80% band
-        fig.add_trace(go.Scatter(
-            x=years + years[::-1],
-            y=list(ms["upper_80"]) + list(ms["lower_80"])[::-1],
-            fill="toself",
-            fillcolor=f"rgba({','.join(str(int(color.lstrip('#')[i:i+2], 16)) for i in (0, 2, 4))}, 0.2)",
-            line={"width": 0},
-            name="80% PI",
-            hoverinfo="skip",
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=years + years[::-1],
+                y=list(ms["upper_80"]) + list(ms["lower_80"])[::-1],
+                fill="toself",
+                fillcolor=f"rgba({','.join(str(int(color.lstrip('#')[i : i + 2], 16)) for i in (0, 2, 4))}, 0.2)",
+                line={"width": 0},
+                name="80% PI",
+                hoverinfo="skip",
+            )
+        )
         # 50% band
-        fig.add_trace(go.Scatter(
-            x=years + years[::-1],
-            y=list(ms["upper_50"]) + list(ms["lower_50"])[::-1],
-            fill="toself",
-            fillcolor=f"rgba({','.join(str(int(color.lstrip('#')[i:i+2], 16)) for i in (0, 2, 4))}, 0.3)",
-            line={"width": 0},
-            name="50% PI",
-            hoverinfo="skip",
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=years + years[::-1],
+                y=list(ms["upper_50"]) + list(ms["lower_50"])[::-1],
+                fill="toself",
+                fillcolor=f"rgba({','.join(str(int(color.lstrip('#')[i : i + 2], 16)) for i in (0, 2, 4))}, 0.3)",
+                line={"width": 0},
+                name="50% PI",
+                hoverinfo="skip",
+            )
+        )
         # Central projection
-        fig.add_trace(go.Scatter(
-            x=years, y=proj,
-            mode="lines",
-            name="Projected",
-            line={"color": color, "width": 2.5},
-            hovertemplate="Year: %{x}<br>Projected: %{y:,.0f}<extra></extra>",
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=years,
+                y=proj,
+                mode="lines",
+                name="Projected",
+                line={"color": color, "width": 2.5},
+                hovertemplate="Year: %{x}<br>Projected: %{y:,.0f}<extra></extra>",
+            )
+        )
 
         fig.update_layout(
             template=tmpl,
@@ -743,60 +772,69 @@ def _build_uncertainty_fan_charts(data: dict[str, Any], tmpl: str) -> str:
             proj = list(cc["projected"])
 
             # 95% band
-            fig.add_trace(go.Scatter(
-                x=years + years[::-1],
-                y=list(cc["upper_95"]) + list(cc["lower_95"])[::-1],
-                fill="toself",
-                fillcolor=f"rgba({','.join(str(int(color.lstrip('#')[i:i+2], 16)) for i in (0, 2, 4))}, 0.1)",
-                line={"width": 0},
-                name="95% PI",
-                showlegend=False,
-                visible=False,
-                hoverinfo="skip",
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=years + years[::-1],
+                    y=list(cc["upper_95"]) + list(cc["lower_95"])[::-1],
+                    fill="toself",
+                    fillcolor=f"rgba({','.join(str(int(color.lstrip('#')[i : i + 2], 16)) for i in (0, 2, 4))}, 0.1)",
+                    line={"width": 0},
+                    name="95% PI",
+                    showlegend=False,
+                    visible=False,
+                    hoverinfo="skip",
+                )
+            )
             county_traces.append(len(fig.data) - 1)
 
             # 80% band
-            fig.add_trace(go.Scatter(
-                x=years + years[::-1],
-                y=list(cc["upper_80"]) + list(cc["lower_80"])[::-1],
-                fill="toself",
-                fillcolor=f"rgba({','.join(str(int(color.lstrip('#')[i:i+2], 16)) for i in (0, 2, 4))}, 0.2)",
-                line={"width": 0},
-                name="80% PI",
-                showlegend=False,
-                visible=False,
-                hoverinfo="skip",
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=years + years[::-1],
+                    y=list(cc["upper_80"]) + list(cc["lower_80"])[::-1],
+                    fill="toself",
+                    fillcolor=f"rgba({','.join(str(int(color.lstrip('#')[i : i + 2], 16)) for i in (0, 2, 4))}, 0.2)",
+                    line={"width": 0},
+                    name="80% PI",
+                    showlegend=False,
+                    visible=False,
+                    hoverinfo="skip",
+                )
+            )
             county_traces.append(len(fig.data) - 1)
 
             # 50% band
-            fig.add_trace(go.Scatter(
-                x=years + years[::-1],
-                y=list(cc["upper_50"]) + list(cc["lower_50"])[::-1],
-                fill="toself",
-                fillcolor=f"rgba({','.join(str(int(color.lstrip('#')[i:i+2], 16)) for i in (0, 2, 4))}, 0.3)",
-                line={"width": 0},
-                name="50% PI",
-                showlegend=False,
-                visible=False,
-                hoverinfo="skip",
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=years + years[::-1],
+                    y=list(cc["upper_50"]) + list(cc["lower_50"])[::-1],
+                    fill="toself",
+                    fillcolor=f"rgba({','.join(str(int(color.lstrip('#')[i : i + 2], 16)) for i in (0, 2, 4))}, 0.3)",
+                    line={"width": 0},
+                    name="50% PI",
+                    showlegend=False,
+                    visible=False,
+                    hoverinfo="skip",
+                )
+            )
             county_traces.append(len(fig.data) - 1)
 
             # Central line
-            fig.add_trace(go.Scatter(
-                x=years, y=proj,
-                mode="lines",
-                name="Projected",
-                line={"color": color, "width": 2.5},
-                showlegend=False,
-                visible=False,
-                hovertemplate=(
-                    f"<b>{_esc(county)}</b><br>"
-                    "Year: %{x}<br>Projected: %{y:,.0f}<extra></extra>"
-                ),
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=years,
+                    y=proj,
+                    mode="lines",
+                    name="Projected",
+                    line={"color": color, "width": 2.5},
+                    showlegend=False,
+                    visible=False,
+                    hovertemplate=(
+                        f"<b>{_esc(county)}</b><br>"
+                        "Year: %{x}<br>Projected: %{y:,.0f}<extra></extra>"
+                    ),
+                )
+            )
             county_traces.append(len(fig.data) - 1)
 
             traces_per_county.append(county_traces)
@@ -812,14 +850,16 @@ def _build_uncertainty_fan_charts(data: dict[str, Any], tmpl: str) -> str:
             vis = [False] * len(fig.data)
             for tidx in traces_per_county[i]:
                 vis[tidx] = True
-            buttons.append({
-                "label": county,
-                "method": "update",
-                "args": [
-                    {"visible": vis},
-                    {"title": f"County Fan Chart: {county} ({label})"},
-                ],
-            })
+            buttons.append(
+                {
+                    "label": county,
+                    "method": "update",
+                    "args": [
+                        {"visible": vis},
+                        {"title": f"County Fan Chart: {county} ({label})"},
+                    ],
+                }
+            )
 
         fig.update_layout(
             template=tmpl,
@@ -828,15 +868,17 @@ def _build_uncertainty_fan_charts(data: dict[str, Any], tmpl: str) -> str:
             yaxis_title="Population",
             height=500,
             yaxis_tickformat=",",
-            updatemenus=[{
-                "buttons": buttons,
-                "direction": "down",
-                "showactive": True,
-                "x": 0.0,
-                "xanchor": "left",
-                "y": 1.18,
-                "yanchor": "top",
-            }],
+            updatemenus=[
+                {
+                    "buttons": buttons,
+                    "direction": "down",
+                    "showactive": True,
+                    "x": 0.0,
+                    "xanchor": "left",
+                    "y": 1.18,
+                    "yanchor": "top",
+                }
+            ],
         )
         parts.append(_chart_html(fig))
 
@@ -846,6 +888,7 @@ def _build_uncertainty_fan_charts(data: dict[str, Any], tmpl: str) -> str:
 # ===================================================================
 # Tab 5: Uncertainty — Prediction Intervals
 # ===================================================================
+
 
 def _build_uncertainty_intervals(data: dict[str, Any], tmpl: str) -> str:
     """Build PI width growth charts and error distributions."""
@@ -878,31 +921,37 @@ def _build_uncertainty_intervals(data: dict[str, Any], tmpl: str) -> str:
 
             # 95% width
             width_95 = list(mp["p95"] - mp["p5"])
-            fig.add_trace(go.Scatter(
-                x=horizons, y=width_95,
-                mode="lines+markers",
-                name=f"{label} (90% width: P5-P95)",
-                line={"color": color, "width": 2.5},
-                marker={"size": 6},
-                hovertemplate=(
-                    f"<b>{label}</b><br>Horizon: %{{x}} yr<br>"
-                    f"90% width: %{{y:.1f}} pp<extra></extra>"
-                ),
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=horizons,
+                    y=width_95,
+                    mode="lines+markers",
+                    name=f"{label} (90% width: P5-P95)",
+                    line={"color": color, "width": 2.5},
+                    marker={"size": 6},
+                    hovertemplate=(
+                        f"<b>{label}</b><br>Horizon: %{{x}} yr<br>"
+                        f"90% width: %{{y:.1f}} pp<extra></extra>"
+                    ),
+                )
+            )
 
             # 80% width
             width_80 = list(mp["p90"] - mp["p10"])
-            fig.add_trace(go.Scatter(
-                x=horizons, y=width_80,
-                mode="lines+markers",
-                name=f"{label} (80% width: P10-P90)",
-                line={"color": color, "width": 1.5, "dash": "dash"},
-                marker={"size": 5},
-                hovertemplate=(
-                    f"<b>{label}</b><br>Horizon: %{{x}} yr<br>"
-                    f"80% width: %{{y:.1f}} pp<extra></extra>"
-                ),
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=horizons,
+                    y=width_80,
+                    mode="lines+markers",
+                    name=f"{label} (80% width: P10-P90)",
+                    line={"color": color, "width": 1.5, "dash": "dash"},
+                    marker={"size": 5},
+                    hovertemplate=(
+                        f"<b>{label}</b><br>Horizon: %{{x}} yr<br>"
+                        f"80% width: %{{y:.1f}} pp<extra></extra>"
+                    ),
+                )
+            )
 
         fig.update_layout(
             template=tmpl,
@@ -954,6 +1003,7 @@ def _build_uncertainty_intervals(data: dict[str, Any], tmpl: str) -> str:
 # Tab 6: Uncertainty — Decomposition
 # ===================================================================
 
+
 def _build_uncertainty_decomposition(data: dict[str, Any], tmpl: str) -> str:
     """Build error variance decomposition and normality checks."""
     parts: list[str] = []
@@ -986,15 +1036,15 @@ def _build_uncertainty_decomposition(data: dict[str, Any], tmpl: str) -> str:
                 float(row.get("frac_horizon", 0) or 0),
                 float(row.get("frac_residual", 0) or 0),
             ]
-            fig.add_trace(go.Bar(
-                x=components,
-                y=[f * 100 for f in fractions],
-                name=label,
-                marker_color=_method_color(method),
-                hovertemplate=(
-                    f"<b>{label}</b><br>%{{x}}: %{{y:.1f}}%<extra></extra>"
-                ),
-            ))
+            fig.add_trace(
+                go.Bar(
+                    x=components,
+                    y=[f * 100 for f in fractions],
+                    name=label,
+                    marker_color=_method_color(method),
+                    hovertemplate=(f"<b>{label}</b><br>%{{x}}: %{{y:.1f}}%<extra></extra>"),
+                )
+            )
 
         fig.update_layout(
             template=tmpl,
@@ -1049,28 +1099,30 @@ def _build_uncertainty_decomposition(data: dict[str, Any], tmpl: str) -> str:
             label = _method_label(method)
             color = _method_color(method)
 
-            fig.add_trace(go.Scatter(
-                x=list(mh["horizon"]),
-                y=list(mh["rmse_pct"]),
-                mode="lines+markers",
-                name=f"{label} RMSE",
-                line={"color": color, "width": 2},
-                hovertemplate=(
-                    f"<b>{label}</b><br>Horizon: %{{x}} yr<br>"
-                    f"RMSE: %{{y:.1f}}%<extra></extra>"
-                ),
-            ))
-            fig.add_trace(go.Scatter(
-                x=list(mh["horizon"]),
-                y=list(mh["mae_pct"]),
-                mode="lines+markers",
-                name=f"{label} MAE",
-                line={"color": color, "width": 1.5, "dash": "dash"},
-                hovertemplate=(
-                    f"<b>{label}</b><br>Horizon: %{{x}} yr<br>"
-                    f"MAE: %{{y:.1f}}%<extra></extra>"
-                ),
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=list(mh["horizon"]),
+                    y=list(mh["rmse_pct"]),
+                    mode="lines+markers",
+                    name=f"{label} RMSE",
+                    line={"color": color, "width": 2},
+                    hovertemplate=(
+                        f"<b>{label}</b><br>Horizon: %{{x}} yr<br>RMSE: %{{y:.1f}}%<extra></extra>"
+                    ),
+                )
+            )
+            fig.add_trace(
+                go.Scatter(
+                    x=list(mh["horizon"]),
+                    y=list(mh["mae_pct"]),
+                    mode="lines+markers",
+                    name=f"{label} MAE",
+                    line={"color": color, "width": 1.5, "dash": "dash"},
+                    hovertemplate=(
+                        f"<b>{label}</b><br>Horizon: %{{x}} yr<br>MAE: %{{y:.1f}}%<extra></extra>"
+                    ),
+                )
+            )
 
         fig.update_layout(
             template=tmpl,
@@ -1126,6 +1178,7 @@ def _build_uncertainty_decomposition(data: dict[str, Any], tmpl: str) -> str:
 # Tab 7: QC — Bias Analysis
 # ===================================================================
 
+
 def _build_qc_bias(data: dict[str, Any], tmpl: str) -> str:
     """Build bias heatmaps and direction analysis by county type."""
     parts: list[str] = []
@@ -1165,8 +1218,7 @@ def _build_qc_bias(data: dict[str, Any], tmpl: str) -> str:
                     n = int(cell["n_counties"].iloc[0])
                     row_z.append(val)
                     row_h.append(
-                        f"{cat}<br>Horizon: {h} yr<br>"
-                        f"Mean error: {val:+.1f}%<br>N counties: {n}"
+                        f"{cat}<br>Horizon: {h} yr<br>Mean error: {val:+.1f}%<br>N counties: {n}"
                     )
                 else:
                     row_z.append(np.nan)
@@ -1174,16 +1226,18 @@ def _build_qc_bias(data: dict[str, Any], tmpl: str) -> str:
             z.append(row_z)
             hover_text.append(row_h)
 
-        fig = go.Figure(go.Heatmap(
-            z=z,
-            x=horizons,
-            y=categories,
-            colorscale="RdBu_r",
-            zmid=0,
-            text=hover_text,
-            hovertemplate="%{text}<extra></extra>",
-            colorbar={"title": "Mean % Error"},
-        ))
+        fig = go.Figure(
+            go.Heatmap(
+                z=z,
+                x=horizons,
+                y=categories,
+                colorscale="RdBu_r",
+                zmid=0,
+                text=hover_text,
+                hovertemplate="%{text}<extra></extra>",
+                colorbar={"title": "Mean % Error"},
+            )
+        )
         fig.update_layout(
             template=tmpl,
             title=f"Bias Heatmap: {label} (Mean Signed % Error by Category x Horizon)",
@@ -1196,8 +1250,7 @@ def _build_qc_bias(data: dict[str, Any], tmpl: str) -> str:
     # Bias direction by origin year
     parts.append("<h3>Bias by Origin Year</h3>")
     parts.append(
-        '<p class="note">How systematic bias changes depending on the '
-        "projection origin year.</p>"
+        '<p class="note">How systematic bias changes depending on the projection origin year.</p>'
     )
 
     ba_origins = ba[ba["origin_year"] != "all"]
@@ -1216,21 +1269,23 @@ def _build_qc_bias(data: dict[str, Any], tmpl: str) -> str:
                     mo = mc[mc["origin_year"] == origin].sort_values("horizon")
                     if mo.empty:
                         continue
-                    fig.add_trace(go.Scatter(
-                        x=list(mo["horizon"]),
-                        y=list(mo["mean_signed_pct_error"]),
-                        mode="lines",
-                        name=f"{cat} ({origin})",
-                        line={"color": cat_color, "width": 1.5},
-                        legendgroup=cat,
-                        showlegend=(origin == sorted(mc["origin_year"].unique())[0]),
-                        opacity=0.7,
-                        hovertemplate=(
-                            f"<b>{cat} (Origin {origin})</b><br>"
-                            f"Horizon: %{{x}}<br>"
-                            f"Mean error: %{{y:.1f}}%<extra></extra>"
-                        ),
-                    ))
+                    fig.add_trace(
+                        go.Scatter(
+                            x=list(mo["horizon"]),
+                            y=list(mo["mean_signed_pct_error"]),
+                            mode="lines",
+                            name=f"{cat} ({origin})",
+                            line={"color": cat_color, "width": 1.5},
+                            legendgroup=cat,
+                            showlegend=(origin == sorted(mc["origin_year"].unique())[0]),
+                            opacity=0.7,
+                            hovertemplate=(
+                                f"<b>{cat} (Origin {origin})</b><br>"
+                                f"Horizon: %{{x}}<br>"
+                                f"Mean error: %{{y:.1f}}%<extra></extra>"
+                            ),
+                        )
+                    )
 
             fig.add_hline(y=0, line_dash="dash", line_color=MID_GRAY, line_width=1)
             fig.update_layout(
@@ -1248,6 +1303,7 @@ def _build_qc_bias(data: dict[str, Any], tmpl: str) -> str:
 # ===================================================================
 # Tab 8: QC — County Report Cards (ALL 53 counties)
 # ===================================================================
+
 
 def _build_qc_report_cards(data: dict[str, Any], tmpl: str) -> str:
     """Build sortable report card table for ALL 53 counties."""
@@ -1270,16 +1326,18 @@ def _build_qc_report_cards(data: dict[str, Any], tmpl: str) -> str:
     for method in ["m2026", "sdc_2024"]:
         mrc = rc[rc["method"] == method]
         grade_counts = mrc["grade"].value_counts().reindex(["A", "B", "C", "D"], fill_value=0)
-        fig.add_trace(go.Bar(
-            x=list(grade_counts.index),
-            y=list(grade_counts.values),
-            name=_method_label(method),
-            marker_color=_method_color(method),
-            hovertemplate=(
-                f"<b>{_method_label(method)}</b><br>"
-                "Grade: %{x}<br>Count: %{y}<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Bar(
+                x=list(grade_counts.index),
+                y=list(grade_counts.values),
+                name=_method_label(method),
+                marker_color=_method_color(method),
+                hovertemplate=(
+                    f"<b>{_method_label(method)}</b><br>"
+                    "Grade: %{x}<br>Count: %{y}<extra></extra>"
+                ),
+            )
+        )
     fig.update_layout(
         template=tmpl,
         title="Grade Distribution by Method",
@@ -1299,11 +1357,11 @@ def _build_qc_report_cards(data: dict[str, Any], tmpl: str) -> str:
         parts.append(f"<h3>{_esc(label)} Report Cards (All 53 Counties)</h3>")
         parts.append(
             f'<div class="table-filter">'
-            f'<label>Search:</label> '
+            f"<label>Search:</label> "
             f'<input type="text" id="filter-{tbl_id}" '
             f"oninput=\"filterTable('{tbl_id}', 'filter-{tbl_id}')\" "
             f'placeholder="Type county name...">'
-            f'<label>Grade:</label> '
+            f"<label>Grade:</label> "
             f'<select id="grade-{tbl_id}" '
             f"onchange=\"filterTableByColumn('{tbl_id}', 'grade-{tbl_id}', 4)\">"
             f'<option value="all">All</option>'
@@ -1317,7 +1375,7 @@ def _build_qc_report_cards(data: dict[str, Any], tmpl: str) -> str:
             f"</div>"
         )
 
-        parts.append(f'<div class="table-container">')
+        parts.append('<div class="table-container">')
         parts.append(f'<table class="data-table" id="{tbl_id}">')
         parts.append(
             "<thead><tr>"
@@ -1339,11 +1397,7 @@ def _build_qc_report_cards(data: dict[str, Any], tmpl: str) -> str:
             grade_clr = _grade_color(grade)
             cat_clr = CATEGORY_COLORS.get(str(row["category"]), DARK_GRAY)
             mape_val = float(row["mape"])
-            err_cls = (
-                "err-low" if mape_val < 5
-                else "err-mid" if mape_val < 10
-                else "err-high"
-            )
+            err_cls = "err-low" if mape_val < 5 else "err-mid" if mape_val < 10 else "err-high"
             parts.append(
                 f"<tr>"
                 f"<td><strong>{_esc(str(row['county_name']))}</strong></td>"
@@ -1369,6 +1423,7 @@ def _build_qc_report_cards(data: dict[str, Any], tmpl: str) -> str:
 # ===================================================================
 # Tab 9: QC — Outliers & Residuals
 # ===================================================================
+
 
 def _build_qc_outliers(data: dict[str, Any], tmpl: str) -> str:
     """Build outlier scatter, autocorrelation, and heteroscedasticity visuals."""
@@ -1399,29 +1454,33 @@ def _build_qc_outliers(data: dict[str, Any], tmpl: str) -> str:
         for cat in sorted(mo["category"].unique()):
             mc = mo[mo["category"] == cat]
             cat_color = CATEGORY_COLORS.get(cat, "#808080")
-            fig.add_trace(go.Scatter(
-                x=list(mc["pct_error"]),
-                y=list(mc["z_score"]),
-                mode="markers",
-                name=cat,
-                marker={"color": cat_color, "size": 6, "opacity": 0.7},
-                customdata=list(zip(
-                    mc["county_name"],
-                    mc["origin_year"],
-                    mc["validation_year"],
-                    mc["horizon"],
-                )),
-                hovertemplate=(
-                    "<b>%{customdata[0]}</b><br>"
-                    "Origin: %{customdata[1]} | Val: %{customdata[2]}<br>"
-                    "Horizon: %{customdata[3]} yr<br>"
-                    "Error: %{x:.1f}%<br>"
-                    "Z-score: %{y:.2f}<extra></extra>"
-                ),
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=list(mc["pct_error"]),
+                    y=list(mc["z_score"]),
+                    mode="markers",
+                    name=cat,
+                    marker={"color": cat_color, "size": 6, "opacity": 0.7},
+                    customdata=list(
+                        zip(
+                            mc["county_name"],
+                            mc["origin_year"],
+                            mc["validation_year"],
+                            mc["horizon"],
+                            strict=False,
+                        )
+                    ),
+                    hovertemplate=(
+                        "<b>%{customdata[0]}</b><br>"
+                        "Origin: %{customdata[1]} | Val: %{customdata[2]}<br>"
+                        "Horizon: %{customdata[3]} yr<br>"
+                        "Error: %{x:.1f}%<br>"
+                        "Z-score: %{y:.2f}<extra></extra>"
+                    ),
+                )
+            )
 
-        fig.add_hline(y=2, line_dash="dash", line_color=RED, line_width=1,
-                       annotation_text="|z|=2")
+        fig.add_hline(y=2, line_dash="dash", line_color=RED, line_width=1, annotation_text="|z|=2")
         fig.add_hline(y=-2, line_dash="dash", line_color=RED, line_width=1)
 
         fig.update_layout(
@@ -1446,16 +1505,16 @@ def _build_qc_outliers(data: dict[str, Any], tmpl: str) -> str:
         fig = go.Figure()
         for cat in sorted(county_freq["category"].unique()):
             mc = county_freq[county_freq["category"] == cat]
-            fig.add_trace(go.Bar(
-                y=list(mc["county_name"]),
-                x=list(mc["n_outliers"]),
-                orientation="h",
-                name=cat,
-                marker_color=CATEGORY_COLORS.get(cat, "#808080"),
-                hovertemplate=(
-                    "<b>%{y}</b><br>Outlier count: %{x}<extra></extra>"
-                ),
-            ))
+            fig.add_trace(
+                go.Bar(
+                    y=list(mc["county_name"]),
+                    x=list(mc["n_outliers"]),
+                    orientation="h",
+                    name=cat,
+                    marker_color=CATEGORY_COLORS.get(cat, "#808080"),
+                    hovertemplate=("<b>%{y}</b><br>Outlier count: %{x}<extra></extra>"),
+                )
+            )
 
         fig.update_layout(
             template=tmpl,
@@ -1510,6 +1569,7 @@ def _build_qc_outliers(data: dict[str, Any], tmpl: str) -> str:
 # Tab 10: QC — Structural Breaks
 # ===================================================================
 
+
 def _build_qc_structural_breaks(data: dict[str, Any], tmpl: str) -> str:
     """Build pre-boom vs post-boom and paired method comparison."""
     parts: list[str] = []
@@ -1533,7 +1593,9 @@ def _build_qc_structural_breaks(data: dict[str, Any], tmpl: str) -> str:
 
     # Categorize origins as pre-boom vs post-boom
     ba_by_origin["era"] = ba_by_origin["origin_year"].apply(
-        lambda x: "Pre-Boom (2005, 2010)" if str(x) in ("2005", "2010") else "Post-Boom (2015, 2020)"
+        lambda x: "Pre-Boom (2005, 2010)"
+        if str(x) in ("2005", "2010")
+        else "Post-Boom (2015, 2020)"
     )
 
     for method in ["m2026", "sdc_2024"]:
@@ -1543,10 +1605,14 @@ def _build_qc_structural_breaks(data: dict[str, Any], tmpl: str) -> str:
         label = _method_label(method)
 
         # Aggregate across categories within each era x horizon
-        era_agg = mb.groupby(["era", "horizon"]).agg(
-            mean_error=("mean_signed_pct_error", "mean"),
-            std_error=("std_pct_error", "mean"),
-        ).reset_index()
+        era_agg = (
+            mb.groupby(["era", "horizon"])
+            .agg(
+                mean_error=("mean_signed_pct_error", "mean"),
+                std_error=("std_pct_error", "mean"),
+            )
+            .reset_index()
+        )
 
         fig = go.Figure()
         era_colors = {
@@ -1556,19 +1622,21 @@ def _build_qc_structural_breaks(data: dict[str, Any], tmpl: str) -> str:
 
         for era in era_agg["era"].unique():
             ed = era_agg[era_agg["era"] == era].sort_values("horizon")
-            fig.add_trace(go.Scatter(
-                x=list(ed["horizon"]),
-                y=list(ed["mean_error"]),
-                mode="lines+markers",
-                name=era,
-                line={"color": era_colors.get(era, "#808080"), "width": 2.5},
-                marker={"size": 7},
-                hovertemplate=(
-                    f"<b>{era}</b><br>"
-                    "Horizon: %{x} yr<br>"
-                    "Mean error: %{y:.1f}%<extra></extra>"
-                ),
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=list(ed["horizon"]),
+                    y=list(ed["mean_error"]),
+                    mode="lines+markers",
+                    name=era,
+                    line={"color": era_colors.get(era, "#808080"), "width": 2.5},
+                    marker={"size": 7},
+                    hovertemplate=(
+                        f"<b>{era}</b><br>"
+                        "Horizon: %{x} yr<br>"
+                        "Mean error: %{y:.1f}%<extra></extra>"
+                    ),
+                )
+            )
 
         fig.add_hline(y=0, line_dash="dash", line_color=MID_GRAY, line_width=1)
         fig.update_layout(
@@ -1597,21 +1665,28 @@ def _build_qc_structural_breaks(data: dict[str, Any], tmpl: str) -> str:
         fig = go.Figure()
         for cat in sorted(methods_pivot["category"].unique()):
             mc = methods_pivot[methods_pivot["category"] == cat].sort_values("horizon")
-            fig.add_trace(go.Scatter(
-                x=list(mc["horizon"]),
-                y=list(mc["delta"]),
-                mode="lines+markers",
-                name=cat,
-                line={"color": CATEGORY_COLORS.get(cat, "#808080"), "width": 2},
-                hovertemplate=(
-                    f"<b>{cat}</b><br>"
-                    "Horizon: %{x} yr<br>"
-                    "2026 - SDC delta: %{y:.1f} pp<extra></extra>"
-                ),
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=list(mc["horizon"]),
+                    y=list(mc["delta"]),
+                    mode="lines+markers",
+                    name=cat,
+                    line={"color": CATEGORY_COLORS.get(cat, "#808080"), "width": 2},
+                    hovertemplate=(
+                        f"<b>{cat}</b><br>"
+                        "Horizon: %{x} yr<br>"
+                        "2026 - SDC delta: %{y:.1f} pp<extra></extra>"
+                    ),
+                )
+            )
 
-        fig.add_hline(y=0, line_dash="dash", line_color=MID_GRAY, line_width=1,
-                       annotation_text="Methods equal")
+        fig.add_hline(
+            y=0,
+            line_dash="dash",
+            line_color=MID_GRAY,
+            line_width=1,
+            annotation_text="Methods equal",
+        )
         fig.update_layout(
             template=tmpl,
             title="Method Bias Differential: 2026 minus SDC (positive = 2026 more optimistic)",
@@ -1627,6 +1702,7 @@ def _build_qc_structural_breaks(data: dict[str, Any], tmpl: str) -> str:
 # ===================================================================
 # Tab 11: QC — County Deep-Dive (box plots by category, all counties)
 # ===================================================================
+
 
 def _build_qc_county_deep_dive(data: dict[str, Any], tmpl: str) -> str:
     """Build box plots by category and county-level detail for all 53 counties."""
@@ -1649,18 +1725,18 @@ def _build_qc_county_deep_dive(data: dict[str, Any], tmpl: str) -> str:
     for method in ["m2026", "sdc_2024"]:
         mrc = rc[rc["method"] == method]
         label = _method_label(method)
-        fig.add_trace(go.Box(
-            x=list(mrc["category"]),
-            y=list(mrc["mape"]),
-            name=label,
-            marker_color=_method_color(method),
-            boxmean=True,
-            hovertemplate=(
-                f"<b>{label}</b><br>"
-                "Category: %{x}<br>"
-                "MAPE: %{y:.1f}%<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Box(
+                x=list(mrc["category"]),
+                y=list(mrc["mape"]),
+                name=label,
+                marker_color=_method_color(method),
+                boxmean=True,
+                hovertemplate=(
+                    f"<b>{label}</b><br>Category: %{{x}}<br>MAPE: %{{y:.1f}}%<extra></extra>"
+                ),
+            )
+        )
     fig.update_layout(
         template=tmpl,
         title="MAPE Distribution by County Category (All 53 Counties)",
@@ -1678,32 +1754,39 @@ def _build_qc_county_deep_dive(data: dict[str, Any], tmpl: str) -> str:
 
         fig = go.Figure()
         colors = [CATEGORY_COLORS.get(str(cat), "#808080") for cat in mrc["category"]]
-        fig.add_trace(go.Bar(
-            y=list(mrc["county_name"]),
-            x=list(mrc["mape"]),
-            orientation="h",
-            marker_color=colors,
-            customdata=list(zip(
-                mrc["category"],
-                mrc["grade"],
-                mrc["worst_case_abs_error"],
-                mrc["bias_direction"],
-            )),
-            hovertemplate=(
-                "<b>%{y}</b><br>"
-                "Category: %{customdata[0]}<br>"
-                "MAPE: %{x:.1f}%<br>"
-                "Grade: %{customdata[1]}<br>"
-                "Worst case: %{customdata[2]:.1f}%<br>"
-                "Bias: %{customdata[3]}<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Bar(
+                y=list(mrc["county_name"]),
+                x=list(mrc["mape"]),
+                orientation="h",
+                marker_color=colors,
+                customdata=list(
+                    zip(
+                        mrc["category"],
+                        mrc["grade"],
+                        mrc["worst_case_abs_error"],
+                        mrc["bias_direction"],
+                        strict=False,
+                    )
+                ),
+                hovertemplate=(
+                    "<b>%{y}</b><br>"
+                    "Category: %{customdata[0]}<br>"
+                    "MAPE: %{x:.1f}%<br>"
+                    "Grade: %{customdata[1]}<br>"
+                    "Worst case: %{customdata[2]:.1f}%<br>"
+                    "Bias: %{customdata[3]}<extra></extra>"
+                ),
+            )
+        )
 
         # Grade threshold lines
-        fig.add_vline(x=5, line_dash="dash", line_color=GREEN, line_width=1,
-                       annotation_text="A/B boundary")
-        fig.add_vline(x=10, line_dash="dash", line_color=ORANGE, line_width=1,
-                       annotation_text="B/C boundary")
+        fig.add_vline(
+            x=5, line_dash="dash", line_color=GREEN, line_width=1, annotation_text="A/B boundary"
+        )
+        fig.add_vline(
+            x=10, line_dash="dash", line_color=ORANGE, line_width=1, annotation_text="B/C boundary"
+        )
 
         fig.update_layout(
             template=tmpl,
@@ -1728,7 +1811,7 @@ def _build_qc_county_deep_dive(data: dict[str, Any], tmpl: str) -> str:
     tbl_id = "tbl-grade-compare"
     parts.append(
         f'<div class="table-filter">'
-        f'<label>Search:</label> '
+        f"<label>Search:</label> "
         f'<input type="text" id="filter-{tbl_id}" '
         f"oninput=\"filterTable('{tbl_id}', 'filter-{tbl_id}')\" "
         f'placeholder="Type county name...">'
@@ -1736,7 +1819,7 @@ def _build_qc_county_deep_dive(data: dict[str, Any], tmpl: str) -> str:
         f"{len(merged)} of {len(merged)} rows</span>"
         f"</div>"
     )
-    parts.append(f'<div class="table-container">')
+    parts.append('<div class="table-container">')
     parts.append(f'<table class="data-table" id="{tbl_id}">')
     parts.append(
         "<thead><tr>"
@@ -1781,6 +1864,7 @@ def _build_qc_county_deep_dive(data: dict[str, Any], tmpl: str) -> str:
 # Tab 12: Raw Data Tables
 # ===================================================================
 
+
 def _build_raw_data_tables(data: dict[str, Any]) -> str:
     """Build sortable/filterable raw data tables for key datasets."""
     parts: list[str] = []
@@ -1797,7 +1881,7 @@ def _build_raw_data_tables(data: dict[str, Any]) -> str:
         parts.append("<h3>Sensitivity Results</h3>")
         parts.append(
             f'<div class="table-filter">'
-            f'<label>Search:</label> '
+            f"<label>Search:</label> "
             f'<input type="text" id="filter-{tbl_id}" '
             f"oninput=\"filterTable('{tbl_id}', 'filter-{tbl_id}')\" "
             f'placeholder="Filter...">'
@@ -1805,7 +1889,7 @@ def _build_raw_data_tables(data: dict[str, Any]) -> str:
             f"{len(sr)} of {len(sr)} rows</span>"
             f"</div>"
         )
-        parts.append(f'<div class="table-container">')
+        parts.append('<div class="table-container">')
         parts.append(f'<table class="data-table" id="{tbl_id}">')
         parts.append(
             "<thead><tr>"
@@ -1816,11 +1900,16 @@ def _build_raw_data_tables(data: dict[str, Any]) -> str:
             + "</tr></thead><tbody>"
         )
         for _, row in sr.iterrows():
-            parts.append("<tr>" + "".join(
-                f'<td class="num">{v:.4f}</td>' if isinstance(v, float)
-                else f"<td>{_esc(str(v))}</td>"
-                for v in row
-            ) + "</tr>")
+            parts.append(
+                "<tr>"
+                + "".join(
+                    f'<td class="num">{v:.4f}</td>'
+                    if isinstance(v, float)
+                    else f"<td>{_esc(str(v))}</td>"
+                    for v in row
+                )
+                + "</tr>"
+            )
         parts.append("</tbody></table></div>")
 
     # --- Tornado Data ---
@@ -1828,7 +1917,7 @@ def _build_raw_data_tables(data: dict[str, Any]) -> str:
     if tornado is not None:
         tbl_id = "tbl-raw-tornado"
         parts.append("<h3>Sensitivity Tornado Data</h3>")
-        parts.append(f'<div class="table-container">')
+        parts.append('<div class="table-container">')
         parts.append(f'<table class="data-table" id="{tbl_id}">')
         parts.append(
             "<thead><tr>"
@@ -1839,11 +1928,16 @@ def _build_raw_data_tables(data: dict[str, Any]) -> str:
             + "</tr></thead><tbody>"
         )
         for _, row in tornado.iterrows():
-            parts.append("<tr>" + "".join(
-                f'<td class="num">{v:.4f}</td>' if isinstance(v, float)
-                else f"<td>{_esc(str(v))}</td>"
-                for v in row
-            ) + "</tr>")
+            parts.append(
+                "<tr>"
+                + "".join(
+                    f'<td class="num">{v:.4f}</td>'
+                    if isinstance(v, float)
+                    else f"<td>{_esc(str(v))}</td>"
+                    for v in row
+                )
+                + "</tr>"
+            )
         parts.append("</tbody></table></div>")
 
     # --- County Report Cards ---
@@ -1853,7 +1947,7 @@ def _build_raw_data_tables(data: dict[str, Any]) -> str:
         parts.append("<h3>County Report Cards (All 53 Counties x 2 Methods)</h3>")
         parts.append(
             f'<div class="table-filter">'
-            f'<label>Search:</label> '
+            f"<label>Search:</label> "
             f'<input type="text" id="filter-{tbl_id}" '
             f"oninput=\"filterTable('{tbl_id}', 'filter-{tbl_id}')\" "
             f'placeholder="Filter...">'
@@ -1861,7 +1955,7 @@ def _build_raw_data_tables(data: dict[str, Any]) -> str:
             f"{len(rc)} of {len(rc)} rows</span>"
             f"</div>"
         )
-        parts.append(f'<div class="table-container">')
+        parts.append('<div class="table-container">')
         parts.append(f'<table class="data-table" id="{tbl_id}">')
         parts.append(
             "<thead><tr>"
@@ -1872,11 +1966,16 @@ def _build_raw_data_tables(data: dict[str, Any]) -> str:
             + "</tr></thead><tbody>"
         )
         for _, row in rc.iterrows():
-            parts.append("<tr>" + "".join(
-                f'<td class="num">{v:.2f}</td>' if isinstance(v, float)
-                else f"<td>{_esc(str(v))}</td>"
-                for v in row
-            ) + "</tr>")
+            parts.append(
+                "<tr>"
+                + "".join(
+                    f'<td class="num">{v:.2f}</td>'
+                    if isinstance(v, float)
+                    else f"<td>{_esc(str(v))}</td>"
+                    for v in row
+                )
+                + "</tr>"
+            )
         parts.append("</tbody></table></div>")
 
     # --- Outlier Flags ---
@@ -1886,7 +1985,7 @@ def _build_raw_data_tables(data: dict[str, Any]) -> str:
         parts.append("<h3>Outlier Flags</h3>")
         parts.append(
             f'<div class="table-filter">'
-            f'<label>Search:</label> '
+            f"<label>Search:</label> "
             f'<input type="text" id="filter-{tbl_id}" '
             f"oninput=\"filterTable('{tbl_id}', 'filter-{tbl_id}')\" "
             f'placeholder="Filter...">'
@@ -1894,7 +1993,7 @@ def _build_raw_data_tables(data: dict[str, Any]) -> str:
             f"{len(of)} of {len(of)} rows</span>"
             f"</div>"
         )
-        parts.append(f'<div class="table-container">')
+        parts.append('<div class="table-container">')
         parts.append(f'<table class="data-table" id="{tbl_id}">')
         parts.append(
             "<thead><tr>"
@@ -1905,11 +2004,16 @@ def _build_raw_data_tables(data: dict[str, Any]) -> str:
             + "</tr></thead><tbody>"
         )
         for _, row in of.iterrows():
-            parts.append("<tr>" + "".join(
-                f'<td class="num">{v:.4f}</td>' if isinstance(v, float)
-                else f"<td>{_esc(str(v))}</td>"
-                for v in row
-            ) + "</tr>")
+            parts.append(
+                "<tr>"
+                + "".join(
+                    f'<td class="num">{v:.4f}</td>'
+                    if isinstance(v, float)
+                    else f"<td>{_esc(str(v))}</td>"
+                    for v in row
+                )
+                + "</tr>"
+            )
         parts.append("</tbody></table></div>")
 
     return "\n".join(parts)
@@ -2298,7 +2402,7 @@ def _build_html(tabs: dict[str, str]) -> str:
     <div class="footer">
         North Dakota Population Projections |
         QC Analysis Report |
-        Generated {TODAY.strftime('%B %d, %Y')} |
+        Generated {TODAY.strftime("%B %d, %Y")} |
         Data: Census PEP 2025 Vintage
     </div>
 
@@ -2425,6 +2529,7 @@ def _build_html(tabs: dict[str, str]) -> str:
 # Report Builder
 # ===================================================================
 
+
 def build_report(output_path: Path) -> Path:
     """Build the complete QC analysis HTML report.
 
@@ -2528,6 +2633,7 @@ def build_report(output_path: Path) -> Path:
 # ===================================================================
 # CLI
 # ===================================================================
+
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""

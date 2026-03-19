@@ -110,15 +110,13 @@ def load_production_projections() -> tuple[pd.DataFrame, pd.DataFrame]:
         county_proj: DataFrame with columns [year, county_fips, county_name, population]
     """
     # State-level: aggregate from detailed parquet
-    state_parquet = (
-        PROJECTIONS_DIR / "state" / "nd_state_38_projection_2025_2055_baseline.parquet"
-    )
+    state_parquet = PROJECTIONS_DIR / "state" / "nd_state_38_projection_2025_2055_baseline.parquet"
     state_detail = pd.read_parquet(state_parquet)
     state_proj = state_detail.groupby("year")["population"].sum().reset_index()
 
     # County-level: read summary for names, then load each parquet
     summary = pd.read_csv(PROJECTIONS_DIR / "county" / "countys_summary.csv")
-    fips_to_name = dict(zip(summary["fips"].astype(str), summary["name"]))
+    fips_to_name = dict(zip(summary["fips"].astype(str), summary["name"], strict=False))
 
     county_records = []
     for fips_str, name in sorted(fips_to_name.items()):
@@ -176,9 +174,7 @@ def compute_prediction_intervals(
                 records.append(row)
 
             # State-level errors
-            state_mask = (state_errors["method"] == method) & (
-                state_errors["horizon"] == horizon
-            )
+            state_mask = (state_errors["method"] == method) & (state_errors["horizon"] == horizon)
             state_pct = state_errors.loc[state_mask, "pct_error"].dropna()
 
             if len(state_pct) > 0:
@@ -239,7 +235,7 @@ def extrapolate_error_distribution(
             max_observed = int(subset["horizon"].max())
             for h in range(max_observed + 1, max_horizon + 1):
                 extrap_mean = intercept_mean + slope_mean * h
-                extrap_std = a_std * (h ** b_std)
+                extrap_std = a_std * (h**b_std)
 
                 row = {
                     "level": level,
@@ -278,9 +274,9 @@ def compute_uncertainty_bands(
 
     for method in ["sdc_2024", "m2026"]:
         # State-level bands
-        state_pi = pi_df[
-            (pi_df["level"] == "state") & (pi_df["method"] == method)
-        ].set_index("horizon")
+        state_pi = pi_df[(pi_df["level"] == "state") & (pi_df["method"] == method)].set_index(
+            "horizon"
+        )
 
         for _, row in state_proj.iterrows():
             year = int(row["year"])
@@ -328,9 +324,9 @@ def compute_uncertainty_bands(
                 records.append(rec)
 
         # County-level bands
-        county_pi = pi_df[
-            (pi_df["level"] == "county") & (pi_df["method"] == method)
-        ].set_index("horizon")
+        county_pi = pi_df[(pi_df["level"] == "county") & (pi_df["method"] == method)].set_index(
+            "horizon"
+        )
 
         for (fips, name), group in county_proj.groupby(["county_fips", "county_name"]):
             for _, row in group.iterrows():
@@ -436,13 +432,11 @@ def run_monte_carlo(
     method = "m2026"
 
     # Build error pools by horizon from county-level data for richer samples
-    county_pi = pi_df[
-        (pi_df["level"] == "county") & (pi_df["method"] == method)
-    ].set_index("horizon")
+    county_pi = pi_df[(pi_df["level"] == "county") & (pi_df["method"] == method)].set_index(
+        "horizon"
+    )
 
-    state_pi = pi_df[
-        (pi_df["level"] == "state") & (pi_df["method"] == method)
-    ].set_index("horizon")
+    state_pi = pi_df[(pi_df["level"] == "state") & (pi_df["method"] == method)].set_index("horizon")
 
     # --- State-level MC ---
     state_mc_records = _run_mc_for_geography(
@@ -480,11 +474,11 @@ def _run_mc_for_geography(
     """
     records = []
     years = sorted(proj["year"].unique())
-    base_pops = dict(zip(proj["year"], proj["population"]))
+    base_pops = dict(zip(proj["year"], proj["population"], strict=False))
 
     # Build per-horizon mean/std from prediction intervals
     horizon_params: dict[int, tuple[float, float]] = {}
-    for h in range(0, MAX_HORIZON + 1):
+    for h in range(MAX_HORIZON + 1):
         if h in pi_horizon.index:
             row = pi_horizon.loc[h]
             horizon_params[h] = (float(row["mean"]), float(row["std"]))
@@ -510,7 +504,7 @@ def _run_mc_for_geography(
         else:
             a_s, b_s = 1.0, 0.5
 
-        for h in range(0, MAX_HORIZON + 1):
+        for h in range(MAX_HORIZON + 1):
             if h not in horizon_params:
                 ext_mean = intercept_m + slope_m * h
                 ext_std = a_s * (max(h, 1) ** b_s)
@@ -595,7 +589,7 @@ def compute_error_decomposition(
 
     for method in ["sdc_2024", "m2026"]:
         m_county = county_errors[county_errors["method"] == method].copy()
-        m_state = state_errors[state_errors["method"] == method].copy()
+        state_errors[state_errors["method"] == method].copy()
 
         if len(m_county) == 0:
             continue
@@ -617,11 +611,10 @@ def compute_error_decomposition(
         if len(horizons) >= 3:
             slope, intercept, r_value, _, _ = sp_stats.linregress(horizons, pct_errors)
             horizon_r2 = r_value**2
-            horizon_explained_var = horizon_r2 * total_variance
+            horizon_r2 * total_variance
         else:
             slope, intercept = 0.0, 0.0
             horizon_r2 = 0.0
-            horizon_explained_var = 0.0
 
         # 4. Geographic variation
         # Compute county-level mean errors, then variance across counties
@@ -639,16 +632,10 @@ def compute_error_decomposition(
         grand_mean = np.mean(pct_errors)
 
         # Between-county SS
-        ss_county = sum(
-            len(g) * (g.mean() - grand_mean) ** 2
-            for _, g in county_group
-        )
+        ss_county = sum(len(g) * (g.mean() - grand_mean) ** 2 for _, g in county_group)
 
         # Between-horizon SS
-        ss_horizon = sum(
-            len(g) * (g.mean() - grand_mean) ** 2
-            for _, g in horizon_group
-        )
+        ss_horizon = sum(len(g) * (g.mean() - grand_mean) ** 2 for _, g in horizon_group)
 
         # Residual SS
         ss_residual = total_ss - ss_county - ss_horizon
@@ -660,41 +647,45 @@ def compute_error_decomposition(
         frac_horizon = ss_horizon / total_ss if total_ss > 0 else 0.0
         frac_residual = ss_residual / total_ss if total_ss > 0 else 0.0
 
-        records.append({
-            "method": method,
-            "n_observations": len(pct_errors),
-            "total_variance": total_variance,
-            "mean_error_pct": mean_error,
-            "bias_squared": bias_variance,
-            "random_std": np.sqrt(random_variance),
-            "horizon_slope": slope,
-            "horizon_intercept": intercept,
-            "horizon_r2": horizon_r2,
-            "geographic_variance": geographic_variance,
-            "geographic_std": np.sqrt(geographic_variance),
-            "ss_total": total_ss,
-            "ss_county": ss_county,
-            "ss_horizon": ss_horizon,
-            "ss_residual": ss_residual,
-            "frac_bias": frac_bias,
-            "frac_county": frac_county,
-            "frac_horizon": frac_horizon,
-            "frac_residual": frac_residual,
-        })
+        records.append(
+            {
+                "method": method,
+                "n_observations": len(pct_errors),
+                "total_variance": total_variance,
+                "mean_error_pct": mean_error,
+                "bias_squared": bias_variance,
+                "random_std": np.sqrt(random_variance),
+                "horizon_slope": slope,
+                "horizon_intercept": intercept,
+                "horizon_r2": horizon_r2,
+                "geographic_variance": geographic_variance,
+                "geographic_std": np.sqrt(geographic_variance),
+                "ss_total": total_ss,
+                "ss_county": ss_county,
+                "ss_horizon": ss_horizon,
+                "ss_residual": ss_residual,
+                "frac_bias": frac_bias,
+                "frac_county": frac_county,
+                "frac_horizon": frac_horizon,
+                "frac_residual": frac_residual,
+            }
+        )
 
         # Also add per-horizon breakdown
         for horizon_val in sorted(m_county["horizon"].unique()):
             h_data = m_county[m_county["horizon"] == horizon_val]["pct_error"]
-            records.append({
-                "method": method,
-                "horizon": int(horizon_val),
-                "n_observations": len(h_data),
-                "mean_error_pct": h_data.mean(),
-                "std_error_pct": h_data.std(),
-                "median_error_pct": h_data.median(),
-                "mae_pct": h_data.abs().mean(),
-                "rmse_pct": np.sqrt((h_data**2).mean()),
-            })
+            records.append(
+                {
+                    "method": method,
+                    "horizon": int(horizon_val),
+                    "n_observations": len(h_data),
+                    "mean_error_pct": h_data.mean(),
+                    "std_error_pct": h_data.std(),
+                    "median_error_pct": h_data.median(),
+                    "mae_pct": h_data.abs().mean(),
+                    "rmse_pct": np.sqrt((h_data**2).mean()),
+                }
+            )
 
     return pd.DataFrame(records)
 
@@ -720,9 +711,9 @@ def compute_normality_tests(
         m_data = county_errors[county_errors["method"] == method]
 
         for bucket_name, (h_min, h_max) in buckets.items():
-            subset = m_data[
-                (m_data["horizon"] >= h_min) & (m_data["horizon"] <= h_max)
-            ]["pct_error"].dropna()
+            subset = m_data[(m_data["horizon"] >= h_min) & (m_data["horizon"] <= h_max)][
+                "pct_error"
+            ].dropna()
 
             if len(subset) < 8:
                 continue
@@ -744,21 +735,23 @@ def compute_normality_tests(
             skew = sp_stats.skew(subset.values)
             kurt = sp_stats.kurtosis(subset.values)
 
-            records.append({
-                "method": method,
-                "bucket": bucket_name,
-                "horizon_range": f"{h_min}-{h_max}",
-                "n": len(subset),
-                "mean": subset.mean(),
-                "std": subset.std(),
-                "skewness": skew,
-                "kurtosis": kurt,
-                "shapiro_stat": sw_stat,
-                "shapiro_p": sw_p,
-                "dagostino_stat": dp_stat,
-                "dagostino_p": dp_p,
-                "normal_at_05": sw_p > 0.05,
-            })
+            records.append(
+                {
+                    "method": method,
+                    "bucket": bucket_name,
+                    "horizon_range": f"{h_min}-{h_max}",
+                    "n": len(subset),
+                    "mean": subset.mean(),
+                    "std": subset.std(),
+                    "skewness": skew,
+                    "kurtosis": kurt,
+                    "shapiro_stat": sw_stat,
+                    "shapiro_p": sw_p,
+                    "dagostino_stat": dp_stat,
+                    "dagostino_p": dp_p,
+                    "normal_at_05": sw_p > 0.05,
+                }
+            )
 
     return pd.DataFrame(records)
 
@@ -780,7 +773,7 @@ def generate_html_report(
 ) -> str:
     """Generate self-contained interactive HTML report with Plotly charts."""
 
-    today = datetime.date.today().isoformat()
+    today = datetime.datetime.now(tz=datetime.UTC).date().isoformat()
 
     # Prepare data for charts
     state_fan = _build_state_fan_chart(bands_df, state_mc)
@@ -1219,9 +1212,9 @@ def _build_pi_width_chart(pi_df: pd.DataFrame) -> str:
 
     for method in ["sdc_2024", "m2026"]:
         for level in ["state", "county"]:
-            subset = pi_df[
-                (pi_df["method"] == method) & (pi_df["level"] == level)
-            ].sort_values("horizon")
+            subset = pi_df[(pi_df["method"] == method) & (pi_df["level"] == level)].sort_values(
+                "horizon"
+            )
 
             if len(subset) == 0:
                 continue
@@ -1416,7 +1409,11 @@ Plotly.newPlot('error-histograms', [
 def _build_bias_variance_chart(decomp_df: pd.DataFrame) -> str:
     """Build bias vs variance decomposition chart."""
     # Get the aggregate rows (those without 'horizon' column populated)
-    agg = decomp_df[decomp_df["horizon"].isna()].copy() if "horizon" in decomp_df.columns else decomp_df[decomp_df.get("horizon", pd.Series(dtype=float)).isna()].copy()
+    agg = (
+        decomp_df[decomp_df["horizon"].isna()].copy()
+        if "horizon" in decomp_df.columns
+        else decomp_df[decomp_df.get("horizon", pd.Series(dtype=float)).isna()].copy()
+    )
 
     if len(agg) == 0:
         # Fallback: rows with all decomposition columns
@@ -1484,15 +1481,18 @@ def _build_qq_charts(county_errors: pd.DataFrame) -> str:
     }
 
     traces = []
-    shapes = []
 
-    for idx, (bucket_name, (h_min, h_max)) in enumerate(buckets.items()):
+    for _idx, (bucket_name, (h_min, h_max)) in enumerate(buckets.items()):
         for method, color in [("m2026", "#0563C1"), ("sdc_2024", "#E74C3C")]:
-            subset = county_errors[
-                (county_errors["method"] == method)
-                & (county_errors["horizon"] >= h_min)
-                & (county_errors["horizon"] <= h_max)
-            ]["pct_error"].dropna().values
+            subset = (
+                county_errors[
+                    (county_errors["method"] == method)
+                    & (county_errors["horizon"] >= h_min)
+                    & (county_errors["horizon"] <= h_max)
+                ]["pct_error"]
+                .dropna()
+                .values
+            )
 
             if len(subset) < 10:
                 continue
@@ -1549,9 +1549,9 @@ def _build_horizon_growth_chart(pi_df: pd.DataFrame) -> str:
 
     for method, color in [("m2026", "#0563C1"), ("sdc_2024", "#E74C3C")]:
         for level, dash in [("state", "solid"), ("county", "dash")]:
-            subset = pi_df[
-                (pi_df["method"] == method) & (pi_df["level"] == level)
-            ].sort_values("horizon")
+            subset = pi_df[(pi_df["method"] == method) & (pi_df["level"] == level)].sort_values(
+                "horizon"
+            )
 
             if len(subset) == 0:
                 continue
@@ -1765,11 +1765,11 @@ def _build_normality_table(normality_df: pd.DataFrame) -> str:
         dp_str = f"{dp_p:.4f}" if not pd.isna(dp_p) else "N/A"
 
         rows_html += f"""<tr>
-            <td>{row['method']}</td>
-            <td>{row['horizon_range']}</td>
-            <td>{int(row['n'])}</td>
-            <td>{row['skewness']:.3f}</td>
-            <td>{row['kurtosis']:.3f}</td>
+            <td>{row["method"]}</td>
+            <td>{row["horizon_range"]}</td>
+            <td>{int(row["n"])}</td>
+            <td>{row["skewness"]:.3f}</td>
+            <td>{row["kurtosis"]:.3f}</td>
             <td>{sw_p:.4f}</td>
             <td>{dp_str}</td>
             <td>{normal}</td>
@@ -1917,9 +1917,7 @@ def main() -> None:
 
     # Print decomposition summary
     for method in ["sdc_2024", "m2026"]:
-        agg = decomp_df[
-            (decomp_df["method"] == method) & (decomp_df["frac_bias"].notna())
-        ]
+        agg = decomp_df[(decomp_df["method"] == method) & (decomp_df["frac_bias"].notna())]
         if len(agg) > 0:
             row = agg.iloc[0]
             print(f"\n  {method}:")
@@ -1948,8 +1946,14 @@ def main() -> None:
     # 5. Generate HTML report
     print("\n  Generating interactive HTML report...")
     html = generate_html_report(
-        pi_df, bands_df, decomp_df, normality_df, state_mc, county_mc,
-        county_errors, state_errors,
+        pi_df,
+        bands_df,
+        decomp_df,
+        normality_df,
+        state_mc,
+        county_mc,
+        county_errors,
+        state_errors,
     )
     report_path = WALK_FORWARD_DIR / "uncertainty_report.html"
     report_path.write_text(html, encoding="utf-8")

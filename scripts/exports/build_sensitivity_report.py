@@ -79,12 +79,10 @@ SOP-002 Metadata:
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -102,12 +100,7 @@ from _report_theme import (  # noqa: E402
     LIGHT_GRAY,
     MID_GRAY,
     NAVY,
-    RED_ACCENT,
     SCENARIO_COLORS,
-    WHITE,
-    format_change,
-    format_percent,
-    format_population,
     get_plotly_template,
 )
 
@@ -176,6 +169,7 @@ SWEEP_PALETTE = [
 # Plotly template
 # ===================================================================
 
+
 def _register_template() -> str:
     """Register and return the sensitivity report template name."""
     template_name = "sensitivity_report"
@@ -188,6 +182,7 @@ def _register_template() -> str:
 # ===================================================================
 # Formatting helpers
 # ===================================================================
+
 
 def _fmt_pop(n: float | int) -> str:
     """Format a population number with commas."""
@@ -224,6 +219,7 @@ def _chart_json(fig: go.Figure) -> str:
 # ===================================================================
 # Data Loading
 # ===================================================================
+
 
 def _load_sweep_file(path: Path) -> pd.DataFrame | None:
     """Load a single sweep CSV. Returns None if file missing."""
@@ -280,7 +276,11 @@ def _load_reference_projections() -> dict[str, pd.DataFrame | None]:
 
     # Our Baseline
     baseline_path = (
-        PROJECT_ROOT / "data" / "exports" / "baseline" / "summaries"
+        PROJECT_ROOT
+        / "data"
+        / "exports"
+        / "baseline"
+        / "summaries"
         / "state_total_population_by_year.csv"
     )
     if baseline_path.exists():
@@ -305,8 +305,7 @@ def _load_reference_projections() -> dict[str, pd.DataFrame | None]:
 
     # SDC Method + New Data
     sdc_new_path = (
-        PROJECT_ROOT / "data" / "exports" / "sdc_method_new_data"
-        / "state_population_by_year.csv"
+        PROJECT_ROOT / "data" / "exports" / "sdc_method_new_data" / "state_population_by_year.csv"
     )
     if sdc_new_path.exists():
         try:
@@ -353,6 +352,7 @@ def _load_fips_mapping() -> dict[str, str]:
 # Tab 1: Executive Summary
 # ===================================================================
 
+
 def _build_waterfall_chart(
     waterfall_df: pd.DataFrame,
     refs: dict[str, pd.DataFrame | None],
@@ -374,7 +374,7 @@ def _build_waterfall_chart(
     texts = []
     colors = []
 
-    for i, (name, delta, pop) in enumerate(zip(names, deltas, pop_2050)):
+    for i, (_name, delta, pop) in enumerate(zip(names, deltas, pop_2050, strict=False)):
         if i == 0:
             # Starting bar
             measures.append("absolute")
@@ -391,52 +391,79 @@ def _build_waterfall_chart(
             texts.append(_fmt_change(delta))
             colors.append(POSITIVE_COLOR if delta >= 0 else NEGATIVE_COLOR)
 
-    fig = go.Figure(go.Waterfall(
-        name="Feature Decomposition",
-        orientation="v",
-        measure=measures,
-        x=names,
-        textposition="outside",
-        text=texts,
-        y=[pop_2050[0]] + deltas[1:],
-        connector={"line": {"color": MID_GRAY, "width": 1}},
-        increasing={"marker": {"color": POSITIVE_COLOR}},
-        decreasing={"marker": {"color": NEGATIVE_COLOR}},
-        totals={"marker": {"color": TOTAL_BAR_COLOR}},
-    ))
+    fig = go.Figure(
+        go.Waterfall(
+            name="Feature Decomposition",
+            orientation="v",
+            measure=measures,
+            x=names,
+            textposition="outside",
+            text=texts,
+            y=[pop_2050[0]] + deltas[1:],
+            connector={"line": {"color": MID_GRAY, "width": 1}},
+            increasing={"marker": {"color": POSITIVE_COLOR}},
+            decreasing={"marker": {"color": NEGATIVE_COLOR}},
+            totals={"marker": {"color": TOTAL_BAR_COLOR}},
+        )
+    )
 
     # Add reference lines
     shapes = []
     annotations = []
-    if refs.get("sdc_original") is not None:
-        sdc_2050 = refs["sdc_original"]
+    sdc_original = refs.get("sdc_original")
+    if isinstance(sdc_original, pd.DataFrame):
+        sdc_2050 = sdc_original
         sdc_2050_val = sdc_2050[sdc_2050["year"] == 2050]
         if len(sdc_2050_val) > 0:
             val = float(sdc_2050_val["population"].iloc[0])
             shapes.append(
-                dict(type="line", x0=-0.5, x1=len(names) - 0.5, y0=val, y1=val,
-                     line=dict(color=SDC_COLOR, width=2, dash="dash"))
+                {
+                    "type": "line",
+                    "x0": -0.5,
+                    "x1": len(names) - 0.5,
+                    "y0": val,
+                    "y1": val,
+                    "line": {"color": SDC_COLOR, "width": 2, "dash": "dash"},
+                }
             )
             annotations.append(
-                dict(x=len(names) - 1, y=val, text=f"SDC 2024: {_fmt_pop(val)}",
-                     showarrow=False, xanchor="right", yshift=12,
-                     font=dict(color=SDC_COLOR, size=11))
+                {
+                    "x": len(names) - 1,
+                    "y": val,
+                    "text": f"SDC 2024: {_fmt_pop(val)}",
+                    "showarrow": False,
+                    "xanchor": "right",
+                    "yshift": 12,
+                    "font": {"color": SDC_COLOR, "size": 11},
+                }
             )
 
-    if refs.get("our_baseline") is not None:
-        bl = refs["our_baseline"]
+    our_baseline = refs.get("our_baseline")
+    if isinstance(our_baseline, pd.DataFrame):
+        bl = our_baseline
         bl_2050 = bl[bl["year"] == 2050]
         if len(bl_2050) > 0:
             val = float(bl_2050["population"].iloc[0])
             shapes.append(
-                dict(type="line", x0=-0.5, x1=len(names) - 0.5, y0=val, y1=val,
-                     line=dict(color=SCENARIO_COLORS["baseline"], width=2, dash="dash"))
+                {
+                    "type": "line",
+                    "x0": -0.5,
+                    "x1": len(names) - 0.5,
+                    "y0": val,
+                    "y1": val,
+                    "line": {"color": SCENARIO_COLORS["baseline"], "width": 2, "dash": "dash"},
+                }
             )
             annotations.append(
-                dict(x=len(names) - 1, y=val,
-                     text=f"Our Baseline: {_fmt_pop(val)}",
-                     showarrow=False, xanchor="right", yshift=-12,
-                     font=dict(color=SCENARIO_COLORS["baseline"], size=11))
+                {
+                    "x": len(names) - 1,
+                    "y": val,
+                    "text": f"Our Baseline: {_fmt_pop(val)}",
+                    "showarrow": False,
+                    "xanchor": "right",
+                    "yshift": -12,
+                    "font": {"color": SCENARIO_COLORS["baseline"], "size": 11},
+                }
             )
 
     fig.update_layout(
@@ -447,8 +474,8 @@ def _build_waterfall_chart(
         shapes=shapes,
         annotations=annotations,
         height=500,
-        margin=dict(b=120),
-        xaxis=dict(tickangle=-30),
+        margin={"b": 120},
+        xaxis={"tickangle": -30},
     )
 
     div_id = "waterfall-chart"
@@ -480,48 +507,49 @@ def _build_tornado_chart(
     fig = go.Figure()
 
     # Low side (below baseline) — blue
-    fig.add_trace(go.Bar(
-        name="Below Baseline",
-        y=df["parameter_label"],
-        x=df["min_pop_2050"] - baseline_pop,
-        base=baseline_pop,
-        orientation="h",
-        marker_color=BLUE,
-        text=df["min_variant"],
-        textposition="inside",
-        textfont=dict(size=10, color="white"),
-        hovertemplate=(
-            "%{y}<br>"
-            "Variant: %{text}<br>"
-            "Population: %{customdata:,}<br>"
-            "<extra></extra>"
-        ),
-        customdata=df["min_pop_2050"],
-    ))
+    fig.add_trace(
+        go.Bar(
+            name="Below Baseline",
+            y=df["parameter_label"],
+            x=df["min_pop_2050"] - baseline_pop,
+            base=baseline_pop,
+            orientation="h",
+            marker_color=BLUE,
+            text=df["min_variant"],
+            textposition="inside",
+            textfont={"size": 10, "color": "white"},
+            hovertemplate=(
+                "%{y}<br>Variant: %{text}<br>Population: %{customdata:,}<br><extra></extra>"
+            ),
+            customdata=df["min_pop_2050"],
+        )
+    )
 
     # High side (above baseline) — orange
-    fig.add_trace(go.Bar(
-        name="Above Baseline",
-        y=df["parameter_label"],
-        x=df["max_pop_2050"] - baseline_pop,
-        base=baseline_pop,
-        orientation="h",
-        marker_color=SDC_COLOR,
-        text=df["max_variant"],
-        textposition="inside",
-        textfont=dict(size=10, color="white"),
-        hovertemplate=(
-            "%{y}<br>"
-            "Variant: %{text}<br>"
-            "Population: %{customdata:,}<br>"
-            "<extra></extra>"
-        ),
-        customdata=df["max_pop_2050"],
-    ))
+    fig.add_trace(
+        go.Bar(
+            name="Above Baseline",
+            y=df["parameter_label"],
+            x=df["max_pop_2050"] - baseline_pop,
+            base=baseline_pop,
+            orientation="h",
+            marker_color=SDC_COLOR,
+            text=df["max_variant"],
+            textposition="inside",
+            textfont={"size": 10, "color": "white"},
+            hovertemplate=(
+                "%{y}<br>Variant: %{text}<br>Population: %{customdata:,}<br><extra></extra>"
+            ),
+            customdata=df["max_pop_2050"],
+        )
+    )
 
     # Baseline reference line
     fig.add_vline(
-        x=baseline_pop, line_width=2, line_color=NAVY, line_dash="solid",
+        x=baseline_pop,
+        line_width=2,
+        line_color=NAVY,
+        line_dash="solid",
         annotation_text=f"Baseline: {_fmt_pop(baseline_pop)}",
         annotation_position="top",
         annotation_font_size=11,
@@ -529,7 +557,7 @@ def _build_tornado_chart(
     )
 
     # Range annotations on right
-    for i, row in df.iterrows():
+    for _i, row in df.iterrows():
         fig.add_annotation(
             x=row["max_pop_2050"],
             y=row["parameter_label"],
@@ -537,7 +565,7 @@ def _build_tornado_chart(
             showarrow=False,
             xanchor="left",
             xshift=8,
-            font=dict(size=10, color=DARK_GRAY),
+            font={"size": 10, "color": DARK_GRAY},
         )
 
     fig.update_layout(
@@ -547,8 +575,8 @@ def _build_tornado_chart(
         barmode="overlay",
         height=max(350, len(df) * 55 + 120),
         showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-        margin=dict(l=200, r=120),
+        legend={"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "right", "x": 1},
+        margin={"l": 200, "r": 120},
     )
 
     div_id = "tornado-chart"
@@ -615,9 +643,11 @@ def _build_key_findings(
             )
 
     # Reference comparison
-    if refs.get("sdc_original") is not None and refs.get("our_baseline") is not None:
-        sdc_2050 = refs["sdc_original"][refs["sdc_original"]["year"] == 2050]
-        bl_2050 = refs["our_baseline"][refs["our_baseline"]["year"] == 2050]
+    sdc_original = refs.get("sdc_original")
+    our_baseline = refs.get("our_baseline")
+    if isinstance(sdc_original, pd.DataFrame) and isinstance(our_baseline, pd.DataFrame):
+        sdc_2050 = sdc_original[sdc_original["year"] == 2050]
+        bl_2050 = our_baseline[our_baseline["year"] == 2050]
         if len(sdc_2050) > 0 and len(bl_2050) > 0:
             sdc_val = float(sdc_2050["population"].iloc[0])
             bl_val = float(bl_2050["population"].iloc[0])
@@ -671,6 +701,7 @@ def _build_tab_executive_summary(
 # Tab 2: Parameter Sweeps
 # ===================================================================
 
+
 def _build_sweep_chart(
     sweep_name: str,
     sweep_title: str,
@@ -699,7 +730,15 @@ def _build_sweep_chart(
     fig = go.Figure()
 
     # Determine which variant is the baseline/default (bold)
-    baseline_variants = {"bebr", "baseline", "default", "current", "none", "no_caps", "no_smoothing"}
+    baseline_variants = {
+        "bebr",
+        "baseline",
+        "default",
+        "current",
+        "none",
+        "no_caps",
+        "no_smoothing",
+    }
     bold_variant = None
     for v in variants:
         if str(v).lower() in baseline_variants:
@@ -708,38 +747,50 @@ def _build_sweep_chart(
 
     for i, variant in enumerate(variants):
         vdf = state_df[state_df["variant"] == variant].sort_values("year")
-        is_bold = (variant == bold_variant)
+        is_bold = variant == bold_variant
         color = SWEEP_PALETTE[i % len(SWEEP_PALETTE)]
-        fig.add_trace(go.Scatter(
-            x=vdf["year"],
-            y=vdf["population"],
-            mode="lines",
-            name=str(variant),
-            line=dict(
-                color=color,
-                width=3 if is_bold else 1.5,
-            ),
-            hovertemplate=f"{variant}<br>Year: %{{x}}<br>Population: %{{y:,.0f}}<extra></extra>",
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=vdf["year"],
+                y=vdf["population"],
+                mode="lines",
+                name=str(variant),
+                line={
+                    "color": color,
+                    "width": 3 if is_bold else 1.5,
+                },
+                hovertemplate=f"{variant}<br>Year: %{{x}}<br>Population: %{{y:,.0f}}<extra></extra>",
+            )
+        )
 
     # Reference lines
-    if refs.get("sdc_original") is not None:
-        sdc = refs["sdc_original"]
-        fig.add_trace(go.Scatter(
-            x=sdc["year"], y=sdc["population"],
-            mode="lines", name="SDC 2024 Original",
-            line=dict(color=SDC_COLOR, width=2, dash="dash"),
-            hovertemplate="SDC 2024<br>Year: %{x}<br>Population: %{y:,.0f}<extra></extra>",
-        ))
+    sdc_original = refs.get("sdc_original")
+    if isinstance(sdc_original, pd.DataFrame):
+        sdc = sdc_original
+        fig.add_trace(
+            go.Scatter(
+                x=sdc["year"],
+                y=sdc["population"],
+                mode="lines",
+                name="SDC 2024 Original",
+                line={"color": SDC_COLOR, "width": 2, "dash": "dash"},
+                hovertemplate="SDC 2024<br>Year: %{x}<br>Population: %{y:,.0f}<extra></extra>",
+            )
+        )
 
-    if refs.get("our_baseline") is not None:
-        bl = refs["our_baseline"]
-        fig.add_trace(go.Scatter(
-            x=bl["year"], y=bl["population"],
-            mode="lines", name="Our Baseline",
-            line=dict(color=SCENARIO_COLORS["baseline"], width=2, dash="dot"),
-            hovertemplate="Our Baseline<br>Year: %{x}<br>Population: %{y:,.0f}<extra></extra>",
-        ))
+    our_baseline = refs.get("our_baseline")
+    if isinstance(our_baseline, pd.DataFrame):
+        bl = our_baseline
+        fig.add_trace(
+            go.Scatter(
+                x=bl["year"],
+                y=bl["population"],
+                mode="lines",
+                name="Our Baseline",
+                line={"color": SCENARIO_COLORS["baseline"], "width": 2, "dash": "dot"},
+                hovertemplate="Our Baseline<br>Year: %{x}<br>Population: %{y:,.0f}<extra></extra>",
+            )
+        )
 
     fig.update_layout(
         template=template_name,
@@ -747,7 +798,7 @@ def _build_sweep_chart(
         xaxis_title="Year",
         yaxis_title="State Population",
         height=420,
-        legend=dict(font=dict(size=10)),
+        legend={"font": {"size": 10}},
     )
 
     div_id = f"sweep-chart-{chart_index}"
@@ -860,6 +911,7 @@ def _build_tab_parameter_sweeps(
 # Tab 3: County Impact
 # ===================================================================
 
+
 def _build_county_heatmap(
     sweeps: dict[str, pd.DataFrame],
     fips_map: dict[str, str],
@@ -922,19 +974,18 @@ def _build_county_heatmap(
     # Map FIPS to county names
     y_labels = [fips_map.get(f, f) for f in top_counties.index]
 
-    fig = go.Figure(data=go.Heatmap(
-        z=top_counties.values,
-        x=top_counties.columns.tolist(),
-        y=y_labels,
-        colorscale="YlOrRd",
-        colorbar=dict(title="Range (% of Base)"),
-        hovertemplate=(
-            "County: %{y}<br>"
-            "Parameter: %{x}<br>"
-            "Range: %{z:.1f}%<br>"
-            "<extra></extra>"
-        ),
-    ))
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=top_counties.values,
+            x=top_counties.columns.tolist(),
+            y=y_labels,
+            colorscale="YlOrRd",
+            colorbar={"title": "Range (% of Base)"},
+            hovertemplate=(
+                "County: %{y}<br>Parameter: %{x}<br>Range: %{z:.1f}%<br><extra></extra>"
+            ),
+        )
+    )
 
     fig.update_layout(
         template=template_name,
@@ -942,8 +993,8 @@ def _build_county_heatmap(
         xaxis_title="Sensitivity Parameter",
         yaxis_title="County",
         height=max(450, len(top_counties) * 28 + 120),
-        margin=dict(l=140, b=100),
-        xaxis=dict(tickangle=-30),
+        margin={"l": 140, "b": 100},
+        xaxis={"tickangle": -30},
     )
 
     div_id = "county-heatmap"
@@ -999,51 +1050,62 @@ def _build_county_fan_charts(
         fig = go.Figure()
 
         # Shaded band (min to max)
-        fig.add_trace(go.Scatter(
-            x=list(envelope.index) + list(envelope.index)[::-1],
-            y=list(envelope["max"]) + list(envelope["min"])[::-1],
-            fill="toself",
-            fillcolor="rgba(5, 99, 193, 0.15)",
-            line=dict(width=0),
-            showlegend=False,
-            hoverinfo="skip",
-            name="Range",
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=list(envelope.index) + list(envelope.index)[::-1],
+                y=list(envelope["max"]) + list(envelope["min"])[::-1],
+                fill="toself",
+                fillcolor="rgba(5, 99, 193, 0.15)",
+                line={"width": 0},
+                showlegend=False,
+                hoverinfo="skip",
+                name="Range",
+            )
+        )
 
         # Max line (thin)
-        fig.add_trace(go.Scatter(
-            x=envelope.index, y=envelope["max"],
-            mode="lines",
-            line=dict(color=BLUE, width=1, dash="dot"),
-            showlegend=False,
-            hovertemplate="Max: %{y:,.0f}<extra></extra>",
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=envelope.index,
+                y=envelope["max"],
+                mode="lines",
+                line={"color": BLUE, "width": 1, "dash": "dot"},
+                showlegend=False,
+                hovertemplate="Max: %{y:,.0f}<extra></extra>",
+            )
+        )
 
         # Min line (thin)
-        fig.add_trace(go.Scatter(
-            x=envelope.index, y=envelope["min"],
-            mode="lines",
-            line=dict(color=BLUE, width=1, dash="dot"),
-            showlegend=False,
-            hovertemplate="Min: %{y:,.0f}<extra></extra>",
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=envelope.index,
+                y=envelope["min"],
+                mode="lines",
+                line={"color": BLUE, "width": 1, "dash": "dot"},
+                showlegend=False,
+                hovertemplate="Min: %{y:,.0f}<extra></extra>",
+            )
+        )
 
         # Median line (bold)
-        fig.add_trace(go.Scatter(
-            x=envelope.index, y=envelope["median"],
-            mode="lines",
-            line=dict(color=BLUE, width=2.5),
-            showlegend=False,
-            hovertemplate="Median: %{y:,.0f}<extra></extra>",
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=envelope.index,
+                y=envelope["median"],
+                mode="lines",
+                line={"color": BLUE, "width": 2.5},
+                showlegend=False,
+                hovertemplate="Median: %{y:,.0f}<extra></extra>",
+            )
+        )
 
         fig.update_layout(
             template=template_name,
-            title=dict(text=county_name, font=dict(size=14)),
+            title={"text": county_name, "font": {"size": 14}},
             height=260,
-            margin=dict(l=50, r=20, t=40, b=30),
-            xaxis=dict(title=""),
-            yaxis=dict(title=""),
+            margin={"l": 50, "r": 20, "t": 40, "b": 30},
+            xaxis={"title": ""},
+            yaxis={"title": ""},
         )
 
         div_id = f"fan-chart-{fips_code}"
@@ -1159,6 +1221,7 @@ def _build_tab_county_impact(
 # Tab 4: Decomposition Detail
 # ===================================================================
 
+
 def _build_feature_contribution_bar(
     waterfall_df: pd.DataFrame | None,
     template_name: str,
@@ -1170,10 +1233,7 @@ def _build_feature_contribution_bar(
     steps = waterfall_df.sort_values("step")
 
     # Exclude the first (base) and last (total) rows
-    if len(steps) > 2:
-        features = steps.iloc[1:-1].copy()
-    else:
-        features = steps.iloc[1:].copy()
+    features = steps.iloc[1:-1].copy() if len(steps) > 2 else steps.iloc[1:].copy()
 
     if features.empty:
         return '<p class="placeholder">No intermediate decomposition steps found.</p>'
@@ -1183,24 +1243,19 @@ def _build_feature_contribution_bar(
         features["delta_from_previous"].abs().sort_values(ascending=True).index
     )
 
-    colors = [
-        POSITIVE_COLOR if d >= 0 else NEGATIVE_COLOR
-        for d in features["delta_from_previous"]
-    ]
+    colors = [POSITIVE_COLOR if d >= 0 else NEGATIVE_COLOR for d in features["delta_from_previous"]]
 
-    fig = go.Figure(go.Bar(
-        y=features["feature_name"],
-        x=features["delta_from_previous"],
-        orientation="h",
-        marker_color=colors,
-        text=[_fmt_change(d) for d in features["delta_from_previous"]],
-        textposition="outside",
-        hovertemplate=(
-            "%{y}<br>"
-            "Delta: %{x:,.0f}<br>"
-            "<extra></extra>"
-        ),
-    ))
+    fig = go.Figure(
+        go.Bar(
+            y=features["feature_name"],
+            x=features["delta_from_previous"],
+            orientation="h",
+            marker_color=colors,
+            text=[_fmt_change(d) for d in features["delta_from_previous"]],
+            textposition="outside",
+            hovertemplate=("%{y}<br>Delta: %{x:,.0f}<br><extra></extra>"),
+        )
+    )
 
     fig.add_vline(x=0, line_width=1, line_color=DARK_GRAY)
 
@@ -1210,7 +1265,7 @@ def _build_feature_contribution_bar(
         xaxis_title="Population Change",
         height=max(300, len(features) * 50 + 120),
         showlegend=False,
-        margin=dict(l=200, r=80),
+        margin={"l": 200, "r": 80},
     )
 
     div_id = "feature-contribution-bar"
@@ -1304,6 +1359,7 @@ def _build_tab_decomposition_detail(
 # ===================================================================
 # Tab 5: Methodology Notes
 # ===================================================================
+
 
 def _build_tab_methodology() -> str:
     """Build Tab 5: Methodology Notes (static content)."""
@@ -1439,6 +1495,7 @@ def _build_tab_methodology() -> str:
 # Tab 6: Raw Data
 # ===================================================================
 
+
 def _build_tab_raw_data(
     tornado_df: pd.DataFrame | None,
     county_summary: pd.DataFrame | None,
@@ -1545,6 +1602,7 @@ def _build_tab_raw_data(
 # HTML Assembly
 # ===================================================================
 
+
 def _assemble_html(
     tab1: str,
     tab2: str,
@@ -1555,8 +1613,7 @@ def _assemble_html(
 ) -> str:
     """Assemble the six tab sections into a complete HTML document."""
     subtitle = (
-        f"Sensitivity Analysis | 10 Parameter Sweeps | "
-        f"Generated {TODAY.strftime('%B %d, %Y')}"
+        f"Sensitivity Analysis | 10 Parameter Sweeps | Generated {TODAY.strftime('%B %d, %Y')}"
     )
 
     return f"""<!DOCTYPE html>
@@ -1890,7 +1947,7 @@ def _assemble_html(
     <div class="footer">
         North Dakota Cohort-Component Population Projections |
         Sensitivity Analysis Report |
-        Generated on {TODAY.strftime('%B %d, %Y')} |
+        Generated on {TODAY.strftime("%B %d, %Y")} |
         Data: Census PEP 2025 Vintage
     </div>
 
@@ -1964,6 +2021,7 @@ def _assemble_html(
 # Main entry point
 # ===================================================================
 
+
 def build_report(output_dir: Path) -> Path:
     """Build the complete sensitivity analysis HTML report.
 
@@ -1986,13 +2044,12 @@ def build_report(output_dir: Path) -> Path:
 
     # --- Load sweep data ---
     sweeps: dict[str, pd.DataFrame] = {}
-    for stem, title, _expected in SWEEP_CONFIG:
+    for stem, _title, _expected in SWEEP_CONFIG:
         path = sensitivity_dir / f"{stem}.csv"
         df = _load_sweep_file(path)
         if df is not None:
             sweeps[stem] = df
-            logger.info("  Loaded %s: %d rows, %d variants",
-                        stem, len(df), df["variant"].nunique())
+            logger.info("  Loaded %s: %d rows, %d variants", stem, len(df), df["variant"].nunique())
         else:
             logger.info("  Skipped %s (not found)", stem)
 

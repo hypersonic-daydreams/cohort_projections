@@ -91,7 +91,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 # ---------------------------------------------------------------------------
@@ -102,7 +101,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 # 5-year age group bins (18 groups: 0-4 through 85+)
 AGE_BINS = list(range(0, 85, 5)) + [85]  # [0, 5, 10, ..., 80, 85]
-AGE_LABELS = [f"{a}-{a+4}" for a in range(0, 85, 5)] + ["85+"]
+AGE_LABELS = [f"{a}-{a + 4}" for a in range(0, 85, 5)] + ["85+"]
 N_AGE_GROUPS = len(AGE_LABELS)  # 18
 
 # Projection years
@@ -151,9 +150,7 @@ def load_base_population() -> pd.DataFrame:
 
     # Aggregate to 5-year groups
     result = (
-        df.groupby(["county_fips", "age_group", "sex"], as_index=False, observed=True)[
-            "population"
-        ]
+        df.groupby(["county_fips", "age_group", "sex"], as_index=False, observed=True)["population"]
         .sum()
         .copy()
     )
@@ -170,13 +167,7 @@ def load_survival_rates() -> dict[tuple[str, str], float]:
     Returns dict mapping (age_group_label, sex) -> survival_rate_5yr.
     One value per 5-year age group (uses the first single-year age in each group).
     """
-    path = (
-        PROJECT_ROOT
-        / "data"
-        / "processed"
-        / "sdc_2024"
-        / "survival_rates_sdc_2024_full.csv"
-    )
+    path = PROJECT_ROOT / "data" / "processed" / "sdc_2024" / "survival_rates_sdc_2024_full.csv"
     df = pd.read_csv(path)
 
     # Map single-year ages to 5-year group labels
@@ -189,11 +180,7 @@ def load_survival_rates() -> dict[tuple[str, str], float]:
     ).astype(str)
 
     # Take one rate per group (they're all the same within a group)
-    rates = (
-        df.groupby(["age_group", "sex"], observed=True)["survival_rate_5yr"]
-        .first()
-        .to_dict()
-    )
+    rates = df.groupby(["age_group", "sex"], observed=True)["survival_rate_5yr"].first().to_dict()
 
     return rates
 
@@ -226,13 +213,7 @@ def load_migration_rates() -> pd.DataFrame:
     Returns DataFrame with columns: county_fips, age_group, sex, migration_rate_5yr
     where migration_rate_5yr is the averaged and dampened 5-year rate.
     """
-    path = (
-        PROJECT_ROOT
-        / "data"
-        / "processed"
-        / "migration"
-        / "residual_migration_rates.parquet"
-    )
+    path = PROJECT_ROOT / "data" / "processed" / "migration" / "residual_migration_rates.parquet"
     df = pd.read_parquet(path)
 
     # Convert annualized rates to 5-year rates: (1+r)^5 - 1
@@ -259,18 +240,12 @@ def load_county_names() -> dict[str, str]:
     """
     path = PROJECT_ROOT / "data" / "raw" / "population" / "nd_county_population.csv"
     df = pd.read_csv(path)
-    return dict(zip(df["county_fips"].astype(str), df["county_name"]))
+    return dict(zip(df["county_fips"].astype(str), df["county_name"], strict=False))
 
 
 def load_sdc_2024_state() -> pd.DataFrame | None:
     """Load SDC 2024 original state projections for comparison."""
-    path = (
-        PROJECT_ROOT
-        / "data"
-        / "raw"
-        / "nd_sdc_2024_projections"
-        / "state_projections.csv"
-    )
+    path = PROJECT_ROOT / "data" / "raw" / "nd_sdc_2024_projections" / "state_projections.csv"
     if not path.exists():
         return None
     return pd.read_csv(path)
@@ -368,9 +343,7 @@ def project_county(
             # Step 2: OPEN-ENDED 85+
             surv_80_84 = survival.get(("80-84", sex), 0.0)
             surv_85p = survival.get(("85+", sex), 0.0)
-            new_pop[("85+", sex)] = (
-                pop[("80-84", sex)] * surv_80_84 + pop[("85+", sex)] * surv_85p
-            )
+            new_pop[("85+", sex)] = pop[("80-84", sex)] * surv_80_84 + pop[("85+", sex)] * surv_85p
 
             # Step 3: MIGRATE ages 5-9 through 85+
             for i in range(1, N_AGE_GROUPS):  # indices 1 (5-9) through 17 (85+)
@@ -443,7 +416,9 @@ def main() -> None:
     print(f"  Counties: {len(counties)}")
     print(f"  Base population total: {base_pop['population'].sum():,.0f}")
     print(f"  Age groups: {N_AGE_GROUPS}")
-    print(f"  Migration periods averaged: {mig_rates.shape[0] // (N_AGE_GROUPS * 2 * len(counties)) if len(counties) > 0 else 'N/A'}")
+    print(
+        f"  Migration periods averaged: {mig_rates.shape[0] // (N_AGE_GROUPS * 2 * len(counties)) if len(counties) > 0 else 'N/A'}"
+    )
     print(f"  Bakken counties dampened: {len(BAKKEN_FIPS)}")
     print(f"  Fertility age groups: {len(fertility)}")
 
@@ -471,15 +446,11 @@ def main() -> None:
     # ---------------------------------------------------------------------------
     # Output 2: County population by year
     # ---------------------------------------------------------------------------
-    county_totals = (
-        results_df.groupby(["county_fips", "year"], as_index=False)["population"].sum()
-    )
+    county_totals = results_df.groupby(["county_fips", "year"], as_index=False)["population"].sum()
     county_pivot = county_totals.pivot(
         index="county_fips", columns="year", values="population"
     ).reset_index()
-    county_pivot.columns = ["county_fips"] + [
-        str(int(c)) for c in county_pivot.columns[1:]
-    ]
+    county_pivot.columns = ["county_fips"] + [str(int(c)) for c in county_pivot.columns[1:]]
     county_pivot.insert(
         1,
         "county_name",
@@ -493,10 +464,9 @@ def main() -> None:
     # ---------------------------------------------------------------------------
     # Output 3: State age-sex by year
     # ---------------------------------------------------------------------------
-    state_age_sex = (
-        results_df.groupby(["year", "age_group", "sex"], as_index=False)["population"]
-        .sum()
-    )
+    state_age_sex = results_df.groupby(["year", "age_group", "sex"], as_index=False)[
+        "population"
+    ].sum()
     state_age_sex["population"] = state_age_sex["population"].round(0).astype(int)
 
     # Sort by year, then by age group order, then by sex
@@ -504,9 +474,9 @@ def main() -> None:
     state_age_sex["_age_order"] = state_age_sex["age_group"].map(age_order)
     sex_order = {"Male": 0, "Female": 1}
     state_age_sex["_sex_order"] = state_age_sex["sex"].map(sex_order)
-    state_age_sex = state_age_sex.sort_values(
-        ["year", "_age_order", "_sex_order"]
-    ).drop(columns=["_age_order", "_sex_order"])
+    state_age_sex = state_age_sex.sort_values(["year", "_age_order", "_sex_order"]).drop(
+        columns=["_age_order", "_sex_order"]
+    )
 
     # ---------------------------------------------------------------------------
     # Write outputs
@@ -571,7 +541,7 @@ def main() -> None:
         print("-" * 72)
         # Our baseline has annual data and the column is named differently
         # Find the year columns
-        year_cols = [c for c in our_baseline.columns if c not in ("fips",)]
+        [c for c in our_baseline.columns if c not in ("fips",)]
         print(f"  {'Year':>6}  {'Baseline':>12}  {'SDC+NewData':>12}  {'Diff':>10}  {'% Diff':>8}")
         for _, row in state_by_year.iterrows():
             yr = int(row["year"])
@@ -610,7 +580,7 @@ def main() -> None:
         total = state_by_year[state_by_year["year"] == yr]["total_population"].iloc[0]
         delta = abs(age_sum - total)
         status = "OK" if delta < 1 else f"MISMATCH ({delta:.0f})"
-        if yr == BASE_YEAR or yr == END_YEAR:
+        if yr in (BASE_YEAR, END_YEAR):
             print(f"  Age-sex sum {yr}: {age_sum:,.0f} vs total {total:,} — {status}")
 
     # Top 5 / Bottom 5 counties by 2055

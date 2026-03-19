@@ -99,9 +99,6 @@ from _report_theme import (  # noqa: E402
     NAVY,
     SCENARIO_COLORS,
     WHITE,
-    format_change,
-    format_percent,
-    format_population,
     get_plotly_template,
 )
 
@@ -133,9 +130,24 @@ SDC_NEW_DATA_COLOR = "#D4760A"
 
 # SDC age groups from their 5-year data files
 SDC_AGE_GROUPS = [
-    "0-4", "5-9", "10-14", "15-19", "20-24", "25-29", "30-34", "35-39",
-    "40-44", "45-49", "50-54", "55-59", "60-64", "65-69", "70-74", "75-79",
-    "80-84", "85+",
+    "0-4",
+    "5-9",
+    "10-14",
+    "15-19",
+    "20-24",
+    "25-29",
+    "30-34",
+    "35-39",
+    "40-44",
+    "45-49",
+    "50-54",
+    "55-59",
+    "60-64",
+    "65-69",
+    "70-74",
+    "75-79",
+    "80-84",
+    "85+",
 ]
 
 # Our broader age groups from state_age_distribution_by_year.csv
@@ -160,13 +172,15 @@ FEATURED_COUNTIES = {
 # Plotly template
 # ===================================================================
 
+
 def _register_template() -> str:
     """Register and return the comparison report template name."""
     template_name = "sdc_replication_comparison"
     template = get_plotly_template()
     # Override colorway for this report
     template.layout.colorway = [
-        SDC_COLOR, SDC_NEW_DATA_COLOR,
+        SDC_COLOR,
+        SDC_NEW_DATA_COLOR,
         SCENARIO_COLORS["baseline"],
         SCENARIO_COLORS["high_growth"],
         SCENARIO_COLORS["restricted_growth"],
@@ -178,6 +192,7 @@ def _register_template() -> str:
 # ===================================================================
 # Formatting helpers
 # ===================================================================
+
 
 def _fmt_pop(n: float | int) -> str:
     """Format a population number with commas."""
@@ -207,6 +222,7 @@ def _cagr(start: float, end: float, years: int) -> float:
 # ===================================================================
 # Data Loading
 # ===================================================================
+
 
 def _load_csv_safe(path: Path, **kwargs: Any) -> pd.DataFrame | None:
     """Load a CSV file, returning None on failure."""
@@ -291,15 +307,9 @@ def load_our_data() -> dict[str, dict[str, pd.DataFrame | None]]:
         sdir = exports_dir / scenario / "summaries"
         sdata: dict[str, pd.DataFrame | None] = {}
 
-        sdata["state_totals"] = _load_csv_safe(
-            sdir / "state_total_population_by_year.csv"
-        )
-        sdata["county_totals"] = _load_csv_safe(
-            sdir / "county_total_population_by_year.csv"
-        )
-        sdata["state_age_dist"] = _load_csv_safe(
-            sdir / "state_age_distribution_by_year.csv"
-        )
+        sdata["state_totals"] = _load_csv_safe(sdir / "state_total_population_by_year.csv")
+        sdata["county_totals"] = _load_csv_safe(sdir / "county_total_population_by_year.csv")
+        sdata["state_age_dist"] = _load_csv_safe(sdir / "state_age_distribution_by_year.csv")
 
         all_data[scenario] = sdata
 
@@ -309,6 +319,7 @@ def load_our_data() -> dict[str, dict[str, pd.DataFrame | None]]:
 # ===================================================================
 # Series extraction helpers
 # ===================================================================
+
 
 def _sdc_orig_state_series(sdc_data: dict) -> pd.Series | None:
     """Extract year->population Series from SDC 2024 original state totals."""
@@ -322,7 +333,8 @@ def _sdc_orig_state_series(sdc_data: dict) -> pd.Series | None:
 
 
 def _sdc_orig_county_dict(
-    sdc_data: dict, name_to_fips: dict[str, str],
+    sdc_data: dict,
+    name_to_fips: dict[str, str],
 ) -> dict[str, pd.Series]:
     """Extract per-county year->population from SDC 2024 original county totals."""
     df = sdc_data.get("county_totals")
@@ -413,6 +425,7 @@ def _our_county_dict(our_data: dict, scenario: str) -> dict[str, pd.Series]:
 # Tab 1: State-Level Comparison
 # ===================================================================
 
+
 def _build_state_comparison(
     sdc_orig: dict,
     sdc_new: dict,
@@ -425,8 +438,8 @@ def _build_state_comparison(
     sdc_orig_state = _sdc_orig_state_series(sdc_orig)
     sdc_new_state = _sdc_new_state_series(sdc_new)
     our_baseline = _our_state_series(our_data, "baseline")
-    our_high = _our_state_series(our_data, "high_growth")
-    our_restricted = _our_state_series(our_data, "restricted_growth")
+    _our_state_series(our_data, "high_growth")
+    _our_state_series(our_data, "restricted_growth")
 
     if sdc_orig_state is None and our_baseline is None:
         parts.append('<p class="placeholder">State data not available.</p>')
@@ -438,34 +451,37 @@ def _build_state_comparison(
     # SDC 2024 Original (dashed)
     if sdc_orig_state is not None:
         plot_data = sdc_orig_state[sdc_orig_state.index >= 2025].sort_index()
-        fig.add_trace(go.Scatter(
-            x=list(plot_data.index),
-            y=list(plot_data.values),
-            name="SDC 2024 Original",
-            mode="lines+markers",
-            line={"color": SDC_COLOR, "width": 3, "dash": "dash"},
-            marker={"size": 7, "symbol": "diamond"},
-            hovertemplate=(
-                "<b>SDC 2024 Original</b><br>"
-                "Year: %{x}<br>Population: %{y:,.0f}<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=list(plot_data.index),
+                y=list(plot_data.values),
+                name="SDC 2024 Original",
+                mode="lines+markers",
+                line={"color": SDC_COLOR, "width": 3, "dash": "dash"},
+                marker={"size": 7, "symbol": "diamond"},
+                hovertemplate=(
+                    "<b>SDC 2024 Original</b><br>Year: %{x}<br>Population: %{y:,.0f}<extra></extra>"
+                ),
+            )
+        )
 
     # SDC Method + New Data (solid)
     if sdc_new_state is not None:
         plot_data = sdc_new_state[sdc_new_state.index >= 2025].sort_index()
-        fig.add_trace(go.Scatter(
-            x=list(plot_data.index),
-            y=list(plot_data.values),
-            name="SDC Method + New Data",
-            mode="lines+markers",
-            line={"color": SDC_NEW_DATA_COLOR, "width": 3},
-            marker={"size": 7, "symbol": "square"},
-            hovertemplate=(
-                "<b>SDC Method + New Data</b><br>"
-                "Year: %{x}<br>Population: %{y:,.0f}<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=list(plot_data.index),
+                y=list(plot_data.values),
+                name="SDC Method + New Data",
+                mode="lines+markers",
+                line={"color": SDC_NEW_DATA_COLOR, "width": 3},
+                marker={"size": 7, "symbol": "square"},
+                hovertemplate=(
+                    "<b>SDC Method + New Data</b><br>"
+                    "Year: %{x}<br>Population: %{y:,.0f}<extra></extra>"
+                ),
+            )
+        )
 
     # Our scenarios
     scenario_traces = [
@@ -479,17 +495,18 @@ def _build_state_comparison(
             continue
         # Show full range 2025-2055
         plot_s = series[(series.index >= 2025)].sort_index()
-        fig.add_trace(go.Scatter(
-            x=list(plot_s.index),
-            y=list(plot_s.values),
-            name=label,
-            mode="lines",
-            line={"color": color, "width": 2.5, "dash": dash},
-            hovertemplate=(
-                f"<b>{label}</b><br>"
-                "Year: %{x}<br>Population: %{y:,.0f}<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=list(plot_s.index),
+                y=list(plot_s.values),
+                name=label,
+                mode="lines",
+                line={"color": color, "width": 2.5, "dash": dash},
+                hovertemplate=(
+                    f"<b>{label}</b><br>Year: %{{x}}<br>Population: %{{y:,.0f}}<extra></extra>"
+                ),
+            )
+        )
 
     fig.update_layout(
         template=template_name,
@@ -499,8 +516,11 @@ def _build_state_comparison(
         yaxis_tickformat=",",
         height=500,
         legend={
-            "orientation": "h", "yanchor": "bottom", "y": 1.02,
-            "xanchor": "right", "x": 1,
+            "orientation": "h",
+            "yanchor": "bottom",
+            "y": 1.02,
+            "xanchor": "right",
+            "x": 1,
         },
     )
 
@@ -525,10 +545,7 @@ def _build_state_comparison(
 
     # SDC Original
     if sdc_orig_state is not None:
-        cells = "".join(
-            f'<td class="num">{_get_val(sdc_orig_state, yr)}</td>'
-            for yr in KEY_YEARS
-        )
+        cells = "".join(f'<td class="num">{_get_val(sdc_orig_state, yr)}</td>' for yr in KEY_YEARS)
         table_rows.append(
             f'<tr><td><span class="color-dot" style="background:{SDC_COLOR};"></span>'
             f"SDC 2024 Original</td>{cells}</tr>"
@@ -536,10 +553,7 @@ def _build_state_comparison(
 
     # SDC New Data
     if sdc_new_state is not None:
-        cells = "".join(
-            f'<td class="num">{_get_val(sdc_new_state, yr)}</td>'
-            for yr in KEY_YEARS
-        )
+        cells = "".join(f'<td class="num">{_get_val(sdc_new_state, yr)}</td>' for yr in KEY_YEARS)
         table_rows.append(
             f'<tr><td><span class="color-dot" style="background:{SDC_NEW_DATA_COLOR};"></span>'
             f"SDC Method + New Data</td>{cells}</tr>"
@@ -548,10 +562,7 @@ def _build_state_comparison(
     # Our scenarios
     for scenario, label, color, _ in scenario_traces:
         series = _our_state_series(our_data, scenario)
-        cells = "".join(
-            f'<td class="num">{_get_val(series, yr)}</td>'
-            for yr in KEY_YEARS
-        )
+        cells = "".join(f'<td class="num">{_get_val(series, yr)}</td>' for yr in KEY_YEARS)
         table_rows.append(
             f'<tr><td><span class="color-dot" style="background:{color};"></span>'
             f"{label}</td>{cells}</tr>"
@@ -598,6 +609,7 @@ def _build_state_comparison(
 # ===================================================================
 # Tab 2: County Comparison
 # ===================================================================
+
 
 def _build_county_comparison(
     sdc_orig: dict,
@@ -792,56 +804,80 @@ def _build_county_comparison(
         s = sdc_orig_counties.get(fips)
         if s is not None:
             s_plot = s[s.index >= 2025].sort_index()
-            fig.add_trace(go.Scatter(
-                x=list(s_plot.index), y=list(s_plot.values),
-                name="SDC Original", mode="lines",
-                line={"color": SDC_COLOR, "width": 2, "dash": "dash"},
-                showlegend=False,
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=list(s_plot.index),
+                    y=list(s_plot.values),
+                    name="SDC Original",
+                    mode="lines",
+                    line={"color": SDC_COLOR, "width": 2, "dash": "dash"},
+                    showlegend=False,
+                )
+            )
 
         # SDC New Data
         s = sdc_new_counties.get(fips)
         if s is not None:
             s_plot = s[s.index >= 2025].sort_index()
-            fig.add_trace(go.Scatter(
-                x=list(s_plot.index), y=list(s_plot.values),
-                name="SDC + New Data", mode="lines",
-                line={"color": SDC_NEW_DATA_COLOR, "width": 2},
-                showlegend=False,
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=list(s_plot.index),
+                    y=list(s_plot.values),
+                    name="SDC + New Data",
+                    mode="lines",
+                    line={"color": SDC_NEW_DATA_COLOR, "width": 2},
+                    showlegend=False,
+                )
+            )
 
         # Our Baseline
         s = our_bl_counties.get(fips)
         if s is not None:
             s_plot = s[s.index >= 2025].sort_index()
-            fig.add_trace(go.Scatter(
-                x=list(s_plot.index), y=list(s_plot.values),
-                name="Our Baseline", mode="lines",
-                line={"color": SCENARIO_COLORS["baseline"], "width": 2},
-                showlegend=False,
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=list(s_plot.index),
+                    y=list(s_plot.values),
+                    name="Our Baseline",
+                    mode="lines",
+                    line={"color": SCENARIO_COLORS["baseline"], "width": 2},
+                    showlegend=False,
+                )
+            )
 
         # Our High Growth
         s = our_hg_counties.get(fips)
         if s is not None:
             s_plot = s[s.index >= 2025].sort_index()
-            fig.add_trace(go.Scatter(
-                x=list(s_plot.index), y=list(s_plot.values),
-                name="Our High", mode="lines",
-                line={"color": SCENARIO_COLORS["high_growth"], "width": 1.5, "dash": "dash"},
-                showlegend=False,
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=list(s_plot.index),
+                    y=list(s_plot.values),
+                    name="Our High",
+                    mode="lines",
+                    line={"color": SCENARIO_COLORS["high_growth"], "width": 1.5, "dash": "dash"},
+                    showlegend=False,
+                )
+            )
 
         # Our Restricted
         s = our_rg_counties.get(fips)
         if s is not None:
             s_plot = s[s.index >= 2025].sort_index()
-            fig.add_trace(go.Scatter(
-                x=list(s_plot.index), y=list(s_plot.values),
-                name="Our Restricted", mode="lines",
-                line={"color": SCENARIO_COLORS["restricted_growth"], "width": 1.5, "dash": "dash"},
-                showlegend=False,
-            ))
+            fig.add_trace(
+                go.Scatter(
+                    x=list(s_plot.index),
+                    y=list(s_plot.values),
+                    name="Our Restricted",
+                    mode="lines",
+                    line={
+                        "color": SCENARIO_COLORS["restricted_growth"],
+                        "width": 1.5,
+                        "dash": "dash",
+                    },
+                    showlegend=False,
+                )
+            )
 
         fig.update_layout(
             template=template_name,
@@ -865,6 +901,7 @@ def _build_county_comparison(
 # ===================================================================
 # Tab 3: Data Impact Analysis
 # ===================================================================
+
 
 def _build_data_impact(
     sdc_orig: dict,
@@ -905,26 +942,28 @@ def _build_data_impact(
         diffs.append(nv - ov)
 
     fig_bar = go.Figure()
-    fig_bar.add_trace(go.Bar(
-        x=[str(y) for y in compare_years],
-        y=orig_vals,
-        name="SDC 2024 Original",
-        marker_color=SDC_COLOR,
-        text=[_fmt_pop(v) for v in orig_vals],
-        textposition="outside",
-        hovertemplate="<b>SDC Original</b><br>Year: %{x}<br>Pop: %{y:,.0f}<extra></extra>",
-    ))
-    fig_bar.add_trace(go.Bar(
-        x=[str(y) for y in compare_years],
-        y=new_vals,
-        name="SDC Method + New Data",
-        marker_color=SDC_NEW_DATA_COLOR,
-        text=[_fmt_pop(v) for v in new_vals],
-        textposition="outside",
-        hovertemplate=(
-            "<b>SDC + New Data</b><br>Year: %{x}<br>Pop: %{y:,.0f}<extra></extra>"
-        ),
-    ))
+    fig_bar.add_trace(
+        go.Bar(
+            x=[str(y) for y in compare_years],
+            y=orig_vals,
+            name="SDC 2024 Original",
+            marker_color=SDC_COLOR,
+            text=[_fmt_pop(v) for v in orig_vals],
+            textposition="outside",
+            hovertemplate="<b>SDC Original</b><br>Year: %{x}<br>Pop: %{y:,.0f}<extra></extra>",
+        )
+    )
+    fig_bar.add_trace(
+        go.Bar(
+            x=[str(y) for y in compare_years],
+            y=new_vals,
+            name="SDC Method + New Data",
+            marker_color=SDC_NEW_DATA_COLOR,
+            text=[_fmt_pop(v) for v in new_vals],
+            textposition="outside",
+            hovertemplate=("<b>SDC + New Data</b><br>Year: %{x}<br>Pop: %{y:,.0f}<extra></extra>"),
+        )
+    )
 
     fig_bar.update_layout(
         template=template_name,
@@ -935,8 +974,11 @@ def _build_data_impact(
         barmode="group",
         height=440,
         legend={
-            "orientation": "h", "yanchor": "bottom", "y": 1.02,
-            "xanchor": "right", "x": 1,
+            "orientation": "h",
+            "yanchor": "bottom",
+            "y": 1.02,
+            "xanchor": "right",
+            "x": 1,
         },
     )
 
@@ -951,7 +993,7 @@ def _build_data_impact(
         css_class = "positive" if diffs[i] >= 0 else "negative"
         parts.append(
             f'<div class="diff-card">'
-            f"<div class=\"diff-year\">{yr}</div>"
+            f'<div class="diff-year">{yr}</div>'
             f'<div class="diff-value {css_class}">{_fmt_change(diffs[i])}</div>'
             f'<div class="diff-pct {css_class}">{_fmt_pct(pct)}</div>'
             f"</div>"
@@ -984,7 +1026,7 @@ def _build_data_impact(
         county_diffs.sort(key=lambda x: abs(x[4]), reverse=True)
 
         county_rows = ""
-        for fips, cname, ov, nv, diff, diff_pct in county_diffs:
+        for _fips, cname, ov, nv, diff, diff_pct in county_diffs:
             css = "positive" if diff >= 0 else "negative"
             county_rows += f"""
                 <tr>
@@ -1016,9 +1058,7 @@ def _build_data_impact(
         """)
 
         # --- Scatter Plot ---
-        parts.append(
-            "<h3>County Scatter: SDC Original vs SDC + New Data at 2050</h3>"
-        )
+        parts.append("<h3>County Scatter: SDC Original vs SDC + New Data at 2050</h3>")
 
         scatter_x = [cd[2] for cd in county_diffs]
         scatter_y = [cd[3] for cd in county_diffs]
@@ -1031,31 +1071,35 @@ def _build_data_impact(
         fig_scatter = go.Figure()
 
         # Reference line
-        fig_scatter.add_trace(go.Scatter(
-            x=[min_val, max_val],
-            y=[min_val, max_val],
-            mode="lines",
-            line={"color": MID_GRAY, "width": 1.5, "dash": "dash"},
-            name="Equal",
-            showlegend=False,
-            hoverinfo="skip",
-        ))
+        fig_scatter.add_trace(
+            go.Scatter(
+                x=[min_val, max_val],
+                y=[min_val, max_val],
+                mode="lines",
+                line={"color": MID_GRAY, "width": 1.5, "dash": "dash"},
+                name="Equal",
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
 
-        fig_scatter.add_trace(go.Scatter(
-            x=scatter_x,
-            y=scatter_y,
-            mode="markers+text",
-            marker={"color": SDC_NEW_DATA_COLOR, "size": 10, "opacity": 0.8},
-            text=scatter_names,
-            textposition="top center",
-            textfont={"size": 9},
-            name="Counties",
-            hovertemplate=(
-                "<b>%{text}</b><br>"
-                "SDC Original: %{x:,.0f}<br>"
-                "SDC + New Data: %{y:,.0f}<extra></extra>"
-            ),
-        ))
+        fig_scatter.add_trace(
+            go.Scatter(
+                x=scatter_x,
+                y=scatter_y,
+                mode="markers+text",
+                marker={"color": SDC_NEW_DATA_COLOR, "size": 10, "opacity": 0.8},
+                text=scatter_names,
+                textposition="top center",
+                textfont={"size": 9},
+                name="Counties",
+                hovertemplate=(
+                    "<b>%{text}</b><br>"
+                    "SDC Original: %{x:,.0f}<br>"
+                    "SDC + New Data: %{y:,.0f}<extra></extra>"
+                ),
+            )
+        )
 
         fig_scatter.update_layout(
             template=template_name,
@@ -1097,6 +1141,7 @@ def _build_data_impact(
 # Tab 4: Population Pyramids
 # ===================================================================
 
+
 def _build_pyramids(
     sdc_new: dict,
     our_data: dict,
@@ -1109,9 +1154,7 @@ def _build_pyramids(
     our_age = our_data.get("baseline", {}).get("state_age_dist")
 
     if sdc_age_sex is None and our_age is None:
-        parts.append(
-            '<p class="placeholder">Age/sex data not available for pyramid charts.</p>'
-        )
+        parts.append('<p class="placeholder">Age/sex data not available for pyramid charts.</p>')
         return "\n".join(parts)
 
     pyramid_years = [2025, 2030, 2040, 2050]
@@ -1128,12 +1171,8 @@ def _build_pyramids(
             male_vals: list[float] = []
             female_vals: list[float] = []
             for ag in SDC_AGE_GROUPS:
-                m_row = yr_df[
-                    (yr_df["age_group"] == ag) & (yr_df["sex"].str.lower() == "male")
-                ]
-                f_row = yr_df[
-                    (yr_df["age_group"] == ag) & (yr_df["sex"].str.lower() == "female")
-                ]
+                m_row = yr_df[(yr_df["age_group"] == ag) & (yr_df["sex"].str.lower() == "male")]
+                f_row = yr_df[(yr_df["age_group"] == ag) & (yr_df["sex"].str.lower() == "female")]
                 male_vals.append(float(m_row["population"].iloc[0]) if not m_row.empty else 0)
                 female_vals.append(float(f_row["population"].iloc[0]) if not f_row.empty else 0)
             sdc_pyramid_data[yr] = {"male": male_vals, "female": female_vals}
@@ -1147,24 +1186,28 @@ def _build_pyramids(
 
             # Initial data
             init = sdc_pyramid_data[initial_yr]
-            fig_sdc.add_trace(go.Bar(
-                y=SDC_AGE_GROUPS,
-                x=[-v for v in init["male"]],
-                name="Male",
-                orientation="h",
-                marker_color="#0563C1",
-                hovertemplate="<b>Male</b><br>Age: %{y}<br>Pop: %{customdata:,.0f}<extra></extra>",
-                customdata=init["male"],
-            ))
-            fig_sdc.add_trace(go.Bar(
-                y=SDC_AGE_GROUPS,
-                x=init["female"],
-                name="Female",
-                orientation="h",
-                marker_color="#C00000",
-                hovertemplate="<b>Female</b><br>Age: %{y}<br>Pop: %{customdata:,.0f}<extra></extra>",
-                customdata=init["female"],
-            ))
+            fig_sdc.add_trace(
+                go.Bar(
+                    y=SDC_AGE_GROUPS,
+                    x=[-v for v in init["male"]],
+                    name="Male",
+                    orientation="h",
+                    marker_color="#0563C1",
+                    hovertemplate="<b>Male</b><br>Age: %{y}<br>Pop: %{customdata:,.0f}<extra></extra>",
+                    customdata=init["male"],
+                )
+            )
+            fig_sdc.add_trace(
+                go.Bar(
+                    y=SDC_AGE_GROUPS,
+                    x=init["female"],
+                    name="Female",
+                    orientation="h",
+                    marker_color="#C00000",
+                    hovertemplate="<b>Female</b><br>Age: %{y}<br>Pop: %{customdata:,.0f}<extra></extra>",
+                    customdata=init["female"],
+                )
+            )
 
             # Build frames & slider steps
             frames = []
@@ -1179,36 +1222,40 @@ def _build_pyramids(
 
             for yr in available_yrs:
                 d = sdc_pyramid_data[yr]
-                frames.append(go.Frame(
-                    data=[
-                        go.Bar(
-                            y=SDC_AGE_GROUPS,
-                            x=[-v for v in d["male"]],
-                            customdata=d["male"],
+                frames.append(
+                    go.Frame(
+                        data=[
+                            go.Bar(
+                                y=SDC_AGE_GROUPS,
+                                x=[-v for v in d["male"]],
+                                customdata=d["male"],
+                            ),
+                            go.Bar(
+                                y=SDC_AGE_GROUPS,
+                                x=d["female"],
+                                customdata=d["female"],
+                            ),
+                        ],
+                        name=str(yr),
+                        layout=go.Layout(
+                            title=f"SDC Method + New Data: Population Pyramid ({yr})",
                         ),
-                        go.Bar(
-                            y=SDC_AGE_GROUPS,
-                            x=d["female"],
-                            customdata=d["female"],
-                        ),
-                    ],
-                    name=str(yr),
-                    layout=go.Layout(
-                        title=f"SDC Method + New Data: Population Pyramid ({yr})",
-                    ),
-                ))
-                steps.append({
-                    "method": "animate",
-                    "args": [
-                        [str(yr)],
-                        {
-                            "mode": "immediate",
-                            "frame": {"duration": 300, "redraw": True},
-                            "transition": {"duration": 200},
-                        },
-                    ],
-                    "label": str(yr),
-                })
+                    )
+                )
+                steps.append(
+                    {
+                        "method": "animate",
+                        "args": [
+                            [str(yr)],
+                            {
+                                "mode": "immediate",
+                                "frame": {"duration": 300, "redraw": True},
+                                "transition": {"duration": 200},
+                            },
+                        ],
+                        "label": str(yr),
+                    }
+                )
 
             fig_sdc.frames = frames
 
@@ -1228,15 +1275,20 @@ def _build_pyramids(
                 barmode="overlay",
                 bargap=0.05,
                 height=520,
-                sliders=[{
-                    "active": 0,
-                    "currentvalue": {"prefix": "Year: ", "font": {"size": 14}},
-                    "pad": {"t": 40},
-                    "steps": steps,
-                }],
+                sliders=[
+                    {
+                        "active": 0,
+                        "currentvalue": {"prefix": "Year: ", "font": {"size": 14}},
+                        "pad": {"t": 40},
+                        "steps": steps,
+                    }
+                ],
                 legend={
-                    "orientation": "h", "yanchor": "bottom", "y": 1.02,
-                    "xanchor": "right", "x": 1,
+                    "orientation": "h",
+                    "yanchor": "bottom",
+                    "y": 1.02,
+                    "xanchor": "right",
+                    "x": 1,
                 },
             )
 
@@ -1253,8 +1305,7 @@ def _build_pyramids(
 
         if pop_cols and not our_state.empty:
             available_yrs_ours = sorted(
-                yr for yr in pyramid_years
-                if not our_state[our_state["year"] == yr].empty
+                yr for yr in pyramid_years if not our_state[our_state["year"] == yr].empty
             )
 
             if available_yrs_ours:
@@ -1266,17 +1317,18 @@ def _build_pyramids(
                 init_row = our_state[our_state["year"] == initial_yr_o].iloc[0]
                 init_vals = [float(init_row[c]) for c in pop_cols]
 
-                fig_ours.add_trace(go.Bar(
-                    y=age_group_names,
-                    x=init_vals,
-                    name="Our Baseline",
-                    orientation="h",
-                    marker_color=BLUE,
-                    hovertemplate=(
-                        "<b>Our Baseline</b><br>Age: %{y}<br>"
-                        "Pop: %{x:,.0f}<extra></extra>"
-                    ),
-                ))
+                fig_ours.add_trace(
+                    go.Bar(
+                        y=age_group_names,
+                        x=init_vals,
+                        name="Our Baseline",
+                        orientation="h",
+                        marker_color=BLUE,
+                        hovertemplate=(
+                            "<b>Our Baseline</b><br>Age: %{y}<br>Pop: %{x:,.0f}<extra></extra>"
+                        ),
+                    )
+                )
 
                 # Frames & slider
                 our_frames = []
@@ -1288,25 +1340,29 @@ def _build_pyramids(
                         continue
                     vals = [float(row[c].iloc[0]) for c in pop_cols]
                     max_our = max(max_our, max(vals))
-                    our_frames.append(go.Frame(
-                        data=[go.Bar(y=age_group_names, x=vals)],
-                        name=str(yr),
-                        layout=go.Layout(
-                            title=f"Our Baseline: Age Distribution ({yr})",
-                        ),
-                    ))
-                    our_steps.append({
-                        "method": "animate",
-                        "args": [
-                            [str(yr)],
-                            {
-                                "mode": "immediate",
-                                "frame": {"duration": 300, "redraw": True},
-                                "transition": {"duration": 200},
-                            },
-                        ],
-                        "label": str(yr),
-                    })
+                    our_frames.append(
+                        go.Frame(
+                            data=[go.Bar(y=age_group_names, x=vals)],
+                            name=str(yr),
+                            layout=go.Layout(
+                                title=f"Our Baseline: Age Distribution ({yr})",
+                            ),
+                        )
+                    )
+                    our_steps.append(
+                        {
+                            "method": "animate",
+                            "args": [
+                                [str(yr)],
+                                {
+                                    "mode": "immediate",
+                                    "frame": {"duration": 300, "redraw": True},
+                                    "transition": {"duration": 200},
+                                },
+                            ],
+                            "label": str(yr),
+                        }
+                    )
 
                 fig_ours.frames = our_frames
 
@@ -1324,12 +1380,14 @@ def _build_pyramids(
                         "categoryarray": age_group_names,
                     },
                     height=420,
-                    sliders=[{
-                        "active": 0,
-                        "currentvalue": {"prefix": "Year: ", "font": {"size": 14}},
-                        "pad": {"t": 40},
-                        "steps": our_steps,
-                    }],
+                    sliders=[
+                        {
+                            "active": 0,
+                            "currentvalue": {"prefix": "Year: ", "font": {"size": 14}},
+                            "pad": {"t": 40},
+                            "steps": our_steps,
+                        }
+                    ],
                     showlegend=False,
                 )
 
@@ -1341,9 +1399,7 @@ def _build_pyramids(
                     "displayed with their native age groupings for accuracy.</p>"
                 )
                 parts.append('<div class="chart-container">')
-                parts.append(
-                    pio.to_html(fig_ours, include_plotlyjs=False, full_html=False)
-                )
+                parts.append(pio.to_html(fig_ours, include_plotlyjs=False, full_html=False))
                 parts.append("</div>")
 
     return "\n".join(parts)
@@ -1352,6 +1408,7 @@ def _build_pyramids(
 # ===================================================================
 # Tab 5: Methods Summary
 # ===================================================================
+
 
 def _build_methods_summary() -> str:
     """Build Tab 5: Methods Summary."""
@@ -1509,6 +1566,7 @@ def _build_methods_summary() -> str:
 # ===================================================================
 # HTML Assembly
 # ===================================================================
+
 
 def _assemble_html(
     tab1: str,
@@ -1923,15 +1981,15 @@ def _assemble_html(
             <span>SDC Method + New Data</span>
         </div>
         <div class="legend-item">
-            <div class="legend-swatch" style="background:{SCENARIO_COLORS['baseline']};"></div>
+            <div class="legend-swatch" style="background:{SCENARIO_COLORS["baseline"]};"></div>
             <span>Our Baseline</span>
         </div>
         <div class="legend-item">
-            <div class="legend-swatch dashed" style="--color:{SCENARIO_COLORS['high_growth']}; background:{SCENARIO_COLORS['high_growth']};"></div>
+            <div class="legend-swatch dashed" style="--color:{SCENARIO_COLORS["high_growth"]}; background:{SCENARIO_COLORS["high_growth"]};"></div>
             <span>Our High Growth (dashed)</span>
         </div>
         <div class="legend-item">
-            <div class="legend-swatch dashed" style="--color:{SCENARIO_COLORS['restricted_growth']}; background:{SCENARIO_COLORS['restricted_growth']};"></div>
+            <div class="legend-swatch dashed" style="--color:{SCENARIO_COLORS["restricted_growth"]}; background:{SCENARIO_COLORS["restricted_growth"]};"></div>
             <span>Our Restricted (dashed)</span>
         </div>
     </div>
@@ -1967,7 +2025,7 @@ def _assemble_html(
     <div class="footer">
         North Dakota Cohort-Component Population Projections |
         SDC Method Replication Comparison Report |
-        Generated on {TODAY.strftime('%B %d, %Y')} |
+        Generated on {TODAY.strftime("%B %d, %Y")} |
         Data: Census PEP 2025 Vintage, SDC 2024 Projections
     </div>
 
@@ -2009,6 +2067,7 @@ def _assemble_html(
 # ===================================================================
 # Main entry point
 # ===================================================================
+
 
 def build_report(output_dir: Path) -> Path:
     """Build the complete SDC replication comparison HTML report.
@@ -2069,12 +2128,21 @@ def build_report(output_dir: Path) -> Path:
 
     logger.info("Building Tab 2: County Comparison...")
     tab2 = _build_county_comparison(
-        sdc_orig, sdc_new, our_data, name_to_fips, fips_to_name, template_name,
+        sdc_orig,
+        sdc_new,
+        our_data,
+        name_to_fips,
+        fips_to_name,
+        template_name,
     )
 
     logger.info("Building Tab 3: Data Impact Analysis...")
     tab3 = _build_data_impact(
-        sdc_orig, sdc_new, name_to_fips, fips_to_name, template_name,
+        sdc_orig,
+        sdc_new,
+        name_to_fips,
+        fips_to_name,
+        template_name,
     )
 
     logger.info("Building Tab 4: Population Pyramids...")

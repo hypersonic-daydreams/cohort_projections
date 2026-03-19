@@ -121,9 +121,7 @@ def compute_bias_analysis(df: pd.DataFrame) -> pd.DataFrame:
     rows: list[dict] = []
 
     # --- By category x horizon x method ---
-    for (cat, horizon, method), grp in df.groupby(
-        ["category", "horizon", "method"]
-    ):
+    for (cat, horizon, method), grp in df.groupby(["category", "horizon", "method"]):
         rows.append(
             {
                 "category": cat,
@@ -170,6 +168,7 @@ def compute_residual_diagnostics(df: pd.DataFrame) -> pd.DataFrame:
 
     Returns one row per method x horizon bucket with test statistics.
     """
+
     # Horizon buckets for aggregation
     def _horizon_bucket(h: int) -> str:
         if h <= 5:
@@ -219,8 +218,10 @@ def compute_residual_diagnostics(df: pd.DataFrame) -> pd.DataFrame:
         # --- Normality (Shapiro-Wilk) ---
         # Shapiro-Wilk works best for n < 5000; sample if larger
         if len(errors) >= 8:
-            sample = errors if len(errors) <= 5000 else np.random.default_rng(42).choice(
-                errors, 5000, replace=False
+            sample = (
+                errors
+                if len(errors) <= 5000
+                else np.random.default_rng(42).choice(errors, 5000, replace=False)
             )
             sw_stat, sw_p = stats.shapiro(sample)
         else:
@@ -258,7 +259,7 @@ def detect_outliers(df: pd.DataFrame) -> pd.DataFrame:
     """
     flags: list[pd.DataFrame] = []
 
-    for (method, horizon), grp in df.groupby(["method", "horizon"]):
+    for (_method, _horizon), grp in df.groupby(["method", "horizon"]):
         mean_err = grp["pct_error"].mean()
         std_err = grp["pct_error"].std()
         if std_err == 0 or np.isnan(std_err):
@@ -314,12 +315,12 @@ def compute_structural_breaks(df: pd.DataFrame) -> dict:
     # --- Method improvement: paired tests ---
     # For each county x origin x horizon, pair SDC and M2026 errors
     paired_rows: list[dict] = []
-    sdc = df[df["method"] == "sdc_2024"].set_index(
-        ["county_fips", "origin_year", "horizon"]
-    )["pct_error"]
-    m26 = df[df["method"] == "m2026"].set_index(
-        ["county_fips", "origin_year", "horizon"]
-    )["pct_error"]
+    sdc = df[df["method"] == "sdc_2024"].set_index(["county_fips", "origin_year", "horizon"])[
+        "pct_error"
+    ]
+    m26 = df[df["method"] == "m2026"].set_index(["county_fips", "origin_year", "horizon"])[
+        "pct_error"
+    ]
     common_idx = sdc.index.intersection(m26.index)
 
     if len(common_idx) > 10:
@@ -358,9 +359,7 @@ def compute_structural_breaks(df: pd.DataFrame) -> dict:
             ("11-15yr", (11, 15)),
             ("16-19yr", (16, 19)),
         ]:
-            mask = np.array(
-                [h_range[0] <= idx[2] <= h_range[1] for idx in common_idx]
-            )
+            mask = np.array([h_range[0] <= idx[2] <= h_range[1] for idx in common_idx])
             if mask.sum() > 5:
                 s = abs_sdc[mask]
                 m = abs_m26[mask]
@@ -464,9 +463,7 @@ def compute_county_report_cards(df: pd.DataFrame) -> pd.DataFrame:
                 "mean_signed_error": round(signed_errors.mean(), 2),
                 "median_abs_error": round(abs_errors.median(), 2),
                 "std_error": round(signed_errors.std(), 2),
-                "worst_case_error": round(
-                    float(signed_errors.loc[abs_errors.idxmax()]), 2
-                ),
+                "worst_case_error": round(float(signed_errors.loc[abs_errors.idxmax()]), 2),
                 "worst_case_abs_error": round(float(abs_errors.max()), 2),
                 "n_validations": len(grp),
                 "bias_direction": "over" if signed_errors.mean() > 0 else "under",
@@ -551,12 +548,8 @@ def _build_html_report(
     # ================================================================
     heatmap_divs: list[str] = []
     for method in ["sdc_2024", "m2026"]:
-        sub = bias_df[
-            (bias_df["method"] == method) & (bias_df["origin_year"] == "all")
-        ]
-        pivot = sub.pivot_table(
-            index="category", columns="horizon", values="mean_signed_pct_error"
-        )
+        sub = bias_df[(bias_df["method"] == method) & (bias_df["origin_year"] == "all")]
+        pivot = sub.pivot_table(index="category", columns="horizon", values="mean_signed_pct_error")
         # Ensure consistent ordering
         cat_order = ["Bakken", "Urban/College", "Reservation", "Rural"]
         pivot = pivot.reindex([c for c in cat_order if c in pivot.index])
@@ -571,7 +564,7 @@ def _build_html_report(
                 zmid=0,
                 text=np.round(pivot.values, 1),
                 texttemplate="%{text}%",
-                colorbar=dict(title="Mean Signed<br>Error (%)"),
+                colorbar={"title": "Mean Signed<br>Error (%)"},
             )
         )
         fig.update_layout(
@@ -579,7 +572,7 @@ def _build_html_report(
             xaxis_title="Projection Horizon (years)",
             yaxis_title="County Category",
             height=350,
-            margin=dict(l=120, r=60, t=50, b=50),
+            margin={"l": 120, "r": 60, "t": 50, "b": 50},
         )
         heatmap_divs.append(_fig_to_div(fig, f"heatmap_{method}"))
 
@@ -602,7 +595,7 @@ def _build_html_report(
                     x=all_pts["horizon"],
                     y=all_pts["pct_error"],
                     mode="markers",
-                    marker=dict(color="lightgray", size=3, opacity=0.3),
+                    marker={"color": "lightgray", "size": 3, "opacity": 0.3},
                     name="All observations",
                     showlegend=(i == 1),
                     hoverinfo="skip",
@@ -618,13 +611,13 @@ def _build_html_report(
                         x=out["horizon"],
                         y=out["pct_error"],
                         mode="markers",
-                        marker=dict(
-                            color=out["z_score"],
-                            colorscale="RdYlGn_r",
-                            size=8,
-                            line=dict(width=1, color="black"),
-                            colorbar=dict(title="Z-score") if i == 2 else None,
-                        ),
+                        marker={
+                            "color": out["z_score"],
+                            "colorscale": "RdYlGn_r",
+                            "size": 8,
+                            "line": {"width": 1, "color": "black"},
+                            "colorbar": {"title": "Z-score"} if i == 2 else None,
+                        },
                         text=out.apply(
                             lambda r: (
                                 f"{r['county_name']}<br>"
@@ -647,7 +640,7 @@ def _build_html_report(
         fig.update_layout(
             title="Outlier Detection: County x Origin Combinations with |z| > 2 SD",
             height=450,
-            margin=dict(l=60, r=60, t=70, b=50),
+            margin={"l": 60, "r": 60, "t": 70, "b": 50},
         )
         outlier_scatter_div = _fig_to_div(fig, "outlier_scatter")
 
@@ -656,8 +649,12 @@ def _build_html_report(
     # ================================================================
     fig = go.Figure()
     cat_order = ["Bakken", "Urban/College", "Reservation", "Rural"]
-    colors = {"Bakken": "#e74c3c", "Urban/College": "#3498db",
-              "Reservation": "#e67e22", "Rural": "#2ecc71"}
+    colors = {
+        "Bakken": "#e74c3c",
+        "Urban/College": "#3498db",
+        "Reservation": "#e67e22",
+        "Rural": "#2ecc71",
+    }
     for method in ["sdc_2024", "m2026"]:
         mdf = county_df[county_df["method"] == method]
         for cat in cat_order:
@@ -680,7 +677,7 @@ def _build_html_report(
         yaxis_title="Signed % Error",
         height=500,
         boxmode="group",
-        margin=dict(l=60, r=60, t=50, b=50),
+        margin={"l": 60, "r": 60, "t": 50, "b": 50},
     )
     boxplot_div = _fig_to_div(fig, "category_boxplot")
 
@@ -706,17 +703,14 @@ def _build_html_report(
                 x=sdc_errs,
                 y=m26_errs,
                 mode="markers",
-                marker=dict(
-                    color=horizons,
-                    colorscale="Viridis",
-                    size=5,
-                    opacity=0.6,
-                    colorbar=dict(title="Horizon"),
-                ),
-                text=[
-                    f"FIPS: {idx[0]}<br>Origin: {idx[1]}<br>Horizon: {idx[2]}"
-                    for idx in common
-                ],
+                marker={
+                    "color": horizons,
+                    "colorscale": "Viridis",
+                    "size": 5,
+                    "opacity": 0.6,
+                    "colorbar": {"title": "Horizon"},
+                },
+                text=[f"FIPS: {idx[0]}<br>Origin: {idx[1]}<br>Horizon: {idx[2]}" for idx in common],
                 hoverinfo="text+x+y",
                 name="County x Origin x Horizon",
             )
@@ -728,7 +722,7 @@ def _build_html_report(
                 x=[0, max_val],
                 y=[0, max_val],
                 mode="lines",
-                line=dict(color="red", dash="dash", width=2),
+                line={"color": "red", "dash": "dash", "width": 2},
                 name="Equal error line",
                 showlegend=True,
             )
@@ -738,7 +732,7 @@ def _build_html_report(
         xaxis_title="|SDC 2024 Error| (%)",
         yaxis_title="|M2026 Error| (%)",
         height=500,
-        margin=dict(l=60, r=60, t=50, b=60),
+        margin={"l": 60, "r": 60, "t": 50, "b": 60},
     )
     # Add annotation for interpretation
     n_m2026_better = int((sdc_errs > m26_errs).sum()) if len(common) > 0 else 0
@@ -753,7 +747,7 @@ def _build_html_report(
         x=0.02,
         y=0.98,
         showarrow=False,
-        font=dict(size=11),
+        font={"size": 11},
         bgcolor="rgba(255,255,255,0.8)",
     )
     paired_div = _fig_to_div(paired_fig, "paired_scatter")
@@ -795,10 +789,10 @@ def _build_html_report(
                     y=origin_avg.values.tolist(),
                     mode="lines+markers",
                     name=method_label,
-                    line=dict(
-                        color=method_colors[method],
-                        dash=method_dashes[method],
-                    ),
+                    line={
+                        "color": method_colors[method],
+                        "dash": method_dashes[method],
+                    },
                     showlegend=(cat == "Bakken"),
                     legendgroup=method,
                 ),
@@ -811,7 +805,7 @@ def _build_html_report(
     temporal_fig.update_layout(
         title="Temporal Stability: How Bias Changes by Origin Year",
         height=600,
-        margin=dict(l=60, r=60, t=70, b=50),
+        margin={"l": 60, "r": 60, "t": 70, "b": 50},
     )
     temporal_div = _fig_to_div(temporal_fig, "temporal_stability")
 
@@ -827,11 +821,11 @@ def _build_html_report(
                 x=mdf["lag"],
                 y=mdf["mean_autocorrelation"],
                 name=method_label,
-                error_y=dict(
-                    type="data",
-                    array=(mdf["std_autocorrelation"] / np.sqrt(mdf["n_series"])).tolist(),
-                    visible=True,
-                ),
+                error_y={
+                    "type": "data",
+                    "array": (mdf["std_autocorrelation"] / np.sqrt(mdf["n_series"])).tolist(),
+                    "visible": True,
+                },
                 opacity=0.7,
             )
         )
@@ -849,7 +843,7 @@ def _build_html_report(
         yaxis_title="Mean Autocorrelation",
         height=400,
         barmode="group",
-        margin=dict(l=60, r=60, t=50, b=50),
+        margin={"l": 60, "r": 60, "t": 50, "b": 50},
     )
     acf_div = _fig_to_div(acf_fig, "acf_plot")
 
@@ -1246,16 +1240,16 @@ def _build_report_card_table(rc: pd.DataFrame) -> str:
         method_label = "SDC 2024" if row["method"] == "sdc_2024" else "M2026"
         lines.append(
             f'<tr data-method="{row["method"]}">'
-            f'<td>{html_lib.escape(str(row["county_name"]))}</td>'
-            f'<td>{row["county_fips"]}</td>'
-            f'<td>{row["category"]}</td>'
-            f'<td>{method_label}</td>'
+            f"<td>{html_lib.escape(str(row['county_name']))}</td>"
+            f"<td>{row['county_fips']}</td>"
+            f"<td>{row['category']}</td>"
+            f"<td>{method_label}</td>"
             f'<td class="{gc}" data-sort="{g}">{g}</td>'
             f'<td data-sort="{row["mape"]}">{row["mape"]:.2f}</td>'
             f'<td data-sort="{row["mean_signed_error"]}">{row["mean_signed_error"]:+.2f}</td>'
             f'<td data-sort="{row["std_error"]}">{row["std_error"]:.2f}</td>'
             f'<td data-sort="{abs(row["worst_case_error"])}">{row["worst_case_error"]:+.2f}</td>'
-            f'<td>{row["bias_direction"]}</td>'
+            f"<td>{row['bias_direction']}</td>"
             f'<td data-sort="{row["n_validations"]}">{row["n_validations"]}</td>'
             f"</tr>"
         )
@@ -1291,21 +1285,25 @@ def _residual_table_html(residual_df: pd.DataFrame) -> str:
         het_sig = "Yes" if r.get("het_significant") else "No"
         normal = "Yes" if r.get("normal_at_05") else "No"
         het_style = ' style="color:#e74c3c;font-weight:bold"' if het_sig == "Yes" else ""
-        norm_style = ' style="color:#27ae60;font-weight:bold"' if normal == "Yes" else ' style="color:#e74c3c"'
+        norm_style = (
+            ' style="color:#27ae60;font-weight:bold"'
+            if normal == "Yes"
+            else ' style="color:#e74c3c"'
+        )
         lines.append(
             f"<tr>"
             f"<td>{method_label}</td>"
-            f'<td>{r["horizon_bucket"]}</td>'
-            f'<td>{r["n_obs"]}</td>'
-            f'<td>{r["mean_autocorr_lag1"]:.4f}</td>'
-            f'<td>{r["het_r2_vs_pop_size"]:.6f}</td>'
-            f'<td>{r["het_p_value"]:.6f}</td>'
+            f"<td>{r['horizon_bucket']}</td>"
+            f"<td>{r['n_obs']}</td>"
+            f"<td>{r['mean_autocorr_lag1']:.4f}</td>"
+            f"<td>{r['het_r2_vs_pop_size']:.6f}</td>"
+            f"<td>{r['het_p_value']:.6f}</td>"
             f"<td{het_style}>{het_sig}</td>"
-            f'<td>{r["shapiro_w"]:.4f}</td>'
-            f'<td>{r["shapiro_p"]:.6f}</td>'
+            f"<td>{r['shapiro_w']:.4f}</td>"
+            f"<td>{r['shapiro_p']:.6f}</td>"
             f"<td{norm_style}>{normal}</td>"
-            f'<td>{r["error_skew"]:.4f}</td>'
-            f'<td>{r["error_kurtosis"]:.4f}</td>'
+            f"<td>{r['error_skew']:.4f}</td>"
+            f"<td>{r['error_kurtosis']:.4f}</td>"
             f"</tr>"
         )
     lines.append("</tbody></table>")
@@ -1334,11 +1332,11 @@ def _era_table_html(era_df: pd.DataFrame) -> str:
         lines.append(
             f"<tr>"
             f"<td>{method_label}</td>"
-            f'<td>{r["era"]}</td>'
-            f'<td>{r["category"]}</td>'
-            f'<td>{r["mean_abs_pct_error"]:.2f}</td>'
-            f'<td>{r["mean_signed_pct_error"]:+.2f}</td>'
-            f'<td>{r["n_obs"]}</td>'
+            f"<td>{r['era']}</td>"
+            f"<td>{r['category']}</td>"
+            f"<td>{r['mean_abs_pct_error']:.2f}</td>"
+            f"<td>{r['mean_signed_pct_error']:+.2f}</td>"
+            f"<td>{r['n_obs']}</td>"
             f"</tr>"
         )
     lines.append("</tbody></table>")
@@ -1367,20 +1365,24 @@ def _paired_tests_html(paired_df: pd.DataFrame) -> str:
         "<tbody>",
     ]
     for _, r in paired_df.iterrows():
-        better_style = ' style="color:#27ae60;font-weight:bold"' if r["sdc_better"] == "No" else ' style="color:#e74c3c;font-weight:bold"'
+        better_style = (
+            ' style="color:#27ae60;font-weight:bold"'
+            if r["sdc_better"] == "No"
+            else ' style="color:#e74c3c;font-weight:bold"'
+        )
         sig_style = ' style="font-weight:bold"' if r["paired_t_p"] < 0.05 else ""
         lines.append(
             f"<tr>"
-            f'<td>{r["comparison"]}</td>'
-            f'<td>{r["n_pairs"]}</td>'
-            f'<td>{r["sdc_mean_abs_error"]:.2f}%</td>'
-            f'<td>{r["m2026_mean_abs_error"]:.2f}%</td>'
-            f'<td>{r["diff_mean"]:+.2f}pp</td>'
-            f'<td{sig_style}>{r["paired_t_stat"]:.4f}</td>'
-            f'<td{sig_style}>{r["paired_t_p"]:.6f}</td>'
-            f'<td>{r["wilcoxon_stat"]}</td>'
-            f'<td>{r["wilcoxon_p"]:.6f}</td>'
-            f'<td{better_style}>{r["sdc_better"]}</td>'
+            f"<td>{r['comparison']}</td>"
+            f"<td>{r['n_pairs']}</td>"
+            f"<td>{r['sdc_mean_abs_error']:.2f}%</td>"
+            f"<td>{r['m2026_mean_abs_error']:.2f}%</td>"
+            f"<td>{r['diff_mean']:+.2f}pp</td>"
+            f"<td{sig_style}>{r['paired_t_stat']:.4f}</td>"
+            f"<td{sig_style}>{r['paired_t_p']:.6f}</td>"
+            f"<td>{r['wilcoxon_stat']}</td>"
+            f"<td>{r['wilcoxon_p']:.6f}</td>"
+            f"<td{better_style}>{r['sdc_better']}</td>"
             f"</tr>"
         )
     lines.append("</tbody></table>")
@@ -1415,16 +1417,16 @@ def _outlier_table_html(outlier_df: pd.DataFrame) -> str:
         z_style = ' style="color:#e74c3c;font-weight:bold"' if abs(r["z_score"]) > 3 else ""
         lines.append(
             f"<tr>"
-            f'<td>{html_lib.escape(str(r["county_name"]))}</td>'
-            f'<td>{r["county_fips"]}</td>'
+            f"<td>{html_lib.escape(str(r['county_name']))}</td>"
+            f"<td>{r['county_fips']}</td>"
             f"<td>{method_label}</td>"
-            f'<td>{int(r["origin_year"])}</td>'
-            f'<td>{int(r["validation_year"])}</td>'
-            f'<td>{int(r["horizon"])}</td>'
+            f"<td>{int(r['origin_year'])}</td>"
+            f"<td>{int(r['validation_year'])}</td>"
+            f"<td>{int(r['horizon'])}</td>"
             f'<td data-sort="{r["pct_error"]}">{r["pct_error"]:+.2f}%</td>'
             f'<td{z_style} data-sort="{abs(r["z_score"])}">{r["z_score"]:+.2f}</td>'
-            f'<td>{r["projected"]:,.0f}</td>'
-            f'<td>{r["actual"]:,.0f}</td>'
+            f"<td>{r['projected']:,.0f}</td>"
+            f"<td>{r['actual']:,.0f}</td>"
             f"</tr>"
         )
     lines.append("</tbody></table>")
@@ -1447,7 +1449,9 @@ def main() -> None:
     county_df = load_county_detail()
     _state_df = load_state_results()
     _comparison_df = load_method_comparison()
-    print(f"  County detail: {len(county_df):,} rows, {county_df['county_fips'].nunique()} counties")
+    print(
+        f"  County detail: {len(county_df):,} rows, {county_df['county_fips'].nunique()} counties"
+    )
     print(f"  Methods: {', '.join(county_df['method'].unique())}")
     print(f"  Origins: {sorted(county_df['origin_year'].unique())}")
     print(f"  Horizons: {sorted(county_df['horizon'].unique())}")
@@ -1504,7 +1508,7 @@ def main() -> None:
             )
     else:
         pd.DataFrame().to_csv(outlier_path, index=False)
-        print(f"   No outliers detected.")
+        print("   No outliers detected.")
 
     # --- 3. Structural breaks ---
     print("\n3. Computing structural break detection ...")
@@ -1572,7 +1576,7 @@ def main() -> None:
     print("\n" + "=" * 70)
     print("QC DIAGNOSTICS COMPLETE")
     print("=" * 70)
-    print(f"\nOutput files:")
+    print("\nOutput files:")
     for p in [bias_path, residual_path, outlier_path, rc_path, html_path]:
         print(f"  {p.relative_to(PROJECT_ROOT)}")
     print()

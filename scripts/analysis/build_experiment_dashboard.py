@@ -45,6 +45,7 @@ import re
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any, TypedDict, cast
 
 import pandas as pd
 import plotly.graph_objects as go
@@ -251,9 +252,7 @@ def parse_experiment_catalog(catalog_path: Path) -> list[dict[str, object]]:
 
         # Extract table fields
         fields: dict[str, str] = {}
-        for row_match in re.finditer(
-            r"\|\s*([A-Za-z][\w\s]*?)\s*\|\s*(.+?)\s*\|", part
-        ):
+        for row_match in re.finditer(r"\|\s*([A-Za-z][\w\s]*?)\s*\|\s*(.+?)\s*\|", part):
             key = row_match.group(1).strip().lower()
             val = row_match.group(2).strip()
             if key not in ("field", "---", "-----"):
@@ -283,9 +282,7 @@ def parse_experiment_catalog(catalog_path: Path) -> list[dict[str, object]]:
             current_tier = 3
 
     # Parse generated experiment ideas table
-    gen_section = re.search(
-        r"### Generated Experiment Ideas\s*\n((?:\|.+\n)+)", text
-    )
+    gen_section = re.search(r"### Generated Experiment Ideas\s*\n((?:\|.+\n)+)", text)
     if gen_section:
         for row in gen_section.group(1).strip().split("\n"):
             cells = [c.strip() for c in row.split("|")]
@@ -322,9 +319,23 @@ def _load_json(path: Path) -> list | dict:
         return json.load(f)
 
 
+class DashboardData(TypedDict):
+    """Typed payload for dashboard rendering."""
+
+    catalog: list[dict[str, Any]]
+    exp_outcomes: dict[str, dict[str, Any]]
+    scorecards: dict[str, list[dict[str, Any]]]
+    comparisons: dict[str, dict[str, Any]]
+    projection_curves: dict[str, pd.DataFrame]
+    horizon_summaries: dict[str, pd.DataFrame]
+    county_metrics: dict[str, pd.DataFrame]
+    state_metrics: dict[str, pd.DataFrame]
+    champion_scorecard: dict[str, Any] | None
+
+
 def load_dashboard_data(
     catalog_path: Path = DEFAULT_CATALOG,
-) -> dict[str, object]:
+) -> DashboardData:
     """Load all data needed for the experiment dashboard.
 
     Scans the experiment catalog, experiment log, benchmark index, and
@@ -373,8 +384,8 @@ def load_dashboard_data(
                     break
 
     # Load per-run artifacts for completed experiments
-    scorecards: dict[str, list[dict]] = {}  # exp_id -> scorecard rows
-    comparisons: dict[str, dict] = {}  # exp_id -> comparison data
+    scorecards: dict[str, list[dict[str, Any]]] = {}  # exp_id -> scorecard rows
+    comparisons: dict[str, dict[str, Any]] = {}  # exp_id -> comparison data
     projection_curves: dict[str, pd.DataFrame] = {}  # exp_id -> curves
     horizon_summaries: dict[str, pd.DataFrame] = {}  # exp_id -> horizon data
     county_metrics: dict[str, pd.DataFrame] = {}  # exp_id -> county data
@@ -390,7 +401,7 @@ def load_dashboard_data(
         # Summary scorecard
         sc_path = run_dir / "summary_scorecard.json"
         if sc_path.exists():
-            sc = _load_json(sc_path)
+            sc = cast(list[dict[str, Any]], _load_json(sc_path))
             scorecards[exp_id] = sc
             # Extract champion scorecard (same across all runs)
             if champion_scorecard is None:
@@ -402,7 +413,7 @@ def load_dashboard_data(
         # Comparison to champion
         cmp_path = run_dir / "comparison_to_champion.json"
         if cmp_path.exists():
-            comparisons[exp_id] = _load_json(cmp_path)
+            comparisons[exp_id] = cast(dict[str, Any], _load_json(cmp_path))
 
         # Projection curves
         curves_path = run_dir / "projection_curves.csv"
@@ -448,9 +459,7 @@ def _setup_plotly() -> str:
     return name
 
 
-def build_spaghetti_fig(
-    data: dict[str, object], template_name: str
-) -> go.Figure:
+def build_spaghetti_fig(data: DashboardData, template_name: str) -> go.Figure:
     """Build the spaghetti plot: overlaid projection curves per origin year.
 
     Creates a Plotly figure with actual population, champion, and experiment
@@ -495,9 +504,7 @@ def build_spaghetti_fig(
                 marker={"size": 5, "symbol": "circle"},
                 legendgroup="actual",
                 hovertemplate=(
-                    "<b>Actual</b><br>"
-                    "Year: %{x}<br>"
-                    "Population: %{y:,.0f}<extra></extra>"
+                    "<b>Actual</b><br>Year: %{x}<br>Population: %{y:,.0f}<extra></extra>"
                 ),
             )
         )
@@ -509,9 +516,7 @@ def build_spaghetti_fig(
         if exp_id in data["projection_curves"]:
             df = data["projection_curves"][exp_id]
             # Champion is the non-m2026r1 method — typically m2026
-            champ_methods = [
-                m for m in df["method"].unique() if m != "m2026r1"
-            ]
+            champ_methods = [m for m in df["method"].unique() if m != "m2026r1"]
             if champ_methods:
                 champion_curves_df = df[df["method"] == champ_methods[0]]
             break
@@ -643,9 +648,7 @@ def build_spaghetti_fig(
     return fig
 
 
-def build_delta_bar_fig(
-    data: dict[str, object], template_name: str
-) -> go.Figure:
+def build_delta_bar_fig(data: DashboardData, template_name: str) -> go.Figure:
     """Build grouped bar chart of MAPE deltas vs champion.
 
     Args:
@@ -683,10 +686,7 @@ def build_delta_bar_fig(
                 text=[f"{v:+.3f}" for v in vals],
                 textposition="outside",
                 textfont={"size": 10},
-                hovertemplate=(
-                    f"<b>{exp_id}</b><br>"
-                    "%{x}: %{y:+.4f} pp<extra></extra>"
-                ),
+                hovertemplate=(f"<b>{exp_id}</b><br>%{{x}}: %{{y:+.4f}} pp<extra></extra>"),
             )
         )
 
@@ -730,9 +730,7 @@ def build_delta_bar_fig(
     return fig
 
 
-def build_horizon_fig(
-    data: dict[str, object], template_name: str
-) -> go.Figure:
+def build_horizon_fig(data: DashboardData, template_name: str) -> go.Figure:
     """Build horizon analysis: MAPE and bias vs forecast horizon.
 
     Creates a two-panel subplot: top panel shows mean county MAPE by
@@ -835,9 +833,7 @@ def build_horizon_fig(
     return fig
 
 
-def build_county_heatmap_fig(
-    data: dict[str, object], template_name: str
-) -> go.Figure:
+def build_county_heatmap_fig(data: DashboardData, template_name: str) -> go.Figure:
     """Build county x experiment MAPE heatmap.
 
     Creates a Plotly heatmap with counties on the y-axis (grouped by
@@ -878,9 +874,7 @@ def build_county_heatmap_fig(
             champ = cm[cm["method"] != "m2026r1"]
             if not champ.empty:
                 champion_agg = (
-                    champ.groupby(["county_fips", "county_name", "category"])[
-                        "pct_error"
-                    ]
+                    champ.groupby(["county_fips", "county_name", "category"])["pct_error"]
                     .apply(lambda x: x.abs().mean())
                     .reset_index()
                     .rename(columns={"pct_error": "mape"})
@@ -903,9 +897,7 @@ def build_county_heatmap_fig(
     # Sort by category then county name
     category_order = ["Bakken", "Urban/College", "Reservation", "Rural"]
     pivot = pivot.reset_index()
-    pivot["cat_order"] = pivot["category"].map(
-        {c: i for i, c in enumerate(category_order)}
-    )
+    pivot["cat_order"] = pivot["category"].map({c: i for i, c in enumerate(category_order)})
     pivot = pivot.sort_values(["cat_order", "county_name"]).drop(columns=["cat_order"])
 
     # Build labels and z-matrix
@@ -978,7 +970,11 @@ def _outcome_badge(outcome: str) -> str:
 
 
 def _tier_badge(tier: int | None) -> str:
-    tier_colors = {1: "#0563C1", 2: "#FFC000", 3: "#ED7D31"}
+    tier_colors: dict[int | None, str] = {
+        1: "#0563C1",
+        2: "#FFC000",
+        3: "#ED7D31",
+    }
     color = tier_colors.get(tier, "#94a3b8")
     return f'<span class="badge" style="background:{color};color:white">Tier {tier}</span>'
 
@@ -994,7 +990,7 @@ def _delta_cell(value: float | None, threshold: float | None = None) -> str:
     return f'<td class="delta-cell" style="color:{color};{bold}">{value:+.4f}</td>'
 
 
-def _build_tracker_tab(data: dict) -> str:
+def _build_tracker_tab(data: DashboardData) -> str:
     """Build Tab 1: Experiment Tracker HTML."""
     catalog = data["catalog"]
     outcomes = data["exp_outcomes"]
@@ -1082,16 +1078,16 @@ def _build_tracker_tab(data: dict) -> str:
         rows_html += f"""
         <tr>
             <td><strong>{exp_id}</strong></td>
-            <td>{cat['name']}</td>
-            <td class="mono">{cat.get('parameter', '-')}</td>
-            <td>{_tier_badge(cat['tier'])}</td>
+            <td>{cat["name"]}</td>
+            <td class="mono">{cat.get("parameter", "-")}</td>
+            <td>{_tier_badge(cat["tier"])}</td>
             <td style="color:{runnable_color};font-weight:600">{runnable}</td>
             <td><span class="badge" style="background:{sbg};color:{sfg};border:1px solid {sfg}">{status}</span></td>
-            <td>{_outcome_badge(display_outcome) if display_outcome else _outcome_badge('')}</td>
-            {_delta_cell(deltas.get('county_mape_overall'), 0.05)}
-            {_delta_cell(deltas.get('county_mape_rural'), 0.10)}
-            {_delta_cell(deltas.get('county_mape_bakken'), 0.50)}
-            {_delta_cell(deltas.get('county_mape_urban_college'))}
+            <td>{_outcome_badge(display_outcome) if display_outcome else _outcome_badge("")}</td>
+            {_delta_cell(deltas.get("county_mape_overall"), 0.05)}
+            {_delta_cell(deltas.get("county_mape_rural"), 0.10)}
+            {_delta_cell(deltas.get("county_mape_bakken"), 0.50)}
+            {_delta_cell(deltas.get("county_mape_urban_college"))}
         </tr>
         """
 
@@ -1121,7 +1117,7 @@ def _build_tracker_tab(data: dict) -> str:
     return kpi_html + table_html
 
 
-def _build_scorecard_tab(data: dict) -> str:
+def _build_scorecard_tab(data: DashboardData) -> str:
     """Build Tab 3: Scorecard Comparison table."""
     champion = data["champion_scorecard"]
     if not champion:
@@ -1173,11 +1169,7 @@ def _build_scorecard_tab(data: dict) -> str:
                     else:
                         is_better = delta < 0
                     color = "#059669" if is_better else "#dc2626"
-                    row += (
-                        f'<td style="color:{color}">'
-                        f"{val:.3f} "
-                        f'<small>({delta:+.3f})</small></td>'
-                    )
+                    row += f'<td style="color:{color}">{val:.3f} <small>({delta:+.3f})</small></td>'
                 else:
                     row += f"<td>{val}</td>"
             else:
@@ -1340,10 +1332,7 @@ document.addEventListener('DOMContentLoaded', function() {
 """
 
 
-def build_html(
-    data: dict[str, object],
-    use_cdn_plotly: bool = False,
-) -> str:
+def build_html(data: DashboardData, use_cdn_plotly: bool = False) -> str:
     """Assemble the full dashboard HTML.
 
     Builds all Plotly figures, renders tab content, and wraps everything
@@ -1390,8 +1379,12 @@ def build_html(
     now = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
 
     # Champion info
-    champ = data.get("champion_scorecard", {})
-    champ_label = f"{champ.get('method_id', '?')} / {champ.get('config_id', '?')}" if champ else "unknown"
+    champion = data["champion_scorecard"]
+    champ_label = (
+        f"{champion.get('method_id', '?')} / {champion.get('config_id', '?')}"
+        if champion
+        else "unknown"
+    )
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -1527,10 +1520,7 @@ def main() -> None:
     print("Loading experiment data...")
     data = load_dashboard_data(catalog_path=args.catalog)
 
-    print(
-        f"  Catalog: {len(data['catalog'])} experiments, "
-        f"{len(data['exp_outcomes'])} completed"
-    )
+    print(f"  Catalog: {len(data['catalog'])} experiments, {len(data['exp_outcomes'])} completed")
     print(f"  Scorecards loaded: {len(data['scorecards'])}")
     print(f"  Projection curves loaded: {len(data['projection_curves'])}")
 

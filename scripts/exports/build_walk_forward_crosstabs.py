@@ -21,7 +21,7 @@ from pathlib import Path
 import pandas as pd
 from openpyxl import Workbook
 from openpyxl.formatting.rule import CellIsRule
-from openpyxl.styles import Alignment, Font, PatternFill, numbers
+from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
@@ -73,9 +73,7 @@ def build_county_crosstab(df: pd.DataFrame, method: str) -> pd.DataFrame:
     subset = subset.sort_values(["county_name", "origin_year", "validation_year"])
 
     # Build row label: "County Name (origin_year)"
-    subset["row_label"] = (
-        subset["county_name"] + " (" + subset["origin_year"].astype(str) + ")"
-    )
+    subset["row_label"] = subset["county_name"] + " (" + subset["origin_year"].astype(str) + ")"
 
     # Pivot: row_label x validation_year -> pct_error
     pivot = subset.pivot_table(
@@ -139,7 +137,9 @@ def auto_width(ws, min_width: int = 10, max_width: int = 30) -> None:
             ws.column_dimensions[col_letter].width = best
 
 
-def apply_conditional_formatting(ws, data_start_row: int, data_end_row: int, data_start_col: int, data_end_col: int) -> None:
+def apply_conditional_formatting(
+    ws, data_start_row: int, data_end_row: int, data_start_col: int, data_end_col: int
+) -> None:
     """Apply three-tier conditional formatting to data cells.
 
     Thresholds (on absolute value of percent error):
@@ -250,7 +250,7 @@ def write_method_sheet(
         current_row += 1
 
     # --- County rows ---
-    for (county_name, origin_year, row_label), row_data in county_pivot.iterrows():
+    for (_county_name, _origin_year, row_label), row_data in county_pivot.iterrows():
         ws.cell(row=current_row, column=1, value=row_label)
         for j, year in enumerate(calendar_years):
             if year in row_data.index and pd.notna(row_data[year]):
@@ -413,9 +413,7 @@ def main() -> None:
         county_pivot = build_county_crosstab(county_df, method_code)
         state_pivot = build_state_crosstab(state_df, method_code)
 
-        write_method_sheet_by_year(
-            wb, pivoted_name, county_pivot, state_pivot, all_years
-        )
+        write_method_sheet_by_year(wb, pivoted_name, county_pivot, state_pivot, all_years)
 
     # Save
     output_path = DATA_DIR / "walk_forward_crosstabs.xlsx"

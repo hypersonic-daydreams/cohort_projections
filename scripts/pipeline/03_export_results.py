@@ -46,7 +46,7 @@ import traceback
 import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import pandas as pd
 
@@ -501,14 +501,20 @@ def create_age_distribution_summary(projection_files: list[Path]) -> pd.DataFram
         for year in sorted(df["year"].unique()):
             year_data = df[df["year"] == year]
             total_pop = year_data["population"].sum()
-            row: dict[str, object] = {"fips": fips, "year": int(year), "total_population": total_pop}
+            row: dict[str, object] = {
+                "fips": fips,
+                "year": int(year),
+                "total_population": total_pop,
+            }
 
             for group_name, (min_age, max_age) in age_groups.items():
                 group_pop = year_data[
                     (year_data["age"] >= min_age) & (year_data["age"] <= max_age)
                 ]["population"].sum()
                 row[f"pop_{group_name}"] = group_pop
-                row[f"pct_{group_name}"] = round((group_pop / total_pop * 100), 2) if total_pop > 0 else 0.0
+                row[f"pct_{group_name}"] = (
+                    round((group_pop / total_pop * 100), 2) if total_pop > 0 else 0.0
+                )
 
             rows.append(row)
 
@@ -538,14 +544,16 @@ def create_sex_ratio_summary(projection_files: list[Path]) -> pd.DataFrame:
             total_pop = male_pop + female_pop
             sex_ratio = round((male_pop / female_pop * 100), 2) if female_pop > 0 else 0.0
 
-            rows.append({
-                "fips": fips,
-                "year": int(year),
-                "male_population": male_pop,
-                "female_population": female_pop,
-                "total_population": total_pop,
-                "sex_ratio": sex_ratio,
-            })
+            rows.append(
+                {
+                    "fips": fips,
+                    "year": int(year),
+                    "male_population": male_pop,
+                    "female_population": female_pop,
+                    "total_population": total_pop,
+                    "sex_ratio": sex_ratio,
+                }
+            )
 
     if rows:
         return pd.DataFrame(rows)
@@ -569,14 +577,20 @@ def create_race_composition_summary(projection_files: list[Path]) -> pd.DataFram
         for year in sorted(df["year"].unique()):
             year_data = df[df["year"] == year]
             total_pop = year_data["population"].sum()
-            row: dict[str, object] = {"fips": fips, "year": int(year), "total_population": total_pop}
+            row: dict[str, object] = {
+                "fips": fips,
+                "year": int(year),
+                "total_population": total_pop,
+            }
 
             for race in sorted(year_data["race"].unique()):
                 race_pop = year_data[year_data["race"] == race]["population"].sum()
                 # Create safe column name from race category
                 safe_name = race.lower().replace(" ", "_").replace("/", "_").replace(",", "")
                 row[f"pop_{safe_name}"] = race_pop
-                row[f"pct_{safe_name}"] = round((race_pop / total_pop * 100), 2) if total_pop > 0 else 0.0
+                row[f"pct_{safe_name}"] = (
+                    round((race_pop / total_pop * 100), 2) if total_pop > 0 else 0.0
+                )
 
             rows.append(row)
 
@@ -621,16 +635,18 @@ def create_growth_rates_summary(projection_files: list[Path]) -> pd.DataFrame:
             else 0.0
         )
 
-        rows.append({
-            "fips": fips,
-            "base_year": base_year,
-            "final_year": final_year,
-            "base_population": round(base_pop, 1),
-            "final_population": round(final_pop, 1),
-            "absolute_change": round(absolute_change, 1),
-            "pct_change": pct_change,
-            "annual_growth_rate": cagr,
-        })
+        rows.append(
+            {
+                "fips": fips,
+                "base_year": base_year,
+                "final_year": final_year,
+                "base_population": round(base_pop, 1),
+                "final_population": round(final_pop, 1),
+                "absolute_change": round(absolute_change, 1),
+                "pct_change": pct_change,
+                "annual_growth_rate": cagr,
+            }
+        )
 
     if rows:
         result = pd.DataFrame(rows).sort_values("fips").reset_index(drop=True)
@@ -656,25 +672,29 @@ def create_dependency_ratios_summary(projection_files: list[Path]) -> pd.DataFra
             year_data = df[df["year"] == year]
 
             youth_pop = year_data[year_data["age"] < 18]["population"].sum()
-            working_pop = year_data[
-                (year_data["age"] >= 18) & (year_data["age"] < 65)
-            ]["population"].sum()
+            working_pop = year_data[(year_data["age"] >= 18) & (year_data["age"] < 65)][
+                "population"
+            ].sum()
             elderly_pop = year_data[year_data["age"] >= 65]["population"].sum()
 
-            total_dep = round(((youth_pop + elderly_pop) / working_pop), 4) if working_pop > 0 else 0.0
+            total_dep = (
+                round(((youth_pop + elderly_pop) / working_pop), 4) if working_pop > 0 else 0.0
+            )
             youth_dep = round((youth_pop / working_pop), 4) if working_pop > 0 else 0.0
             elderly_dep = round((elderly_pop / working_pop), 4) if working_pop > 0 else 0.0
 
-            rows.append({
-                "fips": fips,
-                "year": int(year),
-                "youth_population": youth_pop,
-                "working_age_population": working_pop,
-                "elderly_population": elderly_pop,
-                "total_dependency_ratio": total_dep,
-                "youth_dependency_ratio": youth_dep,
-                "elderly_dependency_ratio": elderly_dep,
-            })
+            rows.append(
+                {
+                    "fips": fips,
+                    "year": int(year),
+                    "youth_population": youth_pop,
+                    "working_age_population": working_pop,
+                    "elderly_population": elderly_pop,
+                    "total_dependency_ratio": total_dep,
+                    "youth_dependency_ratio": youth_dep,
+                    "elderly_dependency_ratio": elderly_dep,
+                }
+            )
 
     if rows:
         return pd.DataFrame(rows)
@@ -969,9 +989,14 @@ def export_place_outputs(
             result.files_exported = 0
             return result
 
-        workbook_output = output_dir / f"nd_projections_{scenario}_places_{datetime.now(UTC).strftime('%Y%m%d')}.xlsx"
+        workbook_output = (
+            output_dir
+            / f"nd_projections_{scenario}_places_{datetime.now(UTC).strftime('%Y%m%d')}.xlsx"
+        )
         if dry_run:
-            logger.info("[DRY RUN] Would copy %s -> %s", source_summary, output_dir / scenario / "place")
+            logger.info(
+                "[DRY RUN] Would copy %s -> %s", source_summary, output_dir / scenario / "place"
+            )
             logger.info("[DRY RUN] Would build place workbook: %s", workbook_output)
             result.success = True
             result.files_exported = 2
@@ -988,7 +1013,12 @@ def export_place_outputs(
 
         result.success = True
         result.files_exported = 2
-        logger.info("Exported place artifacts for %s: summary=%s workbook=%s", scenario, exported_summary, workbook_path)
+        logger.info(
+            "Exported place artifacts for %s: summary=%s workbook=%s",
+            scenario,
+            exported_summary,
+            workbook_path,
+        )
     except Exception as e:
         logger.error(f"Error exporting place artifacts for {scenario}: {e}")
         logger.debug(traceback.format_exc())
@@ -1028,9 +1058,7 @@ def export_geospatial_outputs(
     start_time = datetime.now(UTC)
 
     try:
-        logger.info(
-            "Exporting geospatial %s for scenario: %s", format_type, scenario
-        )
+        logger.info("Exporting geospatial %s for scenario: %s", format_type, scenario)
 
         # Geospatial exports only apply to county and place levels
         geo_levels = [lvl for lvl in levels if lvl in ("county", "place")]
@@ -1050,9 +1078,7 @@ def export_geospatial_outputs(
 
         # Determine key years from config
         key_years: list[int] = (
-            config.get("place_projections", {})
-            .get("output", {})
-            .get("key_years", [])
+            config.get("place_projections", {}).get("output", {}).get("key_years", [])
         )
 
         ext = "geojson" if format_type == "geojson" else "shp"
@@ -1080,7 +1106,9 @@ def export_geospatial_outputs(
             combined = pd.concat(frames, ignore_index=True)
 
             # Determine which years to export
-            export_years: list[int] = key_years if key_years else sorted(int(y) for y in combined["year"].unique())
+            export_years: list[int] = (
+                key_years if key_years else sorted(int(y) for y in combined["year"].unique())
+            )
 
             geo_output = output_dir / scenario / level / format_type
             geo_output.mkdir(parents=True, exist_ok=True)
@@ -1097,7 +1125,7 @@ def export_geospatial_outputs(
 
                     write_projection_shapefile(
                         projection_df=combined,
-                        geography_level=level,
+                        geography_level=cast(Literal["county", "place"], level),
                         output_path=out_file,
                         year=yr,
                         format_type=format_type,
@@ -1105,9 +1133,7 @@ def export_geospatial_outputs(
                     result.output_files.append(out_file)
                     files_exported += 1
                 except ImportError:
-                    logger.warning(
-                        "geopandas not available -- skipping geospatial export"
-                    )
+                    logger.warning("geopandas not available -- skipping geospatial export")
                     result.success = True
                     result.files_exported = 0
                     return result

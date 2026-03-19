@@ -59,20 +59,31 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pandas as pd
 import yaml
 
-# Ensure project root is on sys.path for imports
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(_PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PROJECT_ROOT))
-
-from cohort_projections.analysis.evaluation.data_structures import ScorecardEntry
-from cohort_projections.analysis.evaluation.html_report import generate_html_report
+if TYPE_CHECKING:
+    from cohort_projections.analysis.evaluation.data_structures import ScorecardEntry
 
 logger = logging.getLogger(__name__)
+
+
+def _load_generate_html_report() -> Callable[..., Path]:
+    """Load the report generator module with a resilient import path."""
+    try:
+        from cohort_projections.analysis.evaluation.html_report import generate_html_report
+    except ModuleNotFoundError:
+        if str(_PROJECT_ROOT) not in sys.path:
+            sys.path.insert(0, str(_PROJECT_ROOT))
+        from cohort_projections.analysis.evaluation.html_report import generate_html_report
+
+    return generate_html_report
+
 
 _DEFAULT_CONFIG_PATH = _PROJECT_ROOT / "config" / "evaluation_config.yaml"
 _DEFAULT_OUTPUT = _PROJECT_ROOT / "reports" / "evaluation_report.html"
@@ -121,7 +132,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Omit the full diagnostics appendix",
     )
     parser.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Enable debug logging",
     )
@@ -180,16 +192,19 @@ def _load_from_results_dir(results_dir: Path) -> dict:
     if not acc.empty:
         model_name = acc["model_name"].iloc[0] if "model_name" in acc.columns else ""
         run_id = acc["run_id"].iloc[0] if "run_id" in acc.columns else ""
-        out["scorecard"] = _build_scorecard_from_diagnostics(acc, out["realism_diagnostics"], run_id, model_name)
+        out["scorecard"] = _build_scorecard_from_diagnostics(
+            acc, out["realism_diagnostics"], run_id, model_name
+        )
 
     # Load figures from figures/ subdirectory if present
     fig_dir = results_dir / "figures"
     if fig_dir.is_dir():
         try:
             import matplotlib
+
             matplotlib.use("Agg")
-            import matplotlib.pyplot as plt
             import matplotlib.image as mpimg
+            import matplotlib.pyplot as plt
 
             for png_path in sorted(fig_dir.glob("*.png")):
                 fig, ax = plt.subplots()
@@ -284,6 +299,7 @@ def main(argv: list[str] | None = None) -> None:
         evaluation_results = _run_fresh_evaluation(args.projection_results, config)
 
     # Generate report
+    generate_html_report = _load_generate_html_report()
     output_path = generate_html_report(
         evaluation_results=evaluation_results,
         config=config,
