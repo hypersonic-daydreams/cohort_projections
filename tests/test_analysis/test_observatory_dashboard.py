@@ -545,11 +545,11 @@ def test_onboarding_card_explains_first_action_path() -> None:
     dm = SimpleNamespace(run_ids=[], benchmark_history_snapshot={"index_present": False})
 
     card = _build_onboarding_card(cast(DashboardDataManager, dm))
-    body = "\n".join(str(getattr(obj, "object", "")) for obj in card.objects)
+    body = str(getattr(card, "object", ""))
 
-    assert "Projection Observatory compares projection variants" in body
-    assert "What Start Exploring produces" in body
-    assert "Where blocked results go" in body
+    assert "Launch a search" in body
+    assert "Review results" in body
+    assert "Decide" in body
 
 
 def test_build_command_center_keeps_progress_card_visible_before_first_search(

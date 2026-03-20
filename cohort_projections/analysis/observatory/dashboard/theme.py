@@ -155,26 +155,14 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     color: #FFFFFF !important;
 }
 
-/* Main content — subtle topographic texture on cool neutral */
+/* Main content — subtle dot grid on cool neutral */
 :host(.pn-main), .pn-main {
-    background-color: #ECEEF2 !important;
+    background-color: #EAEDF2 !important;
     background-image:
-        radial-gradient(ellipse at 20% 0%, rgba(5,99,193,0.04) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 100%, rgba(31,56,100,0.03) 0%, transparent 50%),
-        repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 80px,
-            rgba(31,56,100,0.012) 80px,
-            rgba(31,56,100,0.012) 81px
-        ),
-        repeating-linear-gradient(
-            90deg,
-            transparent,
-            transparent 80px,
-            rgba(31,56,100,0.012) 80px,
-            rgba(31,56,100,0.012) 81px
-        ) !important;
+        radial-gradient(ellipse at 15% 0%, rgba(5,99,193,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 100%, rgba(31,56,100,0.04) 0%, transparent 50%),
+        radial-gradient(circle, rgba(31,56,100,0.06) 1px, transparent 1px) !important;
+    background-size: auto, auto, 24px 24px !important;
 }
 
 /* --- Three-Tier Elevation System --- */
@@ -921,12 +909,21 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     letter-spacing: -0.03em;
 }
 .obs-metric-hero .obs-mh-label {
-    font-size: 0.88em;
-    color: #5A6C84;
-    margin-top: 4px;
-    font-weight: 600;
+    font-size: 0.78em;
+    color: #6B7D93;
+    margin-top: 6px;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
+}
+.obs-metric-hero-empty {
+    background: linear-gradient(180deg, #F4F6FA 0%, #ECEEF2 100%) !important;
+    border-style: dashed !important;
+    border-color: #C4D0DE !important;
+    box-shadow: none !important;
+}
+.obs-metric-hero-empty::before {
+    opacity: 0.3;
 }
 .obs-metric-hero .obs-mh-delta {
     font-size: 1.0em;
@@ -1168,6 +1165,68 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     border-radius: 10px;
     padding: 16px;
     border: 1px solid #E8EEF6;
+}
+
+/* --- Onboarding Card (visual welcome) --- */
+.obs-onboarding {
+    padding: 28px 32px;
+    border-radius: 10px;
+    background:
+        radial-gradient(ellipse at 90% 20%, rgba(0,176,240,0.05) 0%, transparent 50%),
+        linear-gradient(180deg, #FFFFFF 0%, #F6F8FB 100%);
+    border: 1px solid #D0D8E3;
+    box-shadow:
+        0 1px 2px rgba(31, 56, 100, 0.05),
+        0 4px 16px rgba(31, 56, 100, 0.07);
+}
+.obs-onboarding-steps {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 20px;
+}
+.obs-onboarding-step {
+    flex: 1;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+}
+.obs-onboarding-num {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0563C1, #044B8F);
+    color: #FFFFFF;
+    font-size: 0.85em;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(5, 99, 193, 0.25);
+}
+.obs-onboarding-title {
+    font-size: 0.92em;
+    font-weight: 800;
+    color: #0D1B2A;
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+}
+.obs-onboarding-desc {
+    font-size: 0.82em;
+    color: #6B7D93;
+    line-height: 1.5;
+}
+.obs-onboarding-footer {
+    font-size: 0.8em;
+    color: #8090A0;
+    padding-top: 14px;
+    border-top: 1px solid #E8ECF1;
+}
+@media (max-width: 900px) {
+    .obs-onboarding-steps {
+        flex-direction: column;
+        gap: 16px;
+    }
 }
 
 /* --- Card hover transitions --- */

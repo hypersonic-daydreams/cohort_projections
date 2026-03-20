@@ -380,31 +380,44 @@ def _command_center_summary(dm: DashboardDataManager) -> str:
     return " ".join(summary_parts) or "No completed Observatory run history is available yet."
 
 
-def _build_onboarding_card(dm: DashboardDataManager) -> pn.Card:
+def _build_onboarding_card(dm: DashboardDataManager) -> pn.pane.HTML:
     """Explain the first action path when the dashboard has little or no history."""
     has_archive = bool(dm.run_ids)
-    archive_note = (
-        "You can still inspect the existing benchmark archive below while you decide what to explore next."
-        if has_archive
-        else "The first completed benchmark bundle will unlock the guided review tabs automatically."
-    )
-    body = "\n".join(
-        [
-            "The Projection Observatory compares projection variants, tracks search sessions, and guides review decisions.",
-            "",
-            "**What Start Exploring produces:** a bounded search session, benchmark bundles for completed candidates, and a recommended next route when the run finishes.",
-            "",
-            "**When results become reviewable:** as soon as the first usable benchmark bundle lands, the dashboard can route you into Decision Brief and the guided review tabs.",
-            "",
-            "**Where blocked results go:** blocked or inconclusive sessions stay on the recovery path and send you to blocker resolution instead of deep analysis by default.",
-            "",
-            archive_note,
-        ]
-    )
-    return markdown_card(
-        "Start Here",
-        body,
-        css_classes=["obs-primary-workflow-card"],
+    if has_archive:
+        footer = "You can inspect the existing benchmark archive below while deciding what to explore next."
+    else:
+        footer = "The first completed benchmark bundle will unlock the guided review tabs."
+
+    return pn.pane.HTML(
+        '<div class="obs-onboarding">'
+        '<div class="obs-onboarding-steps">'
+        #
+        '<div class="obs-onboarding-step">'
+        '<div class="obs-onboarding-num">1</div>'
+        '<div class="obs-onboarding-content">'
+        '<div class="obs-onboarding-title">Launch a search</div>'
+        '<div class="obs-onboarding-desc">The Observatory runs bounded autonomous searches, benchmarking each candidate variant against the champion.</div>'
+        "</div></div>"
+        #
+        '<div class="obs-onboarding-step">'
+        '<div class="obs-onboarding-num">2</div>'
+        '<div class="obs-onboarding-content">'
+        '<div class="obs-onboarding-title">Review results</div>'
+        '<div class="obs-onboarding-desc">When benchmarks land, the guided review flow walks you through scorecards, projections, and bias analysis.</div>'
+        "</div></div>"
+        #
+        '<div class="obs-onboarding-step">'
+        '<div class="obs-onboarding-num">3</div>'
+        '<div class="obs-onboarding-content">'
+        '<div class="obs-onboarding-title">Decide &amp; promote</div>'
+        '<div class="obs-onboarding-desc">If a challenger beats the champion, prepare a recommendation package for senior review.</div>'
+        "</div></div>"
+        #
+        "</div>"
+        f'<div class="obs-onboarding-footer">{footer}</div>'
+        "</div>",
+        sizing_mode="stretch_width",
+        stylesheets=[DASHBOARD_CSS],
     )
 
 
@@ -706,7 +719,18 @@ def _build_hero_metric(dm: DashboardDataManager) -> pn.pane.HTML:
     """Render the champion MAPE as the primary hero metric with challenger delta."""
     champ_mape = _champion_mape(dm)
     if champ_mape is None:
-        return hero_metric("N/A", "Champion County Error (MAPE)")
+        return pn.pane.HTML(
+            '<div class="obs-metric-hero obs-metric-hero-empty">'
+            '<div class="obs-mh-value" style="opacity:0.15">&mdash;</div>'
+            '<div class="obs-mh-label">Champion County Error</div>'
+            '<div style="margin-top:10px;font-size:0.85em;color:#6B7D93;font-weight:500">'
+            "Appears after your first benchmark run"
+            "</div>"
+            '<div class="obs-mh-underline" style="background:linear-gradient(90deg,#0563C1,#00B0F0)"></div>'
+            "</div>",
+            sizing_mode="stretch_width",
+            stylesheets=[DASHBOARD_CSS],
+        )
 
     best = _best_tested_challenger(dm)
     best_mape = _as_float(best.get("selected_county_mape_overall")) if best is not None else None
@@ -740,15 +764,18 @@ def _build_kpi_grid(dm: DashboardDataManager) -> pn.FlexBox | pn.pane.HTML:
             untested_count = int((~variants_df["tested"]).sum())
 
     if total_runs == 0 and tested_count == 0:
+        # Render ghost KPI cards — same layout as real ones but with dashes
+        ghost_cards = [
+            f'<div class="kpi-card" style="opacity:0.45">'
+            f'<div class="kpi-value">&mdash;</div>'
+            f'<div class="kpi-label">{label}</div>'
+            f"</div>"
+            for label in ["Total Runs", "Tested", "Passed", "Review", "Untested"]
+        ]
         return pn.pane.HTML(
-            '<div style="text-align:center;padding:20px 16px;background:#F8FBFF;'
-            "border:1px dashed #B8CBE0;border-radius:12px;color:#5A6C84;"
-            'font-size:0.95em">'
-            '<strong style="color:#1F3864">No benchmark results yet.</strong><br>'
-            "Use the Launch Section to run your first autonomous search. "
-            "KPIs will populate as results come in."
-            "</div>",
+            '<div class="obs-kpi-grid">' + "".join(ghost_cards) + "</div>",
             sizing_mode="stretch_width",
+            stylesheets=[DASHBOARD_CSS],
         )
 
     cards = [
@@ -785,17 +812,27 @@ def _build_kpi_grid(dm: DashboardDataManager) -> pn.FlexBox | pn.pane.HTML:
 def _build_decision_strip(dm: DashboardDataManager) -> pn.FlexBox | pn.pane.HTML:
     """Two-card decision strip: Current Champion and Best Challenger."""
     if dm.run_metadata.empty:
+        # Ghost decision cards — same layout as real ones but muted
+        ghost_champion = (
+            '<div class="summary-card primary" style="opacity:0.4;min-width:220px;flex:1">'
+            '<div class="eyebrow">Current Champion</div>'
+            '<div class="headline">&mdash;</div>'
+            '<div class="detail">Accuracy metrics appear here</div>'
+            "</div>"
+        )
+        ghost_challenger = (
+            '<div class="summary-card" style="opacity:0.4;min-width:220px;flex:1;'
+            'border-top:3px solid #E6AC00">'
+            '<div class="eyebrow">Best Challenger</div>'
+            '<div class="headline">&mdash;</div>'
+            '<div class="detail">Comparison appears here</div>'
+            "</div>"
+        )
         return pn.pane.HTML(
-            '<div style="text-align:center;padding:24px 16px;background:'
-            "linear-gradient(180deg, #F8FBFF 0%, #E9F1FC 100%);"
-            'border:1px solid #D9E3F0;border-radius:12px">'
-            '<div style="color:#1F3864;font-size:1.1em;font-weight:700;'
-            'margin-bottom:8px">'
-            "Decision cards appear here after your first benchmark run</div>"
-            '<div style="color:#5A6C84;font-size:0.9em;line-height:1.5">'
-            "You will see: current champion accuracy and best challenger comparison."
-            "</div></div>",
+            f'<div style="display:flex;gap:14px;flex-wrap:wrap">'
+            f"{ghost_champion}{ghost_challenger}</div>",
             sizing_mode="stretch_width",
+            stylesheets=[DASHBOARD_CSS],
         )
 
     champ_mape = _champion_mape(dm)
