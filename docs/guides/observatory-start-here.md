@@ -29,7 +29,7 @@ from multiple documents.
    - Read the Observatory config sections when changing thresholds, paths, or
      variant-catalog behavior.
 
-## Current State (2026-03-19)
+## Current State (2026-03-20)
 
 - BM-001 experiment infrastructure is implemented.
 - OBS-001 Observatory analysis, CLI, dashboard, and reporting layer is
@@ -121,7 +121,15 @@ from multiple documents.
 ## Clean Restart
 
 If you want to discard the current active Observatory workspace and begin from
-an empty first-run state, use the fresh-start reset script:
+an empty first-run state, you have two options:
+
+**From the dashboard (preferred):** When the workspace is in the
+`recover broken evidence` state, the Command Center shows a
+**Clear & Start Fresh** button alongside the recovery action. Clicking it
+archives the current workspace and resets to the empty-ready state without
+leaving the UI.
+
+**From the CLI:**
 
 ```bash
 source .venv/bin/activate

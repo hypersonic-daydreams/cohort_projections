@@ -555,7 +555,9 @@ def main() -> None:
                     },
                 ],
                 "output_artifacts": sorted(
-                    str(path.relative_to(PROJECT_ROOT)) for path in run_dir.iterdir()
+                    str(path.relative_to(args.history_dir))
+                    for path in run_dir.iterdir()
+                    if path.is_file()
                 ),
                 "script_versions": {
                     "run_benchmark_suite": str(Path(__file__).relative_to(PROJECT_ROOT)),

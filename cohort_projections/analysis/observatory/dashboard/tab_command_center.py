@@ -44,6 +44,9 @@ from cohort_projections.analysis.observatory.dashboard.widgets import (
 from cohort_projections.analysis.observatory.decision_support import (
     build_search_session_summary,
 )
+from cohort_projections.analysis.observatory.workspace_reset import (
+    reset_observatory_workspace,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -574,8 +577,35 @@ def _build_primary_route_card(
         if tabs is not None:
             tabs.active = 2 if state != "recommendation_ready" else 1
 
+    def _clear_and_start_fresh(event: Any) -> None:
+        del event
+        btn_fresh_start.disabled = True
+        btn_fresh_start.name = "Clearing\u2026"
+        try:
+            summary = reset_observatory_workspace(project_root=_PROJECT_ROOT)
+            archived = summary.get("archive_dir", "")
+            action_output.object = terminal_output(
+                f"Workspace cleared. Previous data archived to:\n{archived}\n\n"
+                "The dashboard will refresh to the empty-ready state shortly.",
+                max_height=140,
+            ).object
+        except Exception as exc:
+            action_output.object = terminal_output(
+                f"Fresh start failed:\n{exc}",
+                max_height=140,
+            ).object
+            btn_fresh_start.disabled = False
+            btn_fresh_start.name = "Clear & Start Fresh"
+
     btn_primary.on_click(_primary_action)
     btn_secondary.on_click(_open_details)
+
+    btn_fresh_start = pn.widgets.Button(
+        name="Clear & Start Fresh",
+        button_type="light",
+        width=180,
+    )
+    btn_fresh_start.on_click(_clear_and_start_fresh)
 
     if state == "recommendation_ready":
         route_body.extend(["", _recommendation_packet_markdown(dm)])
@@ -606,9 +636,15 @@ def _build_primary_route_card(
             css_classes=["obs-primary-workflow-card"],
         )
 
+    # Show the fresh-start button alongside the primary action when recovery
+    # is needed so users can clear broken evidence without leaving the UI.
+    button_row_items: list[Any] = [btn_primary, btn_secondary]
+    if state == "recovery_needed":
+        button_row_items.append(btn_fresh_start)
+
     return pn.Card(
         pn.pane.Markdown("\n".join(route_body), sizing_mode="stretch_width"),
-        pn.Row(btn_primary, btn_secondary, sizing_mode="stretch_width"),
+        pn.Row(*button_row_items, sizing_mode="stretch_width"),
         action_output,
         title=route_title,
         sizing_mode="stretch_width",

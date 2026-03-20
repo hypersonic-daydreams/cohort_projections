@@ -500,7 +500,7 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 **Windows/WSL launcher convenience:** Added 2026-03-13. `scripts/windows/launch_projection_observatory.cmd` now provides a Windows-friendly launcher for the Panel dashboard, and `scripts/windows/install_projection_observatory_shortcuts.cmd` installs Desktop and Start Menu shortcuts backed by a local `%LOCALAPPDATA%` launcher copy so the dashboard is one click away from Windows even though it runs in WSL.
 
-**Fresh-start reset utility:** Added 2026-03-19. `scripts/analysis/reset_observatory_workspace.py` archives the active Observatory workspace under `data/analysis/observatory_archives/`, reinitializes a clean first-run state without deleting prior evidence, and activates a fresh-start marker so the variant catalog ignores embedded historical `results` blocks until the marker is removed.
+**Fresh-start reset utility:** Added 2026-03-19, dashboard button added 2026-03-20. `scripts/analysis/reset_observatory_workspace.py` archives the active Observatory workspace under `data/analysis/observatory_archives/`, reinitializes a clean first-run state without deleting prior evidence, and activates a fresh-start marker so the variant catalog ignores embedded historical `results` blocks until the marker is removed. The Command Center now also exposes a **Clear & Start Fresh** button when the workspace is in the `recovery_needed` state, so users can reset directly from the dashboard UI without touching the CLI.
 
 **Follow-on entry point:** Use `docs/guides/observatory-start-here.md` for the current Observatory entry point, and `docs/plans/README.md` for the consolidated planning-doc inventory and historical roadmap references.
 
@@ -510,7 +510,7 @@ Priority coverage gaps from ADR-056 Decision 6 and `docs/guides/test-maintenance
 
 1. Incorporate deferred stakeholder feedback in the next publication update cycle.
 2. Keep documentation consistency queue current.
-3. Repair or rerun the `48` incomplete 2026-03-18 autonomous-search benchmark bundles; `data/analysis/benchmark_history/index.csv` was rebuilt on 2026-03-19 and confirmed there are currently `0` complete bundles available for registration.
+3. ~~Repair or rerun the `48` incomplete 2026-03-18 autonomous-search benchmark bundles.~~ Root cause fixed 2026-03-20: `run_benchmark_suite.py` manifest construction crashed when the benchmark history dir and the worktree root diverged (editable-install path mismatch). `active_search_id` fallback also fixed so the dashboard no longer reports finished sessions as in-progress. Use **Clear & Start Fresh** in the dashboard to archive stale bundles, then relaunch.
 4. Review rolling-origin B-I vs B-II results with domain experts; confirm B-II retention rationale.
 5. Review `docs/reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md` and decide whether `m2026r1` should be promoted.
 6. If approved, promote via alias update tooling and re-run production projections under the promoted config.
