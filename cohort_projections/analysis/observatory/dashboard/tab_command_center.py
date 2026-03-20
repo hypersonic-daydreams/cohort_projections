@@ -566,20 +566,6 @@ def _build_primary_route_card(
             return
         if state == "search_in_progress":
             return
-        # Empty-ready path: launch the standard exploration preset directly.
-        _launch_search_auto(
-            search_id=_default_search_id(),
-            cpu_budget=min(12, os.cpu_count() or 12),
-            max_total_runs=20,
-            batch_run_budget=int(dm.search_policy.default_run_budget),
-            max_pending=int(dm.search_policy.default_max_pending),
-            max_recommended=int(dm.search_policy.default_max_recommended),
-            include_recipes=bool(dm.search_policy.include_recipe_catalog),
-            overwrite=False,
-            status_pane=action_output,
-            output_pane=action_output,
-            session_dir=dm.search_session_root,
-        )
 
     def _open_details(event: Any) -> None:
         del event
@@ -608,14 +594,17 @@ def _build_primary_route_card(
         btn_primary.button_type = "primary"
         btn_primary.name = "Review Best Candidate"
     else:
-        route_body.extend(
-            [
-                "",
-                "**Shortcut behavior:** This launches the same Standard exploration preset shown in Launch Experiments below.",
-            ]
+        # Empty-ready: embed the full launch controls inline.
+        launch_controls = _build_launch_controls(dm)
+        return pn.Card(
+            pn.pane.Markdown("\n".join(route_body), sizing_mode="stretch_width"),
+            pn.Row(btn_secondary, sizing_mode="stretch_width"),
+            launch_controls,
+            action_output,
+            title=route_title,
+            sizing_mode="stretch_width",
+            css_classes=["obs-primary-workflow-card"],
         )
-        btn_primary.button_type = "success"
-        btn_primary.name = "Start Standard Exploration"
 
     return pn.Card(
         pn.pane.Markdown("\n".join(route_body), sizing_mode="stretch_width"),
@@ -721,10 +710,20 @@ def _build_hero_metric(dm: DashboardDataManager) -> pn.pane.HTML:
     if champ_mape is None:
         return pn.pane.HTML(
             '<div class="obs-metric-hero obs-metric-hero-empty">'
+            # Decorative background chart line SVG
+            '<svg class="obs-hero-bg-svg" viewBox="0 0 200 60" preserveAspectRatio="none"'
+            ' style="position:absolute;bottom:0;left:0;width:100%;height:50%;opacity:0.06;'
+            'pointer-events:none">'
+            '<polyline fill="none" stroke="#0563C1" stroke-width="2"'
+            ' points="0,45 25,40 50,42 75,30 100,32 125,18 150,22 175,10 200,15"/>'
+            '<polyline fill="none" stroke="#00B0F0" stroke-width="1.5"'
+            ' stroke-dasharray="4,3"'
+            ' points="0,50 25,48 50,46 75,44 100,42 125,40 150,38 175,36 200,34"/>'
+            "</svg>"
             '<div class="obs-mh-value" style="opacity:0.15">&mdash;</div>'
             '<div class="obs-mh-label">Champion County Error</div>'
             '<div style="margin-top:10px;font-size:0.85em;color:#6B7D93;font-weight:500">'
-            "Appears after your first benchmark run"
+            "Appears after the first benchmark run"
             "</div>"
             '<div class="obs-mh-underline" style="background:linear-gradient(90deg,#0563C1,#00B0F0)"></div>'
             "</div>",
@@ -764,13 +763,24 @@ def _build_kpi_grid(dm: DashboardDataManager) -> pn.FlexBox | pn.pane.HTML:
             untested_count = int((~variants_df["tested"]).sum())
 
     if total_runs == 0 and tested_count == 0:
-        # Render ghost KPI cards — same layout as real ones but with dashes
+        # Render ghost KPI cards — styled with per-card accent colors
+        _ghost_kpis = [
+            ("Total Runs", SDC_NAVY, "#EDF0F5", "rgba(31,56,100,0.06)"),
+            ("Tested", SDC_BLUE, "#EBF3FE", "rgba(5,99,193,0.06)"),
+            ("Passed", GROWTH_GREEN, "#EBF8F0", "rgba(0,176,80,0.06)"),
+            ("Review", STATUS_COLORS["needs_human_review"], "#FFF8E8", "rgba(230,172,0,0.06)"),
+            ("Untested", STATUS_COLORS["untested"], "#F0F2F5", "rgba(128,144,160,0.06)"),
+        ]
         ghost_cards = [
-            f'<div class="kpi-card" style="opacity:0.45">'
-            f'<div class="kpi-value">&mdash;</div>'
+            f'<div class="kpi-card kpi-card-ghost" style="'
+            f"background:linear-gradient(180deg,#FFFFFF 20%,{tint} 100%);"
+            f"border-bottom:2px solid {glow};"
+            f'">'
+            f'<div class="kpi-card-accent" style="background:linear-gradient(90deg,{color},{color}dd)"></div>'
+            f'<div class="kpi-value" style="opacity:0.2">&mdash;</div>'
             f'<div class="kpi-label">{label}</div>'
             f"</div>"
-            for label in ["Total Runs", "Tested", "Passed", "Review", "Untested"]
+            for label, color, tint, glow in _ghost_kpis
         ]
         return pn.pane.HTML(
             '<div class="obs-kpi-grid">' + "".join(ghost_cards) + "</div>",
@@ -812,20 +822,30 @@ def _build_kpi_grid(dm: DashboardDataManager) -> pn.FlexBox | pn.pane.HTML:
 def _build_decision_strip(dm: DashboardDataManager) -> pn.FlexBox | pn.pane.HTML:
     """Two-card decision strip: Current Champion and Best Challenger."""
     if dm.run_metadata.empty:
-        # Ghost decision cards — same layout as real ones but muted
+        # Ghost decision cards — atmospheric empty state with decorative elements
         ghost_champion = (
-            '<div class="summary-card primary" style="opacity:0.4;min-width:220px;flex:1">'
+            '<div class="summary-card primary" style="min-width:220px;flex:1;position:relative;overflow:hidden">'
+            '<svg viewBox="0 0 120 120" style="position:absolute;top:-20px;right:-20px;'
+            'width:100px;height:100px;opacity:0.04;pointer-events:none">'
+            '<circle cx="60" cy="60" r="50" fill="none" stroke="#0563C1" stroke-width="3"/>'
+            '<circle cx="60" cy="60" r="35" fill="none" stroke="#0563C1" stroke-width="2"/>'
+            '<circle cx="60" cy="60" r="20" fill="none" stroke="#0563C1" stroke-width="1.5"/>'
+            "</svg>"
             '<div class="eyebrow">Current Champion</div>'
-            '<div class="headline">&mdash;</div>'
-            '<div class="detail">Accuracy metrics appear here</div>'
+            '<div class="headline" style="opacity:0.25">&mdash;</div>'
+            '<div class="detail" style="color:#8090A0">Accuracy metrics appear here</div>'
             "</div>"
         )
         ghost_challenger = (
-            '<div class="summary-card" style="opacity:0.4;min-width:220px;flex:1;'
-            'border-top:3px solid #E6AC00">'
-            '<div class="eyebrow">Best Challenger</div>'
-            '<div class="headline">&mdash;</div>'
-            '<div class="detail">Comparison appears here</div>'
+            '<div class="summary-card warning" style="min-width:220px;flex:1;position:relative;overflow:hidden">'
+            '<svg viewBox="0 0 120 120" style="position:absolute;top:-20px;right:-20px;'
+            'width:100px;height:100px;opacity:0.04;pointer-events:none">'
+            '<polygon points="60,15 100,95 20,95" fill="none" stroke="#E6AC00" stroke-width="3"/>'
+            '<polygon points="60,35 85,85 35,85" fill="none" stroke="#E6AC00" stroke-width="2"/>'
+            "</svg>"
+            '<div class="eyebrow" style="color:#BF8F00">Best Challenger</div>'
+            '<div class="headline" style="opacity:0.25">&mdash;</div>'
+            '<div class="detail" style="color:#8090A0">Comparison appears here</div>'
             "</div>"
         )
         return pn.pane.HTML(
@@ -999,21 +1019,17 @@ def _launch_search_auto(
 
 
 # ---------------------------------------------------------------------------
-# Launch section (consolidated Quick Start + Advanced)
+# Launch controls (reusable preset picker + advanced controls)
 # ---------------------------------------------------------------------------
 
 
-def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
-    """Unified launch section combining simple and advanced search controls.
+def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
+    """Build the preset picker, launch button, and advanced controls.
 
-    Simple mode (always visible): CPU slider, max experiments, hint text,
-    Start Exploring button, status/output panes.
-
-    Advanced toggle (collapsed inner card): search-auto parameters, session
-    management, preview/launch buttons, candidate tables, report, and log.
+    Returns a ``pn.Column`` that can be embedded in any card or section.
+    Contains: preset buttons, recommendation hint, launch button, customize
+    card, and collapsed advanced controls.
     """
-    import os
-
     # --- Status and output panes (shared by simple and advanced) ---
     status_pane = pn.pane.HTML(sizing_mode="stretch_width")
     output_pane = pn.pane.HTML(sizing_mode="stretch_width")
@@ -1040,9 +1056,8 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
             "max_total_runs": default_max_total,
             "batch_run_budget": default_batch_budget,
             "summary": (
-                "Runs the recommended balanced search. This is the default starting point for "
-                "a junior demographer because it usually produces reviewable evidence without "
-                "opening too many branches at once."
+                "Runs the recommended balanced search. Usually produces reviewable evidence "
+                "without opening too many branches at once."
             ),
         },
         "Deeper search": {
@@ -1175,9 +1190,9 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
 
     btn_start = pn.widgets.Button(
         name="Launch Selected Preset",
-        button_type="success",
-        width=200,
-        height=44,
+        button_type="primary",
+        width=220,
+        height=46,
     )
     btn_start.on_click(_on_simple_start)
 
@@ -1620,11 +1635,10 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
         css_classes=["obs-inset-panel"],
     )
 
-    return pn.Card(
+    return pn.Column(
         pn.pane.HTML(
             '<div style="color:#1F3864;font-size:0.95em;font-weight:600;margin-bottom:4px">'
-            "Choose how broad the next search should be. "
-            "The shortcut button above starts the Standard exploration preset."
+            "Choose how broad the next search should be."
             "</div>",
             sizing_mode="stretch_width",
         ),
@@ -1636,9 +1650,7 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
         output_pane,
         customize_card,
         advanced_card,
-        title="Launch Experiments",
         sizing_mode="stretch_width",
-        css_classes=["obs-primary-launch-card"],
     )
 
 
@@ -2200,6 +2212,21 @@ def build_command_center(
         )
 
     workflow_components: list[Any] = [_build_primary_route_card(dm, tabs=tabs)]
+
+    # In non-empty states, offer a collapsed launch card so users can still
+    # start a new search without it dominating the view.
+    state = str(dm.workspace_state.get("state", "empty_ready") or "empty_ready")
+    if state != "empty_ready":
+        workflow_components.append(
+            pn.Card(
+                _build_launch_controls(dm),
+                title="Launch New Search",
+                collapsed=True,
+                sizing_mode="stretch_width",
+                css_classes=["obs-inset-panel"],
+            )
+        )
+
     if dm.search_sessions.empty:
         workflow_components.append(_build_onboarding_card(dm))
     workflow_components.append(_build_search_progress_card(dm, tabs=tabs))
@@ -2207,7 +2234,6 @@ def build_command_center(
 
     sections: list[Any] = [
         _layout_section("session", workflow_section),
-        _layout_section("launch", _build_launch_section(dm)),
         _layout_section("brief", _build_decision_brief_card(dm)),
         _layout_section("kpis", _build_kpi_grid(dm)),
         _layout_section("hero", _build_hero_metric(dm)),

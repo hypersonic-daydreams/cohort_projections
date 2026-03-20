@@ -577,8 +577,8 @@ def test_build_command_center_keeps_progress_card_visible_before_first_search(
     )
     monkeypatch.setattr(
         command_center_tab,
-        "_build_launch_section",
-        lambda dm: _stub_pane("LAUNCH"),
+        "_build_launch_controls",
+        lambda dm: _stub_pane("LAUNCH CONTROLS"),
     )
     monkeypatch.setattr(
         command_center_tab,
@@ -601,7 +601,11 @@ def test_build_command_center_keeps_progress_card_visible_before_first_search(
         lambda dm: _stub_pane("STRIP"),
     )
 
-    dm = SimpleNamespace(search_sessions=pd.DataFrame(), run_ids=[])
+    dm = SimpleNamespace(
+        search_sessions=pd.DataFrame(),
+        run_ids=[],
+        workspace_state={"state": "empty_ready"},
+    )
 
     layout = command_center_tab.build_command_center(cast(Any, dm))
     command_center_grid = layout.objects[1]

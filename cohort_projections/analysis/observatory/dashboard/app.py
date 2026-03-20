@@ -239,6 +239,15 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
     mode_switch.param.watch(_on_mode_change, "value")
     _refresh_header()
 
+    def _sync_shell_state_class() -> None:
+        """Update the shell's CSS classes with the current workspace-state class."""
+        state_key = str(dm.workspace_state.get("state", "empty_ready") or "empty_ready")
+        state_css = f"obs-state-{state_key.replace('_', '-')}"
+        base_classes = layout_mode_classes("obs-layout-shell")
+        shell.css_classes = [c for c in base_classes if not c.startswith("obs-state-")] + [
+            state_css,
+        ]
+
     if pn.state.curdoc is not None:
 
         def _refresh_periodic() -> None:
@@ -246,14 +255,19 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
             dm.refresh_search_sessions()
             _refresh_tab_chrome()
             _refresh_header()
+            _sync_shell_state_class()
 
         pn.state.add_periodic_callback(_refresh_periodic, period=5000, start=True)
+
+    # Compute initial state class for the shell.
+    _init_state_key = str(dm.workspace_state.get("state", "empty_ready") or "empty_ready")
+    _init_state_css = f"obs-state-{_init_state_key.replace('_', '-')}"
 
     shell = pn.Column(
         pn.Row(mode_switch, sizing_mode="stretch_width"),
         header_pane,
         tabs,
-        css_classes=layout_mode_classes("obs-layout-shell"),
+        css_classes=layout_mode_classes("obs-layout-shell") + [_init_state_css],
         sizing_mode="stretch_width",
     )
 

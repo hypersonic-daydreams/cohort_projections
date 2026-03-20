@@ -155,24 +155,39 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     color: #FFFFFF !important;
 }
 
-/* Main content — subtle dot grid on cool neutral */
+/* Main content — atmospheric orbs on cool blue-gray */
 :host(.pn-main), .pn-main {
-    background-color: #EAEDF2 !important;
+    background-color: #E2E7EE !important;
     background-image:
-        radial-gradient(ellipse at 15% 0%, rgba(5,99,193,0.06) 0%, transparent 50%),
-        radial-gradient(ellipse at 85% 100%, rgba(31,56,100,0.04) 0%, transparent 50%),
-        radial-gradient(circle, rgba(31,56,100,0.06) 1px, transparent 1px) !important;
-    background-size: auto, auto, 24px 24px !important;
+        linear-gradient(180deg, rgba(5,99,193,0.04) 0%, transparent 120px),
+        radial-gradient(circle at 8% 5%, rgba(5,99,193,0.06) 0%, transparent 50%),
+        radial-gradient(circle at 88% 90%, rgba(31,56,100,0.045) 0%, transparent 35%),
+        radial-gradient(circle at 75% 35%, rgba(0,128,128,0.035) 0%, transparent 22%),
+        radial-gradient(circle, rgba(31,56,100,0.045) 1px, transparent 1px) !important;
+    background-size: auto, auto, auto, auto, 22px 22px !important;
+}
+
+/* Soft inner vignette — adds depth to the viewport edges */
+:host(.pn-main)::after, .pn-main::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+        radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(31,56,100,0.03) 100%);
+    pointer-events: none;
+    z-index: 0;
 }
 
 /* --- Three-Tier Elevation System --- */
 .card-container, .bk-Card {
-    background: linear-gradient(180deg, #FFFFFF 0%, #FBFCFD 100%);
-    border: 1px solid #D0D8E3;
+    background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%);
+    border: 1px solid #C4D0DE;
     border-radius: 10px;
     box-shadow:
-        0 1px 2px rgba(31, 56, 100, 0.05),
-        0 4px 16px rgba(31, 56, 100, 0.07);
+        0 1px 0 rgba(255,255,255,0.8) inset,
+        0 1px 3px rgba(31, 56, 100, 0.08),
+        0 6px 24px rgba(31, 56, 100, 0.10),
+        0 12px 48px rgba(31, 56, 100, 0.04);
     padding: 18px;
     margin-bottom: 16px;
 }
@@ -275,6 +290,34 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
 .kpi-delta.negative { color: #00803C; }
 .kpi-delta.neutral  { color: #6B7D93; }
 
+/* KPI ghost state — visible accent bar + colored tint */
+.kpi-card-ghost {
+    position: relative;
+    overflow: hidden;
+    border-color: transparent !important;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.6) inset,
+        0 2px 8px rgba(31, 56, 100, 0.08),
+        0 8px 24px rgba(31, 56, 100, 0.06) !important;
+}
+.kpi-card-ghost .kpi-card-accent {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    border-radius: 10px 10px 0 0;
+    opacity: 1;
+}
+.kpi-card-ghost:hover {
+    transform: translateY(-3px);
+    box-shadow:
+        0 1px 0 rgba(255,255,255,0.6) inset,
+        0 4px 12px rgba(31, 56, 100, 0.10),
+        0 12px 32px rgba(31, 56, 100, 0.08) !important;
+}
+.kpi-card-ghost:hover .kpi-card-accent {
+    height: 5px;
+}
+
 /* KPI responsive grid */
 .obs-kpi-grid {
     display: grid;
@@ -292,9 +335,9 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     position: absolute;
     bottom: 0;
     left: 0;
-    width: 48px;
+    width: 100%;
     height: 3px;
-    background: linear-gradient(90deg, #0563C1, #00B0F0);
+    background: linear-gradient(90deg, #0563C1, #00B0F0 40%, transparent 100%);
     border-radius: 2px;
 }
 .section-header h2 {
@@ -325,11 +368,25 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     position: relative;
 }
 .summary-card .eyebrow {
-    color: #0563C1;
+    color: #FFFFFF;
     font-size: 0.7em;
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+    background: linear-gradient(135deg, #1F3864, #0563C1);
+    margin: -20px -22px 14px -22px;
+    padding: 10px 22px;
+    border-radius: 10px 10px 0 0;
+}
+.summary-card.primary .eyebrow {
+    background: linear-gradient(135deg, #0563C1, #044B8F);
+}
+.summary-card.warning .eyebrow {
+    background: linear-gradient(135deg, #BF8F00, #E6AC00);
+    color: #1F3864;
+}
+.summary-card.success .eyebrow {
+    background: linear-gradient(135deg, #00803C, #00B050);
 }
 .summary-card .headline {
     margin-top: 8px;
@@ -449,7 +506,14 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     border-color: transparent;
     background: linear-gradient(135deg, #0563C1, #044B8F);
     color: #FFFFFF;
-    box-shadow: 0 3px 12px rgba(5, 99, 193, 0.35);
+    box-shadow:
+        0 3px 12px rgba(5, 99, 193, 0.35),
+        0 0 20px rgba(5, 99, 193, 0.15);
+    animation: obs-step-glow 2.5s ease-in-out infinite;
+}
+@keyframes obs-step-glow {
+    0%, 100% { box-shadow: 0 3px 12px rgba(5, 99, 193, 0.35), 0 0 20px rgba(5, 99, 193, 0.15); }
+    50% { box-shadow: 0 3px 16px rgba(5, 99, 193, 0.50), 0 0 30px rgba(5, 99, 193, 0.25); }
 }
 .obs-step.active {
     color: #0D1B2A;
@@ -662,9 +726,123 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     }
 }
 
-/* --- Layout Shell --- */
+/* --- Layout Shell (state-reactive atmospheric background) --- */
 .obs-layout-shell {
     gap: 16px;
+    position: relative;
+}
+
+/* Primary atmospheric orb — large, top-right, shifts color with state */
+.obs-layout-shell::before {
+    content: '';
+    position: fixed;
+    top: 40px;
+    right: -120px;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(5,99,193,0.045) 0%, rgba(5,99,193,0.02) 40%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    transition: background 2s ease, opacity 2s ease, transform 2s ease;
+    opacity: 0.7;
+}
+
+/* Secondary atmospheric orb — smaller, bottom-left, complementary */
+.obs-layout-shell::after {
+    content: '';
+    position: fixed;
+    bottom: -80px;
+    left: -60px;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(31,56,100,0.04) 0%, rgba(31,56,100,0.015) 45%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+    transition: background 2s ease, opacity 2s ease, transform 2s ease;
+    opacity: 0.5;
+}
+
+/* --- State-specific orb treatments --- */
+
+/* Empty/Ready — neutral, quiet, inviting */
+.obs-state-empty-ready::before {
+    background: radial-gradient(circle, rgba(5,99,193,0.045) 0%, rgba(5,99,193,0.015) 40%, transparent 70%);
+    opacity: 0.6;
+}
+.obs-state-empty-ready::after {
+    background: radial-gradient(circle, rgba(31,56,100,0.035) 0%, transparent 70%);
+    opacity: 0.4;
+}
+
+/* Search in Progress — teal energy, slightly more vivid */
+.obs-state-search-in-progress::before {
+    background: radial-gradient(circle, rgba(0,176,240,0.07) 0%, rgba(0,176,240,0.025) 40%, transparent 70%);
+    opacity: 1;
+    transform: scale(1.05);
+}
+.obs-state-search-in-progress::after {
+    background: radial-gradient(circle, rgba(5,99,193,0.05) 0%, rgba(5,99,193,0.02) 45%, transparent 70%);
+    opacity: 0.7;
+}
+
+/* Review Ready — confident blue, present but calm */
+.obs-state-review-ready::before {
+    background: radial-gradient(circle, rgba(5,99,193,0.08) 0%, rgba(5,99,193,0.03) 40%, transparent 70%);
+    opacity: 1;
+    transform: scale(1.08);
+}
+.obs-state-review-ready::after {
+    background: radial-gradient(circle, rgba(0,176,240,0.04) 0%, rgba(0,176,240,0.015) 45%, transparent 70%);
+    opacity: 0.6;
+}
+
+/* Recommendation Ready — green forward momentum */
+.obs-state-recommendation-ready::before {
+    background: radial-gradient(circle, rgba(0,176,80,0.06) 0%, rgba(0,176,80,0.02) 40%, transparent 70%);
+    opacity: 1;
+    transform: scale(1.1);
+}
+.obs-state-recommendation-ready::after {
+    background: radial-gradient(circle, rgba(5,99,193,0.04) 0%, rgba(5,99,193,0.015) 45%, transparent 70%);
+    opacity: 0.7;
+}
+
+/* Senior Judgment Needed — warm gold caution */
+.obs-state-senior-judgment-needed::before {
+    background: radial-gradient(circle, rgba(230,172,0,0.055) 0%, rgba(230,172,0,0.02) 40%, transparent 70%);
+    opacity: 0.9;
+}
+.obs-state-senior-judgment-needed::after {
+    background: radial-gradient(circle, rgba(237,125,49,0.035) 0%, rgba(237,125,49,0.012) 45%, transparent 70%);
+    opacity: 0.5;
+}
+
+/* Recovery Needed — faint warm red, not alarming */
+.obs-state-recovery-needed::before {
+    background: radial-gradient(circle, rgba(192,0,0,0.04) 0%, rgba(192,0,0,0.015) 40%, transparent 70%);
+    opacity: 0.8;
+}
+.obs-state-recovery-needed::after {
+    background: radial-gradient(circle, rgba(230,172,0,0.03) 0%, rgba(230,172,0,0.01) 45%, transparent 70%);
+    opacity: 0.5;
+}
+
+/* Setup Needed — nearly invisible, just the structural shapes */
+.obs-state-setup-needed::before {
+    opacity: 0.3;
+}
+.obs-state-setup-needed::after {
+    opacity: 0.2;
+}
+
+/* Hide orbs on very small screens to avoid visual clutter */
+@media (max-width: 700px) {
+    .obs-layout-shell::before,
+    .obs-layout-shell::after {
+        display: none;
+    }
 }
 
 /* --- Command Center Grid --- */
@@ -675,8 +853,7 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     align-items: start;
     grid-template-areas:
         "session session"
-        "launch brief"
-        "launch kpis"
+        "brief kpis"
         "hero strip"
         "runindex champion";
 }
@@ -684,7 +861,6 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     min-width: 0;
 }
 .obs-cc-area-session { grid-area: session; }
-.obs-cc-area-launch { grid-area: launch; }
 .obs-cc-area-brief { grid-area: brief; }
 .obs-cc-area-kpis { grid-area: kpis; }
 .obs-cc-area-hero { grid-area: hero; }
@@ -937,6 +1113,38 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     border-radius: 2px;
 }
 
+/* Hero metric — animated border shimmer */
+.obs-metric-hero::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: 10px;
+    padding: 2px;
+    background: linear-gradient(135deg, #0563C1, #00B0F0, #00B050, #0563C1);
+    background-size: 300% 300%;
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: obs-border-shimmer 6s ease infinite;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+.obs-metric-hero:hover::after {
+    opacity: 1;
+}
+.obs-metric-hero-empty::after {
+    opacity: 0.4;
+    animation: obs-border-shimmer 8s ease infinite;
+}
+@keyframes obs-border-shimmer {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
 /* --- Tooltip --- */
 .obs-tooltip {
     position: relative;
@@ -1159,6 +1367,43 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     margin-top: 2px;
 }
 
+/* --- Preset Button Row (card-like selectable options) --- */
+.obs-preset-button-row .bk-btn {
+    border: 2px solid #DDE4ED !important;
+    border-radius: 10px !important;
+    background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%) !important;
+    color: #3D4F63 !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 3px rgba(31, 56, 100, 0.05);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative;
+    overflow: hidden;
+}
+.obs-preset-button-row .bk-btn:hover {
+    border-color: #B8C8DB !important;
+    background: linear-gradient(180deg, #FFFFFF 0%, #F0F4FA 100%) !important;
+    box-shadow: 0 2px 8px rgba(5, 99, 193, 0.10) !important;
+    transform: translateY(-1px);
+}
+.obs-preset-button-row .bk-btn-primary,
+.obs-preset-button-row .bk-btn.bk-btn-primary {
+    border-color: #0563C1 !important;
+    background: linear-gradient(135deg, #0563C1 0%, #044B8F 100%) !important;
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    box-shadow:
+        0 2px 8px rgba(5, 99, 193, 0.25),
+        0 0 0 1px rgba(5, 99, 193, 0.1) inset !important;
+}
+.obs-preset-button-row .bk-btn-primary:hover,
+.obs-preset-button-row .bk-btn.bk-btn-primary:hover {
+    background: linear-gradient(135deg, #0770D4 0%, #0563C1 100%) !important;
+    box-shadow:
+        0 4px 16px rgba(5, 99, 193, 0.30),
+        0 0 0 1px rgba(5, 99, 193, 0.15) inset !important;
+    transform: translateY(-1px);
+}
+
 /* --- Inset Settings Panel --- */
 .obs-inset-panel {
     background: #F4F7FB;
@@ -1167,33 +1412,77 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     border: 1px solid #E8EEF6;
 }
 
-/* --- Onboarding Card (visual welcome) --- */
+/* --- Onboarding Card (visual welcome — warm, layered) --- */
 .obs-onboarding {
     padding: 28px 32px;
-    border-radius: 10px;
+    border-radius: 12px;
     background:
-        radial-gradient(ellipse at 90% 20%, rgba(0,176,240,0.05) 0%, transparent 50%),
-        linear-gradient(180deg, #FFFFFF 0%, #F6F8FB 100%);
-    border: 1px solid #D0D8E3;
+        radial-gradient(ellipse at 10% 80%, rgba(0,176,80,0.03) 0%, transparent 50%),
+        radial-gradient(ellipse at 90% 20%, rgba(0,176,240,0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(5,99,193,0.03) 0%, transparent 60%),
+        linear-gradient(180deg, #FFFFFF 0%, #F2F5FA 100%);
+    border: 1px solid #C4D0DE;
     box-shadow:
-        0 1px 2px rgba(31, 56, 100, 0.05),
-        0 4px 16px rgba(31, 56, 100, 0.07);
+        0 1px 2px rgba(31, 56, 100, 0.06),
+        0 6px 24px rgba(31, 56, 100, 0.08);
+    position: relative;
+    overflow: hidden;
+}
+.obs-onboarding::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #0563C1, #00B0F0, #00B050);
+    opacity: 0.6;
 }
 .obs-onboarding-steps {
     display: flex;
-    gap: 28px;
+    gap: 12px;
     margin-bottom: 20px;
+    align-items: stretch;
 }
 .obs-onboarding-step {
     flex: 1;
     display: flex;
     gap: 14px;
     align-items: flex-start;
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(5,99,193,0.06);
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+.obs-onboarding-step:hover {
+    background: rgba(255,255,255,0.9);
+    border-color: rgba(5,99,193,0.12);
+}
+/* Per-step color tints */
+.obs-onboarding-step:nth-child(1) {
+    background: rgba(5, 99, 193, 0.06);
+    border-color: rgba(5, 99, 193, 0.12);
+}
+.obs-onboarding-step:nth-child(1):hover {
+    background: rgba(5, 99, 193, 0.10);
+}
+.obs-onboarding-step:nth-child(2) {
+    background: rgba(0, 176, 240, 0.05);
+    border-color: rgba(0, 176, 240, 0.10);
+}
+.obs-onboarding-step:nth-child(2):hover {
+    background: rgba(0, 176, 240, 0.09);
+}
+.obs-onboarding-step:nth-child(3) {
+    background: rgba(0, 176, 80, 0.05);
+    border-color: rgba(0, 176, 80, 0.10);
+}
+.obs-onboarding-step:nth-child(3):hover {
+    background: rgba(0, 176, 80, 0.09);
 }
 .obs-onboarding-num {
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     background: linear-gradient(135deg, #0563C1, #044B8F);
     color: #FFFFFF;
@@ -1202,7 +1491,9 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(5, 99, 193, 0.25);
+    box-shadow:
+        0 2px 8px rgba(5, 99, 193, 0.25),
+        0 0 0 3px rgba(5, 99, 193, 0.08);
 }
 .obs-onboarding-title {
     font-size: 0.92em;
@@ -1213,20 +1504,59 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
 }
 .obs-onboarding-desc {
     font-size: 0.82em;
-    color: #6B7D93;
-    line-height: 1.5;
+    color: #5A6C84;
+    line-height: 1.55;
 }
 .obs-onboarding-footer {
     font-size: 0.8em;
-    color: #8090A0;
+    color: #7A8CA0;
     padding-top: 14px;
-    border-top: 1px solid #E8ECF1;
+    border-top: 1px solid #DDE4ED;
 }
 @media (max-width: 900px) {
     .obs-onboarding-steps {
         flex-direction: column;
-        gap: 16px;
+        gap: 12px;
     }
+}
+
+/* --- Collapsible card headers (rich dark treatment) --- */
+.bk-Card-header, .card-header {
+    background: linear-gradient(135deg, #1B2D4A 0%, #1F3864 60%, #244272 100%) !important;
+    border-bottom: 1px solid rgba(5, 99, 193, 0.3) !important;
+    border-radius: 10px 10px 0 0;
+    padding: 14px 20px !important;
+    box-shadow: 0 2px 8px rgba(13, 27, 42, 0.15) inset;
+}
+.bk-Card-header .bk-Card-title,
+.card-header .card-title,
+.bk-Card-header .bk-panel-models-markup-HTML,
+.bk-Card-header > div {
+    color: #FFFFFF !important;
+    font-size: 0.92em !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+/* Arrow/toggle icon in card headers */
+.bk-Card-header .bk-btn,
+.bk-Card-header button {
+    color: rgba(255,255,255,0.8) !important;
+    filter: brightness(10);
+}
+.bk-Card.collapsed .bk-Card-header,
+.bk-Card.collapsed .card-header {
+    border-radius: 10px !important;
+    border-bottom: none !important;
+}
+/* Primary workflow card — blue accent glow */
+.obs-primary-workflow-card > .bk-Card-header,
+.obs-primary-workflow-card > .card-header {
+    background: linear-gradient(135deg, #0563C1 0%, #1B2D4A 60%, #0D1B2A 100%) !important;
+    border-bottom: 1px solid rgba(0, 176, 240, 0.3) !important;
+    box-shadow:
+        0 2px 8px rgba(13, 27, 42, 0.15) inset,
+        0 4px 16px rgba(5, 99, 193, 0.15);
 }
 
 /* --- Card hover transitions --- */
@@ -1236,8 +1566,10 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
 .obs-elevation-2:hover,
 .card-container:hover, .bk-Card:hover {
     box-shadow:
-        0 1px 2px rgba(31, 56, 100, 0.06),
-        0 8px 28px rgba(31, 56, 100, 0.10);
+        0 1px 0 rgba(255,255,255,0.8) inset,
+        0 1px 3px rgba(31, 56, 100, 0.08),
+        0 8px 32px rgba(31, 56, 100, 0.14),
+        0 16px 56px rgba(31, 56, 100, 0.06);
     transform: translateY(-2px);
 }
 .obs-elevation-1:hover {
@@ -1382,7 +1714,6 @@ nav.pn-sidebar .bk-btn, nav.pn-sidebar label {
         grid-template-columns: 1fr;
         grid-template-areas:
             "session"
-            "launch"
             "brief"
             "kpis"
             "hero"
@@ -1517,6 +1848,8 @@ _BASE_TABS_STYLESHEET = """
     color: #0D1B2A;
     font-weight: 800;
     border-bottom: 3px solid #0563C1;
+    background: linear-gradient(180deg, rgba(5,99,193,0.08) 0%, rgba(5,99,193,0.02) 100%);
+    border-radius: 6px 6px 0 0;
 }
 
 .bk-tab.bk-active::after {
