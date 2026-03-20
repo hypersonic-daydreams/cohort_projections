@@ -13,7 +13,6 @@ import panel as pn
 from .data_manager import DashboardDataManager
 from .theme import (
     DASHBOARD_CSS,
-    SDC_NAVY,
     SDC_WHITE,
     build_tabs_stylesheet,
     layout_mode_classes,
@@ -261,9 +260,9 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
     # Assemble template -------------------------------------------------
     template = pn.template.FastListTemplate(
         title="Projection Observatory",
-        header_background=SDC_NAVY,
+        header_background="#0D1B2A",
         header_color=SDC_WHITE,
-        accent_base_color=SDC_NAVY,
+        accent_base_color="#0563C1",
         shadow=True,
         main=[shell],
         raw_css=[DASHBOARD_CSS],
