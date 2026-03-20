@@ -622,11 +622,13 @@ def build_scorecard_tab(
         widgets.markdown_card(
             "Why This Tab Matters Now",
             dm.analytics_context("Scorecards"),
+            variant="subtle",
             min_width=420,
         ),
         widgets.markdown_card(
             "Review Question",
             "Does this candidate improve the most important error measures enough to justify deeper plausibility review?",
+            variant="subtle",
             min_width=420,
         )
         if dm.selection_state.review_mode
@@ -634,12 +636,21 @@ def build_scorecard_tab(
         takeaway_card,
         filter_bar(preset_selector, run_selector),
         pn.Card(
+            pn.pane.HTML(
+                '<p class="obs-text-caption">One row per benchmark bundle. '
+                "Lower values indicate better projection accuracy.</p>",
+                sizing_mode="stretch_width",
+            ),
             scorecard_table_bound,
             title="Side-by-Side Scorecard",
             collapsed=False,
             sizing_mode="stretch_width",
         ),
         pn.Card(
+            pn.pane.HTML(
+                '<p class="obs-text-caption">Bars below zero indicate improvement over the champion.</p>',
+                sizing_mode="stretch_width",
+            ),
             delta_chart,
             title="County Error Change vs Champion",
             collapsed=False,

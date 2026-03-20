@@ -310,7 +310,7 @@ def resolve_workspace_state(
 
     return _state_payload(
         WORKSPACE_EMPTY_READY,
-        "Start First Exploration",
+        "Start Standard Exploration",
         "The workstation is ready, but no reviewable benchmark evidence exists yet.",
         "Launch a bounded search first. The first usable benchmark bundle will unlock guided review and recommendation prep.",
         "Ready to start",

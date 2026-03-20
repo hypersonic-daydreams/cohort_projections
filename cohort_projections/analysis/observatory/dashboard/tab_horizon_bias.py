@@ -1028,6 +1028,7 @@ def build_horizon_bias_tab(
             ),
             title="Why This Tab Matters Now",
             sizing_mode="stretch_width",
+            css_classes=["obs-card-subtle"],
         ),
         pn.Card(
             pn.pane.Markdown(
@@ -1036,6 +1037,7 @@ def build_horizon_bias_tab(
             ),
             title="Review Question",
             sizing_mode="stretch_width",
+            css_classes=["obs-card-subtle"],
         )
         if dm.selection_state.review_mode
         else pn.Column(),

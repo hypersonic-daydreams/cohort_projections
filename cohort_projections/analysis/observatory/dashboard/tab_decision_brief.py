@@ -137,64 +137,76 @@ def _reviewability_markdown(dm: DashboardDataManager) -> str:
     )
 
 
-def _what_matters_markdown(dm: DashboardDataManager) -> str:
-    """Return the main gain/tradeoff/risk summary for the current brief."""
+def _what_matters_html(dm: DashboardDataManager) -> str:
+    """Return a structured HTML insight card for gain/tradeoff/risk."""
     brief = dm.decision_brief
-    main_gain = str(brief.get("main_gain", "") or "No confirmed gain is available yet.")
-    main_tradeoff = str(
-        brief.get("main_tradeoff", "") or "No blocking tradeoff is highlighted in the summary."
+    main_gain = html.escape(
+        str(brief.get("main_gain", "") or "No confirmed gain is available yet.")
     )
-    evidence_quality = str(brief.get("evidence_quality", "") or "Partial evidence")
-    operational_label = str(brief.get("operational_evidence_label", "") or "Operationally clean")
-    operational_summary = str(
-        brief.get("operational_evidence_summary", "") or "Operational evidence is clean."
+    main_tradeoff = html.escape(
+        str(brief.get("main_tradeoff", "") or "No blocking tradeoff is highlighted.")
     )
     risk_flags = brief.get("risk_flags", [])
     if not isinstance(risk_flags, list):
         risk_flags = []
-    risk_text = (
+    risk_text = html.escape(
         ", ".join(str(flag) for flag in risk_flags if str(flag).strip())
         or "No special risk flags recorded."
     )
-    return "\n".join(
-        [
-            f"**Evidence quality:** {evidence_quality}",
-            "",
-            f"**Operational quality:** {operational_label}",
-            "",
-            operational_summary,
-            "",
-            f"**Main gain:** {main_gain}",
-            "",
-            f"**Main tradeoff:** {main_tradeoff}",
-            "",
-            f"**Blockers or risk flags:** {risk_text}",
-        ]
+    evidence_quality = html.escape(str(brief.get("evidence_quality", "") or "Partial evidence"))
+    return (
+        f'<div style="margin-bottom:8px">'
+        f'<span class="obs-text-caption">Evidence quality: {evidence_quality}</span></div>'
+        '<div class="obs-insight-card">'
+        '<div class="obs-insight-section gain">'
+        '<div class="obs-insight-label">Main Gain</div>'
+        f'<div class="obs-insight-value">{main_gain}</div>'
+        "</div>"
+        '<div class="obs-insight-section tradeoff">'
+        '<div class="obs-insight-label">Main Tradeoff</div>'
+        f'<div class="obs-insight-value">{main_tradeoff}</div>'
+        "</div>"
+        '<div class="obs-insight-section risk">'
+        '<div class="obs-insight-label">Blockers &amp; Risk Flags</div>'
+        f'<div class="obs-insight-value">{risk_text}</div>'
+        "</div>"
+        "</div>"
     )
 
 
-def _review_checklist_card(dm: DashboardDataManager) -> pn.Card:
-    """Render the guided-review checklist."""
+def _review_checklist_html(dm: DashboardDataManager) -> str:
+    """Render a structured HTML checklist for the current brief."""
     checklist = dm.decision_brief.get("review_checklist", [])
     if not isinstance(checklist, list) or not checklist:
-        return markdown_card(
-            "Review Checklist",
-            "No checklist is available for the current decision summary.",
-            min_width=320,
-        )
+        return '<div class="obs-text-body" style="padding:16px;color:#7A8CA0">No checklist is available for the current decision summary.</div>'
 
-    status_icon = {"yes": "Yes", "no": "No"}
-    lines: list[str] = []
+    items: list[str] = []
     for item in checklist:
         if not isinstance(item, dict):
             continue
-        label = str(item.get("label", "") or "").strip()
-        status = status_icon.get(str(item.get("status", "") or "").strip().lower(), "No")
-        detail = str(item.get("detail", "") or "").strip()
+        label = html.escape(str(item.get("label", "") or "").strip())
+        raw_status = str(item.get("status", "") or "").strip().lower()
+        detail = html.escape(str(item.get("detail", "") or "").strip())
         if not label:
             continue
-        lines.extend([f"**{label}:** {status}", "", detail, ""])
-    return markdown_card("Review Checklist", "\n".join(lines).strip(), min_width=360)
+        if raw_status == "yes":
+            css_class = "passed"
+            icon = "&#10003;"
+        elif raw_status == "no":
+            css_class = "failed"
+            icon = "&#10007;"
+        else:
+            css_class = "pending"
+            icon = "?"
+        items.append(
+            f'<div class="obs-checklist-item {css_class}">'
+            f'<span class="obs-check-icon">{icon}</span>'
+            f"<div>"
+            f'<div class="obs-check-label">{label}</div>'
+            f'<div class="obs-check-detail">{detail}</div>'
+            f"</div></div>"
+        )
+    return "".join(items)
 
 
 def _verdict_strip_html(dm: DashboardDataManager) -> str:
@@ -235,22 +247,22 @@ def _verdict_strip_html(dm: DashboardDataManager) -> str:
     elif "blocked" in status_label.lower() or "do not promote" in status_label.lower():
         safe_class = "blocked"
 
-    fields = [
-        ("Outcome", status_label, False),
-        ("Confidence", confidence_label, False),
-        ("Main reason", main_reason, True),
-        ("Operational quality", operational_label, False),
-        ("Next action", next_step, True),
-        ("Escalation guidance", escalation, False),
+    fields: list[tuple[str, str, bool, str]] = [
+        ("Outcome", status_label, False, "tint-blue"),
+        ("Confidence", confidence_label, False, "tint-blue"),
+        ("Main reason", main_reason, True, ""),
+        ("Operational quality", operational_label, False, ""),
+        ("Next action", next_step, True, "tint-green" if safe_class == "safe" else ""),
+        ("Escalation guidance", escalation, False, ""),
     ]
     field_html = "".join(
         (
-            '<div class="obs-verdict-item">'
+            f'<div class="obs-verdict-item{" " + tint if tint else ""}">'
             f'<div class="obs-verdict-label">{html.escape(label)}</div>'
             f'<div class="obs-verdict-value{" long" if is_long else ""}">{html.escape(value)}</div>'
             "</div>"
         )
-        for label, value, is_long in fields
+        for label, value, is_long, tint in fields
     )
 
     reference_parts: list[str] = []
@@ -267,7 +279,7 @@ def _verdict_strip_html(dm: DashboardDataManager) -> str:
     )
 
     return (
-        '<div class="obs-verdict-strip">'
+        f'<div class="obs-verdict-strip {safe_class}">'
         '<div class="obs-verdict-top">'
         '<div class="obs-verdict-badges">'
         f'<span class="obs-verdict-pill">{html.escape(status_label)}</span>'
@@ -336,27 +348,48 @@ def build_decision_brief_tab(
                 ),
             ]
         ),
-        min_width=420,
+        variant="subtle",
+        min_width=320,
         css_classes=["obs-compact-review-card"],
     )
-    cards: list[Any] = [
-        _review_checklist_card(dm),
-        markdown_card(
-            "What Matters Most",
-            _what_matters_markdown(dm),
-            min_width=360,
-            css_classes=["obs-compact-review-card"],
+
+    # Structured checklist card
+    checklist_card = pn.Card(
+        pn.pane.HTML(
+            _review_checklist_html(dm),
+            sizing_mode="stretch_width",
+            stylesheets=[DASHBOARD_CSS],
         ),
+        title="Review Checklist",
+        sizing_mode="stretch_width",
+        min_width=320,
+        css_classes=["obs-compact-review-card"],
+    )
+
+    # Structured "What Matters Most" card
+    what_matters_card = pn.Card(
+        pn.pane.HTML(
+            _what_matters_html(dm),
+            sizing_mode="stretch_width",
+            stylesheets=[DASHBOARD_CSS],
+        ),
+        title="What Matters Most",
+        sizing_mode="stretch_width",
+        css_classes=["obs-card-prominent", "obs-compact-review-card"],
+    )
+
+    # Collapsible extras
+    collapsible_cards: list[Any] = [
         markdown_card(
             "Reviewability & Archive Details",
             _reviewability_markdown(dm),
-            min_width=320,
+            variant="subtle",
             collapsed=True,
             css_classes=["obs-compact-review-card"],
         ),
     ]
     if getattr(dm.selection_state, "recommendation_package_path", ""):
-        cards.append(
+        collapsible_cards.append(
             markdown_card(
                 "Recommendation Packet",
                 "\n".join(
@@ -368,19 +401,20 @@ def build_decision_brief_tab(
                         "Bring this forward for senior review after validating the details in the analytical tabs.",
                     ]
                 ),
-                min_width=320,
+                variant="subtle",
+                collapsed=True,
                 css_classes=["obs-compact-review-card"],
             )
         )
     candidate_snapshot = _candidate_snapshot(dm)
     if len(candidate_snapshot) > 0:
-        cards.append(
+        collapsible_cards.append(
             pn.Card(
                 candidate_snapshot,
                 title="Candidate Snapshot",
                 collapsed=True,
                 sizing_mode="stretch_width",
-                css_classes=["obs-compact-review-card"],
+                css_classes=["obs-card-subtle", "obs-compact-review-card"],
             )
         )
 
@@ -399,6 +433,7 @@ def build_decision_brief_tab(
 
     btn_direct.on_click(_open_details)
 
+    # Linear reading flow: verdict -> context + checklist -> what matters -> extras
     return pn.Column(
         section_header(
             "Decision Brief",
@@ -407,6 +442,22 @@ def build_decision_brief_tab(
                 "results are usable, what matters most, what is blocked, and where to go next."
             ),
         ),
+        pn.pane.HTML(
+            _verdict_strip_html(dm),
+            sizing_mode="stretch_width",
+            stylesheets=[DASHBOARD_CSS],
+        ),
+        pn.FlexBox(
+            context_card,
+            checklist_card,
+            flex_wrap="wrap",
+            sizing_mode="stretch_width",
+            css_classes=layout_mode_classes("obs-decision-grid"),
+            styles={"gap": "12px"},
+        ),
+        what_matters_card,
+        *collapsible_cards,
+        pn.Row(btn_direct, sizing_mode="stretch_width"),
         build_review_step_bar(
             dm.selection_state,
             tabs,
@@ -414,20 +465,6 @@ def build_decision_brief_tab(
             total_steps=5,
             next_tab_index=2 if tabs is not None else None,
             next_tab_label="Scorecards",
-        ),
-        context_card,
-        pn.Row(btn_direct, sizing_mode="stretch_width"),
-        pn.pane.HTML(
-            _verdict_strip_html(dm),
-            sizing_mode="stretch_width",
-            stylesheets=[DASHBOARD_CSS],
-        ),
-        pn.FlexBox(
-            *cards,
-            flex_wrap="wrap",
-            sizing_mode="stretch_width",
-            css_classes=layout_mode_classes("obs-decision-grid"),
-            styles={"gap": "12px"},
         ),
         sizing_mode="stretch_width",
     )

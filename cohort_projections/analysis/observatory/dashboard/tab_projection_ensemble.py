@@ -875,11 +875,13 @@ def build_projection_ensemble(
         widgets.markdown_card(
             "Why This Tab Matters Now",
             dm.analytics_context("Projections"),
+            variant="subtle",
             min_width=420,
         ),
         widgets.markdown_card(
             "Review Question",
             "Do the projected population paths and endpoints still look credible after the scorecard gains?",
+            variant="subtle",
             min_width=420,
         )
         if dm.selection_state.review_mode

@@ -15,6 +15,7 @@ import pandas as pd
 import panel as pn
 import pytest
 
+import cohort_projections.analysis.observatory.dashboard.tab_command_center as command_center_tab
 import scripts.analysis.observatory_dashboard as dashboard_launcher
 from cohort_projections.analysis.observatory.dashboard.app import (
     _resolve_stepper_state,
@@ -549,6 +550,66 @@ def test_onboarding_card_explains_first_action_path() -> None:
     assert "Projection Observatory compares projection variants" in body
     assert "What Start Exploring produces" in body
     assert "Where blocked results go" in body
+
+
+def test_build_command_center_keeps_progress_card_visible_before_first_search(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """First-run workspaces should show onboarding and the live Search Progress card."""
+
+    def _stub_pane(text: str) -> pn.pane.Markdown:
+        return pn.pane.Markdown(text)
+
+    monkeypatch.setattr(
+        command_center_tab,
+        "_build_primary_route_card",
+        lambda dm, tabs=None: _stub_pane("PRIMARY ROUTE"),
+    )
+    monkeypatch.setattr(
+        command_center_tab,
+        "_build_onboarding_card",
+        lambda dm: _stub_pane("ONBOARDING"),
+    )
+    monkeypatch.setattr(
+        command_center_tab,
+        "_build_search_progress_card",
+        lambda dm, tabs=None: _stub_pane("SEARCH PROGRESS"),
+    )
+    monkeypatch.setattr(
+        command_center_tab,
+        "_build_launch_section",
+        lambda dm: _stub_pane("LAUNCH"),
+    )
+    monkeypatch.setattr(
+        command_center_tab,
+        "_build_decision_brief_card",
+        lambda dm: _stub_pane("BRIEF"),
+    )
+    monkeypatch.setattr(
+        command_center_tab,
+        "_build_kpi_grid",
+        lambda dm: _stub_pane("KPI"),
+    )
+    monkeypatch.setattr(
+        command_center_tab,
+        "_build_hero_metric",
+        lambda dm: _stub_pane("HERO"),
+    )
+    monkeypatch.setattr(
+        command_center_tab,
+        "_build_decision_strip",
+        lambda dm: _stub_pane("STRIP"),
+    )
+
+    dm = SimpleNamespace(search_sessions=pd.DataFrame(), run_ids=[])
+
+    layout = command_center_tab.build_command_center(cast(Any, dm))
+    command_center_grid = layout.objects[1]
+    workflow_section = command_center_grid.objects[0].objects[0]
+    workflow_bodies = [str(getattr(obj, "object", "")) for obj in workflow_section.objects]
+
+    assert "ONBOARDING" in workflow_bodies
+    assert "SEARCH PROGRESS" in workflow_bodies
 
 
 def test_history_takeaway_summarizes_longitudinal_state() -> None:
@@ -1271,7 +1332,8 @@ def test_build_decision_brief_tab_renders_cards() -> None:
 
     assert "Decision Brief" in header.object
     assert "Safe to recommend?" in verdict.object
-    assert len(flex_box.objects) >= 3
+    # FlexBox contains context + checklist; "What Matters Most" is a standalone card below.
+    assert len(flex_box.objects) >= 2
 
 
 def test_build_decision_brief_tab_includes_candidate_snapshot_when_available() -> None:
@@ -1309,7 +1371,11 @@ def test_build_decision_brief_tab_includes_candidate_snapshot_when_available() -
 
     tab = build_decision_brief_tab(cast(DashboardDataManager, dm), tabs=None)
     flex_box = next(child for child in tab if isinstance(child, pn.FlexBox))
-    assert len(flex_box.objects) == 4
+    # FlexBox contains context + checklist; candidate snapshot is a collapsible card below.
+    assert len(flex_box.objects) >= 2
+    # Candidate snapshot should appear somewhere in the tab.
+    all_titles = [getattr(child, "title", "") for child in tab if hasattr(child, "title")]
+    assert any("Candidate" in t for t in all_titles)
 
 
 def test_dashboard_data_manager_benchmark_snapshot_and_active_search_prefer_live_session(

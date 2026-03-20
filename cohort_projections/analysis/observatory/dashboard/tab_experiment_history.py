@@ -98,12 +98,36 @@ def build_experiment_history(dm: DashboardDataManager) -> pn.Column:
     )
 
     # -- Assemble nested sub-tabs --
+    inner_tabs_css = """
+    .bk-header {
+        border-bottom: 1px solid #E2EAF4;
+        gap: 2px;
+        padding-bottom: 4px;
+    }
+    .bk-tab {
+        font-size: 0.85em;
+        padding: 8px 16px;
+        border-radius: 8px;
+        background: transparent;
+        font-weight: 600;
+        color: #5A6C84;
+        border: none;
+    }
+    .bk-tab.bk-active {
+        background: #EBF3FE;
+        color: #1F3864;
+    }
+    .bk-tab:hover {
+        background: #F4F7FB;
+    }
+    """
     sub_tabs = pn.Tabs(
         ("Catalog", catalog_tab),
         ("Timeline", timeline_tab),
         ("Trends", trends_tab),
         ("Log", log_tab),
         dynamic=True,
+        stylesheets=[inner_tabs_css],
     )
 
     return pn.Column(

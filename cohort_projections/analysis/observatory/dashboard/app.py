@@ -34,6 +34,7 @@ TAB_SENSITIVITY = 5
 TAB_EXPERIMENT_HISTORY = 6
 
 _WORKFLOW_STEPS = ["Launch", "Monitor", "Review", "Decide"]
+_WORKFLOW_SUBTITLES = ["Command Center", "Search Progress", "Brief \u2192 Bias", "Sensitivity"]
 
 # Mapping from tab index to stepper step index.
 _TAB_TO_STEP: dict[int, int] = {
@@ -105,7 +106,12 @@ def _resolve_stepper_state(
 
 def _stepper_html(active: int, completed: list[int] | None = None) -> str:
     """Return the raw HTML string for the workflow stepper at a given state."""
-    pane = workflow_stepper(_WORKFLOW_STEPS, active=active, completed=completed)
+    pane = workflow_stepper(
+        _WORKFLOW_STEPS,
+        active=active,
+        completed=completed,
+        subtitles=_WORKFLOW_SUBTITLES,
+    )
     return str(pane.object)
 
 
@@ -146,12 +152,8 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
         dynamic=True,
     )
 
-    # Build the workflow stepper pane (reactive — updated on tab change).
-    stepper_pane = pn.pane.HTML(
-        _stepper_html(active=0),
-        sizing_mode="stretch_width",
-        stylesheets=[DASHBOARD_CSS],
-    )
+    # Unified header card: state summary + stepper + mode switch in one.
+    header_pane = pn.pane.HTML(sizing_mode="stretch_width", stylesheets=[DASHBOARD_CSS])
     mode_switch = pn.widgets.RadioButtonGroup(
         name="Experience Mode",
         options={"Guided": "guided", "Explore Directly": "direct"},
@@ -159,7 +161,6 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
         button_type="default",
         sizing_mode="fixed",
     )
-    state_pane = pn.pane.HTML(sizing_mode="stretch_width", stylesheets=[DASHBOARD_CSS])
 
     tabs.extend(
         [
@@ -189,28 +190,33 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
             )
         ]
 
-    def _refresh_state_summary() -> None:
-        """Keep the top-level workspace summary and stepper aligned."""
+    def _refresh_header() -> None:
+        """Render the unified header card: state + stepper + mode indicator."""
         state = dm.workspace_state
         dm.selection_state.workspace_state = str(state.get("state", "") or "")
-        mode_label = (
-            "Guided" if dm.selection_state.experience_mode == "guided" else "Explore Directly"
-        )
-        state_pane.object = (
-            '<div class="summary-card primary" style="max-width:none">'
-            f'<div class="eyebrow">Workspace</div>'
-            f'<div class="headline">{state.get("route_title", "Command Center")} | {mode_label}</div>'
-            f'<div class="detail">{state.get("summary", "")}</div>'
+        mode_label = "Guided" if dm.selection_state.experience_mode == "guided" else "Direct"
+        step, completed = _resolve_stepper_state(dm, tabs.active)
+        stepper_markup = _stepper_html(active=step, completed=completed)
+        header_pane.object = (
+            '<div class="summary-card primary" '
+            'style="max-width:none;position:relative;padding:18px 22px 12px">'
+            '<div class="obs-text-eyebrow">Workspace</div>'
+            f'<div class="obs-text-headline" style="margin-top:6px">'
+            f"{state.get('route_title', 'Command Center')}"
+            f'<span style="font-size:0.55em;font-weight:500;color:#7A8CA0;'
+            f'margin-left:10px;letter-spacing:0.02em">{mode_label}</span>'
+            f"</div>"
+            f"{stepper_markup}"
+            f'<div class="obs-text-body" style="margin-top:4px">'
+            f"{state.get('summary', '')}</div>"
             "</div>"
         )
 
     # Stepper reactivity ------------------------------------------------
     def _on_tab_change(event: object) -> None:
         """Update the workflow stepper when the active tab changes."""
-        step, completed = _resolve_stepper_state(dm, tabs.active)
-        stepper_pane.object = _stepper_html(active=step, completed=completed)
         _refresh_tab_chrome()
-        _refresh_state_summary()
+        _refresh_header()
 
     def _on_mode_change(event: object) -> None:
         """Switch between guided and direct exploration modes."""
@@ -221,7 +227,7 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
         else:
             tabs.active = TAB_COMMAND_CENTER
         _refresh_tab_chrome()
-        _refresh_state_summary()
+        _refresh_header()
 
     tabs.param.watch(_on_tab_change, "active")
     dm.selection_state.param.watch(lambda event: _refresh_tab_chrome(), "review_mode")
@@ -232,24 +238,21 @@ def create_app(dm: DashboardDataManager | None = None) -> pn.template.FastListTe
         "experience_mode",
     )
     mode_switch.param.watch(_on_mode_change, "value")
-    _refresh_state_summary()
+    _refresh_header()
 
     if pn.state.curdoc is not None:
 
-        def _refresh_stepper() -> None:
-            """Keep the workflow stepper aligned with live search activity."""
+        def _refresh_periodic() -> None:
+            """Keep the header aligned with live search activity."""
             dm.refresh_search_sessions()
-            step, completed = _resolve_stepper_state(dm, tabs.active)
-            stepper_pane.object = _stepper_html(active=step, completed=completed)
             _refresh_tab_chrome()
-            _refresh_state_summary()
+            _refresh_header()
 
-        pn.state.add_periodic_callback(_refresh_stepper, period=5000, start=True)
+        pn.state.add_periodic_callback(_refresh_periodic, period=5000, start=True)
 
     shell = pn.Column(
         pn.Row(mode_switch, sizing_mode="stretch_width"),
-        state_pane,
-        stepper_pane,
+        header_pane,
         tabs,
         css_classes=layout_mode_classes("obs-layout-shell"),
         sizing_mode="stretch_width",

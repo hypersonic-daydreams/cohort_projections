@@ -79,8 +79,8 @@ def kpi_card(
     )
     return pn.pane.HTML(
         html,
-        width=180,
-        min_width=180,
+        sizing_mode="stretch_width",
+        min_width=150,
         stylesheets=[DASHBOARD_CSS],
     )
 
@@ -302,10 +302,17 @@ def section_header(
     )
 
 
+_CARD_VARIANT_CLASSES: dict[str, str] = {
+    "subtle": "obs-card-subtle",
+    "prominent": "obs-card-prominent",
+}
+
+
 def markdown_card(
     title: str,
     body: str,
     *,
+    variant: str = "default",
     collapsed: bool = False,
     min_width: int | None = None,
     css_classes: list[str] | None = None,
@@ -318,18 +325,25 @@ def markdown_card(
         Card title shown in the header.
     body:
         Markdown body content.
+    variant:
+        Visual weight — ``"subtle"`` (Tier 1), ``"default"`` (Tier 2),
+        or ``"prominent"`` (Tier 3 with accent border).
     collapsed:
         Whether the card should start collapsed.
     min_width:
         Optional minimum width to help side-by-side dashboard layouts.
     """
+    classes = list(css_classes or [])
+    variant_cls = _CARD_VARIANT_CLASSES.get(variant)
+    if variant_cls:
+        classes.append(variant_cls)
     return pn.Card(
         pn.pane.Markdown(body, sizing_mode="stretch_width"),
         title=title,
         collapsed=collapsed,
         sizing_mode="stretch_width",
         min_width=min_width,
-        css_classes=list(css_classes or []),
+        css_classes=classes,
     )
 
 
@@ -342,6 +356,7 @@ def workflow_stepper(
     steps: list[str],
     active: int = 0,
     completed: list[int] | None = None,
+    subtitles: list[str] | None = None,
 ) -> pn.pane.HTML:
     """Render a horizontal step-progress bar.
 
@@ -353,6 +368,9 @@ def workflow_stepper(
         Zero-based index of the currently active step.
     completed:
         Zero-based indices of completed steps.
+    subtitles:
+        Optional secondary labels shown below each step name, mapping
+        stepper steps to tab names.
     """
     completed_set = set(completed or [])
     parts: list[str] = []
@@ -366,8 +384,14 @@ def workflow_stepper(
         else:
             css = "obs-step"
             num = str(i + 1)
+        subtitle_html = ""
+        if subtitles and i < len(subtitles) and subtitles[i]:
+            subtitle_html = f'<span class="obs-step-subtitle">{subtitles[i]}</span>'
         parts.append(
-            f'<div class="{css}"><span class="obs-step-num">{num}</span><span>{label}</span></div>'
+            f'<div class="{css}">'
+            f'<span class="obs-step-num">{num}</span>'
+            f'<span class="obs-step-label"><span>{label}</span>{subtitle_html}</span>'
+            f"</div>"
         )
         if i < len(steps) - 1:
             conn_css = (
@@ -697,27 +721,31 @@ def completion_banner(
 
 _EMPTY_STATE_SVGS: dict[str, str] = {
     "search": (
-        '<svg width="64" height="64" viewBox="0 0 64 64" fill="none">'
-        '<circle cx="28" cy="28" r="18" stroke="#0563C1" stroke-width="3" fill="#E9F1FC"/>'
-        '<line x1="41" y1="41" x2="56" y2="56" stroke="#0563C1" stroke-width="3" '
+        '<svg width="96" height="96" viewBox="0 0 96 96" fill="none">'
+        '<circle cx="40" cy="40" r="26" stroke="#0563C1" stroke-width="2.5" fill="#EBF3FE"/>'
+        '<line x1="59" y1="59" x2="80" y2="80" stroke="#0563C1" stroke-width="3" '
         'stroke-linecap="round"/>'
-        '<circle cx="28" cy="28" r="8" stroke="#0563C1" stroke-width="2" fill="none" '
-        'stroke-dasharray="4 3"/>'
+        '<circle cx="40" cy="40" r="12" stroke="#0563C1" stroke-width="1.5" fill="none" '
+        'stroke-dasharray="5 4" opacity="0.6"/>'
+        '<circle cx="40" cy="40" r="4" fill="#0563C1" opacity="0.4"/>'
         "</svg>"
     ),
     "rocket": (
-        '<svg width="64" height="64" viewBox="0 0 64 64" fill="none">'
-        '<path d="M32 8 C32 8 44 20 44 36 L36 44 L28 44 L20 36 C20 20 32 8 32 8Z" '
-        'fill="#E9F1FC" stroke="#0563C1" stroke-width="2"/>'
-        '<circle cx="32" cy="28" r="4" fill="#0563C1"/>'
-        '<path d="M26 44 L22 56 L28 48" stroke="#00B050" stroke-width="2" fill="none"/>'
-        '<path d="M38 44 L42 56 L36 48" stroke="#00B050" stroke-width="2" fill="none"/>'
+        '<svg width="96" height="96" viewBox="0 0 96 96" fill="none">'
+        '<path d="M48 12 C48 12 64 28 64 52 L54 64 L42 64 L32 52 C32 28 48 12 48 12Z" '
+        'fill="#EBF3FE" stroke="#0563C1" stroke-width="2"/>'
+        '<circle cx="48" cy="40" r="6" fill="#0563C1" opacity="0.7"/>'
+        '<path d="M40 64 L34 82 L42 72" stroke="#00B050" stroke-width="2" fill="none" '
+        'opacity="0.8"/>'
+        '<path d="M56 64 L62 82 L54 72" stroke="#00B050" stroke-width="2" fill="none" '
+        'opacity="0.8"/>'
+        '<circle cx="48" cy="40" r="2" fill="#FFFFFF"/>'
         "</svg>"
     ),
     "check": (
-        '<svg width="64" height="64" viewBox="0 0 64 64" fill="none">'
-        '<circle cx="32" cy="32" r="24" fill="#E2F3E8" stroke="#00B050" stroke-width="2"/>'
-        '<path d="M22 32 L29 39 L42 25" stroke="#00B050" stroke-width="3" fill="none" '
+        '<svg width="96" height="96" viewBox="0 0 96 96" fill="none">'
+        '<circle cx="48" cy="48" r="36" fill="#E6F6EB" stroke="#00B050" stroke-width="2"/>'
+        '<path d="M32 48 L43 59 L64 37" stroke="#00B050" stroke-width="3.5" fill="none" '
         'stroke-linecap="round" stroke-linejoin="round"/>'
         "</svg>"
     ),
@@ -727,6 +755,7 @@ _EMPTY_STATE_SVGS: dict[str, str] = {
 def illustrated_empty_state(
     message: str,
     illustration: str = "search",
+    action_label: str = "",
 ) -> pn.pane.HTML:
     """Render an empty-state placeholder with a simple inline SVG illustration.
 
@@ -736,9 +765,18 @@ def illustrated_empty_state(
         Descriptive text shown below the illustration.
     illustration:
         One of ``"search"``, ``"rocket"``, ``"check"``.
+    action_label:
+        Optional call-to-action text shown as a link below the message.
     """
     svg = _EMPTY_STATE_SVGS.get(illustration, _EMPTY_STATE_SVGS["search"])
-    html = f'<div class="obs-empty-state">{svg}<div class="obs-es-message">{message}</div></div>'
+    action_html = ""
+    if action_label:
+        action_html = f'<span class="obs-es-action">{action_label}</span>'
+    html = (
+        f'<div class="obs-empty-state animate">{svg}'
+        f'<div class="obs-es-message">{message}</div>'
+        f"{action_html}</div>"
+    )
     return pn.pane.HTML(html, sizing_mode="stretch_width", stylesheets=[DASHBOARD_CSS])
 
 
@@ -828,16 +866,16 @@ def build_review_step_bar(
             btn = pn.widgets.Button(
                 name=f"Next: {next_tab_label}",
                 button_type="primary",
-                width=200,
-                height=38,
+                width=240,
+                height=44,
             )
             btn.on_click(lambda e: setattr(tabs, "active", next_tab_index))
         else:
             btn = pn.widgets.Button(
                 name="Complete Review",
                 button_type="success",
-                width=200,
-                height=38,
+                width=240,
+                height=44,
             )
 
             def _complete(e: Any) -> None:

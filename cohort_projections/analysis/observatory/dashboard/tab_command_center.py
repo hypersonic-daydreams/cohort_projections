@@ -595,8 +595,14 @@ def _build_primary_route_card(
         btn_primary.button_type = "primary"
         btn_primary.name = "Review Best Candidate"
     else:
+        route_body.extend(
+            [
+                "",
+                "**Shortcut behavior:** This launches the same Standard exploration preset shown in Launch Experiments below.",
+            ]
+        )
         btn_primary.button_type = "success"
-        btn_primary.name = "Start First Exploration"
+        btn_primary.name = "Start Standard Exploration"
 
     return pn.Card(
         pn.pane.Markdown("\n".join(route_body), sizing_mode="stretch_width"),
@@ -764,12 +770,10 @@ def _build_kpi_grid(dm: DashboardDataManager) -> pn.FlexBox | pn.pane.HTML:
             color=STATUS_COLORS["untested"],
         ),
     ]
-    return pn.FlexBox(
-        *cards,
-        flex_wrap="wrap",
+    return pn.pane.HTML(
+        '<div class="obs-kpi-grid">' + "".join(str(c.object) for c in cards) + "</div>",
         sizing_mode="stretch_width",
-        css_classes=layout_mode_classes("obs-kpi-grid"),
-        styles={"gap": "10px"},
+        stylesheets=[DASHBOARD_CSS],
     )
 
 
@@ -1133,7 +1137,7 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
         )
 
     btn_start = pn.widgets.Button(
-        name="Start Exploring",
+        name="Launch Selected Preset",
         button_type="success",
         width=200,
         height=44,
@@ -1150,7 +1154,7 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
     customize_card = pn.Card(
         resource_row,
         pn.pane.HTML(
-            '<div style="color:#5A6C84;font-size:0.85em">'
+            '<div style="color:#7A8CA0;font-size:0.85em">'
             "Use these controls only when you need to override the preset defaults."
             "</div>",
             sizing_mode="stretch_width",
@@ -1158,6 +1162,7 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
         title="Customize Launch Settings",
         collapsed=True,
         sizing_mode="stretch_width",
+        css_classes=["obs-inset-panel"],
     )
 
     # ---------------------------------------------------------------
@@ -1575,12 +1580,14 @@ def _build_launch_section(dm: DashboardDataManager) -> pn.Card:
         title="Advanced Controls",
         collapsed=True,
         sizing_mode="stretch_width",
+        css_classes=["obs-inset-panel"],
     )
 
     return pn.Card(
         pn.pane.HTML(
             '<div style="color:#1F3864;font-size:0.95em;font-weight:600;margin-bottom:4px">'
-            "Choose how broad the next search should be."
+            "Choose how broad the next search should be. "
+            "The shortcut button above starts the Standard exploration preset."
             "</div>",
             sizing_mode="stretch_width",
         ),
@@ -2155,13 +2162,11 @@ def build_command_center(
             sizing_mode="stretch_width",
         )
 
-    workflow_section = pn.Column(
-        _build_primary_route_card(dm, tabs=tabs),
-        _build_search_progress_card(dm, tabs=tabs)
-        if not dm.search_sessions.empty
-        else _build_onboarding_card(dm),
-        sizing_mode="stretch_width",
-    )
+    workflow_components: list[Any] = [_build_primary_route_card(dm, tabs=tabs)]
+    if dm.search_sessions.empty:
+        workflow_components.append(_build_onboarding_card(dm))
+    workflow_components.append(_build_search_progress_card(dm, tabs=tabs))
+    workflow_section = pn.Column(*workflow_components, sizing_mode="stretch_width")
 
     sections: list[Any] = [
         _layout_section("session", workflow_section),
