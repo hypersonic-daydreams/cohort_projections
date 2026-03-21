@@ -398,12 +398,17 @@ def main() -> None:
 
             print("Running annual walk-forward validation...")
             stage_start = time.perf_counter()
-            # Use two-level parallelism when enough workers are available:
-            # run multiple origin years concurrently, each with county workers.
+            # Two-level parallelism: origin years run concurrently, each
+            # with county-level workers.  With 4 origin years the sweet
+            # spot is to always fill origin slots first (they dominate
+            # wall time) and distribute remaining workers to counties.
             n_origins = 4  # 2005, 2010, 2015, 2020
-            if args.workers >= n_origins * 2:
+            if args.workers >= n_origins:
                 origin_workers = n_origins
-                county_workers = args.workers // n_origins
+                county_workers = max(1, args.workers // n_origins)
+            elif args.workers >= 2:
+                origin_workers = min(args.workers, n_origins)
+                county_workers = max(1, args.workers // origin_workers)
             else:
                 origin_workers = 1
                 county_workers = args.workers

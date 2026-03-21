@@ -110,6 +110,7 @@ Usage
 
 from __future__ import annotations
 
+import multiprocessing
 import os
 from concurrent.futures import Future, ProcessPoolExecutor
 from dataclasses import dataclass
@@ -167,6 +168,12 @@ FERTILITY_PATH = (
     PROJECT_ROOT / "data" / "processed" / "sdc_2024" / "fertility_rates_5yr_summary_sdc_2024.csv"
 )
 OUTPUT_DIR = PROJECT_ROOT / "data" / "analysis" / "walk_forward"
+
+# Use "forkserver" context for ProcessPoolExecutor to avoid deadlocks
+# when nesting pools (origin-year workers spawning county-level workers).
+# "fork" (the Linux default) can deadlock if a child process inherits
+# locks held by threads in the parent.
+_MP_CONTEXT = multiprocessing.get_context("forkserver")
 
 # 5-year age group labels (18 groups: 0-4 through 85+)
 N_AGE_GROUPS = len(AGE_GROUP_LABELS)  # 18
@@ -2293,7 +2300,9 @@ def _run_single_origin_annual(
                 method_county_annual[method_name][county_fips] = county_annual
     else:
         futures: dict[str, Future[tuple[str, dict[str, dict[int, float]]]]] = {}
-        with ProcessPoolExecutor(max_workers=effective_projection_workers) as executor:
+        with ProcessPoolExecutor(
+            max_workers=effective_projection_workers, mp_context=_MP_CONTEXT
+        ) as executor:
             for fips in counties:
                 futures[fips] = executor.submit(
                     _project_single_county_annual,
@@ -2564,7 +2573,7 @@ def run_annual_validation(
         )
         futures: dict[int, Future[tuple[list[dict], list[dict], list[dict]]]] = {}
 
-        with ProcessPoolExecutor(max_workers=effective_workers) as executor:
+        with ProcessPoolExecutor(max_workers=effective_workers, mp_context=_MP_CONTEXT) as executor:
             for origin_year in ORIGIN_YEARS:
                 fut = executor.submit(
                     _run_single_origin_annual,

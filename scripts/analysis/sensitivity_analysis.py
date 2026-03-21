@@ -58,6 +58,7 @@ Usage
 
 from __future__ import annotations
 
+import multiprocessing
 import os
 import sys
 from collections.abc import Callable
@@ -280,9 +281,7 @@ def _prepare_sdc_rates_with_dampening(
     Replicates prepare_sdc_rates but with a configurable dampening value.
     """
     periods = wfv.AVAILABLE_PERIODS[origin_year]
-    mask = mig_raw.apply(
-        lambda r: (r["period_start"], r["period_end"]) in periods, axis=1
-    )
+    mask = mig_raw.apply(lambda r: (r["period_start"], r["period_end"]) in periods, axis=1)
     df = mig_raw[mask].copy()
 
     # Convert annualized to 5-year
@@ -339,10 +338,7 @@ def run_scenario(
         dict with keys: state_pct_error, county_mape, projected_state, etc.
     """
     if method not in METHOD_DISPATCH:
-        raise ValueError(
-            f"Unknown method: {method}. "
-            f"Available: {list(METHOD_DISPATCH.keys())}"
-        )
+        raise ValueError(f"Unknown method: {method}. Available: {list(METHOD_DISPATCH.keys())}")
 
     dispatch = METHOD_DISPATCH[method]
     is_annual = dispatch["is_annual"]
@@ -438,25 +434,16 @@ def _run_single_sensitivity_task(
         conv_override = None
 
         if param_name == "migration_rate":
-            perturbed_mig = perturb_migration_rates(
-                mig_raw, cast(float, level["factor"])
-            )
+            perturbed_mig = perturb_migration_rates(mig_raw, cast(float, level["factor"]))
         elif param_name == "fertility_rate":
-            perturbed_fertility = perturb_fertility(
-                fertility, cast(float, level["factor"])
-            )
+            perturbed_fertility = perturb_fertility(fertility, cast(float, level["factor"]))
         elif param_name == "survival_rate":
-            perturbed_survival = perturb_survival(
-                survival, cast(float, level["delta_q_pct"])
-            )
+            perturbed_survival = perturb_survival(survival, cast(float, level["delta_q_pct"]))
         elif param_name == "sdc_bakken_dampening":
             sdc_damp = cast(float, level["value"])
         elif param_name == "mortality_improvement":
             mort_imp = cast(float, level["value"])
-        elif (
-            param_name == "convergence_schedule"
-            and str(level["window"]) != "baseline"
-        ):
+        elif param_name == "convergence_schedule" and str(level["window"]) != "baseline":
             conv_override = str(level["window"])
 
         result = run_scenario(
@@ -523,9 +510,7 @@ def run_sensitivity_analysis(
     actual_data: dict[int, tuple[dict[str, float], float]] = {}
     for origin_year in SENSITIVITY_ORIGINS:
         actual_df = snapshots[VALIDATION_YEAR]
-        county_tots = (
-            actual_df.groupby("county_fips")["population"].sum().to_dict()
-        )
+        county_tots = actual_df.groupby("county_fips")["population"].sum().to_dict()
         state_total = sum(county_tots.values())
         actual_data[origin_year] = (county_tots, state_total)
 
@@ -598,11 +583,11 @@ def run_sensitivity_analysis(
                 )
     else:
         print(
-            f"  Running {total_scenarios} sensitivity scenarios with "
-            f"{effective_workers} workers..."
+            f"  Running {total_scenarios} sensitivity scenarios with {effective_workers} workers..."
         )
         futures: dict[int, Future[dict[str, object]]] = {}
-        with ProcessPoolExecutor(max_workers=effective_workers) as executor:
+        _mp_ctx = multiprocessing.get_context("forkserver")
+        with ProcessPoolExecutor(max_workers=effective_workers, mp_context=_mp_ctx) as executor:
             for idx, task in enumerate(tasks):
                 futures[idx] = executor.submit(_run_single_sensitivity_task, **task)
 
@@ -746,12 +731,19 @@ def build_html_report(
 
     # Color palette for an arbitrary number of methods
     _color_palette = [
-        "#2196F3", "#FF9800", "#4CAF50", "#9C27B0", "#F44336",
-        "#00BCD4", "#795548", "#607D8B", "#E91E63", "#3F51B5",
+        "#2196F3",
+        "#FF9800",
+        "#4CAF50",
+        "#9C27B0",
+        "#F44336",
+        "#00BCD4",
+        "#795548",
+        "#607D8B",
+        "#E91E63",
+        "#3F51B5",
     ]
     method_colors = {
-        m: _color_palette[i % len(_color_palette)]
-        for i, m in enumerate(methods_in_results)
+        m: _color_palette[i % len(_color_palette)] for i, m in enumerate(methods_in_results)
     }
 
     # Color scheme
@@ -782,38 +774,42 @@ def build_html_report(
         fig = go.Figure()
 
         # Low deviations (left bars)
-        fig.add_trace(go.Bar(
-            y=m_tornado["parameter"],
-            x=m_tornado["low_deviation"],
-            orientation="h",
-            name="Low perturbation",
-            marker_color=colors["low"],
-            text=m_tornado["low_label"],
-            textposition="inside",
-            hovertemplate=(
-                "<b>%{y}</b><br>"
-                "Perturbation: %{text}<br>"
-                "State error shift: %{x:+.2f}pp<br>"
-                "<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Bar(
+                y=m_tornado["parameter"],
+                x=m_tornado["low_deviation"],
+                orientation="h",
+                name="Low perturbation",
+                marker_color=colors["low"],
+                text=m_tornado["low_label"],
+                textposition="inside",
+                hovertemplate=(
+                    "<b>%{y}</b><br>"
+                    "Perturbation: %{text}<br>"
+                    "State error shift: %{x:+.2f}pp<br>"
+                    "<extra></extra>"
+                ),
+            )
+        )
 
         # High deviations (right bars)
-        fig.add_trace(go.Bar(
-            y=m_tornado["parameter"],
-            x=m_tornado["high_deviation"],
-            orientation="h",
-            name="High perturbation",
-            marker_color=colors["high"],
-            text=m_tornado["high_label"],
-            textposition="inside",
-            hovertemplate=(
-                "<b>%{y}</b><br>"
-                "Perturbation: %{text}<br>"
-                "State error shift: %{x:+.2f}pp<br>"
-                "<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Bar(
+                y=m_tornado["parameter"],
+                x=m_tornado["high_deviation"],
+                orientation="h",
+                name="High perturbation",
+                marker_color=colors["high"],
+                text=m_tornado["high_label"],
+                textposition="inside",
+                hovertemplate=(
+                    "<b>%{y}</b><br>"
+                    "Perturbation: %{text}<br>"
+                    "State error shift: %{x:+.2f}pp<br>"
+                    "<extra></extra>"
+                ),
+            )
+        )
 
         baseline_err = m_tornado["baseline_state_error"].iloc[0]
         fig.update_layout(
@@ -829,56 +825,56 @@ def build_html_report(
             height=350 + len(m_tornado) * 50,
             template="plotly_white",
             legend={
-                "orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "center", "x": 0.5
+                "orientation": "h",
+                "yanchor": "bottom",
+                "y": 1.02,
+                "xanchor": "center",
+                "x": 0.5,
             },
         )
 
         # Add vertical baseline line at zero
         fig.add_vline(x=0, line_dash="dash", line_color="gray", line_width=1)
 
-        sections.append({
-            "section": "tornado_state",
-            "method": method,
-            "html": fig.to_html(full_html=False, include_plotlyjs=False),
-        })
+        sections.append(
+            {
+                "section": "tornado_state",
+                "method": method,
+                "html": fig.to_html(full_html=False, include_plotlyjs=False),
+            }
+        )
 
     # ------------------------------------------------------------------
     # 2. Tornado Diagrams — County MAPE
     # ------------------------------------------------------------------
     for method in methods_in_results:
-        m_tornado = tornado[tornado["method"] == method].sort_values(
-            "mape_swing", ascending=True
-        )
+        m_tornado = tornado[tornado["method"] == method].sort_values("mape_swing", ascending=True)
         if len(m_tornado) == 0:
             continue
 
         fig = go.Figure()
 
-        fig.add_trace(go.Bar(
-            y=m_tornado["parameter"],
-            x=m_tornado["mape_low_deviation"],
-            orientation="h",
-            name="Low perturbation",
-            marker_color=colors["low"],
-            hovertemplate=(
-                "<b>%{y}</b><br>"
-                "County MAPE shift: %{x:+.2f}pp<br>"
-                "<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Bar(
+                y=m_tornado["parameter"],
+                x=m_tornado["mape_low_deviation"],
+                orientation="h",
+                name="Low perturbation",
+                marker_color=colors["low"],
+                hovertemplate=("<b>%{y}</b><br>County MAPE shift: %{x:+.2f}pp<br><extra></extra>"),
+            )
+        )
 
-        fig.add_trace(go.Bar(
-            y=m_tornado["parameter"],
-            x=m_tornado["mape_high_deviation"],
-            orientation="h",
-            name="High perturbation",
-            marker_color=colors["high"],
-            hovertemplate=(
-                "<b>%{y}</b><br>"
-                "County MAPE shift: %{x:+.2f}pp<br>"
-                "<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Bar(
+                y=m_tornado["parameter"],
+                x=m_tornado["mape_high_deviation"],
+                orientation="h",
+                name="High perturbation",
+                marker_color=colors["high"],
+                hovertemplate=("<b>%{y}</b><br>County MAPE shift: %{x:+.2f}pp<br><extra></extra>"),
+            )
+        )
 
         baseline_mape = m_tornado["baseline_county_mape"].iloc[0]
         fig.update_layout(
@@ -893,17 +889,23 @@ def build_html_report(
             height=350 + len(m_tornado) * 50,
             template="plotly_white",
             legend={
-                "orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "center", "x": 0.5
+                "orientation": "h",
+                "yanchor": "bottom",
+                "y": 1.02,
+                "xanchor": "center",
+                "x": 0.5,
             },
         )
 
         fig.add_vline(x=0, line_dash="dash", line_color="gray", line_width=1)
 
-        sections.append({
-            "section": "tornado_mape",
-            "method": method,
-            "html": fig.to_html(full_html=False, include_plotlyjs=False),
-        })
+        sections.append(
+            {
+                "section": "tornado_mape",
+                "method": method,
+                "html": fig.to_html(full_html=False, include_plotlyjs=False),
+            }
+        )
 
     # ------------------------------------------------------------------
     # 3. Spider / Radar Charts
@@ -933,33 +935,31 @@ def build_html_report(
 
         fig = go.Figure()
 
-        fig.add_trace(go.Scatterpolar(
-            r=state_closed,
-            theta=categories_closed,
-            fill="toself",
-            name="State % Error Swing",
-            line_color=colors[method],
-            opacity=0.6,
-            hovertemplate=(
-                "<b>%{theta}</b><br>"
-                "Normalized swing: %{r:.2f}<br>"
-                "<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Scatterpolar(
+                r=state_closed,
+                theta=categories_closed,
+                fill="toself",
+                name="State % Error Swing",
+                line_color=colors[method],
+                opacity=0.6,
+                hovertemplate=("<b>%{theta}</b><br>Normalized swing: %{r:.2f}<br><extra></extra>"),
+            )
+        )
 
-        fig.add_trace(go.Scatterpolar(
-            r=mape_closed,
-            theta=categories_closed,
-            fill="toself",
-            name="County MAPE Swing",
-            line_color="#9C27B0",
-            opacity=0.4,
-            hovertemplate=(
-                "<b>%{theta}</b><br>"
-                "Normalized MAPE swing: %{r:.2f}<br>"
-                "<extra></extra>"
-            ),
-        ))
+        fig.add_trace(
+            go.Scatterpolar(
+                r=mape_closed,
+                theta=categories_closed,
+                fill="toself",
+                name="County MAPE Swing",
+                line_color="#9C27B0",
+                opacity=0.4,
+                hovertemplate=(
+                    "<b>%{theta}</b><br>Normalized MAPE swing: %{r:.2f}<br><extra></extra>"
+                ),
+            )
+        )
 
         fig.update_layout(
             title=(
@@ -973,15 +973,21 @@ def build_html_report(
             height=500,
             template="plotly_white",
             legend={
-                "orientation": "h", "yanchor": "bottom", "y": -0.15, "xanchor": "center", "x": 0.5
+                "orientation": "h",
+                "yanchor": "bottom",
+                "y": -0.15,
+                "xanchor": "center",
+                "x": 0.5,
             },
         )
 
-        sections.append({
-            "section": "radar",
-            "method": method,
-            "html": fig.to_html(full_html=False, include_plotlyjs=False),
-        })
+        sections.append(
+            {
+                "section": "radar",
+                "method": method,
+                "html": fig.to_html(full_html=False, include_plotlyjs=False),
+            }
+        )
 
     # ------------------------------------------------------------------
     # 4. Parameter Sweep Line Charts
@@ -989,21 +995,41 @@ def build_html_report(
     # Define the ordered x-axis for each parameter
     param_x_order = {
         "migration_rate": [
-            "-50%", "-25%", "-10%", "baseline", "+10%", "+25%", "+50%",
+            "-50%",
+            "-25%",
+            "-10%",
+            "baseline",
+            "+10%",
+            "+25%",
+            "+50%",
         ],
         "fertility_rate": ["-25%", "-10%", "baseline", "+10%", "+25%"],
         "survival_rate": [
-            "-5% q (fewer deaths)", "-1% q (fewer deaths)", "baseline",
-            "+1% q (more deaths)", "+5% q (more deaths)",
+            "-5% q (fewer deaths)",
+            "-1% q (fewer deaths)",
+            "baseline",
+            "+1% q (more deaths)",
+            "+5% q (more deaths)",
         ],
         "sdc_bakken_dampening": [
-            "0.4", "0.5", "0.6 (baseline)", "0.7", "0.8",
+            "0.4",
+            "0.5",
+            "0.6 (baseline)",
+            "0.7",
+            "0.8",
         ],
         "mortality_improvement": [
-            "0.0%", "0.25%", "0.5% (baseline)", "0.75%", "1.0%",
+            "0.0%",
+            "0.25%",
+            "0.5% (baseline)",
+            "0.75%",
+            "1.0%",
         ],
         "convergence_schedule": [
-            "all_recent", "baseline (blended)", "all_medium", "all_longterm",
+            "all_recent",
+            "baseline (blended)",
+            "all_medium",
+            "all_longterm",
         ],
     }
 
@@ -1012,9 +1038,7 @@ def build_html_report(
     all_params = list(results["parameter"].unique())
     param_method_counts: dict[str, list[str]] = {}
     for param in all_params:
-        param_methods = list(
-            results[results["parameter"] == param]["method"].unique()
-        )
+        param_methods = list(results[results["parameter"] == param]["method"].unique())
         param_method_counts[param] = param_methods
 
     shared_params = [p for p, ms in param_method_counts.items() if len(ms) > 1]
@@ -1024,15 +1048,14 @@ def build_html_report(
     for param in shared_params:
         x_order = param_x_order.get(param, [])
         fig = make_subplots(
-            rows=1, cols=2,
+            rows=1,
+            cols=2,
             subplot_titles=("State % Error", "County MAPE"),
             horizontal_spacing=0.12,
         )
 
         for method in param_method_counts[param]:
-            param_df = results[
-                (results["method"] == method) & (results["parameter"] == param)
-            ]
+            param_df = results[(results["method"] == method) & (results["parameter"] == param)]
             if len(param_df) == 0:
                 continue
 
@@ -1046,9 +1069,7 @@ def build_html_report(
             )
 
             # Sort by defined x-axis order
-            avg["sort_order"] = avg["perturbation_level"].map(
-                {v: i for i, v in enumerate(x_order)}
-            )
+            avg["sort_order"] = avg["perturbation_level"].map({v: i for i, v in enumerate(x_order)})
             avg = avg.sort_values("sort_order").dropna(subset=["sort_order"])
 
             fig.add_trace(
@@ -1066,7 +1087,8 @@ def build_html_report(
                         "<extra></extra>"
                     ),
                 ),
-                row=1, col=1,
+                row=1,
+                col=1,
             )
             fig.add_trace(
                 go.Scatter(
@@ -1084,7 +1106,8 @@ def build_html_report(
                         "<extra></extra>"
                     ),
                 ),
-                row=1, col=2,
+                row=1,
+                col=2,
             )
 
         param_label = param.replace("_", " ").title()
@@ -1098,7 +1121,11 @@ def build_html_report(
             height=400,
             template="plotly_white",
             legend={
-                "orientation": "h", "yanchor": "bottom", "y": 1.08, "xanchor": "center", "x": 0.5
+                "orientation": "h",
+                "yanchor": "bottom",
+                "y": 1.08,
+                "xanchor": "center",
+                "x": 0.5,
             },
         )
         fig.update_xaxes(title_text="Perturbation Level", row=1, col=1)
@@ -1106,19 +1133,19 @@ def build_html_report(
         fig.update_yaxes(title_text="State % Error", row=1, col=1)
         fig.update_yaxes(title_text="County MAPE (%)", row=1, col=2)
 
-        sections.append({
-            "section": "sweep_shared",
-            "param": param,
-            "html": fig.to_html(full_html=False, include_plotlyjs=False),
-        })
+        sections.append(
+            {
+                "section": "sweep_shared",
+                "param": param,
+                "html": fig.to_html(full_html=False, include_plotlyjs=False),
+            }
+        )
 
     # Method-specific parameters (only one method has data for these)
     for param in specific_params:
         method = param_method_counts[param][0]  # single method
         x_order = param_x_order.get(param, [])
-        param_df = results[
-            (results["method"] == method) & (results["parameter"] == param)
-        ]
+        param_df = results[(results["method"] == method) & (results["parameter"] == param)]
         if len(param_df) == 0:
             continue
 
@@ -1131,13 +1158,12 @@ def build_html_report(
             .reset_index()
         )
 
-        avg["sort_order"] = avg["perturbation_level"].map(
-            {v: i for i, v in enumerate(x_order)}
-        )
+        avg["sort_order"] = avg["perturbation_level"].map({v: i for i, v in enumerate(x_order)})
         avg = avg.sort_values("sort_order").dropna(subset=["sort_order"])
 
         fig = make_subplots(
-            rows=1, cols=2,
+            rows=1,
+            cols=2,
             subplot_titles=("State % Error", "County MAPE"),
             horizontal_spacing=0.12,
         )
@@ -1149,13 +1175,10 @@ def build_html_report(
                 mode="lines+markers",
                 name="State Error",
                 line_color=colors[method],
-                hovertemplate=(
-                    "Level: %{x}<br>"
-                    "State error: %{y:.2f}%<br>"
-                    "<extra></extra>"
-                ),
+                hovertemplate=("Level: %{x}<br>State error: %{y:.2f}%<br><extra></extra>"),
             ),
-            row=1, col=1,
+            row=1,
+            col=1,
         )
         fig.add_trace(
             go.Scatter(
@@ -1164,13 +1187,10 @@ def build_html_report(
                 mode="lines+markers",
                 name="County MAPE",
                 line_color="#9C27B0",
-                hovertemplate=(
-                    "Level: %{x}<br>"
-                    "County MAPE: %{y:.2f}%<br>"
-                    "<extra></extra>"
-                ),
+                hovertemplate=("Level: %{x}<br>County MAPE: %{y:.2f}%<br><extra></extra>"),
             ),
-            row=1, col=2,
+            row=1,
+            col=2,
         )
 
         param_label = param.replace("_", " ").title()
@@ -1185,8 +1205,11 @@ def build_html_report(
             height=400,
             template="plotly_white",
             legend={
-                "orientation": "h", "yanchor": "bottom", "y": 1.08,
-                "xanchor": "center", "x": 0.5,
+                "orientation": "h",
+                "yanchor": "bottom",
+                "y": 1.08,
+                "xanchor": "center",
+                "x": 0.5,
             },
         )
         fig.update_xaxes(title_text="Perturbation Level", row=1, col=1)
@@ -1194,12 +1217,14 @@ def build_html_report(
         fig.update_yaxes(title_text="State % Error", row=1, col=1)
         fig.update_yaxes(title_text="County MAPE (%)", row=1, col=2)
 
-        sections.append({
-            "section": "sweep_specific",
-            "method": method,
-            "param": param,
-            "html": fig.to_html(full_html=False, include_plotlyjs=False),
-        })
+        sections.append(
+            {
+                "section": "sweep_specific",
+                "method": method,
+                "param": param,
+                "html": fig.to_html(full_html=False, include_plotlyjs=False),
+            }
+        )
 
     # ------------------------------------------------------------------
     # 5. Summary Table
@@ -1223,36 +1248,40 @@ def build_html_report(
         if len(m_tornado) == 0:
             continue
 
-        summary_fig.add_trace(go.Table(
-            header={
-                "values": [
-                    "Parameter", "Baseline State Error",
-                    "Low Deviation", "High Deviation", "Swing (pp)",
-                    "Low Label", "High Label",
-                ],
-                "fill_color": colors[method],
-                "font_color": "white",
-                "align": "left",
-            },
-            cells={
-                "values": [
-                    m_tornado["parameter"],
-                    m_tornado["baseline_state_error"].apply(
-                        lambda x: f"{x:+.2f}%"
-                    ),
-                    m_tornado["low_deviation"].apply(lambda x: f"{x:+.2f}pp"),
-                    m_tornado["high_deviation"].apply(lambda x: f"{x:+.2f}pp"),
-                    m_tornado["swing_state_error"].apply(lambda x: f"{x:.2f}pp"),
-                    m_tornado["low_label"],
-                    m_tornado["high_label"],
-                ],
-                "align": "left",
-            },
-            domain={
-                "x": [0, 1],
-                "y": table_y_ranges[method],
-            },
-        ))
+        summary_fig.add_trace(
+            go.Table(
+                header={
+                    "values": [
+                        "Parameter",
+                        "Baseline State Error",
+                        "Low Deviation",
+                        "High Deviation",
+                        "Swing (pp)",
+                        "Low Label",
+                        "High Label",
+                    ],
+                    "fill_color": colors[method],
+                    "font_color": "white",
+                    "align": "left",
+                },
+                cells={
+                    "values": [
+                        m_tornado["parameter"],
+                        m_tornado["baseline_state_error"].apply(lambda x: f"{x:+.2f}%"),
+                        m_tornado["low_deviation"].apply(lambda x: f"{x:+.2f}pp"),
+                        m_tornado["high_deviation"].apply(lambda x: f"{x:+.2f}pp"),
+                        m_tornado["swing_state_error"].apply(lambda x: f"{x:.2f}pp"),
+                        m_tornado["low_label"],
+                        m_tornado["high_label"],
+                    ],
+                    "align": "left",
+                },
+                domain={
+                    "x": [0, 1],
+                    "y": table_y_ranges[method],
+                },
+            )
+        )
 
     # Build annotations dynamically for each method's table label
     table_annotations = []
@@ -1303,7 +1332,7 @@ def build_html_report(
             max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
-            background: {colors['bg']};
+            background: {colors["bg"]};
             color: #333;
         }}
         h1 {{
@@ -1346,16 +1375,16 @@ def build_html_report(
 </head>
 <body>
     <h1>Sensitivity Analysis Report</h1>
-    <p>North Dakota Population Projections: {', '.join(method_labels[m] for m in methods_in_results)}</p>
+    <p>North Dakota Population Projections: {", ".join(method_labels[m] for m in methods_in_results)}</p>
 
     <div class="metadata">
         <dl>
             <dt>Origin years:</dt><dd>{origin_str}</dd>
             <dt>Validation year:</dt><dd>{VALIDATION_YEAR}</dd>
             <dt>Methods:</dt>
-            <dd>{', '.join(method_labels[m] for m in methods_in_results)}</dd>
+            <dd>{", ".join(method_labels[m] for m in methods_in_results)}</dd>
             <dt>Generated:</dt>
-            <dd>{pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}</dd>
+            <dd>{pd.Timestamp.now().strftime("%Y-%m-%d %H:%M")}</dd>
         </dl>
     </div>
 """)
@@ -1373,7 +1402,7 @@ def build_html_report(
             label = method_labels[s["method"]]
             html_parts.append(f"""
     <h3>{label}</h3>
-    <div class="chart-container">{s['html']}</div>
+    <div class="chart-container">{s["html"]}</div>
 """)
 
     # Section 2: Tornado — County MAPE
@@ -1387,7 +1416,7 @@ def build_html_report(
             label = method_labels[s["method"]]
             html_parts.append(f"""
     <h3>{label}</h3>
-    <div class="chart-container">{s['html']}</div>
+    <div class="chart-container">{s["html"]}</div>
 """)
 
     # Section 3: Radar
@@ -1399,9 +1428,7 @@ def build_html_report(
 """)
     for s in sections:
         if s["section"] == "radar":
-            html_parts.append(
-                f"""    <div class="chart-container">{s['html']}</div>\n"""
-            )
+            html_parts.append(f"""    <div class="chart-container">{s["html"]}</div>\n""")
 
     # Section 4: Sweeps
     html_parts.append("""
@@ -1413,9 +1440,7 @@ def build_html_report(
 """)
     for s in sections:
         if s["section"] in ("sweep_shared", "sweep_specific"):
-            html_parts.append(
-                f"""    <div class="chart-container">{s['html']}</div>\n"""
-            )
+            html_parts.append(f"""    <div class="chart-container">{s["html"]}</div>\n""")
 
     # Section 5: Summary table
     html_parts.append(f"""
@@ -1510,10 +1535,7 @@ def main() -> None:
     # Validate method names against registry
     for m in methods:
         if m not in METHOD_DISPATCH:
-            parser.error(
-                f"Unknown method '{m}'. "
-                f"Available: {list(METHOD_DISPATCH.keys())}"
-            )
+            parser.error(f"Unknown method '{m}'. Available: {list(METHOD_DISPATCH.keys())}")
 
     method_names = ", ".join(method_display_label(m) for m in methods)
     print("=" * 80)
@@ -1530,11 +1552,7 @@ def main() -> None:
 
     print("\nLoading migration rates...")
     mig_raw = wfv.load_migration_rates_raw()
-    periods = sorted(
-        mig_raw[["period_start", "period_end"]]
-        .drop_duplicates()
-        .values.tolist()
-    )
+    periods = sorted(mig_raw[["period_start", "period_end"]].drop_duplicates().values.tolist())
     print(f"  Periods: {len(periods)} — {periods}")
 
     print("\nLoading survival and fertility rates...")
@@ -1561,16 +1579,11 @@ def main() -> None:
 
     results_path = _output_path("sensitivity_results.csv", label)
     results.to_csv(results_path, index=False)
-    print(
-        f"  {results_path.relative_to(PROJECT_ROOT)} ({len(results)} rows)"
-    )
+    print(f"  {results_path.relative_to(PROJECT_ROOT)} ({len(results)} rows)")
 
     tornado_path = _output_path("sensitivity_tornado.csv", label)
     tornado_data.to_csv(tornado_path, index=False)
-    print(
-        f"  {tornado_path.relative_to(PROJECT_ROOT)} "
-        f"({len(tornado_data)} rows)"
-    )
+    print(f"  {tornado_path.relative_to(PROJECT_ROOT)} ({len(tornado_data)} rows)")
 
     # 5. Build HTML report
     print("\nBuilding interactive HTML report...")
@@ -1593,10 +1606,7 @@ def main() -> None:
             continue
 
         print(f"\n  {method_label} — Parameters ranked by state error swing:")
-        print(
-            f"  {'Parameter':<30} {'Swing (pp)':>10} "
-            f"{'Low':>12} {'High':>12}"
-        )
+        print(f"  {'Parameter':<30} {'Swing (pp)':>10} {'Low':>12} {'High':>12}")
         print("  " + "-" * 66)
         for _, row in m_tornado.iterrows():
             print(
