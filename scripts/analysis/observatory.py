@@ -982,6 +982,16 @@ def build_parser() -> argparse.ArgumentParser:
             "0 = auto-detect based on available CPU cores (default)."
         ),
     )
+    search_auto_parser.add_argument(
+        "--parallel-runs",
+        type=int,
+        default=None,
+        help=(
+            "Number of candidate experiments to execute concurrently. "
+            "Each candidate runs in its own isolated worktree. "
+            "Defaults to the search policy setting (typically 1)."
+        ),
+    )
 
     return parser
 
@@ -2123,6 +2133,7 @@ def cmd_search_auto(
             max_total_runs=args.max_total_runs,
             keep_worktrees=args.keep_worktrees,
             workers_per_run=getattr(args, "workers_per_run", 0),
+            parallel_runs=getattr(args, "parallel_runs", None),
         )
     except Exception as e:
         print(f"Error running autonomous search: {e}")  # noqa: T201

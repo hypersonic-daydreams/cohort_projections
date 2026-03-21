@@ -183,10 +183,28 @@ def _best_tested_challenger(dm: DashboardDataManager) -> pd.Series | None:
 def _derive_parallelism(core_budget: int) -> tuple[int, int]:
     """Map a core budget to (parallel_runs, workers_per_run).
 
-    Below 14 cores: single run, all cores as workers.
-    14+ cores: two parallel runs sharing the budget evenly.
+    Scales parallel runs with available cores while keeping each run
+    allocated enough workers (at least 4) for benchmark-internal
+    parallelism to remain effective:
+
+    - < 8 cores:  1 run  (all cores as workers)
+    - 8-15 cores: 2 runs
+    - 16-31 cores: 3 runs
+    - 32-63 cores: 4 runs
+    - 64+ cores:  up to 8 runs (capped to avoid diminishing returns)
     """
-    parallel_runs = 1 if core_budget < 14 else 2
+    if core_budget < 8:
+        parallel_runs = 1
+    elif core_budget < 16:
+        parallel_runs = 2
+    elif core_budget < 32:
+        parallel_runs = 3
+    elif core_budget < 64:
+        parallel_runs = 4
+    else:
+        # Cap at 8 — beyond that, worktree I/O and git operations
+        # become the bottleneck rather than CPU.
+        parallel_runs = min(8, core_budget // 8)
     workers_per_run = max(1, core_budget // parallel_runs)
     return parallel_runs, workers_per_run
 
@@ -960,6 +978,7 @@ def _launch_search_auto(
     status_pane: pn.pane.HTML,
     output_pane: pn.pane.HTML,
     session_dir: Path,
+    parallel_runs: int | None = None,
 ) -> subprocess.Popen | None:
     """Write sidecar metadata, PID file, and launch ``search-auto`` subprocess.
 
@@ -973,6 +992,11 @@ def _launch_search_auto(
     log_path = session_dir / f".{search_id}.dashboard.log"
     meta_path = session_dir / f".{search_id}.dashboard_meta.yaml"
 
+    effective_parallel, effective_workers = _derive_parallelism(cpu_budget)
+    if parallel_runs is not None:
+        effective_parallel = parallel_runs
+        effective_workers = max(1, cpu_budget // max(1, effective_parallel))
+
     cmd = [
         sys.executable,
         str(_OBSERVATORY_SCRIPT),
@@ -984,7 +1008,9 @@ def _launch_search_auto(
         "--max-total-runs",
         str(max_total_runs),
         "--workers-per-run",
-        str(cpu_budget),
+        str(effective_workers),
+        "--parallel-runs",
+        str(effective_parallel),
         "--max-pending",
         str(max_pending),
         "--max-recommended",
@@ -1041,7 +1067,8 @@ def _launch_search_auto(
 
     output_pane.object = terminal_output(
         f"Launched: {search_id}  (PID {process.pid})\n"
-        f"CPU cores: {cpu_budget} | Max experiments: {max_total_runs}\n"
+        f"CPU cores: {cpu_budget} | {effective_parallel} parallel run(s) x "
+        f"{effective_workers} workers | Max experiments: {max_total_runs}\n"
         f"Log: {log_path.relative_to(_PROJECT_ROOT)}\n\n"
         f"Progress will appear in the Search Progress section.",
         max_height=180,

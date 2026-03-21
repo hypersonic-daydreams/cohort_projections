@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import logging
 import shutil
 import subprocess
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, cast
 
@@ -33,6 +36,8 @@ from cohort_projections.analysis.observatory.search_policy import (
     load_search_policy,
 )
 from cohort_projections.analysis.observatory.variant_catalog import VariantCatalog
+
+logger = logging.getLogger(__name__)
 
 
 def _resolve_project_path(project_root: Path, raw_path: str | Path) -> Path:
@@ -376,11 +381,22 @@ class AutonomousSearchController:
         dry_run: bool = False,
         keep_worktrees: bool | None = None,
         workers_per_run: int = 0,
+        parallel_runs: int | None = None,
     ) -> dict[str, Any]:
-        """Execute queued candidates inside isolated worktrees."""
+        """Execute queued candidates inside isolated worktrees.
+
+        When *parallel_runs* > 1, candidates are executed concurrently using
+        a thread pool.  Each candidate gets its own worktree, so filesystem
+        isolation is maintained.  Session state is guarded by a lock.
+        """
         session = self.load_session(search_id)
         budget = run_budget if run_budget is not None else self.policy.default_run_budget
         keep = self.policy.keep_worktrees if keep_worktrees is None else keep_worktrees
+        effective_parallel = (
+            parallel_runs if parallel_runs is not None else self.policy.default_parallel_runs
+        )
+        effective_parallel = max(1, effective_parallel)
+
         runnable = [
             candidate for candidate in session["candidates"] if candidate["status"] == "planned"
         ]
@@ -396,7 +412,12 @@ class AutonomousSearchController:
         self.sandbox_manager.assert_live_checkout_clean()
         live_signature = self.sandbox_manager.live_checkout_signature()
 
-        executed = 0
+        # Pre-refresh the bare mirror once so parallel worktree creation
+        # doesn't redundantly fetch from the source repo.
+        self.sandbox_manager.ensure_mirror()
+
+        # --- Phase 1: skip already-logged candidates (sequential, fast) ---
+        to_execute: list[dict[str, Any]] = []
         for candidate in session["candidates"]:
             if candidate["status"] != "planned":
                 continue
@@ -413,14 +434,22 @@ class AutonomousSearchController:
                 candidate["last_error"] = ""
                 self._persist_session_update(session)
                 continue
-            if budget is not None and executed >= budget:
+            if budget is not None and len(to_execute) >= budget:
                 break
-            executed += 1
+            to_execute.append(candidate)
+
+        executed = len(to_execute)
+
+        # Mark all candidates as running before execution starts
+        session_lock = threading.Lock()
+        for candidate in to_execute:
             candidate["status"] = "running"
             candidate["attempts"] = int(candidate.get("attempts", 0)) + 1
             candidate["started_at"] = _utc_now()
-            self._persist_session_update(session)
+        self._persist_session_update(session)
 
+        # --- Phase 2: execute candidates ---
+        def _execute_candidate(candidate: dict[str, Any]) -> None:
             context = self.sandbox_manager.create_worktree(
                 search_id=search_id,
                 candidate_id=str(candidate["candidate_id"]),
@@ -473,10 +502,33 @@ class AutonomousSearchController:
                 candidate["completed_at"] = _utc_now()
                 candidate["last_error"] = str(exc)
             finally:
-                self._persist_session_update(session)
+                with session_lock:
+                    self._persist_session_update(session)
                 if not keep:
                     self.sandbox_manager.remove_worktree(context)
                 self.sandbox_manager.assert_live_checkout_unchanged(live_signature)
+
+        if effective_parallel <= 1 or len(to_execute) <= 1:
+            for candidate in to_execute:
+                _execute_candidate(candidate)
+        else:
+            logger.info(
+                "Running %d candidates with %d parallel workers.",
+                len(to_execute),
+                effective_parallel,
+            )
+            with ThreadPoolExecutor(max_workers=effective_parallel) as pool:
+                futures = {pool.submit(_execute_candidate, c): c for c in to_execute}
+                for future in as_completed(futures):
+                    try:
+                        future.result()
+                    except Exception as exc:
+                        cand = futures[future]
+                        logger.error(
+                            "Unhandled error in candidate %s: %s",
+                            cand.get("candidate_id", "?"),
+                            exc,
+                        )
 
         session["updated_at"] = _utc_now()
         if all(
@@ -507,6 +559,7 @@ class AutonomousSearchController:
         max_total_runs: int | None = None,
         keep_worktrees: bool | None = None,
         workers_per_run: int = 0,
+        parallel_runs: int | None = None,
     ) -> dict[str, Any]:
         """Plan and execute a search session until exhausted or budget-limited."""
         self.plan_session(
@@ -549,6 +602,7 @@ class AutonomousSearchController:
                 dry_run=False,
                 keep_worktrees=keep_worktrees,
                 workers_per_run=workers_per_run,
+                parallel_runs=parallel_runs,
             )
             executed = int(result.get("executed", 0))
             total_executed += executed

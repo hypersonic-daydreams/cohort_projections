@@ -34,6 +34,7 @@ class SearchPolicy:
     compile_changed_python: bool
     keep_worktrees: bool
     default_run_budget: int
+    default_parallel_runs: int
     default_max_pending: int
     default_max_recommended: int
     include_recipe_catalog: bool
@@ -146,6 +147,7 @@ def load_search_policy(
         compile_changed_python=bool(section.get("compile_changed_python", True)),
         keep_worktrees=bool(section.get("keep_worktrees", False)),
         default_run_budget=int(section.get("default_run_budget", 3)),
+        default_parallel_runs=int(section.get("default_parallel_runs", 1)),
         default_max_pending=int(planner.get("max_pending", 3)),
         default_max_recommended=int(planner.get("max_recommended", 5)),
         include_recipe_catalog=bool(planner.get("include_recipe_catalog", True)),

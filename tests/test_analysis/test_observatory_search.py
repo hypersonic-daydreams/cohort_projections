@@ -383,8 +383,9 @@ class TestSearchController:
             dry_run: bool = False,
             keep_worktrees: bool | None = None,
             workers_per_run: int = 0,
+            parallel_runs: int | None = None,
         ) -> dict[str, object]:
-            del dry_run, keep_worktrees, run_budget
+            del dry_run, keep_worktrees, run_budget, parallel_runs
             session = controller.load_session(search_id)
             planned = [c for c in session["candidates"] if c["status"] == "planned"]
             if planned:
