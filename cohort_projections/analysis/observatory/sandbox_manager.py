@@ -53,7 +53,7 @@ class SandboxManager:
         """Fail if the live checkout is dirty before an autonomous run."""
         if self.live_checkout_signature():
             raise RuntimeError(
-                "Refusing autonomous search while the live checkout is dirty.\n"
+                "Refusing deep search while the live checkout is dirty.\n"
                 "Commit or stash your changes first (git add . && git commit, "
                 "or git stash), then try again."
             )
@@ -62,9 +62,7 @@ class SandboxManager:
         """Fail if the live checkout changed during a search run."""
         current = self.live_checkout_signature()
         if current != prior_signature:
-            raise RuntimeError(
-                "Live checkout changed during autonomous search; stopping for safety."
-            )
+            raise RuntimeError("Live checkout changed during deep search; stopping for safety.")
 
     def ensure_mirror(self) -> Path:
         """Create or refresh the bare mirror used for search worktrees."""

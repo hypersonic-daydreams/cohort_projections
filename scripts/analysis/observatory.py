@@ -788,6 +788,117 @@ def build_parser() -> argparse.ArgumentParser:
         help="Rebuild the results cache from benchmark history.",
     )
 
+    def _add_deep_search_arguments(parser_obj: argparse.ArgumentParser) -> argparse.ArgumentParser:
+        """Add shared deep-search arguments to one parser."""
+        parser_obj.add_argument(
+            "--search-id",
+            default=None,
+            help="Optional search session identifier. Defaults to a UTC timestamped ID.",
+        )
+        parser_obj.add_argument(
+            "--base-revision",
+            default="HEAD",
+            help="Git revision to use as the sandbox base (default: HEAD).",
+        )
+        parser_obj.add_argument(
+            "--search-pack",
+            default=None,
+            help="Optional deep-search pack identifier. Defaults to the scope default.",
+        )
+        parser_obj.add_argument(
+            "--cpu-budget",
+            type=int,
+            default=None,
+            help="CPU cores to allocate to deep search. Defaults to Observatory config.",
+        )
+        parser_obj.add_argument(
+            "--time-budget-hours",
+            type=float,
+            default=None,
+            help="Wall-clock time budget for the deep-search session.",
+        )
+        parser_obj.add_argument(
+            "--max-pending",
+            type=int,
+            default=None,
+            help="Maximum number of untested catalog variants to include.",
+        )
+        parser_obj.add_argument(
+            "--max-recommended",
+            type=int,
+            default=None,
+            help="Maximum number of config-only recommendations to include.",
+        )
+        parser_obj.add_argument(
+            "--include-recipe-catalog",
+            action="store_true",
+            default=None,
+            help="Include enabled code-recipe candidates from the recipe catalog.",
+        )
+        parser_obj.add_argument(
+            "--allow-ai-synthesis",
+            action="store_true",
+            help="Allow optional AI synthesis when configured and a provider is available.",
+        )
+        parser_obj.add_argument(
+            "--overwrite",
+            action="store_true",
+            help="Replace an existing search session with the same identifier.",
+        )
+        parser_obj.add_argument(
+            "--batch-run-budget",
+            type=int,
+            default=None,
+            help="Per-batch execution budget. Defaults to the deep-search policy batch size.",
+        )
+        parser_obj.add_argument(
+            "--max-batches",
+            type=int,
+            default=None,
+            help="Optional cap on the number of deep-search execution batches.",
+        )
+        parser_obj.add_argument(
+            "--max-total-runs",
+            type=int,
+            default=None,
+            help="Optional cap on the total number of candidates to execute.",
+        )
+        parser_obj.add_argument(
+            "--keep-worktrees",
+            action="store_true",
+            help="Keep worktrees on disk after execution for inspection.",
+        )
+        parser_obj.add_argument(
+            "--skip-observatory-report",
+            action="store_true",
+            help="Skip generating the full Observatory HTML report at the end.",
+        )
+        parser_obj.add_argument(
+            "--search-policy",
+            type=Path,
+            default=None,
+            help="Path to the autonomous search policy YAML.",
+        )
+        parser_obj.add_argument(
+            "--workers-per-run",
+            type=int,
+            default=0,
+            help=(
+                "Benchmark-internal projection workers for each candidate experiment. "
+                "0 = use the deep-search CPU allocator."
+            ),
+        )
+        parser_obj.add_argument(
+            "--parallel-runs",
+            type=int,
+            default=None,
+            help=(
+                "Number of candidate experiments to execute concurrently. "
+                "Defaults to the deep-search CPU allocator."
+            ),
+        )
+        return parser_obj
+
     # --- search-plan ---
     search_plan_parser = sub.add_parser(
         "search-plan",
@@ -799,6 +910,23 @@ def build_parser() -> argparse.ArgumentParser:
         "--base-revision",
         default="HEAD",
         help="Git revision to use as the sandbox base (default: HEAD).",
+    )
+    search_plan_parser.add_argument(
+        "--search-pack",
+        default=None,
+        help="Optional deep-search pack identifier. Defaults to the scope default.",
+    )
+    search_plan_parser.add_argument(
+        "--cpu-budget",
+        type=int,
+        default=None,
+        help="CPU cores to allocate to the planned session.",
+    )
+    search_plan_parser.add_argument(
+        "--time-budget-hours",
+        type=float,
+        default=None,
+        help="Wall-clock time budget for the planned session.",
     )
     search_plan_parser.add_argument(
         "--max-pending",
@@ -817,6 +945,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         default=None,
         help="Include enabled code-recipe candidates from the recipe catalog.",
+    )
+    search_plan_parser.add_argument(
+        "--allow-ai-synthesis",
+        action="store_true",
+        help="Allow optional AI synthesis when configured and a provider is available.",
     )
     search_plan_parser.add_argument(
         "--overwrite",
@@ -900,97 +1033,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="Path to the autonomous search policy YAML.",
     )
 
-    # --- search-auto ---
-    search_auto_parser = sub.add_parser(
-        "search-auto",
-        parents=[common],
-        help="Plan, run, refresh, and report an autonomous-search session end-to-end.",
+    # --- deep-search ---
+    _add_deep_search_arguments(
+        sub.add_parser(
+            "deep-search",
+            parents=[common],
+            help="Plan, run, refresh, and report a deep-search session end-to-end.",
+        )
     )
-    search_auto_parser.add_argument(
-        "--search-id",
-        default=None,
-        help="Optional search session identifier. Defaults to a UTC timestamped ID.",
-    )
-    search_auto_parser.add_argument(
-        "--base-revision",
-        default="HEAD",
-        help="Git revision to use as the sandbox base (default: HEAD).",
-    )
-    search_auto_parser.add_argument(
-        "--max-pending",
-        type=int,
-        default=None,
-        help="Maximum number of untested catalog variants to include.",
-    )
-    search_auto_parser.add_argument(
-        "--max-recommended",
-        type=int,
-        default=None,
-        help="Maximum number of config-only recommendations to include.",
-    )
-    search_auto_parser.add_argument(
-        "--include-recipe-catalog",
-        action="store_true",
-        default=None,
-        help="Include enabled code-recipe candidates from the recipe catalog.",
-    )
-    search_auto_parser.add_argument(
-        "--overwrite",
-        action="store_true",
-        help="Replace an existing search session with the same identifier.",
-    )
-    search_auto_parser.add_argument(
-        "--batch-run-budget",
-        type=int,
-        default=None,
-        help="Per-batch execution budget. Defaults to the search-policy run budget.",
-    )
-    search_auto_parser.add_argument(
-        "--max-batches",
-        type=int,
-        default=None,
-        help="Optional cap on the number of autonomous execution batches.",
-    )
-    search_auto_parser.add_argument(
-        "--max-total-runs",
-        type=int,
-        default=None,
-        help="Optional cap on the total number of candidates to execute.",
-    )
-    search_auto_parser.add_argument(
-        "--keep-worktrees",
-        action="store_true",
-        help="Keep worktrees on disk after execution for inspection.",
-    )
-    search_auto_parser.add_argument(
-        "--skip-observatory-report",
-        action="store_true",
-        help="Skip generating the full Observatory HTML report at the end.",
-    )
-    search_auto_parser.add_argument(
-        "--search-policy",
-        type=Path,
-        default=None,
-        help="Path to the autonomous search policy YAML.",
-    )
-    search_auto_parser.add_argument(
-        "--workers-per-run",
-        type=int,
-        default=0,
-        help=(
-            "Benchmark-internal projection workers for each candidate experiment. "
-            "0 = auto-detect based on available CPU cores (default)."
-        ),
-    )
-    search_auto_parser.add_argument(
-        "--parallel-runs",
-        type=int,
-        default=None,
-        help=(
-            "Number of candidate experiments to execute concurrently. "
-            "Each candidate runs in its own isolated worktree. "
-            "Defaults to the search policy setting (typically 1)."
-        ),
+
+    # --- search-auto (backward-compatible alias) ---
+    _add_deep_search_arguments(
+        sub.add_parser(
+            "search-auto",
+            parents=[common],
+            help="Backward-compatible alias for deep-search.",
+        )
     )
 
     return parser
@@ -1824,10 +1882,14 @@ def cmd_search_plan(
         session = controller.plan_session(
             search_id=args.search_id,
             base_revision=args.base_revision,
+            search_pack_id=getattr(args, "search_pack", None),
+            cpu_budget=getattr(args, "cpu_budget", None),
+            time_budget_hours=getattr(args, "time_budget_hours", None),
             max_pending=args.max_pending,
             max_recommended=args.max_recommended,
             include_recipe_catalog=args.include_recipe_catalog,
             overwrite=args.overwrite,
+            allow_ai_synthesis=getattr(args, "allow_ai_synthesis", False),
         )
     except Exception as e:
         print(f"Error planning search session: {e}")  # noqa: T201
@@ -2099,7 +2161,9 @@ def cmd_search_auto(
     config: dict[str, Any],
     args: argparse.Namespace,
 ) -> int:
-    """Handle the ``search-auto`` subcommand."""
+    """Handle the ``deep-search`` and ``search-auto`` subcommands."""
+    command_name = str(getattr(args, "command", "deep-search") or "deep-search")
+    label = "Deep search" if command_name == "deep-search" else "Autonomous search"
     if args.batch_run_budget is not None and args.batch_run_budget <= 0:
         print("Error: --batch-run-budget must be positive when provided.")  # noqa: T201
         return 1
@@ -2108,6 +2172,12 @@ def cmd_search_auto(
         return 1
     if args.max_total_runs is not None and args.max_total_runs <= 0:
         print("Error: --max-total-runs must be positive when provided.")  # noqa: T201
+        return 1
+    if args.cpu_budget is not None and args.cpu_budget <= 0:
+        print("Error: --cpu-budget must be positive when provided.")  # noqa: T201
+        return 1
+    if args.time_budget_hours is not None and args.time_budget_hours <= 0:
+        print("Error: --time-budget-hours must be positive when provided.")  # noqa: T201
         return 1
 
     controller = _load_search_controller(
@@ -2124,6 +2194,9 @@ def cmd_search_auto(
         result = controller.run_to_completion(
             search_id=search_id,
             base_revision=args.base_revision,
+            search_pack_id=getattr(args, "search_pack", None),
+            cpu_budget=getattr(args, "cpu_budget", None),
+            time_budget_hours=getattr(args, "time_budget_hours", None),
             max_pending=args.max_pending,
             max_recommended=args.max_recommended,
             include_recipe_catalog=args.include_recipe_catalog,
@@ -2134,9 +2207,10 @@ def cmd_search_auto(
             keep_worktrees=args.keep_worktrees,
             workers_per_run=getattr(args, "workers_per_run", 0),
             parallel_runs=getattr(args, "parallel_runs", None),
+            allow_ai_synthesis=getattr(args, "allow_ai_synthesis", False),
         )
     except Exception as e:
-        print(f"Error running autonomous search: {e}")  # noqa: T201
+        print(f"Error running {command_name}: {e}")  # noqa: T201
         return 1
 
     observatory_report_path = ""
@@ -2171,7 +2245,7 @@ def cmd_search_auto(
         print(json.dumps(payload, indent=2, default=str))  # noqa: T201
         return 0
 
-    print(f"Autonomous search complete: {search_id}")  # noqa: T201
+    print(f"{label} complete: {search_id}")  # noqa: T201
     print(f"  Status: {result['status']}")  # noqa: T201
     print(f"  Executed total: {result['executed_total']}")  # noqa: T201
     print(f"  Completed: {result['summary']['completed']}")  # noqa: T201
@@ -2884,6 +2958,7 @@ _COMMANDS: dict[str, Any] = {
     "search-run": cmd_search_run,
     "search-status": cmd_search_status,
     "search-report": cmd_search_report,
+    "deep-search": cmd_search_auto,
     "search-auto": cmd_search_auto,
 }
 

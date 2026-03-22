@@ -1,0 +1,94 @@
+pack_id: cf001
+label: CF-001 College Fix Deep Search
+description: >
+  Default deep-search pack for the county-level college-fix method revision.
+  Encodes the existing CF-001 review lens so search ranking no longer depends
+  on ad hoc "best metric" heuristics.
+enabled: true
+default: true
+scope: county
+base_method: m2026r1
+base_config: cfg-20260309-college-fix-v1
+objective_order:
+  - state_ape_recent_short
+  - state_ape_recent_medium
+  - county_mape_urban_college
+  - county_mape_overall
+  - county_mape_rural
+  - county_mape_bakken
+hard_guardrails:
+  require_zero_hard_constraint_regression: true
+  require_operationally_clean_bundle: true
+parameter_bounds:
+  college_blend_factor:
+    min: 0.0
+    max: 1.0
+  convergence_medium_hold:
+    min: 1
+    max: 10
+  gq_correction_fraction:
+    min: 0.0
+    max: 1.0
+  rate_cap_general:
+    min: 0.01
+    max: 0.20
+  mortality_improvement_rate:
+    min: 0.0
+    max: 0.02
+interaction_rules:
+  - parameters:
+      - college_blend_factor
+      - convergence_medium_hold
+    mode: allowed
+  - parameters:
+      - convergence_recent_period_count
+      - convergence_medium_period_count
+      - mortality_improvement_rate
+    mode: allowed
+seed_candidates:
+  - source: variant_catalog
+    source_id: exp-b
+  - source: variant_catalog
+    source_id: exp-c
+  - source: variant_catalog
+    source_id: exp-d
+  - source: recipe_catalog
+    source_id: RX-101
+  - source: recipe_catalog
+    source_id: RX-102
+  - source: recipe_catalog
+    source_id: RX-111
+  - source: recipe_catalog
+    source_id: RX-112
+stop_policy:
+  time_budget_hours: 6.0
+  total_candidate_cap: 48
+  plateau_rounds: 2
+  min_improvement_pp: 0.02
+  operational_repeat_limit: 3
+  operational_failure_window: 10
+  operational_failure_rate: 0.20
+code_mutators:
+  - mutator_id: cf001-placeholder-deterministic
+    kind: deterministic
+    enabled: false
+    candidate_id: mutator-placeholder-deterministic
+    benchmark_label: mutator-placeholder-deterministic
+    hypothesis: >
+      Placeholder deterministic code mutator definition for future pack-driven
+      sandboxed code search.
+    recipe_steps: []
+    targeted_tests:
+      - tests/test_analysis/test_observatory_search.py
+  - mutator_id: cf001-placeholder-model
+    kind: model_generated
+    enabled: false
+    candidate_id: mutator-placeholder-model
+    benchmark_label: mutator-placeholder-model
+    hypothesis: >
+      Placeholder model-generated patch proposal definition for future pack-
+      driven sandboxed code search.
+    prompt_template: |
+      Propose a small sandbox-only patch for the CF-001 search pack.
+    targeted_tests:
+      - tests/test_analysis/test_observatory_search.py

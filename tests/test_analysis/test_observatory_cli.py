@@ -169,6 +169,13 @@ class TestBuildParser:
         assert args.command == "search-auto"
         assert args.batch_run_budget == 4
 
+    def test_deep_search_subcommand(self) -> None:
+        parser = cli_mod.build_parser()
+        args = parser.parse_args(["deep-search", "--cpu-budget", "12", "--search-pack", "cf001"])
+        assert args.command == "deep-search"
+        assert args.cpu_budget == 12
+        assert args.search_pack == "cf001"
+
     def test_verbose_flag(self) -> None:
         parser = cli_mod.build_parser()
         args = parser.parse_args(["-v", "status"])
@@ -336,6 +343,55 @@ class TestSearchCommands:
         assert "candidate_summary_csv" in out
         store.refresh.assert_called_once()
         store.write_cache.assert_called_once()
+
+    def test_deep_search_with_mocked_controller(self, capsys: pytest.CaptureFixture[str]) -> None:
+        controller = MagicMock()
+        controller.policy.session_root = (
+            PROJECT_ROOT / "data" / "analysis" / "experiments" / "search_runs"
+        )
+        controller.run_to_completion.return_value = {
+            "search_id": "search-deep-one",
+            "status": "finished",
+            "executed_total": 2,
+            "batches": [
+                {"batch": 1, "executed": 2, "completed": 2, "failed": 0, "planned_remaining": 0}
+            ],
+            "summary": {"planned": 0, "completed": 2, "failed": 0},
+            "artifacts": {
+                "deep_search_brief_markdown": "data/analysis/experiments/search_runs/search-deep-one/deep_search_brief.md",
+            },
+        }
+        store = MagicMock()
+        args = cli_mod.build_parser().parse_args(
+            [
+                "deep-search",
+                "--search-id",
+                "search-deep-one",
+                "--cpu-budget",
+                "12",
+                "--time-budget-hours",
+                "4",
+                "--search-pack",
+                "cf001",
+            ]
+        )
+        with (
+            patch.object(cli_mod, "_load_search_controller", return_value=controller),
+            patch.object(
+                cli_mod,
+                "_generate_observatory_report",
+                return_value=(PROJECT_ROOT / "report.html", "summary text"),
+            ),
+        ):
+            rc = cli_mod.cmd_search_auto(store=store, config={}, args=args)
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "Deep search complete: search-deep-one" in out
+        controller.run_to_completion.assert_called_once()
+        _, kwargs = controller.run_to_completion.call_args
+        assert kwargs["cpu_budget"] == 12
+        assert kwargs["time_budget_hours"] == 4
+        assert kwargs["search_pack_id"] == "cf001"
 
 
 # ---------------------------------------------------------------------------

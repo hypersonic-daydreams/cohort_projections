@@ -14,8 +14,7 @@ from multiple documents.
 2. `docs/guides/observatory-search-loop.md`
    - Read this before running bounded unattended queues.
 3. `docs/guides/observatory-autonomous-search.md`
-   - Read this before running deterministic autonomous search in isolated
-     worktrees.
+   - Read this before running deterministic deep search in isolated worktrees.
 4. `docs/guides/benchmarking-workflow.md`
    - Read this for challenger review, decision records, and alias-promotion
      workflow under SOP-003.
@@ -29,17 +28,27 @@ from multiple documents.
    - Read the Observatory config sections when changing thresholds, paths, or
      variant-catalog behavior.
 
-## Current State (2026-03-20)
+## Current State (2026-03-21)
 
 - BM-001 experiment infrastructure is implemented.
 - OBS-001 Observatory analysis, CLI, dashboard, and reporting layer is
   implemented.
 - PP-007 operational hardening is complete.
-- Deterministic autonomous search with isolated mirror/worktree execution is
+- Deterministic deep search with isolated mirror/worktree execution is
   implemented.
+- `deep-search` is now the canonical end-to-end search command. `search-auto`
+  remains a backward-compatible alias to the same controller.
+- Deep search is now organized around search packs plus a shared CPU allocator.
+  `cf001` is the first packaged search domain.
 - The recipe catalog now includes enabled search-only benchmark methods that
   clone the challenger under unique sandbox-only method IDs for recent-window
   and mortality-factor search.
+- Deep-search sessions now write deterministic frontier and brief artifacts
+  (`frontier.csv`, `deep_search_brief.json/.md`, `search_journal.jsonl`) so the
+  review path starts from a guided brief rather than raw tables alone.
+- Optional AI synthesis is available only as advisory scaffolding. It is
+  disabled by default, claim-checked against deterministic evidence, and cannot
+  set decision states or promotions.
 - The live dashboard now includes the junior-demographer guided-review pass and
   the portrait-oriented follow-up pass. The default UI is optimized to answer:
   what happened, whether the evidence is usable, what to open next, and
@@ -78,25 +87,30 @@ from multiple documents.
 - Historical roadmap rationale: `docs/plans/benchmarking-process-improvement-roadmap.md`
 - Historical UI/UX implementation backlog: `docs/plans/observatory-ui-ux-backlog.md`
 - Runtime config: `config/observatory_config.yaml`
-- Autonomous search policy: `config/observatory_search_policy.yaml`
+- Deep-search policy: `config/observatory_search_policy.yaml`
+- Search packs: `config/observatory_search_packs/`
 - Deterministic recipe catalog: `config/observatory_recipes.yaml`
 - Variant catalog: `config/observatory_variants.yaml`
 - One-command unattended launcher:
+  `python scripts/analysis/observatory.py deep-search`
+- Backward-compatible alias:
   `python scripts/analysis/observatory.py search-auto`
 - Enabled search-only recipe families now cover convergence-window widening,
   mortality-improvement sensitivity, and selected interaction terms around
   `m2026r1` without touching production aliases.
 - The dashboard `Command Center` uses progressive disclosure to reduce
   first-open cognitive load. The top-to-bottom flow is now:
-  `Session Outcome / Start Here -> Launch Experiments -> Decision Brief ->
-  Scorecards -> Projections -> Horizon & Bias -> Sensitivity`.
-- The `Launch Experiments` card centers on a one-click `Start Exploring`
-  action with `Quick check`, `Standard exploration`, and `Deeper search`
-  presets. CPU/run-budget controls, manual sweep actions, and other operator
-  controls remain available in collapsed advanced cards.
+  `Deep Search -> Session Outcome / Start Here -> Decision Brief -> Scorecards
+  -> Projections -> Horizon & Bias -> Sensitivity`.
+- The `Deep Search` card now centers on a one-click `Begin Deep Search` action:
+  pick CPU cores, launch, then inspect progress and the brief. Search pack,
+  time-budget, AI, and manual operator controls remain available in collapsed
+  `Expert Controls`.
 - Completed searches now end in a `Session Outcome` card with one dominant
   CTA chosen from the evidence state: `Review Results`, `Resolve Blocker`,
   `Continue Exploring`, or `Ask For Senior Review`.
+- Completed deep-search sessions also write a `Deep Search Brief`, surfaced in
+  the Command Center and session artifacts before raw drill-down tables.
 - Guided review now starts in `Decision Brief`, which acts as the review hub:
   verdict strip first, checklist second, then evidence quality, gains,
   tradeoffs, and escalation guidance.
@@ -137,7 +151,7 @@ python scripts/analysis/reset_observatory_workspace.py
 ```
 
 This operation is non-destructive. It archives the active benchmark history,
-experiment log, cache, and autonomous-search runtime/session state under
+experiment log, cache, and deep-search runtime/session state under
 `data/analysis/observatory_archives/`, then recreates an empty
 `benchmark_history/index.csv` plus an empty `experiment_log.csv`. By default it
 keeps `benchmark_history/promotion_history.csv` in place so alias-governance
@@ -191,6 +205,9 @@ When starting a new Observatory implementation session:
 2. Run `python scripts/analysis/observatory.py status`.
 3. Confirm whether the session is about operation, UI/UX, or follow-on
    capability work.
-4. If new Observatory work is opened, record it in `DEVELOPMENT_TRACKER.md`
+4. If the session will touch deep-search policy, search packs, or AI synthesis,
+   read `docs/guides/observatory-autonomous-search.md` and the relevant
+   observatory sections in `docs/guides/configuration-reference.md`.
+5. If new Observatory work is opened, record it in `DEVELOPMENT_TRACKER.md`
    first; use `docs/plans/README.md` to separate current tasks from historical
    roadmap documents.

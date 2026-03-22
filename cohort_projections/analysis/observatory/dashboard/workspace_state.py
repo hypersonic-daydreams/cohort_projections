@@ -215,7 +215,7 @@ def resolve_workspace_state(
         return _state_payload(
             WORKSPACE_SEARCH_IN_PROGRESS,
             "Continue Monitoring",
-            "An autonomous search is actively producing evidence.",
+            "A deep-search session is actively producing evidence.",
             "Keep monitoring the session outcome. The dashboard will route you into review once usable evidence is available.",
             "Search is running",
             "monitor",

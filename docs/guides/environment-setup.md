@@ -304,8 +304,8 @@ passes locally but fails in the hook, check for pandas type-stub issues
 
 ### Observatory search fails with "dirty checkout"
 
-The autonomous search refuses to run if `git status` shows uncommitted
-changes.  Commit or stash your changes first, then retry.
+Deep search and `search-run` refuse to run if `git status` shows uncommitted
+changes. Commit or stash your changes first, then retry.
 
 ---
 

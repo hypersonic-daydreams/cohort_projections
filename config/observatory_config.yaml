@@ -5,6 +5,7 @@ observatory:
   variant_catalog: config/observatory_variants.yaml
   champion_method: m2026
   challenger_base_method: m2026r1
+  default_cpu_budget: 12
 
   comparison:
     primary_metric: county_mape_overall
@@ -16,3 +17,8 @@ observatory:
   recommendation:
     max_suggestions: 5
     min_improvement_threshold: 0.02
+
+  ai_synthesis:
+    enabled: false
+    provider: ""
+    model: ""

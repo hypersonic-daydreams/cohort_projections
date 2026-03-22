@@ -11,6 +11,7 @@ Detailed procedural guides for common workflows. These expand on the concise rul
 | [benchmarking-workflow.md](./benchmarking-workflow.md) | How to run benchmark bundles, review challengers, and promote champions |
 | [observatory-start-here.md](./observatory-start-here.md) | Entry point for current Observatory status, operating docs, and planning-doc inventory |
 | [observatory-search-loop.md](./observatory-search-loop.md) | Safe bounded queue operation for the Projection Observatory |
+| [observatory-autonomous-search.md](./observatory-autonomous-search.md) | Deep-search workflow for deterministic isolated-worktree experimentation |
 | [configuration-reference.md](./configuration-reference.md) | All configuration files and settings |
 | [data-sources-workflow.md](./data-sources-workflow.md) | Data acquisition, sources, and update procedures |
 | [troubleshooting.md](./troubleshooting.md) | Common errors, solutions, and debugging tips |
@@ -31,4 +32,4 @@ Detailed procedural guides for common workflows. These expand on the concise rul
 
 ---
 
-*Last Updated: 2026-03-19*
+*Last Updated: 2026-03-21*

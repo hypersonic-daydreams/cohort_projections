@@ -8,14 +8,20 @@ Start with [Projection Observatory Start Here](./observatory-start-here.md) if
 you need the current status, reading order, or the planning-doc inventory. This
 guide only covers safe queue operation.
 
-If you want deterministic code-driven search in isolated worktrees rather than
-the bounded config-only queue, use
+If you want deterministic worktree-isolated search with search packs, CPU
+budgeting, journaling, and deep-search briefs rather than the bounded
+config-only queue, use
 [Projection Observatory Autonomous Search](./observatory-autonomous-search.md).
 
 ## Use This When
 
 Use this guide when you want the Observatory to queue and run multiple
 config-only variants with limited supervision.
+
+If you want the default dashboard path or the canonical hands-off workflow, use
+`deep-search` instead of increasing queue complexity here. The bounded queue is
+still the simpler config-only operator path; deep search is the guided
+isolated-worktree path.
 
 Do not use this guide to auto-promote a challenger. Promotion decisions still
 require the review and alias-update workflow in SOP-003.
@@ -132,3 +138,7 @@ Pause unattended queueing when any of the following appear:
 
 These defaults are conservative on purpose. Increase them only after the queue
 outputs remain stable over several runs.
+
+Do not try to turn this queue into a substitute for deep search by manually
+raising concurrency. If you need multi-core isolated candidate execution, use
+`python scripts/analysis/observatory.py deep-search --cpu-budget <n>` instead.

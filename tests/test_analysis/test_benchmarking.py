@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
+import pytest
 import yaml
 
 from cohort_projections.analysis.benchmark_contract import (
@@ -553,13 +556,43 @@ def test_decision_approval_and_promotion_history(tmp_path: Path) -> None:
     assert history_df.iloc[0]["new_method_id"] == "m2026r1"
 
 
-def test_build_run_id_includes_method_and_short_git() -> None:
+def test_build_run_id_includes_method_and_short_git(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "cohort_projections.analysis.benchmarking.uuid.uuid4",
+        lambda: SimpleNamespace(hex="1234567890abcdef1234"),
+    )
     run_id = build_run_id(
         primary_method_id="m2026r1",
         git_commit="abcdef0123456789",
         now=pd.Timestamp("2026-03-09T12:00:00Z").to_pydatetime(),
     )
-    assert run_id == "br-20260309-120000-m2026r1-abcdef0"
+    assert run_id == "br-20260309-120000-m2026r1-abcdef0-12345678"
+
+
+def test_build_run_id_is_unique_for_parallel_launches(monkeypatch: pytest.MonkeyPatch) -> None:
+    suffixes = iter(["aaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccc"])
+
+    monkeypatch.setattr(
+        "cohort_projections.analysis.benchmarking.uuid.uuid4",
+        lambda: SimpleNamespace(hex=next(suffixes)),
+    )
+
+    run_ids = {
+        build_run_id(
+            primary_method_id="m2026r1",
+            git_commit="abcdef0123456789",
+            now=pd.Timestamp("2026-03-09T12:00:00Z").to_pydatetime(),
+        )
+        for _ in range(3)
+    }
+
+    assert len(run_ids) == 3
+    assert all(
+        re.fullmatch(r"br-20260309-120000-m2026r1-abcdef0-[a-f0-9]{8}", run_id)
+        for run_id in run_ids
+    )
 
 
 def test_refresh_latest_benchmark_pointers_selects_newest_matching_run(tmp_path: Path) -> None:

@@ -849,6 +849,7 @@ def build_search_candidate_rows(
             "experiment_id": _clean_text(spec.get("experiment_id"))
             if isinstance(spec, dict)
             else "",
+            "hypothesis": _clean_text(spec.get("hypothesis")) if isinstance(spec, dict) else "",
             "method_id": _clean_text(result.get("method_id")) if isinstance(result, dict) else "",
             "config_id": _clean_text(result.get("config_id")) if isinstance(result, dict) else "",
             "outcome": _clean_text(result.get("outcome")) if isinstance(result, dict) else "",
@@ -885,6 +886,7 @@ def build_search_candidate_rows(
             "next_action": _clean_text(result.get("next_action"))
             if isinstance(result, dict)
             else "",
+            "last_error": _clean_text(candidate.get("last_error")),
         }
         if isinstance(benchmark_summary, dict):
             metrics = benchmark_summary.get("metrics", {})

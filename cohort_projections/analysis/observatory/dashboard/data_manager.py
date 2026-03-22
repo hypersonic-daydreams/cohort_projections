@@ -89,8 +89,21 @@ _SEARCH_SESSION_COLUMNS = [
     "progress_pct",
     "session_dir",
     "selector_label",
+    "mode",
+    "search_pack_id",
+    "cpu_budget",
+    "parallel_runs",
+    "workers_per_run",
+    "time_budget_hours",
+    "stop_reason",
+    "search_journal_jsonl",
     "candidate_summary_csv",
     "candidate_summary_json",
+    "frontier_csv",
+    "deep_search_brief_json",
+    "deep_search_brief_markdown",
+    "ai_brief_json",
+    "ai_brief_markdown",
     "search_report_markdown",
     "observatory_report_html",
     "dashboard_launch_log",
@@ -239,12 +252,16 @@ def _process_cmdline(pid: int) -> str:
 
 
 def _pid_matches_search_process(pid: int, search_id: str) -> bool:
-    """Return whether *pid* appears to be the matching search-auto process."""
+    """Return whether *pid* appears to be the matching search process."""
     cmdline = _process_cmdline(pid)
     if not cmdline:
         return False  # zombie or unreadable — treat as not matching
     lowered = cmdline.lower()
-    return "observatory.py" in lowered and "search-auto" in lowered and search_id.lower() in lowered
+    return (
+        "observatory.py" in lowered
+        and ("search-auto" in lowered or "deep-search" in lowered)
+        and search_id.lower() in lowered
+    )
 
 
 def _is_search_process_running(pid: int | None, search_id: str) -> bool:
@@ -344,8 +361,21 @@ def build_search_session_frame(session_root: Path) -> pd.DataFrame:
                 "progress_pct": progress_pct,
                 "session_dir": str(session_dir),
                 "selector_label": f"[{status}] {search_id} ({progress_count}/{total})",
+                "mode": str(session.get("mode", "") or ""),
+                "search_pack_id": str(session.get("search_pack_id", "") or ""),
+                "cpu_budget": int(session.get("cpu_budget", 0) or 0),
+                "parallel_runs": int(session.get("parallel_runs", 0) or 0),
+                "workers_per_run": int(session.get("workers_per_run", 0) or 0),
+                "time_budget_hours": float(session.get("time_budget_hours", 0.0) or 0.0),
+                "stop_reason": str(session.get("stop_reason", "") or ""),
+                "search_journal_jsonl": _artifact_path("search_journal.jsonl"),
                 "candidate_summary_csv": _artifact_path("candidate_summary.csv"),
                 "candidate_summary_json": _artifact_path("candidate_summary.json"),
+                "frontier_csv": _artifact_path("frontier.csv"),
+                "deep_search_brief_json": _artifact_path("deep_search_brief.json"),
+                "deep_search_brief_markdown": _artifact_path("deep_search_brief.md"),
+                "ai_brief_json": _artifact_path("ai_brief.json"),
+                "ai_brief_markdown": _artifact_path("ai_brief.md"),
                 "search_report_markdown": _artifact_path("search_report.md"),
                 "observatory_report_html": _artifact_path("observatory_report.html"),
                 "dashboard_launch_log": str(log_path) if log_path.exists() else "",
@@ -1341,6 +1371,8 @@ class DashboardDataManager:
     def session_review_data(self) -> dict[str, Any]:
         """Normalized review summary for the active or latest search session."""
         search_id = self.active_search_id
+        if not search_id and not self.search_sessions.empty:
+            search_id = str(self.search_sessions.iloc[0]["search_id"])
         if not search_id:
             summary = build_search_session_summary(pd.DataFrame(), search_id="")
             summary["session_headline"] = "No autonomous-search session is available yet."
@@ -1416,6 +1448,23 @@ class DashboardDataManager:
         if row is None:
             return ""
         raw_path = str(row.get("search_report_markdown", "") or "").strip()
+        if not raw_path:
+            return ""
+        report_path = Path(raw_path)
+        if not report_path.exists() or report_path.is_dir():
+            return ""
+        try:
+            return report_path.read_text(encoding="utf-8")
+        except Exception:
+            logger.warning("Failed to read %s", report_path)
+            return ""
+
+    def search_session_brief_markdown(self, search_id: str) -> str:
+        """Return the Deep Search Brief Markdown for one session when available."""
+        row = self.search_session_row(search_id)
+        if row is None:
+            return ""
+        raw_path = str(row.get("deep_search_brief_markdown", "") or "").strip()
         if not raw_path:
             return ""
         report_path = Path(raw_path)

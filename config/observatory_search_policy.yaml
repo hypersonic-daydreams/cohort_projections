@@ -4,6 +4,7 @@ search:
   mirror_repo: data/analysis/observatory_runtime/repos/cohort_projections.git
   worktree_root: data/analysis/observatory_runtime/worktrees
   recipe_catalog: config/observatory_recipes.yaml
+  search_pack_root: config/observatory_search_packs
 
   compile_changed_python: true
   keep_worktrees: false
@@ -23,3 +24,14 @@ search:
     max_pending: 3
     max_recommended: 5
     include_recipe_catalog: true
+
+  deep_search:
+    time_budget_hours: 6.0
+    total_candidate_cap: 48
+    plateau_rounds: 2
+    min_improvement_pp: 0.02
+    operational_repeat_limit: 3
+    operational_failure_window: 10
+    operational_failure_rate: 0.20
+    max_patch_files: 5
+    max_patch_lines: 300

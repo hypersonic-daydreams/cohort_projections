@@ -10,6 +10,12 @@ import pandas as pd
 import pytest
 import yaml
 
+from cohort_projections.analysis.observatory.deep_search import (
+    DeepSearchPolicy,
+    SearchPack,
+    load_search_packs,
+    resolve_parallelism,
+)
 from cohort_projections.analysis.observatory.recipe_registry import RecipeRegistry
 from cohort_projections.analysis.observatory.sandbox_manager import SandboxManager
 from cohort_projections.analysis.observatory.search_controller import (
@@ -57,6 +63,7 @@ def sandbox_repo(tmp_path: Path) -> Path:
 def search_project(tmp_path: Path) -> Path:
     project = tmp_path / "project"
     (project / "config").mkdir(parents=True)
+    (project / "config" / "observatory_search_packs").mkdir(parents=True)
     (project / "data" / "analysis" / "experiments").mkdir(parents=True)
     (project / "data" / "analysis" / "benchmark_history").mkdir(parents=True)
     (project / "config" / "observatory_variants.yaml").write_text(
@@ -110,14 +117,62 @@ def search_project(tmp_path: Path) -> Path:
                     "mirror_repo": "runtime/repos/cohort_projections.git",
                     "worktree_root": "runtime/worktrees",
                     "recipe_catalog": "config/observatory_recipes.yaml",
+                    "search_pack_root": "config/observatory_search_packs",
                     "protected_paths": ["README.md"],
                     "allowed_recipe_roots": ["scripts/analysis", "cohort_projections"],
+                    "deep_search": {
+                        "time_budget_hours": 4.0,
+                        "total_candidate_cap": 12,
+                        "plateau_rounds": 2,
+                        "min_improvement_pp": 0.02,
+                        "operational_repeat_limit": 3,
+                        "operational_failure_window": 10,
+                        "operational_failure_rate": 0.2,
+                        "max_patch_files": 5,
+                        "max_patch_lines": 300,
+                    },
                     "planner": {
                         "max_pending": 1,
                         "max_recommended": 1,
                         "include_recipe_catalog": True,
                     },
                 }
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    (project / "config" / "observatory_search_packs" / "cf001.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "pack_id": "cf001",
+                "label": "CF-001",
+                "default": True,
+                "scope": "county",
+                "base_method": "m2026r1",
+                "base_config": "cfg-20260309-college-fix-v1",
+                "objective_order": [
+                    "state_ape_recent_short",
+                    "county_mape_overall",
+                ],
+                "hard_guardrails": {"negative_population_violations": 0},
+                "parameter_bounds": {"college_blend_factor": {"min": 0.5, "max": 1.2}},
+                "interaction_rules": [{"parameters": ["college_blend_factor"]}],
+                "seed_candidates": [
+                    {"source": "variant_catalog", "source_id": "EXP-A"},
+                    {"source": "recipe_catalog", "source_id": "RX-TEST"},
+                ],
+                "stop_policy": {"plateau_rounds": 2},
+                "code_mutators": [
+                    {
+                        "mutator_id": "mut-disabled",
+                        "kind": "deterministic",
+                        "candidate_id": "mut-disabled",
+                        "benchmark_label": "mut-disabled",
+                        "hypothesis": "Disabled placeholder mutator.",
+                        "enabled": False,
+                    }
+                ],
             },
             sort_keys=False,
         ),
@@ -163,6 +218,7 @@ class TestSearchPolicy:
                         "mirror_repo": "runtime/repos/repo.git",
                         "worktree_root": "runtime/worktrees",
                         "recipe_catalog": "config/recipes.yaml",
+                        "search_pack_root": "config/search-packs",
                         "protected_paths": ["README.md"],
                         "allowed_recipe_roots": ["scripts/analysis"],
                     }
@@ -172,9 +228,60 @@ class TestSearchPolicy:
         )
         policy = load_search_policy(policy_path, project_root=sandbox_repo)
         assert policy.runtime_root == sandbox_repo / "runtime"
+        assert policy.search_pack_root == sandbox_repo / "config" / "search-packs"
         assert policy.is_protected_path(Path("README.md")) is True
         assert policy.is_allowed_recipe_target(Path("scripts/analysis/example.py")) is True
         assert policy.is_allowed_recipe_target(Path("README.md")) is False
+
+
+class TestDeepSearchHelpers:
+    def test_resolve_parallelism_matches_shared_cpu_allocator(self) -> None:
+        assert resolve_parallelism(4) == (1, 4)
+        assert resolve_parallelism(8) == (2, 4)
+        assert resolve_parallelism(16) == (3, 5)
+        assert resolve_parallelism(32) == (4, 8)
+        assert resolve_parallelism(64) == (8, 8)
+
+    def test_load_search_packs_validates_required_fields(self, tmp_path: Path) -> None:
+        pack_root = tmp_path / "packs"
+        pack_root.mkdir()
+        (pack_root / "valid.yaml").write_text(
+            yaml.safe_dump(
+                {
+                    "pack_id": "cf001",
+                    "scope": "county",
+                    "base_method": "m2026r1",
+                    "base_config": "cfg-20260309-college-fix-v1",
+                    "objective_order": ["county_mape_overall"],
+                    "hard_guardrails": {},
+                    "parameter_bounds": {},
+                    "interaction_rules": [],
+                    "seed_candidates": [],
+                    "stop_policy": {},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        packs = load_search_packs(pack_root)
+
+        assert isinstance(packs["cf001"], SearchPack)
+
+    def test_deep_search_policy_uses_leaf_mapping_defaults(self, tmp_path: Path) -> None:
+        policy = DeepSearchPolicy.from_mapping(
+            {
+                "time_budget_hours": 4.5,
+                "total_candidate_cap": 12,
+                "plateau_rounds": 3,
+            },
+            cpu_budget=12,
+            search_pack_root=tmp_path,
+        )
+
+        assert policy.time_budget_hours == pytest.approx(4.5)
+        assert policy.total_candidate_cap == 12
+        assert policy.plateau_rounds == 3
+        assert policy.parallel_runs == 2
 
 
 class TestRecipeRegistry:
@@ -288,6 +395,12 @@ class TestSearchController:
         session = controller.plan_session(search_id="search-one")
         assert session["summary"]["total"] == 2
         assert session["summary"]["planned"] == 2
+        assert session["mode"] == "deep_search"
+        assert session["search_pack_id"] == "cf001"
+        assert session["cpu_budget"] == 12
+        assert session["parallel_runs"] == 2
+        assert session["workers_per_run"] == 6
+        assert session["time_budget_hours"] == pytest.approx(4.0)
         assert (
             search_project
             / "data"
@@ -296,6 +409,15 @@ class TestSearchController:
             / "search_runs"
             / "search-one"
             / "planned_specs"
+        ).exists()
+        assert (
+            search_project
+            / "data"
+            / "analysis"
+            / "experiments"
+            / "search_runs"
+            / "search-one"
+            / "search_journal.jsonl"
         ).exists()
 
         status = controller.status(search_id="search-one")
@@ -353,12 +475,19 @@ class TestSearchController:
 
         artifacts = controller.write_session_artifacts(search_id="search-artifacts")
         summary_csv = search_project / artifacts["candidate_summary_csv"]
+        frontier_csv = search_project / artifacts["frontier_csv"]
+        deep_brief_json = search_project / artifacts["deep_search_brief_json"]
+        deep_brief_md = search_project / artifacts["deep_search_brief_markdown"]
         report_md = search_project / artifacts["search_report_markdown"]
         assert summary_csv.exists()
+        assert frontier_csv.exists()
+        assert deep_brief_json.exists()
+        assert deep_brief_md.exists()
         assert report_md.exists()
         summary_text = summary_csv.read_text(encoding="utf-8")
         assert "candidate_id" in summary_text
         assert "delta_county_mape_overall" in summary_text
+        assert "search-artifacts" in deep_brief_md.read_text(encoding="utf-8")
         assert "Best Completed Candidates" in report_md.read_text(encoding="utf-8")
 
     def test_run_to_completion_batches_until_finished(self, search_project: Path) -> None:
@@ -558,6 +687,76 @@ class TestSearchController:
         assert session["candidates"][0]["status"] == "completed"
         assert session["candidates"][0]["result"]["outcome"] == "inconclusive"
         assert session["candidates"][0]["result"]["key_metrics_summary"] == "existing result"
+
+    def test_validate_code_changes_enforces_patch_limits(self, search_project: Path) -> None:
+        controller = AutonomousSearchController(
+            store=None,
+            observatory_config={
+                "history_dir": "data/analysis/benchmark_history",
+                "experiment_log": "data/analysis/experiments/experiment_log.csv",
+                "variant_catalog": "config/observatory_variants.yaml",
+            },
+            policy_path=search_project / "config" / "observatory_search_policy.yaml",
+            project_root=search_project,
+            source_repo=search_project,
+        )
+
+        with pytest.raises(RuntimeError, match="touched 2 files"):
+            controller._validate_code_changes(
+                changed_files=["a.py", "b.py"],
+                diff_patch="+one\n+two\n",
+                max_patch_files=1,
+                max_patch_lines=10,
+            )
+
+        with pytest.raises(RuntimeError, match="changed 4 lines"):
+            controller._validate_code_changes(
+                changed_files=["a.py"],
+                diff_patch="--- a.py\n+++ a.py\n+one\n-two\n+three\n-four\n",
+                max_patch_files=5,
+                max_patch_lines=3,
+            )
+
+    def test_operational_stop_state_detects_repeated_blockers(self, search_project: Path) -> None:
+        controller = AutonomousSearchController(
+            store=None,
+            observatory_config={
+                "history_dir": "data/analysis/benchmark_history",
+                "experiment_log": "data/analysis/experiments/experiment_log.csv",
+                "variant_catalog": "config/observatory_variants.yaml",
+            },
+            policy_path=search_project / "config" / "observatory_search_policy.yaml",
+            project_root=search_project,
+            source_repo=search_project,
+        )
+        candidates = pd.DataFrame(
+            [
+                {
+                    "status": "completed",
+                    "outcome": "operational_blocker",
+                    "last_error": "bundle incomplete",
+                },
+                {
+                    "status": "completed",
+                    "outcome": "operational_blocker",
+                    "last_error": "bundle incomplete",
+                },
+                {
+                    "status": "completed",
+                    "outcome": "operational_blocker",
+                    "last_error": "bundle incomplete",
+                },
+            ]
+        )
+
+        stop_reason = controller._operational_stop_state(
+            candidates,
+            repeat_limit=3,
+            failure_window=10,
+            failure_rate=1.0,
+        )
+
+        assert stop_reason == "repeated_operational_blocker"
 
 
 def test_repo_recipe_catalog_has_unique_search_lattice() -> None:

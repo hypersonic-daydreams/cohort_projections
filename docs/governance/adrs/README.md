@@ -138,6 +138,7 @@ Where:
 | [013](013-multi-geography-projection-design.md) | Multi-Geography Projections | Accepted | 2025-12-18 | Design for running projections across multiple geographic levels |
 | [014](014-pipeline-orchestration-design.md) | Pipeline Orchestration | Accepted | 2025-12-18 | Complete pipeline orchestration design |
 | [015](015-output-format-visualization-design.md) | Output Visualization | Accepted | 2025-12-18 | Output formats and visualization capabilities |
+| [064](064-projection-observatory-deep-search.md) | Projection Observatory Deep Search Workflow | Accepted | 2026-03-21 | First-class deep-search control plane with search packs, guided briefs, quarantined operational blockers, and optional claim-checked AI synthesis |
 
 ### Data Management
 
@@ -251,7 +252,7 @@ Where:
 
 | Status | Count |
 |--------|-------|
-| Accepted | 57 |
+| Accepted | 58 |
 | Proposed | 2 |
 | Rejected | 1 |
 | Deprecated | 0 |

@@ -9,6 +9,7 @@ import hashlib
 import json
 import shutil
 import subprocess
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -97,10 +98,16 @@ def build_run_id(
     git_commit: str,
     now: dt.datetime | None = None,
 ) -> str:
-    """Build a benchmark run identifier."""
+    """Build a collision-resistant benchmark run identifier.
+
+    The timestamp and git prefix remain human-readable, while a short random
+    suffix guarantees uniqueness even when multiple benchmarks launch within
+    the same second.
+    """
     timestamp = (now or dt.datetime.now(dt.UTC)).strftime("%Y%m%d-%H%M%S")
     short_git = git_commit[:7] if git_commit and git_commit != "unknown" else "unknown"
-    return f"br-{timestamp}-{primary_method_id}-{short_git}"
+    nonce = uuid.uuid4().hex[:8]
+    return f"br-{timestamp}-{primary_method_id}-{short_git}-{nonce}"
 
 
 def _profile_path(profile_dir: Path, method_id: str, config_id: str) -> Path:

@@ -15,6 +15,8 @@ Complete reference for all configuration files in the cohort projections system.
 | `config/nd_brand.yaml` | Visualization colors/styling | No |
 | `config/evaluation_config.yaml` | Evaluation framework settings | No |
 | `config/observatory_config.yaml` | Projection Observatory settings | No |
+| `config/observatory_search_policy.yaml` | Deep-search sandbox and execution policy | No |
+| `config/observatory_search_packs/*.yaml` | Deep-search search-pack definitions | No |
 | `config/observatory_variants.yaml` | Observatory variant catalog | No |
 | `.env` | Environment variables (secrets) | No |
 
@@ -695,6 +697,7 @@ observatory:
   variant_catalog: config/observatory_variants.yaml
   champion_method: m2026
   challenger_base_method: m2026r1
+  default_cpu_budget: 12
 ```
 
 | Key | Type | Description |
@@ -705,6 +708,7 @@ observatory:
 | `variant_catalog` | string | Path to the variant catalog YAML |
 | `champion_method` | string | Method ID of the current production champion |
 | `challenger_base_method` | string | Method ID used as the base for challenger variants |
+| `default_cpu_budget` | int | Default CPU core budget for dashboard and CLI deep-search sessions |
 
 #### observatory.comparison
 
@@ -738,6 +742,168 @@ Settings controlling the recommender's suggestion behavior.
 |-----|------|-------------|
 | `max_suggestions` | int | Maximum number of next-experiment suggestions |
 | `min_improvement_threshold` | float | Minimum expected metric improvement to recommend a variant |
+
+#### observatory.ai_synthesis
+
+Optional advisory AI synthesis settings for deep-search briefs.
+
+```yaml
+  ai_synthesis:
+    enabled: false
+    provider: ""
+    model: ""
+```
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `enabled` | bool | Enables optional advisory synthesis when a provider is wired in |
+| `provider` | string | Provider identifier used by a higher-level integration layer |
+| `model` | string | Default model identifier for the provider integration |
+
+**Important**:
+- AI synthesis is advisory only. Deterministic policy remains authoritative.
+- If synthesized output is carried into a formal decision record, methodology
+  review, or architecture proposal, follow
+  [SOP-001](../governance/sops/SOP-001-external-ai-analysis-integration.md).
+
+---
+
+## observatory_search_policy.yaml
+
+Configuration for deep-search sandbox execution, session persistence, and
+operator defaults.
+
+### search
+
+Top-level runtime and policy settings for search sessions.
+
+```yaml
+search:
+  runtime_root: data/analysis/observatory_runtime
+  session_root: data/analysis/experiments/search_runs
+  mirror_repo: data/analysis/observatory_runtime/repos/cohort_projections.git
+  worktree_root: data/analysis/observatory_runtime/worktrees
+  recipe_catalog: config/observatory_recipes.yaml
+  search_pack_root: config/observatory_search_packs
+```
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `runtime_root` | string | Root directory for runtime mirrors/worktrees |
+| `session_root` | string | Root directory for persisted search sessions |
+| `mirror_repo` | string | Bare git mirror used to create disposable worktrees |
+| `worktree_root` | string | Parent directory for search worktrees |
+| `recipe_catalog` | string | Deterministic code-recipe catalog |
+| `search_pack_root` | string | Directory containing enabled deep-search pack YAML files |
+
+### search.planner
+
+Controls the initial candidate pool seeded into a session.
+
+```yaml
+  planner:
+    max_pending: 3
+    max_recommended: 5
+    include_recipe_catalog: true
+```
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `max_pending` | int | Default number of untested catalog variants to seed |
+| `max_recommended` | int | Default number of recommender-generated config candidates to seed |
+| `include_recipe_catalog` | bool | Whether enabled recipe candidates are seeded by default |
+
+### search.deep_search
+
+Controller defaults for adaptive deep-search sessions.
+
+```yaml
+  deep_search:
+    time_budget_hours: 6.0
+    total_candidate_cap: 48
+    plateau_rounds: 2
+    min_improvement_pp: 0.02
+    operational_repeat_limit: 3
+    operational_failure_window: 10
+    operational_failure_rate: 0.20
+    max_patch_files: 5
+    max_patch_lines: 300
+```
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `time_budget_hours` | float | Wall-clock cap for a deep-search session |
+| `total_candidate_cap` | int | Maximum number of candidates executed in one session |
+| `plateau_rounds` | int | Consecutive replan rounds allowed without meaningful improvement |
+| `min_improvement_pp` | float | Minimum improvement threshold used by plateau detection |
+| `operational_repeat_limit` | int | Matching operational blockers allowed before stop |
+| `operational_failure_window` | int | Rolling candidate window used for failure-rate stop logic |
+| `operational_failure_rate` | float | Maximum acceptable operational-blocker rate in the rolling window |
+| `max_patch_files` | int | Max files a code-backed candidate may touch before quarantine |
+| `max_patch_lines` | int | Max changed lines a code-backed candidate may touch before quarantine |
+
+**CPU allocation rule**:
+
+Deep search derives `parallel_runs` and `workers_per_run` from the session's
+CPU budget using the shared allocator implemented in `deep_search.py`:
+
+- `<8` cores -> `1` run
+- `8-15` cores -> `2` runs
+- `16-31` cores -> `3` runs
+- `32-63` cores -> `4` runs
+- `64+` cores -> `min(8, cores // 8)` runs
+
+`workers_per_run = floor(cpu_budget / parallel_runs)`, with a floor of `1`.
+
+---
+
+## observatory_search_packs/*.yaml
+
+Search packs define the scope, objective order, seeded candidates, and
+guardrails for one deep-search domain.
+
+### Required Fields
+
+```yaml
+pack_id: cf001
+scope: county
+base_method: m2026r1
+base_config: cfg-20260309-college-fix-v1
+objective_order:
+  - state_ape_recent_short
+  - county_mape_overall
+hard_guardrails: {}
+parameter_bounds: {}
+interaction_rules: []
+seed_candidates: []
+stop_policy: {}
+```
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `pack_id` | string | Stable identifier for the search domain |
+| `scope` | string | Search scope, e.g. `county` |
+| `base_method` | string | Base method ID for config-only and recipe candidates |
+| `base_config` | string | Base config ID for config-only and recipe candidates |
+| `objective_order` | list | Ordered metrics used to sort the frontier and choose the best candidate |
+| `hard_guardrails` | mapping | Pack-level blocking constraints and thresholds |
+| `parameter_bounds` | mapping | Allowed parameter ranges for generated follow-ups |
+| `interaction_rules` | list | Declared parameter interaction structure |
+| `seed_candidates` | list | Preferred initial candidates from the variant or recipe catalogs |
+| `stop_policy` | mapping | Optional per-pack overrides or notes for stopping behavior |
+
+### Optional Fields
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `label` | string | Human-readable pack name |
+| `default` | bool | Whether this is the default enabled pack for its scope |
+| `description` | string | Short narrative description shown in docs or UI |
+| `code_mutators` | list | Optional sandbox-only code-candidate definitions |
+
+`code_mutators` are evaluated in the sandbox only. They never merge or promote
+code automatically, and blocked candidates are written to session-level
+quarantine/validation artifacts instead.
 
 ---
 

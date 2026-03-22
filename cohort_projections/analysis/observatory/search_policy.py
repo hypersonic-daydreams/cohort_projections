@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -29,6 +30,7 @@ class SearchPolicy:
     mirror_repo: Path
     worktree_root: Path
     recipe_catalog: Path
+    search_pack_root: Path
     protected_paths: tuple[Path, ...]
     allowed_recipe_roots: tuple[Path, ...]
     compile_changed_python: bool
@@ -38,6 +40,7 @@ class SearchPolicy:
     default_max_pending: int
     default_max_recommended: int
     include_recipe_catalog: bool
+    deep_search: dict[str, Any]
 
     def relative_to_project(self, path: Path) -> Path:
         """Return *path* relative to project root when possible."""
@@ -110,6 +113,10 @@ def load_search_policy(
         project_root,
         section.get("recipe_catalog", "config/observatory_recipes.yaml"),
     )
+    search_pack_root = _resolve_project_path(
+        project_root,
+        section.get("search_pack_root", "config/observatory_search_packs"),
+    )
 
     protected_paths = tuple(
         _resolve_project_path(project_root, raw_path).resolve()
@@ -142,6 +149,7 @@ def load_search_policy(
         mirror_repo=mirror_repo.resolve(),
         worktree_root=worktree_root.resolve(),
         recipe_catalog=recipe_catalog.resolve(),
+        search_pack_root=search_pack_root.resolve(),
         protected_paths=protected_paths,
         allowed_recipe_roots=allowed_recipe_roots,
         compile_changed_python=bool(section.get("compile_changed_python", True)),
@@ -151,4 +159,5 @@ def load_search_policy(
         default_max_pending=int(planner.get("max_pending", 3)),
         default_max_recommended=int(planner.get("max_recommended", 5)),
         include_recipe_catalog=bool(planner.get("include_recipe_catalog", True)),
+        deep_search=dict(section.get("deep_search", {}) or {}),
     )

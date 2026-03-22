@@ -13,7 +13,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any
 
 import pandas as pd
 import panel as pn
@@ -44,6 +44,12 @@ from cohort_projections.analysis.observatory.dashboard.widgets import (
 from cohort_projections.analysis.observatory.decision_support import (
     build_search_session_summary,
 )
+from cohort_projections.analysis.observatory.deep_search import (
+    default_batch_size,
+    default_search_pack,
+    load_search_packs,
+    resolve_parallelism,
+)
 from cohort_projections.analysis.observatory.workspace_reset import (
     reset_observatory_workspace,
 )
@@ -57,15 +63,6 @@ _PROMOTION_PACKAGE_SCRIPT = (
     Path(__file__).resolve().parents[4] / "scripts" / "analysis" / "build_promotion_package.py"
 )
 _PROJECT_ROOT = Path(__file__).resolve().parents[4]
-
-
-class _LaunchPreset(TypedDict):
-    """Structured settings for one simple launch preset."""
-
-    cpu_budget: int
-    max_total_runs: int
-    batch_run_budget: int
-    summary: str
 
 
 # ---------------------------------------------------------------------------
@@ -181,40 +178,19 @@ def _best_tested_challenger(dm: DashboardDataManager) -> pd.Series | None:
 
 
 def _derive_parallelism(core_budget: int) -> tuple[int, int]:
-    """Map a core budget to (parallel_runs, workers_per_run).
-
-    Scales parallel runs with available cores while keeping each run
-    allocated enough workers (at least 4) for benchmark-internal
-    parallelism to remain effective:
-
-    - < 8 cores:  1 run  (all cores as workers)
-    - 8-15 cores: 2 runs
-    - 16-31 cores: 3 runs
-    - 32-63 cores: 4 runs
-    - 64+ cores:  up to 8 runs (capped to avoid diminishing returns)
-    """
-    if core_budget < 8:
-        parallel_runs = 1
-    elif core_budget < 16:
-        parallel_runs = 2
-    elif core_budget < 32:
-        parallel_runs = 3
-    elif core_budget < 64:
-        parallel_runs = 4
-    else:
-        # Cap at 8 — beyond that, worktree I/O and git operations
-        # become the bottleneck rather than CPU.
-        parallel_runs = min(8, core_budget // 8)
-    workers_per_run = max(1, core_budget // parallel_runs)
-    return parallel_runs, workers_per_run
+    """Map a core budget to the shared deep-search execution layout."""
+    return resolve_parallelism(core_budget)
 
 
 def _core_alloc_label(core_budget: int) -> str:
     """Return a human-readable label for the CPU allocation."""
     parallel_runs, workers_per_run = _derive_parallelism(core_budget)
     if parallel_runs == 1:
-        return f"-> {workers_per_run} workers, 1 run at a time"
-    return f"-> {parallel_runs} parallel runs x {workers_per_run} workers = {parallel_runs * workers_per_run} cores"
+        return f"1 run at a time with {workers_per_run} workers"
+    return (
+        f"{parallel_runs} parallel runs x {workers_per_run} workers "
+        f"= {parallel_runs * workers_per_run} cores"
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -291,8 +267,13 @@ def _search_session_detail_html(session_row: pd.Series | None) -> str:
 
     artifact_lines = []
     for label, key in [
+        ("Deep Search Brief", "deep_search_brief_markdown"),
+        ("Deep Search Brief JSON", "deep_search_brief_json"),
+        ("Frontier CSV", "frontier_csv"),
+        ("Search Journal", "search_journal_jsonl"),
         ("Candidate summary CSV", "candidate_summary_csv"),
         ("Candidate summary JSON", "candidate_summary_json"),
+        ("AI Brief JSON", "ai_brief_json"),
         ("Search report", "search_report_markdown"),
         ("Observatory report", "observatory_report_html"),
     ]:
@@ -417,7 +398,7 @@ def _build_onboarding_card(dm: DashboardDataManager) -> pn.pane.HTML:
         '<div class="obs-onboarding-num">1</div>'
         '<div class="obs-onboarding-content">'
         '<div class="obs-onboarding-title">Launch a search</div>'
-        '<div class="obs-onboarding-desc">The Observatory runs bounded autonomous searches, benchmarking each candidate variant against the champion.</div>'
+        '<div class="obs-onboarding-desc">The Observatory runs guided deep searches, benchmarking each candidate variant against the champion.</div>'
         "</div></div>"
         #
         '<div class="obs-onboarding-step">'
@@ -445,6 +426,12 @@ def _build_onboarding_card(dm: DashboardDataManager) -> pn.pane.HTML:
 def _build_decision_brief_card(dm: DashboardDataManager) -> pn.Card:
     """Compact decision brief surfaced directly on the Command Center."""
     brief = dm.decision_brief
+    card_title = (
+        "Deep Search Brief"
+        if str(brief.get("source", "") or "") == "search_session"
+        or str(brief.get("search_id", "") or "")
+        else "Decision Brief"
+    )
     subject = str(brief.get("primary_subject_label", "") or "Current front-runner")
     raw_subject_id = str(brief.get("raw_subject_id", "") or "")
     status_label = str(brief.get("user_status_label", "") or "Needs more evidence")
@@ -473,7 +460,7 @@ def _build_decision_brief_card(dm: DashboardDataManager) -> pn.Card:
     ]
     if raw_subject_id and raw_subject_id != subject:
         body.extend(["", f"**Reference ID:** `{raw_subject_id}`"])
-    return markdown_card("Decision Brief", "\n".join(body), css_classes=["obs-compact-review-card"])
+    return markdown_card(card_title, "\n".join(body), css_classes=["obs-compact-review-card"])
 
 
 def _recommendation_packet_markdown(dm: DashboardDataManager) -> str:
@@ -971,16 +958,19 @@ def _launch_search_auto(
     cpu_budget: int,
     max_total_runs: int,
     batch_run_budget: int,
+    time_budget_hours: float,
     max_pending: int,
     max_recommended: int,
     include_recipes: bool,
+    allow_ai_synthesis: bool,
     overwrite: bool,
     status_pane: pn.pane.HTML,
     output_pane: pn.pane.HTML,
     session_dir: Path,
+    search_pack_id: str = "",
     parallel_runs: int | None = None,
 ) -> subprocess.Popen | None:
-    """Write sidecar metadata, PID file, and launch ``search-auto`` subprocess.
+    """Write sidecar metadata, PID file, and launch ``deep-search`` subprocess.
 
     Returns the ``Popen`` handle on success, or ``None`` if the process
     crashes during the 2-second startup window.
@@ -1000,13 +990,17 @@ def _launch_search_auto(
     cmd = [
         sys.executable,
         str(_OBSERVATORY_SCRIPT),
-        "search-auto",
+        "deep-search",
         "--search-id",
         search_id,
         "--batch-run-budget",
         str(batch_run_budget),
         "--max-total-runs",
         str(max_total_runs),
+        "--cpu-budget",
+        str(cpu_budget),
+        "--time-budget-hours",
+        str(time_budget_hours),
         "--workers-per-run",
         str(effective_workers),
         "--parallel-runs",
@@ -1016,8 +1010,12 @@ def _launch_search_auto(
         "--max-recommended",
         str(max_recommended),
     ]
+    if search_pack_id:
+        cmd.extend(["--search-pack", search_pack_id])
     if include_recipes:
         cmd.append("--include-recipe-catalog")
+    if allow_ai_synthesis:
+        cmd.append("--allow-ai-synthesis")
     if overwrite:
         cmd.append("--overwrite")
 
@@ -1027,6 +1025,9 @@ def _launch_search_auto(
                 "search_id": search_id,
                 "launched_at": dt.datetime.now(tz=dt.UTC).isoformat(),
                 "base_revision": "HEAD",
+                "cpu_budget": cpu_budget,
+                "time_budget_hours": time_budget_hours,
+                "search_pack_id": search_pack_id,
                 "command": " ".join(cmd[2:]),
             },
             sort_keys=False,
@@ -1066,16 +1067,17 @@ def _launch_search_auto(
         return None
 
     output_pane.object = terminal_output(
-        f"Launched: {search_id}  (PID {process.pid})\n"
+        f"Deep search launched: {search_id}  (PID {process.pid})\n"
         f"CPU cores: {cpu_budget} | {effective_parallel} parallel run(s) x "
         f"{effective_workers} workers | Max experiments: {max_total_runs}\n"
+        f"Search pack: {search_pack_id or 'default'} | Time budget: {time_budget_hours:.1f}h\n"
         f"Log: {log_path.relative_to(_PROJECT_ROOT)}\n\n"
         f"Progress will appear in the Search Progress section.",
         max_height=180,
     ).object
     status_pane.object = (
         f'<div style="color:#00B050;font-weight:600;font-size:0.92em">'
-        f"Search <strong>{search_id}</strong> launched successfully."
+        f"Deep search <strong>{search_id}</strong> launched successfully."
         f"</div>"
     )
     return process
@@ -1087,202 +1089,103 @@ def _launch_search_auto(
 
 
 def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
-    """Build the preset picker, launch button, and advanced controls.
-
-    Returns a ``pn.Column`` that can be embedded in any card or section.
-    Contains: preset buttons, recommendation hint, launch button, customize
-    card, and collapsed advanced controls.
-    """
-    # --- Status and output panes (shared by simple and advanced) ---
+    """Build the primary deep-search launcher and expert controls."""
     status_pane = pn.pane.HTML(sizing_mode="stretch_width")
     output_pane = pn.pane.HTML(sizing_mode="stretch_width")
 
-    # --- Smart defaults ---
     available_cores = os.cpu_count() or 12
-    default_workers = min(12, available_cores)
-    default_batch_budget = int(dm.search_policy.default_run_budget)
-    default_max_total = 20
+    default_cpu_budget = min(
+        available_cores,
+        max(2, int(dm.search_policy.deep_search.get("cpu_budget", 12) or 12)),
+    )
+    default_parallel_runs, _ = _derive_parallelism(default_cpu_budget)
+    default_batch_budget = int(
+        dm.search_policy.deep_search.get(
+            "batch_size",
+            default_batch_size(default_parallel_runs),
+        )
+        or default_batch_size(default_parallel_runs)
+    )
+    default_max_total = int(dm.search_policy.deep_search.get("total_candidate_cap", 48) or 48)
+    default_time_budget = float(dm.search_policy.deep_search.get("time_budget_hours", 6.0) or 6.0)
     default_include_recipes = bool(dm.search_policy.include_recipe_catalog)
-
-    preset_defaults: dict[str, _LaunchPreset] = {
-        "Quick check": {
-            "cpu_budget": min(max(2, available_cores // 3), 8),
-            "max_total_runs": 8,
-            "batch_run_budget": max(1, min(default_batch_budget, 2)),
-            "summary": (
-                "Runs a small safe batch to see whether the direction looks promising. "
-                "Use this when you want a quick signal before investing in a larger search."
-            ),
-        },
-        "Standard exploration": {
-            "cpu_budget": default_workers,
-            "max_total_runs": default_max_total,
-            "batch_run_budget": default_batch_budget,
-            "summary": (
-                "Runs the recommended balanced search. Usually produces reviewable evidence "
-                "without opening too many branches at once."
-            ),
-        },
-        "Deeper search": {
-            "cpu_budget": min(available_cores, max(default_workers, 16)),
-            "max_total_runs": 36,
-            "batch_run_budget": max(default_batch_budget, 4),
-            "summary": (
-                "Runs a larger search budget to explore more variants after the first pass. "
-                "Use this when the earlier review ended in mixed signal or no clear winner."
-            ),
-        },
+    search_packs = load_search_packs(dm.search_policy.search_pack_root)
+    default_pack = default_search_pack(search_packs, scope="county")
+    pack_options = {
+        f"{pack.label} ({pack.pack_id})": pack.pack_id
+        for pack in sorted(search_packs.values(), key=lambda item: item.pack_id)
     }
+    default_pack_id = default_pack.pack_id if default_pack is not None else ""
 
-    # --- Simple mode widgets ---
-    preset_state: dict[str, str] = {"value": "Standard exploration"}
-    launch_note = pn.pane.HTML(sizing_mode="stretch_width")
     cpu_slider = pn.widgets.IntSlider(
         name="CPU cores to use",
         start=2,
         end=available_cores,
         step=1,
-        value=default_workers,
-        width=280,
+        value=default_cpu_budget,
+        width=360,
     )
-    max_runs_spinner = pn.widgets.IntInput(
-        name="Max experiments to run",
-        value=default_max_total,
-        step=5,
-        start=1,
-        end=200,
-        width=180,
-    )
+    cpu_alloc_pane = pn.pane.HTML(sizing_mode="stretch_width")
+    hidden_defaults_pane = pn.pane.HTML(sizing_mode="stretch_width")
+    search_pack_value = {"value": default_pack_id}
 
-    preset_buttons: dict[str, pn.widgets.Button] = {}
-
-    def _apply_preset(preset_name: str) -> None:
-        preset_state["value"] = preset_name
-        selected = preset_defaults[preset_name]
-        cpu_slider.value = int(selected["cpu_budget"])
-        max_runs_spinner.value = int(selected["max_total_runs"])
-        for name, button in preset_buttons.items():
-            button.button_type = "primary" if name == preset_name else "light"
-        launch_note.object = (
-            '<div style="color:#334E68;font-size:0.9em;margin:2px 0 10px 0">'
-            f"<strong>{preset_name}:</strong> {selected['summary']} "
-            "Results become reviewable after the first completed benchmark bundle is written."
+    def _refresh_cpu_copy(*events: Any) -> None:
+        del events
+        parallel_runs, workers_per_run = _derive_parallelism(cpu_slider.value)
+        batch_budget = default_batch_size(parallel_runs)
+        cpu_alloc_pane.object = (
+            '<div style="color:#334E68;font-size:0.9em;margin:2px 0 8px 0">'
+            f"<strong>Execution layout:</strong> {_core_alloc_label(cpu_slider.value)}"
+            "</div>"
+        )
+        hidden_defaults_pane.object = (
+            '<div style="color:#5A6C84;font-size:0.86em;margin:0 0 6px 0">'
+            f"Hidden defaults: {batch_budget} candidates per batch, "
+            f"{default_max_total} candidate cap, {default_time_budget:.1f}h wall-clock limit."
             "</div>"
         )
 
-    def _make_preset_handler(preset_name: str) -> Any:
-        def _handler(event: Any) -> None:
-            del event
-            _apply_preset(preset_name)
+    cpu_slider.param.watch(_refresh_cpu_copy, "value")
+    _refresh_cpu_copy()
 
-        return _handler
-
-    for preset_name in preset_defaults:
-        button = pn.widgets.Button(
-            name=preset_name,
-            button_type="light",
-            sizing_mode="stretch_width",
-            height=52,
-        )
-        button.on_click(_make_preset_handler(preset_name))
-        preset_buttons[preset_name] = button
-
-    preset_button_row = pn.FlexBox(
-        *preset_buttons.values(),
-        flex_wrap="wrap",
-        sizing_mode="stretch_width",
-        css_classes=layout_mode_classes("obs-preset-button-row"),
-        styles={"gap": "10px"},
-    )
-    _apply_preset(preset_state["value"])
-
-    # --- Next-recommendation hint ---
-    recommendations = dm.recommender.suggest_next_experiments(1)
-    top_rec = recommendations[0] if recommendations else None
-    if top_rec is not None:
-        code_change_note = (
-            " This suggestion needs a code change before it can run from this screen."
-            if getattr(top_rec, "requires_code_change", False)
-            else ""
-        )
-        hint_text = (
-            '<div style="color:#334E68;font-size:0.9em;margin:4px 0 6px 0">'
-            "<strong>Suggested next test:</strong> "
-            f"Try <strong>{top_rec.parameter} = {top_rec.suggested_value}</strong>."
-            "</div>"
-            f'<div style="color:#5A6C84;font-size:0.85em;margin:0 0 8px 0">'
-            f"Why: {top_rec.rationale}{code_change_note}"
-            "</div>"
-        )
-    else:
-        hint_text = (
-            '<div style="color:#5A6C84;font-size:0.88em;margin:4px 0 8px 0">'
-            "No recommendation available yet. Run more tested history to unlock suggested next experiments."
-            "</div>"
-        )
-    hint_pane = pn.pane.HTML(hint_text, sizing_mode="stretch_width")
-
-    # Active session notice
     active_id = dm.active_search_id
     has_active = active_id is not None and active_id != ""
     if has_active:
         status_pane.object = (
             f'<div style="color:#334E68;font-size:0.92em">'
-            f"Active search: <strong>{active_id}</strong> -- "
+            f"Active deep search: <strong>{active_id}</strong> -- "
             f"progress updates appear in the Search Progress section."
             f"</div>"
         )
 
-    # --- Simple Start button ---
     def _on_simple_start(event: Any) -> None:
-        preset_name = preset_state["value"]
-        preset = preset_defaults[preset_name]
+        del event
+        parallel_runs, _ = _derive_parallelism(cpu_slider.value)
         _launch_search_auto(
             search_id=_default_search_id(),
             cpu_budget=cpu_slider.value,
-            max_total_runs=max_runs_spinner.value,
-            batch_run_budget=int(preset["batch_run_budget"]),
+            max_total_runs=default_max_total,
+            batch_run_budget=default_batch_size(parallel_runs),
+            time_budget_hours=default_time_budget,
             max_pending=int(dm.search_policy.default_max_pending),
             max_recommended=int(dm.search_policy.default_max_recommended),
             include_recipes=default_include_recipes,
+            allow_ai_synthesis=False,
             overwrite=False,
             status_pane=status_pane,
             output_pane=output_pane,
             session_dir=dm.search_session_root,
+            search_pack_id=search_pack_value["value"],
         )
 
     btn_start = pn.widgets.Button(
-        name="Launch Selected Preset",
+        name="Begin Deep Search",
         button_type="primary",
         width=220,
         height=46,
     )
     btn_start.on_click(_on_simple_start)
 
-    resource_row = pn.FlexBox(
-        cpu_slider,
-        max_runs_spinner,
-        flex_wrap="wrap",
-        sizing_mode="stretch_width",
-        styles={"gap": "14px"},
-    )
-    customize_card = pn.Card(
-        resource_row,
-        pn.pane.HTML(
-            '<div style="color:#7A8CA0;font-size:0.85em">'
-            "Use these controls only when you need to override the preset defaults."
-            "</div>",
-            sizing_mode="stretch_width",
-        ),
-        title="Customize Launch Settings",
-        collapsed=True,
-        sizing_mode="stretch_width",
-        css_classes=["obs-inset-panel"],
-    )
-
-    # ---------------------------------------------------------------
-    # Advanced controls (collapsed inner card)
-    # ---------------------------------------------------------------
     search_id_input = pn.widgets.TextInput(
         name="Launch Search ID",
         value=_default_search_id(),
@@ -1300,6 +1203,13 @@ def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
         value=default_max_total,
         step=1,
         start=1,
+        sizing_mode="stretch_width",
+    )
+    time_budget_input = pn.widgets.FloatInput(
+        name="Time Budget (hours)",
+        value=default_time_budget,
+        step=0.5,
+        start=0.5,
         sizing_mode="stretch_width",
     )
     max_pending_input = pn.widgets.IntInput(
@@ -1321,8 +1231,30 @@ def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
         name="Include recipe catalog",
         value=default_include_recipes,
     )
+    allow_ai_synthesis_box = pn.widgets.Checkbox(
+        name="Allow AI synthesis when configured",
+        value=False,
+    )
+    search_pack_select = pn.widgets.Select(
+        name="Search Pack",
+        options=pack_options or {"Default pack": ""},
+        value=default_pack_id if default_pack_id in set(pack_options.values()) else "",
+        sizing_mode="stretch_width",
+    )
 
-    # Advanced session management widgets
+    def _selected_search_pack_id() -> str:
+        if pack_options:
+            selected = str(search_pack_select.value or default_pack_id)
+            return selected if selected in set(pack_options.values()) else default_pack_id
+        return default_pack_id
+
+    def _sync_pack_selection(*events: Any) -> None:
+        del events
+        search_pack_value["value"] = _selected_search_pack_id()
+
+    search_pack_select.param.watch(_sync_pack_selection, "value")
+    _sync_pack_selection()
+
     adv_session_select = pn.widgets.Select(
         name="Search Session",
         options=dm.search_session_option_map() or {"No sessions yet": ""},
@@ -1450,27 +1382,35 @@ def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
             ]
 
         # Report preview
+        deep_brief_text = (
+            dm.search_session_brief_markdown(selected_search_id) if selected_search_id else ""
+        )
         report_text = (
             dm.search_session_report_markdown(selected_search_id) if selected_search_id else ""
         )
         observatory_report_path = (
             str(selected.get("observatory_report_html", "") or "") if selected is not None else ""
         )
+        preview_blocks: list[Any] = []
+        if deep_brief_text:
+            preview_blocks.append(pn.pane.Markdown(deep_brief_text, sizing_mode="stretch_width"))
         if report_text:
+            preview_blocks.append(pn.pane.Markdown(report_text, sizing_mode="stretch_width"))
+        preview_blocks.append(
+            pn.pane.Markdown(
+                f"Observatory HTML report: `{observatory_report_path or 'not written yet'}`"
+            )
+        )
+        if deep_brief_text or report_text:
             adv_report_preview_box[:] = [
-                pn.pane.Markdown(report_text, sizing_mode="stretch_width"),
-                pn.pane.Markdown(
-                    f"Observatory HTML report: `{observatory_report_path or 'not written yet'}`"
-                ),
+                *preview_blocks,
             ]
         else:
             adv_report_preview_box[:] = [
                 empty_placeholder(
-                    "No Markdown search report is available for the selected session yet."
+                    "No Deep Search Brief or Markdown search report is available for the selected session yet."
                 ),
-                pn.pane.Markdown(
-                    f"Observatory HTML report: `{observatory_report_path or 'not written yet'}`"
-                ),
+                *preview_blocks,
             ]
 
         # Log tail
@@ -1481,18 +1421,28 @@ def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
 
     # --- Advanced button callbacks ---
     def _adv_preview_plan(event: Any) -> None:
+        del event
         sid = search_id_input.value.strip() or _default_search_id()
         args = [
             "search-plan",
             "--search-id",
             sid,
+            "--cpu-budget",
+            str(cpu_slider.value),
+            "--time-budget-hours",
+            str(time_budget_input.value),
             "--max-pending",
             str(max_pending_input.value),
             "--max-recommended",
             str(max_recommended_input.value),
         ]
+        search_pack_id = _selected_search_pack_id()
+        if search_pack_id:
+            args.extend(["--search-pack", search_pack_id])
         if include_recipes_box.value:
             args.append("--include-recipe-catalog")
+        if allow_ai_synthesis_box.value:
+            args.append("--allow-ai-synthesis")
         if overwrite_box.value:
             args.append("--overwrite")
         result = _run_observatory_command(args)
@@ -1500,19 +1450,24 @@ def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
         _adv_refresh_views(prefer_search_id=sid)
 
     def _adv_launch_search(event: Any) -> None:
+        del event
         sid = search_id_input.value.strip() or _default_search_id()
+        search_pack_id = _selected_search_pack_id()
         _launch_search_auto(
             search_id=sid,
             cpu_budget=cpu_slider.value,
             max_total_runs=max_total_runs_input.value,
             batch_run_budget=batch_run_budget_input.value,
+            time_budget_hours=time_budget_input.value,
             max_pending=max_pending_input.value,
             max_recommended=max_recommended_input.value,
             include_recipes=include_recipes_box.value,
+            allow_ai_synthesis=allow_ai_synthesis_box.value,
             overwrite=overwrite_box.value,
             status_pane=status_pane,
             output_pane=output_pane,
             session_dir=dm.search_session_root,
+            search_pack_id=search_pack_id,
         )
         adv_session_select.value = sid
         _adv_refresh_views(prefer_search_id=sid)
@@ -1537,6 +1492,7 @@ def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
 
     # --- Manual sweep callbacks (from old _build_action_buttons) ---
     def _on_run_pending_preview(event: Any) -> None:
+        del event
         result = _run_observatory_command(
             [
                 "run-pending",
@@ -1550,6 +1506,7 @@ def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
         adv_output_pane.object = terminal_output(result, max_height=220).object
 
     def _on_run_recommended_preview(event: Any) -> None:
+        del event
         result = _run_observatory_command(
             [
                 "run-recommended",
@@ -1601,9 +1558,11 @@ def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
         ).object
 
     def _on_launch_pending(event: Any) -> None:
+        del event
         _launch_sweep("run-pending", "observatory_pending_resume.json")
 
     def _on_launch_recommended(event: Any) -> None:
+        del event
         _launch_sweep("run-recommended", "observatory_recommended_resume.json")
 
     # --- Advanced buttons ---
@@ -1611,7 +1570,7 @@ def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
     btn_adv_refresh.on_click(_adv_refresh_only)
     btn_adv_preview_plan = pn.widgets.Button(name="Preview Plan", button_type="warning", width=140)
     btn_adv_preview_plan.on_click(_adv_preview_plan)
-    btn_adv_launch = pn.widgets.Button(name="Launch Search-Auto", button_type="success", width=180)
+    btn_adv_launch = pn.widgets.Button(name="Launch Deep Search", button_type="success", width=180)
     btn_adv_launch.on_click(_adv_launch_search)
     btn_adv_stop = pn.widgets.Button(name="Stop Search", button_type="danger", width=140)
     btn_adv_stop.on_click(_adv_stop_search)
@@ -1640,6 +1599,7 @@ def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
 
     adv_controls = pn.FlexBox(
         search_id_input,
+        time_budget_input,
         batch_run_budget_input,
         max_total_runs_input,
         max_pending_input,
@@ -1651,6 +1611,7 @@ def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
     adv_toggles = pn.FlexBox(
         overwrite_box,
         include_recipes_box,
+        allow_ai_synthesis_box,
         flex_wrap="wrap",
         sizing_mode="stretch_width",
         styles={"gap": "18px"},
@@ -1677,7 +1638,8 @@ def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
     advanced_card = pn.Card(
         adv_session_select,
         adv_detail_pane,
-        section_header("Search-Auto Settings"),
+        section_header("Expert Controls"),
+        search_pack_select if len(pack_options) > 1 else pn.Spacer(height=0),
         adv_controls,
         adv_toggles,
         adv_search_buttons,
@@ -1692,7 +1654,7 @@ def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
         adv_report_preview_box,
         section_header("Log Tail"),
         adv_log_preview,
-        title="Advanced Controls",
+        title="Expert Controls",
         collapsed=True,
         sizing_mode="stretch_width",
         css_classes=["obs-inset-panel"],
@@ -1701,17 +1663,16 @@ def _build_launch_controls(dm: DashboardDataManager) -> pn.Column:
     return pn.Column(
         pn.pane.HTML(
             '<div style="color:#1F3864;font-size:0.95em;font-weight:600;margin-bottom:4px">'
-            "Choose how broad the next search should be."
+            "Choose CPU cores, then begin a guided deep search."
             "</div>",
             sizing_mode="stretch_width",
         ),
-        preset_button_row,
-        hint_pane,
-        launch_note,
+        cpu_slider,
+        cpu_alloc_pane,
+        hidden_defaults_pane,
         pn.Row(btn_start, sizing_mode="stretch_width"),
         status_pane,
         output_pane,
-        customize_card,
         advanced_card,
         sizing_mode="stretch_width",
     )
@@ -2274,21 +2235,16 @@ def build_command_center(
             sizing_mode="stretch_width",
         )
 
-    workflow_components: list[Any] = [_build_primary_route_card(dm, tabs=tabs)]
-
-    # In non-empty states, offer a collapsed launch card so users can still
-    # start a new search without it dominating the view.
-    state = str(dm.workspace_state.get("state", "empty_ready") or "empty_ready")
-    if state != "empty_ready":
-        workflow_components.append(
-            pn.Card(
-                _build_launch_controls(dm),
-                title="Launch New Search",
-                collapsed=True,
-                sizing_mode="stretch_width",
-                css_classes=["obs-inset-panel"],
-            )
-        )
+    workflow_components: list[Any] = [
+        pn.Card(
+            _build_launch_controls(dm),
+            title="Deep Search",
+            collapsed=False,
+            sizing_mode="stretch_width",
+            css_classes=["obs-inset-panel"],
+        ),
+        _build_primary_route_card(dm, tabs=tabs),
+    ]
 
     if dm.search_sessions.empty:
         workflow_components.append(_build_onboarding_card(dm))
@@ -2321,8 +2277,8 @@ def build_command_center(
         section_header(
             "Command Center",
             subtitle=(
-                "Start in Guided mode for the safest next step, or jump straight into "
-                "the detailed analytical tabs when you want to inspect the evidence directly."
+                "The default path is deep search: choose CPU cores, click Begin Deep Search, "
+                "then use the brief and analytical tabs to verify the result."
             ),
         ),
         command_center_grid,

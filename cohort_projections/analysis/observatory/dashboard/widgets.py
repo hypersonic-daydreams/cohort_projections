@@ -678,7 +678,7 @@ def completion_banner(
             "<strong>Next steps:</strong>"
             "<ol>"
             "<li>Expand <em>Log Output</em> below to identify failures</li>"
-            "<li>Fix the underlying issue, then click <em>Start Exploring</em> again</li>"
+            "<li>Fix the underlying issue, then click <em>Begin Deep Search</em> again</li>"
             "</ol>"
         )
     elif status == "mixed":
@@ -700,7 +700,7 @@ def completion_banner(
             "<li>Open <strong>Scorecards</strong> for detailed comparisons</li>"
             "<li>Open <strong>Experiment History</strong> to compare results over time</li>"
             "<li>Open <strong>Projections</strong> to visualize population curves</li>"
-            "<li>Click <em>Start Exploring</em> to search further with different parameters</li>"
+            "<li>Click <em>Begin Deep Search</em> to search further with different parameters</li>"
             "</ol>"
         )
 

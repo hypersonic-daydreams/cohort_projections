@@ -2,7 +2,7 @@
 
 Canonical instruction set for all AI agents working on this codebase.
 
-**Last Updated:** 2026-03-19 | **Version:** 1.9.1 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
+**Last Updated:** 2026-03-21 | **Version:** 1.9.2 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
 
 ---
 
@@ -82,7 +82,7 @@ Data deletion, security changes, breaking output formats, **methodology changes 
 - **Backups**: Use `scripts/bisync.sh`. NEVER run raw `rclone` commands for syncing.
 - **Maintenance**: Use provided scripts in `scripts/maintenance/`.
 - **Benchmarking**: Use `scripts/analysis/run_benchmark_suite.py` for champion-vs-challenger runs. Use `scripts/analysis/run_experiment.py --spec <path>` for the full experiment pipeline (spec → profile → benchmark → evaluate → log). Use `scripts/analysis/build_experiment_dashboard.py` to generate an interactive HTML dashboard comparing all experiment results. Use `scripts/analysis/run_experiment_sweep.py` for batch sweeps (spec list, parameter grid, or pending queue). See `docs/guides/benchmarking-workflow.md` for the complete workflow, `docs/guides/observatory-start-here.md` for the Observatory entry point, `docs/plans/README.md` for planning-doc status, and `config/benchmark_evaluation_policy.yaml` for gate thresholds.
-- **Observatory**: The **live Panel dashboard** (`scripts/analysis/observatory_dashboard.py`) is the primary interface — launch it with `python scripts/analysis/observatory_dashboard.py` (default port 5006). It provides 7 interactive tabs with auto-refreshing progress tracking for `search-auto` sessions. The Command Center uses progressive disclosure: a one-click "Start Exploring" button launches autonomous search with smart defaults, and advanced controls are collapsed by default. The **CLI** (`scripts/analysis/observatory.py`) is the alternative for scripting and automation. Key CLI commands: `status`, `compare`, `rank`, `recommend`, `run-pending`, `run-recommended`, `search-auto`, `diff`, `history`, `report`. Config files: `config/observatory_config.yaml` (paths, metrics, thresholds), `config/observatory_variants.yaml` (variant definitions and grid sweeps). Package: `cohort_projections/analysis/observatory/`.
+- **Observatory**: The **live Panel dashboard** (`scripts/analysis/observatory_dashboard.py`) is the primary interface — launch it with `python scripts/analysis/observatory_dashboard.py` (default port 5006). It provides 7 interactive tabs with auto-refreshing progress tracking for deep-search sessions. The Command Center uses progressive disclosure: the primary path is choose CPU cores, click `Begin Deep Search`, then review the `Deep Search Brief`; expert controls stay collapsed by default. The **CLI** (`scripts/analysis/observatory.py`) is the alternative for scripting and automation. Key CLI commands: `status`, `compare`, `rank`, `recommend`, `run-pending`, `run-recommended`, `deep-search`, `search-auto` (alias), `diff`, `history`, `report`. Config files: `config/observatory_config.yaml` (paths, thresholds, AI synthesis), `config/observatory_search_policy.yaml` (deep-search controller defaults), `config/observatory_search_packs/` (scope-specific search packs), and `config/observatory_variants.yaml` (variant definitions and grid sweeps). Package: `cohort_projections/analysis/observatory/`.
 
 ### Projection Observatory Naming
 
@@ -372,6 +372,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.9.2 | 2026-03-21 | Updated Projection Observatory guidance for the deep-search workflow, canonical CLI/dashboard naming, and search-pack policy/config references |
 | 1.9.1 | 2026-03-19 | Added planning-doc inventory reference, clarified Observatory guide wording after roadmap/backlog completion, and refreshed metadata date |
 | 1.9.0 | 2026-03-16 | Updated current focus to CF-001 / maintenance mode; PP-006 through PP-009 completion; Observatory maturation; updated place count to 355 active |
 | 1.8.2 | 2026-03-13 | Added Projection Observatory start-here and workflow-guide references to improve discoverability of Observatory status, operations, and follow-on backlog |
@@ -382,7 +383,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-03-16 |
-| **Version** | 1.9.0 |
+| **Last Updated** | 2026-03-21 |
+| **Version** | 1.9.2 |
 | **Status** | Current |
 | **Applies To** | All AI Agents |

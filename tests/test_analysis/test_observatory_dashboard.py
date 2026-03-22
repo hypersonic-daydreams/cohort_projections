@@ -659,6 +659,8 @@ summary:
     (session_dir / "candidate_summary.csv").write_text(
         "candidate_id,status\ncand-1,completed\n", encoding="utf-8"
     )
+    (session_dir / "frontier.csv").write_text("candidate_id\ncand-1\n", encoding="utf-8")
+    (session_dir / "deep_search_brief.md").write_text("# brief\n", encoding="utf-8")
     (session_dir / "search_report.md").write_text("# report\n", encoding="utf-8")
 
     frame = build_search_session_frame(tmp_path)
@@ -669,6 +671,8 @@ summary:
     assert row["progress_count"] == 5
     assert row["progress_pct"] == 50.0
     assert row["candidate_summary_csv"].endswith("candidate_summary.csv")
+    assert row["frontier_csv"].endswith("frontier.csv")
+    assert row["deep_search_brief_markdown"].endswith("deep_search_brief.md")
     assert row["search_report_markdown"].endswith("search_report.md")
     assert row["process_status"] == "stopped"
 
@@ -1554,6 +1558,69 @@ def test_dashboard_data_manager_session_review_data_handles_no_sessions(
 
     assert summary["session_decision_state"] == "not_executed"
     assert "No autonomous-search session" in summary["session_headline"]
+
+
+def test_dashboard_data_manager_session_review_data_uses_latest_finished_session(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Session review data should fall back to the latest finished session when idle."""
+    history_dir = tmp_path / "history"
+    history_dir.mkdir()
+    (history_dir / "index.csv").write_text("run_id\nbr-cand-1\n", encoding="utf-8")
+    run_dir = history_dir / "br-cand-1"
+    run_dir.mkdir()
+    (run_dir / "summary_scorecard.csv").write_text(
+        "method_id,config_id\nm2026r1,cfg-test\n",
+        encoding="utf-8",
+    )
+    (run_dir / "manifest.json").write_text("{}", encoding="utf-8")
+    session_root = tmp_path / "sessions"
+    session_dir = session_root / "search-finished"
+    session_dir.mkdir(parents=True)
+    (session_dir / "session.yaml").write_text(
+        (
+            "search_id: search-finished\n"
+            "status: finished\n"
+            "created_at: 2026-03-18T09:00:00+00:00\n"
+            "updated_at: 2026-03-18T09:45:00+00:00\n"
+            "summary:\n"
+            "  total: 1\n"
+            "  planned: 0\n"
+            "  running: 0\n"
+            "  completed: 1\n"
+            "  failed: 0\n"
+            "candidates:\n"
+            "  - candidate_id: cand-1\n"
+            "    source: variant_catalog\n"
+            "    source_id: EXP-A\n"
+            "    execution_mode: config_only\n"
+            "    status: completed\n"
+            "    result:\n"
+            "      outcome: passed_all_gates\n"
+            "      run_id: br-cand-1\n"
+            "      method_id: m2026r1\n"
+            "      config_id: cfg-test\n"
+            "      benchmark_summary:\n"
+            "        primary_metric: county_mape_overall\n"
+            "        metrics:\n"
+            "          county_mape_overall: 8.2\n"
+            "        deltas:\n"
+            "          county_mape_overall: -0.3\n"
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        "cohort_projections.analysis.observatory.dashboard.data_manager._is_search_process_running",
+        lambda pid, search_id: False,
+    )
+    dm = _make_dashboard_manager(monkeypatch, history_dir=history_dir, session_root=session_root)
+
+    summary = dm.session_review_data
+
+    assert dm.active_search_id is None
+    assert summary["search_id"] == "search-finished"
+    assert summary["session_decision_state"] in {"recommended", "ready_for_review"}
 
 
 def test_dashboard_data_manager_refresh_clears_cached_views_and_rebuilds_policy(
