@@ -1,0 +1,342 @@
+/* ============================================================================
+   North Dakota "Be Legendary" Design System — Colors & Type
+   ============================================================================
+   Source of truth: uploads/North-Dakota-Brand-System-Specification.md
+   The hex code is the unambiguous identifier — friendly names differ between
+   the brand library and the working code, so always reference by hex.
+
+   Web font stack uses Segoe UI / Arial (correspondence fonts). Futura PT is
+   the design family but is not licensed for web. For headlines we add a
+   geometric Google Font fallback ("Jost") to approximate Futura's character
+   on platforms without Segoe UI.
+   ============================================================================ */
+
+/* ---------- Optional geometric web fallback for Futura PT ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* ============================================================ */
+  /*  COLOR PALETTE — hex is the unambiguous identifier            */
+  /* ============================================================ */
+
+  /* Primary palette */
+  --nd-rustic-orange:        #D34727;  /* Pantone 173C */
+  --nd-warm-gray:            #796E66;  /* Warm Gray 10C */
+  --nd-golden-wheat:         #B6B0A2;  /* Pantone 7535C — aka "Warm Gray Light" in code */
+  --nd-earthy-teal:          #087482;  /* Pantone 7474C */
+  --nd-black:                #000000;
+  --nd-white:                #FFFFFF;
+
+  /* Extended palette */
+  --nd-rustic-brown:         #A8353A;  /* Pantone 1807C */
+  --nd-harvest-orange:       #FAA21B;  /* Pantone 137C */
+  --nd-freshwater-blue:      #049FDA;  /* Pantone 299C — aka "Horizon Blue" in code */
+  --nd-summer-green:         #709749;  /* Pantone 7490C — aka "Springtime" in code */
+  --nd-springtime-green:     #B3BD35;  /* Pantone 390C — aka "Summer" in code */
+  --nd-horizon-blue:         #0E406A;  /* Pantone 541C — aka "Freshwater" in code — PRIMARY brand */
+
+  /* ============================================================ */
+  /*  WCAG AA ACCESSIBLE WEB SUBSTITUTIONS                         */
+  /*  Use these for digital surfaces where text contrast matters.   */
+  /* ============================================================ */
+  --nd-aa-rustic-brown:      #A8363A;  /* white text only       6.45:1 */
+  --nd-aa-rustic-orange:     #D14627;  /* both       white 4.54 / black 4.61 */
+  --nd-aa-harvest-orange:    #FAA21B;  /* black text only      10.24:1 */
+  --nd-aa-springtime-green:  #B3BD35;  /* black text only      10.24:1 */
+  --nd-aa-summer-green:      #5F803B;  /* both       4.52 / 4.63 */
+  --nd-aa-earthy-teal:       #098090;  /* both       4.66 / 4.50 */
+  --nd-aa-horizon-blue:      #0E406A;  /* white text only      10.71:1 */
+  --nd-aa-freshwater-blue:   #037FAE;  /* both       4.51 / 4.65 */
+  --nd-aa-warm-gray:         #7E726A;  /* both       4.66 / 4.50 */
+  --nd-aa-golden-wheat:      #B6B0A2;  /* black text only       9.72:1 */
+
+  /* ============================================================ */
+  /*  TINTS — every brand color supports 100 / 80 / 60 / 40 %      */
+  /* ============================================================ */
+  --nd-horizon-blue-80:      #3E6688;
+  --nd-horizon-blue-60:      #6E8CA6;
+  --nd-horizon-blue-40:      #9EB2C3;
+  --nd-horizon-blue-20:      #CFD9E1;
+  --nd-horizon-blue-08:      #F0F3F6;
+
+  --nd-earthy-teal-80:       #3A8F9B;
+  --nd-earthy-teal-60:       #6CAAB4;
+  --nd-earthy-teal-40:       #9DC6CD;
+  --nd-earthy-teal-20:       #CEE2E6;
+
+  --nd-harvest-orange-80:    #FBB44A;
+  --nd-harvest-orange-60:    #FCC678;
+  --nd-harvest-orange-40:    #FDD9A6;
+  --nd-harvest-orange-20:    #FEECD3;
+
+  --nd-warm-gray-80:         #948B84;
+  --nd-warm-gray-60:         #AFA8A3;
+  --nd-warm-gray-40:         #C9C5C1;
+  --nd-warm-gray-20:         #E4E2E0;
+
+  --nd-golden-wheat-60:      #D4D0C7;
+  --nd-golden-wheat-40:      #E2DFD9;
+  --nd-golden-wheat-20:      #F0EEEC;
+
+  /* ============================================================ */
+  /*  SEMANTIC TOKENS (UI framework / Bootstrap mapping)           */
+  /* ============================================================ */
+  --color-primary:           var(--nd-horizon-blue);       /* #0E406A */
+  --color-primary-hover:     #0A3155;
+  --color-primary-active:    #072744;
+  --color-primary-fg:        var(--nd-white);
+
+  --color-secondary:         var(--nd-aa-freshwater-blue); /* #037FAE — links/info */
+  --color-secondary-fg:      var(--nd-white);
+
+  --color-accent:            var(--nd-aa-earthy-teal);     /* #098090 — interactive */
+  --color-accent-fg:         var(--nd-white);
+
+  --color-success:           var(--nd-aa-summer-green);    /* #5F803B */
+  --color-success-fg:        var(--nd-white);
+
+  --color-warning:           var(--nd-harvest-orange);     /* #FAA21B (black text!) */
+  --color-warning-fg:        var(--nd-black);
+
+  --color-danger:            var(--nd-aa-rustic-brown);    /* #A8363A */
+  --color-danger-fg:         var(--nd-white);
+
+  --color-info:              var(--nd-aa-freshwater-blue);
+  --color-info-fg:           var(--nd-white);
+
+  /* ---------- Surfaces & text ---------- */
+  --bg-canvas:               #F6F4EF;   /* warm off-white (golden-wheat-08) */
+  --bg-surface:              var(--nd-white);
+  --bg-surface-elevated:     var(--nd-white);
+  --bg-sunken:               var(--nd-golden-wheat-20);
+  --bg-dark:                 var(--nd-horizon-blue);
+  --bg-dark-elevated:        #143E64;
+
+  --fg-default:              #1B1B1B;
+  --fg-muted:                var(--nd-warm-gray);          /* #796E66 */
+  --fg-subtle:               #A29A93;
+  --fg-on-dark:              var(--nd-white);
+  --fg-on-dark-muted:        rgba(255, 255, 255, 0.72);
+
+  --border-subtle:           var(--nd-golden-wheat-40);    /* light divider */
+  --border-default:          var(--nd-golden-wheat);       /* #B6B0A2 */
+  --border-strong:           var(--nd-warm-gray);          /* #796E66 */
+  --border-focus:            var(--nd-aa-earthy-teal);
+
+  /* ---------- Chart sequence (proven; matches Plotly/Power BI) ---------- */
+  --chart-1: #0E406A;  /* dark navy — lead */
+  --chart-2: #FAA21B;  /* harvest orange */
+  --chart-3: #049FDA;  /* bright blue */
+  --chart-4: #709749;  /* medium green */
+  --chart-5: #087482;  /* earthy teal */
+  --chart-6: #A8353A;  /* rustic brown */
+  --chart-7: #B3BD35;  /* yellow-green */
+  --chart-8: #796E66;  /* warm gray */
+
+  /* Diverging / growth charts */
+  --chart-strong-positive: #709749; /* >2% */
+  --chart-positive:        #B3BD35; /* >0% */
+  --chart-neutral:         #087482; /* flat */
+  --chart-negative:        #A8353A; /* <0% */
+
+  /* ============================================================ */
+  /*  TYPOGRAPHY                                                    */
+  /*  Web: Segoe UI / Arial (correspondence). Design: Futura PT.    */
+  /*  --font-display approximates Futura with Jost for web.         */
+  /* ============================================================ */
+  --font-sans:    "Segoe UI", Arial, sans-serif;
+  --font-display: "Jost", "Segoe UI", Arial, sans-serif; /* Futura web fallback */
+  --font-mono:    "Consolas", "SFMono-Regular", "Menlo", monospace;
+
+  /* Font weights (the brand spec uses Light, Book, Medium, Heavy) */
+  --fw-light:   300;
+  --fw-book:    400;
+  --fw-medium:  500;
+  --fw-semi:    600;
+  --fw-heavy:   700;
+
+  /* Type scale — anchored to a 16px base body */
+  --fs-12: 0.75rem;     /* small captions, dense table cells          */
+  --fs-14: 0.875rem;    /* news-release article body / table body     */
+  --fs-16: 1rem;        /* default body                                */
+  --fs-18: 1.125rem;    /* large body / slide-min                     */
+  --fs-20: 1.25rem;     /* H3 / lead in                               */
+  --fs-24: 1.5rem;      /* H2                                          */
+  --fs-30: 1.875rem;    /* H1 in app surfaces                          */
+  --fs-36: 2.25rem;     /* page hero                                   */
+  --fs-48: 3rem;        /* big-number stat                             */
+  --fs-64: 4rem;        /* slide title                                 */
+  --fs-96: 6rem;        /* mega stat (slide #1, #7, etc.)              */
+
+  --lh-tight:   1.1;
+  --lh-snug:    1.25;
+  --lh-normal:  1.5;
+  --lh-relaxed: 1.65;
+
+  /* Tracking */
+  --tr-tight:    -0.01em;
+  --tr-normal:   0;
+  --tr-wide:     0.08em;
+  --tr-eyebrow:  0.16em;  /* All-caps eyebrow / section label tracking */
+
+  /* ============================================================ */
+  /*  SPACING (4-pt grid)                                           */
+  /* ============================================================ */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* ============================================================ */
+  /*  RADII — sparing, mostly square                                */
+  /*  The brand sensibility is editorial, not soft-rounded SaaS.    */
+  /*  Default UI = 4px. Larger only for media / hero blocks.        */
+  /* ============================================================ */
+  --radius-none: 0;
+  --radius-sm:   2px;
+  --radius:      4px;
+  --radius-md:   6px;
+  --radius-lg:   10px;
+  --radius-pill: 999px;
+
+  /* ============================================================ */
+  /*  ELEVATION — flat by default; deeper shadows for dialogs       */
+  /* ============================================================ */
+  --shadow-flat: 0 0 0 1px var(--border-subtle);
+  --shadow-sm:   0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow:      0 2px 6px rgba(15, 23, 42, 0.08),
+                 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md:   0 6px 16px rgba(15, 23, 42, 0.10),
+                 0 2px 4px rgba(15, 23, 42, 0.06);
+  --shadow-lg:   0 16px 40px rgba(15, 23, 42, 0.14),
+                 0 4px 12px rgba(15, 23, 42, 0.08);
+
+  /* ============================================================ */
+  /*  MOTION                                                        */
+  /* ============================================================ */
+  --ease:           cubic-bezier(0.2, 0.7, 0.2, 1); /* "honest" out-curve */
+  --ease-emphasis:  cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast:   120ms;
+  --dur:        180ms;
+  --dur-slow:   280ms;
+
+  /* ============================================================ */
+  /*  LAYOUT                                                        */
+  /* ============================================================ */
+  --container-narrow: 720px;
+  --container:        1080px;
+  --container-wide:   1280px;
+  --container-full:   1440px;
+}
+
+/* ============================================================ */
+/*  SEMANTIC TYPE STYLES                                          */
+/*  Apply class-names or copy these patterns onto your elements   */
+/* ============================================================ */
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-16);
+  line-height: var(--lh-normal);
+  color: var(--fg-default);
+  background: var(--bg-canvas);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Editorial hierarchy — use these on landing pages, reports, slides */
+.t-display {
+  font-family: var(--font-display);
+  font-weight: var(--fw-light);   /* Futura Light is the hero style */
+  font-size: clamp(2.5rem, 5vw, var(--fs-96));
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tr-tight);
+  color: var(--nd-horizon-blue);
+}
+
+.t-h1 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-36);
+  line-height: var(--lh-snug);
+  color: var(--nd-horizon-blue);
+}
+.t-h2 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-24);
+  line-height: var(--lh-snug);
+  color: var(--nd-horizon-blue);
+}
+.t-h3 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-20);
+  line-height: var(--lh-snug);
+  color: var(--nd-horizon-blue);
+}
+
+/* News-release / slide-master headline: sentence case, Harvest Orange */
+.t-news-headline {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-heavy);
+  font-size: var(--fs-24);
+  line-height: var(--lh-snug);
+  color: var(--nd-aa-rustic-orange);
+}
+
+/* Eyebrow / kicker — all caps, wide tracking, paired with a title below */
+.t-eyebrow {
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-12);
+  line-height: 1;
+  letter-spacing: var(--tr-eyebrow);
+  text-transform: uppercase;
+  color: var(--nd-warm-gray);
+}
+
+.t-body {
+  font-size: var(--fs-16);
+  line-height: var(--lh-relaxed);
+  color: var(--fg-default);
+}
+.t-body-sm {
+  font-size: var(--fs-14);
+  line-height: var(--lh-normal);
+  color: var(--fg-default);
+}
+.t-caption {
+  font-size: var(--fs-12);
+  line-height: var(--lh-snug);
+  color: var(--fg-muted);
+}
+
+/* Big stat treatment — common in dashboards and slide #10/#42 patterns */
+.t-stat {
+  font-family: var(--font-display);
+  font-weight: var(--fw-light);
+  font-size: clamp(3rem, 8vw, var(--fs-96));
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--nd-horizon-blue);
+}
+.t-stat-label {
+  font-family: var(--font-display);
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-14);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-eyebrow);
+  color: var(--nd-warm-gray);
+}
+
+a { color: var(--color-secondary); text-decoration: underline; text-underline-offset: 2px; }
+a:hover { color: var(--color-primary); }
