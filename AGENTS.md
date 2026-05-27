@@ -2,7 +2,7 @@
 
 Canonical instruction set for all AI agents working on this codebase.
 
-**Last Updated:** 2026-03-21 | **Version:** 1.9.2 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
+**Last Updated:** 2026-05-27 | **Version:** 1.9.3 | **Applies To:** Claude Code, GitHub Copilot, Cursor, all AI assistants
 
 ---
 
@@ -10,9 +10,9 @@ Canonical instruction set for all AI agents working on this codebase.
 
 **North Dakota Population Projection System** — Official cohort-component population projections for North Dakota at state, county, and place levels.
 
-### Current Focus: CF-001 College Fix Model Revision (ADR-061); maintenance mode for completed PP-001 through PP-009
+### Current Focus: CF-001 College Fix Model Revision (ADR-061) and PUB-2026 public release handoff; maintenance mode for completed PP-001 through PP-009
 
-PP-001 through PP-009 are all complete. The sole active work item is `CF-001` (College Fix Model Revision, ADR-061) on branch `feature/cf-001-college-fix-revision`. See `DEVELOPMENT_TRACKER.md` for maintenance-state tasks and any newly opened work.
+PP-001 through PP-009 are all complete. Active work items are `CF-001` (College Fix Model Revision, ADR-061) and `PUB-2026` (public projection finalization and marketing handoff). Marketing intake begins 2026-05-27; final public numbers are targeted for the week of 2026-06-01 after CF-001 disposition and any approved production rerun. See `DEVELOPMENT_TRACKER.md` for maintenance-state tasks and newly opened work.
 
 | Attribute | Value |
 |-----------|-------|
@@ -26,6 +26,7 @@ PP-001 through PP-009 are all complete. The sole active work item is `CF-001` (C
 ### Related Work
 
 - **SDC 2024 Replication** (`../sdc_2024_replication/` sibling repository under the `demography/` workspace): Journal article analyzing immigration methodology. See Section 4 for file locations if needed.
+- **PUB-2026 public release handoff** (`docs/plans/2026-public-projection-release-handoff/`): Current marketing handoff package for the public PDF and consolidated Excel/CSV downloads. Public scope is state, regions, and counties only; city/place projections remain internal for this release.
 
 ---
 
@@ -372,6 +373,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.9.3 | 2026-05-27 | Added PUB-2026 public-release handoff guidance, marketing-intake timing, final-number target week, and public scope/download decisions |
 | 1.9.2 | 2026-03-21 | Updated Projection Observatory guidance for the deep-search workflow, canonical CLI/dashboard naming, and search-pack policy/config references |
 | 1.9.1 | 2026-03-19 | Added planning-doc inventory reference, clarified Observatory guide wording after roadmap/backlog completion, and refreshed metadata date |
 | 1.9.0 | 2026-03-16 | Updated current focus to CF-001 / maintenance mode; PP-006 through PP-009 completion; Observatory maturation; updated place count to 355 active |
@@ -383,7 +385,7 @@ This repository uses a PostgreSQL-backed intelligence system to track code statu
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-03-21 |
-| **Version** | 1.9.2 |
+| **Last Updated** | 2026-05-27 |
+| **Version** | 1.9.3 |
 | **Status** | Current |
 | **Applies To** | All AI Agents |

@@ -2,7 +2,7 @@
 
 Quick reference for Claude Code. **For complete guidance, see [AGENTS.md](./AGENTS.md).**
 
-Current status: All projection development packages (`PP-001` through `PP-009`) are complete. Active work item: `CF-001` College Fix Model Revision (ADR-061). Use `DEVELOPMENT_TRACKER.md` for maintenance-state tasks and any newly opened work.
+Current status: All projection development packages (`PP-001` through `PP-009`) are complete. Active work items: `CF-001` College Fix Model Revision (ADR-061) and `PUB-2026` public projection release handoff. Marketing intake begins 2026-05-27; final public numbers are targeted for the week of 2026-06-01 after CF-001 disposition and any approved production rerun. Use `DEVELOPMENT_TRACKER.md` for maintenance-state tasks and newly opened work.
 
 ---
 
@@ -35,6 +35,14 @@ python scripts/fetch_data.py    # Fetch from sibling repos
 ```bash
 python scripts/projections/run_all_projections.py
 ```
+
+### Public Release Handoff
+
+```bash
+ls docs/plans/2026-public-projection-release-handoff/
+```
+
+Current PUB-2026 scope: standalone public PDF, baseline-led scenario framing, state/region/county only, no city/place publication, and one consolidated public Excel plus one consolidated CSV.
 
 ### Benchmarking
 
@@ -132,6 +140,6 @@ git add . && git commit -m "..."
 
 | Attribute | Value |
 |-----------|-------|
-| **Last Updated** | 2026-03-16 |
-| **Version** | 2.6.0 |
+| **Last Updated** | 2026-05-27 |
+| **Version** | 2.6.1 |
 | **Note** | Quick-reference wrapper for Claude Code. See AGENTS.md for complete guidance. |

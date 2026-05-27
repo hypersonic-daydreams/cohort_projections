@@ -1,0 +1,80 @@
+# Public PDF Report Storyboard
+
+Target length: 12-16 pages.
+
+Audience: public stakeholders, state and local planners, elected officials,
+agency staff, media, and interested residents.
+
+Use the 2024 SDC PDF as the pacing model: a compact public report with a clear
+statewide story, a short methodology section, regional and county context, and a
+county appendix. The 2026 report should keep that approachable structure while
+adding clearer scenario framing.
+
+## Story Arc
+
+The report should answer five reader questions:
+
+1. What do the 2026 projections say about North Dakota's statewide population?
+2. How much do the results depend on scenario assumptions?
+3. Where is growth concentrated, and where is decline projected?
+4. How does the age structure change?
+5. Where can users find exact values after reading the PDF?
+
+The Baseline (Trend Continuation) scenario can carry the main narrative thread,
+but it should not stand alone. Restricted Growth (CBO Policy-Adjusted) and High
+Growth (Elevated Immigration) should stay visible near statewide claims and in
+the scenario table.
+
+## Page-By-Page Storyboard
+
+| Page | Reader takeaway | Likely content and exhibit |
+|------|-----------------|----------------------------|
+| 1 | This is the official public projection report for 2025-2055. | Cover, horizon, agency attribution, North Dakota map or clean population graphic. |
+| 2 | The report is short enough to navigate quickly. | Table of contents matching the 2024 report style. |
+| 3 | Statewide growth is possible, but the scenario range matters. | Executive summary with key-number callout: 2025 population, 2055 baseline, and 2055 scenario range. |
+| 4 | The projections are conditional planning scenarios. | Plain-language scenario descriptions for Baseline, Restricted Growth, and High Growth. |
+| 5 | The statewide path varies meaningfully by scenario. | 2025-2055 line chart with all three scenarios; short caveat that this is a projection, not a guaranteed future. |
+| 6 | Key years make the scenario range easier to compare. | Scenario table for 2025, 2030, 2035, 2040, 2045, 2050, and 2055. |
+| 7 | Regional change is uneven. | Eight-region map plus baseline change bars. |
+| 8 | County growth is concentrated in a smaller group of counties. | Top-growth and largest-decline county bars, or a county map with a compact ranked table. |
+| 9 | Age groups do not move in the same direction. | Trend chart for under 18, 18-64, 65+, and 85+. |
+| 10 | The population remains demographically distinctive. | Compact composition page: sex ratio and broad age composition; race/ethnicity only if final review supports a simple public display. |
+| 11 | The method is standard and understandable. | Plain-language cohort-component method box covering base data, fertility, mortality, migration, and scenarios. |
+| 12 | Readers need cautions and download guidance before using the numbers. | Migration sensitivity, geographic concentration, city/place exclusion, and public Excel/CSV description. |
+| 13-16 | County users can find their county without opening the workbook. | Baseline key-year county appendix; exact annual and scenario values live in downloads. |
+
+## Exhibits To Prepare
+
+- State population by year, 2025-2055, all three scenarios.
+- Scenario key-year table for 2025, 2030, 2035, 2040, 2045, 2050, and 2055.
+- Region map and baseline regional change chart.
+- Top-growth and largest-decline county exhibit.
+- Age-group trend chart for under 18, 18-64, 65+, and 85+.
+- County appendix table with selected baseline years.
+
+If space allows, add a small callout showing the share of statewide growth
+concentrated in the largest growth counties. Avoid full annual county tables,
+city/place tables, and detailed age-sex tables in the PDF.
+
+## Relationship To The 2024 PDF
+
+Keep:
+
+- Sixteen-page public-report scale.
+- Cover, table of contents, executive summary, statewide chart, methodology,
+  regional section, demographic section, county appendix, and contact page.
+- Plain-language interpretation beside charts and tables.
+
+Update:
+
+- Replace single-path language with scenario language.
+- Extend the horizon to 2025-2055.
+- Use current cohort-component method language.
+- Add clear public download language for one Excel workbook and one CSV.
+
+Move out of the PDF:
+
+- Detailed age-sex tables.
+- Technical package inventories.
+- City/place projections.
+- Internal QA or production notes.

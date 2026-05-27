@@ -12,6 +12,7 @@ historical before treating it as open work.
 | [`experiment-catalog.md`](./experiment-catalog.md) | Active CF-001 experiment and feature-idea catalog for county benchmark follow-ons | current |
 | [`061-college-fix-model-revision.md`](../governance/adrs/061-college-fix-model-revision.md) | Active ADR for CF-001 methodology decision | current_proposed |
 | [`2026-03-09-m2026r1-vs-m2026.md`](../reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md) | Pending benchmark decision record for CF-001 promotion review | current_pending_human_review |
+| [`2026-public-projection-release-handoff/`](./2026-public-projection-release-handoff/) | Active PUB-2026 public PDF and consolidated-download handoff package for marketing | current |
 
 ## Current Supporting Analysis
 
