@@ -378,6 +378,59 @@ class TestSandboxManager:
         assert not context.worktree_path.exists()
         assert manager.live_checkout_signature() == signature
 
+    def test_data_symlink_overlay_preserves_tracked_data_docs(
+        self, sandbox_repo: Path
+    ) -> None:
+        (sandbox_repo / ".gitignore").write_text("data/raw/**/*.csv\n", encoding="utf-8")
+        notes_path = sandbox_repo / "data" / "raw" / "census" / "DATA_SOURCE_NOTES.md"
+        notes_path.parent.mkdir(parents=True)
+        notes_path.write_text("tracked notes\n", encoding="utf-8")
+        _git(sandbox_repo, "add", ".gitignore", str(notes_path.relative_to(sandbox_repo)))
+        _git(sandbox_repo, "commit", "-m", "add tracked data docs")
+
+        ignored_data = sandbox_repo / "data" / "raw" / "census" / "source.csv"
+        ignored_data.write_text("value\n1\n", encoding="utf-8")
+        policy_path = sandbox_repo / "config" / "observatory_search_policy.yaml"
+        policy_path.write_text(
+            yaml.safe_dump(
+                {
+                    "search": {
+                        "runtime_root": "runtime",
+                        "session_root": "sessions",
+                        "mirror_repo": "runtime/repos/repo.git",
+                        "worktree_root": "runtime/worktrees",
+                        "recipe_catalog": "config/recipes.yaml",
+                        "protected_paths": ["README.md"],
+                        "allowed_recipe_roots": ["scripts/analysis"],
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        policy = load_search_policy(policy_path, project_root=sandbox_repo)
+        manager = SandboxManager(policy, source_repo=sandbox_repo)
+
+        context = manager.create_worktree(
+            search_id="search-data",
+            candidate_id="cand-data",
+            base_revision="main",
+        )
+
+        worktree_notes = context.worktree_path / notes_path.relative_to(sandbox_repo)
+        worktree_data = context.worktree_path / ignored_data.relative_to(sandbox_repo)
+        assert worktree_notes.read_text(encoding="utf-8") == "tracked notes\n"
+        assert worktree_data.is_symlink()
+        assert worktree_data.resolve() == ignored_data
+
+        changed_files, diff_patch = manager.capture_diff(
+            worktree_path=context.worktree_path,
+            base_revision="main",
+        )
+        assert changed_files == []
+        assert diff_patch == ""
+
+        manager.remove_worktree(context)
+
 
 class TestSearchController:
     def test_plan_session_collects_variants_and_recipes(self, search_project: Path) -> None:

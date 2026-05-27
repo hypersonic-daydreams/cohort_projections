@@ -161,8 +161,13 @@ class SandboxManager:
         """Symlink gitignored data directories from the source repo.
 
         Git worktrees only contain tracked files.  Data directories like
-        ``data/raw/`` are gitignored and must be made available via symlinks
-        so that benchmark scripts can load census and projection data.
+        ``data/raw/`` are mostly gitignored and must be made available via
+        symlinks so that benchmark scripts can load census and projection data.
+
+        Some documentation and ``.gitkeep`` files inside those directories are
+        tracked.  Preserve those tracked directories and overlay symlinks for
+        missing untracked data entries; replacing the directory itself would
+        make Git report tracked documentation files as deleted candidate code.
         """
         data_dirs = ["raw", "processed", "interim", "metadata", "backtesting"]
         for subdir in data_dirs:
@@ -172,11 +177,28 @@ class SandboxManager:
                 continue
             if target.is_symlink():
                 continue  # Already symlinked
-            # Remove the (mostly empty) gitkeep-only directory left by
-            # git worktree add, then replace it with a symlink.
+            if not target.exists():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.symlink_to(source.resolve())
+                continue
             if target.is_dir():
-                shutil.rmtree(target)
-            target.symlink_to(source.resolve())
+                self._overlay_data_symlinks(source, target)
+
+    def _overlay_data_symlinks(self, source_dir: Path, target_dir: Path) -> None:
+        """Symlink missing data entries while preserving tracked files."""
+        for source_child in source_dir.iterdir():
+            if source_child.name == ".git":
+                continue
+            target_child = target_dir / source_child.name
+            if target_child.exists() or target_child.is_symlink():
+                if (
+                    source_child.is_dir()
+                    and target_child.is_dir()
+                    and not target_child.is_symlink()
+                ):
+                    self._overlay_data_symlinks(source_child, target_child)
+                continue
+            target_child.symlink_to(source_child.resolve())
 
     def remove_worktree(self, context: WorktreeContext) -> None:
         """Remove a disposable worktree and its local branch."""
