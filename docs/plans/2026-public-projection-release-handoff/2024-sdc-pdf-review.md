@@ -32,10 +32,10 @@ then point users to the workbook and CSV for exact values.
 
 ## What To Update For 2026
 
-The 2026 report should use scenario language throughout. Baseline (Trend
-Continuation) can be the main narrative path, but Restricted Growth (CBO
-Policy-Adjusted) and High Growth (Elevated Immigration) should be visible near
-statewide claims and in the scenario comparison table.
+The 2026 report should use baseline-only language throughout. Baseline
+(CBO-Adjusted) is the single public path. The unadjusted trend-continuation
+path stays internal, and Restricted Growth and High Growth stay out of the
+public marketing package.
 
 The horizon changes to 2025-2055. The report should print key years for
 readability and leave exact annual values to the public downloads.
@@ -74,6 +74,8 @@ statewide number local.
 For 2026, keep that rhythm but make the caveats more integrated. Place scenario
 and migration caveats near the first statewide chart, not only on the method
 page. Keep the county appendix readable by using selected years in the PDF and
-sending users to the downloads for annual values.
+sending users to the downloads for annual values. The first statewide chart
+should explain the Baseline (CBO-Adjusted) assumptions and make clear that the
+projection is not a guaranteed future.
 
 Marketing will receive the 2024 PDF separately as the visual reference.

@@ -6,6 +6,7 @@ Accepted
 **Amended by**:
 - [ADR-039](039-international-only-migration-factor.md): International-only migration factor (CBO factor applies to international migration only, not total)
 - [ADR-040](040-extend-boom-dampening-2015-2020.md): Extended Bakken boom dampening to 2015-2020 period
+- [ADR-065](065-cbo-adjusted-public-baseline.md): Moves the CBO-adjusted assumptions into the public baseline and demotes the former unadjusted baseline to an inactive sensitivity
 
 ## Date
 2026-02-17
@@ -105,6 +106,14 @@ Additional external data points provide context for the scenario parameters:
 ## Decision
 
 **Replace the three current production scenarios (Baseline, High Growth, Low Growth) with three empirically-grounded scenarios derived from CBO Demographic Outlook data.** The new scenarios anchor all migration and fertility adjustments to observed CBO revisions rather than arbitrary percentage multipliers.
+
+**2026-05-27 update (ADR-065)**: The scenario framework below is the historical
+model-development decision. For PUB-2026 production, the public `baseline`
+scenario now incorporates the CBO-adjusted fertility and migration assumptions
+that this ADR originally assigned to `restricted_growth`. The former unadjusted
+recent-trend baseline is retained as `recent_trend_continuation` for internal
+sensitivity analysis only, and `restricted_growth` is retained only as a
+deprecated compatibility alias.
 
 ### Scenario 1: Baseline (Trend Continuation)
 

@@ -248,19 +248,40 @@ rates:
         general_cap: 0.08        # +/-8% for all other ages (clips small-county statistical noise)
 
 # === SCENARIOS ===
-# ADR-037 (CBO-grounded methodology), amended by ADR-039, ADR-040
+# ADR-037 (CBO-grounded methodology), amended by ADR-039, ADR-040, ADR-065
 scenarios:
   baseline:
-    name: "Baseline (Trend Continuation)"
-    description: "Historical PEP trends with convergence interpolation; no policy adjustment"
+    name: "Baseline (CBO-Adjusted)"
+    description: "Official public baseline incorporating CBO current-policy immigration and fertility adjustments (ADR-065)"
+    fertility: "-5_percent"
+    mortality: "improving"
+    migration:
+      type: "additive_reduction"
+      schedule:
+        2025: 0.20
+        2026: 0.37
+        2027: 0.55
+        2028: 0.78
+        2029: 0.91
+      default_factor: 1.00
+      # CBO-adjusted baseline parameters (ADR-065, using ADR-050 formula).
+      # Formula: reduction_rate = ref_intl * (1 - factor) / ref_pop
+      #          adjusted_rate  = base_rate - reduction_rate
+      reference_intl_migration: 10051  # Annual international migration (PEP 2023-2025 avg)
+      reference_population: 799358     # State population at base year
+    active: true
+
+  recent_trend_continuation:
+    name: "Recent-Trend Continuation (Internal Sensitivity)"
+    description: "Historical PEP trends with convergence interpolation; no CBO policy adjustment. Former public baseline, retained as an internal sensitivity after ADR-065."
     fertility: "constant"
     mortality: "improving"
     migration: "recent_average"
-    active: true
+    active: false
 
   restricted_growth:
-    name: "Restricted Growth (CBO Policy-Adjusted)"
-    description: "CBO-derived immigration enforcement impact via additive migration reduction (ADR-037, ADR-050)"
+    name: "Restricted Growth (Deprecated Alias)"
+    description: "Deprecated public scenario retained for compatibility; equivalent to the CBO-adjusted baseline after ADR-065."
     fertility: "-5_percent"
     mortality: "improving"
     migration:
@@ -282,11 +303,11 @@ scenarios:
       # This guarantees restricted <= baseline for all counties.
       reference_intl_migration: 10051  # Annual international migration (PEP 2023-2025 avg)
       reference_population: 799358     # State population at base year
-    active: true
+    active: false
 
   high_growth:
-    name: "High Growth (Elevated Immigration)"
-    description: "Counterfactual: BEBR-optimistic migration rates representing sustained elevated immigration (ADR-046)"
+    name: "High Growth (Internal Sensitivity)"
+    description: "Internal sensitivity: BEBR-optimistic migration rates representing sustained elevated immigration (ADR-046)"
     fertility: "+5_percent"
     mortality: "improving"
     migration: "recent_average"  # No in-engine adjustment; scenario baked into convergence rates
@@ -298,7 +319,7 @@ scenarios:
     migration_floor:
       enabled: true
       floor_value: 0.0  # Minimum average convergence rate at medium hold
-    active: true
+    active: false
 
   zero_migration:
     name: "Zero Net Migration"

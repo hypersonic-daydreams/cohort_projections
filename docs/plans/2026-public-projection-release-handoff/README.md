@@ -1,80 +1,115 @@
 # 2026 Public Projection Release Handoff
 
 This folder is the working handoff for the 2026 North Dakota population
-projection public release. The marketing-facing materials are meant to give the
-design team usable content now, before the final projection numbers are locked.
+projection public release. Marketing receives the report structure, copy
+direction, and 2024 State Data Center PDF reference now; data-driven draft
+assets need regeneration after the ADR-065 baseline rerun. The public release
+is baseline-only: the public path is Baseline (CBO-Adjusted), while the older
+unadjusted baseline and the restricted/high sensitivities remain internal.
 
-The materials are built around the 2024 State Data Center PDF
-(`data/raw/ND Population Projections.pdf`) as the starting visual reference. The
-2026 report should feel similar in scale and usefulness: a compact public report
-that can stand on its own, with the downloadable data available for users who
-need exact values.
+The 2026 report should feel similar in scale and usefulness to the 2024 SDC
+PDF: a compact public report that can stand on its own, with a downloadable
+workbook available for users who need exact values.
 
-## What Marketing Can Start With Now
+## The Draft Package
 
-Marketing can begin layout and design using:
+All draft artifacts live in [`marketing-ready/`](marketing-ready/) and the
+[`marketing-ready/drafts/`](marketing-ready/drafts/) subfolder. The current
+draft data/PNG artifacts are stale after ADR-065 because they were built from
+the older scenario definitions. Marketing can use the storyboard and structure
+now, but data-driven visuals and numeric callouts should be regenerated before
+they are used in final layout.
 
-- `draft-public-pdf-copy.md` for the draft report narrative.
-- `pdf-content-outline.md` for the page-by-page storyboard.
-- `2024-sdc-pdf-review.md` for notes on how to use the 2024 PDF as a reference.
-- `provisional-number-snapshot.md` for rounded draft values that help size
-  charts, tables, and callouts.
+**Expected refreshed data package:**
 
-These files are written for human handoff. They describe what the public report
-should say, what each section is trying to communicate, and which exhibits are
-likely needed.
+- `marketing-ready/drafts/PUB-2026 Draft Public Workbook.xlsx` — consolidated
+  workbook matching the public download schema. Includes the tidy 1,922-row
+  dataset (1 scenario × 62 geographies × 31 years), key-year county table,
+  age-group breakouts, baseline chart-ready cuts, baseline pyramid-ready
+  cuts, and a data dictionary.
+
+**Expected refreshed reference visuals:**
+
+- `marketing-ready/drafts/pyramid_state_2025.png` and
+  `pyramid_state_2055_baseline.png` — statewide pyramids for current vs.
+  the public baseline.
+- `marketing-ready/drafts/pyramid_cass_*.png` and `pyramid_ward_*.png` —
+  pyramids for the leading growth and decline counties (2025 vs 2055
+  baseline).
+- `marketing-ready/drafts/chart_state_baseline_line.png` — the storyboard
+  page 5 statewide line chart.
+- `marketing-ready/drafts/chart_region_baseline_bars.png` — page 7 regional
+  change bars.
+- `marketing-ready/drafts/chart_county_top_bottom.png` — page 8 top-6 /
+  bottom-6 county bars.
+- `marketing-ready/drafts/chart_age_group_trend.png` — page 9 age-group trend
+  lines.
+
+**Starting-point reference:**
+
+- `marketing-ready/PUB-2026 Reference - 2024 SDC PDF.pdf` — the 2024 ND
+  Population Projections report. Use as a design and pacing reference, not as
+  a language template.
+
+**Narrative and storyboard (Word):**
+
+- `marketing-ready/PUB-2026 Marketing Handoff Packet.docx` — combined
+  narrative packet.
+- Plus separate `.docx` files for the draft PDF copy, storyboard, 2024 PDF
+  reference notes, and rounded draft numbers.
 
 ## What Is Still Provisional
 
-The numbers in this package are draft layout values from the March 2026 exports.
-They are close enough for copy development and design planning, but they are not
-approved public figures.
+The numbers in the current workbook and visuals are draft layout values from
+the March 2026 exports. Those figures were built against the older
+three-scenario setup and are now stale under ADR-065. They can inform layout
+shape only; they are not approved public figures and must not be reused as
+final copy.
 
-Final public numbers depend on the CF-001 college-fix model decision. If CF-001
-is promoted, production projections need to be rerun before the final PDF,
-Excel workbook, and CSV are built.
+Final public numbers depend on the CF-001 college-fix model decision and the
+ADR-065 baseline adjustment. If CF-001 is promoted, production projections
+need to be rerun before the final PDF, workbook, and CSV are built. Rerun the
+generator script [`scripts/exports/build_public_draft_package.py`](../../../scripts/exports/build_public_draft_package.py)
+to refresh the entire draft package from the new baseline-only projection
+outputs.
 
 ## What Comes After Final Production
 
 After CF-001 is resolved and final production outputs pass QA, the data team
-will provide:
+will deliver:
 
-- Final rounded numbers for the PDF.
-- Chart-ready tables for state, region, county, and age-group exhibits.
-- One consolidated public Excel workbook.
-- One consolidated public CSV.
-- Final download language and source/run metadata.
+- Final numbers in the public workbook (same sheet structure as the draft,
+  baseline-only).
+- Final public CSV (tidy, 1,922 rows, same schema as the workbook's annual
+  sheets).
+- Final pyramid and chart PNGs regenerated from the final run.
+- Final release language and source/run metadata.
 
 The public release covers the state, 8 economic planning regions, and 53
 counties. City and place projections are not part of this public release.
 
 ## How To Use The 2024 SDC PDF
 
-Use the 2024 PDF as a design and pacing reference, not as a language template.
-It has the right public-report scale: cover, table of contents, executive
-summary, statewide chart, method page, regional section, demographic section,
-state/region summary, county appendix, and contact information.
+The bundled `PUB-2026 Reference - 2024 SDC PDF.pdf` has the right
+public-report scale: cover, table of contents, executive summary, statewide
+chart, method page, regional section, demographic section, state/region
+summary, county appendix, and contact information.
 
-The 2026 report needs updated framing. It should lead with the Baseline (Trend
-Continuation) scenario, but the Restricted Growth (CBO Policy-Adjusted) and High
-Growth (Elevated Immigration) scenarios need to stay visible so readers
-understand the range of possible outcomes.
+The 2026 report needs updated framing. It should lead with Baseline
+(CBO-Adjusted), which includes the CBO additive migration adjustment and the
+-5% fertility adjustment. The unadjusted trend-continuation path is now an
+internal sensitivity, and the restricted/high sensitivities are not part of the
+public marketing package.
 
-## Sendable Content Files
+## Working Docs In This Folder
 
 | File | Audience | Use |
 |------|----------|-----|
-| `draft-public-pdf-copy.md` | Marketing/content review | Draft public report text |
-| `pdf-content-outline.md` | Marketing/design | Page storyboard and exhibit plan |
-| `2024-sdc-pdf-review.md` | Marketing/design | Practical guidance for using the 2024 PDF |
-| `provisional-number-snapshot.md` | Marketing/design | Rounded draft numbers for layout |
+| [`draft-public-pdf-copy.md`](draft-public-pdf-copy.md) | Marketing/content review | Draft public report text |
+| [`pdf-content-outline.md`](pdf-content-outline.md) | Marketing/design | Page storyboard and exhibit plan |
+| [`2024-sdc-pdf-review.md`](2024-sdc-pdf-review.md) | Marketing/design | Practical guidance for using the 2024 PDF |
+| [`provisional-number-snapshot.md`](provisional-number-snapshot.md) | Marketing/design | Rounded draft numbers for layout |
+| [`marketing-intake-brief.md`](marketing-intake-brief.md) | SDC + marketing | Intake meeting agenda and review questions |
 
-Internal repo records are kept separately for the data team. Those records cover
-scope decisions, final Excel/CSV production details, and publication QA controls;
-they are not part of the marketing packet.
-
-## Marketing-Ready Word Files
-
-Word-compatible files live in `marketing-ready/`. The recommended sendable
-packet excludes internal decision logs, QA control files, and technical data
-specs.
+Internal repo records (decision log, QA control checklist, technical download
+specification) live in this folder but are not part of the marketing packet.

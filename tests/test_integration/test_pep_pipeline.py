@@ -305,7 +305,7 @@ class TestTransformMigrationRatesDict:
 
 
 class TestScenarioAdjustmentsDict:
-    """Verify apply_scenario_rate_adjustments handles dict migration rates."""
+    """Verify scenario preparation passes dict migration rates to the engine."""
 
     @pytest.fixture
     def base_rates(self):
@@ -345,8 +345,8 @@ class TestScenarioAdjustmentsDict:
         }
         return fertility, survival, migration
 
-    def test_plus_25_percent(self, base_rates):
-        """'+25_percent' applies 1.25x to all counties."""
+    def test_plus_25_percent_passes_rates_through(self, base_rates):
+        """'+25_percent' is not pre-applied before engine execution."""
         fert, surv, mig = base_rates
         config = {
             "scenarios": {
@@ -360,13 +360,10 @@ class TestScenarioAdjustmentsDict:
         _, _, adj, _, _ = apply_scenario_rate_adjustments("high", config, fert, surv, mig)
         assert isinstance(adj, dict)
         for fips in adj:
-            original = mig[fips]["migration_rate"].values
-            adjusted = adj[fips]["migration_rate"].values
-            for o, a in zip(original, adjusted, strict=True):
-                assert abs(a - o * 1.25) < 1e-9
+            pd.testing.assert_frame_equal(adj[fips], mig[fips])
 
-    def test_minus_25_percent(self, base_rates):
-        """'-25_percent' applies 0.75x to all counties."""
+    def test_minus_25_percent_passes_rates_through(self, base_rates):
+        """'-25_percent' is not pre-applied before engine execution."""
         fert, surv, mig = base_rates
         config = {
             "scenarios": {
@@ -380,13 +377,10 @@ class TestScenarioAdjustmentsDict:
         _, _, adj, _, _ = apply_scenario_rate_adjustments("low", config, fert, surv, mig)
         assert isinstance(adj, dict)
         for fips in adj:
-            original = mig[fips]["migration_rate"].values
-            adjusted = adj[fips]["migration_rate"].values
-            for o, a in zip(original, adjusted, strict=True):
-                assert abs(a - o * 0.75) < 1e-9
+            pd.testing.assert_frame_equal(adj[fips], mig[fips])
 
-    def test_zero_migration(self, base_rates):
-        """'zero' sets all migration rates to 0."""
+    def test_zero_migration_passes_rates_through(self, base_rates):
+        """'zero' is not pre-applied before engine execution."""
         fert, surv, mig = base_rates
         config = {
             "scenarios": {
@@ -400,7 +394,24 @@ class TestScenarioAdjustmentsDict:
         _, _, adj, _, _ = apply_scenario_rate_adjustments("zero", config, fert, surv, mig)
         assert isinstance(adj, dict)
         for fips in adj:
-            assert (adj[fips]["migration_rate"] == 0.0).all()
+            pd.testing.assert_frame_equal(adj[fips], mig[fips])
+
+    def test_fertility_adjustment_passes_rates_through(self, base_rates):
+        """Fertility multipliers are not pre-applied before engine execution."""
+        fert, surv, mig = base_rates
+        config = {
+            "scenarios": {
+                "cbo_adjusted": {
+                    "migration": "recent_average",
+                    "fertility": "-5_percent",
+                    "mortality": "improving",
+                }
+            }
+        }
+        adj_fert, _, _, _, _ = apply_scenario_rate_adjustments(
+            "cbo_adjusted", config, fert, surv, mig
+        )
+        pd.testing.assert_frame_equal(adj_fert, fert)
 
     def test_recent_average_leaves_unchanged(self, base_rates):
         """'recent_average' should not modify rates."""

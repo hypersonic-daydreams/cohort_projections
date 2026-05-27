@@ -6,7 +6,7 @@ helpers used by all report section builders.
 
 References:
     SDC brand guide (Navy #1F3864, Blue #0563C1, Teal #00B0F0)
-    ADR-037: CBO-grounded scenario methodology (scenario naming)
+    ADR-037/ADR-065: CBO-grounded scenario methodology (scenario naming)
 """
 
 from __future__ import annotations
@@ -36,9 +36,9 @@ SCENARIO_COLORS = {
 }
 
 SCENARIO_LABELS = {
-    "baseline": "Baseline",
-    "high_growth": "High Growth",
-    "restricted_growth": "Restricted Growth",
+    "baseline": "Baseline (CBO-Adjusted)",
+    "high_growth": "High Growth (Internal)",
+    "restricted_growth": "Restricted Growth (Legacy)",
 }
 
 # Tier colors

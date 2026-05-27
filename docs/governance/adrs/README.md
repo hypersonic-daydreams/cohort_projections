@@ -215,6 +215,7 @@ Where:
 | [050](050-restricted-growth-additive-migration-adjustment.md) | Restricted Growth Additive Migration Adjustment | Accepted | 2026-02-18 | Replace multiplicative CBO factor with additive per-capita reduction; fixes restricted > baseline ordering violation for 39 counties |
 | [051](051-oil-county-dampening-recalibration.md) | Oil County Dampening Recalibration | Rejected | 2026-02-18 | Rejected after calibration review found current dampening was adequate for target behavior. |
 | [052](052-ward-county-high-growth-floor.md) | Ward County High-Growth Scenario Floor | Accepted | 2026-02-18 | High-growth migration floor at zero for counties with negative BEBR rates; prevents Ward from declining in all scenarios |
+| [065](065-cbo-adjusted-public-baseline.md) | CBO-Adjusted Public Baseline | Accepted | 2026-05-27 | Redefine the public baseline to include CBO-adjusted immigration and fertility assumptions; demote other scenarios to inactive sensitivities |
 
 ### Export Format
 
@@ -227,7 +228,7 @@ Where:
 
 | ADR | Title | Status | Date | Summary |
 |-----|-------|--------|------|---------|
-| [042](042-baseline-projection-presentation-requirements.md) | Baseline Projection Presentation Requirements | Accepted | 2026-02-18 | Mandatory caveats and pairing with restricted_growth; baseline is trend-continuation, not forecast |
+| [042](042-baseline-projection-presentation-requirements.md) | Baseline Projection Presentation Requirements | Accepted | 2026-02-18 | Mandatory caveats; historical pairing with restricted_growth, but ADR-065 permits baseline-only public release with caveats |
 | [043](043-migration-rate-cap.md) | Age-Aware Migration Rate Cap | Accepted | 2026-02-18 | Age-aware asymmetric cap (+/-15% for ages 15-24, +/-8% for others) clips statistical noise in convergence rates |
 | [049](049-college-age-smoothing-convergence-pipeline.md) | College-Age Smoothing in Convergence Pipeline | Accepted | 2026-02-18 | Fix bug: propagate college-age migration smoothing to convergence pipeline input; fixes Cass +63% → ~+48% |
 | [063](063-evaluation-framework.md) | Evaluation Framework Architecture | Accepted | 2026-03-11 | Five-module evaluation architecture with composite scorecard for systematic model comparison and selection |
@@ -252,14 +253,14 @@ Where:
 
 | Status | Count |
 |--------|-------|
-| Accepted | 58 |
+| Accepted | 59 |
 | Proposed | 2 |
 | Rejected | 1 |
 | Deprecated | 0 |
 | Superseded | 3 |
 | Child ADRs (no formal status) | 4 |
 
-**Naming Convention Compliance**: All 67 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `020a`, `023a`).
+**Naming Convention Compliance**: All 68 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `020a`, `023a`).
 
 ---
 

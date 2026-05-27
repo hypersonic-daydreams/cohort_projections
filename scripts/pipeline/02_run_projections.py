@@ -4,7 +4,7 @@ Projection Runner Pipeline for North Dakota Population Projections.
 
 This script orchestrates the execution of cohort-component projections for
 all configured geographies (state, counties, places). It supports:
-- Multiple scenarios (baseline, high growth, low growth, etc.)
+- Baseline production runs plus explicit sensitivity scenarios when requested
 - Parallel processing for multiple geographies
 - Geography filtering (all, counties only, places only, specific FIPS)
 - Resume capability (skip already-completed geographies)
@@ -26,8 +26,8 @@ Usage:
     # Run specific geographies by FIPS
     python 02_run_projections.py --fips 38101 38015 38035
 
-    # Run multiple scenarios
-    python 02_run_projections.py --all --scenarios baseline high_growth
+    # Run explicit sensitivity scenarios
+    python 02_run_projections.py --all --scenarios baseline recent_trend_continuation high_growth
 
     # Resume from previous run (skip completed)
     python 02_run_projections.py --all --resume
@@ -37,11 +37,11 @@ Usage:
 
 Key ADRs and config:
     ADR-004: Core projection engine architecture
-    ADR-037: CBO-grounded scenario methodology (amended by ADR-039, ADR-040)
+    ADR-037: CBO-grounded scenario methodology (amended by ADR-039, ADR-040, ADR-065)
     ADR-041: Census+PUMS hybrid base population distribution
     ADR-054: Bottom-up state derivation (aggregate counties instead of
              independent state projection to avoid Jensen's inequality)
-    Config: scenarios.{baseline,restricted_growth,high_growth}
+    Config: scenarios.{baseline,recent_trend_continuation,restricted_growth,high_growth}
 """
 
 import argparse
@@ -585,9 +585,7 @@ def _load_scenario_convergence_rates(
         )
         convergence_df = _annualize_legacy_convergence_rates(convergence_df, period_years)
     result = _build_convergence_rate_dicts(convergence_df)
-    logger.info(
-        f"Loaded {convergence_variant} convergence rates for {len(result)} counties"
-    )
+    logger.info(f"Loaded {convergence_variant} convergence rates for {len(result)} counties")
     return result
 
 
@@ -631,8 +629,7 @@ def load_base_population(config: dict[str, Any], fips: str) -> pd.DataFrame:
         base_pop = base_pop.sort_values(["age", "sex", "race"]).reset_index(drop=True)
 
         logger.info(
-            f"State FIPS {fips}: total population {total_population:,.0f}, "
-            f"{len(base_pop)} cohorts"
+            f"State FIPS {fips}: total population {total_population:,.0f}, {len(base_pop)} cohorts"
         )
         return base_pop
 
@@ -744,35 +741,6 @@ def setup_projection_run(
     return geographies, resolved_scenarios
 
 
-def _apply_migration_scenario_to_df(df: pd.DataFrame, migration_setting: str) -> pd.DataFrame:
-    """
-    Apply a scenario migration adjustment to a single DataFrame.
-
-    Args:
-        df: Migration rates DataFrame (must already be a copy)
-        migration_setting: Scenario migration setting string
-
-    Returns:
-        Adjusted DataFrame
-    """
-    migration_col = "migration_rate" if "migration_rate" in df.columns else "net_migration"
-
-    if migration_setting == "+25_percent" and migration_col in df.columns:
-        df[migration_col] = df[migration_col] * 1.25
-    elif migration_setting == "-25_percent" and migration_col in df.columns:
-        df[migration_col] = df[migration_col] * 0.75
-    elif migration_setting == "-15_percent" and migration_col in df.columns:
-        df[migration_col] = df[migration_col] * 0.85
-    elif migration_setting == "+5_percent" and migration_col in df.columns:
-        df[migration_col] = df[migration_col] * 1.05
-    elif migration_setting == "-5_percent" and migration_col in df.columns:
-        df[migration_col] = df[migration_col] * 0.95
-    elif migration_setting == "zero" and migration_col in df.columns:
-        df[migration_col] = 0.0
-
-    return df
-
-
 def apply_scenario_rate_adjustments(
     scenario: str,
     config: dict[str, Any],
@@ -789,16 +757,14 @@ def apply_scenario_rate_adjustments(
     dict[int, pd.DataFrame] | None,
 ]:
     """
-    Apply scenario-specific rate adjustments to demographic rates.
+    Prepare demographic rates for a scenario run.
 
-    For high growth scenario, this applies:
-    - Fertility: +10% multiplier
-    - Migration: +25% multiplier
-    - Mortality: constant (no change)
-
-    Time-varying rate dicts (migration_rates_by_year_by_county and
-    survival_rates_by_year) are passed through unchanged for now.
-    Scenario adjustments to time-varying rates are a future enhancement.
+    Scenario fertility and migration adjustments are applied inside
+    ``CohortComponentProjection.project_single_year()`` after the engine has
+    selected the correct time-varying rate table for that projection year. This
+    helper therefore copies and passes rates through without mutating scenario
+    values. Keeping scenario application in one place prevents double
+    application for CBO-adjusted and other non-constant scenarios.
 
     Args:
         scenario: Scenario name (e.g., 'baseline', 'restricted_growth', 'high_growth')
@@ -836,20 +802,16 @@ def apply_scenario_rate_adjustments(
     else:
         adj_migration = migration_rates.copy()
 
-    # Apply fertility adjustment
+    # Log fertility adjustment. Actual application happens in the engine.
     fertility_setting = scenario_config.get("fertility", "constant")
     if fertility_setting == "+10_percent":
-        logger.info(f"Scenario {scenario}: Applying +10% fertility adjustment")
-        adj_fertility["fertility_rate"] = adj_fertility["fertility_rate"] * 1.10
+        logger.info(f"Scenario {scenario}: +10% fertility adjustment handled per-year by engine")
     elif fertility_setting == "-10_percent":
-        logger.info(f"Scenario {scenario}: Applying -10% fertility adjustment")
-        adj_fertility["fertility_rate"] = adj_fertility["fertility_rate"] * 0.90
+        logger.info(f"Scenario {scenario}: -10% fertility adjustment handled per-year by engine")
     elif fertility_setting == "+5_percent":
-        logger.info(f"Scenario {scenario}: Applying +5% fertility adjustment")
-        adj_fertility["fertility_rate"] = adj_fertility["fertility_rate"] * 1.05
+        logger.info(f"Scenario {scenario}: +5% fertility adjustment handled per-year by engine")
     elif fertility_setting == "-5_percent":
-        logger.info(f"Scenario {scenario}: Applying -5% fertility adjustment")
-        adj_fertility["fertility_rate"] = adj_fertility["fertility_rate"] * 0.95
+        logger.info(f"Scenario {scenario}: -5% fertility adjustment handled per-year by engine")
 
     # Apply mortality adjustment (survival rates)
     mortality_setting = scenario_config.get("mortality", "constant")
@@ -860,56 +822,17 @@ def apply_scenario_rate_adjustments(
         logger.info(f"Scenario {scenario}: Mortality rates set to improving (handled per-year)")
         # Improvement is typically applied year-by-year in projection, not here
 
-    # Apply migration adjustment
+    # Log migration adjustment. Actual application happens in the engine.
     migration_setting = scenario_config.get("migration", "recent_average")
 
-    # Dict-based migration scenarios are handled per-year by the engine
-    # (ADR-037 time_varying, ADR-050 additive_reduction)
     if isinstance(migration_setting, dict):
         mig_type = migration_setting.get("type", "unknown")
-        logger.info(
-            f"Scenario {scenario}: {mig_type} migration (handled per-year by engine)"
-        )
-        # No upfront adjustment needed
+        logger.info(f"Scenario {scenario}: {mig_type} migration (handled per-year by engine)")
     elif migration_setting not in ("recent_average", "constant", "sdc_2024_dampened"):
-        if isinstance(adj_migration, dict):
-            logger.info(
-                f"Scenario {scenario}: Applying '{migration_setting}' migration adjustment "
-                f"to {len(adj_migration)} counties"
-            )
-            for fips in adj_migration:
-                adj_migration[fips] = _apply_migration_scenario_to_df(
-                    adj_migration[fips], migration_setting
-                )
-        else:
-            migration_col = (
-                "migration_rate" if "migration_rate" in adj_migration.columns else "net_migration"
-            )
-
-            if migration_setting == "+25_percent":
-                logger.info(f"Scenario {scenario}: Applying +25% migration adjustment")
-                if migration_col in adj_migration.columns:
-                    adj_migration[migration_col] = adj_migration[migration_col] * 1.25
-            elif migration_setting == "-25_percent":
-                logger.info(f"Scenario {scenario}: Applying -25% migration adjustment")
-                if migration_col in adj_migration.columns:
-                    adj_migration[migration_col] = adj_migration[migration_col] * 0.75
-            elif migration_setting == "-15_percent":
-                logger.info(f"Scenario {scenario}: Applying -15% migration adjustment")
-                if migration_col in adj_migration.columns:
-                    adj_migration[migration_col] = adj_migration[migration_col] * 0.85
-            elif migration_setting == "+5_percent":
-                logger.info(f"Scenario {scenario}: Applying +5% migration adjustment")
-                if migration_col in adj_migration.columns:
-                    adj_migration[migration_col] = adj_migration[migration_col] * 1.05
-            elif migration_setting == "-5_percent":
-                logger.info(f"Scenario {scenario}: Applying -5% migration adjustment")
-                if migration_col in adj_migration.columns:
-                    adj_migration[migration_col] = adj_migration[migration_col] * 0.95
-            elif migration_setting == "zero":
-                logger.info(f"Scenario {scenario}: Setting migration to zero")
-                if migration_col in adj_migration.columns:
-                    adj_migration[migration_col] = 0.0
+        logger.info(
+            f"Scenario {scenario}: '{migration_setting}' migration adjustment "
+            "handled per-year by engine"
+        )
 
     return (
         adj_fertility,
@@ -1376,9 +1299,7 @@ def _write_state_summary_csv(
         summary_rows.append(row)
 
     summary_csv = pd.DataFrame(summary_rows)
-    csv_name = (
-        f"nd_state_{state_fips}_projection_{base_year}_{end_year}_{scenario}_summary.csv"
-    )
+    csv_name = f"nd_state_{state_fips}_projection_{base_year}_{end_year}_{scenario}_summary.csv"
     csv_path = state_dir / csv_name
     summary_csv.to_csv(csv_path, index=False)
     logger.info(f"Saved state summary CSV: {csv_path}")
@@ -1555,20 +1476,14 @@ def run_geographic_projections(
                             weighted_parts.append(part)
                         if weighted_parts:
                             state_rates = pd.concat(weighted_parts)
-                            group_cols = [
-                                c for c in state_rates.columns if c != rate_col
-                            ]
+                            group_cols = [c for c in state_rates.columns if c != rate_col]
                             # Drop non-groupable columns (e.g. processing_date)
                             group_cols = [
-                                c
-                                for c in group_cols
-                                if c in ("age", "sex", "race", "age_group")
+                                c for c in group_cols if c in ("age", "sex", "race", "age_group")
                             ]
-                            state_rates = (
-                                state_rates.groupby(group_cols, as_index=False)[
-                                    rate_col
-                                ].sum()
-                            )
+                            state_rates = state_rates.groupby(group_cols, as_index=False)[
+                                rate_col
+                            ].sum()
                             migration_rates_by_geography[fips] = state_rates
                         else:
                             migration_rates_by_geography[fips] = default_migration
@@ -1618,13 +1533,10 @@ def run_geographic_projections(
                             weighted_parts.append(part)
                         if weighted_parts:
                             merged = pd.concat(weighted_parts)
-                            merged = (
-                                merged.groupby(
-                                    [c for c in merged.columns if c != "migration_rate"],
-                                    as_index=False,
-                                )["migration_rate"]
-                                .sum()
-                            )
+                            merged = merged.groupby(
+                                [c for c in merged.columns if c != "migration_rate"],
+                                as_index=False,
+                            )["migration_rate"].sum()
                             state_yr_dict[offset] = merged
 
                     if effective_migration_by_year is None:
@@ -1748,9 +1660,7 @@ def validate_projection_results(
 
     try:
         output_base = Path(
-            config.get("pipeline", {})
-            .get("projection", {})
-            .get("output_dir", "data/projections")
+            config.get("pipeline", {}).get("projection", {}).get("output_dir", "data/projections")
         )
         scenario_dir = output_base / scenario
 
@@ -1768,17 +1678,13 @@ def validate_projection_results(
 
             # Key diagnostic years: base year + each decade + end year
             diagnostic_years = sorted(
-                {base_year}
-                | set(range(base_year + 10, end_year + 1, 10))
-                | {end_year}
+                {base_year} | set(range(base_year + 10, end_year + 1, 10)) | {end_year}
             )
 
             logger.info(f"  ADR-054 diagnostics for scenario '{scenario}':")
             base_pop = None
             for year in diagnostic_years:
-                year_pop = float(
-                    state_df.loc[state_df["year"] == year, "population"].sum()
-                )
+                year_pop = float(state_df.loc[state_df["year"] == year, "population"].sum())
                 if base_pop is None:
                     base_pop = year_pop
                     growth_str = "(base year)"
@@ -1801,9 +1707,7 @@ def validate_projection_results(
         if county_dir.exists() and geographies.get("county"):
             county_parquets = sorted(county_dir.glob("nd_county_*_projection_*.parquet"))
             if county_parquets:
-                logger.info(
-                    f"  County projections: {len(county_parquets)} files in {county_dir}"
-                )
+                logger.info(f"  County projections: {len(county_parquets)} files in {county_dir}")
 
         logger.info("Validation passed")
         return True
@@ -1914,13 +1818,11 @@ def run_all_projections(
         # In dry-run mode, allow a graceful fallback if place reference data
         # is structurally incomplete so entrypoint wiring can still be validated.
         try:
-            geographies, scenario_list = setup_projection_run(config, levels, fips_filter, scenarios)
+            geographies, scenario_list = setup_projection_run(
+                config, levels, fips_filter, scenarios
+            )
         except ValueError as exc:
-            if (
-                dry_run
-                and "place" in levels
-                and "Place data missing required columns" in str(exc)
-            ):
+            if dry_run and "place" in levels and "Place data missing required columns" in str(exc):
                 logger.warning(
                     "Dry run fallback: skipping place level due place reference schema issue: "
                     f"{exc}"

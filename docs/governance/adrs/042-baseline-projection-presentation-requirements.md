@@ -12,6 +12,10 @@ Accepted
 ## Scope
 Presentation framing and mandatory caveats for baseline population projections
 
+**Amended by**: [ADR-065](065-cbo-adjusted-public-baseline.md), which redefines
+the public baseline as the CBO-adjusted current-policy path and permits a
+baseline-only PUB-2026 public release.
+
 **Motivated by**: [Finding 6 investigation](../../reviews/2026-02-18-sanity-check-investigations/finding-6-baseline-1m-plausibility.md) from the 2026-02-18 projection output sanity check
 
 ## Context
@@ -22,7 +26,7 @@ The baseline scenario projects North Dakota reaching approximately 1 million res
 
 ### Key Risk Factors
 
-1. **International migration dependency**: 91% of recent net migration (2023-2025) is international. Any change in federal immigration policy, refugee resettlement patterns, or global migration flows would fundamentally alter the trajectory. The restricted_growth scenario models one such policy change.
+1. **International migration dependency**: 91% of recent net migration (2023-2025) is international. Any change in federal immigration policy, refugee resettlement patterns, or global migration flows would fundamentally alter the trajectory. The restricted_growth scenario modeled one such policy change in the earlier three-scenario framework.
 
 2. **Geographic concentration**: 89% of projected growth is concentrated in just 3 of 53 counties (Cass, Burleigh, Williams). The baseline does not represent broad-based statewide growth.
 
@@ -33,15 +37,15 @@ The baseline scenario projects North Dakota reaching approximately 1 million res
 ### Requirements
 
 - Establish mandatory presentation requirements for baseline projections
-- Ensure the restricted_growth scenario is always presented alongside baseline
+- Ensure public baseline products retain the required caveats; pair with restricted_growth only in internal comparison materials or where a public companion scenario is explicitly approved
 - Require explicit caveats about migration dependency and geographic concentration
 - Prevent misuse of projections as forecasts in policy documents
 
 ## Decision
 
-### Decision 1: Baseline Must Be Labeled as "Trend Continuation", Never "Forecast"
+### Decision 1: Baseline Must Be Labeled as "Baseline Projection", Never "Forecast"
 
-**Decision**: All publications, exports, presentations, and data products must label the baseline as a "trend-continuation scenario" or "scenario projection." The terms "forecast," "expected outcome," "prediction," or "most likely" must never be used in connection with any scenario.
+**Decision**: All publications, exports, presentations, and data products must label the baseline as a "baseline projection" or "scenario projection." The terms "forecast," "expected outcome," "prediction," or "most likely" must never be used in connection with any scenario.
 
 **Rationale**:
 - Cohort-component projections extend observed demographic rates into the future. They do not model structural breaks, policy changes, or economic shocks.
@@ -49,29 +53,52 @@ The baseline scenario projects North Dakota reaching approximately 1 million res
 
 ### Decision 2: Baseline Must Always Be Paired with Restricted Growth
 
-**Decision**: The baseline scenario must never be published or presented in isolation. It must always appear alongside the restricted_growth scenario to show the plausible range of outcomes.
+**2026-05-27 update (ADR-065)**: Superseded for PUB-2026 public production. The
+public baseline now incorporates the CBO-adjusted assumptions that formerly
+defined `restricted_growth`, so a separate public companion scenario is no
+longer required. Public releases may be baseline-only, but they must still
+carry the caveats in Decision 3 and avoid forecast language.
+
+**Decision**: Historically, the baseline scenario must not be published or
+presented in isolation. It was paired with the restricted_growth scenario to
+show the plausible range of outcomes.
 
 **Rationale**:
-- The restricted_growth scenario (CBO-grounded policy adjustment) models a plausible downside case where federal immigration enforcement reduces international migration by 60-80% in the near term.
-- Together, baseline and restricted_growth bracket the likely range: baseline represents trend continuation and restricted_growth represents policy-adjusted reduction.
-- Presenting only the baseline would give a misleadingly narrow view of future population.
+- The restricted_growth scenario (CBO-grounded policy adjustment) modeled a
+  plausible downside case where federal immigration enforcement reduces
+  international migration by 60-80% in the near term.
+- Together, baseline and restricted_growth bracketed the likely range under the
+  earlier model-development framework.
+- For PUB-2026, the public baseline already embeds the CBO-adjusted
+  assumptions, so a second public lower-bound scenario would be duplicative.
+- Presenting only the baseline without caveats would give a misleadingly narrow
+  view of future population.
 
 **Implementation**:
-- Export workbooks already include both active scenarios side-by-side
-- Visualization scripts should generate comparison charts by default
-- Any single-scenario extract must include a note referencing the companion scenario
+- Legacy export workbooks and internal comparison views may continue to include
+  both active scenarios side-by-side
+- Visualization scripts should generate comparison charts by default for
+  internal review
+- Any single-scenario public extract must include a note that the projection is
+  conditional on stated assumptions and not a guarantee
 
 ### Decision 3: Mandatory Caveats for All Baseline Publications
 
-**Decision**: All publications using baseline projections must include the following caveats, adapted to the medium:
+**2026-05-27 update (ADR-065)**: The caveats below remain required, but the
+example text is now applied to the CBO-adjusted public baseline. The exact
+numeric values should be refreshed from the current run, and public products may
+be baseline-only so long as the caveats travel with the data.
 
-1. **International migration dependency**: "91% of recent net migration to North Dakota is international. The baseline assumes continuation of recent immigration levels; actual migration will depend on federal policy, global conditions, and economic factors."
+**Decision**: All publications using baseline projections must include the
+following caveats, adapted to the medium:
+
+1. **International migration dependency**: "91% of recent net migration to North Dakota is international. The baseline assumes the CBO-adjusted current-policy immigration path; actual migration will depend on federal policy, global conditions, and economic factors."
 
 2. **Geographic concentration**: "89% of projected growth is concentrated in Cass, Burleigh, and Williams counties. Statewide totals do not reflect uniform growth across all regions."
 
-3. **Historical context**: "The baseline growth rate of 0.77%/yr exceeds all historical decades except the 2010-2015 oil boom. Sustained growth at this rate for 30 years would be unprecedented."
+3. **Historical context**: "The pre-ADR-065 trend-continuation baseline growth rate of 0.77%/yr exceeded all historical decades except the 2010-2015 oil boom. Sustained growth at this rate for 30 years would be unprecedented."
 
-4. **Scenario framing**: "This is a trend-continuation scenario, not a forecast. It shows what would happen if recent demographic patterns persist unchanged. See the restricted growth scenario for an alternative trajectory."
+4. **Scenario framing**: "This is a projection conditioned on stated assumptions, not a forecast. It shows one modeled outcome, not a guarantee."
 
 **Rationale**:
 - These four caveats address the four key risk factors identified in the Finding 6 investigation
@@ -127,6 +154,7 @@ No configuration changes are needed. This ADR governs presentation and documenta
 ## Related ADRs
 
 - **ADR-037: CBO-Grounded Scenario Methodology** — Defines the restricted_growth scenario that must accompany baseline
+- **ADR-065: CBO-Adjusted Public Baseline** — Redefines the public baseline and allows baseline-only public release when caveats remain attached
 - **ADR-039: International-Only Migration Factor** — Documents the domestic/international migration decomposition underlying the 91% international share
 - **ADR-038: Multi-Workbook Export Format** — Export format where baseline framing caveats must appear
 

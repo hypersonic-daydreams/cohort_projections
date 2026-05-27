@@ -48,9 +48,8 @@
   - [5k. Ward County Migration Floor](#5k-ward-county-migration-floor-adr-052)
 - [6. Scenario Methodology](#6-scenario-methodology)
   - [6.1 Baseline Scenario](#61-baseline-scenario)
-  - [6.2 Restricted Growth Scenario](#62-restricted-growth-scenario)
-  - [6.3 High Growth Scenario](#63-high-growth-scenario)
-  - [6.4 Scenario Comparison Summary](#64-scenario-comparison-summary)
+  - [6.2 Internal Sensitivity Scenarios](#62-internal-sensitivity-scenarios)
+  - [6.3 Scenario Comparison Summary](#63-scenario-comparison-summary)
 - [7. Projection Engine](#7-projection-engine)
   - [7.1 Annual Projection Step](#71-annual-projection-step)
   - [7.2 Multi-Year Execution](#72-multi-year-execution)
@@ -136,15 +135,23 @@ The total number of cohorts per county is $91 \times 2 \times 6 = 1{,}092$.
 
 ### 1.5 Scenarios
 
-The model produces three active projection scenarios that share the same base population and projection engine but differ in their assumptions about future demographic rates:
+The model's public production path is the **Baseline (CBO-Adjusted)** scenario.
+It shares the same cohort-component engine and base population used during
+method development, but it now incorporates CBO-adjusted immigration and
+fertility assumptions directly in the baseline (ADR-065). For PUB-2026, the
+public handoff may be baseline-only, but every public-facing version must still
+carry clear caveats that the outputs are conditional on stated assumptions and
+are not guarantees.
 
-**Baseline (Trend Continuation).** Historical PEP-derived migration trends are continued forward using convergence interpolation. Fertility rates are held constant at observed levels. Mortality improves at 0.5% per year. This scenario represents the most likely trajectory if recent demographic patterns persist.
+**Baseline (CBO-Adjusted).** Historical PEP-derived migration rates are processed through convergence interpolation, then adjusted using CBO's current-policy immigration revision through the ADR-050 additive reduction formula. Fertility rates are reduced by 5% to reflect CBO's lower fertility revision. Mortality improves at 0.5% per year. This is the official public projection path for PUB-2026.
 
-**Restricted Growth (CBO Policy-Adjusted).** Models the demographic impact of reduced immigration using Congressional Budget Office (CBO) estimates of federal immigration enforcement effects (ADR-037, ADR-050). Migration is reduced via an additive per-capita decrement derived from the state's international migration volume, phased in over 2025--2029. Fertility is reduced by 5%.
+Inactive sensitivity scenarios remain available for internal analysis:
 
-**High Growth (Elevated Immigration).** A counterfactual scenario representing sustained elevated immigration, using BEBR-optimistic convergence rates (ADR-046). Fertility is increased by 5%. A migration floor (ADR-052) ensures no county's mean convergence rate is negative, reflecting the premise that institutional anchors (military bases, universities, regional medical centers) prevent population decline in a genuinely high-growth environment.
+- **Recent-Trend Continuation (`recent_trend_continuation`).** The former unadjusted baseline, retained internally to show what the model would produce if recent PEP-derived migration and observed fertility were continued without CBO adjustment.
+- **Restricted Growth (`restricted_growth`).** A deprecated compatibility alias for the CBO-adjusted baseline. It remains available for historical references and internal tooling, but it is not the public lower-bound scenario.
+- **High Growth (`high_growth`).** An internal capacity-planning sensitivity using BEBR-optimistic migration rates and +5% fertility.
 
-Two additional scenarios (Zero Net Migration and SDC 2024 Methodology Replication) are defined in the configuration but are not active in production runs.
+Zero Net Migration and SDC 2024 Methodology Replication are also defined in the configuration but are not active in production runs.
 
 
 ## 2. Base Population
@@ -781,7 +788,7 @@ After lifting, the modified window averages pass through the standard 5-10-5 con
 
 ### 5k. Ward County Migration Floor (ADR-052)
 
-Ward County (Minot, population ~68,000) presents a particular challenge: despite being North Dakota's fourth-largest county with significant institutional anchors -- Minot Air Force Base, Minot State University, and a regional medical/retail center -- it projects population decline under all three scenarios when using the standard pipeline. The high-growth scenario, intended to represent an optimistic future, showed a -1.2% decline before correction.
+Ward County (Minot, population ~68,000) presents a particular challenge: despite being North Dakota's fourth-largest county with significant institutional anchors -- Minot Air Force Base, Minot State University, and a regional medical/retail center -- it projected population decline under the earlier three-scenario framework when using the standard pipeline. The high-growth sensitivity, intended to represent an optimistic future, showed a -1.2% decline before correction.
 
 The root cause is that the 2020-2024 period -- which dominates the "recent" convergence window -- captures an anomalously negative interval of COVID effects, reduced oil activity, and possible military force adjustments. The convergence schedule carries this negative starting point through the projection.
 
@@ -802,13 +809,29 @@ In plain language: if a county's high-growth migration rates still average to ne
 
 ## 6. Scenario Methodology
 
-The projection system produces three scenarios that bracket a plausible range of future population outcomes for North Dakota. Each scenario shares the same cohort-component engine but differs in the assumptions applied to fertility, mortality, and migration rates. The scenario definitions are codified in the project configuration (`config/projection_config.yaml`) and governed by a series of Architecture Decision Records.
+The projection system's public production path is the CBO-adjusted baseline
+(ADR-065). Earlier model-development work used three active scenarios
+(`baseline`, `restricted_growth`, and `high_growth`) to compare recent-trend,
+policy-adjusted, and elevated-growth assumptions. For PUB-2026, the CBO-adjusted
+assumptions have been moved into `baseline`, and the other scenario paths are
+inactive sensitivities unless explicitly requested. The public release may be
+baseline-only, provided the caveats in this section remain attached to any
+public-facing summary or extract.
 
 ### 6.1 Baseline Scenario
 
-The baseline scenario represents a trend-continuation projection in which historical demographic patterns are carried forward without explicit policy adjustments. It serves as the central estimate against which the other two scenarios are compared.
+The baseline scenario is the official public projection path. It represents a
+current-policy cohort-component projection that combines North Dakota historical
+PEP migration rates with CBO's current demographic outlook for near-term
+immigration and fertility.
 
-**Fertility.** Age-specific fertility rates are held constant at their base-year (2025) values throughout the projection horizon. No secular trend in fertility is assumed. The TFR remains fixed at its initial level for each race/ethnicity group.
+**Fertility.** Age-specific fertility rates are reduced by 5% relative to the
+observed base-year rates:
+
+$$F_{\text{baseline}}(a, r) = F_{\text{observed}}(a, r) \times 0.95$$
+
+This applies CBO's lower fertility revision to the public baseline rather than
+reserving it for a restricted-growth side scenario.
 
 **Mortality.** Survival rates improve at a compound annual rate of 0.5%, following a Lee-Carter-style mortality decline. For each projection year $t$, the age-specific death rate is:
 
@@ -816,30 +839,31 @@ $$q(a, s, r, t) = q(a, s, r, t_0) \times (1 - \delta)^{t - t_0}$$
 
 where $\delta = 0.005$ and $t_0 = 2025$ is the base year. The corresponding survival rate is $S(a, s, r, t) = 1 - q(a, s, r, t)$, capped at 1.0.
 
-**Migration.** The baseline uses convergence-interpolated migration rates derived from the Census Bureau residual method (see Section 5). These are time-varying, year-specific rates that converge from recent historical patterns toward long-term averages over the 30-year projection horizon using a 5-10-5 interpolation schedule. No additional scenario adjustment is applied to migration rates; the `recent_average` label in the engine means the convergence rates are used as-is.
+**Migration.** The baseline starts with convergence-interpolated migration rates
+derived from the Census Bureau residual method (see Section 5). These
+year-specific rates converge from recent historical patterns toward long-term
+averages over the 30-year projection horizon using the 5-10-5 interpolation
+schedule. The baseline then applies the CBO-derived additive reduction from
+ADR-050.
 
-### 6.2 Restricted Growth Scenario
-
-The restricted growth scenario models the demographic impact of reduced international immigration due to federal enforcement policy changes. The methodology is grounded in Congressional Budget Office (CBO) immigration projections (ADR-037) and uses an additive migration adjustment to avoid a mathematical artifact that plagued earlier multiplicative approaches (ADR-050).
-
-#### 6.2.1 CBO-Derived Immigration Enforcement Factors
-
-The time-varying enforcement factors represent the fraction of normal international immigration that is realized in each year, based on the difference between CBO's January 2025 and January 2026 immigration outlooks. The schedule ramps up from severe restriction to full recovery:
+The time-varying CBO factors represent the fraction of pre-revision
+international immigration realized in each year, based on the difference between
+CBO's January 2025 and January 2026 immigration outlooks:
 
 | Year | Factor $f(t)$ | Interpretation |
 |------|--------------|----------------|
-| 2025 | 0.20 | 80% reduction from baseline international migration |
+| 2025 | 0.20 | 80% reduction from pre-revision international migration |
 | 2026 | 0.37 | 63% reduction |
 | 2027 | 0.55 | 45% reduction |
 | 2028 | 0.78 | 22% reduction |
 | 2029 | 0.91 | 9% reduction |
-| 2030+ | 1.00 | Full recovery; no further restriction |
+| 2030+ | 1.00 | Converged; no further adjustment |
 
-After 2030, the factor equals 1.0 and the restricted scenario migration rates are identical to the baseline. The restricted scenario therefore converges to the baseline trajectory over time, with the cumulative population deficit persisting as a permanent level shift.
-
-#### 6.2.2 Additive Migration Reduction (ADR-050)
-
-Earlier implementations used a multiplicative approach, scaling migration rates by the enforcement factor. This produced a sign-interaction defect: for counties with net-negative migration rates (i.e., net out-migration), multiplying by a factor less than 1.0 made the rate *less negative*, resulting in restricted-scenario populations that exceeded the baseline---a logical impossibility for a scenario modeling reduced immigration.
+Earlier implementations used a multiplicative approach, scaling migration rates
+by the CBO factor. This produced a sign-interaction defect: for counties with
+net-negative migration rates, multiplying by a factor less than 1.0 made the
+rate *less negative*, resulting in higher populations after an immigration
+reduction. ADR-050 replaced that approach with an additive reduction.
 
 The corrected approach uses an **additive reduction**. Two state-level reference values anchor the computation:
 
@@ -850,33 +874,46 @@ For each projection year $t$, the per-capita rate decrement is:
 
 $$\Delta r(t) = \frac{M_{\text{intl}} \times \bigl(1 - f(t)\bigr)}{P_{\text{ref}}}$$
 
-This represents the per-capita share of international migrants who do not arrive due to enforcement. The adjusted migration rate for every age-sex-race cell is then:
+This represents the per-capita share of international migrants not present in
+the CBO-adjusted baseline. The adjusted migration rate for every age-sex-race
+cell is then:
 
-$$m_{\text{restricted}}(a, s, r, t) = m_{\text{baseline}}(a, s, r, t) - \Delta r(t)$$
+$$m_{\text{baseline}}(a, s, r, t) = m_{\text{convergence}}(a, s, r, t) - \Delta r(t)$$
 
-Because $\Delta r(t) \geq 0$ for all $t$ (the factor $f(t) \leq 1$), and the same non-negative decrement is subtracted from every cell, the restricted rate is always less than or equal to the baseline rate. This **guarantees** that $P_{\text{restricted}} \leq P_{\text{baseline}}$ for every county, regardless of the sign of the underlying migration rate.
+Because $\Delta r(t) \geq 0$ for all $t$ where the factor $f(t) \leq 1$, the
+adjustment lowers the migration contribution regardless of whether the
+underlying convergence rate is positive or negative.
 
-The total person-reduction for a given county is proportional to its population: a county with population $P_c$ loses approximately $\Delta r(t) \times P_c$ persons per year relative to the baseline, which is the county's proportional share of the state-level immigration reduction.
+The total person-reduction for a given county is proportional to its population:
+a county with population $P_c$ has approximately $\Delta r(t) \times P_c$ fewer
+net migrants in that year, which is the county's proportional share of the
+state-level immigration reduction.
 
-**Example.** In 2025, $f(t) = 0.20$, so $\Delta r = 10{,}051 \times 0.80 / 799{,}358 \approx 0.01006$ per capita. A county with 50,000 residents would see approximately 503 fewer net migrants relative to the baseline in that year.
+**Example.** In 2025, $f(t) = 0.20$, so $\Delta r = 10{,}051 \times 0.80 / 799{,}358 \approx 0.01006$ per capita. A county with 50,000 residents has approximately 503 fewer net migrants than the unadjusted convergence path in that year.
 
-#### 6.2.3 Fertility Adjustment
+### 6.2 Internal Sensitivity Scenarios
 
-The restricted growth scenario also applies a 5% reduction to all age-specific fertility rates:
+The following scenarios remain available in `config/projection_config.yaml` but
+are inactive by default and are not part of the PUB-2026 public download unless
+approved separately.
 
-$$F_{\text{restricted}}(a, r) = F_{\text{baseline}}(a, r) \times 0.95$$
+**Recent-Trend Continuation.** This path preserves the former unadjusted
+baseline: fertility is held constant, mortality improves at 0.5% per year, and
+migration uses the convergence rates without the CBO additive reduction. It is
+useful for internal sensitivity analysis and for explaining the effect of
+moving CBO-adjusted assumptions into the public baseline.
 
-This reflects the assumption that reduced immigration, which disproportionately involves younger adults with higher-than-average fertility, slightly depresses the aggregate fertility rate.
+**Restricted Growth.** This name is retained as a deprecated compatibility alias
+for the CBO-adjusted baseline. It should not be used as a separate public
+scenario or as the public lower-bound case after ADR-065.
 
-#### 6.2.4 Mortality
+**High Growth.** The high growth sensitivity represents a counterfactual in
+which migration remains elevated relative to recent trends and fertility
+modestly increases. It is designed as an upper-bound internal capacity-planning
+sensitivity, not as a public central scenario (ADR-046). It remains internal
+only for PUB-2026.
 
-Mortality improvement is identical to the baseline (0.5% annual improvement in death rates).
-
-### 6.3 High Growth Scenario
-
-The high growth scenario represents a counterfactual in which migration remains elevated relative to recent trends and fertility modestly increases. It is designed as an upper bound for planning purposes, particularly relevant for infrastructure and service-capacity analysis (ADR-046).
-
-#### 6.3.1 BEBR-Boosted Migration Rates
+#### 6.2.1 BEBR-Boosted Migration Rates
 
 Rather than applying an in-engine multiplier to migration rates, the high growth scenario uses an entirely separate set of convergence-interpolated rates stored in `convergence_rates_by_year_high.parquet`. These rates are produced by the convergence pipeline (see Section 5) with an additive rate increment derived from the Bureau of Economic and Business Research (BEBR) at the University of Florida.
 
@@ -886,7 +923,7 @@ $$\Delta r_{\text{high}}(c) = \frac{M_{\text{BEBR,high}}(c) - M_{\text{BEBR,base
 
 where $P(c)$ is the county population and $N_{\text{cells}} = 36$ (18 five-year age groups $\times$ 2 sexes). This increment is added uniformly to all three convergence window averages (recent, medium, and long-term) before the 5-10-5 interpolation is applied, ensuring the high-growth signal persists across the entire projection horizon.
 
-#### 6.3.2 Migration Floor (ADR-052)
+#### 6.2.2 Migration Floor (ADR-052)
 
 Even after the BEBR increment, some counties with strong structural out-migration may retain negative mean convergence rates. For a high growth scenario, projecting population decline in counties with strong institutional anchors (military bases, universities, regional service centers) produces results that are not useful for planning purposes.
 
@@ -896,26 +933,31 @@ $$\text{If } \bar{m}(c) < 0: \quad m_{\text{floored}}(a, s, c) = m(a, s, c) + (0
 
 This floor is applied to all three window averages before convergence interpolation, and only in the high growth scenario.
 
-#### 6.3.3 Fertility Adjustment
+#### 6.2.3 Fertility Adjustment
 
 The high growth scenario applies a 5% increase to all age-specific fertility rates:
 
 $$F_{\text{high}}(a, r) = F_{\text{baseline}}(a, r) \times 1.05$$
 
-#### 6.3.4 Mortality
+#### 6.2.4 Mortality
 
 Mortality improvement is identical to the baseline (0.5% annual improvement in death rates).
 
-### 6.4 Scenario Comparison Summary
+### 6.3 Scenario Comparison Summary
 
-| Parameter | Baseline | Restricted Growth | High Growth |
-|-----------|----------|-------------------|-------------|
-| Fertility | Constant | $-5\%$ | $+5\%$ |
+| Parameter | Baseline (CBO-Adjusted) | Recent-Trend Continuation | High Growth |
+|-----------|------------------------|----------------------------|--------------|
+| Public release status | Yes, baseline-only | No | No |
+| Default status | Active | Inactive | Inactive |
+| Fertility | $-5\%$ | Constant | $+5\%$ |
 | Mortality improvement | 0.5%/yr | 0.5%/yr | 0.5%/yr |
-| Migration rates | Convergence (baseline) | Convergence $-\ \Delta r(t)$ | Convergence (BEBR-boosted) |
-| Migration adjustment | None | Additive reduction (ADR-050) | BEBR increment + floor (ADR-046, ADR-052) |
-| CBO enforcement factors | N/A | 0.20 to 1.00 (2025--2030+) | N/A |
-| Governing ADRs | --- | ADR-037, ADR-039, ADR-050 | ADR-046, ADR-052 |
+| Migration rates | Convergence $-\ \Delta r(t)$ | Convergence only | BEBR-boosted convergence |
+| Migration adjustment | CBO additive reduction (ADR-050, ADR-065) | None | BEBR increment + floor (ADR-046, ADR-052) |
+| CBO factors | 0.20 to 1.00 (2025--2030+) | N/A | N/A |
+| Governing ADRs | ADR-037, ADR-050, ADR-065 | ADR-037, ADR-065 | ADR-046, ADR-052, ADR-065 |
+
+The deprecated `restricted_growth` alias is intentionally omitted from this
+comparison table because it duplicates the public baseline after ADR-065.
 
 
 ## 7. Projection Engine
@@ -1223,6 +1265,7 @@ The following Architecture Decision Records (ADRs) govern the methodological cho
 | ADR-033 | City-Level Projection Methodology | Accepted | 7.5 |
 | ADR-036 | Migration Averaging Methodology -- Multi-Period and Interpolation Approaches | Accepted | 5 |
 | ADR-037 | CBO-Grounded Scenario Methodology | Accepted | 6.2 |
+| ADR-065 | CBO-Adjusted Public Baseline | Accepted | 1.5, 6.1-6.3 |
 | ADR-039 | International-Only Migration Factor for Restricted Growth Scenario | Accepted | 6.2 |
 | ADR-040 | Extend Bakken Oil Boom Migration Dampening to 2015--2020 Period | Accepted | 5 |
 | ADR-043 | Age-Aware Migration Rate Cap for Convergence Rates | Accepted | 5 |

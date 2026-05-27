@@ -13,7 +13,7 @@ Sources and traceability:
     ADR-007: Race/ethnicity categorization (6-category system)
     ADR-035: Census PEP migration data source
     ADR-036: Migration averaging methodology (BEBR multi-period, convergence)
-    ADR-037: CBO-grounded scenario methodology (amended by ADR-039, ADR-040)
+    ADR-037: CBO-grounded scenario methodology (amended by ADR-039, ADR-040, ADR-065)
     ADR-039: International-only migration factor
     ADR-040: Bakken boom dampening extension (2015-2020)
     ADR-041: Census+PUMS hybrid base population distribution
@@ -31,9 +31,9 @@ PROVISIONAL_LABEL = "PROVISIONAL \u2014 Pending Review \u2014 Subject to Change"
 # Full names (for sheet titles, TOC descriptions, methodology text)
 # Scenario names from ADR-037 (CBO-grounded methodology)
 SCENARIOS = {
-    "baseline": "Baseline (Trend Continuation)",
-    "restricted_growth": "Restricted Growth (CBO Policy-Adjusted)",
-    "high_growth": "High Growth (Elevated Immigration)",
+    "baseline": "Baseline (CBO-Adjusted)",
+    "restricted_growth": "Restricted Growth (Deprecated Alias)",
+    "high_growth": "High Growth (Internal Sensitivity)",
 }
 
 # Short names (for tab / sheet-name labels where length matters)
@@ -71,14 +71,14 @@ METHODOLOGY_LINES = [
         "multi-period averaging (BEBR method), Rogers-Castro age allocation, "
         "convergence interpolation toward long-term rates."
     ),
-    # ADR-037, ADR-039, ADR-046: CBO-grounded scenarios; intl-only factor; BEBR high convergence
+    # ADR-037, ADR-050, ADR-065: CBO-adjusted public baseline
     (
-        "Baseline: Recent trend continuation. "
-        "Restricted Growth: CBO time-varying factor on international migration only "
-        "(domestic migration unchanged), \u22125% fertility. "
-        "High Growth: BEBR-optimistic migration rates (most favorable historical period "
-        "per county, ~+1,300 additional net migrants/year vs baseline), +5% fertility. "
-        "CBO Demographic Outlook (Pub. 60875, Jan 2025; Pub. 61879, Jan 2026)."
+        "Baseline: CBO-adjusted current-policy assumptions. "
+        "Migration uses the ADR-050 additive reduction schedule derived from CBO "
+        "January 2026 net immigration revisions, and fertility is reduced by 5%. "
+        "The former unadjusted trend-continuation path is retained only as an "
+        "internal sensitivity. CBO Demographic Outlook (Pub. 60875, Jan 2025; "
+        "Pub. 61879, Jan 2026)."
     ),
     "Geography: All 53 North Dakota counties; state totals are county sums.",
 ]
@@ -90,7 +90,7 @@ ORGANIZATION_ATTRIBUTION = "Produced by the North Dakota State Data Center."
 
 CONDITIONAL_CAVEAT = (
     "These projections are conditional on stated assumptions "
-    "and should not be interpreted as forecasts."
+    "and should not be interpreted as guaranteed outcomes."
 )
 
 DATA_AVAILABILITY_NOTE = (
@@ -102,8 +102,8 @@ PLACE_METHODOLOGY_LINE = (
     "(ADR-033 accepted, implemented 2026-03-01). "
     "Winning backtest variant: B-II (weighted least squares logit-linear trend "
     "+ cap-and-redistribute constraints). "
-    "IMP-19 end-to-end validation passed across all active scenarios "
-    "with human sign-off (2026-03-01). "
+    "IMP-19 end-to-end validation passed across the scenario set active at the "
+    "time of place-method sign-off (2026-03-01). "
     "Population-based confidence tiers: HIGH (>10,000, 5-year age groups), "
     "MODERATE (2,500-10,000, broad age groups), LOWER (500-2,500, total only). "
     "Place projections are county-constrained (place totals plus balance-of-county "

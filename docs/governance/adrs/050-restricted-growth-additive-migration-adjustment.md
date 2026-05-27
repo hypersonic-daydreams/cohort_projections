@@ -14,6 +14,16 @@ Replace multiplicative CBO migration factor with additive adjustment for the res
 
 **Amends**: [ADR-039](039-international-only-migration-factor.md) (fixes the sign-interaction problem identified but insufficiently mitigated)
 
+**Amended by**: [ADR-065](065-cbo-adjusted-public-baseline.md), which reuses
+this additive CBO adjustment formula for the public baseline rather than a
+separate restricted-growth public scenario.
+
+**2026-05-27 update (ADR-065)**: The additive reduction formula remains the
+historical solution to the restricted-growth ordering bug, but the same formula
+now also powers the public `baseline`. `restricted_growth` is retained only as
+a deprecated compatibility alias and internal sensitivity, not as the public
+lower-bound scenario.
+
 ## Context
 
 ### Problem: Multiplicative Factor on Net-Negative Migration Produces Ordering Violations
@@ -257,4 +267,5 @@ The restricted growth fix is independent of the high growth fix. High growth use
 - **ADR-039: International-Only Migration Factor** — Amended by this ADR; the `intl_share` multiplicative approach is replaced
 - **ADR-037: CBO-Grounded Scenario Methodology** — Defines the restricted growth scenario intent and validation requirements
 - **ADR-046: High Growth BEBR Convergence** — Same class of fix (multiplicative → additive) for the opposite scenario
+- **ADR-065: CBO-Adjusted Public Baseline** — Reuses the additive reduction formula for the public baseline and keeps `restricted_growth` as a compatibility alias
 - **ADR-035: Census PEP Components** — Source data for the reference international migration parameter
