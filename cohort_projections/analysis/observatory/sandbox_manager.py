@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import shutil
 import subprocess
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
 from cohort_projections.analysis.observatory.search_policy import SearchPolicy
+
+logger = logging.getLogger(__name__)
 
 
 def _clean_git_env() -> dict[str, str]:
@@ -34,6 +38,21 @@ class WorktreeContext:
     worktree_path: Path
 
 
+@dataclass(frozen=True)
+class CheckoutStatusEntry:
+    """One porcelain Git status entry from the live checkout."""
+
+    status: str
+    paths: tuple[str, ...]
+
+    @property
+    def line(self) -> str:
+        """Return a stable, human-readable status line."""
+        if len(self.paths) == 2 and self.status[0] in {"R", "C"}:
+            return f"{self.status} {self.paths[1]} -> {self.paths[0]}"
+        return f"{self.status} {' -> '.join(self.paths)}"
+
+
 class SandboxManager:
     """Manage a bare mirror and disposable worktrees for search candidates."""
 
@@ -42,27 +61,42 @@ class SandboxManager:
         self.source_repo = source_repo.resolve()
 
     def live_checkout_signature(self) -> str:
-        """Return the porcelain status for the live checkout."""
-        raw = self._git(self.source_repo, "status", "--porcelain").stdout.splitlines()
-        filtered = [
-            line for line in raw if not self._is_runtime_artifact(self._extract_status_path(line))
-        ]
-        return "\n".join(filtered).strip()
+        """Return material dirty status lines for the live checkout."""
+        return self._format_status_entries(
+            entry for entry in self._live_checkout_entries() if self._is_blocking_entry(entry)
+        )
+
+    def live_checkout_nonblocking_signature(self) -> str:
+        """Return non-material dirty status lines for the live checkout."""
+        return self._format_status_entries(
+            entry
+            for entry in self._live_checkout_entries()
+            if not self._is_blocking_entry(entry)
+        )
 
     def assert_live_checkout_clean(self) -> None:
-        """Fail if the live checkout is dirty before an autonomous run."""
-        if self.live_checkout_signature():
+        """Fail if material live-checkout paths are dirty before a search run."""
+        blocking_signature = self.live_checkout_signature()
+        if blocking_signature:
             raise RuntimeError(
-                "Refusing deep search while the live checkout is dirty.\n"
-                "Commit or stash your changes first (git add . && git commit, "
-                "or git stash), then try again."
+                "Refusing deep search while material checkout paths are dirty.\n"
+                "Commit or stash the blocking changes first, then try again.\n\n"
+                f"Blocking changes:\n{blocking_signature}"
+            )
+        nonblocking_signature = self.live_checkout_nonblocking_signature()
+        if nonblocking_signature:
+            logger.warning(
+                "Deep search starting with non-blocking dirty files:\n%s",
+                nonblocking_signature,
             )
 
     def assert_live_checkout_unchanged(self, prior_signature: str) -> None:
-        """Fail if the live checkout changed during a search run."""
+        """Fail if material live-checkout paths changed during a search run."""
         current = self.live_checkout_signature()
         if current != prior_signature:
-            raise RuntimeError("Live checkout changed during deep search; stopping for safety.")
+            raise RuntimeError(
+                "Material checkout paths changed during deep search; stopping for safety."
+            )
 
     def ensure_mirror(self) -> Path:
         """Create or refresh the bare mirror used for search worktrees."""
@@ -292,6 +326,42 @@ class SandboxManager:
             if candidate.resolve() == root or candidate.resolve().is_relative_to(root):
                 return True
         return False
+
+    def _is_blocking_entry(self, entry: CheckoutStatusEntry) -> bool:
+        return any(self.policy.is_dirty_blocking_path(Path(path)) for path in entry.paths)
+
+    def _live_checkout_entries(self) -> list[CheckoutStatusEntry]:
+        raw = self._git(
+            self.source_repo,
+            "status",
+            "--porcelain=v1",
+            "-z",
+            "--untracked-files=all",
+        ).stdout
+        if not raw:
+            return []
+        records = [record for record in raw.split("\0") if record]
+        entries: list[CheckoutStatusEntry] = []
+        index = 0
+        while index < len(records):
+            token = records[index]
+            index += 1
+            if len(token) < 4:
+                continue
+            status = token[:2]
+            path = token[3:].strip()
+            paths = [path] if path else []
+            if status[0] in {"R", "C"} and index < len(records):
+                paths.append(records[index].strip())
+                index += 1
+            if not paths or all(self._is_runtime_artifact(status_path) for status_path in paths):
+                continue
+            entries.append(CheckoutStatusEntry(status=status, paths=tuple(paths)))
+        return entries
+
+    @staticmethod
+    def _format_status_entries(entries: Iterable[CheckoutStatusEntry]) -> str:
+        return "\n".join(entry.line for entry in entries).rstrip()
 
     @staticmethod
     def _git(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:

@@ -20,6 +20,28 @@ search:
     - scripts/analysis
     - config/method_profiles
 
+  # Dirty files under these roots can affect benchmark behavior and block a
+  # deep-search run. Dirty files outside these roots are logged as warnings
+  # but no longer block unrelated planning or marketing work.
+  dirty_blocking_roots:
+    - cohort_projections
+    - scripts/analysis
+    - scripts/data
+    - scripts/projections
+    - config
+    - data/backtesting
+    - data/interim
+    - data/processed
+    - data/projections
+    - pyproject.toml
+    - uv.lock
+    - .python-version
+    - pytest.ini
+    - mypy.ini
+    - ruff.toml
+    - setup.cfg
+    - tox.ini
+
   planner:
     max_pending: 3
     max_recommended: 5

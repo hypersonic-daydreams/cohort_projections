@@ -232,6 +232,8 @@ class TestSearchPolicy:
         assert policy.is_protected_path(Path("README.md")) is True
         assert policy.is_allowed_recipe_target(Path("scripts/analysis/example.py")) is True
         assert policy.is_allowed_recipe_target(Path("README.md")) is False
+        assert policy.is_dirty_blocking_path(Path("scripts/analysis/example.py")) is True
+        assert policy.is_dirty_blocking_path(Path("docs/plans/note.md")) is False
 
 
 class TestDeepSearchHelpers:
@@ -339,6 +341,78 @@ class TestRecipeRegistry:
 
 
 class TestSandboxManager:
+    def test_material_dirty_paths_block_deep_search(self, sandbox_repo: Path) -> None:
+        policy_path = sandbox_repo / "config" / "observatory_search_policy.yaml"
+        policy_path.write_text(
+            yaml.safe_dump(
+                {
+                    "search": {
+                        "runtime_root": "runtime",
+                        "session_root": "sessions",
+                        "mirror_repo": "runtime/repos/repo.git",
+                        "worktree_root": "runtime/worktrees",
+                        "recipe_catalog": "config/recipes.yaml",
+                        "dirty_blocking_roots": ["scripts/analysis"],
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        _git(sandbox_repo, "add", str(policy_path.relative_to(sandbox_repo)))
+        _git(sandbox_repo, "commit", "-m", "add search policy")
+
+        policy = load_search_policy(policy_path, project_root=sandbox_repo)
+        manager = SandboxManager(policy, source_repo=sandbox_repo)
+        (sandbox_repo / "scripts" / "analysis" / "example.py").write_text(
+            "VALUE = 'dirty'\n",
+            encoding="utf-8",
+        )
+
+        signature = manager.live_checkout_signature()
+        assert "scripts/analysis/example.py" in signature
+        with pytest.raises(RuntimeError, match="material checkout paths"):
+            manager.assert_live_checkout_clean()
+
+    def test_non_material_dirty_paths_do_not_block_deep_search(
+        self, sandbox_repo: Path
+    ) -> None:
+        policy_path = sandbox_repo / "config" / "observatory_search_policy.yaml"
+        docs_path = sandbox_repo / "docs" / "plans" / "note.md"
+        docs_path.parent.mkdir(parents=True)
+        docs_path.write_text("before\n", encoding="utf-8")
+        policy_path.write_text(
+            yaml.safe_dump(
+                {
+                    "search": {
+                        "runtime_root": "runtime",
+                        "session_root": "sessions",
+                        "mirror_repo": "runtime/repos/repo.git",
+                        "worktree_root": "runtime/worktrees",
+                        "recipe_catalog": "config/recipes.yaml",
+                        "dirty_blocking_roots": ["scripts/analysis"],
+                    }
+                }
+            ),
+            encoding="utf-8",
+        )
+        _git(
+            sandbox_repo,
+            "add",
+            str(policy_path.relative_to(sandbox_repo)),
+            str(docs_path.relative_to(sandbox_repo)),
+        )
+        _git(sandbox_repo, "commit", "-m", "add policy and docs")
+
+        policy = load_search_policy(policy_path, project_root=sandbox_repo)
+        manager = SandboxManager(policy, source_repo=sandbox_repo)
+        starting_signature = manager.live_checkout_signature()
+        docs_path.write_text("after\n", encoding="utf-8")
+
+        assert manager.live_checkout_signature() == starting_signature == ""
+        assert "docs/plans/note.md" in manager.live_checkout_nonblocking_signature()
+        manager.assert_live_checkout_clean()
+        manager.assert_live_checkout_unchanged(starting_signature)
+
     def test_mirror_and_worktree_are_isolated(self, sandbox_repo: Path) -> None:
         policy_path = sandbox_repo / "config" / "observatory_search_policy.yaml"
         policy_path.write_text(

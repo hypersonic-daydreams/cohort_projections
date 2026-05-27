@@ -33,6 +33,7 @@ class SearchPolicy:
     search_pack_root: Path
     protected_paths: tuple[Path, ...]
     allowed_recipe_roots: tuple[Path, ...]
+    dirty_blocking_roots: tuple[Path, ...]
     compile_changed_python: bool
     keep_worktrees: bool
     default_run_budget: int
@@ -66,6 +67,15 @@ class SearchPolicy:
             return False
         return any(
             resolved == root or resolved.is_relative_to(root) for root in self.allowed_recipe_roots
+        )
+
+    def is_dirty_blocking_path(self, path: Path) -> bool:
+        """Return whether dirty *path* can affect deep-search reproducibility."""
+        absolute = path if path.is_absolute() else self.project_root / path
+        resolved = absolute.resolve()
+        return any(
+            resolved == root or resolved.is_relative_to(root)
+            for root in self.dirty_blocking_roots
         )
 
 
@@ -140,6 +150,31 @@ def load_search_policy(
             ],
         )
     )
+    dirty_blocking_roots = tuple(
+        _resolve_project_path(project_root, raw_path).resolve()
+        for raw_path in section.get(
+            "dirty_blocking_roots",
+            [
+                "cohort_projections",
+                "scripts/analysis",
+                "scripts/data",
+                "scripts/projections",
+                "config",
+                "data/backtesting",
+                "data/interim",
+                "data/processed",
+                "data/projections",
+                "pyproject.toml",
+                "uv.lock",
+                ".python-version",
+                "pytest.ini",
+                "mypy.ini",
+                "ruff.toml",
+                "setup.cfg",
+                "tox.ini",
+            ],
+        )
+    )
 
     return SearchPolicy(
         project_root=project_root.resolve(),
@@ -152,6 +187,7 @@ def load_search_policy(
         search_pack_root=search_pack_root.resolve(),
         protected_paths=protected_paths,
         allowed_recipe_roots=allowed_recipe_roots,
+        dirty_blocking_roots=dirty_blocking_roots,
         compile_changed_python=bool(section.get("compile_changed_python", True)),
         keep_worktrees=bool(section.get("keep_worktrees", False)),
         default_run_budget=int(section.get("default_run_budget", 3)),
