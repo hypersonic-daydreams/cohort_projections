@@ -21,10 +21,13 @@ from multiple documents.
 5. `docs/plans/README.md`
    - Read this to separate current planning docs from historical roadmaps and
      completed backlogs.
-6. `docs/plans/benchmarking-process-improvement-roadmap.md`
+6. `docs/plans/observatory-resilience-hardening-plan.md`
+   - Read this before changing deep-search launch, recovery, session-state, or
+     artifact-contract behavior.
+7. `docs/plans/benchmarking-process-improvement-roadmap.md`
    - Read this only for historical roadmap rationale behind delivered
      Observatory and benchmarking features.
-7. `docs/guides/configuration-reference.md`
+8. `docs/guides/configuration-reference.md`
    - Read the Observatory config sections when changing thresholds, paths, or
      variant-catalog behavior.
 
@@ -84,6 +87,8 @@ from multiple documents.
 - Autonomous search guide: `docs/guides/observatory-autonomous-search.md`
 - Full benchmark workflow guide: `docs/guides/benchmarking-workflow.md`
 - Planning-doc inventory: `docs/plans/README.md`
+- Proposed resilience hardening plan:
+  `docs/plans/observatory-resilience-hardening-plan.md`
 - Historical roadmap rationale: `docs/plans/benchmarking-process-improvement-roadmap.md`
 - Historical UI/UX implementation backlog: `docs/plans/observatory-ui-ux-backlog.md`
 - Runtime config: `config/observatory_config.yaml`

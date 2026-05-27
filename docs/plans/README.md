@@ -10,6 +10,7 @@ historical before treating it as open work.
 |----------|------|--------|
 | [`DEVELOPMENT_TRACKER.md`](../../DEVELOPMENT_TRACKER.md) | Canonical current-state tracker, open work, documentation queue, and deferred work | current |
 | [`experiment-catalog.md`](./experiment-catalog.md) | Active CF-001 experiment and feature-idea catalog for county benchmark follow-ons | current |
+| [`observatory-resilience-hardening-plan.md`](./observatory-resilience-hardening-plan.md) | Proposed follow-on plan for hardening Projection Observatory launch, recovery, and artifact-contract behavior | current_proposed |
 | [`061-college-fix-model-revision.md`](../governance/adrs/061-college-fix-model-revision.md) | Active ADR for CF-001 methodology decision | current_proposed |
 | [`2026-03-09-m2026r1-vs-m2026.md`](../reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md) | Pending benchmark decision record for CF-001 promotion review | current_pending_human_review |
 | [`2026-public-projection-release-handoff/`](./2026-public-projection-release-handoff/) | Active PUB-2026 public PDF and consolidated-download handoff package for marketing | current |
