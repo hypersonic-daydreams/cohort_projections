@@ -83,3 +83,21 @@ def test_artifact_completeness_flag_requires_core_outputs(tmp_path: Path) -> Non
         (tmp_path / name).write_text("", encoding="utf-8")
 
     assert rbs._artifact_completeness_flag(tmp_path) is True
+
+
+def test_format_path_for_display_uses_absolute_path_outside_root(tmp_path: Path) -> None:
+    root = tmp_path / "worktree"
+    external = tmp_path / "live" / "data" / "analysis" / "benchmark_history" / "run-a"
+    external.mkdir(parents=True)
+
+    assert rbs._format_path_for_display(external, root=root) == str(external)
+
+
+def test_format_path_for_display_uses_relative_path_inside_root(tmp_path: Path) -> None:
+    root = tmp_path / "worktree"
+    local = root / "data" / "analysis" / "benchmark_history" / "run-a"
+    local.mkdir(parents=True)
+
+    assert rbs._format_path_for_display(local, root=root) == (
+        "data/analysis/benchmark_history/run-a"
+    )

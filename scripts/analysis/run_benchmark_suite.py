@@ -285,6 +285,14 @@ def _artifact_completeness_flag(run_dir: Path) -> bool:
     return required.issubset(present)
 
 
+def _format_path_for_display(path: Path, root: Path = PROJECT_ROOT) -> str:
+    """Format *path* relative to *root* when possible, otherwise absolute."""
+    try:
+        return str(path.relative_to(root))
+    except ValueError:
+        return str(path)
+
+
 def _resolve_workers(requested: int) -> int:
     """Resolve the effective worker count.
 
@@ -629,7 +637,7 @@ def main() -> None:
             _restore_configs(saved_configs)
         _unregister_methods(registered_dynamic_methods)
 
-    print(f"Benchmark run complete: {run_dir.relative_to(PROJECT_ROOT)}")
+    print(f"Benchmark run complete: {_format_path_for_display(run_dir)}")
 
 
 if __name__ == "__main__":
