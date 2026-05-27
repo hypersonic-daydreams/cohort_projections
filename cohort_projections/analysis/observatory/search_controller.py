@@ -1343,13 +1343,13 @@ class AutonomousSearchController:
         method_id: str,
     ) -> str | None:
         """Return an operational issue string for a run bundle, if any."""
-        local_run_dir = worktree_path / "data" / "analysis" / "benchmark_history" / run_id
-        if not local_run_dir.exists():
+        run_dir = self._resolve_run_bundle_dir(worktree_path, run_id)
+        if not run_dir.exists():
             return f"Operational blocker: benchmark bundle missing for run_id {run_id}."
         required = [
-            local_run_dir / "manifest.json",
-            local_run_dir / "summary_scorecard.csv",
-            local_run_dir / "runtime_summary.json",
+            run_dir / "manifest.json",
+            run_dir / "summary_scorecard.csv",
+            run_dir / "runtime_summary.json",
         ]
         missing = [str(path.name) for path in required if not path.exists()]
         if missing:
@@ -1359,12 +1359,12 @@ class AutonomousSearchController:
                 + "."
             )
         target_run_dir = self.history_dir / run_id
-        if target_run_dir.exists():
+        if run_dir != target_run_dir and target_run_dir.exists():
             return (
                 f"Operational blocker: benchmark run_id {run_id} already exists in the canonical "
                 "history directory."
             )
-        scorecard = pd.read_csv(local_run_dir / "summary_scorecard.csv")
+        scorecard = pd.read_csv(run_dir / "summary_scorecard.csv")
         method_rows = scorecard[scorecard["method_id"].astype(str) == method_id]
         if method_rows.empty:
             return f"Operational blocker: scorecard missing method row for {method_id}."
@@ -1377,15 +1377,22 @@ class AutonomousSearchController:
             return "Operational blocker: reproducibility logging flag is false in the scorecard."
         return None
 
+    def _resolve_run_bundle_dir(self, worktree_path: Path, run_id: str) -> Path:
+        """Return the benchmark bundle path from the worktree or canonical history."""
+        local_run_dir = worktree_path / "data" / "analysis" / "benchmark_history" / run_id
+        if local_run_dir.exists():
+            return local_run_dir
+        return self.history_dir / run_id
+
     def _harvest_run_bundle(self, worktree_path: Path, run_id: str) -> None:
         local_history_dir = worktree_path / "data" / "analysis" / "benchmark_history"
-        local_run_dir = local_history_dir / run_id
-        if not local_run_dir.exists():
+        source_run_dir = self._resolve_run_bundle_dir(worktree_path, run_id)
+        if not source_run_dir.exists():
             return
         target_run_dir = self.history_dir / run_id
         target_run_dir.parent.mkdir(parents=True, exist_ok=True)
-        if not target_run_dir.exists():
-            shutil.copytree(local_run_dir, target_run_dir)
+        if source_run_dir != target_run_dir and not target_run_dir.exists():
+            shutil.copytree(source_run_dir, target_run_dir)
 
         canonical_index = self.history_dir / "index.csv"
         if canonical_index.exists():
@@ -1393,6 +1400,8 @@ class AutonomousSearchController:
             if "run_id" in existing.columns and run_id in set(existing["run_id"].dropna()):
                 return
 
+        if not (local_history_dir / "index.csv").exists():
+            return
         local_index = pd.read_csv(local_history_dir / "index.csv", dtype=str)
         run_rows = local_index[local_index["run_id"] == run_id]
         if run_rows.empty:
@@ -1695,7 +1704,7 @@ class AutonomousSearchController:
         config_id: str,
     ) -> dict[str, Any]:
         """Extract decision-useful metrics for one completed benchmark run."""
-        history_dir = worktree_path / "data" / "analysis" / "benchmark_history"
+        history_dir = self._resolve_run_bundle_dir(worktree_path, run_id).parent
         return self._extract_benchmark_summary_from_history_dir(
             history_dir=history_dir,
             run_id=run_id,

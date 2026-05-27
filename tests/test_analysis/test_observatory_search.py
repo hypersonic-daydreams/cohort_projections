@@ -770,6 +770,52 @@ class TestSearchController:
                 max_patch_lines=3,
             )
 
+    def test_run_bundle_validation_accepts_canonical_history_bundle(
+        self, search_project: Path
+    ) -> None:
+        controller = AutonomousSearchController(
+            store=None,
+            observatory_config={
+                "history_dir": "data/analysis/benchmark_history",
+                "experiment_log": "data/analysis/experiments/experiment_log.csv",
+                "variant_catalog": "config/observatory_variants.yaml",
+            },
+            policy_path=search_project / "config" / "observatory_search_policy.yaml",
+            project_root=search_project,
+            source_repo=search_project,
+        )
+        run_id = "br-test-canonical"
+        run_dir = search_project / "data" / "analysis" / "benchmark_history" / run_id
+        run_dir.mkdir(parents=True)
+        (run_dir / "manifest.json").write_text("{}", encoding="utf-8")
+        (run_dir / "runtime_summary.json").write_text("{}", encoding="utf-8")
+        pd.DataFrame(
+            [
+                {
+                    "method_id": "m2026r1",
+                    "config_id": "cfg-test",
+                    "county_mape_overall": 1.23,
+                    "runtime_summary_present": True,
+                    "reproducibility_logging_flag": True,
+                }
+            ]
+        ).to_csv(run_dir / "summary_scorecard.csv", index=False)
+
+        issue = controller._validate_run_bundle(
+            worktree_path=search_project / "runtime" / "worktrees" / "search" / "candidate",
+            run_id=run_id,
+            method_id="m2026r1",
+        )
+        summary = controller._extract_benchmark_summary(
+            worktree_path=search_project / "runtime" / "worktrees" / "search" / "candidate",
+            run_id=run_id,
+            method_id="m2026r1",
+            config_id="cfg-test",
+        )
+
+        assert issue is None
+        assert summary["metrics"]["county_mape_overall"] == 1.23
+
     def test_operational_stop_state_detects_repeated_blockers(self, search_project: Path) -> None:
         controller = AutonomousSearchController(
             store=None,
