@@ -27,6 +27,7 @@ import pandas as pd
 import pytest
 
 from cohort_projections.data.load.base_population_loader import (
+    VINTAGE_2025_COUNTY_POPEST_PATH,
     _distribute_gq_across_races,
     _expand_gq_to_single_year_ages,
     _separate_gq_from_base_population,
@@ -36,6 +37,7 @@ from cohort_projections.data.load.base_population_loader import (
     load_base_population_for_all_counties,
     load_base_population_for_county,
     load_base_population_for_state,
+    load_county_populations,
 )
 
 # ---------------------------------------------------------------------------
@@ -437,6 +439,129 @@ class TestLoadBasePopulationForCounty:
             "With uniform distribution, cohort populations should be nearly identical"
         )
         assert abs(result["population"].mean() - expected_per_cohort) < 0.01
+
+
+# ===================================================================
+# TestLoadCountyPopulations
+# ===================================================================
+
+
+class TestLoadCountyPopulations:
+    """Tests for county total population source selection."""
+
+    @patch("cohort_projections.data.load.base_population_loader.resolve_popest_file")
+    @patch("cohort_projections.data.load.base_population_loader.pd.read_csv")
+    @patch("cohort_projections.data.load.base_population_loader.pd.read_parquet")
+    def test_default_uses_vintage_2025_popest_county_totals(
+        self,
+        mock_read_parquet,
+        mock_read_csv,
+        mock_resolve_popest_file,
+    ):
+        """Default production path loads V2025 PEP totals from shared POPEST."""
+        rows = []
+        county_total = 0
+        for idx, county in enumerate(range(1, 106, 2), start=1):
+            population = 1000 + idx
+            county_total += population
+            rows.append(
+                {
+                    "SUMLEV": 50,
+                    "STATE": 38,
+                    "COUNTY": county,
+                    "CTYNAME": f"County {county} County",
+                    "POPESTIMATE2025": population,
+                }
+            )
+        rows.append(
+            {
+                "SUMLEV": 40,
+                "STATE": 38,
+                "COUNTY": 0,
+                "CTYNAME": "North Dakota",
+                "POPESTIMATE2025": county_total,
+            }
+        )
+
+        mock_resolve_popest_file.return_value = "/shared/co-est2025-alldata.parquet"
+        mock_read_parquet.return_value = pd.DataFrame(rows)
+
+        result = load_county_populations()
+
+        mock_resolve_popest_file.assert_called_once_with(VINTAGE_2025_COUNTY_POPEST_PATH)
+        mock_read_parquet.assert_called_once_with("/shared/co-est2025-alldata.parquet")
+        mock_read_csv.assert_not_called()
+        assert len(result) == 53
+        assert list(result.columns) == ["county_fips", "county_name", "population"]
+        assert result["county_fips"].iloc[0] == "38001"
+        assert result["county_name"].iloc[0] == "County 1"
+        assert result["population"].sum() == pytest.approx(county_total)
+
+    @patch("cohort_projections.data.load.base_population_loader.resolve_popest_file")
+    def test_default_falls_back_to_legacy_csv_when_shared_popest_missing(
+        self,
+        mock_resolve_popest_file,
+    ):
+        """Missing shared PEP archive falls back to the repo legacy CSV."""
+        mock_resolve_popest_file.side_effect = FileNotFoundError("missing shared archive")
+
+        result = load_county_populations()
+
+        assert len(result) == 53
+        assert int(result["population"].sum()) == 796568
+
+    @patch("cohort_projections.data.load.base_population_loader.resolve_popest_file")
+    @patch("cohort_projections.data.load.base_population_loader.pd.read_parquet")
+    def test_default_raises_on_malformed_vintage_2025_popest(
+        self,
+        mock_read_parquet,
+        mock_resolve_popest_file,
+    ):
+        """Malformed shared PEP files fail instead of silently falling back."""
+        mock_resolve_popest_file.return_value = "/shared/co-est2025-alldata.parquet"
+        mock_read_parquet.return_value = pd.DataFrame(
+            {
+                "SUMLEV": [50],
+                "STATE": [38],
+                "COUNTY": [1],
+                "CTYNAME": ["Adams County"],
+            }
+        )
+
+        with pytest.raises(ValueError, match="POPESTIMATE2025"):
+            load_county_populations()
+
+    def test_explicit_legacy_csv_uses_latest_population_year(self, tmp_path):
+        """Explicit legacy CSV paths choose the latest population_* column."""
+        population_path = tmp_path / "county_population.csv"
+        pd.DataFrame(
+            {
+                "county_fips": ["38001", "38003"],
+                "county_name": ["Adams", "Barnes"],
+                "population_2024": [2141, 10798],
+                "population_2025": [2275, 10573],
+            }
+        ).to_csv(population_path, index=False)
+
+        result = load_county_populations(population_path=population_path)
+
+        assert result["population"].tolist() == [2275, 10573]
+
+    def test_explicit_legacy_csv_falls_back_to_latest_available_year(self, tmp_path):
+        """Legacy fallback is explicit when V2025 is absent."""
+        population_path = tmp_path / "county_population.csv"
+        pd.DataFrame(
+            {
+                "county_fips": ["38001", "38003"],
+                "county_name": ["Adams", "Barnes"],
+                "population_2023": [2100, 10600],
+                "population_2024": [2141, 10798],
+            }
+        ).to_csv(population_path, index=False)
+
+        result = load_county_populations(population_path=population_path)
+
+        assert result["population"].tolist() == [2141, 10798]
 
 
 # ===================================================================

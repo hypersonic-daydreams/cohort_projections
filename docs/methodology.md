@@ -158,13 +158,15 @@ Zero Net Migration and SDC 2024 Methodology Replication are also defined in the 
 
 ### 2.1 Data Source
 
-The base population for all projections is anchored to **Census Bureau Population Estimates Program (PEP) Vintage 2025** data, specifically the SC-EST2024-ALLDATA6 file, which provides state-level population by single year of age, sex, and race/ethnicity. County total populations are drawn from the PEP Vintage 2025 estimates (column `population_2025` in the county population reference file).
+The base population for all projections is anchored to **Census Bureau Population Estimates Program (PEP) Vintage 2025** county totals from `CO-EST2025-ALLDATA`. County total populations are drawn from `POPESTIMATE2025` in the shared Census PEP archive (`parquet/2020-2025/county/co-est2025-alldata.parquet`).
+
+The detailed age-sex-race allocation uses the latest detailed characteristics files currently available to the production pipeline: the state single-year distribution from `SC-EST2024-ALLDATA6` and county-specific age-sex-race distributions from `cc-est2024` data. These distributions are scaled to the Vintage 2025 county totals. If matching Vintage 2025 detailed characteristics files are released and staged, the distributions should be refreshed through the data-processing pipeline and documented in a follow-up ADR.
 
 The base year is July 1, 2025, with a total North Dakota population of **799,358**.
 
 The base population construction proceeds in four stages:
 
-1. Build the statewide age $\times$ sex $\times$ race distribution from SC-EST single-year data.
+1. Build the statewide age $\times$ sex $\times$ race distribution from the latest available SC-EST single-year data.
 2. Build county-specific distributions using Census cc-est2024-alldata, with Sprague interpolation to single-year ages.
 3. Apply each county's distribution to its PEP total population to produce the 1,092-cell cohort matrix.
 4. Separate group quarters (GQ) population from total population, retaining only household population for projection.
@@ -1193,9 +1195,9 @@ The implementation resides in `cohort_projections/analysis/evaluation/`, organiz
 
 ### 9.1 Primary Data Sources
 
-**Census Bureau Population Estimates Program (PEP), Vintage 2025.** County-level population estimates by age, sex, and race/ethnicity for North Dakota, 2020--2025. Accessed via the Census Bureau's stcoreview data interface. These estimates serve as the basis for base population construction, residual migration computation, and PEP-anchored recalibration of reservation counties.
+**Census Bureau Population Estimates Program (PEP), Vintage 2025.** County-level population totals and components for North Dakota, 2020--2025. Accessed through the Census Bureau `CO-EST2025-ALLDATA` release and stored in the shared Census PEP archive. These estimates serve as the basis for base population totals and current-year county components.
 
-- U.S. Census Bureau. (2025). *County Population Estimates by Characteristics: Annual County Resident Population Estimates by Age, Sex, Race, and Hispanic Origin.* Vintage 2025. Retrieved from https://www.census.gov/programs-surveys/popest.html
+- U.S. Census Bureau. (2026). *County Population Totals: 2020--2025.* Vintage 2025. Retrieved from https://www.census.gov/data/datasets/time-series/demo/popest/2020s-counties-total.html
 
 **Census Bureau Sub-County Estimates (SC-EST).** Single-year-of-age population estimates by sex and race used for constructing the base population with single-year age detail. These provide the state-level single-year-of-age distribution that is combined with county-level five-year age group totals via Sprague osculatory interpolation.
 

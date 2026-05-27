@@ -28,6 +28,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from cohort_projections.data.popest_shared import resolve_popest_file
 from cohort_projections.utils import (
     ConfigLoader,
     get_logger_from_config,
@@ -35,6 +36,10 @@ from cohort_projections.utils import (
 from cohort_projections.utils.demographic_utils import sprague_graduate
 
 logger = get_logger_from_config(__name__)
+
+VINTAGE_2025_COUNTY_POPEST_PATH = Path(
+    "parquet/2020-2025/county/co-est2025-alldata.parquet"
+)
 
 
 # Mapping from raw data race codes to standard projection categories
@@ -801,8 +806,9 @@ def load_county_populations(
     Load county-level total population data.
 
     Args:
-        population_path: Path to county population CSV file
-                        (default: data/raw/population/nd_county_population.csv)
+        population_path: Path to county population CSV file. When omitted,
+            loads the canonical Census PEP Vintage 2025 county totals from
+            the shared POPEST archive.
 
     Returns:
         DataFrame with columns:
@@ -818,10 +824,19 @@ def load_county_populations(
     """
     logger.info("Loading county population data")
 
-    # Set default path
     if population_path is None:
-        project_root = Path(__file__).parent.parent.parent.parent
-        population_path = project_root / "data" / "raw" / "population" / "nd_county_population.csv"
+        try:
+            return _load_vintage_2025_county_populations()
+        except FileNotFoundError as exc:
+            logger.warning(
+                "Vintage 2025 county PEP file unavailable; falling back to "
+                "legacy repo county population CSV. Details: %s",
+                exc,
+            )
+            project_root = Path(__file__).parent.parent.parent.parent
+            population_path = (
+                project_root / "data" / "raw" / "population" / "nd_county_population.csv"
+            )
 
     population_path = Path(population_path)
 
@@ -834,16 +849,13 @@ def load_county_populations(
     # Ensure FIPS is 5 digits
     raw_data["county_fips"] = raw_data["county_fips"].str.zfill(5)
 
-    # Get the most recent population column
-    # The file has population_2025 as the most recent (Vintage 2025)
-    pop_col = "population_2025"
-    if pop_col not in raw_data.columns:
-        # Fall back to any column containing 'population' or just 'pop'
-        pop_cols = [c for c in raw_data.columns if "pop" in c.lower()]
-        if pop_cols:
-            pop_col = pop_cols[0]
-        else:
-            raise ValueError("No population column found in county population file")
+    pop_col = _select_population_column(raw_data.columns)
+    if pop_col != "population_2025":
+        logger.warning(
+            "County population file %s does not provide population_2025; using %s",
+            population_path,
+            pop_col,
+        )
 
     # Create standardized output
     result = pd.DataFrame(
@@ -854,6 +866,67 @@ def load_county_populations(
         }
     )
 
+    logger.info(f"Loaded population data for {len(result)} counties")
+    logger.info(f"Total state population: {result['population'].sum():,.0f}")
+
+    return result
+
+
+def _select_population_column(columns: pd.Index) -> str:
+    """Select the most recent population column from a legacy county CSV."""
+
+    if "population_2025" in columns:
+        return "population_2025"
+
+    population_year_columns: list[tuple[int, str]] = []
+    for column in columns:
+        if column.startswith("population_"):
+            suffix = column.removeprefix("population_")
+            if suffix.isdigit():
+                population_year_columns.append((int(suffix), column))
+
+    if population_year_columns:
+        return max(population_year_columns)[1]
+
+    pop_cols = [c for c in columns if "pop" in c.lower()]
+    if pop_cols:
+        return pop_cols[0]
+
+    raise ValueError("No population column found in county population file")
+
+
+def _load_vintage_2025_county_populations() -> pd.DataFrame:
+    """Load North Dakota county totals from Census PEP Vintage 2025."""
+
+    popest_path = resolve_popest_file(VINTAGE_2025_COUNTY_POPEST_PATH)
+    raw_data = pd.read_parquet(popest_path)
+
+    required_columns = {"SUMLEV", "STATE", "COUNTY", "CTYNAME", "POPESTIMATE2025"}
+    missing = required_columns - set(raw_data.columns)
+    if missing:
+        raise ValueError(f"Vintage 2025 county PEP file missing columns: {sorted(missing)}")
+
+    nd_counties = raw_data[
+        (raw_data["SUMLEV"].astype(int) == 50) & (raw_data["STATE"].astype(int) == 38)
+    ].copy()
+
+    result = pd.DataFrame(
+        {
+            "county_fips": (
+                nd_counties["STATE"].astype(int).astype(str).str.zfill(2)
+                + nd_counties["COUNTY"].astype(int).astype(str).str.zfill(3)
+            ),
+            "county_name": nd_counties["CTYNAME"]
+            .astype(str)
+            .str.replace(r"\s+County$", "", regex=True),
+            "population": nd_counties["POPESTIMATE2025"].astype(float),
+        }
+    ).sort_values("county_fips", ignore_index=True)
+
+    if len(result) != 53:
+        raise ValueError(f"Expected 53 North Dakota counties; found {len(result)}")
+
+    logger.info("Loaded Census PEP Vintage 2025 county totals from %s", popest_path)
     logger.info(f"Loaded population data for {len(result)} counties")
     logger.info(f"Total state population: {result['population'].sum():,.0f}")
 

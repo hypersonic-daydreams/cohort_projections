@@ -334,3 +334,41 @@ def test_validate_state_scenario_ordering_raises_on_violation(tmp_path: Path) ->
             end_year=2025,
             skip_if_missing=False,
         )
+
+
+def test_validate_state_scenario_ordering_skips_inactive_required_scenarios(
+    tmp_path: Path,
+) -> None:
+    """Baseline-only production runs do not compare against stale inactive scenarios."""
+    projection_root = tmp_path / "projections"
+    for scenario, total in [
+        ("restricted_growth", 1200.0),
+        ("baseline", 1100.0),
+        ("high_growth", 1000.0),
+    ]:
+        county_dir = projection_root / scenario / "county"
+        county_dir.mkdir(parents=True, exist_ok=True)
+        df = pd.DataFrame([{"year": 2025, "population": total}])
+        df.to_parquet(
+            county_dir / f"nd_county_38017_projection_2025_2025_{scenario}.parquet",
+            index=False,
+        )
+
+    config = {
+        "pipeline": {"projection": {"output_dir": str(projection_root)}},
+        "scenarios": {
+            "baseline": {"active": True},
+            "restricted_growth": {"active": False},
+            "high_growth": {"active": False},
+        },
+    }
+
+    assert (
+        orchestrator.validate_state_scenario_ordering(
+            config=config,
+            base_year=2025,
+            end_year=2025,
+            skip_if_missing=False,
+        )
+        is False
+    )

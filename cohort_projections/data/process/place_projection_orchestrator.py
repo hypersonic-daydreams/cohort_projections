@@ -390,6 +390,21 @@ def validate_state_scenario_ordering(
     Returns ``True`` if evaluated successfully. Returns ``False`` only when
     ``skip_if_missing`` is enabled and required scenario county outputs are absent.
     """
+    configured_scenarios = config.get("scenarios", {})
+    if isinstance(configured_scenarios, Mapping):
+        inactive_required = [
+            scenario
+            for scenario in required_scenarios
+            if isinstance(configured_scenarios.get(scenario), Mapping)
+            and not configured_scenarios[scenario].get("active", False)
+        ]
+        if inactive_required:
+            logger.warning(
+                "Skipping state scenario ordering check because required scenarios are inactive: %s",
+                ", ".join(inactive_required),
+            )
+            return False
+
     series_by_scenario: dict[str, pd.Series] = {}
     missing_scenarios: list[str] = []
     for scenario in required_scenarios:

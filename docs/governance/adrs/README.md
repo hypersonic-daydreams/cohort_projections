@@ -146,6 +146,7 @@ Where:
 |-----|-------|--------|------|---------|
 | [016](016-raw-data-management-strategy.md) | Raw Data Management | Accepted | 2025-12-28 | Hybrid git/rclone strategy, data manifest, fetch script |
 | [034](034-census-pep-data-archive.md) | Census PEP Data Archive | Accepted | 2026-02-02 | Shared data archive for Census PEP across 8 vintages; parquet conversion and PostgreSQL analytics |
+| [066](066-vintage-2025-pep-base-population-refresh.md) | Vintage 2025 PEP Base Population Refresh | Accepted | 2026-05-27 | Use PEP Vintage 2025 county totals as the default 2025 production base population |
 
 ### Scenario and Replication
 

@@ -2,10 +2,11 @@
 
 This folder is the working handoff for the 2026 North Dakota population
 projection public release. Marketing receives the report structure, copy
-direction, and 2024 State Data Center PDF reference now; data-driven draft
-assets need regeneration after the ADR-065 baseline rerun. The public release
-is baseline-only: the public path is Baseline (CBO-Adjusted), while the older
-unadjusted baseline and the restricted/high sensitivities remain internal.
+direction, and 2024 State Data Center PDF reference now. Data-driven draft
+assets were regenerated on 2026-05-27 after the ADR-065/066 baseline rerun.
+The public release is baseline-only: the public path is Baseline
+(CBO-Adjusted), while the older unadjusted baseline and the restricted/high
+sensitivities remain internal.
 
 The 2026 report should feel similar in scale and usefulness to the 2024 SDC
 PDF: a compact public report that can stand on its own, with a downloadable
@@ -15,10 +16,10 @@ workbook available for users who need exact values.
 
 All draft artifacts live in [`marketing-ready/`](marketing-ready/) and the
 [`marketing-ready/drafts/`](marketing-ready/drafts/) subfolder. The current
-draft data/PNG artifacts are stale after ADR-065 because they were built from
-the older scenario definitions. Marketing can use the storyboard and structure
-now, but data-driven visuals and numeric callouts should be regenerated before
-they are used in final layout.
+draft data/PNG artifacts use the CBO-adjusted baseline and Census PEP Vintage
+2025 county totals. Marketing can use the storyboard and structure now, but
+data-driven visuals and numeric callouts should still be refreshed after final
+number lock before they are used in final layout.
 
 **Expected refreshed data package:**
 
@@ -27,6 +28,8 @@ they are used in final layout.
   dataset (1 scenario × 62 geographies × 31 years), key-year county table,
   age-group breakouts, baseline chart-ready cuts, baseline pyramid-ready
   cuts, and a data dictionary.
+- `marketing-ready/drafts/PUB-2026 Draft Public Dataset.csv` — tidy
+  consolidated CSV with the same 1,922 public rows.
 
 **Expected refreshed reference visuals:**
 

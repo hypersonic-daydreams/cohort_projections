@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Build the PUB-2026 draft public marketing handoff package.
 
-Produces a consolidated draft public Excel workbook, baseline population
-pyramids, and four reference key-chart PNGs from the latest projection
+Produces a consolidated draft public Excel workbook, consolidated CSV download,
+baseline population pyramids, and four reference key-chart PNGs from the latest projection
 parquet exports under ``data/projections/baseline/``. Outputs are written into
 the marketing handoff folder. After ADR-065, run this only after the baseline
 projection outputs have been regenerated with CBO-adjusted assumptions.
@@ -59,7 +59,13 @@ MARKETING_DIR = HANDOFF_DIR / "marketing-ready"
 DRAFTS_DIR = MARKETING_DIR / "drafts"
 
 WORKBOOK_NAME = "PUB-2026 Draft Public Workbook.xlsx"
+CSV_NAME = "PUB-2026 Draft Public Dataset.csv"
 REFERENCE_PDF_NAME = "PUB-2026 Reference - 2024 SDC PDF.pdf"
+STALE_ALTERNATIVE_SCENARIO_ARTIFACTS = [
+    "chart_state_3scenario_line.png",
+    "pyramid_state_2055_high.png",
+    "pyramid_state_2055_restricted.png",
+]
 
 # Styling
 HEADER_FONT = Font(name="Aptos", size=14, bold=True, color="1F3864")
@@ -963,6 +969,27 @@ def build_workbook(
     print(f"  workbook → {output_path.relative_to(PROJECT_ROOT)}")
 
 
+def write_public_csv(tidy: pd.DataFrame, output_path: Path) -> None:
+    """Write the consolidated long-format public CSV download."""
+
+    tidy.to_csv(output_path, index=False)
+    print(f"  csv → {output_path.relative_to(PROJECT_ROOT)}")
+
+
+def remove_stale_alternative_scenario_artifacts(output_dir: Path) -> None:
+    """Remove draft artifacts from the former multi-scenario public package."""
+
+    removed = []
+    for filename in STALE_ALTERNATIVE_SCENARIO_ARTIFACTS:
+        path = output_dir / filename
+        if path.exists():
+            path.unlink()
+            removed.append(filename)
+
+    if removed:
+        print(f"  removed stale non-public scenario artifacts: {', '.join(removed)}")
+
+
 # ---------------------------------------------------------------------------
 # Pyramid PNG generation
 # ---------------------------------------------------------------------------
@@ -1195,6 +1222,7 @@ def main() -> None:
 
     DRAFTS_DIR.mkdir(parents=True, exist_ok=True)
     print(f"Output directory: {DRAFTS_DIR.relative_to(PROJECT_ROOT)}")
+    remove_stale_alternative_scenario_artifacts(DRAFTS_DIR)
 
     print("Loading projection parquets...")
     bundle = load_all()
@@ -1205,6 +1233,9 @@ def main() -> None:
 
     print("Building consolidated workbook...")
     build_workbook(tidy, bundle, DRAFTS_DIR / WORKBOOK_NAME)
+
+    print("Writing consolidated CSV...")
+    write_public_csv(tidy, DRAFTS_DIR / CSV_NAME)
 
     if not args.skip_charts:
         print("Generating pyramids...")

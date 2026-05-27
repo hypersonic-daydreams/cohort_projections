@@ -2,18 +2,20 @@
 """
 Prepare Processed Data for North Dakota Population Projections.
 
-This script converts raw CSV data files into the Parquet format required by
-the projection pipeline. It serves as the first step (00_) in the pipeline,
-running before 01_process_demographic_data.py.
+This script converts source data files into the Parquet format required by the
+projection pipeline. It serves as the first step (00_) in the pipeline, running
+before 01_process_demographic_data.py.
 
-The script performs simple CSV-to-Parquet conversion without data transformation,
-preserving the data as-is while converting to a more efficient format.
+Most inputs are simple CSV-to-Parquet conversions without data transformation.
+County population totals are the exception: ADR-066 loads Census PEP Vintage
+2025 county totals from the shared POPEST archive and writes the standardized
+`[county_fips, county_name, population]` shape.
 
 Source files (from data/raw/):
     - fertility/asfr_processed.csv          -> fertility_rates.parquet
     - mortality/survival_rates_processed.csv -> survival_rates.parquet
     - migration/nd_migration_processed.csv  -> migration_rates.parquet
-    - population/nd_county_population.csv   -> county_population.parquet
+    - shared POPEST CO-EST2025-ALLDATA      -> county_population.parquet
     - population/nd_age_sex_race_distribution.csv -> age_sex_race_distribution.parquet
 
 Usage:
@@ -44,6 +46,12 @@ sys.path.insert(0, str(project_root))
 
 from project_utils import setup_logger  # noqa: E402
 
+from cohort_projections.data.load.base_population_loader import (  # noqa: E402
+    VINTAGE_2025_COUNTY_POPEST_PATH,
+    load_county_populations,
+)
+from cohort_projections.data.popest_shared import resolve_popest_file  # noqa: E402
+
 # Set up logging
 logger = setup_logger(__name__, log_level="INFO")
 
@@ -55,6 +63,7 @@ class FileMapping:
     source: Path
     destination: Path
     description: str
+    converter: str = "csv"
 
 
 @dataclass
@@ -137,9 +146,10 @@ def get_file_mappings(data_dir: Path) -> list[FileMapping]:
             description="County migration flows",
         ),
         FileMapping(
-            source=raw_dir / "population" / "nd_county_population.csv",
+            source=resolve_popest_file(VINTAGE_2025_COUNTY_POPEST_PATH, must_exist=False),
             destination=processed_dir / "county_population.parquet",
-            description="County population totals",
+            description="County population totals (Census PEP Vintage 2025)",
+            converter="vintage_2025_county_population",
         ),
         FileMapping(
             source=raw_dir / "population" / "nd_age_sex_race_distribution.csv",
@@ -214,9 +224,12 @@ def convert_csv_to_parquet(
             result.success = True
             return result
 
-        # Read CSV
-        logger.info(f"Reading: {mapping.source}")
-        df = pd.read_csv(mapping.source)
+        if mapping.converter == "vintage_2025_county_population":
+            logger.info(f"Reading Vintage 2025 county totals: {mapping.source}")
+            df = load_county_populations()
+        else:
+            logger.info(f"Reading: {mapping.source}")
+            df = pd.read_csv(mapping.source)
 
         # Ensure output directory exists
         mapping.destination.parent.mkdir(parents=True, exist_ok=True)
