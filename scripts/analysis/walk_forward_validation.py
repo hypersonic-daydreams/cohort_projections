@@ -402,25 +402,35 @@ def load_migration_rates_raw() -> pd.DataFrame:
     return df[["county_fips", "age_group", "sex", "period_start", "period_end", "migration_rate"]]
 
 
+def _collapse_survival_rates_to_age_group(df: pd.DataFrame) -> pd.DataFrame:
+    """Return one 5-year survival rate per age-group and sex."""
+    df = df.copy()
+    # Map single-year ages to 5-year group labels
+    if "age_group" not in df.columns:
+        df["age_group"] = pd.cut(
+            df["age"],
+            bins=AGE_BINS + [200],
+            labels=AGE_GROUP_LABELS,
+            right=False,
+            include_lowest=True,
+        ).astype(str)
+
+    # Take one rate per group (first age in each group)
+    rates = (
+        df.groupby(["age_group", "sex"], as_index=False, observed=True)["survival_rate_5yr"]
+        .first()
+        .copy()
+    )
+    return rates[["age_group", "sex", "survival_rate_5yr"]]
+
+
 def load_survival_rates() -> dict[tuple[str, str], float]:
     """Load 5-year survival rates keyed by (age_group, sex).
 
     Returns dict mapping (age_group_label, sex) -> survival_rate_5yr.
     """
-    df = pd.read_csv(SURVIVAL_PATH)
-
-    # Map single-year ages to 5-year group labels
-    df["age_group"] = pd.cut(
-        df["age"],
-        bins=AGE_BINS + [200],
-        labels=AGE_GROUP_LABELS,
-        right=False,
-        include_lowest=True,
-    ).astype(str)
-
-    # Take one rate per group (first age in each group)
-    rates = df.groupby(["age_group", "sex"], observed=True)["survival_rate_5yr"].first().to_dict()
-    return rates
+    rates = _collapse_survival_rates_to_age_group(pd.read_csv(SURVIVAL_PATH))
+    return rates.set_index(["age_group", "sex"])["survival_rate_5yr"].to_dict()
 
 
 def load_fertility_rates() -> dict[str, float]:
@@ -475,8 +485,8 @@ def recompute_migration_with_gq_override(
         snapshots, gq_historical, fraction=gq_correction_fraction
     )
 
-    # Load survival rates for the residual computation
-    survival_df = pd.read_csv(SURVIVAL_PATH)
+    # Load survival rates for the residual computation.
+    survival_df = _collapse_survival_rates_to_age_group(pd.read_csv(SURVIVAL_PATH))
 
     # Compute residual migration for each period
     all_period_rates: list[pd.DataFrame] = []

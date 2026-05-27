@@ -251,6 +251,71 @@ class TestMaybeRecomputeMigRaw:
 
         mock_recompute.assert_called_once_with(snapshots, 0.75)
 
+    def test_gq_recompute_collapses_full_survival_csv_to_age_groups(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """GQ override recomputation should pass age-group survival rates downstream."""
+        survival_full = pd.DataFrame(
+            {
+                "age": [0, 5, 0, 5],
+                "sex": ["Male", "Male", "Female", "Female"],
+                "survival_rate_5yr": [0.99, 0.98, 0.995, 0.985],
+            }
+        )
+        snapshots = {
+            2000: pd.DataFrame({"county_fips": ["38001"], "age_group": ["0-4"], "sex": ["Male"], "population": [10]}),
+            2005: pd.DataFrame({"county_fips": ["38001"], "age_group": ["5-9"], "sex": ["Male"], "population": [9]}),
+        }
+        captured_survival: list[pd.DataFrame] = []
+
+        monkeypatch.setattr(wfv, "ALL_PERIODS", [(2000, 2005)])
+        monkeypatch.setattr(wfv.pd, "read_csv", lambda path: survival_full)
+        monkeypatch.setattr(wfv.pd, "read_parquet", lambda path: pd.DataFrame())
+
+        import cohort_projections.data.process.residual_migration as rm
+
+        monkeypatch.setattr(
+            rm,
+            "subtract_gq_from_populations",
+            lambda snapshots, gq_historical, fraction: snapshots,
+        )
+
+        def fake_compute_residual_migration_rates(
+            *,
+            pop_start: pd.DataFrame,
+            pop_end: pd.DataFrame,
+            survival_rates: pd.DataFrame,
+            period: tuple[int, int],
+        ) -> pd.DataFrame:
+            del pop_start, pop_end, period
+            captured_survival.append(survival_rates.copy())
+            return pd.DataFrame(
+                {
+                    "county_fips": ["38001"],
+                    "age_group": ["5-9"],
+                    "sex": ["Male"],
+                    "period_start": [2000],
+                    "period_end": [2005],
+                    "migration_rate": [0.01],
+                }
+            )
+
+        monkeypatch.setattr(rm, "compute_residual_migration_rates", fake_compute_residual_migration_rates)
+
+        result = wfv.recompute_migration_with_gq_override(snapshots, 0.75)
+
+        assert list(result.columns) == [
+            "county_fips",
+            "age_group",
+            "sex",
+            "period_start",
+            "period_end",
+            "migration_rate",
+        ]
+        assert captured_survival
+        assert set(captured_survival[0].columns) == {"age_group", "sex", "survival_rate_5yr"}
+        assert set(captured_survival[0]["age_group"]) == {"0-4", "5-9"}
+
 
 # ---------------------------------------------------------------------------
 # Test MethodConfig defaults
