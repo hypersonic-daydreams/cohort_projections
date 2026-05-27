@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
 import pytest
@@ -264,6 +265,40 @@ class TestClassificationToAction:
             assert len(value) > 0
 
 
+class TestRunBenchmarkSubprocess:
+    def test_parses_absolute_benchmark_run_dir(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        run_dir = tmp_path / "live" / "data" / "analysis" / "benchmark_history" / "br-test"
+
+        monkeypatch.setattr(
+            re_mod.subprocess,
+            "run",
+            lambda *args, **kwargs: SimpleNamespace(
+                returncode=0,
+                stdout=f"Benchmark run complete: {run_dir}\n",
+                stderr="",
+            ),
+        )
+
+        success, run_id, parsed_run_dir, stdout, stderr = re_mod._run_benchmark_subprocess(
+            scope="county",
+            champion_method="m2026",
+            champion_config="cfg-base",
+            challenger_method="m2026r1",
+            challenger_config="cfg-test",
+            benchmark_label="test",
+            profile_dir=tmp_path / "profiles",
+            workers=1,
+        )
+
+        assert success is True
+        assert run_id == "br-test"
+        assert parsed_run_dir == run_dir
+        assert "Benchmark run complete" in stdout
+        assert stderr == ""
+
+
 class TestEvaluateResults:
     def test_evaluate_results_marks_operational_warning_in_details(
         self,
@@ -329,7 +364,6 @@ class TestEvaluateResults:
                     ]
                 )
 
-        monkeypatch.setattr(re_mod, "DEFAULT_HISTORY_DIR", history_dir)
         monkeypatch.setattr(re_mod, "ResultsStore", _FakeStore)
 
         result = re_mod._evaluate_results(
@@ -337,6 +371,7 @@ class TestEvaluateResults:
             "m2026r1",
             "m2026",
             re_mod.load_policy(),
+            history_dir=history_dir,
         )
 
         assert result["classification"] == "needs_human_review"

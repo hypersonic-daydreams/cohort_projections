@@ -299,10 +299,10 @@ def _run_benchmark_subprocess(
     benchmark_label: str,
     profile_dir: Path,
     workers: int = 0,
-) -> tuple[bool, str, str, str]:
+) -> tuple[bool, str, Path | None, str, str]:
     """Run the benchmark suite as a subprocess.
 
-    Returns (success, run_id, stdout, stderr).
+    Returns (success, run_id, run_dir, stdout, stderr).
     """
     cmd = [
         sys.executable,
@@ -339,23 +339,26 @@ def _run_benchmark_subprocess(
         print(f"Benchmark suite failed (rc={result.returncode})")
         if stderr:
             print(f"stderr: {stderr}")
-        return False, "", stdout, stderr
+        return False, "", None, stdout, stderr
 
     # Parse run_id from the last line of stdout
     # Expected format: "Benchmark run complete: data/analysis/benchmark_history/<run_id>"
     run_id = ""
+    run_dir: Path | None = None
     for line in reversed(stdout.splitlines()):
         if "Benchmark run complete:" in line:
             # Extract the run_id from the path
             path_part = line.split("Benchmark run complete:")[-1].strip()
-            run_id = Path(path_part).name
+            parsed_path = Path(path_part)
+            run_dir = parsed_path if parsed_path.is_absolute() else PROJECT_ROOT / parsed_path
+            run_id = run_dir.name
             break
 
     if not run_id:
         print("Could not parse run_id from benchmark output")
-        return False, "", stdout, stderr
+        return False, "", None, stdout, stderr
 
-    return True, run_id, stdout, stderr
+    return True, run_id, run_dir, stdout, stderr
 
 
 # ---------------------------------------------------------------------------
@@ -368,9 +371,10 @@ def _evaluate_results(
     challenger_method: str,
     champion_method: str,
     policy: dict[str, Any],
+    history_dir: Path = DEFAULT_HISTORY_DIR,
 ) -> dict[str, Any]:
     """Load the scorecard and evaluate challenger against champion."""
-    scorecard_path = DEFAULT_HISTORY_DIR / run_id / "summary_scorecard.csv"
+    scorecard_path = history_dir / run_id / "summary_scorecard.csv"
     if not scorecard_path.exists():
         return _empty_evaluation("inconclusive", [f"Scorecard not found: {scorecard_path}"])
 
@@ -594,7 +598,7 @@ def main() -> None:
             print(f"Champion: {champion_method} / {champion_config}")
             print(f"Challenger: {method_id} / {config_id}")
 
-            success, run_id, stdout, stderr = _run_benchmark_subprocess(
+            success, run_id, run_dir, stdout, stderr = _run_benchmark_subprocess(
                 scope=scope,
                 champion_method=champion_method,
                 champion_config=champion_config,
@@ -619,7 +623,14 @@ def main() -> None:
                 # --- Step 6: Evaluate results against policy ---
                 policy_path = args.policy
                 policy = load_policy(policy_path) if policy_path else load_policy()
-                evaluation = _evaluate_results(run_id, method_id, champion_method, policy)
+                history_dir = run_dir.parent if run_dir is not None else DEFAULT_HISTORY_DIR
+                evaluation = _evaluate_results(
+                    run_id,
+                    method_id,
+                    champion_method,
+                    policy,
+                    history_dir=history_dir,
+                )
 
     except Exception:
         # Catch-all: log inconclusive and re-print traceback
