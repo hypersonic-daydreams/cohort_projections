@@ -1,7 +1,9 @@
 # ADR-061: College Fix Model Revision (m2026r1)
 
 ## Status
-Proposed
+Accepted (as modified) — Tier-3 disposition 2026-06-11: D1 accepted, D2 accepted
+with fraction calibrated to 0.75, D3 rejected for the 2026 release, D4 accepted
+with Williams County removed. See "Disposition and Implementation Results".
 
 ## Date
 2026-03-04
@@ -259,8 +261,35 @@ rate_cap:
 3. **Projection accuracy analysis**: `docs/reviews/2026-03-04-projection-accuracy-analysis.md`
 4. **UMDI V2022/V2024 Population Projections Methodology** (cited in Census Bureau research)
 
+## Disposition and Implementation Results (2026-06-11)
+
+Tier-3 verdict recorded in `docs/reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md`
+(Final). Promoted config: `m2026r1` / `cfg-20260611-production-lock`.
+
+Important evidentiary note: ADR-067 found that all pre-2026-06-11 walk-forward
+benchmarks ran on adjustment-contaminated rate inputs. On the corrected
+(raw-base) evidence, the "systematic under-projection bias" that motivated this
+ADR was substantially a measurement artifact — the clean champion shows mild
+*over*-projection (recent-origin bias +0.44) with state APE-medium 0.38. The
+college fix is therefore justified on county-level accuracy in college counties
+(its clean gains are large: Grand Forks −3.73pp, Cass −1.70pp, Ward −0.69pp),
+not on state-level bias correction.
+
+| Decision | Verdict | Result |
+|---|---|---|
+| D1: 25–29 smoothing extension | Accepted | In production config since 2026-03-04; clean-base validated |
+| D2: GQ fraction parameter | Accepted; calibrated to **0.75** | EXP-C clean run (`rawbase-gq-fraction-075`): best state APE-short, rural/overall gains; forward +3.0k state @2050 |
+| D3: extended convergence hold | **Rejected for 2026 release** | Backtest-invisible (hold variants bit-identical within walk-forward horizons); forward +11.7k @2055 is a stance change whose original bias justification did not survive the harness correction. Revisit next cycle |
+| D4: 12-county college list | Accepted as modified — **Williams removed** (11 counties) | Below the ADR's own 2.5% threshold; inclusion worsened Williams MAPE +0.90pp (`rawbase-williams-out`); the ADR's flagged double-dampening risk is thereby resolved |
+
+The walk-forward double-counting risk flagged under "Risks and Mitigations"
+(Williams) was empirically confirmed and resolved by removal. The EXP-B blend
+factor question was dispositioned alongside: 0.5 retained (0.7 rejected for
+production on state-accuracy grounds; see decision record).
+
 ## Revision History
 
+- **2026-06-11**: Disposition recorded — Accepted as modified (D1 ✓, D2 ✓ at 0.75, D3 rejected for release, D4 ✓ minus Williams); status updated
 - **2026-03-04**: Added Decision 4 -- expanded college county list from 4 to 12 based on NDUS enrollment data (on-campus F2F / population >2.5% threshold)
 - **2026-03-04**: Initial version (ADR-061) -- Proposed; three coordinated improvements motivated by Census College Fix research
 

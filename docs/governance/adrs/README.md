@@ -197,8 +197,8 @@ Where:
 | [057](057-rolling-origin-backtests.md) | Rolling-Origin Backtests | Accepted | 2026-03-01 | Rolling-origin cross-validation for place projection variant selection |
 | [058](058-multicounty-place-splitting.md) | Multi-County Place Splitting | Accepted | 2026-03-01 | Allocate multi-county place population to constituent counties for projection |
 | [060](060-housing-unit-method.md) | Housing-Unit Method | Accepted | 2026-03-01 | Complementary short-term place projections using housing units × persons-per-household |
-| [061](061-college-fix-model-revision.md) | College Fix Model Revision (m2026r1) | Proposed | 2026-03-04 | Three coordinated improvements: extend college-age smoothing to 25-29, parameterize GQ correction fraction, extend convergence hold period |
-| [067](067-ward-grand-forks-divergence-investigation.md) | Ward & Grand Forks Divergence Investigation | Proposed | 2026-06-11 | Corrective review before release: GQ-fraction artifact refuted, Williams inclusion refuted, walk-forward evidence-integrity defect found, clean raw-base benchmark matrix established |
+| [061](061-college-fix-model-revision.md) | College Fix Model Revision (m2026r1) | Accepted | 2026-03-04 | Three coordinated improvements: extend college-age smoothing to 25-29, parameterize GQ correction fraction, extend convergence hold period |
+| [067](067-ward-grand-forks-divergence-investigation.md) | Ward & Grand Forks Divergence Investigation | Accepted | 2026-06-11 | Corrective review before release: GQ-fraction artifact refuted, Williams inclusion refuted, walk-forward evidence-integrity defect found, clean raw-base benchmark matrix established |
 
 ### Migration and Scenario Methodology
 
@@ -256,8 +256,8 @@ Where:
 
 | Status | Count |
 |--------|-------|
-| Accepted | 59 |
-| Proposed | 3 |
+| Accepted | 61 |
+| Proposed | 1 |
 | Rejected | 1 |
 | Deprecated | 0 |
 | Superseded | 4 |
@@ -330,6 +330,6 @@ Across all ADRs, these principles guided decisions:
 
 **Last Updated**: 2026-06-10
 
-**Total ADRs**: 71 (59 accepted, 3 proposed, 1 rejected, 4 superseded, 4 child ADRs)
+**Total ADRs**: 71 (61 accepted, 1 proposed, 1 rejected, 4 superseded, 4 child ADRs)
 
 **Template**: See [TEMPLATE.md](TEMPLATE.md) for creating new ADRs

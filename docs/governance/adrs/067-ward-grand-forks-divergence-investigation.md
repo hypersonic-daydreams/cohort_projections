@@ -1,7 +1,9 @@
 # ADR-067: Ward & Grand Forks Divergence Investigation (Corrective Review Before Release)
 
 ## Status
-Proposed — investigation in progress; forward decomposition pending (slots marked below)
+Accepted — investigation complete; corrective actions taken in the 2026-06-11
+Tier-3 config lock; Ward/GF public narrative to be finalized against final-run
+numbers in the Stage-4 sanity review
 
 ## Date
 2026-06-11
@@ -163,18 +165,29 @@ Attribution:
 
 ## Decision
 
-Pending completion of F4 and the ADR-061 disposition (Decision 2 of the
-remediation gates). Preliminary direction supported by F1–F3:
+**Decided 2026-06-11 (Tier-3), executed in the config lock** (decision record:
+`docs/reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md`, Approved):
 
-1. No method artifact was found that artificially suppresses Ward or Grand
-   Forks beyond (a) evidence-supported rate calibration that backtests
-   *better* in exactly these counties, and (b) the deliberate, disclosed
-   ADR-065 CBO assumption (dominant for Grand Forks; F4 quantifies).
-2. Corrective actions that DO follow from the investigation land in the
-   ADR-061 config lock: remove Williams from the college list; disposition the
-   GQ fraction and blend factor on the clean matrix; decide D3 on F4 evidence.
-3. The Ward/GF public disposition is then an accepted-divergence rationale
-   strengthened by this investigation's documented mechanism checks.
+1. **No artificial suppression found.** Ward's decline is dominated by the
+   observed 2020–2025 out-migration signal (F4: all four method/assumption
+   levers combined move Ward 2055 by only +3,660 against a 9,248 projected
+   decline). Grand Forks' decline is substantially the disclosed ADR-065 CBO
+   assumption (≈52%) plus the long-run convergence stance (≈41%) — assumption
+   and stance, not rate artifact. The college-smoothing changes *improve*
+   backtest accuracy in exactly these counties.
+2. **Corrective actions taken** (via ADR-061 disposition): Williams removed
+   from the college smoothing list; GQ correction fraction calibrated to 0.75;
+   blend factor retained at 0.5; D3 rejected for this release. Locked profile:
+   `m2026r1` / `cfg-20260611-production-lock`, promoted to `county_champion`.
+3. **Ward/GF disposition: accepted divergence, strengthened by this
+   investigation.** The public narrative (Stage-4/5) cites: observed 2020–2025
+   PEP out-migration for Ward; the disclosed federal-immigration assumption
+   for Grand Forks; GQ anchors (Minot AFB, MISU, UND) held constant by design;
+   and this ADR's completed mechanism checks. Final wording against final-run
+   numbers in the Stage-4 sanity review (Gate 1b).
+4. **Harness contract fix** (raw rates artifact for walk-forward) and a QA
+   input-coverage gate are follow-up actions from F1/F2 (tracked in the
+   remediation plan; ADR to follow with the implementation).
 
 ## Consequences
 

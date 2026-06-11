@@ -1,6 +1,6 @@
 county_champion:
-  method_id: m2026
-  config_id: cfg-20260223-baseline-v1
+  method_id: m2026r1
+  config_id: cfg-20260611-production-lock
 county_candidate:
   method_id: m2026r1
   config_id: cfg-20260309-college-fix-v1
