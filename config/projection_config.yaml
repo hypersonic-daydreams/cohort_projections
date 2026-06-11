@@ -193,7 +193,7 @@ rates:
         # residual migration, removing institutional rotation signals.
         gq_correction:
           enabled: true
-          fraction: 1.0  # ADR-061: 1.0 = full Phase 2 subtraction; 0.5 = half; 0.0 = Phase 1 only
+          fraction: 0.75  # ADR-061 D2 calibrated via EXP-C clean-base benchmark (Tier-3 lock 2026-06-11); was 1.0 (full Phase 2)
           historical_gq_path: "data/processed/gq_county_age_sex_historical.parquet"
           pre_2020_method: "backward_constant"  # 2020 GQ used for 2000-2015
         # PEP-anchored recalibration for reservation counties (ADR-045)
@@ -220,7 +220,9 @@ rates:
             - "38093"  # Stutsman (U of Jamestown, ~4.2%)
             - "38097"  # Traill (MASU, 6.1%)
             - "38101"  # Ward (MISU, 2.9%)
-            - "38105"  # Williams (WSC, 1.5%)
+            # Williams (WSC, 1.5%) removed 2026-06-11 per ADR-067: below 2.5%
+            # threshold; clean-base benchmark showed inclusion worsened Williams
+            # MAPE +0.90pp with no offsetting gains (Tier-3 config lock).
           age_groups: ["15-19", "20-24", "25-29"]  # Extended per ADR-061 (Census College Fix)
           blend_factor: 0.5
         male_dampening:

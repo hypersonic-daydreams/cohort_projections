@@ -1,0 +1,51 @@
+method_id: m2026r1
+config_id: cfg-20260611-production-lock
+scope: county
+status: candidate
+created_date: 2026-06-11
+created_from: config/projection_config.yaml (Tier-3 config lock, Decision 2 of PUB-2026 finality remediation)
+description: Locked 2026 production config — ADR-061 D1+D4 college fix with Williams
+  removed (ADR-067), blend 0.5, GQ correction fraction 0.75 (EXP-C calibration),
+  baseline 5-10-5 convergence (D3 rejected for this release).
+code_refs:
+  - scripts/analysis/walk_forward_validation.py
+adr_refs:
+  - docs/governance/adrs/061-college-fix-model-revision.md
+  - docs/governance/adrs/067-ward-grand-forks-divergence-investigation.md
+resolved_config:
+  bakken_fips:
+    - "38025"
+    - "38053"
+    - "38061"
+    - "38089"
+    - "38105"
+  boom_period_dampening:
+    "2005-2010": 0.5
+    "2010-2015": 0.4
+  boom_male_dampening: 0.8
+  college_fips:
+    - "38003"
+    - "38009"
+    - "38015"
+    - "38017"
+    - "38035"
+    - "38071"
+    - "38077"
+    - "38089"
+    - "38093"
+    - "38097"
+    - "38101"
+  college_age_groups:
+    - "15-19"
+    - "20-24"
+    - "25-29"
+  college_blend_factor: 0.5
+  convergence_recent_hold: 1
+  convergence_medium_hold: 2
+  convergence_transition_hold: 1
+  gq_correction_fraction: 0.75
+notes:
+  - Tier-3 approved 2026-06-11 (PUB-2026 Decision 2). Differs from 2026-05-27
+    production by Williams college-list removal and GQ fraction 1.0 -> 0.75.
+  - Forward effect vs 2026-05-27 baseline approx +3.0k state @2050 (GQ component);
+    Williams component quantified at the Stage-3 rerun.
