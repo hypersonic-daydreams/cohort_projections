@@ -198,6 +198,7 @@ Where:
 | [058](058-multicounty-place-splitting.md) | Multi-County Place Splitting | Accepted | 2026-03-01 | Allocate multi-county place population to constituent counties for projection |
 | [060](060-housing-unit-method.md) | Housing-Unit Method | Accepted | 2026-03-01 | Complementary short-term place projections using housing units × persons-per-household |
 | [061](061-college-fix-model-revision.md) | College Fix Model Revision (m2026r1) | Proposed | 2026-03-04 | Three coordinated improvements: extend college-age smoothing to 25-29, parameterize GQ correction fraction, extend convergence hold period |
+| [067](067-ward-grand-forks-divergence-investigation.md) | Ward & Grand Forks Divergence Investigation | Proposed | 2026-06-11 | Corrective review before release: GQ-fraction artifact refuted, Williams inclusion refuted, walk-forward evidence-integrity defect found, clean raw-base benchmark matrix established |
 
 ### Migration and Scenario Methodology
 
@@ -256,13 +257,13 @@ Where:
 | Status | Count |
 |--------|-------|
 | Accepted | 59 |
-| Proposed | 2 |
+| Proposed | 3 |
 | Rejected | 1 |
 | Deprecated | 0 |
 | Superseded | 4 |
 | Child ADRs (no formal status) | 4 |
 
-**Naming Convention Compliance**: All 70 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `020a`, `023a`).
+**Naming Convention Compliance**: All 71 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `020a`, `023a`).
 
 ---
 
@@ -329,6 +330,6 @@ Across all ADRs, these principles guided decisions:
 
 **Last Updated**: 2026-06-10
 
-**Total ADRs**: 70 (59 accepted, 2 proposed, 1 rejected, 4 superseded, 4 child ADRs)
+**Total ADRs**: 71 (59 accepted, 3 proposed, 1 rejected, 4 superseded, 4 child ADRs)
 
 **Template**: See [TEMPLATE.md](TEMPLATE.md) for creating new ADRs
