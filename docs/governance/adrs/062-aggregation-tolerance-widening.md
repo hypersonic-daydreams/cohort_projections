@@ -108,8 +108,13 @@ No new tests required -- the change is a constant in the existing `_aggregation_
 
 None. Single constant changed as specified.
 
+## Disclosure Note (2026-06-10)
+
+Recorded proactively for external reviewers, per the [2026-06-10 PUB-2026 finality rigor review](../../reviews/2026-06-10-pub-2026-finality-rigor-review.md): the sequencing of this change is that the gate was widened immediately after EXP-B failed the prior 1.0-person gate on a single 1.1-person aggregation drift (origin 2010, validation 2021; 662,399.1 county sum vs 662,398.0 state). The rationale is rounding arithmetic, not gate-shopping: the observed P99.9 drift across 460 historical observations was 0.96 persons and the theoretical 3-sigma of the combined county/state rounding error is ~1.07 persons, so a 1.0 tolerance produces false positives under normal rounding, while 2.0 retains roughly 100x headroom against real aggregation bugs (which produce errors of hundreds or thousands of persons). The tolerance affects benchmark gating only; it does not alter published projection values.
+
 ## Revision History
 
+- **2026-06-10**: Added Disclosure Note (PUB-2026 finality remediation, Stage 0 task 0.2) — sequencing of the widening relative to EXP-B's gate failure disclosed proactively
 - **2026-03-09**: Initial version (ADR-062) — widen tolerance based on empirical analysis
 
 ## Related ADRs

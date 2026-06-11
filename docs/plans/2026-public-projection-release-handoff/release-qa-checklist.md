@@ -14,6 +14,15 @@ Status: draft checklist for final-number and marketing handoff.
 - [ ] Final data source notes point to the exact run used for public outputs.
 - [ ] Current March 2026 draft exports are not treated as final numbers.
 
+## Gate 1b: Demographic Plausibility
+
+- [ ] A dated sanity-check review of the final production run is completed and linked.
+- [ ] The 2025-2030 projected trajectory is reconciled against Census PEP Vintage 2025 observed components, including an explicit explanation of the 2025-2028 dip as the intended CBO front-loaded migration adjustment.
+- [ ] Projected 2025-2030 components of change (births, deaths, net migration) are cross-checked against PEP observed components.
+- [ ] State and large-county age structures and sex ratios at 2035/2045/2055 are reviewed for plausibility.
+- [ ] The largest county-level divergences from the 2024 SDC series (Ward, Grand Forks) have a written disposition (corrective ADR or accepted-divergence rationale).
+- [ ] No county exhibits implausible terminal dynamics (e.g., population collapse to near zero, runaway growth, or sex-ratio drift) without documented explanation.
+
 ## Gate 2: Public Download QA
 
 - [ ] Public Excel workbook is generated from a clean staging directory.

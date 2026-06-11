@@ -7,7 +7,7 @@ Accepted
 2026-02-18
 
 ## Last Reviewed
-2026-02-18
+2026-06-10
 
 ## Scope
 Replace broken multiplicative `+15_percent` migration adjustment with scenario-specific convergence rates derived from BEBR high scenario
@@ -165,6 +165,25 @@ The BEBR PEP files use single-year ages and race/ethnicity, while the convergenc
 
 Both baseline and high convergence rates are generated with the same rate cap settings (ADR-043: +/-15% for ages 15-24, +/-8% for others). This ensures the only difference between the two files is the additive increment.
 
+## Implementation Results (recorded 2026-06-10)
+
+### Implementation Status
+
+Implemented as designed (commit `6668ec8`, 2026-02-23, the ADR 042-053 implementation batch). Verified in the current codebase:
+
+- `run_convergence_pipeline()` accepts a `variant` parameter; `_compute_high_scenario_rate_increment()` and `_lift_window_averages()` exist in `cohort_projections/data/process/convergence_interpolation.py`, and the `variant="high"` path lifts all three window averages (step 3b) before interpolation, as specified.
+- `config/projection_config.yaml` defines `high_growth` with `migration: "recent_average"` and `convergence_variant: "high"`, as specified.
+
+The [2026-02-23 projection output review](../../reviews/2026-02-23-projection-output-review.md) confirmed correct directionality after implementation: zero scenario-ordering violations across all 53 counties, with the high-growth state trajectory (+33.6% over 30 years, 1,067,814 at 2055) above baseline (+12.7%) at all time points.
+
+### Interaction with the ADR-052 Ward Floor
+
+ADR-052 added a migration floor inside this ADR's high-variant convergence path (step 3c in `convergence_interpolation.py`) for counties whose BEBR-boosted mean rates remain negative. Its measured effect substantially exceeded the design estimate: Ward County's high-growth 30-year change came in at **+29.0%** in the 2026-02-23 run versus the **~+5%** post-fix design estimate (ADR-052, Implementation Results). The floor combined with the BEBR increment is a much stronger mechanism than either ADR anticipated in isolation; the high-growth 20-year figure for Ward (+21.2%) closely tracked the SDC reference (+23%).
+
+### Current Status: No Public Exposure (ADR-065)
+
+ADR-065 (2026-05-27, Decision 3) reclassified `high_growth` as an inactive, internal-only sensitivity ("High Growth (Internal Sensitivity)", `active: false` in `config/projection_config.yaml`); the PUB-2026 public release is baseline-only. The BEBR convergence mechanism — and the ADR-052 floor that rides on it — therefore currently has no public exposure. On-disk `high_growth` outputs date from the pre-ADR-066 vintage (2026-02-26) and are slated for quarantine or regeneration under the PUB-2026 finality remediation plan (items 0.3/3.4); a quantitative reassessment under the current Vintage 2025 base is pending and only needed if the scenario is reactivated.
+
 ## References
 
 1. **Design Document**: `docs/reviews/2026-02-18-sanity-check-investigations/design-additive-migration-boost.md`
@@ -176,6 +195,7 @@ Both baseline and high convergence rates are generated with the same rate cap se
 
 ## Revision History
 
+- **2026-06-10**: Added retrospective Implementation Results section (PUB-2026 finality remediation, Stage 0 task 0.2) -- implemented as designed; ADR-052 floor interaction noted; high_growth inactive/internal since ADR-065
 - **2026-02-18**: Initial version -- Replace multiplicative `+15_percent` with BEBR convergence-based high scenario
 
 ## Related ADRs

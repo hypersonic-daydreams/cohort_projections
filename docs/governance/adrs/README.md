@@ -138,6 +138,7 @@ Where:
 | [013](013-multi-geography-projection-design.md) | Multi-Geography Projections | Accepted | 2025-12-18 | Design for running projections across multiple geographic levels |
 | [014](014-pipeline-orchestration-design.md) | Pipeline Orchestration | Accepted | 2025-12-18 | Complete pipeline orchestration design |
 | [015](015-output-format-visualization-design.md) | Output Visualization | Accepted | 2025-12-18 | Output formats and visualization capabilities |
+| [056](056-testing-strategy-maturation.md) | Testing Strategy Maturation | Accepted | 2026-02-28 | Forward-looking testing strategy reflecting the evolved comprehensive test suite; supersedes ADR-011 |
 | [064](064-projection-observatory-deep-search.md) | Projection Observatory Deep Search Workflow | Accepted | 2026-03-21 | First-class deep-search control plane with search packs, guided briefs, quarantined operational blockers, and optional claim-checked AI synthesis |
 
 ### Data Management
@@ -152,7 +153,7 @@ Where:
 
 | ADR | Title | Status | Date | Summary |
 |-----|-------|--------|------|---------|
-| [017](017-sdc-2024-methodology-comparison.md) | SDC 2024 Methodology Comparison and Scenario | Accepted | 2025-12-28 | Compare SDC methods to baseline and document divergence drivers |
+| [017](017-sdc-2024-methodology-comparison.md) | SDC 2024 Methodology Comparison and Scenario | Superseded | 2025-12-28 | Superseded by `docs/methodology_comparison_sdc_2024.md` and the 2026-06-10 rigor review; IRS-migration recommendation abandoned for Census PEP (ADR-035/036) |
 | [018](018-immigration-policy-scenario-methodology.md) | Immigration Policy Scenario Methodology | Superseded by ADR-037 | 2025-12-28 | Empirical adjustment method for policy-driven migration scenarios |
 
 ### Review Process
@@ -258,10 +259,10 @@ Where:
 | Proposed | 2 |
 | Rejected | 1 |
 | Deprecated | 0 |
-| Superseded | 3 |
+| Superseded | 4 |
 | Child ADRs (no formal status) | 4 |
 
-**Naming Convention Compliance**: All 68 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `020a`, `023a`).
+**Naming Convention Compliance**: All 70 ADRs follow the `NNN-short-title.md` naming convention (including child ADRs with letter suffixes like `020a`, `023a`).
 
 ---
 
@@ -326,8 +327,8 @@ Across all ADRs, these principles guided decisions:
 
 ---
 
-**Last Updated**: 2026-03-16
+**Last Updated**: 2026-06-10
 
-**Total ADRs**: 67 (57 accepted, 2 proposed, 1 rejected, 3 superseded, 4 child ADRs)
+**Total ADRs**: 70 (59 accepted, 2 proposed, 1 rejected, 4 superseded, 4 child ADRs)
 
 **Template**: See [TEMPLATE.md](TEMPLATE.md) for creating new ADRs

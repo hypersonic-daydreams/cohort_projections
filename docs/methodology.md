@@ -1,7 +1,7 @@
 # North Dakota Cohort-Component Population Projection Model: Methodology
 
-**Version:** 1.1
-**Date:** March 2026
+**Version:** 1.2
+**Date:** June 2026
 **Base Year:** 2025 (Census PEP Vintage 2025)
 **Projection Horizon:** 2025--2055 (30 years)
 
@@ -67,6 +67,13 @@
   - [9.1 Primary Data Sources](#91-primary-data-sources)
   - [9.2 Methodological References](#92-methodological-references)
   - [9.3 Architecture Decision Records](#93-architecture-decision-records)
+- [10. Limitations](#10-limitations)
+  - [10.1 Group Quarters Assumptions](#101-group-quarters-assumptions-adr-055-adr-061)
+  - [10.2 Base Population Characteristics Vintage](#102-base-population-characteristics-vintage-adr-066)
+  - [10.3 Documented Under-Projection Bias Mechanisms](#103-documented-under-projection-bias-mechanisms-adr-061)
+  - [10.4 CBO Adjustments Are Forward-Looking](#104-cbo-adjustments-are-forward-looking-adr-065)
+  - [10.5 College-County Smoothing Assumptions](#105-college-county-smoothing-assumptions)
+  - [10.6 Ward and Grand Forks Divergence from SDC 2024](#106-ward-and-grand-forks-divergence-from-sdc-2024)
 
 ---
 
@@ -397,13 +404,13 @@ where $g$ indexes the five-year age groups and the division by 1,000 converts fr
 
 ### 3.5 Scenario Adjustments
 
-The projection system supports multiple fertility scenarios, each implemented as a multiplicative adjustment to the base ASFR. The scenario is applied uniformly to all age-race cells. Available scenarios are:
+The projection system supports multiple fertility scenarios, each implemented as a multiplicative adjustment to the base ASFR. The scenario is applied uniformly to all age-race cells. Following ADR-065, the public baseline does **not** hold fertility constant: it applies the `-5_percent` adjustment, reflecting CBO's lower fertility revision (see Section 6.1). Available scenarios are:
 
 | Scenario | Adjustment | Application |
 |----------|-----------|-------------|
-| `constant` (baseline) | No change | Rates held at base-year levels throughout the projection |
-| `+5_percent` (high growth) | $F'(a,r) = F(a,r) \times 1.05$ | 5 percent increase in all rates |
-| `-5_percent` (restricted) | $F'(a,r) = F(a,r) \times 0.95$ | 5 percent decrease in all rates |
+| `-5_percent` (baseline, CBO-adjusted) | $F'(a,r) = F(a,r) \times 0.95$ | 5 percent decrease in all rates; the public baseline per ADR-065 |
+| `constant` (recent-trend continuation) | No change | Rates held at base-year levels; the former unadjusted baseline, retained as an inactive internal sensitivity |
+| `+5_percent` (high growth) | $F'(a,r) = F(a,r) \times 1.05$ | 5 percent increase in all rates; inactive internal sensitivity |
 | `trending` | $F'(a,r,t) = F(a,r) \times (1 - 0.005)^{t - t_0}$ | 0.5 percent annual decline, compounding from base year $t_0$ |
 
 The trending scenario reflects the long-run fertility decline observed across developed countries. After $n$ years, the adjustment factor is $(0.995)^n$; after 30 years, fertility rates are approximately 86 percent of their base-year values. In all scenarios, rates are clipped to be non-negative after adjustment.
@@ -553,7 +560,7 @@ In plain language: the model ages each cohort forward by one five-year step, app
 | 2020 | SDC 2024 base population |
 | 2024 | PEP Vintage 2025 (YEAR=6) |
 
-These six time points define five intercensal periods: 2000-2005, 2005-2010, 2010-2015, 2015-2020, and 2020-2024. Each period produces a complete set of 1,908 migration rate cells.
+These six time points define five intercensal periods: 2000-2005, 2005-2010, 2010-2015, 2015-2020, and 2020-2024. Each period produces a complete set of 1,908 migration rate cells. The 2020 snapshot is loaded from the SDC 2024 replication base-population product (`base_population_by_county.csv`), which is itself the Census 2020 count by county, five-year age group, and sex re-formatted for that pipeline, not an independent estimate.
 
 **Period length adjustment.** The final period (2020-2024) spans four years rather than five. To maintain comparability, the survival rate is adjusted:
 
@@ -713,19 +720,19 @@ The averaged rates are saved as `residual_migration_rates_averaged.parquet` and 
 
 ### 5h. Convergence Interpolation (5-10-5 Schedule)
 
-Rather than applying a single static migration rate for all 20 projection years, the model uses a convergence interpolation schedule that transitions rates from their recent observed values toward long-term historical means. This reflects the demographic expectation that recent migration patterns -- which may reflect transient conditions -- will gradually revert to longer-term norms.
+Rather than applying a single static migration rate across the projection horizon, the model uses a convergence interpolation schedule that transitions rates from their recent observed values toward long-term historical means. This reflects the demographic expectation that recent migration patterns -- which may reflect transient conditions -- will gradually revert to longer-term norms. Year-specific rates are generated for every year of the 30-year projection horizon (year offsets 1 through 30, matching `project.projection_horizon` in `config/projection_config.yaml`): the 5-10-5 transition occupies the first 20 years, and the remaining 10 years hold at the converged long-term average (see below).
 
 **Window definitions.** The pipeline defines three temporal windows, each of which produces an average rate by computing the arithmetic mean of all period-level rates whose time span overlaps the window:
 
 | Window | Config Range | Periods Included | Interpretation |
 |--------|:------------:|:----------------:|----------------|
-| Recent | [2022, 2024] | (2020, 2024) | Current conditions |
-| Medium | [2014, 2024] | (2010, 2015), (2015, 2020), (2020, 2024) | Medium-term trend |
-| Long-term | [2000, 2024] | All 5 periods | Full historical record |
+| Recent | [2023, 2025] | (2020, 2024) | Current conditions |
+| Medium | [2014, 2025] | (2010, 2015), (2015, 2020), (2020, 2024) | Medium-term trend |
+| Long-term | [2000, 2025] | All 5 periods | Full historical record |
 
 A period is included in a window if it overlaps with the window's year range. The window averages are computed independently for each county-by-age-group-by-sex cell.
 
-**Convergence schedule.** The 5-10-5 schedule divides the 20-year projection horizon into three phases:
+**Convergence schedule.** The 5-10-5 schedule governs the first 20 projection years in three phases, after which rates are held at the long-term average for the remainder of the 30-year horizon:
 
 **Phase 1 (Years 1-5): Linear interpolation from recent to medium.** Each year blends the recent and medium window averages with a linearly shifting weight:
 
@@ -745,7 +752,13 @@ $$r(y) = r_{\text{medium}} \times \left(1 - \frac{t}{5}\right) + r_{\text{longte
 
 where $t = y - 15$. By year 20, the rate equals the long-term average, reflecting the assumption that over a full generation, migration patterns revert to their 25-year historical norm.
 
-**Rationale for 5-10-5.** The schedule balances responsiveness to recent trends (Phase 1) with stability during the core projection period (Phase 2) and mean reversion over the long run (Phase 3). The ten-year medium hold ensures that the projection is not overly sensitive to either the most recent period (which may be anomalous) or the oldest periods (which may be outdated).
+**Years 21-30: Hold at long-term.** The 5-10-5 transition completes at year 20. For the remaining ten annual steps of the 30-year horizon (year offsets 21 through 30, reaching 2055), the interpolation weight is clamped at its terminal value, so rates are held constant at the long-term window average:
+
+$$r(y) = r_{\text{longterm}}, \qquad y > 20$$
+
+This is implemented in `calculate_age_specific_convergence()` (`cohort_projections/data/process/convergence_interpolation.py`), which clamps the Phase 3 interpolation fraction at 1.0 for year offsets beyond the end of Phase 3 and emits rate tables for all 30 year offsets.
+
+**Rationale for 5-10-5 with long-term hold.** The schedule balances responsiveness to recent trends (Phase 1) with stability during the core projection period (Phase 2) and mean reversion over the long run (Phase 3). The ten-year medium hold ensures that the projection is not overly sensitive to either the most recent period (which may be anomalous) or the oldest periods (which may be outdated). Holding the final decade (years 21-30) at the long-term average means the last third of the horizon assumes full reversion to the 25-year historical norm is maintained through 2055.
 
 ### 5i. Age-Aware Rate Cap (ADR-043)
 
@@ -1015,7 +1028,7 @@ where $m(a, s, r, t)$ is the net migration rate for the cell in year $t$. A posi
 
 **Time-varying migration.** The engine retrieves year-specific migration rates from the convergence interpolation output (see Section 5). The lookup is by year offset ($t - t_0 + 1$), where $t_0 = 2025$ is the base year. If a year-specific rate table is not available for a given offset, the engine falls back to the constant (base) migration rates.
 
-**Scenario adjustments.** Before migration is applied, scenario-specific adjustments modify the rates. For the restricted growth scenario, the additive reduction (Section 6.2.2) is subtracted from each cell. For the high growth scenario, the BEBR-boosted convergence rates are loaded directly, so no in-engine adjustment is needed beyond the standard convergence lookup.
+**Scenario adjustments.** Before migration is applied, scenario-specific adjustments modify the rates inside the engine, after the year-specific rate table is selected (ADR-065 Decision 4). For the public baseline, the CBO additive reduction $\Delta r(t)$ (Section 6.1; ADR-050, ADR-065) is subtracted from each cell. The deprecated `restricted_growth` alias applies the identical reduction and duplicates the baseline. For the high growth sensitivity, the BEBR-boosted convergence rates are loaded directly, so no in-engine adjustment is needed beyond the standard convergence lookup.
 
 #### Step 4: Combine Survived Population and Births
 
@@ -1212,7 +1225,7 @@ The implementation resides in `cohort_projections/analysis/evaluation/`, organiz
 - National Cancer Institute. (2024). *U.S. Population Data, 1969--2023.* SEER Program. Retrieved from https://seer.cancer.gov/popdata/
 - Arias, E., & Xu, J. (2024). *United States Life Tables, 2023.* National Vital Statistics Reports, 73(1). National Center for Health Statistics.
 
-**Congressional Budget Office (CBO) Immigration Projections.** The January 2025 and January 2026 CBO budget and economic outlooks provide baseline and revised net immigration projections. The year-by-year difference between these two outlooks is used to derive the enforcement factor schedule for the restricted growth scenario.
+**Congressional Budget Office (CBO) Immigration Projections.** The January 2025 and January 2026 CBO budget and economic outlooks provide baseline and revised net immigration projections. The year-by-year difference between these two outlooks is used to derive the CBO factor schedule for the additive migration reduction applied in the public baseline (Section 6.1; ADR-050, ADR-065). The deprecated `restricted_growth` alias retains the same schedule.
 
 - Congressional Budget Office. (2025, January). *The Budget and Economic Outlook: 2025 to 2035.* Washington, DC.
 - Congressional Budget Office. (2026, January). *The Budget and Economic Outlook: 2026 to 2036.* Washington, DC.
@@ -1267,7 +1280,6 @@ The following Architecture Decision Records (ADRs) govern the methodological cho
 | ADR-033 | City-Level Projection Methodology | Accepted | 7.5 |
 | ADR-036 | Migration Averaging Methodology -- Multi-Period and Interpolation Approaches | Accepted | 5 |
 | ADR-037 | CBO-Grounded Scenario Methodology | Accepted | 6.2 |
-| ADR-065 | CBO-Adjusted Public Baseline | Accepted | 1.5, 6.1-6.3 |
 | ADR-039 | International-Only Migration Factor for Restricted Growth Scenario | Accepted | 6.2 |
 | ADR-040 | Extend Bakken Oil Boom Migration Dampening to 2015--2020 Period | Accepted | 5 |
 | ADR-043 | Age-Aware Migration Rate Cap for Convergence Rates | Accepted | 5 |
@@ -1276,7 +1288,7 @@ The following Architecture Decision Records (ADRs) govern the methodological cho
 | ADR-047 | County-Specific Age-Sex-Race Distributions | Accepted | 2 |
 | ADR-048 | Single-Year-of-Age Base Population from Census SC-EST Data | Accepted | 2 |
 | ADR-049 | College-Age Smoothing Propagation to Convergence Pipeline | Accepted | 5 |
-| ADR-050 | Restricted Growth Additive Migration Adjustment | Accepted | 6.2 |
+| ADR-050 | Restricted Growth Additive Migration Adjustment | Accepted | 6.1 |
 | ADR-051 | Oil County Dampening Recalibration | Rejected | 5 |
 | ADR-052 | Ward County (Minot) Projection Review and High-Growth Scenario Floor | Accepted | 6.3 |
 | ADR-053 | North Dakota-Specific Fertility and Mortality Rates | Accepted | 3, 4 |
@@ -1285,6 +1297,39 @@ The following Architecture Decision Records (ADRs) govern the methodological cho
 | ADR-057 | Rolling-Origin Backtests for Place Variant Selection | Accepted | 7.5.1 |
 | ADR-058 | Multi-County Place Splitting | Accepted | 7.5 |
 | ADR-060 | Housing-Unit Method for Place Projections | Accepted | 7.5.2 |
-| ADR-061 | College Fix Model Revision | Proposed | 5 |
+| ADR-061 | College Fix Model Revision | Proposed (Decisions 1 and 4 provisionally in production config pending CF-001 disposition) | 5 |
 | ADR-062 | Widen Aggregation Violation Tolerance | Accepted | 7.4 |
 | ADR-063 | Evaluation Framework Architecture | Accepted | 8 |
+| ADR-064 | Projection Observatory Deep Search Workflow | Accepted | 8 |
+| ADR-065 | CBO-Adjusted Public Baseline | Accepted | 1.5, 3.5, 6.1-6.3 |
+| ADR-066 | Vintage 2025 PEP Base Population Refresh | Accepted | 2.1, 9.1 |
+
+ADR-061 remains Proposed pending the CF-001 disposition decision: its Decisions 1 (college-age smoothing and rate cap extended to ages 25-29) and 4 (college county list expanded from 4 to 12 on enrollment evidence) are provisionally present in `config/projection_config.yaml`, while Decision 3 (extended convergence medium hold) is not deployed (`medium_hold_years` remains 10).
+
+## 10. Limitations
+
+This section consolidates the known limitations of the production method. Where a quantified magnitude depends on the final locked-config production run, it is marked "(to be finalized after the locked-config production rerun — see `finality-remediation-plan.md` Stage 4)". Cross-references point to the sections and ADRs where each limitation is documented in detail.
+
+### 10.1 Group Quarters Assumptions (ADR-055, ADR-061)
+
+Group quarters population is held constant at 2025 levels through 2055 (Sections 2.5.4 and 7.3). Changes in institutional capacity -- base realignments, dormitory construction, nursing facility expansion -- are not modeled. Separately, the ADR-055 Phase 2 correction, which subtracts the full historical GQ population from the snapshots used to compute migration rates (Section 5b, fraction $f = 1.0$), was identified in sensitivity analysis as the third-largest sensitivity factor, with a 37,084-person impact on the 2050 state projection (ADR-061). The $f = 1.0$ default has not been independently calibrated: the planned calibration experiment (EXP-C) has not been run, and whether it can be executed without upstream data reprocessing is unresolved (see `finality-remediation-plan.md` Stage 1). Post-ADR-065/066 magnitudes are (to be finalized after the locked-config production rerun — see `finality-remediation-plan.md` Stage 4).
+
+### 10.2 Base Population Characteristics Vintage (ADR-066)
+
+County base totals are anchored to Census PEP Vintage 2025 (statewide 799,358), but the age-sex-race structure is built from the latest available detailed characteristics files -- county `cc-est2024` and state `SC-EST2024` distributions -- scaled to the Vintage 2025 totals (Section 2.1). This vintage mismatch is an explicit ADR-066 trade-off, preferable to anchoring on stale 2024 totals, and should be revisited when matching Vintage 2025 detailed characteristics files are released.
+
+### 10.3 Documented Under-Projection Bias Mechanisms (ADR-061)
+
+Walk-forward validation and sensitivity analysis documented in ADR-061 revealed systematic under-projection bias growing with horizon length. The convergence schedule alone was identified as a 3.44 percentage-point state error swing in sensitivity analysis. The corrective identified for this mechanism -- ADR-061 Decision 3, an extended convergence medium hold -- is not deployed in the production configuration (Section 9.3), and the disposition of all four ADR-061 decisions is pending (`finality-remediation-plan.md` Stage 2).
+
+### 10.4 CBO Adjustments Are Forward-Looking (ADR-065)
+
+The public baseline's $-5\%$ fertility adjustment and additive migration reduction encode CBO's January 2026 current-policy outlook (Section 6.1; ADR-065). These are forward-looking policy assumptions: they cannot be validated by backtesting against the 2000-2024 historical record, and the existing walk-forward benchmark evidence evaluates the unadjusted historical method (no validation artifact postdates ADR-065/066; see `docs/reviews/2026-06-10-pub-2026-finality-rigor-review.md`). A one-factor sensitivity decomposition of these adjustments is planned (`finality-remediation-plan.md` Stage 1); its magnitudes are (to be finalized after the locked-config production rerun — see `finality-remediation-plan.md` Stage 4).
+
+### 10.5 College-County Smoothing Assumptions
+
+College-age smoothing blends 12 counties' rates 50/50 toward the statewide mean at ages 15-29 (Section 5f), which dilutes genuine county-specific migration signals at those ages; ADR-061 notes that the extension to 25-29 may over-dampen counties where 25-29 migration is genuinely high. Benchmarking found that a 0.7 blend factor was the only tested experiment to pass all acceptance gates (EXP-B), with monotone improvement toward higher blend values, yet production retains 0.5 pending the CF-001 disposition (see the 2026-06-10 rigor review; `finality-remediation-plan.md` Stage 2). Williams County is included in the college list below the 2.5% enrollment threshold (WSC, 1.5%) while also receiving oil-boom and male dampening; ADR-061 flags the combined-effect risk, and no recorded resolution exists yet.
+
+### 10.6 Ward and Grand Forks Divergence from SDC 2024
+
+The current baseline diverges sharply from the SDC 2024 reference for Ward County (SDC 2024 projected roughly +23% growth; the 2026-05-27 baseline shows approximately -13.6%) and Grand Forks County (approximately -8.7%, per the ADR-052 analysis as summarized in the 2026-06-10 rigor review). The only existing mitigation, the ADR-052 migration floor, applies solely to the inactive `high_growth` sensitivity (Section 5k). A written disposition -- a corrective ADR or an accepted-divergence rationale with public-facing narrative -- is pending, and final divergence magnitudes are (to be finalized after the locked-config production rerun — see `finality-remediation-plan.md` Stage 4).

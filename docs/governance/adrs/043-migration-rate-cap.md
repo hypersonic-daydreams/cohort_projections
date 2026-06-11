@@ -7,7 +7,7 @@ Accepted
 2026-02-18
 
 ## Last Reviewed
-2026-02-18
+2026-06-10
 
 ## Scope
 Age-aware asymmetric rate cap applied during convergence interpolation to clip statistical noise in small-county migration rate cells
@@ -146,6 +146,24 @@ The rate cap is configured under `rates.migration.interpolation.rate_cap` in `pr
 3. **Disabled-cap tests**: Verify cap has no effect when `enabled: false`
 4. **Regression tests**: Existing convergence schedule tests pass unchanged when cap is not configured
 
+## Implementation Results (recorded 2026-06-10)
+
+### Implementation Status
+
+Implemented and in production since 2026-02-23 (commit `6668ec8`, the ADR 042-053 implementation batch). Verified in the current codebase:
+
+- `_apply_rate_cap()` exists in `cohort_projections/data/process/convergence_interpolation.py` and is applied inside `calculate_age_specific_convergence()` after the interpolation computation for each year offset, as specified in Decision 2.
+- `config/projection_config.yaml` carries `rates.migration.interpolation.rate_cap` with `enabled: true`, `college_cap: 0.15`, and `general_cap: 0.08`. The `college_ages` list was extended from ["15-19", "20-24"] to include "25-29" by ADR-061 (Census College Fix), 2026-03-04.
+
+### Observed Effects
+
+- The [2026-03-04 projection accuracy analysis](../../reviews/2026-03-04-projection-accuracy-analysis.md) measured the rate caps as the 4th-largest forward-projection sensitivity of 8 parameters tested: a 20,726-person range on the 2050 state total (788,310 to 809,036), with the SDC-base-to-m2026 decomposition waterfall attributing +20,243 persons at 2050 to the rate caps.
+- The [2026-03-09 Bakken growth decomposition](../../reviews/2026-03-09-bakken-growth-decomposition-analysis.md) (Section 9d) documents the cap functioning as designed for the small-county noise case it targets: Billings County's 40-44 Male cell would project at +0.200/yr uncapped versus +0.08 capped.
+
+### Quantitative Ex-Post Calibration: Pending
+
+The cap thresholds (0.08 general / 0.15 college) have not been benchmarked against alternatives. EXP-D (`rate-cap-general-6pct`, general cap 0.08 → 0.06) is cataloged in [docs/plans/experiment-catalog.md](../../plans/experiment-catalog.md) but has never been executed: it was initially deferred because the rate cap was not a config-only parameter (it required upstream data reprocessing), and although MethodConfig injection support for `rate_cap_general` was added during the 2026-03-09 sweep infrastructure work, no EXP-D benchmark results are recorded as of the catalog's last update (2026-03-19; the 2026-03-18 autonomous-search attempts were inconclusive). Quantitative ex-post calibration of the cap thresholds therefore remains pending.
+
 ## References
 
 1. **Design Document**: [design-migration-rate-cap.md](../../reviews/2026-02-18-sanity-check-investigations/design-migration-rate-cap.md) -- Full analysis of rate distribution, outlier identification, and cap option evaluation
@@ -155,6 +173,7 @@ The rate cap is configured under `rates.migration.interpolation.rate_cap` in `pr
 
 ## Revision History
 
+- **2026-06-10**: Added retrospective Implementation Results section (PUB-2026 finality remediation, Stage 0 task 0.2) -- in production since 2026-02-23; EXP-D never executed, quantitative ex-post calibration pending
 - **2026-02-18**: Initial version (ADR-043) -- Implement age-aware migration rate cap for convergence interpolation
 
 ## Related ADRs

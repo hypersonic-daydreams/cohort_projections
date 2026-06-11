@@ -7,7 +7,7 @@ Accepted
 2026-02-17
 
 ## Last Reviewed
-2026-02-17
+2026-06-10
 
 ## Scope
 Boom-period migration dampening configuration for oil-impacted counties
@@ -114,6 +114,24 @@ The residual migration pipeline reads `boom_periods` from the dampening config b
 3. **Projection reasonableness**: Confirm McKenzie and Williams 30-year growth projections fall within the +30-60% range
 4. **Non-oil county regression**: Verify that projections for non-oil counties (e.g., Cass, Burleigh, Grand Forks) are unchanged
 
+## Implementation Results (recorded 2026-06-10)
+
+### Implementation Status
+
+The ADR-040 decision is in production. `[2015, 2020]` was added to the `boom_periods` list in `config/projection_config.yaml` in commit `27904a4` (2026-02-18) and remains in the current config alongside the original boom periods. The dampening framework has since evolved beyond this ADR's uniform 0.60 factor: production now uses period-specific factors ("2005-2010": 0.50, "2010-2015": 0.40, "2015-2020": 0.50, default 0.60) per the ADR-051 calibration analysis, and Billings (38007) was added to the dampened county list (see `migration.dampening` in `config/projection_config.yaml`).
+
+### Ex-Post Calibration Evidence
+
+No county-level ex-post actual-vs-expected numbers exist for McKenzie or Williams: the forward projections begin in 2025, so no observation period has elapsed. The ex-post support for the dampening family is calibration and backtest evidence:
+
+1. **ADR-051 20-year calibration (2026-02-23; ADR-051 Rejected -- calibration adequate)**: Fresh projections compared on a consistent 20-year horizon (2025-2045) put McKenzie at +48.8% vs the SDC 2024 reference +47.1% (+1.7pp gap) and Williams at +34.2% vs +33.4% (+0.8pp gap). With oil-county divergence within ~2pp of SDC, ADR-051's proposal for further dampening was rejected as unnecessary -- the strongest available evidence that the dampening family is adequately calibrated.
+2. **Bakken growth decomposition ([2026-03-09 review](../../reviews/2026-03-09-bakken-growth-decomposition-analysis.md))**: With dampening active, Williams' medium-window migration rate is essentially zero (-0.0002/yr) and its projected 30-year growth is entirely natural increase (net migration -2,233, a -9.5% drag on growth); McKenzie's medium-window rate is +0.0068/yr with migration contributing ~18% of growth. The dampening achieved its design intent -- boom-era migration no longer anchors long-term projections; remaining high growth is demographic momentum from the boom-era age structure. The same review reports 20-year SDC gaps of +1.6pp (McKenzie) and +0.3pp (Williams).
+3. **EXP-E (2026-03-09 experiment sweep, [experiment catalog](../../plans/experiment-catalog.md))**: Further dampening of 2010-2015 from 0.40 to 0.30 regressed Bakken county MAPE by +0.55pp (`needs_human_review`), indicating the production dampening level is near a local optimum and additional dampening is accuracy-detrimental.
+
+### Backtest Evidence (Actual-vs-Projected, Historical Origins)
+
+The only actual-vs-projected evidence is the walk-forward backtesting in the [2026-03-04 projection accuracy analysis](../../reviews/2026-03-04-projection-accuracy-analysis.md): Bakken county MAPE is essentially identical between m2026 and the reimplemented SDC method (Williams 23.58% vs 22.92%; McKenzie 29.65% vs 29.50%), and both methods show mean signed error reaching -37% at horizon 19 for Bakken counties because neither captures oil-boom migration surges from pre-boom data. This is a data-regime limitation of trend-based methods spanning the boom, not evidence against the dampening. The same analysis measured the Bakken dampening parameter's forward sensitivity at a 15,251-person range on the 2050 state total (6th of 8 parameters tested). Per the 2026-03-09 review, actual 2025-2030 growth vs the projected trajectory is the designated future evidence basis for recalibration via the walk-forward framework.
+
 ## References
 
 1. **ADR-036: Migration Averaging Methodology** -- Established the multi-period averaging approach and original boom dampening configuration
@@ -122,6 +140,7 @@ The residual migration pipeline reads `boom_periods` from the dampening config b
 
 ## Revision History
 
+- **2026-06-10**: Added retrospective Implementation Results section (PUB-2026 finality remediation, Stage 0 task 0.2) -- ADR-051 calibration cited as ex-post support; no post-2025 actual-vs-expected data exists yet
 - **2026-02-17**: Initial version (ADR-040) -- Extend boom dampening to 2015-2020 period
 
 ## Related ADRs

@@ -7,7 +7,7 @@ Accepted
 2026-02-18
 
 ## Last Reviewed
-2026-02-18
+2026-06-10
 
 ## Scope
 Migration rate recalibration for AIAN reservation counties where the residual method systematically overestimates out-migration
@@ -147,6 +147,30 @@ The PEP data uses a `geoid` column with 5-digit FIPS codes (e.g., "38005") that 
 2. **Integration test**: Full pipeline with recalibration enabled; verify non-target counties are unaffected
 3. **Regression test**: Compare target county rates before and after recalibration
 
+## Implementation Results (recorded 2026-06-10)
+
+### Implementation Status
+
+Implemented and in production since 2026-02-23 (commit `6668ec8`, the ADR 042-053 implementation batch). Verified in the current codebase: `apply_pep_recalibration()`, `_rogers_castro_to_age_group_rates()`, and `_load_pep_for_recalibration()` exist in `cohort_projections/data/process/residual_migration.py`, and `config/projection_config.yaml` carries the `residual.pep_recalibration` block with `enabled: true` and the three target counties ("38005", "38085", "38079").
+
+### Ex-Post Calibration Check (2026-02-23 Production Run)
+
+The [2026-02-23 projection output review](../../reviews/2026-02-23-projection-output-review.md) (Section 6, "Reservation County Calibration Check (ADR-045)") compared the realized projections under the implemented recalibration against this ADR's pre-fix projections and expected-impact estimates. The metric is the baseline-scenario 30-year projected population change (2025-2055); the same baseline values appear in the county tables of the [post-ADR-054 sanity check](../../reviews/2026-02-23-post-adr054-sanity-check.md):
+
+| County | Pre-fix projection | ADR-045 post-fix estimate | Realized (2026-02-23 run) |
+|--------|:-----------------:|:------------------------:|:-------------------------:|
+| Benson (38005) | -47% | ~-23% | **-10.7%** |
+| Sioux (38085) | -47% | ~-25% | **-2.2%** |
+| Rolette (38079) | -46% | ~-21% | **-4.7%** |
+
+All three counties came in substantially less negative than both the pre-fix projections and this ADR's own estimates (Benson +36.3pp vs pre-fix, Sioux +44.8pp, Rolette +41.3pp). The review judged the remaining mild declines (-2% to -11%) consistent with long-term trends in rural reservation counties and more defensible for publication than the near-halving pre-fix projections.
+
+### Basis and Caveats
+
+1. **These are projection-vs-projection comparisons** — the implemented model's output against this ADR's design estimates — not a comparison against observed post-2025 population. No observation period has elapsed for the forward projections.
+2. **The figures are from the 2026-02-23 run** and predate ADR-055 Phase 2 (GQ-corrected rates), the ADR-061 hybrid configuration, and the ADR-065/066 baseline redefinition. Current-baseline values will differ; revalidation lands with the PUB-2026 Stage 4 sanity review (`docs/plans/2026-public-projection-release-handoff/finality-remediation-plan.md`).
+3. **Backtest caveat**: the [2026-03-04 projection accuracy analysis](../../reviews/2026-03-04-projection-accuracy-analysis.md) found reservation-county walk-forward errors highly volatile and regime-dependent (near-zero at short horizons; +18-24% over-projection at mid horizons from the 2015 origin). The recalibration improves the plausibility of the forward trajectory but does not make reservation counties well-predicted in backtests.
+
 ## References
 
 1. **Design Document**: `docs/reviews/2026-02-18-sanity-check-investigations/design-reservation-migration-recalibration.md`
@@ -156,6 +180,7 @@ The PEP data uses a `geoid` column with 5-digit FIPS codes (e.g., "38005") that 
 
 ## Revision History
 
+- **2026-06-10**: Added retrospective Implementation Results section (PUB-2026 finality remediation, Stage 0 task 0.2) -- recorded the 2026-02-23 calibration check (Benson -10.7%, Sioux -2.2%, Rolette -4.7% vs ~-23%/-25%/-21% estimates) with basis and caveats
 - **2026-02-18**: Initial version (ADR-045) -- PEP-anchored recalibration for reservation counties
 
 ## Related ADRs
