@@ -76,6 +76,21 @@ This **verifies the 2026-05-27 public baseline is the true config hybrid**
 rigor review's open question about hybrid provenance, and confirms today's
 regeneration restored the exact production input state.
 
+**F2 addendum — silent mortality-file regression.** The same 2026-06-01 sync
+event also *replaced* `data/processed/mortality/nd_adjusted_survival_projections.parquet`
+with a stale 21-year (2025–2045) copy from the other machine — a silent
+overwrite, not a loud deletion. Any rerun on that state completes without
+error but freezes mortality improvement after 2045 (first divergent
+population year 2047; −16,719 state total by 2055). The file was regenerated
+via `01c_compute_mortality_improvement.py` (2025–2055, 31 years). With the
+full regenerated pipeline state (01a + 01b + 01c), a reference engine rerun
+**reproduces the 2026-05-27 production baseline exactly** (state totals and
+Ward/GF trajectories to the person at 2025/2040/2050/2055) — the production
+run is reproducible and its input state is verified. QA follow-up: Gate 1
+gains an input-coverage check (mortality-improvement years must span the
+projection horizon; rates-metadata adjustments must match the production
+config).
+
 ### F3: Clean raw-base evidence matrix (2026-06-11 bundles)
 
 Five challenger variants vs the true champion, all on raw rates (walk-forward
@@ -116,14 +131,35 @@ Mechanism answers:
    cost elsewhere — consistent with ADR-061's flagged double-dampening risk and
    its below-threshold enrollment ratio (WSC 1.5% vs 2.5% threshold).
 
-### F4: Forward decomposition (PENDING — runs in progress 2026-06-11)
+### F4: Forward decomposition (completed 2026-06-11)
 
-One-factor forward runs (state totals 2040/2050/2055 and Ward/GF trajectories)
-for: CBO adjustment off; −5% fertility off; convergence medium hold 10→15 years
-(ADR-061 D3); GQ fraction 0.75; plus a reference rerun doubling as a
-reproducibility check of the 2026-05-27 production run. Results to be recorded
-here, including the share of Ward/GF's decline attributable to the disclosed
-CBO assumption vs rate calibration vs convergence schedule.
+One-factor forward runs against the verified production state (reference =
+2026-05-27 baseline, reproduced exactly). Effects of turning each factor
+off/on, state totals and county 2055 values:
+
+| One-factor variant | State 2050 | State 2055 | Ward 2055 | Grand Forks 2055 |
+|---|---|---|---|---|
+| Reference (production baseline) | 862,723 | 876,479 | 58,985 | 70,974 |
+| CBO migration adjustment off | +22,948 | +23,262 | +1,583 | +1,827 |
+| −5% fertility adjustment off | +13,032 | +16,231 | +1,100 | +1,585 |
+| ADR-061 D3 convergence hold on (10→15 yr) | +9,080 | +11,677 | +674 | +1,456 |
+| GQ correction fraction 0.75 | +3,048 | +3,619 | +304 | +271 |
+
+Attribution:
+
+- **Ward** declines 9,248 from 2025 to 2055. All four levers combined move it
+  only ≈ +3,660 — the majority of the decline survives every method variant.
+  Ward's trajectory is dominated by the observed 2020–2025 out-migration
+  signal in the rates, consistent with F3: signal, not artifact.
+- **Grand Forks** declines 3,527. The CBO assumption alone accounts for ≈52%
+  (+1,827) and the convergence schedule ≈41% (+1,456) — GF's decline is
+  substantially the disclosed federal-immigration assumption plus the
+  long-run convergence stance, not county rate calibration. The public
+  narrative should attribute it accordingly.
+- **State level**: the CBO adjustment is the dominant conservative lever
+  (−23k at 2050), fertility −13k, D3 convergence −9k, GQ fraction −3k. These
+  magnitudes feed the ADR-065 defensibility memo (stacked-conservatism
+  stance) and the ADR-061 D3 disposition.
 
 ## Decision
 
