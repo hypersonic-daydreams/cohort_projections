@@ -130,6 +130,11 @@ class CohortComponentProjection:
         # Initialize results storage
         self.projection_results: pd.DataFrame = pd.DataFrame()
         self.annual_summaries: list[dict[str, Any]] = []
+        # Components of change captured per projection step (PUB-2026 Stage 3.1).
+        # Populated additively from already-computed intermediate frames; does
+        # not affect projected population values.
+        self.annual_components: list[dict[str, Any]] = []
+        self._last_year_components: dict[str, Any] = {}
 
         logger.info("Cohort Component Projection initialized successfully")
 
@@ -345,6 +350,33 @@ class CohortComponentProjection:
 
         logger.info(f"Year {year + 1}: Total population = {total_pop:,.0f}")
 
+        # ------------------------------------------------------------------
+        # Capture components of change (PUB-2026 Stage 3.1 / ADR-067).
+        #
+        # Read-only over frames already computed above; this block performs no
+        # mutation of population values, so projected outputs are unchanged.
+        # The cohort-component identity holds exactly here:
+        #   pop_end = pop_start + births - deaths + net_migration
+        # up to the (normally zero) negative-cohort flooring applied above.
+        # Components are on the household population (GQ is added back as a
+        # constant downstream and contributes no births/deaths/migration).
+        # ------------------------------------------------------------------
+        pop_start = float(population["population"].sum())
+        survived_total = float(survived_population["population"].sum())
+        migrated_total = float(population_with_migration["population"].sum())
+        births_total = float(births["population"].sum()) if not births.empty else 0.0
+        deaths_total = pop_start - survived_total
+        net_migration_total = migrated_total - survived_total
+        self._last_year_components = {
+            "year": year + 1,
+            "births": births_total,
+            "deaths": deaths_total,
+            "natural_increase": births_total - deaths_total,
+            "net_migration": net_migration_total,
+            "population_start": pop_start,
+            "population_end": float(combined_population["population"].sum()),
+        }
+
         return combined_population
 
     def run_projection(
@@ -397,6 +429,10 @@ class CohortComponentProjection:
                 # Create annual summary
                 summary = self._create_annual_summary(current_population, year + 1)
                 self.annual_summaries.append(summary)
+
+                # Record components of change captured during the step above
+                if self._last_year_components.get("year") == year + 1:
+                    self.annual_components.append(self._last_year_components)
 
             except Exception as e:
                 logger.error(f"Projection failed at year {year}: {str(e)}")
@@ -473,6 +509,24 @@ class CohortComponentProjection:
             return pd.DataFrame()
 
         return pd.DataFrame(self.annual_summaries)
+
+    def get_annual_components(self) -> pd.DataFrame:
+        """
+        Get annual components of change (births, deaths, net migration).
+
+        Returns one row per projected year with the exact components applied by
+        the engine during that step, on the household population. Columns:
+        [year, births, deaths, natural_increase, net_migration,
+        population_start, population_end].
+
+        Returns:
+            DataFrame with annual components, or empty if no projection has run.
+        """
+        if not self.annual_components:
+            logger.warning("No annual components available")
+            return pd.DataFrame()
+
+        return pd.DataFrame(self.annual_components)
 
     def get_population_by_year(self, year: int) -> pd.DataFrame:
         """

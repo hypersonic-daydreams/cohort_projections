@@ -188,6 +188,13 @@ def run_single_geography_projection(
         # Get summary
         summary = projection_engine.get_projection_summary()
 
+        # Get components of change (PUB-2026 Stage 3.1); tag with geography
+        components = projection_engine.get_annual_components()
+        if not components.empty:
+            components.insert(0, "fips", fips)
+            components.insert(1, "level", level)
+            components.insert(2, "scenario", scenario_name)
+
         # Calculate summary statistics
         final_year = projection_results["year"].max()
         final_pop = projection_results[projection_results["year"] == final_year]["population"].sum()
@@ -243,12 +250,14 @@ def run_single_geography_projection(
                 metadata=metadata,
                 output_dir=output_dir,
                 config=config,
+                components=components,
             )
 
         return {
             "geography": {"fips": fips, "level": level, "name": geo_name},
             "projection": projection_results,
             "summary": summary,
+            "components": components,
             "metadata": metadata,
             "processing_time": processing_time,
         }
@@ -789,6 +798,7 @@ def _save_projection_results(
     metadata: dict,
     output_dir: Path | None,
     config: dict,
+    components: pd.DataFrame | None = None,
 ):
     """Save projection results to files."""
     # Set output directory
@@ -822,6 +832,11 @@ def _save_projection_results(
     metadata_file = output_dir / f"{base_filename}_metadata.json"
     with open(metadata_file, "w") as f:
         json.dump(metadata, f, indent=2, default=str)
+
+    # Save components of change (parquet) — PUB-2026 Stage 3.1
+    if components is not None and not components.empty:
+        components_file = output_dir / f"{base_filename}_components.parquet"
+        components.to_parquet(components_file, compression=compression, index=False)
 
 
 if __name__ == "__main__":

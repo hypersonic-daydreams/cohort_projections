@@ -919,5 +919,101 @@ class TestCalculateDependencyRatio:
         assert ratio == 0.0
 
 
+class TestComponentsOfChange(TestCohortComponentProjectionFixtures):
+    """Tests for annual components-of-change capture (PUB-2026 Stage 3.1)."""
+
+    @pytest.fixture
+    def projection(
+        self,
+        sample_base_population,
+        sample_fertility_rates,
+        sample_survival_rates,
+        sample_migration_rates,
+        sample_config,
+    ):
+        return CohortComponentProjection(
+            base_population=sample_base_population,
+            fertility_rates=sample_fertility_rates,
+            survival_rates=sample_survival_rates,
+            migration_rates=sample_migration_rates,
+            config=sample_config,
+        )
+
+    def test_components_empty_before_run(self, projection):
+        """No components are available before a projection has run."""
+        assert projection.get_annual_components().empty
+
+    def test_components_available_after_run(self, projection):
+        """run_projection populates one component row per projected year."""
+        projection.run_projection(start_year=2025, end_year=2030)
+        components = projection.get_annual_components()
+
+        assert not components.empty
+        # One row per projected year (2026..2030 = 5 transitions from 2025)
+        assert list(components["year"]) == [2026, 2027, 2028, 2029, 2030]
+        for col in [
+            "births",
+            "deaths",
+            "natural_increase",
+            "net_migration",
+            "population_start",
+            "population_end",
+        ]:
+            assert col in components.columns
+
+    def test_components_reconcile_to_population_identity(self, projection):
+        """pop_end == pop_start + births - deaths + net_migration each year."""
+        projection.run_projection(start_year=2025, end_year=2032)
+        components = projection.get_annual_components()
+
+        for _, row in components.iterrows():
+            implied_end = (
+                row["population_start"]
+                + row["births"]
+                - row["deaths"]
+                + row["net_migration"]
+            )
+            # Identity is exact up to negative-cohort flooring (zero here).
+            assert abs(implied_end - row["population_end"]) < 1e-6
+
+    def test_components_chain_continuity(self, projection):
+        """Each year's population_end equals the next year's population_start."""
+        projection.run_projection(start_year=2025, end_year=2032)
+        components = projection.get_annual_components().sort_values("year").reset_index(drop=True)
+
+        for i in range(len(components) - 1):
+            assert abs(
+                components.loc[i, "population_end"]
+                - components.loc[i + 1, "population_start"]
+            ) < 1e-6
+
+    def test_natural_increase_equals_births_minus_deaths(self, projection):
+        """natural_increase column is exactly births - deaths."""
+        projection.run_projection(start_year=2025, end_year=2030)
+        components = projection.get_annual_components()
+        for _, row in components.iterrows():
+            assert abs(row["natural_increase"] - (row["births"] - row["deaths"])) < 1e-9
+
+    def test_components_match_saved_population_totals(self, projection):
+        """Captured population_end totals match the engine's projected totals.
+
+        This proves the component capture reads the same population values the
+        engine produces — i.e. instrumentation does not diverge from output.
+        """
+        results = projection.run_projection(start_year=2025, end_year=2030)
+        components = projection.get_annual_components()
+
+        yearly_totals = results.groupby("year")["population"].sum()
+        for _, row in components.iterrows():
+            assert abs(row["population_end"] - yearly_totals[int(row["year"])]) < 1e-6
+
+    def test_births_and_deaths_nonnegative(self, projection):
+        """Births and deaths are physically non-negative."""
+        projection.run_projection(start_year=2025, end_year=2030)
+        components = projection.get_annual_components()
+        assert (components["births"] >= 0).all()
+        assert (components["deaths"] >= 0).all()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -1167,6 +1167,11 @@ def aggregate_county_results_to_state(
     # Generate summary CSV (same format as engine outputs)
     _write_state_summary_csv(state_df, state_dir, state_fips, base_year, end_year, scenario)
 
+    # Aggregate components of change bottom-up (PUB-2026 Stage 3.1, ADR-054)
+    _aggregate_county_components_to_state(
+        county_dir, state_dir, state_fips, base_year, end_year, scenario
+    )
+
     # Generate metadata JSON
     base_pop = float(state_df.loc[state_df["year"] == base_year, "population"].sum())
     final_pop = float(state_df.loc[state_df["year"] == end_year, "population"].sum())
@@ -1231,6 +1236,58 @@ def aggregate_county_results_to_state(
     )
 
     return True
+
+
+def _aggregate_county_components_to_state(
+    county_dir: Path,
+    state_dir: Path,
+    state_fips: str,
+    base_year: int,
+    end_year: int,
+    scenario: str,
+) -> None:
+    """
+    Derive state-level components of change by summing county components (ADR-054).
+
+    Reads ``nd_county_*_components.parquet`` files written by the engine
+    (PUB-2026 Stage 3.1), sums births/deaths/natural_increase/net_migration by
+    year, and writes ``nd_state_{fips}_..._components.parquet`` plus a CSV.
+    No-op (with a log line) if no county component files are present, so older
+    runs without instrumentation do not fail.
+    """
+    component_files = sorted(county_dir.glob("nd_county_*_components.parquet"))
+    if not component_files:
+        logger.info("No county component files found; skipping state component aggregation")
+        return
+
+    frames = []
+    for pq_file in component_files:
+        try:
+            frames.append(pd.read_parquet(pq_file))
+        except Exception as e:  # noqa: BLE001 - tolerate a single bad file
+            logger.warning(f"Failed to read components {pq_file.name}: {e}")
+
+    if not frames:
+        logger.warning("No county component files could be read; skipping state components")
+        return
+
+    sum_cols = ["births", "deaths", "natural_increase", "net_migration"]
+    all_components = pd.concat(frames, ignore_index=True)
+    present_cols = [c for c in sum_cols if c in all_components.columns]
+    state_components = (
+        all_components.groupby("year", as_index=False)[present_cols].sum().sort_values("year")
+    )
+    state_components.insert(0, "scenario", scenario)
+    state_components.insert(0, "level", "state")
+    state_components.insert(0, "fips", state_fips)
+
+    base = f"nd_state_{state_fips}_projection_{base_year}_{end_year}_{scenario}_components"
+    state_components.to_parquet(state_dir / f"{base}.parquet", index=False)
+    state_components.to_csv(state_dir / f"{base}.csv", index=False)
+    logger.info(
+        f"ADR-054 components aggregation: {len(component_files)} county component files -> "
+        f"state components ({state_components['year'].min()}-{state_components['year'].max()})"
+    )
 
 
 def _write_state_summary_csv(
