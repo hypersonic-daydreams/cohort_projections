@@ -47,5 +47,7 @@ resolved_config:
 notes:
   - Tier-3 approved 2026-06-11 (PUB-2026 Decision 2). Differs from 2026-05-27
     production by Williams college-list removal and GQ fraction 1.0 -> 0.75.
-  - Forward effect vs 2026-05-27 baseline approx +3.0k state @2050 (GQ component);
-    Williams component quantified at the Stage-3 rerun.
+  - Forward effect vs 2026-05-27 baseline (measured at the 2026-06-13 locked rerun):
+    +10,007 state @2050 / +12,538 @2055. Attribution @2055 Williams removal +8,978
+    (dominant; reverts to champion's unsmoothed Williams), GQ 0.75 approx +3,600.
+    Locked state totals 872,730 (2050) / 889,017 (2055). See final-run-metadata.md.
