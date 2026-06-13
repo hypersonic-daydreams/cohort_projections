@@ -10,6 +10,7 @@ Status: draft checklist for final-number and marketing handoff.
 - [ ] ADR-065 baseline assumptions are resolved and recorded.
 - [ ] CF-001 decision is resolved and recorded.
 - [ ] If CF-001 is promoted, production projections are rerun after promotion.
+- [ ] Input-coverage verification (ADR-067 F2): the mortality-improvement file (`data/processed/mortality/nd_adjusted_survival_projections.parquet`) spans the full projection horizon (2025-2055, 31 years); the residual-migration metadata (`residual_migration_metadata.json`) records adjustments matching the locked production config (11 college counties, GQ fraction 0.75); convergence rates are present for all 53 counties. This guards against the 2026-06-01 silent bisync stale-replacement failure mode.
 - [ ] Final production run metadata is recorded.
 - [ ] Final data source notes point to the exact run used for public outputs.
 - [ ] Current March 2026 draft exports are not treated as final numbers.
