@@ -7,22 +7,22 @@ Status: draft checklist for final-number and marketing handoff.
 
 ## Gate 1: Method And Data Lock
 
-- [ ] ADR-065 baseline assumptions are resolved and recorded.
-- [ ] CF-001 decision is resolved and recorded.
-- [ ] If CF-001 is promoted, production projections are rerun after promotion.
-- [ ] Input-coverage verification (ADR-067 F2): the mortality-improvement file (`data/processed/mortality/nd_adjusted_survival_projections.parquet`) spans the full projection horizon (2025-2055, 31 years); the residual-migration metadata (`residual_migration_metadata.json`) records adjustments matching the locked production config (11 college counties, GQ fraction 0.75); convergence rates are present for all 53 counties. This guards against the 2026-06-01 silent bisync stale-replacement failure mode.
-- [ ] Final production run metadata is recorded.
-- [ ] Final data source notes point to the exact run used for public outputs.
-- [ ] Current March 2026 draft exports are not treated as final numbers.
+- [x] ADR-065 baseline assumptions are resolved and recorded. → [defensibility memo](../../reviews/2026-06-12-adr-065-defensibility-memo.md) (both CBO adjustments affirmed, 2026-06-12).
+- [x] CF-001 decision is resolved and recorded. → ADR-061 Accepted-as-modified; decision record `../../reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md` (Approved).
+- [x] If CF-001 is promoted, production projections are rerun after promotion. → locked rerun 2026-06-13.
+- [x] Input-coverage verification (ADR-067 F2): mortality file spans 2025-2055 (31 yrs) ✓; residual-migration metadata = 11 college counties + GQ 0.75 ✓; convergence rates present for all 53 counties ✓ (verified 2026-06-13). Guards against the 2026-06-01 silent bisync stale-replacement failure mode.
+- [x] Final production run metadata is recorded. → [final-run-metadata.md](final-run-metadata.md).
+- [ ] Final data source notes point to the exact run used for public outputs. (Stage 5 — at packaging.)
+- [x] Current March 2026 draft exports are not treated as final numbers. → superseded by the 2026-06-13 locked run.
 
 ## Gate 1b: Demographic Plausibility
 
-- [ ] A dated sanity-check review of the final production run is completed and linked.
-- [ ] The 2025-2030 projected trajectory is reconciled against Census PEP Vintage 2025 observed components, including an explicit explanation of the 2025-2028 dip as the intended CBO front-loaded migration adjustment.
-- [ ] Projected 2025-2030 components of change (births, deaths, net migration) are cross-checked against PEP observed components.
-- [ ] State and large-county age structures and sex ratios at 2035/2045/2055 are reviewed for plausibility.
-- [ ] The largest county-level divergences from the 2024 SDC series (Ward, Grand Forks) have a written disposition (corrective ADR or accepted-divergence rationale).
-- [ ] No county exhibits implausible terminal dynamics (e.g., population collapse to near zero, runaway growth, or sex-ratio drift) without documented explanation.
+- [x] A dated sanity-check review of the final production run is completed and linked. → [2026-06-13-locked-run-sanity-check.md](../../reviews/2026-06-13-locked-run-sanity-check.md).
+- [x] The 2025-2030 projected trajectory is reconciled against Census PEP Vintage 2025 observed components, including an explicit explanation of the 2025-2028 dip as the intended CBO front-loaded migration adjustment. → sanity check §2; cbo_off run shows no dip.
+- [x] Projected 2025-2030 components of change (births, deaths, net migration) are cross-checked against PEP observed components. → sanity check §3 (note: deaths are household-basis; ~2,000/yr GQ gap explained).
+- [x] State and large-county age structures and sex ratios at 2035/2045/2055 are reviewed for plausibility. → sanity check §4 (state + Cass/Burleigh/Grand Forks/Ward/Williams).
+- [x] The largest county-level divergences from the 2024 SDC series (Ward, Grand Forks) have a written disposition (corrective ADR or accepted-divergence rationale). → ADR-067 (corrective investigation) + [divergent-counties framing](../../reviews/2026-06-13-divergent-counties-methods-and-framing.md) (incl. Williams); user-signed-off 2026-06-13.
+- [x] No county exhibits implausible terminal dynamics (e.g., population collapse to near zero, runaway growth, or sex-ratio drift) without documented explanation. → sanity check §5 (53-county scan; oil-county growth is conservative-migration + young-age natural increase).
 
 ## Gate 2: Public Download QA
 

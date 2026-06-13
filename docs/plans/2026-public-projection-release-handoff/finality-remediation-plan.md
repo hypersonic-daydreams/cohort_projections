@@ -42,9 +42,9 @@ Ordering principles: (1) nothing numbers-dependent before the config lock + reru
 
 ## Stage 4 — Validate the final run (~1 day)
 
-- [ ] **4.1 (B3a, G3b)** Dated sanity review of the final run in `docs/reviews/`: 2025–2030 trajectory vs PEP Vintage 2025 observed components with explicit reconciliation of the early dip to the CBO ramp (f(2025)=0.20); projected 2025–2030 components vs PEP observed; age-structure/sex-ratio plausibility; 53-county scan; scenario-independence/aggregation checks.
-- [ ] **4.2 (W)** **USER DECISION (choice of rationale):** Ward + Grand Forks written disposition — corrective ADR (e.g., evaluate ADR-055 Phase 2 × college-smoothing double-dampening) **or** accepted-divergence rationale with public-facing narrative (MAFB/MISU anchors, 2020–2025 observed decline). Do not rely on the inactive high_growth floor.
-- [ ] **4.3 (B2)** Refresh `docs/methodology_comparison_sdc_2024.md` against final numbers: real SDC gaps, trajectory-shape change, honest framing of state-level long-horizon APE weakness vs county/bias/recent-origin strengths; finalize the methodology.md Limitations numbers (G6 completion).
+- [x] **4.1 (B3a, G3b)** **Done 2026-06-13** — `docs/reviews/2026-06-13-locked-run-sanity-check.md`. PASS: aggregation exact (state=county sum, 0.0000); components reconcile to population change exactly (GQ-constant); dip reconciled to CBO ramp; components vs PEP (deaths household-basis, GQ gap explained); state + large-county age/sex structure plausible; 53-county scan coherent (−36% to +76%, oil-county growth conservative-migration + young-age). One Stage-5 action: label deaths in any public components table.
+- [x] **4.2 (W)** **USER-SIGNED-OFF 2026-06-13** — accepted-divergence rationale via the corrective investigation ADR-067 + `docs/reviews/2026-06-13-divergent-counties-methods-and-framing.md`. Covers Williams (+52%, backtest-justified college-smoothing removal), Ward (−13%, observed 2020–2025 out-migration), Grand Forks (−4%, ≈52% the disclosed CBO assumption). Methods + analysis + public framing captured for Stage-5 copy. Does not rely on the inactive high_growth floor.
+- [ ] **4.3 (B2)** Refresh `docs/methodology_comparison_sdc_2024.md` against final numbers (now +11.2% @2055, state 889,017): real SDC gaps, trajectory-shape change (early dip), honest framing of state-level long-horizon APE weakness vs county/bias/recent-origin strengths; finalize the methodology.md Limitations numbers (G6 completion).
 
 ## Stage 5 — Public artifacts and QA execution (~1–2 days)
 
