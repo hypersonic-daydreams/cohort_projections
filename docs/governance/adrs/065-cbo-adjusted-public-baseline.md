@@ -59,7 +59,7 @@ The baseline now uses:
   - 2028: `0.78`
   - 2029: `0.91`
   - 2030+: `1.00`
-  - `reference_intl_migration: 10051`
+  - `reference_intl_migration: 3350.33`  (ADR-068: corrected from the 3-year sum 10051 to the PEP 2023-2025 annual average)
   - `reference_population: 799358`
 
 **Rationale**:

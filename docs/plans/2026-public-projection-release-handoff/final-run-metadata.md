@@ -3,6 +3,22 @@
 Records the locked-config production run used for the public release (QA Gate 1:
 "Final production run metadata is recorded" / "Final data source notes point to the exact run").
 
+> **⚠️ SUPERSEDED BY THE ADR-068 CORRECTED RUN (2026-06-15).** The 2026-06-13 locked run recorded below contained two confirmed errors (CBO migration numerator = 3-year sum; open-ended 90+ survival). The corrected production run replaces it:
+>
+> | Field | Corrected value |
+> |---|---|
+> | Run date | 2026-06-15 |
+> | Decision record | ADR-068 |
+> | `config/projection_config.yaml` sha256 (16) | `cca42fb42be76680` (was `bf897444b5a4fec7`) |
+> | Key changes | `reference_intl_migration: 10051 → 3350.33`; open-ended 90+ survival corrected (`apply_open_ended_survival_correction` in `mortality_improvement.py`) |
+> | Pipeline stages rerun | `01c` (survival) → `02 --counties --state` (01a/01b migration prep unaffected) |
+> | State 2025 | 799,358 |
+> | State trough | 797,298 (2027, −0.26%; was 787,382 / 2028 / −1.50%) |
+> | State 2055 | 886,585 (+10.91%; was 889,017 / +11.22%) |
+> | 90+ population @2055 | 9,971 (was ~13,707) |
+>
+> The trajectory table below is the prior (superseded) locked run, retained for the historical record. Public artifacts (workbook/CSV/PDF/marketing/pyramid) and the release QA gates are re-executed against the corrected run as part of publication.
+
 ## Provenance
 
 | Field | Value |

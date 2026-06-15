@@ -9,6 +9,8 @@ Accepted
 ## Last Reviewed
 2026-02-23
 
+> **Corrected by ADR-068 (2026-06-15):** the `reference_intl_migration` value used below (10,051) is the 3-year **sum** of PEP 2023--2025 international migration (3,158 + 4,083 + 2,810), mislabeled "annual average" and applied per year, which over-stated the per-year suppression ~3×. The corrected value is the annual **average 3,350.33** (worked figures become `annual_reduction = 3,350.33 × 0.80 = 2,680`, `reduction_rate ≈ 0.00335`). The worked examples below are retained at the original (erroneous) value for the historical record; see ADR-068 for the corrected formula, figures, and the production rerun.
+
 ## Scope
 Replace multiplicative CBO migration factor with additive adjustment for the restricted growth scenario to fix scenario ordering violations
 

@@ -462,7 +462,7 @@ $$
 S^{\text{ND}}(a, s, r) = 1 - q_x^{\text{ND}}(a, s, r)
 $$
 
-This method preserves the race-specific mortality differentials from the national data (e.g., the higher mortality among Black and AIAN populations relative to White and Asian populations) while shifting all rates to match North Dakota's overall mortality level.
+This method preserves the race-specific mortality differentials from the national data (e.g., the higher mortality among Black and AIAN populations relative to White and Asian populations) while shifting all rates to match North Dakota's overall mortality level. **Production caveat (ADR-068 D3):** this race-specific construction is the *static base*. The **operative** survival path used in the production run is the time-varying Census NP2023-adjusted table, which carries no race dimension and is applied race-flat; see §10.7. Race-specific operative survival is scheduled for the next vintage.
 
 Empirically, North Dakota has slightly lower mortality than the national average. The 2022 NVSR 74-12 state tables report ND life expectancy at birth of 77.93 years versus 77.46 nationally, a difference of +0.47 years. The mean ND/national $q_x$ ratio is approximately 0.937 for both sexes, indicating that ND death rates are roughly 6 percent below national at most ages. The ratio is dominated by the White majority (approximately 82 percent of the ND population), so the aggregate adjustment primarily captures White mortality patterns. A future enhancement would compute an AIAN-specific ratio from CDC WONDER death counts to better reflect the substantial AIAN mortality disadvantage in North Dakota.
 
@@ -881,7 +881,7 @@ reduction. ADR-050 replaced that approach with an additive reduction.
 
 The corrected approach uses an **additive reduction**. Two state-level reference values anchor the computation:
 
-- $M_{\text{intl}} = 10{,}051$: average annual international net migration to North Dakota (PEP 2023--2025 average)
+- $M_{\text{intl}} = 3{,}350$: average annual international net migration to North Dakota (mean of PEP 2023--2025: 3,158 / 4,083 / 2,810). ADR-068 corrected this from the 3-year **sum** (10,051) that had been mislabeled "annual average" and applied per year.
 - $P_{\text{ref}} = 799{,}358$: state population at the base year (2025)
 
 For each projection year $t$, the per-capita rate decrement is:
@@ -903,7 +903,7 @@ a county with population $P_c$ has approximately $\Delta r(t) \times P_c$ fewer
 net migrants in that year, which is the county's proportional share of the
 state-level immigration reduction.
 
-**Example.** In 2025, $f(t) = 0.20$, so $\Delta r = 10{,}051 \times 0.80 / 799{,}358 \approx 0.01006$ per capita. A county with 50,000 residents has approximately 503 fewer net migrants than the unadjusted convergence path in that year.
+**Example.** In 2025, $f(t) = 0.20$, so $\Delta r = 3{,}350 \times 0.80 / 799{,}358 \approx 0.00335$ per capita. A county with 50,000 residents has approximately 168 fewer net migrants than the unadjusted convergence path in that year.
 
 ### 6.2 Internal Sensitivity Scenarios
 
@@ -1308,7 +1308,7 @@ ADR-061 was dispositioned on 2026-06-11 (CF-001 Tier-3 decision) and is now **Ac
 
 ## 10. Limitations
 
-This section consolidates the known limitations of the production method. All quantified magnitudes below are finalized against the 2026-06-13 locked-config production run (`m2026r1` / `cfg-20260611-production-lock`, commit `12fa6f9`; PUB-2026 finality remediation Stage 4). Cross-references point to the sections and ADRs where each limitation is documented in detail.
+This section consolidates the known limitations of the production method. The production run is the **2026-06-15 corrected run (ADR-068)**, which superseded the 2026-06-13 locked run by fixing two confirmed errors: the CBO migration numerator (3-year sum → annual average; §6.1, §10.4) and the open-ended 90+ survival (§10.7). Quantified magnitudes carried over from the prior locked run are flagged where they are being refreshed against the corrected numbers. Cross-references point to the sections and ADRs where each limitation is documented in detail.
 
 ### 10.1 Group Quarters Assumptions (ADR-055, ADR-061)
 
@@ -1324,7 +1324,7 @@ Walk-forward validation and sensitivity analysis documented in ADR-061 originall
 
 ### 10.4 CBO Adjustments Are Forward-Looking (ADR-065)
 
-The public baseline's $-5\%$ fertility adjustment and additive migration reduction encode CBO's January 2026 current-policy outlook (Section 6.1; ADR-065). These are forward-looking policy assumptions: they cannot be validated by backtesting against the 2000-2024 historical record, and the existing walk-forward benchmark evidence evaluates the unadjusted historical method (no validation artifact postdates ADR-065/066; see `docs/reviews/2026-06-10-pub-2026-finality-rigor-review.md`). The one-factor sensitivity decomposition (`finality-remediation-plan.md` Stage 1; ADR-067 F4 and the `docs/reviews/2026-06-12-adr-065-defensibility-memo.md`) was completed against the locked run: at 2050 the CBO additive migration adjustment accounts for ≈ -23,000 and the -5% fertility adjustment for ≈ -13,000 relative to an unadjusted baseline. The CBO migration adjustment is also the sole cause of the near-term trajectory dip: the locked baseline declines from 799,358 (2025) to a trough of 787,382 (2028) before recovering to 889,017 (2055), and with the CBO migration adjustment removed the trajectory rises monotonically with no dip. The dip is therefore an intended, disclosed feature of the current-policy assumption, not a model defect.
+The public baseline's $-5\%$ fertility adjustment and additive migration reduction encode CBO's January 2026 current-policy outlook (Section 6.1; ADR-065). These are forward-looking policy assumptions: they cannot be validated by backtesting against the 2000-2024 historical record, and the existing walk-forward benchmark evidence evaluates the unadjusted historical method (no validation artifact postdates ADR-065/066; see `docs/reviews/2026-06-10-pub-2026-finality-rigor-review.md`). **ADR-068 (2026-06-15) corrected the migration reduction's reference numerator** from a 3-year sum (10,051) to the true annual average (3,350); the prior value had ~3× over-stated the per-year suppression and over-deepened the near-term dip. Under the corrected run the baseline declines only slightly from 799,358 (2025) to a shallow trough of 797,298 (2027, $-0.26\%$, was $-1.50\%$ at 2028) before recovering to 886,585 (2055, $+10.9\%$, was 889,017); with the CBO migration adjustment removed the trajectory rises monotonically with no dip. The near-term dip is therefore a disclosed feature of the current-policy assumption, now at its correct annual-average magnitude (roughly one-third of the prior estimate; the earlier one-factor decomposition's ≈ -23,000 @2050 migration figure was computed at the over-stated numerator and is superseded). The $-5\%$ fertility adjustment (≈ -13,000 state @2050) is unchanged by ADR-068.
 
 ### 10.5 College-County Smoothing Assumptions
 
@@ -1332,4 +1332,12 @@ College-age smoothing blends 11 counties' rates 50/50 toward the statewide mean 
 
 ### 10.6 Ward and Grand Forks Divergence from SDC 2024
 
-The locked baseline diverges from the SDC 2024 reference for several counties. Final magnitudes (locked run, 2026-06-13): Ward County -13.1% over the horizon (68,233 → 59,288 by 2055; SDC 2024 projected roughly +23%), and Grand Forks County -4.4% (74,501 → 71,245; SDC projected modest growth). These are **dispositioned as accepted divergences**, not method defects: ADR-067 (corrective investigation) and `docs/reviews/2026-06-13-divergent-counties-methods-and-framing.md` establish that Ward's decline is observed-data-driven (net out-migration every year 2020-2025; the majority survives every method variant) and Grand Forks' shallow decline is ≈ 52% the disclosed CBO international-migration assumption plus ≈ 41% the long-run convergence stance. The ADR-052 migration floor applies solely to the inactive `high_growth` sensitivity (Section 5k) and is not part of the public baseline. A third divergence, Williams County (+51.5%, 41,767 → 63,295), is the result of ADR-067 removing it from college-age smoothing (its growth is conservative on migration; see §10.5 and the framing reference). User sign-off on all three dispositions was recorded 2026-06-13.
+The locked baseline diverges from the SDC 2024 reference for several counties. Final magnitudes (locked run, 2026-06-13): Ward County -13.1% over the horizon (68,233 → 59,288 by 2055; SDC 2024 projected roughly +23%), and Grand Forks County -4.4% (74,501 → 71,245; SDC projected modest growth). These are **dispositioned as accepted divergences**, not method defects: ADR-067 (corrective investigation) and `docs/reviews/2026-06-13-divergent-counties-methods-and-framing.md` establish that Ward's decline is observed-data-driven (net out-migration every year 2020-2025; the majority survives every method variant) and Grand Forks' shallow decline is ≈ 52% the disclosed CBO international-migration assumption plus ≈ 41% the long-run convergence stance. The ADR-052 migration floor applies solely to the inactive `high_growth` sensitivity (Section 5k) and is not part of the public baseline. A third divergence, Williams County (+51.5%, 41,767 → 63,295), is the result of ADR-067 removing it from college-age smoothing (its growth is conservative on migration; see §10.5 and the framing reference). User sign-off on all three dispositions was recorded 2026-06-13. **ADR-068 update (2026-06-15):** under the corrected run the migration numerator is one-third of the prior value (less near-term suppression) while the 90+ survival correction raises old-age deaths; the net shifts these magnitudes — Ward and Grand Forks decline somewhat deeper, Williams ≈ unchanged near +51%. The county figures above are from the prior locked run and are refreshed with corrected GQ-inclusive totals in the public artifacts; the accepted-divergence dispositions stand.
+
+### 10.7 Open-Ended 90+ Survival and Race-Flat Mortality (ADR-068)
+
+Two mortality items were corrected/disclosed by ADR-068 (2026-06-15):
+
+**Open-ended 90+ survival (corrected).** The operative survival build expanded the ND CDC 85+ group rate flat across ages 85-100, so the engine held the open-ended 90+ group at a single-year-style rate (~0.885 Male / 0.914 Female) every year -- too high for an open group that contains the 95- and 100-year-olds. This is corrected to the demographically proper open-interval survivorship ratio $T_{91}/T_{90}$ from the CDC 2023 life table (~0.778 Male / 0.806 Female, improving over the horizon), reducing the overstated oldest-old by ~6,400 persons at 2055 (90+ population 13,707 → 9,971). See `core/mortality.py` (open-ended group handling) and `apply_open_ended_survival_correction` in `data/process/mortality_improvement.py`.
+
+**Race-flat production mortality (disclosed limitation, ADR-068 D3).** Although the survival method is *designed* to be race-specific (Section 4.2), the **operative** production survival -- the time-varying Census NP2023-adjusted table that takes precedence at runtime -- carries no race dimension and is applied identically across all six race groups; the race-specific static base (Section 4.2) is loaded but superseded at runtime. The state-total effect is modest (the dominant white-NH group ≈ the all-race total), but it over-states AIAN survival in the reservation counties (Benson, Sioux, Rolette). For the 2026 vintage this is an accepted, disclosed limitation; rebuilding the survival pipeline to carry race through the NP2023 path is scheduled for the next vintage.
