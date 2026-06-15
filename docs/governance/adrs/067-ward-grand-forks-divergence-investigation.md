@@ -54,11 +54,40 @@ those same adjustments into that file since the ADR-049 era. Consequences:
   therefore substantially a measurement artifact of the harness, not a property
   of the m2026 method.
 
-Harness remediation (raw artifact contract for walk-forward) is tracked as a
-follow-up ADR; interim clean evidence was produced by temporarily rebuilding the
-canonical file with adjustments disabled (GQ correction and ADR-045 reservation
-recalibration retained as data corrections), running the matrix below, then
+Harness remediation — **implemented 2026-06-13** (PUB-2026 finality remediation, F1
+harness fix). Interim clean evidence (the F3 matrix below) was produced by temporarily
+rebuilding the canonical file with adjustments disabled (GQ correction and ADR-045
+reservation recalibration retained as data corrections), running the matrix, then
 restoring the production build.
+
+The permanent fix removes the file dependency entirely rather than persisting a raw
+artifact. `load_migration_rates_raw()` now **recomputes** the raw base in-process from
+the harness's own population snapshots and survival source, at the default GQ fraction —
+it delegates to the existing `recompute_migration_with_gq_override(snapshots,
+_DEFAULT_GQ_CORRECTION_FRACTION)`. Rationale for recompute-not-file: the production
+pipeline (`01a`) and the harness use **different** survival sources
+(`survival_rates_sdc_2024_by_age_group.csv` vs `…_full.csv` collapsed) and **different**
+population loaders (`assemble_period_populations` vs `load_population_snapshot`), so any
+01a-emitted file would not match the harness's own forward-projection inputs and would
+re-introduce a (subtler) default-vs-override inconsistency. Recompute guarantees the
+default rate base is byte-identical to the GQ-override path (verified: max abs diff 0.0)
+and consistent with the harness's projection survival source. Verified: the recomputed
+base differs from the adjustment-baked production file in 8,543/9,540 rows (e.g. Cass
+20–24 raw +0.116/+0.125 vs baked +0.028/+0.015), confirming the adjustments are no longer
+double-applied. The production `residual_migration_rates.parquet` is byte-unchanged
+(sha256 `11686d1b…`); the engine change in `residual_migration.py` is documentation-only.
+Regression tests added in `tests/test_analysis/test_upstream_param_injection.py`
+(`TestLoadMigrationRatesRaw`): recompute-at-default-fraction, snapshot-autoload, and a
+guard that the loader never reads a rates parquet.
+
+**Known limitation (documented, not fixed):** the harness has no per-method ADR-045
+reservation-recalibration knob, so the recomputed raw base — like the pre-existing
+GQ-override path — omits PEP recalibration for the three reservation counties (Benson,
+Sioux, Rolette). The one-off F3 matrix retained PEP as a data correction; the permanent
+recompute does not. This affects only those three small counties (never decision
+sentinels — the disposition sentinels were Grand Forks, Cass, Ward, Williams), so it does
+not alter any ADR-061 conclusion. Adding a PEP data-correction step to the recompute is a
+possible future harness enhancement.
 
 ### F2: Pipeline data-loss event (~2026-06-01) and production provenance
 
@@ -185,9 +214,13 @@ Attribution:
    for Grand Forks; GQ anchors (Minot AFB, MISU, UND) held constant by design;
    and this ADR's completed mechanism checks. Final wording against final-run
    numbers in the Stage-4 sanity review (Gate 1b).
-4. **Harness contract fix** (raw rates artifact for walk-forward) and a QA
-   input-coverage gate are follow-up actions from F1/F2 (tracked in the
-   remediation plan; ADR to follow with the implementation).
+4. **Harness contract fix — implemented 2026-06-13.** `load_migration_rates_raw()`
+   now recomputes the raw base in-process (delegating to
+   `recompute_migration_with_gq_override` at the default GQ fraction) instead of reading
+   the adjustment-baked production file; default-vs-override consistency is now exact
+   (max abs diff 0.0) and regression-tested. See the F1 section for the recompute-not-file
+   rationale and the documented reservation-county (PEP) limitation. The QA input-coverage
+   gate was added to `release-qa-checklist.md` (Gate 1).
 
 ## Consequences
 
@@ -203,8 +236,10 @@ Attribution:
   (directionally informative at best); prior pending experiment dispositions
   (EXP-A/B/E/I/J/K and the 2026-05-27 search bundles) must be re-read against
   the raw-base matrix.
-- Walk-forward harness requires a contract fix (follow-up ADR) before further
-  benchmark campaigns.
+- Walk-forward harness required a contract fix before further benchmark campaigns;
+  this was implemented 2026-06-13 (F1 section, Decision item 4). Future campaigns run on
+  the recomputed raw base. Reservation-county (PEP) recalibration is omitted from the
+  harness base — a documented, immaterial-to-disposition limitation.
 
 ## References
 
@@ -224,3 +259,7 @@ Attribution:
 
 - **2026-06-11**: Initial version — investigation findings F1–F3 recorded; F4
   and final Decision pending.
+- **2026-06-13**: F4 forward decomposition completed; final Decision recorded; Status
+  Accepted. F1 harness contract fix implemented (recompute-in-process; default==override
+  exact; regression tests added; production rates file byte-unchanged). Reservation-county
+  PEP limitation documented.

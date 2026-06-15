@@ -1277,6 +1277,14 @@ def run_residual_migration_pipeline(
         json.dump(metadata, f, indent=2)
     logger.info(f"Saved metadata to {metadata_path}")
 
+    # Note (ADR-067 F1): the walk-forward harness's genuinely-raw rate base is NOT emitted here.
+    # The harness uses a different survival source (survival_rates_sdc_2024_full.csv) and a
+    # different population loader (load_population_snapshot) than this production pipeline
+    # (by_age_group.csv + assemble_period_populations), so a raw file built here would not match
+    # the harness's own forward-projection inputs. The harness instead recomputes its raw base
+    # in-process from its own snapshots (walk_forward_validation.load_migration_rates_raw ->
+    # recompute_migration_with_gq_override), which is the single source of truth for backtests.
+
     # --- Summary ---
     logger.info("=" * 70)
     logger.info("RESIDUAL MIGRATION PIPELINE COMPLETE")

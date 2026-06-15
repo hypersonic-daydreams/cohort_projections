@@ -158,6 +158,13 @@ PEP_2010_PATH = (
     / "cc-est2019-agesex-38 (1).xlsx"
 )
 PEP_2024_RELATIVE_PATH = Path("parquet") / "2020-2024" / "county" / "cc-est2024-agesex-all.parquet"
+# ADR-067 F1: this file (residual_migration_rates.parquet) is the PRODUCTION all-period file —
+# it bakes in oil/male dampening, college smoothing, and PEP recalibration. The harness re-applies
+# all per-method adjustments itself from MethodConfig, so reading this file as if it were raw
+# DOUBLE-applies those adjustments — the contamination defect that invalidated all pre-2026-06-11
+# benchmark bundles. The harness therefore no longer reads it; load_migration_rates_raw()
+# recomputes the genuinely-raw base in-process from the harness's own snapshots and survival
+# source (see that function). MIGRATION_PATH is retained only for reference/provenance.
 MIGRATION_PATH = (
     PROJECT_ROOT / "data" / "processed" / "migration" / "residual_migration_rates.parquet"
 )
@@ -392,14 +399,34 @@ def load_all_snapshots() -> dict[int, pd.DataFrame]:
     return snapshots
 
 
-def load_migration_rates_raw() -> pd.DataFrame:
-    """Load raw migration rates (annualized) for all periods.
+def load_migration_rates_raw(
+    snapshots: dict[int, pd.DataFrame] | None = None,
+) -> pd.DataFrame:
+    """Return genuinely-raw migration rates (annualized) for all periods.
+
+    ADR-067 F1: the harness re-applies every per-method adjustment (oil/male dampening,
+    college smoothing, convergence) from ``MethodConfig``, so its migration input must be
+    UNADJUSTED. The production all-period file (``residual_migration_rates.parquet``) bakes
+    those adjustments in; reading it as if it were raw double-applies them — the contamination
+    defect that invalidated all pre-2026-06-11 benchmark bundles.
+
+    The raw base is therefore recomputed in-process from the harness's own population snapshots
+    and survival source (via :func:`recompute_migration_with_gq_override` at the default GQ
+    fraction), rather than read from a file. This guarantees the default rate base is identical
+    to the GQ-override path (:func:`maybe_recompute_mig_raw`) and consistent with the harness's
+    forward-projection survival source — neither of which holds for any on-disk production file
+    (production uses a different survival source and population loader). Computing it here, once,
+    costs ~1s.
+
+    Args:
+        snapshots: Pre-loaded population snapshots keyed by year. If None, loads them.
 
     Returns DataFrame with columns:
     [county_fips, age_group, sex, period_start, period_end, migration_rate]
     """
-    df = pd.read_parquet(MIGRATION_PATH)
-    return df[["county_fips", "age_group", "sex", "period_start", "period_end", "migration_rate"]]
+    if snapshots is None:
+        snapshots = load_all_snapshots()
+    return recompute_migration_with_gq_override(snapshots, _DEFAULT_GQ_CORRECTION_FRACTION)
 
 
 def _collapse_survival_rates_to_age_group(df: pd.DataFrame) -> pd.DataFrame:
@@ -2862,9 +2889,9 @@ def main() -> None:
     print("\nLoading population snapshots...")
     snapshots = load_all_snapshots()
 
-    # 2. Load migration rates
-    print("\nLoading migration rates...")
-    mig_raw = load_migration_rates_raw()
+    # 2. Load migration rates — recomputed raw base from the snapshots above (ADR-067 F1)
+    print("\nLoading migration rates (recomputed raw base, ADR-067 F1)...")
+    mig_raw = load_migration_rates_raw(snapshots)
     periods = sorted(mig_raw[["period_start", "period_end"]].drop_duplicates().values.tolist())
     print(f"  Periods: {len(periods)} — {periods}")
 

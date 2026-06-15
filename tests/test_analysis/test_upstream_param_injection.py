@@ -318,6 +318,65 @@ class TestMaybeRecomputeMigRaw:
 
 
 # ---------------------------------------------------------------------------
+# Test load_migration_rates_raw (ADR-067 F1)
+# ---------------------------------------------------------------------------
+
+
+class TestLoadMigrationRatesRaw:
+    """The harness raw base must be recomputed in-process from the harness's own
+    snapshots/survival source, NOT read from the adjustment-baked production file.
+
+    Reading ``residual_migration_rates.parquet`` (which bakes in oil/male dampening,
+    college smoothing, and PEP recalibration) as if it were raw double-applies those
+    adjustments — the ADR-067 F1 contamination defect that invalidated all
+    pre-2026-06-11 benchmark bundles. These tests lock in the recompute contract.
+    """
+
+    def test_recomputes_at_default_fraction(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """The raw base is recompute_migration_with_gq_override at the default GQ fraction."""
+        snapshots = {2000: pd.DataFrame()}
+        sentinel = pd.DataFrame({"county_fips": ["38001"]})
+        calls: list[tuple] = []
+
+        def fake_recompute(snaps: dict, fraction: float) -> pd.DataFrame:
+            calls.append((snaps, fraction))
+            return sentinel
+
+        monkeypatch.setattr(wfv, "recompute_migration_with_gq_override", fake_recompute)
+        result = wfv.load_migration_rates_raw(snapshots)
+        assert result is sentinel
+        assert calls == [(snapshots, wfv._DEFAULT_GQ_CORRECTION_FRACTION)]
+
+    def test_loads_snapshots_when_none(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """When no snapshots are passed, it loads them itself."""
+        loaded = {2000: pd.DataFrame()}
+        captured: list = []
+        monkeypatch.setattr(wfv, "load_all_snapshots", lambda: loaded)
+        monkeypatch.setattr(
+            wfv,
+            "recompute_migration_with_gq_override",
+            lambda snaps, fraction: captured.append(snaps) or pd.DataFrame(),
+        )
+        wfv.load_migration_rates_raw()
+        assert captured == [loaded]
+
+    def test_does_not_read_a_rates_parquet(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Regression guard: the raw loader must never read a rates parquet file."""
+
+        def boom(*_args: object, **_kwargs: object) -> pd.DataFrame:
+            raise AssertionError("load_migration_rates_raw must not read a rates parquet")
+
+        monkeypatch.setattr(wfv.pd, "read_parquet", boom)
+        monkeypatch.setattr(
+            wfv,
+            "recompute_migration_with_gq_override",
+            lambda snaps, fraction: pd.DataFrame({"county_fips": ["38001"]}),
+        )
+        out = wfv.load_migration_rates_raw({2000: pd.DataFrame()})
+        assert not out.empty
+
+
+# ---------------------------------------------------------------------------
 # Test MethodConfig defaults
 # ---------------------------------------------------------------------------
 
