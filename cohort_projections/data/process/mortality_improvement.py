@@ -308,13 +308,57 @@ def build_nd_adjusted_survival_projections(
     return result
 
 
+def apply_open_ended_survival_correction(
+    nd_adjusted: pd.DataFrame,
+    max_age: int,
+    base_year: int,
+    life_table_file: Path | str,
+) -> pd.DataFrame:
+    """Correct the open-ended (``max_age``+) survival to a proper open-interval rate.
+
+    The ND CDC baseline is grouped, and ``load_nd_baseline_survival`` expands the ``85+``
+    group's single-year rate flat across ages 85-100. The cohort engine
+    (``core/mortality.py``) holds the open-ended ``max_age`` group at the ``max_age``
+    survival every year, so without correction the 90+ pool retains ~0.885 (Male) /
+    ~0.914 (Female) per year -- far too high, because that pool contains the 95- and
+    100-year-olds. The demographically correct open-interval survivorship ratio is
+    ``T_{max_age+1} / T_{max_age}`` from the life table (~0.78 Male / ~0.81 Female for ND).
+
+    This rescales the ``max_age`` survival trajectory so its base-year value equals that
+    open-interval ratio, preserving the NP2023 improvement *shape* over the horizon. Ages
+    above ``max_age`` are unused by the engine (population is capped at ``max_age``) and are
+    left untouched. The life table is all-race ("Total"), consistent with the operative
+    (race-flat) survival path. See ADR-068.
+    """
+    lt = pd.read_csv(life_table_file)
+    df = nd_adjusted.copy()
+    for sex in ("Male", "Female"):
+        s = lt[(lt["race_ethnicity"] == "Total") & (lt["sex"] == sex)]
+        t_max = float(s.loc[s["age"] == max_age, "Tx"].iloc[0])
+        t_next = float(s.loc[s["age"] == max_age + 1, "Tx"].iloc[0])
+        target = t_next / t_max  # open-interval survivorship ratio T_{A+1}/T_A
+        mask_open = (df["age"] == max_age) & (df["sex"] == sex)
+        base = df.loc[mask_open & (df["year"] == base_year), "survival_rate"]
+        if base.empty or float(base.iloc[0]) <= 0:
+            logger.warning(f"No base-year {max_age} survival for {sex}; skipping open-ended correction")
+            continue
+        base_val = float(base.iloc[0])
+        scale = target / base_val
+        df.loc[mask_open, "survival_rate"] = df.loc[mask_open, "survival_rate"] * scale
+        logger.info(
+            f"Open-ended {max_age}+ survival ({sex}): base-year {base_val:.4f} -> "
+            f"open-interval {target:.4f} (T_{max_age + 1}/T_{max_age}; scale {scale:.4f})"
+        )
+    return df
+
+
 def run_mortality_improvement_pipeline(
     config: dict | None = None,
 ) -> pd.DataFrame:
     """Main pipeline orchestrator for mortality improvement.
 
     Steps:
-        1. Load Census Bureau NP2023 survival projections (2025-2045)
+        1. Load Census Bureau NP2023 survival projections (2025-2055)
         2. Load ND CDC baseline (expand to single-year)
         3. Extract Census 2025 national baseline for adjustment
         4. Compute ND adjustment factors
@@ -399,6 +443,17 @@ def run_mortality_improvement_pipeline(
         census_projections,
         adjustment_factors,
         years=years,
+    )
+
+    # Step 5b: Correct the open-ended max_age+ survival to a proper open-interval rate
+    # (ADR-068). The 85+ group rate is otherwise broadcast flat across ages 85-100,
+    # overstating the oldest-old by ~6,400 persons at 2055.
+    max_age = config.get("demographics", {}).get("age_groups", {}).get("max_age", 90)
+    life_table_file = (
+        project_root / "data" / "raw" / "mortality" / "cdc_lifetables_2023_combined.csv"
+    )
+    nd_adjusted = apply_open_ended_survival_correction(
+        nd_adjusted, max_age=max_age, base_year=base_year, life_table_file=life_table_file
     )
 
     # Step 6: Save output

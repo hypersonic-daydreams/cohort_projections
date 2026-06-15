@@ -3,8 +3,8 @@
 Compute Age-Specific Convergence Interpolation (Phase 2).
 
 Takes the per-period residual migration rates from Phase 1 and computes
-time-varying migration rates for each projection year (2025-2045) using
-5-10-5 convergence interpolation.
+time-varying migration rates for each projection year (2025-2055) using
+5-10-5 convergence interpolation (convergence completes by year 20, holds to year 30).
 
 Each county x age_group x sex cell converges independently from its recent
 value toward its long-term mean.

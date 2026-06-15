@@ -347,7 +347,7 @@ class TestAdditiveReductionScenario:
                 2029: 0.91,
             },
             "default_factor": 1.00,
-            "reference_intl_migration": 10051,
+            "reference_intl_migration": 3350.33,
             "reference_population": 799358,
         }
 
@@ -446,8 +446,8 @@ class TestAdditiveReductionScenario:
         """Verify the reduction magnitude matches the ADR-050 formula.
 
         For 2025 (factor=0.20):
-            annual_reduction = 10051 * (1 - 0.20) = 8040.8
-            reduction_rate = 8040.8 / 799358 = 0.010059...
+            annual_reduction = 3350.33 * (1 - 0.20) = 2680.26
+            reduction_rate = 2680.26 / 799358 = 0.003353...
         """
         result = apply_migration_scenario(
             positive_migration_rates,
@@ -456,7 +456,7 @@ class TestAdditiveReductionScenario:
             base_year=2025,
         )
 
-        expected_reduction = 10051 * (1 - 0.20) / 799358
+        expected_reduction = 3350.33 * (1 - 0.20) / 799358
         actual_reduction = positive_migration_rates["migration_rate"] - result["migration_rate"]
 
         # All cells should have the same per-capita reduction

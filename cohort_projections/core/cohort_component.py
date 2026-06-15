@@ -82,7 +82,7 @@ class CohortComponentProjection:
                                     migration_rates when None or year not found.
             survival_rates_by_year: Optional dict mapping calendar year -> survival rates
                                    DataFrame for time-varying mortality (Phase 4).
-                                   Keys are calendar years (e.g. 2025-2045). Falls back
+                                   Keys are calendar years (e.g. 2025-2055). Falls back
                                    to constant survival_rates when None or year not found.
 
         Raises:

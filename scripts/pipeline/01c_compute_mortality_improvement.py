@@ -6,7 +6,7 @@ This script runs the mortality improvement pipeline (Phase 3), which:
 1. Loads Census Bureau NP2023-A4 national survival ratio projections
 2. Loads ND CDC 2020 baseline survival rates
 3. Computes ND-to-national adjustment factors
-4. Applies adjustments to all projection years (2025-2045)
+4. Applies adjustments to all projection years (2025-2055)
 5. Saves ND-adjusted survival projections to data/processed/mortality/
 
 Usage:

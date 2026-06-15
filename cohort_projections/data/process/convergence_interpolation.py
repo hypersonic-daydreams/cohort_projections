@@ -2,7 +2,7 @@
 Age-specific convergence interpolation for migration rates.
 
 Implements Phase 2 of the Census Bureau method upgrade: computes time-varying
-migration rates for each projection year (2025-2045) using a 5-10-5
+migration rates for each projection year (2025-2055) using a 5-10-5
 convergence interpolation schedule.
 
 Each county x age_group x sex cell converges independently from its recent
@@ -14,7 +14,8 @@ Convergence schedule (default 5-10-5):
     - Years 16-20: linear interpolation from MEDIUM rate to LONG-TERM rate
 
 Input: Phase 1 residual migration rates (per-period rates for 5 historical
-periods).  Output: year-varying rates for the full 20-year projection horizon.
+periods).  Output: year-varying rates for the full 30-year (2025-2055) projection
+horizon; the 5-10-5 convergence completes by projection year 20, then holds to year 30.
 """
 
 import json

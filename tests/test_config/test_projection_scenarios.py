@@ -26,7 +26,7 @@ def test_baseline_uses_cbo_adjusted_assumptions() -> None:
     assert baseline["migration"]["schedule"][2025] == 0.20
     assert baseline["migration"]["schedule"][2029] == 0.91
     assert baseline["migration"]["default_factor"] == 1.00
-    assert baseline["migration"]["reference_intl_migration"] == 10051
+    assert baseline["migration"]["reference_intl_migration"] == 3350.33
     assert baseline["migration"]["reference_population"] == 799358
 
 
