@@ -27,6 +27,14 @@ The *direction* of the adjustment is sound and current — immigration genuinely
 > to **904,692 (+13.18%**, +15,675 above locked). This confirms the first-order estimate below. Evidence
 > bundle: [`2026-06-15-ref-intl-sensitivity/`](2026-06-15-ref-intl-sensitivity/). Still not a disposition;
 > the locked numbers are unchanged.
+>
+> **Independent GPT-5.5 Pro review (xhigh reasoning, 2026-06-15)** of the full methodology + core code +
+> this sensitivity independently confirmed the defect from the config + `migration.py` ("~3× over-suppression")
+> and returned a **no-go on publishing as-is; recommended disposition correct-and-rerun**. Full review:
+> [`2026-06-15-ref-intl-sensitivity/gpt55pro_review_output.md`](2026-06-15-ref-intl-sensitivity/gpt55pro_review_output.md).
+> It also surfaced separate issues to triage (mortality race-specificity, fertility/mortality doc provenance,
+> place scope, component labeling) — several flagged "unverifiable from the package," i.e. needing data files
+> the review did not include.
 
 ---
 
