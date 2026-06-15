@@ -20,6 +20,14 @@ The *direction* of the adjustment is sound and current — immigration genuinely
 
 **This finding does not change any number on its own.** It documents the issue and the evidence so a disposition (correct-and-rerun vs. accept-as-intentional) can be made deliberately.
 
+> **Update (2026-06-15) — confirmed by a locked-config sensitivity run.** A run from the exact locked
+> config with only the numerator corrected (3,350.33) was executed; a control run (numerator unchanged)
+> reproduced the published locked trajectory to the person (max abs diff 0.0000). Result: the **−1.50%
+> trough at 2028 becomes a −0.18% blip at 2026 (797,911)** — essentially flat near-term — and 2055 rises
+> to **904,692 (+13.18%**, +15,675 above locked). This confirms the first-order estimate below. Evidence
+> bundle: [`2026-06-15-ref-intl-sensitivity/`](2026-06-15-ref-intl-sensitivity/). Still not a disposition;
+> the locked numbers are unchanged.
+
 ---
 
 ## How this was found

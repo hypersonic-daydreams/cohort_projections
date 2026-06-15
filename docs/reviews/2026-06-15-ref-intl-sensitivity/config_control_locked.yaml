@@ -1,0 +1,526 @@
+# North Dakota Cohort Component Projection Configuration
+
+project:
+  name: "ND Population Projections 2025-2055"
+  base_year: 2025
+  projection_horizon: 30  # years
+  projection_interval: 1  # 1-year intervals
+
+geography:
+  state: "38"  # North Dakota FIPS
+
+  # Geographic scope: ADR-010 (geographic scope and granularity)
+  # County-level projections
+  counties:
+    mode: "all"  # "all", "list", or "threshold"
+    # mode: "list"
+    # fips_codes: ["38101", "38015", "38035"]  # Specific counties if mode="list"
+    # mode: "threshold"
+    # min_population: 1000  # Minimum population if mode="threshold"
+
+  # Place-level projections
+  places:
+    mode: "threshold"  # "all", "list", or "threshold"
+    min_population: 500  # Only places with 500+ population
+    # mode: "all"  # Project all 406 incorporated places
+    # mode: "list"
+    # fips_codes: ["3825700", "3807200", "3833900", "3841500"]  # Major cities
+
+  # Geographic reference data
+  reference_data:
+    source: "local"  # "local" or "tiger" (Census TIGER/Line files)
+    vintage: 2020  # Census vintage for geographic definitions
+    counties_file: "data/raw/geographic/nd_counties.csv"
+    places_file: "data/raw/geographic/nd_places.csv"
+    # TIGER/Line boundary shapefiles for geospatial exports (ADR-059)
+    tiger_boundaries:
+      county_shapefile: "data/interim/geographic/tiger2020/tl_2020_us_county.shp"
+      place_shapefile: "data/interim/geographic/tiger2020/tl_2020_38_place.shp"
+      vintage: 2020
+
+  # Hierarchical aggregation
+  hierarchy:
+    validate_aggregation: true  # Validate county sums = state
+    aggregation_tolerance: 0.01  # 1% tolerance for rounding errors
+    include_balance: true  # Calculate unincorporated areas (county - places)
+
+# Multi-geography processing
+geographic:
+  parallel_processing:
+    enabled: false  # Disabled due to pickle issues with nested functions
+    max_workers: null  # null = auto-detect (cpu_count), or specify number
+    chunk_size: 10  # Geographies per batch (for memory management)
+
+  error_handling:
+    mode: "continue"  # "continue" = continue on error, "fail_fast" = stop on first error
+    log_failed_geographies: true
+    retry_failed: false  # Whether to retry failed geographies
+
+# Google BigQuery Configuration
+bigquery:
+  enabled: true
+  project_id: "antigravity-sandbox"  # Your GCP project ID
+  credentials_path: "~/.config/gcloud/cohort-projections-key.json"  # Path to service account key
+  dataset_id: "demographic_data"  # Dataset for storing/querying demographic data
+  location: "US"  # BigQuery dataset location
+  use_public_data: true  # Use bigquery-public-data for Census/demographic data
+  cache_queries: true  # Cache query results locally
+
+# === BASE POPULATION ===
+# ADR-047: County-specific age-sex-race distributions
+# ADR-048: Single-year-of-age base population from SC-EST data
+base_population:
+  age_resolution: "single_year"  # "single_year" (ADR-048) or "five_year_uniform" (legacy)
+  single_year_distribution: "data/raw/population/nd_age_sex_race_distribution_single_year.csv"
+  county_race_interpolation: "sprague"  # "sprague" (ADR-048) or "statewide_weights" for county 5-year -> single-year
+  county_distributions:
+    enabled: true
+    path: "data/processed/county_age_sex_race_distributions.parquet"
+    blend_threshold: 5000  # Counties below this pop blend with statewide
+
+  # ADR-055: Group quarters population separation
+  # Separates GQ (military, college dorms, nursing facilities) from household
+  # population. The engine projects only household pop; GQ is added back as
+  # a constant at each projection year.
+  group_quarters:
+    enabled: true
+    method: "hold_constant"  # GQ held at base-year levels through projection horizon
+    gq_data_path: "data/processed/gq_county_age_sex_2025.parquet"
+    race_distribution: "county_proportional"  # Distribute GQ across races using county race shares
+
+demographics:
+  age_groups:
+    type: "single_year"  # or "5_year"
+    min_age: 0
+    max_age: 90  # 90+ is the open-ended final group
+  sex:
+    - "Male"
+    - "Female"
+  race_ethnicity:
+    # Following Census/SEER categories
+    categories:
+      - "White alone, Non-Hispanic"
+      - "Black alone, Non-Hispanic"
+      - "AIAN alone, Non-Hispanic"  # American Indian/Alaska Native
+      - "Asian/PI alone, Non-Hispanic"  # Asian/Pacific Islander
+      - "Two or more races, Non-Hispanic"
+      - "Hispanic (any race)"
+
+data_sources:
+  acs_api_base: "https://api.census.gov/data/{year}/acs/acs5"
+  acs_moved_from_abroad:
+    table_id: "B07007"
+    start_year: 2010
+    end_year: 2023
+    raw_dir: "data/raw/immigration/acs_migration"
+    processed_dir: "data/processed/immigration/analysis"
+    output_prefix: "acs_moved_from_abroad_by_state"
+  census_components:
+    raw_dir: "data/raw/immigration/census_population_estimates"
+    output_dir: "data/processed/immigration"
+    output_file: "state_migration_components_2000_2024.csv"
+    regime_output_file: "state_migration_components_2000_2024_with_regime.csv"
+  dhs_lpr:
+    raw_dir: "data/raw/immigration/dhs_lpr"
+    yearbook_tables_file: "yearbook_lpr_2023_all_tables.xlsx"
+    historical_zip_glob: "LPR*.zip"
+  dhs_naturalizations:
+    raw_dir: "data/raw/immigration/dhs_naturalizations"
+  dhs_refugees_asylees:
+    raw_dir: "data/raw/immigration/dhs_refugees_asylees"
+
+# === DEMOGRAPHIC RATES ===
+# Fertility: ADR-001 | Mortality: ADR-002 | Migration: ADR-003, ADR-035, ADR-036
+rates:
+  fertility:
+    source: "CDC_NCHS"
+    # 2024 rates used directly (no multi-year averaging)
+    assumption: "constant"  # "constant", "trending", "scenario"
+    apply_to_ages: [15, 49]  # reproductive age range
+
+  mortality:
+    source: "CDC_life_tables"
+    life_table_year: 2023
+    improvement_factor: 0.005  # annual mortality improvement (0.5%)
+    cap_survival_at: 1.0  # no survival rate > 100%
+
+  # Migration methodology: ADR-035 (PEP data), ADR-036 (BEBR averaging),
+  # ADR-039 (intl-only factor), ADR-040 (boom dampening 2015-2020)
+  migration:
+    domestic:
+      method: "PEP_components"  # "PEP_components" or "IRS_county_flows"
+      source: "Census_PEP"
+      averaging_method: "BEBR_multiperiod"
+      base_periods:
+        short: [2019, 2024]
+        medium: [2014, 2024]
+        long: [2005, 2024]
+        full: [2000, 2024]
+      combination: "trimmed_average"
+      smooth_extreme_outliers: true
+      dampening:
+        enabled: true
+        # ADR-051: Period-specific dampening factors (was 0.60 uniform)
+        # Reduced to reflect 2020-2025 evidence that boom migration was largely transient
+        factor:
+          "2005-2010": 0.50  # was 0.60
+          "2010-2015": 0.40  # was 0.60 — peak boom, most transient
+          "2015-2020": 0.50  # was 0.60
+          default: 0.60
+        description: "Reduces oil boom migration influence; ADR-051 recalibration with 2020-2025 evidence"
+        counties:
+          - "38105"  # Williams
+          - "38053"  # McKenzie
+          - "38061"  # Mountrail
+          - "38025"  # Dunn
+          - "38089"  # Stark
+          - "38007"  # Billings (Finding 2-B: Bakken oil patch, +3%/yr 2010-2015, +88% undampened)
+        boom_periods:
+          - [2005, 2010]
+          - [2010, 2015]
+          - [2015, 2020]  # ADR-040: boom-adjacent period, undampened rates exceeded dampened boom
+      residual:
+        periods:
+          - [2000, 2005]
+          - [2005, 2010]
+          - [2010, 2015]
+          - [2015, 2020]
+          - [2020, 2024]
+        survival_source: "CDC_ND_2020"
+        averaging: "simple_average"
+        # ADR-055 Phase 2: GQ-corrected migration rates
+        # Subtract group quarters from population snapshots before computing
+        # residual migration, removing institutional rotation signals.
+        gq_correction:
+          enabled: true
+          fraction: 0.75  # ADR-061 D2 calibrated via EXP-C clean-base benchmark (Tier-3 lock 2026-06-11); was 1.0 (full Phase 2)
+          historical_gq_path: "data/processed/gq_county_age_sex_historical.parquet"
+          pre_2020_method: "backward_constant"  # 2020 GQ used for 2000-2015
+        # PEP-anchored recalibration for reservation counties (ADR-045)
+        pep_recalibration:
+          enabled: true
+          counties: ["38005", "38085", "38079"]  # Benson, Sioux, Rolette
+          pep_data_path: "data/processed/pep_county_components_2000_2025.parquet"
+          fallback_method: "rogers_castro"
+          near_zero_threshold: 10
+      adjustments:
+        college_age:
+          enabled: true
+          method: "smooth"
+          # Counties with on-campus F2F enrollment >2.5% of population (2024-2025 data)
+          counties:
+            - "38003"  # Barnes (VCSU, 7.3%)
+            - "38009"  # Bottineau (DCB, 5.4%)
+            - "38015"  # Burleigh (BSC + U of Mary, 3.8%)
+            - "38017"  # Cass (NDSU, 5.5%)
+            - "38035"  # Grand Forks (UND, 13.4%)
+            - "38071"  # Ramsey (LRSC, 3.0%)
+            - "38077"  # Richland (NDSCS, 10.6%)
+            - "38089"  # Stark (DSU, 3.0%)
+            - "38093"  # Stutsman (U of Jamestown, ~4.2%)
+            - "38097"  # Traill (MASU, 6.1%)
+            - "38101"  # Ward (MISU, 2.9%)
+            # Williams (WSC, 1.5%) removed 2026-06-11 per ADR-067: below 2.5%
+            # threshold; clean-base benchmark showed inclusion worsened Williams
+            # MAPE +0.90pp with no offsetting gains (Tier-3 config lock).
+          age_groups: ["15-19", "20-24", "25-29"]  # Extended per ADR-061 (Census College Fix)
+          blend_factor: 0.5
+        male_dampening:
+          enabled: true
+          factor: 0.80
+          boom_periods:
+            - [2005, 2010]
+            - [2010, 2015]
+    international:
+      method: "PEP_included"
+      allocation: "proportional"  # distribute to counties proportionally
+    interpolation:
+      method: "census_bureau_convergence"
+      recent_period: [2023, 2025]
+      medium_period: [2014, 2025]
+      longterm_period: [2000, 2025]
+      convergence_schedule:
+        recent_to_medium_years: 5
+        medium_hold_years: 10
+        medium_to_longterm_years: 5
+      rate_cap:
+        enabled: true
+        college_ages: ["15-19", "20-24", "25-29"]  # Extended per ADR-061 (Census College Fix)
+        college_cap: 0.15        # +/-15% for ages 15-24 (preserves university enrollment dynamics)
+        general_cap: 0.08        # +/-8% for all other ages (clips small-county statistical noise)
+
+# === SCENARIOS ===
+# ADR-037 (CBO-grounded methodology), amended by ADR-039, ADR-040, ADR-065
+scenarios:
+  baseline:
+    name: "Baseline (CBO-Adjusted)"
+    description: "Official public baseline incorporating CBO current-policy immigration and fertility adjustments (ADR-065)"
+    fertility: "-5_percent"
+    mortality: "improving"
+    migration:
+      type: "additive_reduction"
+      schedule:
+        2025: 0.20
+        2026: 0.37
+        2027: 0.55
+        2028: 0.78
+        2029: 0.91
+      default_factor: 1.00
+      # CBO-adjusted baseline parameters (ADR-065, using ADR-050 formula).
+      # Formula: reduction_rate = ref_intl * (1 - factor) / ref_pop
+      #          adjusted_rate  = base_rate - reduction_rate
+      reference_intl_migration: 10051  # Annual international migration (PEP 2023-2025 avg)
+      reference_population: 799358     # State population at base year
+    active: true
+
+  recent_trend_continuation:
+    name: "Recent-Trend Continuation (Internal Sensitivity)"
+    description: "Historical PEP trends with convergence interpolation; no CBO policy adjustment. Former public baseline, retained as an internal sensitivity after ADR-065."
+    fertility: "constant"
+    mortality: "improving"
+    migration: "recent_average"
+    active: false
+
+  restricted_growth:
+    name: "Restricted Growth (Deprecated Alias)"
+    description: "Deprecated public scenario retained for compatibility; equivalent to the CBO-adjusted baseline after ADR-065."
+    fertility: "-5_percent"
+    mortality: "improving"
+    migration:
+      type: "additive_reduction"
+      schedule:
+        2025: 0.20
+        2026: 0.37
+        2027: 0.55
+        2028: 0.78
+        2029: 0.91
+      default_factor: 1.00
+      # Additive migration reduction parameters (ADR-050).
+      # The CBO time-varying factor models federal immigration enforcement.
+      # Instead of multiplicative scaling (which fails for net-negative
+      # migration counties), we subtract a per-capita rate decrement
+      # computed from the state-level international migration volume.
+      # Formula: reduction_rate = ref_intl * (1 - factor) / ref_pop
+      #          adjusted_rate  = base_rate - per_cell_reduction
+      # This guarantees restricted <= baseline for all counties.
+      reference_intl_migration: 10051  # Annual international migration (PEP 2023-2025 avg)
+      reference_population: 799358     # State population at base year
+    active: false
+
+  high_growth:
+    name: "High Growth (Internal Sensitivity)"
+    description: "Internal sensitivity: BEBR-optimistic migration rates representing sustained elevated immigration (ADR-046)"
+    fertility: "+5_percent"
+    mortality: "improving"
+    migration: "recent_average"  # No in-engine adjustment; scenario baked into convergence rates
+    convergence_variant: "high"  # Load convergence_rates_by_year_high.parquet (ADR-046)
+    # ADR-052: Migration floor — prevent any county's mean convergence rate
+    # from being negative in the high-growth scenario. A high-growth scenario
+    # showing decline for major counties with institutional anchors (MAFB,
+    # universities, regional centers) is not a useful planning scenario.
+    migration_floor:
+      enabled: true
+      floor_value: 0.0  # Minimum average convergence rate at medium hold
+    active: false
+
+  zero_migration:
+    name: "Zero Net Migration"
+    description: "Natural increase only"
+    fertility: "constant"
+    mortality: "improving"
+    migration: "zero"
+    active: false
+
+  sdc_2024:
+    name: "SDC 2024 Methodology"
+    description: "Replicates ND State Data Center 2024 projections methodology"
+    fertility: "sdc_2024_blended"
+    mortality: "constant"
+    migration: "sdc_2024_dampened"
+    active: false
+
+# === PLACE PROJECTIONS (PP-003) ===
+# Phase 2 configuration for county-constrained place share-trending workflow.
+place_projections:
+  enabled: true
+  crosswalk_path: "data/processed/geographic/place_county_crosswalk_2020.csv"
+  historical_shares_path: "data/processed/place_shares_2000_2024.parquet"
+  place_population_history_path: "data/processed/place_population_history_2000_2024.parquet"
+
+  model:
+    epsilon: 0.001                       # Logit clamping (S04 Section 2.3)
+    lambda_decay: 0.9                    # WLS decay rate (S04 Section 3.2)
+    history_start: 2000                  # Fitting window start
+    history_end: 2024                    # Fitting window end
+    reconciliation_flag_threshold: 0.05  # Balance QA flag threshold (S04 Section 6.3)
+
+  tiers:
+    high_threshold: 10000
+    moderate_threshold: 2500
+    lower_threshold: 500
+    tier_boundary_margin: 0.05           # 5% of threshold for boundary flag
+
+  backtest:
+    primary_train: [2000, 2014]
+    primary_test: [2015, 2024]
+    secondary_train: [2000, 2019]
+    secondary_test: [2020, 2024]
+
+  # PP-005 WS-A: Rolling-origin cross-validation (ADR-057)
+  rolling_origin_backtest:
+    enabled: true
+    min_train_years: 5          # Minimum training years for first window
+    test_horizon: 5             # Test years per window (non-overlapping)
+    acceptance_criteria: "mean_score"  # mean_score or median_score
+
+  # Multi-county place allocation (PP-005 WS-B / ADR-058)
+  # Handles the 7 places that span multiple counties by splitting population
+  # across constituent counties, projecting per county, then reaggregating.
+  multicounty_allocation:
+    enabled: true
+    allocation_method: "area_share"  # area_share or population_share
+    multicounty_detail_path: "data/processed/geographic/place_county_crosswalk_2020_multicounty_detail.csv"
+
+  output:
+    base_year: 2025
+    end_year: 2055
+    key_years: [2025, 2030, 2035, 2040, 2045, 2050, 2055]
+
+# === HOUSING-UNIT METHOD (PP-005 / ADR-060) ===
+# Complementary short-term place projection cross-check using
+# housing units x persons-per-household.  NOT a replacement for
+# the share-trending method above.
+housing_unit_method:
+  enabled: true
+  housing_data_path: "data/raw/housing/nd_place_housing_units.csv"
+  projection_horizon: 10          # years from base year
+  projection_years: [2025, 2030, 2035]
+  trend_method: "log_linear"      # "linear" or "log_linear"
+  pph_method: "hold_last"         # "hold_last" or "linear_trend"
+  min_history_years: 3            # minimum ACS vintages required to fit trend
+  output_dir: "data/projections"  # HU outputs written alongside share-trending
+
+output:
+  # Basic output settings
+  formats:
+    - "parquet"  # primary format
+    - "csv"
+  compression: "gzip"
+  include_zero_cells: true  # include cohorts with 0 population
+  aggregation_levels:
+    - "state"
+    - "county"
+    - "place"
+  decimal_places: 2
+
+  # Excel export settings
+  excel:
+    include_charts: true        # Embed population charts in workbook
+    include_metadata: true      # Include metadata worksheet
+    format_numbers: true        # Apply number formatting (thousands separator)
+    auto_width_columns: true    # Auto-adjust column widths
+    freeze_panes: true          # Freeze header rows
+
+  # Report generation settings
+  reports:
+    generate_html: true         # Generate HTML reports
+    generate_text: true         # Generate plain text reports
+    include_methodology: true   # Include methodology section
+    include_diversity_metrics: true  # Calculate diversity indices
+
+  # Visualization settings
+  visualizations:
+    enabled: true
+    format: "png"               # Image format: png, svg, pdf
+    dpi: 300                    # Resolution for raster formats
+    style: "seaborn-v0_8-darkgrid"  # Matplotlib style
+    color_palette: "Set2"       # Color palette for charts
+    figure_size: [10, 6]        # Default figure size [width, height] in inches
+
+    # Population pyramids
+    pyramids:
+      age_group_size: 5         # Age grouping: 1, 5, or 10 years
+      include_race_breakdown: false  # Stacked by race (default: by sex only)
+      years: ["base", "mid", "final"]  # Which years to generate
+
+    # Trend charts
+    trends:
+      include_total: true       # Total population trends
+      include_age_groups: true  # Trends by age group
+      include_sex: true         # Trends by sex
+      include_race: true        # Trends by race
+
+    # Growth rate charts
+    growth_rates:
+      periods: ["annual"]       # Period options: annual, 5year, 10year
+
+validation:
+  compare_to_census: true
+  census_benchmark_years: [2020, 2021, 2022, 2023, 2024, 2025]
+  plausibility_checks:
+    - "negative_population"
+    - "sex_ratio"
+    - "age_distribution"
+    - "extreme_growth_rates"
+  error_tolerance: 0.05  # 5% tolerance for validation
+
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  log_to_file: true
+  log_directory: "logs"
+  log_format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Pipeline orchestration settings
+pipeline:
+  # Data processing pipeline
+  data_processing:
+    input_dir: "data/raw"
+    output_dir: "data/processed"
+    validate_outputs: true
+    generate_report: true
+    fail_fast: false  # Continue processing on errors vs fail on first error
+
+    # Component-specific settings
+    fertility:
+      enabled: true
+      input_file: "data/raw/fertility/nd_asfr_processed.csv"
+      output_file: "data/processed/fertility_rates.parquet"
+
+    survival:
+      enabled: true
+      input_file: "data/raw/mortality/survival_rates_processed.csv"
+      output_file: "data/processed/survival_rates.parquet"
+
+    migration:
+      enabled: true
+      method: "PEP_components"
+      pep_input: "data/processed/pep_county_components_2000_2025.parquet"
+      pep_output: "data/processed/migration/migration_rates_pep_baseline.parquet"
+      domestic_input: "data/raw/migration/irs_county_flows_2018_2022.csv"
+      international_input: "data/raw/migration/acs_international_migration.csv"
+      output_file: "data/processed/migration_rates.parquet"
+
+  # Projection execution pipeline
+  projection:
+    output_dir: "data/projections/sensitivity_refintl_corrected_20260615/reference_control"  # SENSITIVITY: isolated; NOT production
+    scenarios: ["baseline"]  # Which scenarios to run (from scenarios section)
+    resume_on_restart: true  # Skip already-completed geographies
+    save_intermediate: false  # Save intermediate year results
+    max_retries: 2  # Number of times to retry failed geographies
+
+  # Export/dissemination pipeline
+  export:
+    output_dir: "data/exports"
+    formats: ["csv", "excel"]  # Available: csv, excel, parquet
+    create_packages: true  # Create ZIP archives
+    package_by: "level"  # "level" (state/county/place) or "geography" (one per geo)
+    include_metadata: true  # Include processing metadata in exports
+
+    # Summary statistics to generate
+    summaries:
+      - "total_population_by_year"
+      - "age_distribution_by_year"
+      - "sex_ratio_by_year"
+      - "race_composition_by_year"
+      - "growth_rates"
+      - "dependency_ratios"
