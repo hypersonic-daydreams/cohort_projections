@@ -20,6 +20,7 @@ Analytical reviews and quality assurance documents for the North Dakota Populati
 | 2026-02-28 | [Place-to-County Mapping Strategy Note](2026-02-28-place-county-mapping-strategy-note.md) | PP3-S03 authoritative mapping and boundary/vintage handling rules for place share-trending | ADR-033 |
 | 2026-03-01 | [Publication Output Sign-Off](2026-03-01-publication-output-signoff.md) | PP-001 owner sign-off decision with deferred stakeholder-feedback override | ADR-033 (publication sequencing) |
 | 2026-03-09 | [Benchmark Decisions Index](benchmark_decisions/README.md) | Challenger-vs-champion review records for versioned benchmark bundles | SOP-003, ADR-061 |
+| 2026-06-15 | [Reference Intl Migration Sum-vs-Average Error](2026-06-15-ref-intl-migration-sum-vs-average.md) | Open finding: locked CBO adjustment uses the 3-year sum (10,051) where the annual average (~3,350) was intended, ~3× over-deepening the near-term decline; disposition pending | ADR-050, ADR-065, ADR-037, ADR-067 (→ ADR-068) |
 
 ## Conventions
 
@@ -31,4 +32,4 @@ Analytical reviews and quality assurance documents for the North Dakota Populati
 
 ---
 
-**Last Updated**: 2026-03-09
+**Last Updated**: 2026-06-15
