@@ -26,11 +26,15 @@ The *direction* of the adjustment is sound and current — immigration genuinely
 
 A 15-agent workflow (`cbo-assumption-revalidation`, 2026-06-15) was run to re-validate the CBO assumptions months after they were set, prompted by reasonable nervousness about publishing a near-term decline in a state accustomed to steady growth. Six finders (3 internal repo-archaeology, 3 external web-research) fed a synthesis, an adversarial-verification pass over the load-bearing claims, and a finalizer. The two **internal** load-bearing claims below were then re-reproduced by hand against live repo data before writing this document; the **external** claims are flagged as web-sourced and post-cutoff (the assistant's training cutoff is January 2026).
 
+This document was subsequently reviewed by an independent **GPT-5.5 (xhigh, read-only) agent** (2026-06-15). It confirmed the sum-vs-average defect, the mislabeling, and the per-year application against the repo, and corrected the first-order trough estimate (see the correction note under Finding 2). Its overall verdict: *"The finding is sound enough to act on… the recommended disposition is appropriate: run a non-destructive corrected-numerator sensitivity first, then likely correct and rerun."*
+
 ---
 
 ## Finding 1 — The near-term decline is ~100% the CBO lever (verified)
 
-Our own one-factor sensitivity runs (`data/projections/sensitivity_20260611/`, `ref` = CBO-on vs `cbo_off` = CBO-off) show that **with the CBO migration adjustment off, the state total rises strictly monotonically every year — no dip** (minimum year-over-year change ≈ +1,770). With it on, the state dips to a 2028 trough. The entire near-term sign of the change flips on this one lever.
+Our own one-factor sensitivity runs (`data/projections/sensitivity_20260611/`, `ref` = CBO-on vs `cbo_off` = CBO-off) show that **with the CBO migration adjustment off, the state total rises monotonically every year — no dip**. With it on, the state dips to a 2028 trough. The entire near-term sign of the change flips on this one lever.
+
+> The on-disk sensitivity CSVs are household-only and begin at 2026, so the often-cited "minimum YoY ≈ +1,770" is the 2026→2027 household-only step, **not** the true first increment. Including the 2025 base and constant group quarters, the first GQ-inclusive `cbo_off` increment (2025→2026) is ≈ **+830** — still positive, so the monotonic-rise conclusion holds, but the rise is gentler than the +1,770 figure implies.
 
 Observed reality agrees that nothing is contracting in the base data: ND **grew +0.75% in 2025** (793,387 → 799,358), with positive net migration (+3,322) and domestic migration flipping positive (+512). The dip is therefore a property of the disclosed CBO front-loaded migration assumption, not of ND's demographics.
 
@@ -64,24 +68,26 @@ The "annual average" labeling, the variable name `annual_reduction`, and the com
 
 ### Magnitude of the over-suppression
 
-Statewide "persons/year not arriving" under the current (10,051) vs. corrected (3,350) numerator, by ramp year:
+Statewide "persons/year not arriving" under the current (10,051) vs. corrected (3,350) numerator. The reduction keyed to year *Y* is applied in the *Y → Y+1* projection step ([cohort_component.py:421](../../cohort_projections/core/cohort_component.py#L421) loops `for year in range(start, end)`; the factor is `schedule.get(year)`), so it affects the *Y+1* population:
 
-| Year | f | 1 − f | Current (×10,051) | Corrected (×3,350) | Over-removed |
-|---|---:|---:|---:|---:|---:|
-| 2025 | 0.20 | 0.80 | 8,041 | 2,680 | 5,361 |
-| 2026 | 0.37 | 0.63 | 6,332 | 2,111 | 4,221 |
-| 2027 | 0.55 | 0.45 | 4,523 | 1,508 | 3,015 |
-| 2028 | 0.78 | 0.22 | 2,211 | 737 | 1,474 |
-| 2029 | 0.91 | 0.09 | 905 | 302 | 603 |
-| **Σ 2025–2028 (through trough)** | | | **21,107** | **7,036** | **14,072** |
+| Year (Y) | f | 1 − f | Current (×10,051) | Corrected (×3,350) | Over-removed | Feeds level |
+|---|---:|---:|---:|---:|---:|---|
+| 2025 | 0.20 | 0.80 | 8,041 | 2,680 | 5,361 | 2026 |
+| 2026 | 0.37 | 0.63 | 6,332 | 2,111 | 4,221 | 2027 |
+| 2027 | 0.55 | 0.45 | 4,523 | 1,508 | 3,015 | **2028 (trough)** |
+| 2028 | 0.78 | 0.22 | 2,211 | 737 | 1,474 | 2029 |
+| 2029 | 0.91 | 0.09 | 905 | 302 | 603 | 2030 |
+| **Σ feeding the 2028 trough (2025–2027 transitions)** | | | **18,896** | **6,299** | **12,597** | |
 
 ### First-order estimate of the corrected trajectory
 
-Adding the cumulative over-removal back to the trough (first-order; ignores second-order survivorship/birth feedback over the 3-year window and the per-capita distribution mechanics):
+The **2028 trough level reflects the 2025/2026/2027 transitions only** — the 2028-keyed reduction lands on the 2029 level. So the cumulative over-removal baked into the trough is **~12,597**, not the full five-year sum. Adding it back (first-order; ignores second-order survivorship/birth feedback and the per-capita, population-weighted distribution mechanics):
 
-`787,382 (locked 2028 trough) + ~14,072 ≈ 801,454` → roughly **+0.26% vs the 2025 base of 799,358**.
+`787,382 (locked 2028 trough) + ~12,597 ≈ 799,980`.
 
-In words: **the −1.50% decline very likely flattens to approximately flat or slight near-term growth**, and the 2055 endpoint rises modestly above 889,017. This is an estimate; the precise figure requires an actual rerun with the corrected parameter (the engine applies the decrement to per-cell migration *rates*, so the realized person-effect is county-population-weighted).
+An independent cross-check — scaling the *empirical* provisional `cbo_off` − `ref` gap at 2028 (≈17,988) by the corrected fraction (1 − 3,350/10,051 ≈ ⅔) and anchoring on the locked trough — lands at ≈ **799,374**. Both methods put the corrected 2028 in the **~798.5k–800.0k** range, i.e. **essentially flat against the 2025 base of 799,358**: the visible −1.50% decline collapses to a near-flat plateau, with the residual sign (a shallow dip of a few hundred vs. a slight rise) genuinely uncertain at this precision. The 2055 endpoint rises modestly above 889,017. These are estimates; the precise figures require an actual rerun with the corrected parameter.
+
+> **Correction note (GPT-5.5 xhigh review, 2026-06-15):** an earlier draft of this section added back all four 2025–2028 ramp reductions (~14,072) and reported ≈801,454 / +0.26%. That double-counted the 2028-keyed reduction, which does not affect the 2028 output. The corrected trough is ~799.4k–800.0k (essentially flat), not a slight gain.
 
 ## Finding 3 — The direction of suppression is sound and not stale (web-sourced; adversarially verified)
 
