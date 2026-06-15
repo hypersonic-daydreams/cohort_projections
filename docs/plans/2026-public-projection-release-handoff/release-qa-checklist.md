@@ -12,7 +12,7 @@ Status: draft checklist for final-number and marketing handoff.
 - [x] If CF-001 is promoted, production projections are rerun after promotion. → locked rerun 2026-06-13.
 - [x] Input-coverage verification (ADR-067 F2): mortality file spans 2025-2055 (31 yrs) ✓; residual-migration metadata = 11 college counties + GQ 0.75 ✓; convergence rates present for all 53 counties ✓ (verified 2026-06-13). Guards against the 2026-06-01 silent bisync stale-replacement failure mode.
 - [x] Final production run metadata is recorded. → [final-run-metadata.md](final-run-metadata.md).
-- [ ] Final data source notes point to the exact run used for public outputs. (Stage 5 — at packaging.)
+- [x] Final data source notes point to the exact run used for public outputs. → workbook README sheet embeds method/config/commit/sha256 provenance; [final-run-metadata.md](final-run-metadata.md) (2026-06-13).
 - [x] Current March 2026 draft exports are not treated as final numbers. → superseded by the 2026-06-13 locked run.
 
 ## Gate 1b: Demographic Plausibility
@@ -26,51 +26,67 @@ Status: draft checklist for final-number and marketing handoff.
 
 ## Gate 2: Public Download QA
 
-- [ ] Public Excel workbook is generated from a clean staging directory.
-- [ ] Public CSV is generated from a clean staging directory.
-- [ ] CSV contains exactly `1,922` rows: 1 scenario x 62 geographies x 31 years.
-- [ ] CSV contains only `state`, `region`, and `county` geography levels.
-- [ ] CSV contains only Baseline (CBO-Adjusted) rows; no `recent_trend_continuation`, `restricted_growth`, or `high_growth` rows are present.
-- [ ] No city/place rows are present.
-- [ ] No `2025_2045` stale-horizon files are included in the public staging area.
-- [ ] State totals match county sums within tolerance.
-- [ ] Region totals match member-county sums within tolerance.
-- [ ] Public workbook uses `State Key Years` instead of `Scenario Summary`.
-- [ ] Data dictionary matches the final CSV columns.
-- [ ] Excel sheet names match `public-download-spec.md`.
+All items verified and adversarially re-confirmed 2026-06-13 → [release QA sign-off](../../reviews/2026-06-13-release-qa-signoff.md).
+
+- [x] Public Excel workbook is generated from a clean staging directory. → rebuilt 2026-06-13 from locked outputs; 15 sheets.
+- [x] Public CSV is generated from a clean staging directory.
+- [x] CSV contains exactly `1,922` rows: 1 scenario x 62 geographies x 31 years.
+- [x] CSV contains only `state`, `region`, and `county` geography levels.
+- [x] CSV contains only Baseline (CBO-Adjusted) rows; no `recent_trend_continuation`, `restricted_growth`, or `high_growth` rows are present.
+- [x] No city/place rows are present.
+- [x] No `2025_2045` stale-horizon files are included in the public staging area.
+- [x] State totals match county sums within tolerance. → max abs diff ≈ 2.3e-10 (floating-point zero).
+- [x] Region totals match member-county sums within tolerance. → max abs diff 0.0 across all 8 regions.
+- [x] Public workbook uses `State Key Years` instead of `Scenario Summary`.
+- [x] Data dictionary matches the final CSV columns. → 18 columns, exact order match.
+- [x] Excel sheet names match `public-download-spec.md`. → all 9 required sheets present (incl. new State Age-Sex Detail) + 6 Chart sheets.
 
 ## Gate 3: PDF Content QA
 
-- [ ] PDF includes state, region, and county coverage only.
-- [ ] Public copy uses Baseline (CBO-Adjusted) as the only public path.
-- [ ] Public copy states that the baseline is a projection, not a guaranteed outcome.
-- [ ] Required ADR-042 caveats appear near the first statewide exhibit.
-- [ ] Methodology summary identifies base data, fertility, mortality, migration, and baseline construction.
-- [ ] County appendix uses final public numbers.
-- [ ] Any rounded PDF numbers reconcile to the exact downloadable values.
+Verified against the PDF copy source `draft-public-pdf-copy.md` (2026-06-13). Final rendered-PDF
+layout is produced by marketing; re-verify these at layout. → [sign-off](../../reviews/2026-06-13-release-qa-signoff.md).
+
+- [x] PDF includes state, region, and county coverage only. → copy covers state/region/county; "City and place projections are not included."
+- [x] Public copy uses Baseline (CBO-Adjusted) as the only public path.
+- [x] Public copy states that the baseline is a projection, not a guaranteed outcome.
+- [x] Required ADR-042 caveats appear near the first statewide exhibit. → four caveats placed at the Executive Summary / first statewide exhibit with refreshed values.
+- [x] Methodology summary identifies base data, fertility, mortality, migration, and baseline construction.
+- [x] County appendix uses final public numbers. → copy callouts (Williams +52%/~63k, Ward −13%/~59k, Cass +32%/~266k) reconcile to the locked CSV; full appendix populated from downloads at layout.
+- [x] Any rounded PDF numbers reconcile to the exact downloadable values. → spot-checked statewide callouts (799k/787k@2028/889k) against CSV.
 
 ## Gate 4: Language QA
 
-- [ ] Run an ADR-042 banned-language search against public-facing copy.
-- [ ] Replace any disallowed point-estimate wording before handoff.
-- [ ] Confirm `projection`, `scenario`, and `Baseline (CBO-Adjusted)` terminology is used consistently.
-- [ ] Confirm `recent_trend_continuation` appears only in internal notes, not public copy.
-- [ ] Confirm public text does not imply a single guaranteed path.
+ADR-042 banned-language pass executed and adversarially re-confirmed 2026-06-13 → [sign-off](../../reviews/2026-06-13-release-qa-signoff.md).
+
+- [x] Run an ADR-042 banned-language search against public-facing copy. → every hit is a required negation/caveat; only bare uses are in the non-rendering editorial header.
+- [x] Replace any disallowed point-estimate wording before handoff. → none found in the public-facing body.
+- [x] Confirm `projection`, `scenario`, and `Baseline (CBO-Adjusted)` terminology is used consistently.
+- [x] Confirm `recent_trend_continuation` appears only in internal notes, not public copy. → absent from the copy.
+- [x] Confirm public text does not imply a single guaranteed path.
 
 ## Gate 5: Accessibility And Design QA
 
-- [ ] All charts can be interpreted without color alone.
-- [ ] Tables remain readable at PDF scale.
-- [ ] Map labels and legends are legible.
-- [ ] PDF has logical reading order.
-- [ ] Contact block and download links are current.
-- [ ] Figure titles and captions are plain-language and baseline-aware.
+These concern the **rendered** PDF and final figures, which marketing produces. Deferred to
+marketing layout; re-verify at layout. → [sign-off, Open items](../../reviews/2026-06-13-release-qa-signoff.md).
+The chart-ready PNGs are reference cuts; the stale "refresh after final production rerun" chart
+watermark was corrected 2026-06-13, and a Contact & Downloads section (with PLACEHOLDERs) was added
+to the PDF copy.
+
+- [ ] All charts can be interpreted without color alone. *(layout — bar charts also encode sign by axis position; line/age charts use markers)*
+- [ ] Tables remain readable at PDF scale. *(layout)*
+- [ ] Map labels and legends are legible. *(layout)*
+- [ ] PDF has logical reading order. *(layout)*
+- [~] Contact block and download links are current. *(section added to PDF copy with PLACEHOLDERs; marketing inserts live URLs/contact before publication)*
+- [ ] Figure titles and captions are plain-language and baseline-aware. *(layout; chart subtitles now pre-publication-marked; 2025 pyramids are base-year, scenario-independent)*
 
 ## Gate 6: Final Handoff
 
-- [ ] Final public Excel workbook delivered to marketing.
-- [ ] Final public CSV delivered to marketing.
-- [ ] Baseline chart-ready tables delivered to marketing.
-- [ ] Final PDF copy reviewed against this folder.
-- [ ] Decision log updated with any changes made after marketing intake.
-- [ ] `DEVELOPMENT_TRACKER.md` updated with publication-handoff status.
+Deliverables are build-complete and correct (2026-06-13); the delivery and publication actions
+remain. → [sign-off](../../reviews/2026-06-13-release-qa-signoff.md).
+
+- [ ] Final public Excel workbook delivered to marketing. *(built & QA'd; delivery pending)*
+- [ ] Final public CSV delivered to marketing. *(built & QA'd; delivery pending)*
+- [ ] Baseline chart-ready tables delivered to marketing. *(workbook Chart-* sheets + PNGs built; delivery pending)*
+- [ ] Final PDF copy reviewed against this folder. *(copy reviewed; final rendered PDF reviewed at layout)*
+- [x] Decision log updated with any changes made after marketing intake. → CF-001 disposition recorded in [benchmark decision record](../../reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md), [ADR-067](../../governance/adrs/067-ward-grand-forks-divergence-investigation.md), and DEVELOPMENT_TRACKER.
+- [x] `DEVELOPMENT_TRACKER.md` updated with publication-handoff status. → PUB-2026 row updated 2026-06-13 (locked run + Stage 4/5 complete).

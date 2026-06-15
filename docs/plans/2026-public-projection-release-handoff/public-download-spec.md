@@ -36,6 +36,7 @@ Required sheets:
 | `County Annual` | Annual county totals | One row per baseline-county-year. |
 | `County Key Years` | Compact county table for public users | Key years only, baseline-only. |
 | `State Age Groups` | Broad state age-group composition | Include under 18, 18-64, 65+, and 85+. |
+| `State Age-Sex Detail` | Statewide population by 5-year age group and sex | 5-year groups (0-4 … 80-84, 85+) × sex; key years 2025, 2030, 2035, 2040, 2045, 2050, 2055. |
 | `Data Dictionary` | Column definitions and baseline description | Match CSV schema. |
 
 ## CSV File

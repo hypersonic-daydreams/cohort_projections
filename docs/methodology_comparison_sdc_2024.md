@@ -1,30 +1,44 @@
 # Methodology Comparison: ND State Data Center 2024 vs. Our Project
 
-*Updated March 2026. Previous version (December 2025) is obsolete; the model has undergone
-extensive methodological development since that time.*
+*Updated 2026-06-13 against the locked-config production run (`m2026r1` / `cfg-20260611-production-lock`,
+commit `12fa6f9`). This supersedes the March 2026 three-scenario comparison: the public release is now a
+single Baseline (CBO-Adjusted) path (ADR-065), so the figures below are the locked baseline, not the
+former unadjusted trend-continuation baseline. The December 2025 IRS-migration version remains obsolete.*
 
 ## Summary
 
 Both the North Dakota State Data Center (SDC) 2024 projections and our project use the
 **cohort-component method** -- the demographic gold standard. Since December 2025, our model
 has been substantially rebuilt: migration was switched from IRS county-to-county flows to
-**residual migration from Census PEP** (the same conceptual method the SDC uses), the scenario
-structure was refined from four to three variants, race/ethnicity detail was added, group
-quarters were separated, and dozens of targeted adjustments were implemented. As a result, the
-two sets of projections now tell a broadly **similar story of continued state growth**, though
-they differ in magnitude and in county-level trajectories.
+**residual migration from Census PEP** (the same conceptual method the SDC uses), race/ethnicity
+detail was added, group quarters were separated, and dozens of targeted adjustments were
+implemented. The public projection is now a single **Baseline (CBO-Adjusted)** path (ADR-065),
+which layers CBO's January 2026 current-policy outlook -- a front-loaded reduction in net migration
+plus a -5% fertility adjustment -- onto the cohort-component engine. The two sets of projections
+still tell a broadly **similar long-run story of continued state growth**, but they now differ both
+in magnitude and in near-term **trajectory shape**.
 
-| Dimension | SDC 2024 | Our Project (March 2026) |
+| Dimension | SDC 2024 | Our Project (locked baseline, 2026-06-13) |
 |-----------|----------|--------------------------|
 | State 2025 | 796,989 | 799,358 |
-| State 2045 | 925,101 | 865,137 |
-| State 2050 | 957,194 | 874,473 |
-| Direction | Growth (+20.1% by 2050) | Growth (+9.4% by 2050) |
-| Scenarios | Single projection | 3 (Baseline, High Growth, Restricted) |
+| State 2045 | 925,101 | 855,475 |
+| State 2050 | 957,194 | 872,730 |
+| State 2055 | (horizon ends 2050) | 889,017 |
+| Direction | Growth (+20.1% by 2050) | Growth (+9.2% by 2050; +11.2% by 2055), after a 2025-2028 dip |
+| Public path | Single projection | Single public baseline (CBO-Adjusted); High/Restricted retired to inactive internal sensitivities |
 
-The gap has narrowed dramatically compared to the December 2025 comparison, where the two
-models diverged by ~170,000 people by 2045. The current baseline gap at 2045 is **~60,000**
--- still meaningful, but far more aligned than before.
+Two differences from the March comparison matter:
+
+1. **The gap widened modestly and is horizon-growing.** The locked baseline gap is **~70,000 at 2045**
+   and **~84,000 at 2050** (vs. ~60,000 at 2045 in March). The CBO migration adjustment lowers the
+   locked baseline below the former unadjusted baseline, so the gap to the SDC's undampened-growth
+   path is larger. It remains far smaller than the ~170,000 December 2025 divergence, when the two
+   models pointed in opposite directions.
+2. **The near-term shape diverges.** The locked baseline dips from 799,358 (2025) to a trough of
+   **787,382 at 2028** before recovering -- the intended CBO front-loaded migration ramp
+   (f(2025)=0.20 rising to 0.91 by 2029; ADR-065). The SDC path grows monotonically from 2020. Both
+   paths still rise over the full horizon, so the long-run direction agrees even though the first
+   few years do not.
 
 ---
 
@@ -153,7 +167,7 @@ and documented set:
 |------------|----------|-------------|
 | Bakken dampening | ~60% of historical | 40-50% period-specific (ADR-040/051) |
 | Male migration dampening | "Further reduced" (undocumented factor) | 0.80 factor for 2005-2015 periods |
-| College-age smoothing | "Additional adjustments" | 50/50 blend with statewide for ages 15-24 in college counties (ADR-049) |
+| College-age smoothing | "Additional adjustments" | 50/50 blend with statewide for ages 15-29 in 11 college counties (ADR-049, extended to 25-29 by ADR-061 D1; Williams removed by ADR-067) |
 | Reservation recalibration | Not documented | PEP-anchored for Benson, Sioux, Rolette (ADR-045) |
 | Age-aware rate caps | Not documented | +/-15% ages 15-24, +/-8% all others (ADR-043) |
 | Convergence schedule | Not documented | 5-10-5 schedule: 5yr recent-to-medium, 10yr hold, 5yr to long-term |
@@ -175,20 +189,30 @@ The SDC holds survival rates constant at 2020 levels. Our model incorporates gra
 mortality improvement, consistent with long-term historical trends and the approach used
 by the Social Security Administration and Census Bureau.
 
-### 2.5 Scenario Structure
+### 2.5 Scenario Structure and the Public Baseline
 
 | Aspect | SDC 2024 | Our Project |
 |--------|----------|-------------|
-| Scenarios | Single projection | **3 scenarios** |
-| Fertility variation | Fixed | Constant (baseline), +5% (high), -5% (restricted) |
-| Migration variation | Fixed (dampened) | Convergence (baseline), BEBR-optimistic+floor (high), CBO immigration reduction (restricted) |
-| Mortality variation | Fixed | 0.5%/yr improvement (all) |
+| Public path | Single projection | **Single public baseline (CBO-Adjusted)** (ADR-065) |
+| Fertility | Fixed | -5% CBO adjustment on the public baseline |
+| Migration | Fixed (dampened) | Convergence-based residual migration **plus** the CBO additive reduction schedule (ADR-050/065), front-loaded 2025-2029 |
+| Mortality | Fixed | 0.5%/yr improvement |
 
-Our three scenarios:
+The public release carries **one** path. After ADR-065, the model's former unadjusted
+trend-continuation baseline, High Growth, and Restricted Growth variants were retired to
+**inactive internal sensitivities**: the engine can still produce them, but they are not
+maintained at the locked vintage and are **not** part of the public package. Their on-disk
+outputs are stale (2026-02-26, pre-ADR-066) and must not be cited as current planning bounds.
 
-- **Baseline**: Trend continuation, constant fertility, convergence migration, 0.5%/yr mortality improvement
-- **High Growth**: +5% fertility, BEBR-optimistic migration with Ward County floor, 0.5%/yr mortality improvement
-- **Restricted Growth**: -5% fertility, CBO immigration policy reduction (additive), 0.5%/yr mortality improvement
+The public **Baseline (CBO-Adjusted)** is therefore the comparison path throughout this
+document:
+
+- **Base:** Census PEP Vintage 2025 (799,358; ADR-066), single-year age/sex/race.
+- **Fertility:** -5% relative to the held-constant ND-adjusted rates (CBO January 2026 outlook).
+- **Migration:** residual migration with BEBR multi-period averaging and 5-10-5 convergence,
+  then the ADR-050 additive CBO reduction applied on a front-loaded schedule (most aggressive in
+  2025-2026, relaxing through 2029). This schedule is what produces the 2025-2028 dip.
+- **Mortality:** 0.5%/yr Lee-Carter-style improvement.
 
 ### 2.6 Base Population Processing
 
@@ -239,36 +263,42 @@ internal consistency. The SDC appears to project state and counties independentl
 | 2045 | 925,101 | +18.7% |
 | 2050 | 957,194 | +22.9% |
 
-#### Our Project (Three Scenarios, from 2025 base)
+#### Our Project (locked public Baseline, CBO-Adjusted, from 2025 base)
 
-| Year | Baseline | High Growth | Restricted |
-|------|----------|-------------|------------|
-| 2025 | 799,358 | 799,358 | 799,358 |
-| 2030 | 809,857 | 847,464 | 784,237 |
-| 2035 | 828,536 | 893,159 | 797,694 |
-| 2040 | 848,252 | 941,303 | 811,960 |
-| 2045 | 865,137 | 990,561 | 823,275 |
-| 2050 | 874,473 | 1,034,655 | 826,944 |
-| 2055 | 882,146 | 1,078,346 | 828,470 |
+| Year | Baseline | Change from 2025 |
+|------|----------|-------------------|
+| 2025 | 799,358 | -- |
+| 2028 | 787,382 | -1.50% (trough) |
+| 2030 | 792,478 | -0.86% |
+| 2035 | 814,484 | +1.89% |
+| 2040 | 836,767 | +4.68% |
+| 2045 | 855,475 | +7.02% |
+| 2050 | 872,730 | +9.18% |
+| 2055 | 889,017 | +11.22% |
+
+The locked baseline declines for the first three years (the CBO front-loaded migration ramp),
+bottoms at 787,382 in 2028, then grows steadily to 889,017 by 2055. High Growth and Restricted
+Growth are retired internal sensitivities (§2.5) and are not shown.
 
 #### Direct Comparison (Baseline vs. SDC, Overlapping Years)
 
 | Year | SDC 2024 | Our Baseline | Difference | Diff % |
 |------|----------|--------------|------------|--------|
 | 2025 | 796,989 | 799,358 | +2,369 | +0.3% |
-| 2030 | 831,543 | 809,857 | -21,686 | -2.6% |
-| 2035 | 865,397 | 828,536 | -36,861 | -4.3% |
-| 2040 | 890,424 | 848,252 | -42,172 | -4.7% |
-| 2045 | 925,101 | 865,137 | -59,964 | -6.5% |
-| 2050 | 957,194 | 874,473 | -82,721 | -8.6% |
+| 2030 | 831,543 | 792,478 | -39,065 | -4.7% |
+| 2035 | 865,397 | 814,484 | -50,913 | -5.9% |
+| 2040 | 890,424 | 836,767 | -53,657 | -6.0% |
+| 2045 | 925,101 | 855,475 | -69,626 | -7.5% |
+| 2050 | 957,194 | 872,730 | -84,464 | -8.8% |
 
-The SDC projects more vigorous growth, but both models agree on the direction: **North Dakota
-will grow**. The gap at 2045 is ~60,000 -- a significant improvement from the ~170,000
-divergence in the December 2025 comparison, when our model used IRS data and projected decline.
-
-Notably, our **High Growth** scenario (990,561 in 2045) exceeds the SDC projection
-(925,101 in 2045), while our **Restricted** scenario (823,275) falls below it. The SDC's
-single projection falls between our Baseline and High Growth scenarios, closer to our Baseline.
+Both models agree on the long-run direction: **North Dakota grows**. But the gap is larger and
+horizon-growing relative to the March comparison, for two reasons. First, the CBO migration
+adjustment (ADR-065) lowers the public baseline below the former unadjusted baseline that the
+March numbers reflected, widening the distance to the SDC's undampened-growth path. Second, the
+2030 gap is exaggerated by the near-term dip: our baseline is at its CBO-suppressed trough while
+the SDC is already several years into monotonic growth. By 2050 the gap is ~84,000 (-8.8%), still
+far smaller than the ~170,000 December 2025 divergence when the two models pointed in opposite
+directions.
 
 ### 3.2 Key County Comparisons (2025-2050)
 
@@ -277,92 +307,116 @@ single projection falls between our Baseline and High Growth scenarios, closer t
 | Year | SDC 2024 | Our Baseline | Difference |
 |------|----------|--------------|------------|
 | 2025 | 194,767 | 201,794 | +7,027 |
-| 2030 | 211,322 | 212,222 | +900 |
-| 2035 | 227,406 | 223,450 | -3,956 |
-| 2040 | 239,681 | 234,065 | -5,616 |
-| 2045 | 255,799 | 242,389 | -13,410 |
-| 2050 | 272,878 | 247,708 | -25,170 |
+| 2030 | 211,322 | 208,860 | -2,462 |
+| 2035 | 227,406 | 222,542 | -4,864 |
+| 2040 | 239,681 | 235,668 | -4,013 |
+| 2045 | 255,799 | 246,492 | -9,307 |
+| 2050 | 272,878 | 255,978 | -16,900 |
 
-Both project strong Cass County growth, but the SDC projects faster acceleration. Our model
-starts higher (201,794 vs. 194,767 in 2025, reflecting PEP Vintage 2025 data) but grows
-more conservatively due to GQ-corrected migration (ADR-055 Phase 2 removed NDSU dorm
-growth from the migration signal).
+Both project strong Cass County growth (our locked baseline +31.6% to 265,570 by 2055), but the
+SDC projects faster acceleration. Our model starts higher (201,794 vs. 194,767 in 2025, reflecting
+PEP Vintage 2025 data) but grows more conservatively due to GQ-corrected migration (ADR-055 Phase 2
+removed NDSU dorm growth from the migration signal) and the CBO migration adjustment.
 
 #### Burleigh County (Bismarck)
 
 | Year | SDC 2024 | Our Baseline | Difference |
 |------|----------|--------------|------------|
 | 2025 | 100,657 | 103,251 | +2,594 |
-| 2030 | 108,057 | 106,137 | -1,920 |
-| 2035 | 114,646 | 109,783 | -4,863 |
-| 2040 | 117,739 | 113,460 | -4,279 |
-| 2045 | 123,366 | 117,041 | -6,325 |
-| 2050 | 128,663 | 119,663 | -9,000 |
+| 2030 | 108,057 | 103,339 | -4,718 |
+| 2035 | 114,646 | 106,650 | -7,996 |
+| 2040 | 117,739 | 109,950 | -7,789 |
+| 2045 | 123,366 | 112,997 | -10,369 |
+| 2050 | 128,663 | 116,040 | -12,623 |
 
-Both project continued Burleigh County growth. The SDC projects steeper growth after 2030.
+Both project continued Burleigh County growth (our locked baseline +15.1% to 118,847 by 2055).
+The SDC projects steeper growth after 2030; our near-term figures are also held down by the CBO
+migration ramp, which is most aggressive in 2025-2029.
 
 #### Grand Forks County
 
 | Year | SDC 2024 | Our Baseline | Difference |
 |------|----------|--------------|------------|
 | 2025 | 74,966 | 74,501 | -465 |
-| 2030 | 77,443 | 72,953 | -4,490 |
-| 2035 | 79,159 | 71,752 | -7,407 |
-| 2040 | 80,561 | 71,064 | -9,497 |
-| 2045 | 81,238 | 69,599 | -11,639 |
-| 2050 | 81,582 | 67,501 | -14,081 |
+| 2030 | 77,443 | 72,672 | -4,771 |
+| 2035 | 79,159 | 73,073 | -6,086 |
+| 2040 | 80,561 | 73,548 | -7,013 |
+| 2045 | 81,238 | 72,977 | -8,261 |
+| 2050 | 81,582 | 71,967 | -9,615 |
 
-**Grand Forks is the largest county-level divergence.** The SDC projects modest growth while
-our model projects decline. This is driven by our college-age smoothing (ADR-049) and
-GQ correction (ADR-055), which reduce the apparent migration signal in a county dominated
-by UND enrollment patterns. Our model also reflects more recent PEP data (through 2024)
-showing ongoing population loss.
+The SDC projects modest growth while our locked baseline is roughly flat-to-slightly-declining
+(-4.4% over the full horizon, to 71,245 by 2055). The locked-config Grand Forks trajectory is
+**less severe** than the older pre-lock figures (which fell to 67,501 by 2050): under the 25-29
+smoothing extension (ADR-061 D1), the Grand Forks backtest sentinel improved sharply (MAPE 11.12 ->
+7.39 on the clean raw-base matrix). The remaining decline is **assumption-driven, not a county-rate
+artifact**: ADR-067 F4 attributes ~52% of it to the disclosed CBO international-migration assumption
+(Grand Forks' 2023-2025 growth was on international migration, exactly the component CBO reduces) and
+~41% to the long-run convergence stance. See `docs/reviews/2026-06-13-divergent-counties-methods-and-framing.md`.
 
 #### Ward County (Minot)
 
 | Year | SDC 2024 | Our Baseline | Difference |
 |------|----------|--------------|------------|
 | 2025 | 72,066 | 68,233 | -3,833 |
-| 2030 | 74,545 | 65,988 | -8,557 |
-| 2035 | 77,503 | 64,758 | -12,745 |
-| 2040 | 79,852 | 63,441 | -16,411 |
-| 2045 | 82,831 | 61,959 | -20,872 |
-| 2050 | 85,975 | 59,420 | -26,555 |
+| 2030 | 74,545 | 64,789 | -9,756 |
+| 2035 | 77,503 | 64,039 | -13,464 |
+| 2040 | 79,852 | 63,178 | -16,674 |
+| 2045 | 82,831 | 62,090 | -20,741 |
+| 2050 | 85,975 | 60,760 | -25,215 |
 
-Ward County shows the second-largest divergence. The SDC projects growth while our baseline
-projects decline. This reflects different assessments of Minot's migration trajectory,
-particularly the impact of Minot Air Force Base and post-2020 population trends. Our High
-Growth scenario includes a Ward County floor (ADR-052) that prevents decline, bringing
-it closer to the SDC's projection in that variant.
+**Ward County is the largest proportional divergence:** the SDC projects ~+23% growth while our
+locked baseline declines -13.1% (to 59,288 by 2055). This is **driven by observed data, not a
+method artifact**: Ward's net migration was negative in every year 2020-2025 (cumulative ~-3,950),
+and ADR-067 F4 found that all method/assumption levers combined move Ward only ~+3,660 at 2055
+against a ~9,250 projected decline -- the majority of the decline survives every variant. The
+institutional anchors (Minot AFB, MISU) are held constant (GQ), so the decline is in the
+household/working-age population. The SDC's +23% predates the post-2020 reversal and the
+Vintage-2025 base. The retired High Growth sensitivity carried a Ward County floor (ADR-052) that
+prevented decline, but it is not part of the public baseline.
 
 #### Williams County (Williston)
 
 | Year | SDC 2024 | Our Baseline | Difference |
 |------|----------|--------------|------------|
 | 2025 | 43,807 | 41,767 | -2,040 |
-| 2030 | 46,170 | 43,129 | -3,041 |
-| 2035 | 48,635 | 46,780 | -1,855 |
-| 2040 | 50,953 | 51,011 | +58 |
-| 2045 | 53,957 | 55,851 | +1,894 |
-| 2050 | 56,047 | 60,732 | +4,685 |
+| 2030 | 46,170 | 41,833 | -4,337 |
+| 2035 | 48,635 | 45,204 | -3,431 |
+| 2040 | 50,953 | 49,111 | -1,842 |
+| 2045 | 53,957 | 53,632 | -325 |
+| 2050 | 56,047 | 58,556 | +2,509 |
 
-Williams County is interesting: both models project growth, but our model eventually
-projects **faster** growth than the SDC. This likely reflects our use of more recent
-2020-2024 PEP data capturing continued Bakken-area in-migration, combined with our
-convergence schedule that transitions from recent rates to medium-term rates over 5 years
-before holding for 10 years and then converging to long-term rates.
+Both models project Williams growth; our locked baseline is initially below the SDC but
+overtakes it by 2050 and reaches 63,295 (+51.5%) by 2055. This is the county most changed by the
+locked config: ADR-067 **removed** Williams from the college-age smoothing list (Williston State
+College is only 1.5% of population, below ADR-061's own 2.5% threshold, so its young-adult
+migration is oil-economic, not enrollment-driven). Removal improved Williams' backtest accuracy
+(county MAPE 23.38 -> 22.48 on the clean raw-base matrix) and accounts for ~+8,978 of the locked
+baseline's gain at 2055. Crucially, the growth is **conservative on migration**: projected net
+in-migration settles near +388/yr, roughly half the recent observed +780/yr (2023-2025); the rest
+is natural increase from a very young age structure. Williams is consistent with peer oil counties
+McKenzie (+76%) and Billings (+49%). See `docs/reviews/2026-06-13-divergent-counties-methods-and-framing.md`.
 
 ---
 
 ## 4. Root Cause Analysis: Why the Projections Diverge
 
-### 4.1 The Gap is Much Smaller Than Before
+### 4.1 The Gap is Much Smaller Than Before, But Horizon-Growing
 
 In the December 2025 comparison, the projections diverged by ~170,000 people by 2045 and
-pointed in opposite directions (SDC: growth, ours: decline). The current gap is ~60,000
-by 2045, with both models pointing in the same direction: growth.
+pointed in opposite directions (SDC: growth, ours: decline). The locked gap is ~70,000 by 2045
+and ~84,000 by 2050, with both models pointing in the same long-run direction: growth. The gap
+is larger than the March comparison's ~60,000 mainly because the public baseline now carries the
+CBO migration adjustment (ADR-065), which lowers it below the former unadjusted baseline that the
+March numbers reflected.
 
-**What changed:**
+**The near-term shape now differs too.** The locked baseline dips to a 2028 trough (787,382)
+before recovering, while the SDC grows monotonically. The dip is entirely the CBO front-loaded
+migration ramp: the Stage-1 sensitivity decomposition (ADR-065 defensibility memo) showed that with
+the CBO migration adjustment removed, our trajectory rises monotonically with no dip. So the 2030
+gap (-4.7%) overstates the structural disagreement -- it compares our CBO-suppressed trough year
+against an SDC path already several years into growth.
+
+**What changed since December 2025:**
 
 1. **Migration method**: We switched from IRS county-to-county flows (which showed net
    out-migration for 2019-2022) to Census PEP residual migration (which shows positive
@@ -375,9 +429,15 @@ by 2045, with both models pointing in the same direction: growth.
 3. **Multi-period averaging**: Using five periods (2000-2024) with BEBR averaging (ADR-036)
    incorporates the positive migration signal from the early-to-mid 2000s and 2020s.
 
-### 4.2 The Remaining ~60,000 Gap
+### 4.2 The Remaining ~70,000-84,000 Gap
 
-The remaining divergence is driven by several factors:
+A useful way to size the components is the ADR-067 F4 forward decomposition of the locked baseline
+against the former unadjusted baseline at 2050: the CBO migration adjustment removes roughly
+-23,000, the -5% CBO fertility adjustment roughly -13,000, the GQ-fraction calibration (f=0.75)
+adds roughly +3,000, and the rejected convergence hold (ADR-061 D3) would have added a further
++9,000 had it been deployed. The CBO adjustments are thus the single largest reason the locked
+baseline sits below the SDC's undampened-growth path. Beyond those, the remaining divergence is
+driven by:
 
 #### Migration Rate Magnitude
 
@@ -459,32 +519,59 @@ The divergence is not uniform across counties:
 
 ### The Likely Reality
 
-**The two models now bracket a plausible range.** With both projecting growth, the key
-question is no longer "will North Dakota grow or decline?" but rather "how fast?"
+**Both projections point to growth; they differ on pace and on the federal-policy assumption.**
+With the public release now baseline-only, the honest framing is a comparison of two paths rather
+than a four-point scenario envelope:
 
-- **More optimistic bound**: SDC 2024 (~925K by 2045)
-- **Central estimate**: Our Baseline (~865K by 2045)
-- **Conservative bound**: Our Restricted (~823K by 2045)
+- **SDC 2024**: ~925K by 2045 (~957K by 2050) -- an undampened-growth path that does not encode the
+  CBO current-policy migration reduction.
+- **Our locked Baseline (CBO-Adjusted)**: ~855K by 2045 (~873K by 2050, ~889K by 2055) -- the same
+  cohort-component engine plus CBO's January 2026 outlook, which front-loads a migration reduction
+  and trims fertility -5%.
 
-For most planning purposes, the 865K-925K range for 2045 represents a reasonable planning
-envelope. Our High Growth scenario (991K) suggests an upper bound if energy and economic
-conditions prove exceptionally favorable.
+Much of the ~70-84K gap is therefore an **assumption** difference (the CBO adjustments remove
+roughly -36,000 by 2050; §4.2), not a structural methodological disagreement. A reader who rejects
+the CBO current-policy assumption should read our baseline as a lower-migration path and the SDC as
+closer to a no-policy-change path. The model can still produce higher/lower sensitivity variants
+internally, but they are not maintained at the locked vintage and are not published.
 
-### What Would Need to Happen for Each Scenario
+### What Would Need to Happen for Each Path
 
-**For SDC's trajectory to materialize:**
+**For the SDC's higher trajectory to materialize:** sustained net in-migration of ~4,000-6,000/year
+for 20+ years, continued strong energy employment, and -- critically -- federal immigration running
+above the CBO current-policy path (91% of recent ND net migration has been international).
 
-- Sustained net in-migration of 4,000-6,000/year for 20+ years
-- Continued strong energy sector employment
-- Successful diversification of the economy beyond energy
-- Remote work and quality-of-life attracting new residents
+**For our Baseline to materialize:** the CBO front-loaded migration reduction holds in 2025-2029,
+then net migration recovers to a moderate, gradually-converging positive level; natural increase
+stays positive but narrows as the population ages.
 
-**For our Baseline trajectory to materialize:**
+### Validated Strengths and Acknowledged Weaknesses
 
-- Moderate positive net in-migration that gradually declines toward equilibrium
-- Natural increase remaining positive but narrowing as the population ages
-- No dramatic energy sector expansion or contraction
-- Gradual mortality improvement consistent with national trends
+The clean raw-base walk-forward matrix (2026-06-11, ADR-067) gives an honest profile of where the
+locked method is strong and where it is not. This matters because **neither model's long-horizon
+state magnitude can be directly validated**, and the CBO adjustments postdate the entire historical
+record (they cannot be backtested at all; methodology.md §10.4).
+
+**Where the method is strong (backtest-validated):**
+
+- **Recent-origin state accuracy.** State APE is ~1.0% at short horizons and ~1.5% at medium
+  horizons from recent launch years -- the model tracks the state total well when launched from
+  recent data.
+- **Low signed bias.** Recent-origin signed bias is +0.97 (locked config) -- no large systematic
+  over- or under-projection at the state level in backtests.
+- **College-county accuracy.** The 25-29 smoothing extension materially improved the counties under
+  the most public scrutiny: Grand Forks sentinel MAPE 11.12 -> 7.39, Cass 9.35 -> 7.65, Ward 13.93 ->
+  13.24.
+
+**Where the method is weak (acknowledged):**
+
+- **Long-horizon state magnitude.** Error grows with horizon, and the long-run state total is exactly
+  where the model diverges most from the SDC (-8.8% by 2050) and where no out-of-sample check exists.
+  Treat the 2050+ state level as the least certain output.
+- **Oil/Bakken counties.** Boom-bust volatility makes these intrinsically hard: Williams' backtest
+  MAPE is ~22%, the highest of the sentinels, even after the ADR-067 smoothing-removal improvement.
+- **Forward CBO assumptions.** The -5% fertility and additive migration reduction are unvalidatable
+  policy assumptions; they drive the near-term dip and the lower long-run total.
 
 ---
 
@@ -747,7 +834,7 @@ From examining the source files:
 | Migration periods | 2000-2020 (4 periods) | 2000-2024 (5 periods) | **Partially aligned** |
 | Bakken dampening | ~60% | 40-50% period-specific (ADR-040/051) | **Aligned** in concept |
 | Male migration dampening | Yes (undocumented factor) | 0.80 for 2005-2015 | **Aligned** in concept |
-| College-age adjustment | Yes (undocumented) | 50/50 statewide blend, ages 15-24 (ADR-049) | **Aligned** in concept |
+| College-age adjustment | Yes (undocumented) | 50/50 statewide blend, ages 15-29, 11 counties (ADR-049/061 D1; ADR-067) | **Aligned** in concept |
 | GQ separation | None | Separated + held constant (ADR-055) | **Divergent** -- Ours more rigorous |
 | Reservation calibration | Not documented | PEP-anchored (ADR-045) | **Divergent** |
 | Migration convergence | Not documented | 5-10-5 schedule | **Divergent** |
@@ -757,30 +844,36 @@ From examining the source files:
 | Mortality improvement | None (constant) | 0.5%/yr Lee-Carter style | **Divergent** |
 | Mortality by race | No | Yes (6 categories) | **Divergent** |
 | Manual adjustments | Yes | None (fully algorithmic) | **Divergent** |
-| Scenarios | 1 (single projection) | 3 (Baseline, High, Restricted) | **Divergent** |
+| Public path | 1 (single projection) | 1 public Baseline (CBO-Adjusted); High/Restricted retired to inactive sensitivities | **Aligned** (both single public path) |
+| Forward policy adjustment | None | CBO Jan-2026 current-policy: front-loaded migration reduction + -5% fertility (ADR-065) | **Divergent** -- largest single source of the gap |
 | Automated tests | Not documented | 1,570 tests | **Divergent** |
 | Backtesting | Not documented | Rolling-origin, 34 folds (ADR-057) | **Divergent** |
 | Cross-validation | Not documented | Housing-unit method (ADR-060) | **Divergent** |
 | Documentation | PDF report | ADRs + SOPs + metadata | **Divergent** |
-| **State 2045** | **925,101** | **865,137 (Baseline)** | **~7% gap** |
-| **State 2050** | **957,194** | **874,473 (Baseline)** | **~9% gap** |
-| **Direction** | **Growth** | **Growth** | **Aligned** |
+| **State 2045** | **925,101** | **855,475 (Baseline)** | **-7.5% gap** |
+| **State 2050** | **957,194** | **872,730 (Baseline)** | **-8.8% gap** |
+| **State 2055** | **(horizon ends 2050)** | **889,017 (Baseline, +11.2%)** | **n/a** |
+| **Near-term shape** | **Monotonic growth** | **2025-2028 dip (CBO ramp), then growth** | **Divergent (near-term)** |
+| **Direction (long-run)** | **Growth** | **Growth** | **Aligned** |
 
 ---
 
 ## 8. Recommendations
 
-### 8.1 Present Both Projections as a Range
+### 8.1 Present the Public Baseline, with the SDC as External Comparison
 
-When presenting results to stakeholders, show both sets of projections as a plausible range:
+The public release is baseline-only (ADR-065), so the four-point scenario envelope used in the
+March comparison no longer applies (High/Restricted are retired internal sensitivities at a stale
+vintage). For stakeholder communication, present:
 
-- **Conservative bound**: Our Restricted Growth scenario (~828K by 2050)
-- **Central estimate**: Our Baseline (~874K by 2050)
-- **Optimistic bound**: SDC 2024 (~957K by 2050)
-- **Aggressive bound**: Our High Growth (~1,035K by 2050)
+- **Public planning path**: Our locked Baseline (CBO-Adjusted) -- ~873K by 2050, ~889K by 2055.
+- **External comparison point**: SDC 2024 -- ~957K by 2050 -- as a higher path that does not encode
+  the CBO current-policy migration reduction.
 
-This four-point range communicates uncertainty honestly and lets planners calibrate to
-their risk tolerance.
+The honest message is that most of the difference is a single, disclosed federal-policy assumption
+(§4.2), not a methodological disagreement, and that long-horizon state magnitude is the least
+certain output for either model (§5, Validated Strengths and Acknowledged Weaknesses). Avoid
+presenting the retired High/Restricted figures as a current uncertainty band.
 
 ### 8.2 Investigate County-Level Divergences
 
@@ -836,6 +929,6 @@ dialogue with the SDC:
 
 ---
 
-*Last updated: 2026-03-02*
-*Model version: 2.4.0*
-*Previous version: December 2025 (obsolete -- model used IRS migration, projected state decline)*
+*Last updated: 2026-06-13 (locked-config production run `m2026r1` / `cfg-20260611-production-lock`, commit `12fa6f9`; PUB-2026 finality remediation Stage 4.3).*
+*Supersedes: March 2026 three-scenario comparison (pre-ADR-065/066). December 2025 IRS-migration version remains obsolete.*
+*Companion references: `docs/reviews/2026-06-13-locked-run-sanity-check.md`, `docs/reviews/2026-06-13-divergent-counties-methods-and-framing.md`, `docs/governance/adrs/067-ward-grand-forks-divergence-investigation.md`.*

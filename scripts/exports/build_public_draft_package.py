@@ -7,8 +7,10 @@ parquet exports under ``data/projections/baseline/``. Outputs are written into
 the marketing handoff folder. After ADR-065, run this only after the baseline
 projection outputs have been regenerated with CBO-adjusted assumptions.
 
-Every output is marked DRAFT. Rerun this script after CF-001 disposition
-and any production rerun.
+Numbers reflect the locked-config production run (``m2026r1`` / ``cfg-20260611-production-lock``,
+commit ``12fa6f9``, 2026-06-13; CF-001 disposed, ADR-067 applied). Outputs remain marked DRAFT
+because they are a pre-publication marketing handoff, not because the numbers are provisional.
+Rerun only if the locked production outputs change.
 
 Usage:
     python scripts/exports/build_public_draft_package.py
@@ -34,7 +36,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from _methodology import (  # noqa: E402
     CONDITIONAL_CAVEAT,
-    PROVISIONAL_LABEL,
     SCENARIOS,
 )
 from build_detail_workbooks import (  # noqa: E402
@@ -80,10 +81,24 @@ NUM_FMT = "#,##0"
 RATIO_FMT = "0.00"
 
 DRAFT_BANNER = (
-    "DRAFT — layout values from the current baseline projection exports. "
-    "Refresh after CF-001 disposition and any approved production rerun."
+    "DRAFT (pre-publication marketing handoff) — values from the locked-config production run "
+    "m2026r1 / cfg-20260611-production-lock (2026-06-13). Numbers are final/locked; the DRAFT "
+    "mark reflects pending public layout and release, not provisional data."
 )
-SOURCE_CAPTION = "Source: ND State Data Center, draft baseline projection exports."
+# Header sub-label for this package. The shared PROVISIONAL_LABEL ("Pending Review — Subject to
+# Change") contradicts the locked-final numbers, so this package uses a pre-publication label
+# consistent with DRAFT_BANNER (numbers final; layout/publication pending).
+PREPUB_LABEL = "Pre-publication marketing draft — numbers final/locked 2026-06-13; public layout pending"
+SOURCE_CAPTION = "Source: ND State Data Center, locked-config baseline projection (2026-06-13)."
+# Figure subtitle for chart/pyramid PNGs (was the now-stale "refresh after final production rerun").
+FIGURE_SUBTITLE = "Pre-publication draft — ND State Data Center (2026 locked projection)"
+
+# Locked-run provenance (see docs/.../final-run-metadata.md)
+RUN_METHOD = "m2026r1"
+RUN_CONFIG = "cfg-20260611-production-lock"
+RUN_COMMIT = "12fa6f9"
+RUN_CONFIG_SHA16 = "bf897444b5a4fec7"
+RUN_DATE = "2026-06-13"
 
 
 # ---------------------------------------------------------------------------
@@ -341,7 +356,7 @@ def _write_header_block(ws, title: str, *, scenario_line: str | None = None) -> 
     if scenario_line:
         ws.cell(row=2, column=1, value=scenario_line).font = SUBTITLE_FONT
     ws.cell(row=3, column=1, value=DRAFT_BANNER).font = DRAFT_FONT
-    ws.cell(row=4, column=1, value=PROVISIONAL_LABEL).font = SUBTITLE_FONT
+    ws.cell(row=4, column=1, value=PREPUB_LABEL).font = SUBTITLE_FONT
     return 6
 
 
@@ -408,12 +423,30 @@ def _build_readme_sheet(wb: Workbook) -> None:
             NORMAL_FONT,
         ),
         ("", NORMAL_FONT),
-        ("Refresh trigger", SECTION_FONT),
+        ("Run provenance", SECTION_FONT),
         (
-            "These numbers are layout-only and must be refreshed once "
-            "CF-001 (college fix model revision) is disposed and any "
-            "approved production rerun is complete. Targeted final lock: "
-            "week of 2026-06-01.",
+            f"Method / config: {RUN_METHOD} / {RUN_CONFIG} "
+            f"(alias county_champion). Run date: {RUN_DATE}.",
+            NORMAL_FONT,
+        ),
+        (
+            f"Git commit at run: {RUN_COMMIT}. "
+            f"projection_config.yaml sha256 (16): {RUN_CONFIG_SHA16}.",
+            NORMAL_FONT,
+        ),
+        (
+            "Locked per ADR-061 (Accepted as modified), ADR-065 (CBO-adjusted "
+            "baseline), ADR-066 (Vintage 2025 base), ADR-067 (Williams removed "
+            "from college smoothing). CF-001 disposed 2026-06-11.",
+            NORMAL_FONT,
+        ),
+        ("", NORMAL_FONT),
+        ("Status", SECTION_FONT),
+        (
+            "Numbers are final/locked as of 2026-06-13. These files are a "
+            "pre-publication marketing handoff: the DRAFT mark reflects pending "
+            "public layout and release, not provisional data. Rerun only if the "
+            "locked production outputs change.",
             NORMAL_FONT,
         ),
         ("", NORMAL_FONT),
@@ -462,6 +495,11 @@ def _build_readme_sheet(wb: Workbook) -> None:
         ),
         (
             "State Age Groups — under 18, 18–64, 65+, and 85+ totals by year.",
+            NORMAL_FONT,
+        ),
+        (
+            "State Age-Sex Detail — statewide population by 5-year age group "
+            "(0–4 … 80–84, 85+) and sex at the key years 2025–2055.",
             NORMAL_FONT,
         ),
         (
@@ -675,6 +713,60 @@ def _build_state_age_groups(wb: Workbook, tidy: pd.DataFrame) -> None:
         numeric_cols=numeric,
         column_widths={"scenario": 22},
     )
+
+
+def _build_state_age_sex_detail(
+    wb: Workbook, bundle: dict[str, dict[str, pd.DataFrame]]
+) -> None:
+    """State population by 5-year age group and sex at the key years.
+
+    One row per (age group, sex); one column per key year. Built from the
+    single-year-age state parquet so the detail is exact, then binned into the
+    standard 5-year groups (0-4 … 80-84, 85+).
+    """
+    ws = wb.create_sheet("State Age-Sex Detail")
+    row = _write_header_block(
+        ws,
+        "Baseline State Population by 5-Year Age Group and Sex (DRAFT)",
+        scenario_line="Scenario: Baseline (CBO-Adjusted); key years 2025–2055",
+    )
+
+    state = bundle["baseline"]["state"]
+    df = state[state["year"].isin(KEY_YEARS)].copy()
+    df["age_group_start"] = ((df["age"] // 5) * 5).clip(upper=85)
+
+    def _label(start: int) -> str:
+        return "85+" if start >= 85 else f"{int(start)}-{int(start) + 4}"
+
+    df["Age Group"] = df["age_group_start"].apply(_label)
+
+    grouped = (
+        df.groupby(["age_group_start", "Age Group", "sex", "year"], observed=True)["population"]
+        .sum()
+        .reset_index()
+    )
+    pivot = grouped.pivot_table(
+        index=["age_group_start", "Age Group", "sex"],
+        columns="year",
+        values="population",
+        aggfunc="sum",
+        fill_value=0.0,
+    ).reset_index()
+    pivot = pivot.sort_values(["age_group_start", "sex"]).drop(columns="age_group_start")
+    pivot = pivot.rename(columns={"sex": "Sex"})
+    pivot.columns = [str(c) if isinstance(c, int) else c for c in pivot.columns]
+    year_cols = [str(y) for y in KEY_YEARS]
+    pivot = pivot[["Age Group", "Sex", *year_cols]]
+
+    _write_dataframe(
+        ws,
+        pivot,
+        row,
+        numeric_cols=set(year_cols),
+        column_widths={"Age Group": 14, "Sex": 10},
+    )
+    for ci in range(3, len(pivot.columns) + 1):
+        ws.column_dimensions[get_column_letter(ci)].width = 12
 
 
 def _build_chart_state_line(wb: Workbook, tidy: pd.DataFrame) -> None:
@@ -945,6 +1037,7 @@ def build_workbook(
     _build_county_annual(wb, tidy)
     _build_county_key_years(wb, tidy)
     _build_state_age_groups(wb, tidy)
+    _build_state_age_sex_detail(wb, bundle)
     _build_chart_state_line(wb, tidy)
     _build_chart_region_bars(wb, tidy)
     _build_chart_county_top_bottom(wb, tidy)
@@ -1009,7 +1102,7 @@ def _make_pyramid(
         output_path=output_path,
         by_race=False,
         age_group_size=5,
-        title=f"{title}\nDRAFT — refresh after final production rerun",
+        title=f"{title}\n{FIGURE_SUBTITLE}",
         figsize=(9, 7),
         dpi=300,
     )
@@ -1060,7 +1153,7 @@ def generate_pyramids(
 
 def _draft_figure_style(ax, title: str, *, ylabel: str | None = None) -> None:
     ax.set_title(
-        f"{title}\nDRAFT — refresh after final production rerun",
+        f"{title}\n{FIGURE_SUBTITLE}",
         fontsize=13,
         fontweight="bold",
     )
