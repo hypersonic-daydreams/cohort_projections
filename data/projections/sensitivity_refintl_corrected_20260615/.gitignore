@@ -1,0 +1,8 @@
+# ADR-068 ref_intl sensitivity run (2026-06-15).
+# The projection outputs, run logs, comparison CSVs, and config snapshots are
+# reproducible from build_comparison.py and are NOT committed (per the workspace
+# "never commit data files" rule). Keep only the script and README for reference.
+*
+!.gitignore
+!README.md
+!build_comparison.py

@@ -69,7 +69,7 @@ def main() -> None:
     html = build_html_document(
         title="Methodology Comparison: ND State Data Center 2024 vs. Our Project",
         version="",
-        date_str="February 2026",
+        date_str="June 2026",
         md_source=md_text,
         subtitle="Cohort-Component Projection Model — Side-by-Side Analysis",
     )

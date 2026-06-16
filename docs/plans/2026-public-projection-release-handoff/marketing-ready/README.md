@@ -1,14 +1,14 @@
 # Marketing-Ready Files
 
-Generated: 2026-06-13 (locked-config production run)
+Generated: 2026-06-16 (ADR-068-corrected locked production run)
 
 This folder is the PUB-2026 marketing handoff drop. It contains draft narrative
 and storyboard files plus generated data/visual artifacts. The data/visual
-artifacts in `drafts/` were regenerated on 2026-06-13 from the **locked-config
-production run** (`m2026r1` / `cfg-20260611-production-lock`, commit `12fa6f9`;
-ADR-065/066 baseline, ADR-061/067 applied). These are the **final, locked**
-public numbers; the "draft" framing reflects pending public layout and release,
-not provisional data.
+artifacts in `drafts/` were regenerated on 2026-06-16 from the **ADR-068-corrected
+locked production run** (config sha `a6e0bfbc2d70be85`; ADR-065/066 baseline,
+ADR-061/067 applied, ADR-068 `reference_intl_migration` + open-ended 90+ survival +
+survival-horizon corrections). These are the **final, locked** public numbers; the
+"draft" framing reflects pending public layout and release, not provisional data.
 
 ## What To Send To Marketing
 

@@ -12,6 +12,7 @@ import pandas as pd
 import pytest
 
 from cohort_projections.data.process.mortality_improvement import (
+    apply_open_ended_survival_correction,
     build_nd_adjusted_survival_projections,
     compute_nd_adjustment_factors,
     load_census_survival_projections,
@@ -29,6 +30,8 @@ CENSUS_SURVIVAL_FILE = (
 ND_BASELINE_FILE = (
     PROJECT_ROOT / "data" / "processed" / "sdc_2024" / "survival_rates_sdc_2024_by_age_group.csv"
 )
+# ADR-068 open-ended 90+ survival correction source (all-race "Total" CDC life table).
+LIFE_TABLE_FILE = PROJECT_ROOT / "data" / "raw" / "mortality" / "cdc_lifetables_2023_combined.csv"
 
 
 # ---------------------------------------------------------------------------
@@ -542,3 +545,125 @@ class TestEndToEnd:
         # Rates in valid range
         assert (df["survival_rate_1yr"] > 0).all()
         assert (df["survival_rate_1yr"] <= 1.0).all()
+
+
+# ---------------------------------------------------------------------------
+# ADR-068: open-ended 90+ survival correction (value-pinning)
+# ---------------------------------------------------------------------------
+
+
+def _synthetic_life_table(t90_m: float, t91_m: float, t90_f: float, t91_f: float) -> pd.DataFrame:
+    """Minimal CDC-style life table with the Tx values the correction reads.
+
+    The correction only uses race_ethnicity=='Total', sex, age, Tx at ages max_age and
+    max_age+1, so this two-age table is sufficient.
+    """
+    return pd.DataFrame(
+        [
+            {"race_ethnicity": "Total", "sex": "Male", "age": 90, "Tx": t90_m},
+            {"race_ethnicity": "Total", "sex": "Male", "age": 91, "Tx": t91_m},
+            {"race_ethnicity": "Total", "sex": "Female", "age": 90, "Tx": t90_f},
+            {"race_ethnicity": "Total", "sex": "Female", "age": 91, "Tx": t91_f},
+        ]
+    )
+
+
+class TestOpenEndedSurvivalCorrection:
+    """ADR-068 D2: the 90+ open-ended survival is rescaled to T_{max+1}/T_{max}.
+
+    Without this correction the engine holds the 90+ pool at the (flat-expanded) ~0.885
+    (Male) / ~0.914 (Female) per-year rate, overstating the oldest-old (the figure ADR-068
+    moved from ~13,707 to 8,172 at 2055). These tests pin the corrected magnitude and the
+    shape-preserving behavior so a future regression in the data or the formula fails loud.
+    """
+
+    def test_corrects_open_interval_to_t_ratio_and_preserves_shape(self, tmp_path: Path):
+        """Base-year 90+ survival is rescaled to T91/T90; the trajectory shape is kept."""
+        # Synthetic NP2023-adjusted survival: age-90 starts at the erroneous high value and
+        # improves over the horizon; an age-85 control row must stay untouched.
+        nd_adjusted = pd.DataFrame(
+            [
+                {"year": 2025, "age": 90, "sex": "Male", "survival_rate": 0.885},
+                {"year": 2026, "age": 90, "sex": "Male", "survival_rate": 0.890},
+                {"year": 2027, "age": 90, "sex": "Male", "survival_rate": 0.895},
+                {"year": 2025, "age": 90, "sex": "Female", "survival_rate": 0.914},
+                {"year": 2026, "age": 90, "sex": "Female", "survival_rate": 0.918},
+                {"year": 2027, "age": 90, "sex": "Female", "survival_rate": 0.922},
+                {"year": 2025, "age": 85, "sex": "Male", "survival_rate": 0.950},
+            ]
+        )
+        # Tx chosen so T91/T90 = 0.7776 (M) / 0.8058 (F) — the ND production magnitudes.
+        lt = _synthetic_life_table(t90_m=1000.0, t91_m=777.6, t90_f=1000.0, t91_f=805.8)
+        lt_path = tmp_path / "lt.csv"
+        lt.to_csv(lt_path, index=False)
+
+        out = apply_open_ended_survival_correction(
+            nd_adjusted, max_age=90, base_year=2025, life_table_file=lt_path
+        )
+
+        def val(year: int, age: int, sex: str) -> float:
+            return float(
+                out.loc[
+                    (out["year"] == year) & (out["age"] == age) & (out["sex"] == sex),
+                    "survival_rate",
+                ].iloc[0]
+            )
+
+        # Base-year 90+ rescaled to the open-interval ratio, NOT the old ~0.885/0.914.
+        assert val(2025, 90, "Male") == pytest.approx(0.7776, abs=1e-4)
+        assert val(2025, 90, "Female") == pytest.approx(0.8058, abs=1e-4)
+        assert val(2025, 90, "Male") < 0.80  # definitely corrected away from 0.885
+        assert val(2025, 90, "Female") < 0.83  # corrected away from 0.914
+
+        # Shape preserved: year-over-year ratios unchanged by a uniform scale.
+        assert val(2026, 90, "Male") / val(2025, 90, "Male") == pytest.approx(0.890 / 0.885)
+        assert val(2027, 90, "Male") / val(2025, 90, "Male") == pytest.approx(0.895 / 0.885)
+
+        # Non-open ages untouched.
+        assert val(2025, 85, "Male") == pytest.approx(0.950)
+
+        # Provenance recorded for pipeline metadata (N5 / ADR-068).
+        prov = out.attrs["open_ended_correction"]
+        assert prov["max_age"] == 90
+        assert "T_{max_age+1} / T_{max_age}" in prov["formula"]
+        assert prov["by_sex"]["Male"]["target_open_interval_survival"] == pytest.approx(0.7776, abs=1e-4)
+
+    def test_zero_or_missing_base_year_is_skipped_not_crashed(self, tmp_path: Path):
+        """A non-positive base-year value is logged and skipped, not divided-by-zero."""
+        nd_adjusted = pd.DataFrame(
+            [{"year": 2025, "age": 90, "sex": "Male", "survival_rate": 0.0}]
+        )
+        lt = _synthetic_life_table(1000.0, 777.6, 1000.0, 805.8)
+        lt_path = tmp_path / "lt.csv"
+        lt.to_csv(lt_path, index=False)
+        out = apply_open_ended_survival_correction(
+            nd_adjusted, max_age=90, base_year=2025, life_table_file=lt_path
+        )
+        # Unchanged (skipped), no exception.
+        assert float(out["survival_rate"].iloc[0]) == 0.0
+        assert "Male" not in out.attrs["open_ended_correction"]["by_sex"]
+
+    @pytest.mark.skipif(
+        not LIFE_TABLE_FILE.exists(), reason="Real CDC life table not available"
+    )
+    def test_real_life_table_pins_production_magnitude(self):
+        """Pin the REAL-data open-interval ratio to the ND production figures.
+
+        The 2026 release moved the 2055 90+ population from ~13,707 to 8,172 by correcting
+        the open-interval survival to T91/T90 = 0.7776 (Male) / 0.8058 (Female). If the
+        source life table or the formula ever changes, this fails rather than silently
+        shifting the oldest-old.
+        """
+        nd_adjusted = pd.DataFrame(
+            [
+                {"year": 2025, "age": 90, "sex": "Male", "survival_rate": 0.885},
+                {"year": 2025, "age": 90, "sex": "Female", "survival_rate": 0.914},
+            ]
+        )
+        out = apply_open_ended_survival_correction(
+            nd_adjusted, max_age=90, base_year=2025, life_table_file=LIFE_TABLE_FILE
+        )
+        m = float(out.loc[out["sex"] == "Male", "survival_rate"].iloc[0])
+        f = float(out.loc[out["sex"] == "Female", "survival_rate"].iloc[0])
+        assert m == pytest.approx(0.7776, abs=5e-4)
+        assert f == pytest.approx(0.8058, abs=5e-4)
