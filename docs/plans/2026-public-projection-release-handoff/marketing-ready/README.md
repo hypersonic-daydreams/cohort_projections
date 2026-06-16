@@ -31,13 +31,16 @@ not provisional data.
 
 ## Locked numbers (for quick reference)
 
-- State: 799,358 (2025) → trough 787,382 (2028, the intended CBO migration ramp) → 889,017 (2055, +11.2%).
-- Growth concentrated: Cass, Williams, Burleigh; 37 of 53 counties projected to decline.
+- State: 799,358 (2025) → shallow trough 797,298 (2027, −0.26%, the intended CBO migration ramp) → 898,907 (2055, +12.45%).
+- Growth concentrated: Cass, Williams, Burleigh; most counties projected to decline.
+
+> Corrected per **ADR-068** (2026-06-15) and its **2026-06-16 amendment** (operative survival-horizon fix). The earlier "787,382 (2028) → 889,017 (2055, +11.2%)" framing was the superseded 2026-06-13 locked run; the intermediate 2026-06-15 figures (886,585 @2055 / 90+ 9,971) were biased by a survival-table truncation. These full-horizon numbers (898,907 @2055, 90+ 8,172) are final.
 
 ## Notes
 
-- Every data-driven file in `drafts/` is generated from the locked-config
-  production baseline (2026-06-13). Numbers are **final/locked**; chart PNGs and
+- Every data-driven file in `drafts/` is generated from the **corrected
+  full-horizon production baseline (ADR-068, 2026-06-15 + 2026-06-16 amendment)**,
+  which superseded the 2026-06-13 locked run. Numbers are **final**; chart PNGs and
   workbook headers carry a pre-publication mark because public layout and release
   are still pending, not because the data is provisional.
 - CF-001 was disposed on 2026-06-11 (ADR-061 Accepted as modified; ADR-067

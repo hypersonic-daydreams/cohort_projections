@@ -223,8 +223,18 @@ class TestMortalityImprovementDirection:
         assert (mortality_df["survival_rate"] <= 1).all(), "Survival rates > 1 found"
 
     def test_expected_years_present(self, mortality_df: pd.DataFrame):
-        """Years 2025-2045 must all be present."""
-        expected_years = set(range(2025, 2046))
+        """The operative survival table must span the FULL projection horizon
+        (base_year .. base_year + projection_horizon), derived from config rather than
+        hard-coded. Per ADR-068 (2026-06-16 amendment): a table truncated short of the
+        horizon makes the engine silently fall back to the uncorrected static-base
+        survival for the missing tail years (the defect that truncated the 2026-06-15
+        run to 2025-2045)."""
+        from cohort_projections.utils import load_projection_config
+
+        proj = load_projection_config().get("project", {})
+        base_year = int(proj.get("base_year", 2025))
+        end_year = base_year + int(proj.get("projection_horizon", 30))
+        expected_years = set(range(base_year, end_year + 1))
         actual_years = set(mortality_df["year"].unique())
         assert expected_years == actual_years, f"Missing years: {expected_years - actual_years}"
 
@@ -545,9 +555,11 @@ class TestPipelineDataFlow:
     # -- _build_survival_rates_by_year --
 
     def test_survival_dicts_keys_are_years(self, mortality_df: pd.DataFrame):
-        """Dict keys should be calendar years 2025-2045."""
+        """Dict keys should be exactly the calendar years present in the operative
+        survival table (the full projection horizon; do not hard-code the end year —
+        see ADR-068 2026-06-16 amendment)."""
         result = _build_survival_rates_by_year(mortality_df)
-        assert set(result.keys()) == set(range(2025, 2046))
+        assert set(result.keys()) == {int(y) for y in mortality_df["year"].unique()}
 
     def test_survival_dicts_has_race_expansion(self, mortality_df: pd.DataFrame):
         """Each year's DataFrame should have all 6 race categories."""

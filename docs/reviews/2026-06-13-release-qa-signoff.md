@@ -1,5 +1,14 @@
 # PUB-2026 Release QA — Gate-by-Gate Sign-off
 
+> **⚠️ SUPERSEDED (numbers) by the corrected full-horizon run.** This sign-off was run against
+> the 2026-06-13 locked run (state 799,358 → 889,017 @2055). That run was superseded first by
+> ADR-068 (2026-06-15) and then by its 2026-06-16 survival-horizon amendment. The **current**
+> figures are 799,358 → trough 797,298 (2027) → **898,907 (2055, +12.45%)**, 90+ @2055 **8,172**.
+> The gate *methodology* below still holds; the objective gates were re-verified against the
+> corrected artifacts on 2026-06-16 (see
+> [`2026-06-16-corrected-run-qa-verification.md`](2026-06-16-corrected-run-qa-verification.md)).
+> Numbers quoted in this dated memo are retained as the historical record.
+
 **Date:** 2026-06-13
 **Reviewer:** Claude Code (PUB-2026 finality remediation, Stage 5.3)
 **Run under QA:** `m2026r1` / `cfg-20260611-production-lock` @ commit `12fa6f9`

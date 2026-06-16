@@ -391,7 +391,12 @@ def main():
     # Step 6: Format output
     print("\nStep 6: Formatting output")
     output = nd_asfr.rename(columns={"age_group": "age", "race_code": "race_ethnicity"})
-    output["year"] = 2023  # Reference year
+    # The `year` column is a pooling-window LABEL, not a single-year estimate:
+    # every ASFR is the 2020-2023 four-year pooled rate (numerator = 2020-2023
+    # pooled CDC WONDER births; denominator = summed 2020-2023 female pop), tagged
+    # with the terminal year (2023) of the pool. See methodology.md §3.1 and
+    # data/raw/fertility/DATA_SOURCE_NOTES.md ("2020-2023 combined ... pooled").
+    output["year"] = 2023  # pooling-window label (terminal year of 2020-2023 pool)
     output = output[["age", "race_ethnicity", "asfr", "year"]]
 
     # Round to 1 decimal

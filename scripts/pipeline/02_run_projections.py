@@ -386,6 +386,8 @@ def _transform_migration_rates(
 
 def load_demographic_rates(
     config: dict[str, Any],
+    *,
+    allow_static_survival: bool = False,
 ) -> tuple[
     pd.DataFrame,
     pd.DataFrame,
@@ -408,6 +410,14 @@ def load_demographic_rates(
 
     Args:
         config: Project configuration
+        allow_static_survival: When False (the default, used by all production /
+            public baseline runs), a missing or horizon-incomplete operative survival
+            table (``nd_adjusted_survival_projections.parquet``) is a HARD ERROR —
+            because the engine would otherwise silently fall back to the static-base
+            survival table for the uncovered years (the ADR-068 2026-06-16 defect that
+            truncated the run to 2025-2045). Set True only to deliberately opt into the
+            static/constant-survival fallback (tests, experiments, constant-mortality
+            scenarios).
 
     Returns:
         Tuple of (fertility_rates, survival_rates, migration_rates,
@@ -415,6 +425,8 @@ def load_demographic_rates(
 
     Raises:
         FileNotFoundError: If required rate files not found
+        RuntimeError: If the operative survival table is missing or does not span the
+            full projection horizon and ``allow_static_survival`` is False (ADR-068).
     """
     logger.info("Loading processed demographic rates...")
 
@@ -518,8 +530,57 @@ def load_demographic_rates(
         survival_df = pd.read_parquet(survival_proj_path)
         survival_rates_by_year = _build_survival_rates_by_year(survival_df)
         logger.info(f"Loaded mortality improvement for {len(survival_rates_by_year)} years")
+
+        # GUARD (ADR-068; hardened to a HARD FAIL 2026-06-16): the operative survival
+        # table MUST span the full projection horizon. The engine silently falls back to
+        # the static-base survival table (race-specific, NO ADR-068 90+ correction) for
+        # any year not present here — exactly the defect that truncated the 2026-06-15
+        # run to 2025-2045 and let the corrected 90+ survival lapse for 2047-2055. A
+        # warning was not enough (the original bug slipped through a warning), so this is
+        # now fatal for production/public runs; pass allow_static_survival=True to opt
+        # into the fallback (tests/experiments/constant-mortality scenarios only).
+        proj_cfg = config.get("project", {})
+        base_year = int(proj_cfg.get("base_year", 2025))
+        end_year = base_year + int(proj_cfg.get("projection_horizon", 30))
+        # N2 (range convention): the engine only consumes survival[year] for step years
+        # base_year .. end_year-1. Requiring coverage through end_year (inclusive) is a
+        # PUBLICATION convention (a full, inclusive table) — slightly stricter than the
+        # engine strictly needs, not an engine necessity.
+        required_years = set(range(base_year, end_year + 1))
+        missing_years = sorted(required_years - set(survival_rates_by_year))
+        if missing_years:
+            msg = (
+                "OPERATIVE SURVIVAL COVERAGE GAP: nd_adjusted_survival_projections.parquet "
+                f"is missing years {missing_years} of the {base_year}-{end_year} projection "
+                "horizon. The engine would FALL BACK to the static-base survival table "
+                "(no NP2023 trajectory, no ADR-068 90+ open-interval correction) for those "
+                "steps, biasing the oldest-old and the horizon totals. Regenerate via "
+                "`scripts/pipeline/01c_compute_mortality_improvement.py` before any production "
+                "or public run. See ADR-068 and methodology.md §4.6."
+            )
+            if allow_static_survival:
+                logger.warning(f"{msg} [allow_static_survival=True: continuing on fallback]")
+            else:
+                raise RuntimeError(msg)
     else:
-        logger.info("No mortality improvement data found — using constant survival rates")
+        # No operative survival table at all -> the engine would use constant/static
+        # survival. For production/public runs this is a hard error (ADR-068 hardening);
+        # opt in with allow_static_survival=True for constant-mortality scenarios, tests,
+        # and experiments that knowingly run without mortality improvement.
+        msg = (
+            "No operative mortality-improvement survival table found at "
+            f"{survival_proj_path}. The engine would use constant/static survival rates "
+            "(no NP2023 trajectory, no ADR-068 90+ correction). Regenerate via "
+            "`scripts/pipeline/01c_compute_mortality_improvement.py` before any production "
+            "or public run. See ADR-068 and methodology.md §4.6."
+        )
+        if allow_static_survival:
+            logger.info(
+                "No mortality improvement data found — using constant survival rates "
+                "[allow_static_survival=True]"
+            )
+        else:
+            raise RuntimeError(msg)
 
     return (
         fertility_rates,
@@ -1083,6 +1144,44 @@ def _build_survival_rates_by_year(
     return result
 
 
+def _expected_county_fips(config: dict[str, Any]) -> set[str] | None:
+    """Expected county FIPS set for the configured run mode (mirrors ``setup_projection_run``).
+
+    Used by ``aggregate_county_results_to_state`` to assert that the state total is summed
+    from exactly the county set the run was configured to produce (53 for ``mode: all``).
+    Returns ``None`` when the expected set cannot be determined (e.g. the reference file is
+    unavailable), in which case the caller falls back to the filename-horizon + duplicate
+    checks alone rather than risking a false-positive failure. Does not account for a
+    runtime ``--fips`` filter (not visible here) — a filtered subset run will fail the
+    exact-set check loudly, which is correct: a partial county set is not a state total.
+    """
+    geo = config.get("geography", {})
+    county_config = geo.get("counties", {})
+    mode = county_config.get("mode", "all")
+    try:
+        if mode == "list":
+            codes = county_config.get("fips_codes", [])
+            return {str(f) for f in codes} or None
+        ref_config = geo.get("reference_data", {})
+        source = ref_config.get("source", "local")
+        vintage = ref_config.get("vintage", 2020)
+        counties_file = ref_config.get("counties_file")
+        reference_path = Path(counties_file) if counties_file else None
+        counties_df = load_nd_counties(
+            source=source, vintage=vintage, reference_path=reference_path
+        )
+        if mode == "threshold":
+            min_pop = county_config.get("min_population", 1000)
+            counties_df = counties_df[counties_df["population"] >= min_pop]
+        return {str(f) for f in counties_df["county_fips"].tolist()}
+    except Exception as exc:  # reference data missing/unreadable -> skip the exact-set check
+        logger.warning(
+            f"Could not determine the expected county set for state aggregation "
+            f"({exc}); relying on filename-horizon + duplicate checks only."
+        )
+        return None
+
+
 def aggregate_county_results_to_state(
     output_dir: Path,
     scenario: str,
@@ -1117,15 +1216,85 @@ def aggregate_county_results_to_state(
         logger.error(f"County output directory not found: {county_dir}")
         return False
 
-    # Read all county parquet files
-    county_parquets = sorted(county_dir.glob("nd_county_*_projection_*.parquet"))
+    # Read county population parquet files. The trailing `_{scenario}` keeps the
+    # glob from also matching the sibling `_components.parquet` (and any future
+    # `_*` variants), which would otherwise be swept in (N2/B2, ADR-068 review).
+    county_parquets = sorted(county_dir.glob(f"nd_county_*_projection_*_{scenario}.parquet"))
     if not county_parquets:
         logger.error(f"No county parquet files found in {county_dir}")
         return False
 
+    # QA robustness (M2/B2, ADR-068 review 2026-06-16): the state total is published as
+    # "North Dakota", so it MUST be summed from exactly the current-horizon county set the
+    # run was configured to produce. Three checks, each guarding a distinct silent-corruption
+    # mode the prior duplicate-only check missed:
+    #   (1) filename-horizon match — reject any county file whose <base>_<end> years differ
+    #       from this run's horizon. Catches a COMPLETE stale set (e.g. a leftover 2025_2045
+    #       run) that would otherwise pass duplicate detection and be summed — the same
+    #       truncation class as the ADR-068 survival bug.
+    #   (2) one current-horizon file per FIPS — catches a stale file lingering ALONGSIDE a
+    #       current one.
+    #   (3) expected-set equality — catches a missing/extra county (e.g. a 52-of-53 partial).
+    proj_cfg = config.get("project", {})
+    run_base = str(int(proj_cfg.get("base_year", 2025)))
+    run_end = str(int(proj_cfg.get("base_year", 2025)) + int(proj_cfg.get("projection_horizon", 30)))
+
+    fips_to_file: dict[str, str] = {}
+    duplicates: list[str] = []
+    stale_horizon: list[str] = []
+    for pq_file in county_parquets:
+        # stem: nd_county_<FIPS>_projection_<base>_<end>_<scenario...> (scenario may
+        # contain underscores, so base/end are at fixed positions 4/5, not the tail).
+        parts = pq_file.stem.split("_")
+        fips = parts[2] if len(parts) > 2 else pq_file.stem
+        file_base = parts[4] if len(parts) > 5 else ""
+        file_end = parts[5] if len(parts) > 5 else ""
+        if (file_base, file_end) != (run_base, run_end):
+            stale_horizon.append(
+                f"{pq_file.name} (horizon {file_base}-{file_end} != run {run_base}-{run_end})"
+            )
+            continue
+        if fips in fips_to_file:
+            duplicates.append(f"{fips}: {fips_to_file[fips]} vs {pq_file.name}")
+        else:
+            fips_to_file[fips] = pq_file.name
+
+    # (1) filename-horizon match
+    if stale_horizon:
+        logger.error(
+            f"Stale-horizon county file(s) in {county_dir}: a state total summed from these "
+            f"would be mis-horizoned/partial (the ADR-068 truncation class). Remove or "
+            f"regenerate before aggregating: " + "; ".join(sorted(stale_horizon))
+        )
+        return False
+    # (2) one current-horizon file per FIPS
+    if duplicates:
+        logger.error(
+            f"Duplicate county FIPS detected in {county_dir} (stale/partial rerun?): "
+            + "; ".join(duplicates)
+        )
+        return False
+    # (3) expected-set equality (exactly the configured county set; 53 for mode: all)
+    expected_fips = _expected_county_fips(config)
+    if expected_fips is not None:
+        actual_fips = set(fips_to_file)
+        missing = sorted(expected_fips - actual_fips)
+        extra = sorted(actual_fips - expected_fips)
+        if missing or extra:
+            logger.error(
+                f"County set for state aggregation does not match the configured run "
+                f"({len(actual_fips)} current-horizon files vs {len(expected_fips)} expected). "
+                f"Missing: {missing or 'none'}; unexpected: {extra or 'none'}. A state total "
+                f"summed from a partial/altered county set would be mislabeled as North "
+                f"Dakota. (If this was an intentional --fips subset run, the state derivation "
+                f"is not valid and should be disabled.)"
+            )
+            return False
+
     logger.info(
         f"ADR-054: Aggregating {len(county_parquets)} county projections "
-        f"to derive state total for scenario '{scenario}'"
+        f"({len(fips_to_file)} unique county FIPS) to derive state total "
+        f"for scenario '{scenario}'"
     )
 
     county_dfs = []

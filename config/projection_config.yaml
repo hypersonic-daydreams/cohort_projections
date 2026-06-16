@@ -41,7 +41,7 @@ geography:
   # Hierarchical aggregation
   hierarchy:
     validate_aggregation: true  # Validate county sums = state
-    aggregation_tolerance: 0.01  # 1% tolerance for rounding errors
+    aggregation_tolerance: 0.000001  # ~<1 person on 800k; state=county is exact in the locked run (max abs diff 0.0). Distinct from the ADR-062 2.0-person benchmark gate in benchmarking.py.
     include_balance: true  # Calculate unincorporated areas (county - places)
 
 # Multi-geography processing
@@ -134,12 +134,18 @@ data_sources:
 rates:
   fertility:
     source: "CDC_NCHS"
-    # 2024 rates used directly (no multi-year averaging)
+    # ASFR pooled over CDC WONDER 2020-2023 (4-year pool; ADR-053 Part A); see methodology.md §3.1
     assumption: "constant"  # "constant", "trending", "scenario"
     apply_to_ages: [15, 49]  # reproductive age range
+    sex_ratio_male: 0.51  # proportion of births male (~105:100 sex ratio at birth); consumed by core/fertility.py calculate_births
 
   mortality:
     source: "CDC_life_tables"
+    # Base-year (t0) anchor for the Lee-Carter improvement on the STATIC race-specific
+    # base table only (stage 1; national race tables are NVSR 74-06 2023 data).
+    # The OPERATIVE production survival is the time-varying Census NP2023 table
+    # (race-flat) with a 2023 open-age T91/T90 correction; it supersedes the static
+    # base at runtime. See methodology.md §4.6 for the full three-stage provenance.
     life_table_year: 2023
     improvement_factor: 0.005  # annual mortality improvement (0.5%)
     cap_survival_at: 1.0  # no survival rate > 100%
@@ -269,7 +275,7 @@ scenarios:
       # CBO-adjusted baseline parameters (ADR-065, using ADR-050 formula).
       # Formula: reduction_rate = ref_intl * (1 - factor) / ref_pop
       #          adjusted_rate  = base_rate - reduction_rate
-      reference_intl_migration: 10051  # Annual international migration (PEP 2023-2025 avg)
+      reference_intl_migration: 3350.33  # Annual avg intl migration = mean of PEP 2023-2025 (3158,4083,2810); was the 3-yr SUM 10051 (ADR-068)
       reference_population: 799358     # State population at base year
     active: true
 
@@ -303,7 +309,7 @@ scenarios:
       # Formula: reduction_rate = ref_intl * (1 - factor) / ref_pop
       #          adjusted_rate  = base_rate - per_cell_reduction
       # This guarantees restricted <= baseline for all counties.
-      reference_intl_migration: 10051  # Annual international migration (PEP 2023-2025 avg)
+      reference_intl_migration: 3350.33  # Annual avg intl migration = mean of PEP 2023-2025 (3158,4083,2810); was the 3-yr SUM 10051 (ADR-068)
       reference_population: 799358     # State population at base year
     active: false
 
@@ -342,7 +348,7 @@ scenarios:
 # === PLACE PROJECTIONS (PP-003) ===
 # Phase 2 configuration for county-constrained place share-trending workflow.
 place_projections:
-  enabled: true
+  enabled: false  # Out of scope for the 2026 public release (state/region/county only); nd_places.csv normalization must be fixed before re-enabling. See final-run-metadata.md (ADR-068).
   crosswalk_path: "data/processed/geographic/place_county_crosswalk_2020.csv"
   historical_shares_path: "data/processed/place_shares_2000_2024.parquet"
   place_population_history_path: "data/processed/place_population_history_2000_2024.parquet"
@@ -409,8 +415,7 @@ output:
   include_zero_cells: true  # include cohorts with 0 population
   aggregation_levels:
     - "state"
-    - "county"
-    - "place"
+    - "county"  # place excluded from the 2026 public release (ADR-068)
   decimal_places: 2
 
   # Excel export settings

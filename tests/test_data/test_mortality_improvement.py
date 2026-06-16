@@ -416,12 +416,29 @@ class TestBuildNDAdjustedProjections:
 class TestEndToEnd:
     """Integration tests using real data files."""
 
+    def test_no_output_dir_under_pytest_raises(self) -> None:
+        """M3 (ADR-068 hardening): calling the pipeline with no output_dir while pytest
+        is running must raise, so a future test can never silently overwrite the
+        PRODUCTION survival table (the original 2025-2045 truncation root cause).
+
+        ``config={}`` short-circuits the real-config load; the guard fires before any
+        data file is read, so no real data files are required.
+        """
+        with pytest.raises(RuntimeError, match="PRODUCTION survival table"):
+            run_mortality_improvement_pipeline(config={})
+
     @pytest.mark.skipif(
         not CENSUS_SURVIVAL_FILE.exists() or not ND_BASELINE_FILE.exists(),
         reason="Real data files not available",
     )
     def test_full_pipeline_produces_valid_output(self, tmp_path: Path) -> None:
-        """Full pipeline with real data produces valid output."""
+        """Full pipeline with real data produces valid output.
+
+        MUST pass ``output_dir=tmp_path`` — calling the pipeline without it overwrites
+        the PRODUCTION survival table, and with this 20-year horizon it truncated
+        production to 2025-2045 (the ADR-068 root cause: the engine then silently falls
+        back to the static-base survival for the 2047-2055 steps).
+        """
         config = {
             "project": {
                 "base_year": 2025,
@@ -432,7 +449,7 @@ class TestEndToEnd:
             },
         }
 
-        result = run_mortality_improvement_pipeline(config)
+        result = run_mortality_improvement_pipeline(config, output_dir=tmp_path)
 
         # Correct total rows: 21 years x 101 ages x 2 sexes = 4242
         assert len(result) == 4242

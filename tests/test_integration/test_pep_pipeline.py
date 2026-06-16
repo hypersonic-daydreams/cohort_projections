@@ -33,6 +33,7 @@ _create_zero_migration_rates = _mod._create_zero_migration_rates
 _transform_migration_rates = _mod._transform_migration_rates
 apply_scenario_rate_adjustments = _mod.apply_scenario_rate_adjustments
 load_demographic_rates = _mod.load_demographic_rates
+aggregate_county_results_to_state = _mod.aggregate_county_results_to_state
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -225,7 +226,12 @@ class TestLoadDemographicRatesPep:
         _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
         monkeypatch.setattr(_mod, "project_root", tmp_path)
 
-        _fert, _surv, migration, _mig_by_yr, _surv_by_yr = load_demographic_rates(pep_config)
+        # allow_static_survival=True: these PEP tests deliberately run with only the
+        # static-base survival table (no operative nd_adjusted_survival_projections),
+        # which is a hard error in production after the ADR-068 2026-06-16 hardening.
+        _fert, _surv, migration, _mig_by_yr, _surv_by_yr = load_demographic_rates(
+            pep_config, allow_static_survival=True
+        )
 
         assert isinstance(migration, dict), "PEP method should return a dict"
 
@@ -236,7 +242,12 @@ class TestLoadDemographicRatesPep:
         _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
         monkeypatch.setattr(_mod, "project_root", tmp_path)
 
-        _fert, _surv, migration, _mig_by_yr, _surv_by_yr = load_demographic_rates(pep_config)
+        # allow_static_survival=True: these PEP tests deliberately run with only the
+        # static-base survival table (no operative nd_adjusted_survival_projections),
+        # which is a hard error in production after the ADR-068 2026-06-16 hardening.
+        _fert, _surv, migration, _mig_by_yr, _surv_by_yr = load_demographic_rates(
+            pep_config, allow_static_survival=True
+        )
 
         assert set(migration.keys()) == set(TEST_COUNTIES)
 
@@ -247,7 +258,12 @@ class TestLoadDemographicRatesPep:
         _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
         monkeypatch.setattr(_mod, "project_root", tmp_path)
 
-        _fert, _surv, migration, _mig_by_yr, _surv_by_yr = load_demographic_rates(pep_config)
+        # allow_static_survival=True: these PEP tests deliberately run with only the
+        # static-base survival table (no operative nd_adjusted_survival_projections),
+        # which is a hard error in production after the ADR-068 2026-06-16 hardening.
+        _fert, _surv, migration, _mig_by_yr, _surv_by_yr = load_demographic_rates(
+            pep_config, allow_static_survival=True
+        )
 
         for fips, df in migration.items():
             assert len(df) == ROWS_PER_COUNTY, (
@@ -261,7 +277,12 @@ class TestLoadDemographicRatesPep:
         _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
         monkeypatch.setattr(_mod, "project_root", tmp_path)
 
-        _fert, _surv, migration, _mig_by_yr, _surv_by_yr = load_demographic_rates(pep_config)
+        # allow_static_survival=True: these PEP tests deliberately run with only the
+        # static-base survival table (no operative nd_adjusted_survival_projections),
+        # which is a hard error in production after the ADR-068 2026-06-16 hardening.
+        _fert, _surv, migration, _mig_by_yr, _surv_by_yr = load_demographic_rates(
+            pep_config, allow_static_survival=True
+        )
 
         sample_df = next(iter(migration.values()))
         assert "race" in sample_df.columns
@@ -497,3 +518,115 @@ class TestRunGeographicProjectionsPep:
         assert len(zero_df) == ROWS_PER_COUNTY
         assert set(zero_df.columns) == {"age", "sex", "race", "migration_rate"}
         assert (zero_df["migration_rate"] == 0.0).all()
+
+
+# ---------------------------------------------------------------------------
+# ADR-068 recurrence guards (2026-06-16 PR #25 hardening)
+# ---------------------------------------------------------------------------
+
+
+def _write_operative_survival(processed_dir: Path, years: range) -> Path:
+    """Write a minimal but valid operative survival table spanning ``years``.
+
+    Schema matches Phase 3 output ([year, age, sex, survival_rate]) so
+    ``_build_survival_rates_by_year`` consumes it. Used to simulate a
+    horizon-truncated operative table (the ADR-068 defect).
+    """
+    mortality_dir = processed_dir / "mortality"
+    mortality_dir.mkdir(parents=True, exist_ok=True)
+    rows = [
+        {"year": year, "age": age, "sex": sex, "survival_rate": 0.99, "source": "test"}
+        for year in years
+        for age in range(101)
+        for sex in ["Male", "Female"]
+    ]
+    out = mortality_dir / "nd_adjusted_survival_projections.parquet"
+    pd.DataFrame(rows).to_parquet(out, index=False)
+    return out
+
+
+class TestSurvivalCoverageGuard:
+    """M1 (ADR-068): the survival-coverage guard hard-fails by default.
+
+    A missing or horizon-incomplete operative survival table would otherwise let the
+    engine silently fall back to static-base survival (the 2026-06-15 truncation bug).
+    """
+
+    def test_missing_operative_table_raises_by_default(
+        self, monkeypatch, tmp_path, fertility_parquet, survival_parquet, pep_config
+    ):
+        """No operative survival table + no opt-out -> RuntimeError (production default)."""
+        _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
+        monkeypatch.setattr(_mod, "project_root", tmp_path)
+        with pytest.raises(RuntimeError, match="No operative mortality-improvement survival"):
+            load_demographic_rates(pep_config)
+
+    def test_missing_operative_table_allowed_with_optout(
+        self, monkeypatch, tmp_path, fertility_parquet, survival_parquet, pep_config
+    ):
+        """No operative table + allow_static_survival=True -> no raise (tests/experiments)."""
+        _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
+        monkeypatch.setattr(_mod, "project_root", tmp_path)
+        # Should not raise.
+        load_demographic_rates(pep_config, allow_static_survival=True)
+
+    def test_incomplete_operative_table_raises_by_default(
+        self, monkeypatch, tmp_path, fertility_parquet, survival_parquet, pep_config
+    ):
+        """A truncated operative table (2025-2030, horizon needs 2055) -> RuntimeError."""
+        proc = _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
+        _write_operative_survival(proc, range(2025, 2031))  # truncated, missing 2031-2055
+        monkeypatch.setattr(_mod, "project_root", tmp_path)
+        cfg = {**pep_config, "project": {"base_year": 2025, "projection_horizon": 30}}
+        with pytest.raises(RuntimeError, match="OPERATIVE SURVIVAL COVERAGE GAP"):
+            load_demographic_rates(cfg)
+
+    def test_incomplete_operative_table_allowed_with_optout(
+        self, monkeypatch, tmp_path, fertility_parquet, survival_parquet, pep_config
+    ):
+        """A truncated operative table + opt-out -> warns, does not raise."""
+        proc = _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
+        _write_operative_survival(proc, range(2025, 2031))
+        monkeypatch.setattr(_mod, "project_root", tmp_path)
+        cfg = {**pep_config, "project": {"base_year": 2025, "projection_horizon": 30}}
+        # Should not raise.
+        load_demographic_rates(cfg, allow_static_survival=True)
+
+
+def _write_county_parquet(county_dir: Path, fips: str, base: int, end: int, scenario: str) -> Path:
+    """Write a minimal county projection parquet with the standard filename convention."""
+    county_dir.mkdir(parents=True, exist_ok=True)
+    df = pd.DataFrame(
+        [{"year": base, "age": 0, "sex": "Male", "race": RACES[0], "population": 1.0}]
+    )
+    out = county_dir / f"nd_county_{fips}_projection_{base}_{end}_{scenario}.parquet"
+    df.to_parquet(out, index=False)
+    return out
+
+
+class TestStateAggregationGuards:
+    """M2 (ADR-068): state aggregation rejects a stale-horizon or partial county set.
+
+    A complete set of stale 2025-2045 county files (or a missing county) would pass the
+    old duplicate-only check and be silently summed into a mislabeled state total.
+    """
+
+    def _list_config(self, fips_codes):
+        return {"geography": {"counties": {"mode": "list", "fips_codes": fips_codes}}}
+
+    def test_stale_horizon_files_fail(self, tmp_path):
+        """County files with a horizon != the run's horizon -> aggregation fails."""
+        county_dir = tmp_path / "baseline" / "county"
+        _write_county_parquet(county_dir, "38001", 2025, 2045, "baseline")  # stale
+        _write_county_parquet(county_dir, "38003", 2025, 2045, "baseline")  # stale
+        config = self._list_config(["38001", "38003"])
+        config["project"] = {"base_year": 2025, "projection_horizon": 30}  # run is 2025-2055
+        assert aggregate_county_results_to_state(tmp_path, "baseline", config) is False
+
+    def test_missing_county_fails(self, tmp_path):
+        """A current-horizon set missing an expected county -> aggregation fails."""
+        county_dir = tmp_path / "baseline" / "county"
+        _write_county_parquet(county_dir, "38001", 2025, 2055, "baseline")  # only one of two
+        config = self._list_config(["38001", "38003"])
+        config["project"] = {"base_year": 2025, "projection_horizon": 30}
+        assert aggregate_county_results_to_state(tmp_path, "baseline", config) is False

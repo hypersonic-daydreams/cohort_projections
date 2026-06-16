@@ -32,7 +32,8 @@ def test_projection_config_has_place_projection_block_with_expected_defaults() -
     assert "place_projections" in config
 
     place_cfg = config["place_projections"]
-    assert place_cfg["enabled"] is True
+    # Disabled for the 2026 public release (state/region/county only); ADR-068.
+    assert place_cfg["enabled"] is False
     assert (
         place_cfg["crosswalk_path"] == "data/processed/geographic/place_county_crosswalk_2020.csv"
     )
@@ -128,6 +129,9 @@ def test_place_share_trending_consumes_place_projection_year_window() -> None:
 def test_place_projection_orchestrator_consumes_config_paths(tmp_path: Path) -> None:
     """IMP-06 orchestrator reads data paths from place_projections config block."""
     config = _load_repo_projection_config()
+    # Place projections are disabled by default for the 2026 release (ADR-068);
+    # enable locally so this test exercises orchestrator behavior, not the default.
+    config["place_projections"]["enabled"] = True
 
     projection_root = tmp_path / "projections"
     county_dir = projection_root / "baseline" / "county"

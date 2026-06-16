@@ -13,8 +13,9 @@ truth so they can never silently drift again:
 - Overview        -> ``marketing-ready/README.md``
 - Numbers table   -> the locked public CSV (``drafts/PUB-2026 Draft Public Dataset.csv``)
 
-All numeric callouts therefore come from the locked run
-(``m2026r1`` / ``cfg-20260611-production-lock``, commit ``12fa6f9``, 2026-06-13).
+All numeric callouts therefore come from the corrected full-horizon production run
+(``m2026r1`` / ``cfg-20260611-production-lock``; ADR-068 + 2026-06-16 survival-horizon
+amendment; config sha256(16) ``a6e0bfbc2d70be85``).
 
 Usage:
     python scripts/exports/build_marketing_docx.py
@@ -38,7 +39,10 @@ HANDOFF_DIR = Path(__file__).resolve().parents[2] / "docs" / "plans" / "2026-pub
 MARKETING_DIR = HANDOFF_DIR / "marketing-ready"
 LOCKED_CSV = MARKETING_DIR / "drafts" / "PUB-2026 Draft Public Dataset.csv"
 
-RUN_TAG = "m2026r1 / cfg-20260611-production-lock (commit 12fa6f9, 2026-06-13)"
+RUN_TAG = (
+    "m2026r1 / cfg-20260611-production-lock — ADR-068 corrected full-horizon run "
+    "(2026-06-15 + 2026-06-16 survival-horizon amendment; config sha256(16) a6e0bfbc2d70be85)"
+)
 PREPUB_NOTE = (
     "Pre-publication marketing draft. Numbers are final/locked from the production run "
     f"{RUN_TAG}; this document is DRAFT only because public layout and release are pending, "
