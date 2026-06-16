@@ -442,7 +442,8 @@ adds roughly +3,000, and the rejected convergence hold (ADR-061 D3) would have a
 F4 decomposition and have not been re-run against the ADR-068-corrected baseline; the CBO-migration
 component in particular shrinks materially after the `reference_intl_migration` fix -- consistent
 with the corrected baseline sitting higher and the smaller ~59,000-74,000 gap above -- so read them
-as indicative of the *ordering* of effects, not exact post-correction magnitudes.**) The CBO
+as indicative of the *ordering* of effects, not exact post-correction magnitudes; see
+`docs/plans/f4-decomposition-reproducibility.md` for the re-run procedure and the planned fix.**) The CBO
 adjustments are thus the single largest reason the corrected baseline sits below the SDC's
 undampened-growth path. Beyond those, the remaining divergence is
 driven by:
