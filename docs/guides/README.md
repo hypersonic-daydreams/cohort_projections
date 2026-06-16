@@ -14,6 +14,7 @@ Detailed procedural guides for common workflows. These expand on the concise rul
 | [observatory-autonomous-search.md](./observatory-autonomous-search.md) | Deep-search workflow for deterministic isolated-worktree experimentation |
 | [configuration-reference.md](./configuration-reference.md) | All configuration files and settings |
 | [compute-runtime-reference.md](./compute-runtime-reference.md) | Measured workload runtimes, parallelism ceiling, laptop-vs-desktop decision rule |
+| [gpt-5.5-pro-api-reference.md](./gpt-5.5-pro-api-reference.md) | How to call `gpt-5.5-pro` for large reviews: live+background vs batch, limits/pricing/tiers, and the $85 batch-retry lesson |
 | [data-sources-workflow.md](./data-sources-workflow.md) | Data acquisition, sources, and update procedures |
 | [troubleshooting.md](./troubleshooting.md) | Common errors, solutions, and debugging tips |
 
