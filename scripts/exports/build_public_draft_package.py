@@ -7,10 +7,11 @@ parquet exports under ``data/projections/baseline/``. Outputs are written into
 the marketing handoff folder. After ADR-065, run this only after the baseline
 projection outputs have been regenerated with CBO-adjusted assumptions.
 
-Numbers reflect the locked-config production run (``m2026r1`` / ``cfg-20260611-production-lock``,
-commit ``12fa6f9``, 2026-06-13; CF-001 disposed, ADR-067 applied). Outputs remain marked DRAFT
-because they are a pre-publication marketing handoff, not because the numbers are provisional.
-Rerun only if the locked production outputs change.
+Numbers reflect the locked-config production run (``m2026r1`` / ``cfg-20260611-production-lock``)
+as corrected by the **ADR-068 amendment** — the full-horizon rerun of 2026-06-16 (config sha256
+``a6e0bfbc2d70be85``); CF-001 disposed, ADR-067 applied. Outputs remain marked DRAFT because they
+are a pre-publication marketing handoff, not because the numbers are provisional. Rerun only if the
+locked production outputs change.
 
 Usage:
     python scripts/exports/build_public_draft_package.py
@@ -80,23 +81,34 @@ SECTION_FONT = Font(name="Aptos", size=11, bold=True, color="1F3864")
 NUM_FMT = "#,##0"
 RATIO_FMT = "0.00"
 
+# Locked-run provenance — SINGLE SOURCE OF TRUTH (see docs/.../final-run-metadata.md).
+# Corrected full-horizon run: ADR-068 (2026-06-15) + 2026-06-16 survival-horizon amendment.
+# Defined ABOVE the banners on purpose: the banners interpolate RUN_DATE so they can never drift
+# from the actual run date again (the prior hardcoded "2026-06-13" in these banners was exactly
+# that drift — surfaced by the PR #25 review).
+RUN_METHOD = "m2026r1"
+RUN_CONFIG = "cfg-20260611-production-lock"  # functional config unchanged; ADR-068 deltas are comment-only + the survival build
+RUN_CONFIG_SHA16 = "a6e0bfbc2d70be85"  # sha256(16) of projection_config.yaml (2026-06-16; comment-only delta vs locked cca42fb42be76680)
+RUN_DATE = "2026-06-16"
+
 DRAFT_BANNER = (
-    "DRAFT (pre-publication marketing handoff) — values from the locked-config production run "
-    "m2026r1 / cfg-20260611-production-lock (2026-06-13). Numbers are final/locked; the DRAFT "
-    "mark reflects pending public layout and release, not provisional data."
+    f"DRAFT (pre-publication marketing handoff) — values from the locked-config production run "
+    f"{RUN_METHOD} / {RUN_CONFIG}, corrected per ADR-068 (full-horizon rerun {RUN_DATE}). Numbers "
+    f"are final/locked; the DRAFT mark reflects pending public layout and release, not provisional "
+    f"data."
 )
 # Header sub-label for this package. The shared PROVISIONAL_LABEL ("Pending Review — Subject to
 # Change") contradicts the locked-final numbers, so this package uses a pre-publication label
 # consistent with DRAFT_BANNER (numbers final; layout/publication pending).
-PREPUB_LABEL = "Pre-publication marketing draft — numbers final/locked 2026-06-13; public layout pending"
-SOURCE_CAPTION = "Source: ND State Data Center, locked-config baseline projection (2026-06-13)."
+PREPUB_LABEL = (
+    f"Pre-publication marketing draft — numbers final/locked (ADR-068 corrected run {RUN_DATE}); "
+    f"public layout pending"
+)
+SOURCE_CAPTION = (
+    f"Source: ND State Data Center, locked-config baseline projection (ADR-068 corrected run {RUN_DATE})."
+)
 # Figure subtitle for chart/pyramid PNGs (was the now-stale "refresh after final production rerun").
 FIGURE_SUBTITLE = "Pre-publication draft — ND State Data Center (2026 locked projection)"
-
-# Locked-run provenance (see docs/.../final-run-metadata.md).
-# Corrected full-horizon run: ADR-068 (2026-06-15) + 2026-06-16 survival-horizon amendment.
-RUN_METHOD = "m2026r1"
-RUN_CONFIG = "cfg-20260611-production-lock"  # functional config unchanged; ADR-068 deltas are comment-only + the survival build
 
 
 def _git_short_commit() -> str:
@@ -118,9 +130,7 @@ def _git_short_commit() -> str:
         return "unknown"
 
 
-RUN_COMMIT = _git_short_commit()
-RUN_CONFIG_SHA16 = "a6e0bfbc2d70be85"  # sha256(16) of projection_config.yaml (2026-06-16; comment-only delta vs locked cca42fb42be76680)
-RUN_DATE = "2026-06-16"
+RUN_COMMIT = _git_short_commit()  # resolved at runtime; RUN_CONFIG_SHA16/RUN_DATE are set above
 
 
 # ---------------------------------------------------------------------------

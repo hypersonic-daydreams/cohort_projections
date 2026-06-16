@@ -18,7 +18,7 @@ not provisional data.
 | `drafts/PUB-2026 Draft Public Dataset.csv` | Tidy consolidated public CSV: 1,922 rows for 1 scenario × 62 geographies × 31 years |
 | `drafts/pyramid_state_2025.png` and `drafts/pyramid_state_2055_baseline.png` | Statewide pyramid pair at 300 DPI for the public baseline |
 | `drafts/pyramid_cass_*.png` and `drafts/pyramid_ward_*.png` | County pyramids at 300 DPI for baseline reference |
-| `drafts/chart_state_baseline_line.png` | Baseline line chart (shows the 2025–2028 dip and recovery to 2055) |
+| `drafts/chart_state_baseline_line.png` | Baseline line chart (shows the shallow 2025–2027 dip and recovery to 2055) |
 | `drafts/chart_region_baseline_bars.png` | Regional baseline change bars |
 | `drafts/chart_county_top_bottom.png` | Top-6/bottom-6 county bars |
 | `drafts/chart_age_group_trend.png` | Age-group trend |

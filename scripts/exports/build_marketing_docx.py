@@ -17,8 +17,17 @@ All numeric callouts therefore come from the corrected full-horizon production r
 (``m2026r1`` / ``cfg-20260611-production-lock``; ADR-068 + 2026-06-16 survival-horizon
 amendment; config sha256(16) ``a6e0bfbc2d70be85``).
 
+IMPORTANT — not everything auto-refreshes. The **layout-numbers** doc and the workbook
+derive their figures from the CSV, so they update automatically. The **narrative prose**
+(``draft-public-pdf-copy.md``, and the README/storyboard) is HAND-AUTHORED: this script
+re-renders it verbatim and does *not* update its numbers. So whenever the locked run changes,
+the prose must be edited by hand. To catch a miss, ``main()`` runs ``_check_prose_sync()`` — it
+cross-checks the prose's headline figures (2055 total, trough year/value) against the locked CSV
+and prints a loud warning (or, with ``--strict``, exits non-zero) when they drift.
+
 Usage:
-    python scripts/exports/build_marketing_docx.py
+    python scripts/exports/build_marketing_docx.py            # regenerate (warns on prose drift)
+    python scripts/exports/build_marketing_docx.py --strict   # fail if the prose is out of sync
 
 Rerun this whenever the locked markdown copy or the locked CSV changes. It is a
 pre-publication handoff aid: numbers are final/locked; marketing still owns
@@ -28,6 +37,7 @@ layout, branding, accessibility, and the contact/download placeholder fill.
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -300,12 +310,63 @@ def build_all() -> list[Path]:
     return written
 
 
+def _check_prose_sync() -> list[str]:
+    """Flag hand-authored public prose that has drifted from the locked CSV.
+
+    The narrative copy in ``draft-public-pdf-copy.md`` is written by hand and does NOT
+    regenerate from data (only the layout-numbers doc and the workbook do). This catches the
+    failure mode where the projection run changes but the prose callouts are not updated —
+    e.g. the ADR-068 corrections, where the data artifacts refreshed to 898,907 but the prose
+    kept the pre-correction 787k/889k story. Returns a list of issues (empty == in sync).
+    The rounding convention here matches ``_round_k`` (nearest thousand, comma-formatted),
+    which is the convention the prose uses, so the comparison is apples-to-apples.
+    """
+    issues: list[str] = []
+    prose_path = HANDOFF_DIR / "draft-public-pdf-copy.md"
+    if not prose_path.exists() or not LOCKED_CSV.exists():
+        return issues
+    prose = prose_path.read_text(encoding="utf-8")
+    st = (
+        pd.read_csv(LOCKED_CSV)
+        .query("geography_level == 'state'")
+        .sort_values("year")
+        .set_index("year")
+    )
+    total_2055 = _round_k(st.loc[2055, "total_population"])
+    trough_year = int(st["total_population"].idxmin())
+    trough_pop = _round_k(st.loc[trough_year, "total_population"])
+    for label, token in (
+        (f"2055 state total ({total_2055})", total_2055),
+        (f"trough population ({trough_pop})", trough_pop),
+        (f"trough year ({trough_year})", str(trough_year)),
+    ):
+        if token not in prose:
+            issues.append(f"draft-public-pdf-copy.md does not mention the current {label}")
+    return issues
+
+
 def main() -> None:
+    issues = _check_prose_sync()
     written = build_all()
     print(f"Wrote {len(written)} marketing .docx files to {MARKETING_DIR}:")
     for path in written:
         print(f"  - {path.name}")
     print(f"\nAll numbers locked to {RUN_TAG}.")
+    if issues:
+        print("\n" + "=" * 72)
+        print("⚠️  PUBLIC-PROSE SYNC WARNING — the hand-authored narrative may be STALE:")
+        for issue in issues:
+            print(f"   - {issue}")
+        print(
+            "   The prose does NOT auto-update from data. Edit "
+            "docs/.../draft-public-pdf-copy.md\n   against the locked CSV "
+            "(final-run-metadata.md), then rerun this generator."
+        )
+        print("=" * 72)
+        if "--strict" in sys.argv:
+            raise SystemExit(1)
+    else:
+        print("Public-prose sync check: OK (prose matches the locked CSV headline figures).")
 
 
 if __name__ == "__main__":

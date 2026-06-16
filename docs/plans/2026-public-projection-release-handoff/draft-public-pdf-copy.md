@@ -1,11 +1,21 @@
 # Draft Public PDF Copy
 
 Draft for marketing layout and internal review. Numeric callouts are refreshed against the
-**locked-config production run** (`m2026r1` / `cfg-20260611-production-lock`, commit `12fa6f9`,
-2026-06-13). The public path is **Baseline (CBO-Adjusted)** only (ADR-065). Exact values live in
-the public download files; PDF figures are rounded for readability and should reconcile to the
-downloads. Language follows ADR-042: this is a **projection**, never a "forecast," "prediction,"
-"expected outcome," or "most likely" path.
+**locked-config production run** as corrected by the **ADR-068 amendment** (`m2026r1`, config
+sha256 `a6e0bfbc2d70be85`, full-horizon corrected run **2026-06-16**). The public path is
+**Baseline (CBO-Adjusted)** only (ADR-065). Exact values live in the public download files; PDF
+figures are rounded for readability and should reconcile to the downloads. Language follows
+ADR-042: this is a **projection**, never a "forecast," "prediction," "expected outcome," or
+"most likely" path.
+
+> ⚠️ **Hand-authored numbers — re-verify on every projection change.** The figures in this prose
+> are written by hand; they do **not** regenerate automatically from the CSV the way the workbook,
+> the "Draft Numbers For Layout" doc, and the charts do. Whenever the locked run changes, update the
+> callouts here against `final-run-metadata.md` / the locked public CSV — the state base + 2055
+> total, the trough year and value, the growth %, and the Cass / Williams / Burleigh / Ward / Grand
+> Forks county figures — then re-run `scripts/exports/build_marketing_docx.py`. The release-QA
+> checklist's "public-prose sync" gate and a consistency warning in `build_marketing_docx.py` exist
+> to catch this, but they are a backstop, not a substitute for reading the copy.
 
 ## Cover
 
@@ -24,11 +34,11 @@ front-loaded reduction in net migration and a 5% reduction in fertility, layered
 cohort-component projection.
 
 Under this baseline, the state's population is projected to move from about **799,400 in 2025** to
-about **889,000 in 2055** — an increase of roughly **11%** over thirty years. The path is not a
-straight line: it dips slightly in the first few years, reaching a low of about **787,000 around
-2028**, before returning to steady growth. That early dip reflects the CBO assumption that the
-recent surge in migration softens under current federal policy; it is an intended feature of the
-assumption, not a downturn the model discovered on its own.
+about **899,000 in 2055** — an increase of roughly **12%** over thirty years. The path is not a
+straight line: it is nearly flat in the first few years, easing to a shallow low of about **797,000
+around 2027**, before returning to steady growth. That early softening reflects the CBO assumption
+that the recent surge in migration eases under current federal policy; it is an intended feature of
+the assumption, not a downturn the model discovered on its own.
 
 Growth is concentrated in a small number of counties. **Thirty-seven of North Dakota's 53 counties
 are projected to lose population** over the horizon, while most of the statewide gain occurs in and
@@ -36,7 +46,7 @@ around Fargo, Bismarck, and the Bakken/Williston area. The population also shift
 groups statewide.
 
 Suggested exhibit: key-number callout with the 2025 population and the 2055 baseline population,
-with the 2028 low noted.
+with the 2027 low noted.
 
 ### Required baseline caveats (place near the first statewide exhibit)
 
@@ -48,7 +58,7 @@ These four caveats must travel with the statewide numbers (ADR-042):
 2. **Geographic concentration.** More than three-quarters of all projected population gains occur
    in just three counties — Cass, Williams, and Burleigh — and 37 of 53 counties are projected to
    decline. Statewide totals do not reflect uniform growth across the state.
-3. **A deliberately moderated path.** The public baseline grows at roughly 0.36% per year — well
+3. **A deliberately moderated path.** The public baseline grows at roughly 0.4% per year — well
    below the recent migration-driven pace — because it assumes the recent surge softens under
    current federal policy. Long-range population paths are uncertain and depend heavily on
    assumptions that can change.
@@ -72,16 +82,17 @@ Suggested exhibit: one-row baseline assumptions box (base year, fertility, migra
 
 ## Statewide Population Outlook
 
-In the public baseline, North Dakota's population declines slightly for the first few years, reaches
-a low of about 787,000 around 2028, and then grows steadily to about 889,000 by 2055. The early dip
-is the most aggressive part of the CBO migration assumption (the reduction is largest in 2025-2026
-and eases through 2029); after that, projected migration recovers to a moderate, gradually
-declining positive level and natural increase (births exceeding deaths) carries the long-run trend.
+In the public baseline, North Dakota's population is nearly flat for the first few years, eases to a
+shallow low of about 797,000 around 2027, and then grows steadily to about 899,000 by 2055. The
+early softening is the most front-loaded part of the CBO migration assumption (the reduction is
+largest in 2025-2026 and eases through 2029); after that, projected migration recovers to a
+moderate, gradually declining positive level and natural increase (births exceeding deaths) carries
+the long-run trend.
 
 This is a projection path, not a guaranteed future. It shows what is projected to happen if the
 Baseline (CBO-Adjusted) assumptions hold over time.
 
-Suggested exhibit: 2025-2055 baseline line chart, with the 2028 low labeled.
+Suggested exhibit: 2025-2055 baseline line chart, with the 2027 low labeled.
 
 ### How accurate have past projections been?
 
@@ -110,23 +121,23 @@ Suggested exhibit: region map paired with a baseline regional change bar chart.
 County growth is highly concentrated. A small group of counties accounts for nearly all projected
 gains, while the majority of counties decline:
 
-- **Cass County (Fargo)** is projected to grow about 32%, to roughly 266,000 by 2055 — the single
+- **Cass County (Fargo)** is projected to grow about 33%, to roughly 269,000 by 2055 — the single
   largest source of statewide growth.
-- **Williams County (Williston)** is projected to grow about 52%, to roughly 63,000. This continues
+- **Williams County (Williston)** is projected to grow about 54%, to roughly 64,000. This continues
   — at a *moderated* pace — the energy-era growth of the 2010s. The projection assumes Williams'
   net in-migration runs at roughly **half** its recent observed rate; most of the projected growth
   is births exceeding deaths in an unusually young population, not new arrivals. Williams is one of
   a group of young Bakken oil counties (with McKenzie and Billings) showing similar patterns.
-- **Burleigh County (Bismarck)** is projected to grow about 15%, to roughly 119,000.
+- **Burleigh County (Bismarck)** is projected to grow about 16%, to roughly 120,000.
 
 Two large counties are projected to decline, and both are worth explaining plainly:
 
-- **Ward County (Minot)** is projected to decline about 13%, to roughly 59,000. This follows the
+- **Ward County (Minot)** is projected to decline about 12%, to roughly 60,000. This follows the
   data: Ward has seen net out-migration in every year since 2020. The institutional anchors (Minot
   Air Force Base, Minot State University) are held steady in the model, so the decline is in the
   household and working-age population.
-- **Grand Forks County** is projected to be roughly flat to slightly down (about -4%, to roughly
-  71,000). Grand Forks' recent growth came largely from international migration — exactly the
+- **Grand Forks County** is projected to be roughly flat to slightly down (about -3%, to roughly
+  72,000). Grand Forks' recent growth came largely from international migration — exactly the
   component the CBO current-policy assumption reduces — so the shallow decline mostly reflects that
   stated assumption rather than a county-specific judgment.
 
