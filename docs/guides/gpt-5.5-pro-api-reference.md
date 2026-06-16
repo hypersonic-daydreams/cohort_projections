@@ -246,6 +246,53 @@ regardless, so a dropped connection costs nothing; you just reconnect.
 (simpler, what the runner does). Want to see it reason, or iterating on a prompt →
 **stream + `reasoning.summary: "auto"`** (add `background: true` + `starting_after` resume for long jobs).
 
+## Sequential vs parallel reasoning compute (and where to get "Heavy")
+
+gpt-5.5-pro can spend extra inference compute in **two distinct ways**, which are easy to conflate:
+
+- **Sequential test-time compute** — think *longer in one reasoning chain*. Controlled by
+  `reasoning.effort` (`low → medium → high → xhigh`). `xhigh` = maximum sequential depth.
+- **Parallel test-time compute** — run **many independent reasoning paths** and aggregate them
+  (majority-vote / consensus / best-of). This is what **defines "Pro"**: per the
+  [model page](https://developers.openai.com/api/docs/models/gpt-5.5-pro), gpt-5.5-pro is "the same
+  underlying model" using "scaled but efficient parallel test-time compute."
+
+These are different axes. `reasoning.effort` is the *sequential* dial; the *parallel* breadth is
+intrinsic to the pro model.
+
+**What the API exposes — and doesn't:**
+
+- The only documented `reasoning.*` sub-parameters are **`effort`** and **`summary`**
+  ([reasoning guide](https://developers.openai.com/api/docs/guides/reasoning)). There is **no documented
+  parameter to increase parallel breadth** — no "Heavy" knob.
+- You get gpt-5.5-pro's parallel compute simply by **calling the model**; you cannot dial it.
+- **UNRESOLVED (undocumented):** whether API `gpt-5.5-pro` + `xhigh` equals the ChatGPT Pro **"Heavy"**
+  mode or something lighter. The authoritative guides never tie `effort` to parallel breadth, so
+  **do not assume API == web Heavy.**
+
+**ChatGPT Pro (web)** exposes explicit **Light / Heavy** reasoning dials (Heavy = most parallel compute,
+long runtime) — the clearest lever to *maximize* parallel reasoning today.
+
+**Codex CLI does NOT offer the pro/parallel compute.** Its selectable models top out at `gpt-5.5`
+(sequential; effort to `xhigh`); `gpt-5.5-pro` is **not** a listed Codex model
+([Codex models](https://developers.openai.com/codex/models)), and the subscription dispatch path
+(`knowledge`/workspace `REFERENCE-codex-cli-subscription-dispatch.md`) runs `gpt-5.5`, not pro. Great
+for agentic coding/review on the subscription; **not** a route to Heavy.
+
+### Where to run what
+
+| Goal | Best path | Why |
+|------|-----------|-----|
+| Max parallel depth on a **focused, hard** problem | **ChatGPT Pro web, "Heavy"** | explicit Heavy dial; the input is small enough to fit |
+| **Broad audit over a large corpus** | **API `gpt-5.5-pro` + `xhigh` + background** | full 1M context (reads *everything*); scriptable, reproducible, exact cost |
+| Agentic coding/review on the subscription | **Codex CLI (`gpt-5.5`)** | repo-aware; subscription-billed; not pro |
+
+**The core trade-off:** no single path gives **both** max parallel depth **and** full context. Web
+"Heavy" maximizes parallelism but **chunks/retrieves** large uploads (~128k effective, ~10-file limit);
+the API reads the full context but has **no Heavy dial**. Power move for a hard problem buried in a big
+corpus: use the **API to assemble/curate** the large package, then **web Heavy** to hammer the single
+hardest sub-question you extract.
+
 ## Pre-flight checklist (large Pro review)
 
 - [ ] Package assembled and **dry-run** checked (token estimate; remember `chars/4` under-counts ~15–20% —
