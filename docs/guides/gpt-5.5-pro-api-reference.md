@@ -293,6 +293,51 @@ the API reads the full context but has **no Heavy dial**. Power move for a hard 
 corpus: use the **API to assemble/curate** the large package, then **web Heavy** to hammer the single
 hardest sub-question you extract.
 
+## Web UI vs. API: do they differ?
+
+Yes — but the consensus among analysts is the difference is in the **harness around the model, not the
+model weights** ("architectural and experiential rather than fundamental model behavior"). The same
+gpt-5.5-pro runs underneath; the wrapper differs, and it cuts **both ways**.
+
+**Documented / stated differences:**
+
+- **Router vs. direct model.** GPT-5 in ChatGPT is "a system of reasoning, non-reasoning, and router
+  models" — a router picks which model answers. In the API it "is the reasoning model that powers maximum
+  performance" — you name the exact model, no router. So the web can silently route you to a *weaker*
+  model; the API always gives you exactly `gpt-5.5-pro` at the effort you set.
+- **Hidden system prompt.** ChatGPT injects an undisclosed system prompt (persona, formatting, tools,
+  date, safety framing) that shapes outputs; the API is the unmodified signal. Simon Willison runs
+  benchmarks via the API specifically "to avoid hidden system prompts in ChatGPT or other agent harnesses
+  from impacting the results."
+- **Managed tools / memory / retrieval / context.** Web = one-click tools, persistent memory/history,
+  automatic file handling, and large inputs handled via **retrieval/chunking**. API = you wire tools
+  explicitly, manage your own memory, and get the **full raw context window** (no chunking — we put all
+  405k tokens in directly).
+- **Compute dial.** ChatGPT Pro exposes **Light / Heavy** (parallel-compute dials); the API exposes
+  `reasoning.effort` (`low → xhigh`) with **no Light/Heavy equivalent**.
+
+**The two-sided take:**
+
+- *Web plausibly does MORE* via the **Heavy** parallel dial (no API equivalent) + managed tools/retrieval.
+- *API does MORE / is cleaner* via **no router** (no silent downgrade), **no hidden system prompt**,
+  **full context**, and direct control + exact token/cost accounting — which is why credible insiders
+  (Willison) prefer the API for rigorous, reproducible work. The web's hidden layers can *hurt* signal,
+  not just help.
+
+**Still unresolved:** whether the web "Heavy" parallel level exceeds the API's maximum on the parallel
+axis. The API exposes no Heavy equivalent, so no apples-to-apples comparison is documented — anyone
+claiming one way or the other is inferring.
+
+**Practical rule:** for rigorous, reproducible, **full-context** work (a large audit), the **API** is
+arguably the better instrument (clean signal, no router, whole document in context). For a **focused hard
+problem** where maximum parallel compute matters more than a clean prompt, web **Heavy** may spend more —
+plausible but unconfirmed.
+
+*Sources:* [Introducing GPT-5 for developers](https://openai.com/index/introducing-gpt-5-for-developers/) (router vs API model) ·
+[Simon Willison on GPT-5.5](https://simonwillison.net/2026/Apr/23/gpt-5-5/) (hidden system prompts; effort→token impact) ·
+[datastudios — ChatGPT UI vs API differences](https://www.datastudios.org/post/chatgpt-5-2-apis-model-access-endpoints-features-and-practical-differences-from-chatgpt-ui-in-ea) ·
+[GPT-5.5 in ChatGPT (Help Center)](https://help.openai.com/en/articles/11909943-gpt-53-and-54-in-chatgpt) (Light/Heavy).
+
 ## Pre-flight checklist (large Pro review)
 
 - [ ] Package assembled and **dry-run** checked (token estimate; remember `chars/4` under-counts ~15–20% —
