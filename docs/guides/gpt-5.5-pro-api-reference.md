@@ -307,6 +307,52 @@ hardest sub-question you extract.
 
 ---
 
+## Appendix: how the parallel compute likely works (informed speculation)
+
+> **Not OpenAI-confirmed.** OpenAI does not document the internal mechanism of gpt-5.5-pro's parallel
+> test-time compute or the ChatGPT "Heavy" mode. Below is the consensus of qualified outside analysis as
+> of June 2026, credibility-tiered. Treat it as a working mental model, not fact.
+
+**The mechanism (consensus view).** gpt-5.5-pro is believed to run **multiple independent reasoning
+threads in parallel and converge/merge them into one answer** (the self-consistency / best-of-N /
+consensus family) — "the same underlying model, not a separate training run." The nuance specific to
+this generation: the parallel budget is **adaptive per-request** — it allocates *more* parallel compute
+on queries it judges *harder*. That is the likely reason a well-scaffolded verification task finishes
+fast and cheap while a genuinely hard problem runs long.
+
+**"Heavy" as a compute multiplier.** ChatGPT Pro's **Light / Heavy** toggle reportedly maps to internal
+"juice levels" — **Light ≈ 5, Heavy ≈ 200** — i.e. Heavy is roughly a **~40× test-time-compute budget**
+over Light, exposed as a toggle rather than the originally-planned slider. *(The specific numbers are
+leak/analysis, not an OpenAI spec — treat as rumor.)*
+
+**Why the field is going parallel.** The most credible current framing — Nathan Lambert (research
+scientist, Allen Institute for AI; *Interconnects*) — is that the **sequential** axis (longer single
+chains = `reasoning.effort`) is hitting **diminishing returns**, while **parallel** inference is the live
+scaling frontier (enabled by new GPU clusters). So gpt-5.5-pro leaning on parallel compute reflects where
+the field is heading, not a one-off quirk.
+
+**Where it helps — and where it may not.** Parallel/consensus compute pays off most on **hard,
+verifiable, single-answer** problems (math, code, logic), where a majority vote or verifier signal is
+meaningful. Evidence is **mixed for broad knowledge/factual work**: some studies show consensus@k helps
+factual reasoning, while others argue test-time scaling is "not effective for knowledge-intensive tasks
+yet." Practical implication: **reach for Heavy on a focused hard problem, not a broad multi-part audit**
+(matches the "where to run what" table above).
+
+**Credibility tiering:**
+
+- *High:* Nathan Lambert / Interconnects; peer-reviewed arXiv on test-time scaling.
+- *Medium:* independent model-drop analyses and review sites; the ChatGPT help center for the Light/Heavy facts.
+- *Low / rumor:* the specific "juice 5 / 200" numbers; post-launch "silent downgrade" reports.
+
+**Speculation sources:**
+[Lambert — rise of thinking models](https://www.understandingai.org/p/nathan-lambert-on-the-rise-of-thinking) ·
+[Lambert — GPT-5 and the arc of progress](https://www.interconnects.ai/p/gpt-5-and-bending-the-arc-of-progress) ·
+[GPT-5.5 review (buildfastwithai)](https://www.buildfastwithai.com/blogs/gpt-5-5-review-2026) ·
+[PromptLayer — GPT-5 Pro vs Thinking](https://blog.promptlayer.com/gpt-5-vs-gpt-5-pro-vs-gpt-5-thinking-mode/) ·
+[Jake Handy — Model Drop: GPT-5.5](https://handyai.substack.com/p/model-drop-gpt-55) ·
+[GPT-5.5 in ChatGPT (Help Center)](https://help.openai.com/en/articles/11909943-gpt-53-and-54-in-chatgpt) ·
+[arXiv — test-time scaling not effective for knowledge-intensive tasks yet](https://arxiv.org/pdf/2509.06861)
+
 ## Sources
 
 - [gpt-5.5-pro model page](https://developers.openai.com/api/docs/models/gpt-5.5-pro) — limits, pricing, tiers, background-mode note
