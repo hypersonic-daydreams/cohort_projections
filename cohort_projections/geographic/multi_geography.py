@@ -185,8 +185,22 @@ def run_single_geography_projection(
                 # so that growth rate calculations are based on total pop
                 base_year_pop = base_year_pop + gq_total
 
-        # Get summary
-        summary = projection_engine.get_projection_summary()
+        # Get summary. Recompute per-year from the GQ-inclusive `projection_results`
+        # rather than `get_projection_summary()`, whose cached `annual_summaries` were
+        # accumulated inside the engine BEFORE group quarters were re-added above —
+        # leaving the per-geography `*_summary.csv` household-only while the parquet is
+        # GQ-inclusive (B1/N1, ADR-068 review). When GQ is not re-added (e.g. non-county
+        # levels), `projection_results` equals the engine's internal results, so this is
+        # identical to `get_projection_summary()`.
+        if not projection_results.empty:
+            summary = pd.DataFrame(
+                [
+                    projection_engine._create_annual_summary(year_df, int(year))
+                    for year, year_df in projection_results.groupby("year")
+                ]
+            )
+        else:
+            summary = projection_engine.get_projection_summary()
 
         # Get components of change (PUB-2026 Stage 3.1); tag with geography
         components = projection_engine.get_annual_components()

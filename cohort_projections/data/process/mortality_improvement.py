@@ -1,17 +1,31 @@
 """
 Mortality improvement processor for cohort projections.
 
-Computes time-varying, ND-adjusted survival rates from Census Bureau NP2023
-national survival ratio projections. Replaces static CDC ND 2020 survival
-rates with projected rates that capture both:
-  - National mortality improvement trends (Census Bureau NP2023-A4)
-  - North Dakota's mortality differential relative to the national average
+Builds the **operative** production survival table: the time-varying, ND-adjusted
+table the cohort engine actually consumes. This is stage 2 of the three-stage
+mortality provenance documented in methodology.md §4.6:
 
-The core formula:
-    ND_survival[age, sex, year] = Census_projected[age, sex, year] * ND_adjustment[age, sex]
+  1. Static race-specific base (NVSR 74-06 2023 national race tables + NVSR 74-12
+     2022 ND/national qx ratio) -> survival_rates.parquet. Built and stored, but
+     SUPERSEDED at runtime by this module's output.
+  2. THIS MODULE: Census Bureau NP2023-A4 national survival-ratio projections
+     rescaled by an ND adjustment factor. Captures both national mortality
+     improvement (NP2023-A4) and ND's mortality differential. Carries NO race
+     dimension and is applied race-flat (disclosed limitation, ADR-068 D3 /
+     methodology §10.7).
+  3. Open-ended age-90+ correction (`apply_open_ended_survival_correction`),
+     which overrides the max_age survival with the open-interval ratio T91/T90
+     from the CDC 2023 combined life table (cdc_lifetables_2023_combined.csv).
+     See ADR-068 and methodology §4.3.
+
+The core formula for stage 2:
+    ND_survival[age, sex, year] = Census_NP2023[age, sex, year] * ND_adjustment[age, sex]
 
 where:
-    ND_adjustment[age, sex] = ND_CDC_baseline[age, sex] / Census_national_2025[age, sex]
+    ND_adjustment[age, sex] = ND_CDC_2020_baseline[age, sex] / Census_national_2025[age, sex]
+
+and ND_CDC_2020_baseline is the CDC ND 2020 life table distributed in the SDC 2024
+dataset (survival_rates_sdc_2024_by_age_group.csv).
 """
 
 import json
@@ -332,6 +346,7 @@ def apply_open_ended_survival_correction(
     """
     lt = pd.read_csv(life_table_file)
     df = nd_adjusted.copy()
+    corrections: dict[str, dict[str, float]] = {}
     for sex in ("Male", "Female"):
         s = lt[(lt["race_ethnicity"] == "Total") & (lt["sex"] == sex)]
         t_max = float(s.loc[s["age"] == max_age, "Tx"].iloc[0])
@@ -345,15 +360,32 @@ def apply_open_ended_survival_correction(
         base_val = float(base.iloc[0])
         scale = target / base_val
         df.loc[mask_open, "survival_rate"] = df.loc[mask_open, "survival_rate"] * scale
+        corrections[sex] = {
+            "T_max": t_max,
+            "T_next": t_next,
+            "target_open_interval_survival": target,
+            "uncorrected_base_year_survival": base_val,
+            "scale": scale,
+        }
         logger.info(
             f"Open-ended {max_age}+ survival ({sex}): base-year {base_val:.4f} -> "
             f"open-interval {target:.4f} (T_{max_age + 1}/T_{max_age}; scale {scale:.4f})"
         )
+    # Record the correction provenance for the pipeline metadata (N5 / ADR-068).
+    # Stored on .attrs so the return type stays a DataFrame for existing callers.
+    df.attrs["open_ended_correction"] = {
+        "max_age": max_age,
+        "base_year": base_year,
+        "life_table_file": str(life_table_file),
+        "formula": "T_{max_age+1} / T_{max_age} (open-interval survivorship ratio)",
+        "by_sex": corrections,
+    }
     return df
 
 
 def run_mortality_improvement_pipeline(
     config: dict | None = None,
+    output_dir: Path | str | None = None,
 ) -> pd.DataFrame:
     """Main pipeline orchestrator for mortality improvement.
 
@@ -368,6 +400,11 @@ def run_mortality_improvement_pipeline(
     Args:
         config: Optional configuration dictionary. If None, loads from
             config/projection_config.yaml.
+        output_dir: Optional output directory for the survival parquet + metadata.
+            Defaults to the PRODUCTION path ``data/processed/mortality/``. **Tests must
+            pass a temp dir** — otherwise they overwrite the production survival table
+            (the defect that truncated the production horizon to 2025-2045; ADR-068
+            amendment 2026-06-16).
 
     Returns:
         DataFrame with ND-adjusted survival projections.
@@ -397,12 +434,18 @@ def run_mortality_improvement_pipeline(
         / "sdc_2024"
         / "survival_rates_sdc_2024_by_age_group.csv"
     )
-    output_dir = project_root / "data" / "processed" / "mortality"
+    # Output dir: production default unless a caller (e.g. a test) redirects it.
+    output_dir = (
+        Path(output_dir)
+        if output_dir is not None
+        else project_root / "data" / "processed" / "mortality"
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Get projection year range from config
+    # Get projection year range from config. Default horizon matches the 30-year
+    # project horizon so a config missing the key does not silently truncate to 2045.
     base_year = config.get("project", {}).get("base_year", 2025)
-    horizon = config.get("project", {}).get("projection_horizon", 20)
+    horizon = config.get("project", {}).get("projection_horizon", 30)
     end_year = base_year + horizon
     years = (base_year, end_year)
 
@@ -472,6 +515,8 @@ def run_mortality_improvement_pipeline(
         "source_files": {
             "census_survival_projections": str(census_file),
             "nd_cdc_baseline": str(nd_baseline_file),
+            # ADR-068 open-ended (90+) correction source (N5: previously omitted)
+            "open_ended_life_table": str(life_table_file),
         },
         "parameters": {
             "projection_years": list(years),
@@ -505,6 +550,9 @@ def run_mortality_improvement_pipeline(
             "Census_NP2023[age, sex, year] * "
             "(ND_CDC_2020[age, sex] / Census_national_2025[age, sex])"
         ),
+        # ADR-068 open-ended (max_age+) correction: source life table + target
+        # T_{A+1}/T_A survival values, captured for auditability (N5).
+        "open_ended_correction": nd_adjusted.attrs.get("open_ended_correction", {}),
     }
 
     metadata_file = output_dir / "mortality_improvement_metadata.json"

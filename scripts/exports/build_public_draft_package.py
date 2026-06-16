@@ -93,12 +93,34 @@ SOURCE_CAPTION = "Source: ND State Data Center, locked-config baseline projectio
 # Figure subtitle for chart/pyramid PNGs (was the now-stale "refresh after final production rerun").
 FIGURE_SUBTITLE = "Pre-publication draft — ND State Data Center (2026 locked projection)"
 
-# Locked-run provenance (see docs/.../final-run-metadata.md)
+# Locked-run provenance (see docs/.../final-run-metadata.md).
+# Corrected full-horizon run: ADR-068 (2026-06-15) + 2026-06-16 survival-horizon amendment.
 RUN_METHOD = "m2026r1"
-RUN_CONFIG = "cfg-20260611-production-lock"
-RUN_COMMIT = "12fa6f9"
-RUN_CONFIG_SHA16 = "bf897444b5a4fec7"
-RUN_DATE = "2026-06-13"
+RUN_CONFIG = "cfg-20260611-production-lock"  # functional config unchanged; ADR-068 deltas are comment-only + the survival build
+
+
+def _git_short_commit() -> str:
+    """Current short commit, resolved at runtime so workbook provenance never goes stale."""
+    import subprocess
+
+    try:
+        return (
+            subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=PROJECT_ROOT,
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .strip()
+            or "unknown"
+        )
+    except Exception:
+        return "unknown"
+
+
+RUN_COMMIT = _git_short_commit()
+RUN_CONFIG_SHA16 = "a6e0bfbc2d70be85"  # sha256(16) of projection_config.yaml (2026-06-16; comment-only delta vs locked cca42fb42be76680)
+RUN_DATE = "2026-06-16"
 
 
 # ---------------------------------------------------------------------------
@@ -437,16 +459,19 @@ def _build_readme_sheet(wb: Workbook) -> None:
         (
             "Locked per ADR-061 (Accepted as modified), ADR-065 (CBO-adjusted "
             "baseline), ADR-066 (Vintage 2025 base), ADR-067 (Williams removed "
-            "from college smoothing). CF-001 disposed 2026-06-11.",
+            "from college smoothing), ADR-068 (CBO migration numerator + open-ended "
+            "90+ survival corrections, incl. the 2026-06-16 survival-horizon "
+            "amendment). CF-001 disposed 2026-06-11.",
             NORMAL_FONT,
         ),
         ("", NORMAL_FONT),
         ("Status", SECTION_FONT),
         (
-            "Numbers are final/locked as of 2026-06-13. These files are a "
-            "pre-publication marketing handoff: the DRAFT mark reflects pending "
-            "public layout and release, not provisional data. Rerun only if the "
-            "locked production outputs change.",
+            "Numbers are final as of the corrected full-horizon production run "
+            "(ADR-068, 2026-06-15 + 2026-06-16 survival-horizon amendment), which "
+            "superseded the 2026-06-13 locked run. These files are a pre-publication "
+            "marketing handoff: the DRAFT mark reflects pending public layout and "
+            "release, not provisional data. Rerun only if the production outputs change.",
             NORMAL_FONT,
         ),
         ("", NORMAL_FONT),
@@ -475,6 +500,15 @@ def _build_readme_sheet(wb: Workbook) -> None:
             "Baseline carries the public narrative. It incorporates CBO-adjusted "
             "immigration and fertility assumptions and should be described as a "
             "projection, not a guaranteed outcome.",
+            NORMAL_FONT,
+        ),
+        (
+            "Population basis: totals include group-quarters (GQ) residents — "
+            "dormitories, military barracks, nursing facilities — held constant at "
+            "2025 levels. The model projects the household population and re-adds the "
+            "constant GQ each year (ADR-055). Consequently any components of change "
+            "(births, deaths, net migration) are HOUSEHOLD-BASIS and exclude GQ "
+            "turnover; this workbook publishes population totals only, not components.",
             NORMAL_FONT,
         ),
         ("", NORMAL_FONT),

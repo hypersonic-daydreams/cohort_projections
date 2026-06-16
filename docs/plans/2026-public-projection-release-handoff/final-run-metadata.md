@@ -3,21 +3,22 @@
 Records the locked-config production run used for the public release (QA Gate 1:
 "Final production run metadata is recorded" / "Final data source notes point to the exact run").
 
-> **⚠️ SUPERSEDED BY THE ADR-068 CORRECTED RUN (2026-06-15).** The 2026-06-13 locked run recorded below contained two confirmed errors (CBO migration numerator = 3-year sum; open-ended 90+ survival). The corrected production run replaces it:
+> **⚠️ SUPERSEDED BY THE ADR-068 CORRECTED RUN (2026-06-15, amended 2026-06-16).** The 2026-06-13 locked run recorded below contained two confirmed errors (CBO migration numerator = 3-year sum; open-ended 90+ survival). The corrected production run replaces it. A **2026-06-16 amendment** further fixed an operative survival-table horizon truncation (the table spanned only 2025–2045, so the engine fell back to the uncorrected static base for steps 2047–2055); the corrected full-horizon figures below are final:
 >
-> | Field | Corrected value |
+> | Field | Corrected value (full-horizon, amended 2026-06-16) |
 > |---|---|
-> | Run date | 2026-06-15 |
-> | Decision record | ADR-068 |
-> | `config/projection_config.yaml` sha256 (16) | `cca42fb42be76680` (was `bf897444b5a4fec7`) |
-> | Key changes | `reference_intl_migration: 10051 → 3350.33`; open-ended 90+ survival corrected (`apply_open_ended_survival_correction` in `mortality_improvement.py`) |
-> | Pipeline stages rerun | `01c` (survival) → `02 --counties --state` (01a/01b migration prep unaffected) |
+> | Run date | 2026-06-15 (survival-horizon amendment + rerun 2026-06-16) |
+> | Decision record | ADR-068 (incl. 2026-06-16 Amendment) |
+> | `config/projection_config.yaml` sha256 (16) | re-stamped post-amendment — see workbook README `RUN_CONFIG_SHA16` (config change is comment-only vs locked `cca42fb42be76680`; functional values identical) |
+> | Key changes | `reference_intl_migration: 10051 → 3350.33`; open-ended 90+ survival corrected (`apply_open_ended_survival_correction`); **operative survival table regenerated to full 2025–2055 horizon + coverage guard added** (2026-06-16) |
+> | Pipeline stages rerun | `01c` (survival, full horizon) → `02 --counties --state` (01a/01b migration prep unaffected) |
 > | State 2025 | 799,358 |
 > | State trough | 797,298 (2027, −0.26%; was 787,382 / 2028 / −1.50%) |
-> | State 2055 | 886,585 (+10.91%; was 889,017 / +11.22%) |
-> | 90+ population @2055 | 9,971 (was ~13,707) |
+> | State 2050 | 883,225 (+10.49%; intermediate 2026-06-15 figure was 877,818) |
+> | State 2055 | **898,907 (+12.45%)**; was 889,017 / +11.22% (prior locked) and 886,585 / +10.91% (intermediate 2026-06-15, survival truncated) |
+> | 90+ population @2055 | **8,172**; was ~13,707 (uncorrected) and 9,971 (intermediate 2026-06-15) |
 >
-> The trajectory table below is the prior (superseded) locked run, retained for the historical record. Public artifacts (workbook/CSV/PDF/marketing/pyramid) and the release QA gates are re-executed against the corrected run as part of publication.
+> Years 2025–2046 are identical across the 2026-06-15 and 2026-06-16 runs; only 2047–2055 changed. The trajectory table below is the prior (2026-06-13, superseded) locked run, retained for the historical record. Public artifacts (workbook/CSV/PDF/marketing/pyramid) and the release QA gates are re-executed against the corrected full-horizon run as part of publication.
 
 ## Provenance
 

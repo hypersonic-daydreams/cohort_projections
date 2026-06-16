@@ -5,7 +5,20 @@
 | **Created** | 2026-06-16 |
 | **For** | The next agent/session picking up PUB-2026 publication prep |
 | **Source** | The round-2 GPT-5.5 Pro review: [`gpt55pro_round2_output.md`](./gpt55pro_round2_output.md) (verdict **GO**, no model rerun) |
-| **Status of numbers** | **FINAL — do not rerun the model.** This is a text/labeling/QA + artifact-regeneration pass, not a numeric one. |
+| **Status of numbers** | ~~FINAL — do not rerun the model.~~ **SUPERSEDED 2026-06-16 — see banner below.** |
+
+> **✅ COMPLETED 2026-06-16, with one material change.** This punch list was worked in full (§A/§B/§C/§D).
+> While verifying §D's survival-coverage gate, the "numbers final / no rerun" premise **broke**: the
+> operative survival table on disk spanned only **2025–2045** (the engine silently fell back to the
+> uncorrected static base for 2047–2055), so the published 886,585 @2055 / 90+ 9,971 were biased. Root
+> cause: a test (`test_full_pipeline_produces_valid_output`) was overwriting the *production* survival
+> table with a horizon-20 (2025–2045) version on every `pytest` run. With the survival table corrected
+> to the full 2025–2055 horizon (user-authorized verification rerun), the **final** numbers are
+> **898,907 @2055 (+12.45%)** / 90+ **8,172** (2025–2046 unchanged, incl. the 797,298@2027 trough).
+> See [`../2026-06-16-corrected-run-qa-verification.md`](../2026-06-16-corrected-run-qa-verification.md)
+> and [`ADR-068`](../../governance/adrs/068-ref-intl-numerator-and-open-ended-survival-correction.md)
+> (Amendment). The §A–§D items below were completed against the corrected run; numbers quoted in this
+> dated handoff (886,585 / 9,971) are retained as the historical record.
 
 ## Start here (orientation)
 

@@ -421,7 +421,13 @@ class TestEndToEnd:
         reason="Real data files not available",
     )
     def test_full_pipeline_produces_valid_output(self, tmp_path: Path) -> None:
-        """Full pipeline with real data produces valid output."""
+        """Full pipeline with real data produces valid output.
+
+        MUST pass ``output_dir=tmp_path`` — calling the pipeline without it overwrites
+        the PRODUCTION survival table, and with this 20-year horizon it truncated
+        production to 2025-2045 (the ADR-068 root cause: the engine then silently falls
+        back to the static-base survival for the 2047-2055 steps).
+        """
         config = {
             "project": {
                 "base_year": 2025,
@@ -432,7 +438,7 @@ class TestEndToEnd:
             },
         }
 
-        result = run_mortality_improvement_pipeline(config)
+        result = run_mortality_improvement_pipeline(config, output_dir=tmp_path)
 
         # Correct total rows: 21 years x 101 ages x 2 sexes = 4242
         assert len(result) == 4242

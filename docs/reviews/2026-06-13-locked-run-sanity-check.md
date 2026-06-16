@@ -1,5 +1,11 @@
 # Locked-Config Production Run — Dated Sanity Check
 
+> **⚠️ SUPERSEDED (numbers) by ADR-068 (2026-06-15) + its 2026-06-16 survival-horizon amendment.**
+> This sanity check reviewed the 2026-06-13 locked run (→ 889,017 @2055). Current figures:
+> 799,358 → trough 797,298 (2027) → **898,907 (2055)**, 90+ @2055 **8,172**. The structural
+> findings (exact aggregation, components reconcile, dip = CBO lever) still hold; numbers here
+> are retained as the historical record.
+
 **Date:** 2026-06-13
 **Reviewer:** Claude Code (PUB-2026 finality remediation, Stage 4.1; QA Gate 1b)
 **Run under review:** `m2026r1` / `cfg-20260611-production-lock` @ commit `12fa6f9`

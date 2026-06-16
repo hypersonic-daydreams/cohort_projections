@@ -141,6 +141,11 @@ rates:
 
   mortality:
     source: "CDC_life_tables"
+    # Base-year (t0) anchor for the Lee-Carter improvement on the STATIC race-specific
+    # base table only (stage 1; national race tables are NVSR 74-06 2023 data).
+    # The OPERATIVE production survival is the time-varying Census NP2023 table
+    # (race-flat) with a 2023 open-age T91/T90 correction; it supersedes the static
+    # base at runtime. See methodology.md §4.6 for the full three-stage provenance.
     life_table_year: 2023
     improvement_factor: 0.005  # annual mortality improvement (0.5%)
     cap_survival_at: 1.0  # no survival rate > 100%

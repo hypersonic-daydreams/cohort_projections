@@ -518,6 +518,30 @@ def load_demographic_rates(
         survival_df = pd.read_parquet(survival_proj_path)
         survival_rates_by_year = _build_survival_rates_by_year(survival_df)
         logger.info(f"Loaded mortality improvement for {len(survival_rates_by_year)} years")
+
+        # GUARD (ADR-068): the operative survival table MUST span the full projection
+        # horizon. The engine silently falls back to the static-base survival table
+        # (race-specific, NO ADR-068 90+ correction) for any year not present here —
+        # which is exactly the defect that truncated the 2026-06-15 run to 2025-2045
+        # and let the corrected 90+ survival lapse for 2047-2055. Warn loudly so it is
+        # never silent again; the release-QA gate asserts full coverage as a hard check.
+        proj_cfg = config.get("project", {})
+        base_year = int(proj_cfg.get("base_year", 2025))
+        end_year = base_year + int(proj_cfg.get("projection_horizon", 30))
+        # The engine consumes survival[year] for each step year -> year+1, i.e. years
+        # base_year .. end_year-1; require coverage through end_year for safety/clarity.
+        required_years = set(range(base_year, end_year + 1))
+        missing_years = sorted(required_years - set(survival_rates_by_year))
+        if missing_years:
+            logger.warning(
+                "OPERATIVE SURVIVAL COVERAGE GAP: nd_adjusted_survival_projections.parquet "
+                f"is missing years {missing_years} of the {base_year}-{end_year} projection "
+                "horizon. The engine will FALL BACK to the static-base survival table "
+                "(no NP2023 trajectory, no ADR-068 90+ open-interval correction) for those "
+                "steps, biasing the oldest-old and the horizon totals. Regenerate via "
+                "`scripts/pipeline/01c_compute_mortality_improvement.py` before any production "
+                "or public run. See ADR-068 and methodology.md §4.6."
+            )
     else:
         logger.info("No mortality improvement data found — using constant survival rates")
 
@@ -1117,15 +1141,38 @@ def aggregate_county_results_to_state(
         logger.error(f"County output directory not found: {county_dir}")
         return False
 
-    # Read all county parquet files
-    county_parquets = sorted(county_dir.glob("nd_county_*_projection_*.parquet"))
+    # Read county population parquet files. The trailing `_{scenario}` keeps the
+    # glob from also matching the sibling `_components.parquet` (and any future
+    # `_*` variants), which would otherwise be swept in (N2/B2, ADR-068 review).
+    county_parquets = sorted(county_dir.glob(f"nd_county_*_projection_*_{scenario}.parquet"))
     if not county_parquets:
         logger.error(f"No county parquet files found in {county_dir}")
         return False
 
+    # QA robustness (N2/B2): exactly one current file per unique county FIPS.
+    # A stale/partial rerun (e.g. a leftover file with different base/end years)
+    # would surface here as a duplicate FIPS rather than being silently summed.
+    fips_to_file: dict[str, str] = {}
+    duplicates: list[str] = []
+    for pq_file in county_parquets:
+        # stem: nd_county_<FIPS>_projection_<base>_<end>_<scenario>
+        parts = pq_file.stem.split("_")
+        fips = parts[2] if len(parts) > 2 else pq_file.stem
+        if fips in fips_to_file:
+            duplicates.append(f"{fips}: {fips_to_file[fips]} vs {pq_file.name}")
+        else:
+            fips_to_file[fips] = pq_file.name
+    if duplicates:
+        logger.error(
+            f"Duplicate county FIPS detected in {county_dir} (stale/partial rerun?): "
+            + "; ".join(duplicates)
+        )
+        return False
+
     logger.info(
         f"ADR-054: Aggregating {len(county_parquets)} county projections "
-        f"to derive state total for scenario '{scenario}'"
+        f"({len(fips_to_file)} unique county FIPS) to derive state total "
+        f"for scenario '{scenario}'"
     )
 
     county_dfs = []
