@@ -29,6 +29,7 @@ dataset (survival_rates_sdc_2024_by_age_group.csv).
 """
 
 import json
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -435,6 +436,19 @@ def run_mortality_improvement_pipeline(
         / "survival_rates_sdc_2024_by_age_group.csv"
     )
     # Output dir: production default unless a caller (e.g. a test) redirects it.
+    # M3 (ADR-068 hardening 2026-06-16): refuse to default to the PRODUCTION path while a
+    # test is running. The original survival-horizon truncation was a test that called
+    # this with no output_dir and silently overwrote the production survival table; this
+    # makes that mistake fail loudly instead of corrupting shared production data. The
+    # production CLI (01c_compute_mortality_improvement.py) runs outside pytest, so
+    # PYTEST_CURRENT_TEST is unset there and the production default still applies.
+    if output_dir is None and os.environ.get("PYTEST_CURRENT_TEST"):
+        raise RuntimeError(
+            "run_mortality_improvement_pipeline() was called under pytest with "
+            "output_dir=None, which would overwrite the PRODUCTION survival table at "
+            "data/processed/mortality/. Pass output_dir=tmp_path in tests. "
+            "(ADR-068 2026-06-16 recurrence guard.)"
+        )
     output_dir = (
         Path(output_dir)
         if output_dir is not None

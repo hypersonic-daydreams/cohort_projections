@@ -416,6 +416,17 @@ class TestBuildNDAdjustedProjections:
 class TestEndToEnd:
     """Integration tests using real data files."""
 
+    def test_no_output_dir_under_pytest_raises(self) -> None:
+        """M3 (ADR-068 hardening): calling the pipeline with no output_dir while pytest
+        is running must raise, so a future test can never silently overwrite the
+        PRODUCTION survival table (the original 2025-2045 truncation root cause).
+
+        ``config={}`` short-circuits the real-config load; the guard fires before any
+        data file is read, so no real data files are required.
+        """
+        with pytest.raises(RuntimeError, match="PRODUCTION survival table"):
+            run_mortality_improvement_pipeline(config={})
+
     @pytest.mark.skipif(
         not CENSUS_SURVIVAL_FILE.exists() or not ND_BASELINE_FILE.exists(),
         reason="Real data files not available",
