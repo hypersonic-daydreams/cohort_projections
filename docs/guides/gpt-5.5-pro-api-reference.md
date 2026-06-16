@@ -198,6 +198,54 @@ A ~405k-input review with ~40k output ≈ **$12.2 input + $7.2 output ≈ $20** 
 
 ---
 
+## Watching it think: streaming + reasoning summaries (observability option)
+
+Background mode (above) is **durable but opaque** — you see `status` only, with token counts at the
+end (the `usage` object is empty while `in_progress`). When you'd rather watch the model work in real
+time, use **streaming + reasoning summaries.** Good for: iterating on a prompt, lower-stakes runs, or
+any time the "watch it think" view is worth more than fire-and-forget simplicity.
+
+**Two parameters:**
+
+- `stream: true` — emit Server-Sent Events as the response is generated.
+- `reasoning: {summary: "auto"}` — include a human-readable **summary** of the model's reasoning
+  (`auto` = most detailed summarizer available for the model). gpt-5.5-pro does **not** expose its raw
+  chain-of-thought — only these summaries. (Raw-CoT streaming events like `response.reasoning_text.delta`
+  exist, but only for open-weight models such as `gpt-oss`.)
+
+**Key streaming events** ([streaming events reference](https://platform.openai.com/docs/api-reference/responses-streaming)):
+
+| Event | Meaning |
+|-------|---------|
+| `response.created` / `response.in_progress` | lifecycle |
+| `response.reasoning_summary_text.delta` | a chunk of the **reasoning summary** as it is produced |
+| `response.output_text.delta` | a chunk of the **visible answer** |
+| `response.completed` | terminal; carries final `usage` (input / output / **reasoning** token counts) |
+| `error` | failure |
+
+**You still do not get a precise live token *counter*** — you watch summary text and answer text
+*flow*, and exact token counts arrive only at `response.completed`. But you do get a real
+"it's reasoning about X now" window that background-poll cannot give.
+
+**Durable AND observable (you don't have to choose):** streaming a long job over one connection is
+fragile, but combine **`background: true` + `stream: true`**; if the connection drops, **resume** the
+event stream with `GET /v1/responses/{id}?stream=true&starting_after=<sequence_number>` — the
+`starting_after` cursor replays from the last event you saw. The job keeps running server-side
+regardless, so a dropped connection costs nothing; you just reconnect.
+
+**Caveats:**
+
+- Reasoning summaries are **opt-in** and may require **organization verification** before the API
+  returns them.
+- Summaries are abstractions, not the raw reasoning tokens.
+- The runner here uses background+poll, **not** streaming. Adding the "watch it think" view means
+  implementing SSE parsing + the `starting_after` reconnect loop — a moderate addition, worth it only
+  when live visibility matters.
+
+**Rule of thumb:** fire-and-forget audit where you just want the result → **background + poll**
+(simpler, what the runner does). Want to see it reason, or iterating on a prompt →
+**stream + `reasoning.summary: "auto"`** (add `background: true` + `starting_after` resume for long jobs).
+
 ## Pre-flight checklist (large Pro review)
 
 - [ ] Package assembled and **dry-run** checked (token estimate; remember `chars/4` under-counts ~15–20% —
