@@ -4,7 +4,9 @@
 **Author:** Claude Code (round-2 remediation session)
 **Branch / PR:** `docs/ref-intl-sum-vs-average-finding` / PR #25 (the ADR-068 correction PR)
 **Anchor commit:** `e719518`
-**Status:** Remediation complete; production numbers changed; re-review + push deferred to user.
+**Status:** Remediation complete; production numbers changed; PR #25 pushed; PR-framed re-review **done**
+(GO-WITH-FIXES) → recurrence-hardening punch list handed off (see
+[`2026-06-16-pr25-survival-horizon-review/HANDOFF-pr-review-hardening.md`](2026-06-16-pr25-survival-horizon-review/HANDOFF-pr-review-hardening.md)).
 
 This memo is the human-readable **index** for the session. The durable records are the
 [ADR-068 amendment](../governance/adrs/068-ref-intl-numerator-and-open-ended-survival-correction.md)
@@ -50,16 +52,21 @@ Years 2025–2046 are identical; only 2047–2055 moved.
 ## Decisions on record
 
 - **Adopt the corrected full-horizon numbers** (898,907 / 8,172) as production. *(user)*
-- **Re-review: deferred** — the round-2 GPT-5.5 Pro GO predates this amendment; whether to re-review
-  the changed numbers before publication is open. *(user: "decide later")*
+- **Re-review: DONE** — a PR-framed GPT-5.5 Pro review (live+background, `xhigh`, 599k input, $23.33)
+  returned **GO-WITH-FIXES**: it confirmed the root cause, the corrected numbers (898,907 / 8,172), and
+  the GQ-inclusive summary recompute as sound, and raised three recurrence-hardening fixes (make the
+  coverage guard hard-fail; assert exactly 53 current county files; block the mortality pipeline from
+  defaulting to a production write under pytest) + minors. These are handed off in
+  [`2026-06-16-pr25-survival-horizon-review/HANDOFF-pr-review-hardening.md`](2026-06-16-pr25-survival-horizon-review/HANDOFF-pr-review-hardening.md).
+  No numeric change required.
 - **PR strategy:** everything stays in **PR #25** — it already carries the whole ADR-068 model
   correction (incl. the engine fix `4c38f6d`, which is not on master). Splitting the survival-horizon
   fix into a separate PR was rejected (it would fragment one ADR-068 correction and stack on #25
   anyway). Separating the unrelated GPT-5.5 Pro **API-reference guide** (`docs/guides/gpt-5.5-pro-api-reference.md`)
   into its own PR was also considered and **declined** — not worth the git-history cleanup. (Retitling
   #25 away from `docs:` remains an optional nicety.)
-- **Push: deferred** — `e719518` committed, not pushed (pushing updates PR #25 with the changed
-  numbers; held pending the re-review decision). *(user)*
+- **Push: DONE** — `e719518` + `fcb0432` pushed to PR #25 (origin at `fcb0432`), so the PR canonically
+  reflects the reviewed state. *(user authorized)*
 
 ## What changed (commit `e719518`)
 
@@ -89,8 +96,11 @@ Years 2025–2046 are identical; only 2047–2055 moved.
 
 ## Open / next
 
-- Decide on re-review (recommended given the +12.3k @2055 move post-GO).
-- Push `e719518` to PR #25; retitle #25.
+- **Recurrence-hardening punch list (GO-WITH-FIXES)** — the next concrete task. See
+  [`2026-06-16-pr25-survival-horizon-review/HANDOFF-pr-review-hardening.md`](2026-06-16-pr25-survival-horizon-review/HANDOFF-pr-review-hardening.md):
+  3 majors (hard-fail coverage guard; assert 53 current county files; block production write under
+  pytest) + 3 minors. Code-only; must not move any number.
+- Optional: retitle #25 off `docs:`; a confirming re-review of the (small) hardening diff.
 - `./scripts/bisync.sh` to sync the regenerated survival/projection data (gitignored) to the other
   machine; the committed `marketing-ready/` artifacts travel with git.
 - Marketing layout / publication (SDC/marketing-owned).
