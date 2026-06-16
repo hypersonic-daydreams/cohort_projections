@@ -23,12 +23,18 @@ mode — not the Batch API.** The reasons are below, grounded in the docs and in
 2. **A "failed" batch is NOT free.** Empirically it billed ~$85 (6 retry executions) even though the
    batch object reported `completed: 0` and `usage: {}`. **Never trust the batch status object's
    `usage` as the cost** — only the billing/usage CSVs are authoritative.
-3. **Set a `max_output_tokens` ceiling** (e.g. 60–80k) as a runaway-cost guardrail. Reasoning bills
-   as output at $180/M; without a cap a runaway reasoning trace is uncapped spend.
+3. **`max_output_tokens` is a hard wall, not a budget.** Hitting it **truncates** generation to status
+   `incomplete` (`reason: max_output_tokens`) — the model does NOT wrap up gracefully. Worse, reasoning
+   bills first, so a too-low cap can spend the whole budget on hidden reasoning and return an
+   **empty answer you still pay for.** A single live response is already hard-capped at the model's
+   **128k output ceiling (~$23)**, so prefer **no cap** (rely on that ceiling + cancel-for-$0) or a
+   **high backstop ~115k**. The real runaway protection is using live (no retries), not the cap.
 4. **Size is rarely the limit.** Context window is 1,050,000 tokens; a 400k-token package uses ~40%.
    Don't shrink the package for "size" reasons — check the actual limits first.
 5. **Cancel = $0.** A live background response cancelled before completion reports `usage: 0` and is
    not billed. This is the main reason live+background beats batch for control.
+6. **Prefer one comprehensive run over splitting** for an end-to-end audit (see "Scoping" below).
+   Splitting usually costs *more* (re-sent shared context) and loses cross-cutting checks.
 
 ---
 
@@ -150,17 +156,39 @@ python run_gpt55pro_round2_batch.py --recover batch_xxx     # fetch when done
 ```
 
 Hardening to add for live submissions of large packages:
-- **`max_output_tokens`** ceiling (e.g. 60–80k): bounds reasoning+answer, caps worst-case output cost.
-  Reserve ≥25k for reasoning ([reasoning guide](https://developers.openai.com/api/docs/guides/reasoning)).
-  A complete review of this size produced ~33k output in round 1, so 80k is generous headroom.
+
+- **`max_output_tokens`** — optional, and a **hard truncation** (→ status `incomplete`,
+  `reason: max_output_tokens`), NOT a graceful wrap-up; reasoning counts first, so too-low a cap can
+  return an empty-but-billed answer ([reasoning guide](https://developers.openai.com/api/docs/guides/reasoning)).
+  A single live response is already bounded at the model's 128k output ceiling (~$23), so either **omit
+  the cap** (rely on that ceiling + cancel) or set a **high backstop ~115k** that won't truncate a
+  legitimate answer. Do NOT set it tight as a "budget" — round 1 used ~33k output, but a deeper
+  `xhigh` audit can legitimately need far more, and truncation wastes the spend.
 - **Background mode** (`"background": true`) so the request survives long generation; poll
   `GET /v1/responses/{id}`; the response id is recoverable if the local poller dies (e.g. machine sleep).
 - **De-risk further if needed:** lower effort `xhigh → high` (less reasoning time → lower timeout risk
   and cost) before going bigger.
 
+### Scoping: one comprehensive run vs splitting
+
+Prefer **one comprehensive run** over splitting an end-to-end audit into many focused prompts:
+
+- **Splitting usually costs *more*, not less.** Each slice still needs the shared context
+  (methodology, config, the framing/disposition), so you re-send 100k+ tokens per slice and the total
+  input balloons past a single 405k run.
+- **It loses the cross-cutting checks** that are the point of an end-to-end audit — reconciliations
+  that span the pipeline (state = Σ counties; numbers consistent across mortality + migration + GQ).
+- **The model handles large single prompts fine.** 405k input is ~39% of the 1.05M context, and the
+  round-1 single-prompt review produced ~15 substantive findings. "More than it can handle" was a
+  *batch-timeout* failure, not a size/quality one.
+
+Use **"comprehensive first, drill-down on demand"**: run the full review once, then do a *narrow*
+follow-up only on an area the full pass flags as needing depth. To de-risk the first pass, lower
+**effort** (`xhigh → high`) — don't pre-split.
+
 ### Cost estimation (live, full price)
 
-```
+```text
 input_cost  = input_tokens  / 1e6 * 30
 output_cost = output_tokens / 1e6 * 180     # includes reasoning tokens
 ```
