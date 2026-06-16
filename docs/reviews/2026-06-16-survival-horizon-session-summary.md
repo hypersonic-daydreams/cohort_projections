@@ -96,10 +96,13 @@ Years 2025–2046 are identical; only 2047–2055 moved.
 
 ## Open / next
 
-- **Recurrence-hardening punch list (GO-WITH-FIXES)** — the next concrete task. See
-  [`2026-06-16-pr25-survival-horizon-review/HANDOFF-pr-review-hardening.md`](2026-06-16-pr25-survival-horizon-review/HANDOFF-pr-review-hardening.md):
-  3 majors (hard-fail coverage guard; assert 53 current county files; block production write under
-  pytest) + 3 minors. Code-only; must not move any number.
+- **Recurrence-hardening punch list (GO-WITH-FIXES)** — ✅ **DONE 2026-06-16.** All 3 majors
+  (hard-fail coverage guard with `allow_static_survival` opt-out; exactly-53 current county files +
+  filename-horizon match; block production write under pytest) and 3 minors implemented, +7 regression
+  tests, full suite 2,267 passed; no projection number moved. Majors committed `c1e921a`; minors + doc
+  wording in the follow-up commit. See
+  [`2026-06-16-pr25-survival-horizon-review/HANDOFF-pr-review-hardening.md`](2026-06-16-pr25-survival-horizon-review/HANDOFF-pr-review-hardening.md)
+  (marked implemented) and the ADR-068 amendment's recurrence-hardening note.
 - Optional: retitle #25 off `docs:`; a confirming re-review of the (small) hardening diff.
 - `./scripts/bisync.sh` to sync the regenerated survival/projection data (gitignored) to the other
   machine; the committed `marketing-ready/` artifacts travel with git.

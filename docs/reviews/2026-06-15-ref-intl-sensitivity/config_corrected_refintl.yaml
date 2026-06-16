@@ -1,4 +1,13 @@
 # North Dakota Cohort Component Projection Configuration
+#
+# ⚠️ SENSITIVITY/REVIEW CONFIG (ADR-068 PR #25 review hardening, 2026-06-16 — finding N3).
+# ONLY stage 02 (scripts/pipeline/02_run_projections.py --counties --state) is safe to run from
+# this file: only `pipeline.projection.output_dir` (below) is sandboxed to a
+# data/projections/sensitivity_* path. The other output roots still point at the PRODUCTION tree
+# — data_processing `data/processed`, housing_unit_method `data/projections`, immigration
+# `data/processed/immigration`, exports `data/exports` — so running the 01*/03/HU stages from
+# this config WOULD overwrite production data. This config reproduces the documented stage-02
+# sensitivity run only.
 
 project:
   name: "ND Population Projections 2025-2055"

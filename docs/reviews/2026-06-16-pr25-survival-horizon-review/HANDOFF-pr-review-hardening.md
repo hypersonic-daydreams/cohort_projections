@@ -1,5 +1,14 @@
 # Handoff: PR #25 Review-Hardening (GPT-5.5 Pro GO-WITH-FIXES)
 
+> ✅ **IMPLEMENTED 2026-06-16.** All three majors (M1 hard-fail survival guard + `allow_static_survival`
+> opt-out; M2 filename-horizon match + exactly-53 county-set equality; M3 pytest production-write block)
+> and all three minors (N1 evidence banners + README; N2 guard range-convention comment; N3 sensitivity-config
+> warnings) are done, plus +7 regression tests proving each guard fires. Full suite **2,267 passed, 5 skipped**;
+> no projection number moved (production survival still spans 2025–2055; state-2055 still 898,907; both guards
+> proven silent on real production data). Majors committed `c1e921a`; minors + doc wording in the follow-up
+> commit. ADR-068 amendment carries the recurrence-hardening note. This file is retained as the completed
+> work order / audit record.
+
 | Attribute | Value |
 |-----------|-------|
 | **Created** | 2026-06-16 |

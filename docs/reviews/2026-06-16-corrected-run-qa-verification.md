@@ -16,7 +16,8 @@ silently fell back to the uncorrected static-base survival for the projection st
 (ADR-068 Amendment). A controlled re-run with the survival table regenerated to the full horizon
 isolated the effect (2025–2046 identical; divergence begins exactly at 2047). The corrected
 full-horizon numbers are now the production set, and a coverage guard
-(`02_run_projections.py::load_demographic_rates`) prevents the silent fallback from recurring.
+(`02_run_projections.py::load_demographic_rates`) — hardened to a **hard fail** for
+production/public runs in the PR #25 review pass — prevents the silent fallback from recurring.
 
 ## Authoritative numbers (corrected full-horizon run)
 
