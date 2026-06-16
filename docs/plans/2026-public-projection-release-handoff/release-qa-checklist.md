@@ -18,7 +18,7 @@ Status: draft checklist for final-number and marketing handoff.
 ## Gate 1b: Demographic Plausibility
 
 - [x] A dated sanity-check review of the final production run is completed and linked. → [2026-06-13-locked-run-sanity-check.md](../../reviews/2026-06-13-locked-run-sanity-check.md).
-- [x] The 2025-2030 projected trajectory is reconciled against Census PEP Vintage 2025 observed components, including an explicit explanation of the 2025-2028 dip as the intended CBO front-loaded migration adjustment. → sanity check §2; cbo_off run shows no dip.
+- [x] The 2025-2030 projected trajectory is reconciled against Census PEP Vintage 2025 observed components, including an explicit explanation of the shallow 2025-2027 dip (ADR-068 corrected run; was 2028 pre-correction) as the intended CBO front-loaded migration adjustment. → sanity check §2; cbo_off run shows no dip.
 - [x] Projected 2025-2030 components of change (births, deaths, net migration) are cross-checked against PEP observed components. → sanity check §3 (note: deaths are household-basis; ~2,000/yr GQ gap explained).
 - [x] State and large-county age structures and sex ratios at 2035/2045/2055 are reviewed for plausibility. → sanity check §4 (state + Cass/Burleigh/Grand Forks/Ward/Williams).
 - [x] The largest county-level divergences from the 2024 SDC series (Ward, Grand Forks) have a written disposition (corrective ADR or accepted-divergence rationale). → ADR-067 (corrective investigation) + [divergent-counties framing](../../reviews/2026-06-13-divergent-counties-methods-and-framing.md) (incl. Williams); user-signed-off 2026-06-13.
@@ -43,16 +43,18 @@ All items verified and adversarially re-confirmed 2026-06-13 → [release QA sig
 
 ## Gate 3: PDF Content QA
 
-Verified against the PDF copy source `draft-public-pdf-copy.md` (2026-06-13). Final rendered-PDF
-layout is produced by marketing; re-verify these at layout. → [sign-off](../../reviews/2026-06-13-release-qa-signoff.md).
+Verified against the PDF copy source `draft-public-pdf-copy.md`, re-verified against the **ADR-068
+corrected full-horizon run (2026-06-16)**. Final rendered-PDF layout is produced by marketing;
+re-verify these at layout. → [sign-off](../../reviews/2026-06-13-release-qa-signoff.md).
 
 - [x] PDF includes state, region, and county coverage only. → copy covers state/region/county; "City and place projections are not included."
 - [x] Public copy uses Baseline (CBO-Adjusted) as the only public path.
 - [x] Public copy states that the baseline is a projection, not a guaranteed outcome.
 - [x] Required ADR-042 caveats appear near the first statewide exhibit. → four caveats placed at the Executive Summary / first statewide exhibit with refreshed values.
 - [x] Methodology summary identifies base data, fertility, mortality, migration, and baseline construction.
-- [x] County appendix uses final public numbers. → copy callouts (Williams +52%/~63k, Ward −13%/~59k, Cass +32%/~266k) reconcile to the locked CSV; full appendix populated from downloads at layout.
-- [x] Any rounded PDF numbers reconcile to the exact downloadable values. → spot-checked statewide callouts (799k/787k@2028/889k) against CSV.
+- [x] County appendix uses final public numbers. → copy callouts (Cass +33%/~269k, Williams +54%/~64k, Burleigh +16%/~120k, Ward −12%/~60k, Grand Forks −3%/~72k) reconcile to the ADR-068 corrected CSV; full appendix populated from downloads at layout.
+- [x] Any rounded PDF numbers reconcile to the exact downloadable values. → spot-checked statewide callouts (799k / ~797k @2027 trough / 899k @2055) against the ADR-068 corrected CSV.
+- [x] **Public-prose sync (ADR-068 amendment).** The hand-authored narrative (`draft-public-pdf-copy.md`) was re-synced to the corrected full-horizon CSV (2055 ≈ 899k, trough ≈ 797k @2027, +12%, and the Cass/Williams/Burleigh/Ward/Grand Forks callouts) and regenerated via `build_marketing_docx.py`. The prose does **not** auto-regenerate from data, so the generator runs a `_check_prose_sync` warning (use `--strict` to enforce) and the source carries a hand-authored-numbers banner. **Re-run this gate on every future production rerun.**
 
 ## Gate 4: Language QA
 
