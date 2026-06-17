@@ -25,20 +25,21 @@
         (CBO-mig ~−23,000 / fertility ~−13,000 / GQ f=0.75) are acceptable for public release,
         given they are flagged with a pointer to the re-run procedure.
 
-## 2. Independent reconciliation pass — verify facts, not just green tests
+## 2. Independent reconciliation pass — verify facts, not just green tests — ✅ COMPLETE 2026-06-17
 
 > These exist because the three ADR-068 bugs all passed the suite. Run them fresh.
+> Evidence: [2026-06-17 status memo — Verification addendum](../../reviews/2026-06-17-pub-2026-release-readiness-status.md).
 
-- [ ] `pytest` clean — expect ~2,274 passed, 5 skipped (alert if skips > 5).
-- [ ] Confirm `config/projection_config.yaml` still hashes to `a6e0bfbc2d70be85` and
-      `reference_intl_migration` = 3350.33.
-- [ ] **From-scratch reproduction** from the locked config (not a cached artifact) reproduces
-      799,358 / 797,298@2027 / **898,907@2055** / 90+ = 8,172.
-- [ ] Survival table on disk spans the **full 2025–2055** horizon (the truncation bug); the
-      hard-fail guard does not trip on the production run.
-- [ ] Grep public CSV / workbook / `.docx` / both prose files for `886,585`, `889,017`,
-      `787,382`, `9,971`, `13,707` — every hit sits inside an explicit "superseded" banner.
-- [ ] State = Σ counties = 0 residual; region = Σ member counties; exactly 53 county files.
+- [x] `pytest` clean — **2,275 passed, 5 skipped, 0 failed** (2m22s) at tip `7f2f04b`.
+- [x] `config/projection_config.yaml` hashes to `a6e0bfbc2d70be85`; `reference_intl_migration` = 3350.33.
+- [x] **From-scratch reproduction** from the locked config (sandboxed output) reproduced
+      799,358 / 797,298@2027 / **898,907@2055** / 90+ = 8,172.4 — **0 diff across the full
+      33,852-cell grid.** Guards confirmed numerically inert on production.
+- [x] Survival + migration/convergence horizon guards ran on production inputs and did **not**
+      hard-fail (no silent fall-back); locked artifacts untouched.
+- [x] Stale-number grep (`886,585` / `889,017` / `787,382` / `9,971` / `13,707`) — every hit
+      sits inside an explicit "superseded" banner (verified 2026-06-17).
+- [x] State = Σ counties (exact); exactly 53 county files.
 
 ## 3. Finalize
 
