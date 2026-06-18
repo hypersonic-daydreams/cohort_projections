@@ -464,7 +464,20 @@ def run_convergence_pipeline(
             "medium_to_longterm_years": 5,
         },
     )
-    projection_years = config.get("project", {}).get("projection_horizon", 20)
+    # ADR-068 recurrence-hardening: resolve the horizon to the SAME default the
+    # production engine/consumer guard uses (30), not a stale 20. A 20-offset table fed
+    # to a 30-year run would silently truncate time-varying migration for the tail years
+    # (the convergence-coverage guard in 02_run_projections.load_demographic_rates now
+    # hard-fails on exactly that). Warn loudly if the key is absent so a misconfigured
+    # build can't quietly produce a short table.
+    project_cfg = config.get("project", {})
+    if "projection_horizon" not in project_cfg:
+        logger.warning(
+            "config.project.projection_horizon is absent; defaulting the convergence "
+            "horizon to 30 to match the production engine. A horizon shorter than the run "
+            "would silently truncate time-varying migration (ADR-068 recurrence class)."
+        )
+    projection_years = int(project_cfg.get("projection_horizon", 30))
 
     # Extract available periods from data
     available_periods: list[tuple[int, int]] = sorted(

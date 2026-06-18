@@ -388,6 +388,7 @@ def load_demographic_rates(
     config: dict[str, Any],
     *,
     allow_static_survival: bool = False,
+    allow_static_migration: bool = False,
 ) -> tuple[
     pd.DataFrame,
     pd.DataFrame,
@@ -418,6 +419,16 @@ def load_demographic_rates(
             truncated the run to 2025-2045). Set True only to deliberately opt into the
             static/constant-survival fallback (tests, experiments, constant-mortality
             scenarios).
+        allow_static_migration: Twin of ``allow_static_survival`` for the time-varying
+            migration (convergence) table. When False (the default), a convergence table
+            that is *present but horizon-incomplete* — covering fewer year-offsets than
+            the configured projection horizon — is a HARD ERROR, because the engine
+            silently falls back to constant migration rates for the uncovered tail
+            offsets (``cohort_component._get_migration_rates``). That is the survival
+            truncation defect's twin, on the dominant driver of the projection. Set True
+            only to opt into the fallback for tests/experiments with a deliberately short
+            convergence table. (A *wholly absent* convergence file is a separate,
+            long-supported "constant migration" mode and is not gated by this flag.)
 
     Returns:
         Tuple of (fertility_rates, survival_rates, migration_rates,
@@ -426,7 +437,9 @@ def load_demographic_rates(
     Raises:
         FileNotFoundError: If required rate files not found
         RuntimeError: If the operative survival table is missing or does not span the
-            full projection horizon and ``allow_static_survival`` is False (ADR-068).
+            full projection horizon and ``allow_static_survival`` is False (ADR-068); or
+            if the convergence migration table is present but does not span the full
+            horizon and ``allow_static_migration`` is False (ADR-068 recurrence-hardening).
     """
     logger.info("Loading processed demographic rates...")
 
@@ -520,6 +533,41 @@ def load_demographic_rates(
         logger.info(
             f"Loaded convergence rates for {len(migration_rates_by_year_by_county)} counties"
         )
+
+        # GUARD (ADR-068 recurrence-hardening, 2026-06-16): the time-varying migration
+        # (convergence) table is the survival guard's twin. It is keyed by year_offset
+        # (1..projection_horizon); the engine SILENTLY falls back to constant migration
+        # rates for any offset not present (cohort_component._get_migration_rates). A
+        # convergence table generated for a shorter horizon than the run is configured for
+        # (e.g. the convergence builder's legacy projection_years=20 default vs a 30-year
+        # config) would let the high offsets — the horizon's tail years — lapse to constant
+        # rates on the DOMINANT driver of the projection, with no error. That is the exact
+        # silent-truncation class ADR-068 fixed for survival, so we validate coverage here.
+        # (A wholly absent convergence file is the separate "constant migration" mode in
+        # the else-branch below and is intentionally NOT gated by this guard.)
+        horizon = int(config.get("project", {}).get("projection_horizon", 30))
+        required_offsets = set(range(1, horizon + 1))
+        short_counties = {
+            fips: sorted(required_offsets - set(offsets))
+            for fips, offsets in migration_rates_by_year_by_county.items()
+            if required_offsets - set(offsets)
+        }
+        if short_counties:
+            sample = dict(list(short_counties.items())[:3])
+            msg = (
+                f"CONVERGENCE MIGRATION COVERAGE GAP: {len(short_counties)} county/counties' "
+                f"time-varying migration table is missing year-offsets of the 1-{horizon} "
+                f"projection horizon (sample {{fips: missing_offsets}}: {sample}). The engine "
+                "would FALL BACK to constant migration rates for those steps, lapsing the "
+                "age-specific convergence on the dominant driver of the projection for the "
+                "horizon's tail years. Regenerate convergence via the Phase-2 migration "
+                "pipeline with project.projection_horizon set correctly "
+                f"(={horizon}). See ADR-068 recurrence-hardening and methodology.md §5."
+            )
+            if allow_static_migration:
+                logger.warning(f"{msg} [allow_static_migration=True: continuing on fallback]")
+            else:
+                raise RuntimeError(msg)
     else:
         logger.info("No convergence rates found — using constant migration rates")
 

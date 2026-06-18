@@ -593,6 +593,95 @@ class TestSurvivalCoverageGuard:
         load_demographic_rates(cfg, allow_static_survival=True)
 
 
+def _write_convergence(processed_dir: Path, offsets_by_county: dict[str, range | list[int]]) -> Path:
+    """Write a minimal convergence_rates_by_year.parquet with per-county year-offsets.
+
+    Schema matches Phase 2 output ([year_offset, county_fips, age_group, sex,
+    migration_rate]); a single valid 5-year age group per (county, offset) is enough for
+    ``_build_convergence_rate_dicts`` to register the offset. Used to simulate a
+    horizon-truncated convergence table (the ADR-068 survival-truncation twin on the
+    migration driver). An ``annual_rate`` metadata sidecar is written so the loader skips
+    the legacy annualization path.
+    """
+    migration_dir = processed_dir / "migration"
+    migration_dir.mkdir(parents=True, exist_ok=True)
+    rows = [
+        {
+            "year_offset": int(off),
+            "county_fips": fips,
+            "age_group": "25-29",
+            "sex": sex,
+            "migration_rate": 0.001,
+        }
+        for fips, offsets in offsets_by_county.items()
+        for off in offsets
+        for sex in SEXES
+    ]
+    out = migration_dir / "convergence_rates_by_year.parquet"
+    pd.DataFrame(rows).to_parquet(out, index=False)
+    (migration_dir / "convergence_metadata.json").write_text('{"rate_unit": "annual_rate"}')
+    return out
+
+
+class TestConvergenceCoverageGuard:
+    """ADR-068 recurrence-hardening: the convergence migration-coverage guard.
+
+    A convergence table that is present but covers fewer year-offsets than the configured
+    horizon would let the engine silently fall back to constant migration rates for the
+    tail years — the survival truncation defect's twin, on the projection's dominant
+    driver. The guard hard-fails by default and is silent on a full-horizon table.
+
+    ``allow_static_survival=True`` is passed throughout to isolate the migration guard
+    (the migration check runs before the survival check in ``load_demographic_rates``).
+    """
+
+    def test_truncated_convergence_raises_by_default(
+        self, monkeypatch, tmp_path, fertility_parquet, survival_parquet, pep_config
+    ):
+        """Convergence covering offsets 1-20 with a 30-year horizon -> RuntimeError."""
+        proc = _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
+        _write_convergence(proc, {fips: range(1, 21) for fips in TEST_COUNTIES})  # missing 21-30
+        monkeypatch.setattr(_mod, "project_root", tmp_path)
+        cfg = {**pep_config, "project": {"base_year": 2025, "projection_horizon": 30}}
+        with pytest.raises(RuntimeError, match="CONVERGENCE MIGRATION COVERAGE GAP"):
+            load_demographic_rates(cfg, allow_static_survival=True)
+
+    def test_truncated_convergence_allowed_with_optout(
+        self, monkeypatch, tmp_path, fertility_parquet, survival_parquet, pep_config
+    ):
+        """Truncated convergence + allow_static_migration=True -> warns, does not raise."""
+        proc = _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
+        _write_convergence(proc, {fips: range(1, 21) for fips in TEST_COUNTIES})
+        monkeypatch.setattr(_mod, "project_root", tmp_path)
+        cfg = {**pep_config, "project": {"base_year": 2025, "projection_horizon": 30}}
+        # Should not raise.
+        load_demographic_rates(cfg, allow_static_survival=True, allow_static_migration=True)
+
+    def test_full_horizon_convergence_passes(
+        self, monkeypatch, tmp_path, fertility_parquet, survival_parquet, pep_config
+    ):
+        """A convergence table spanning offsets 1-30 for a 30-year horizon -> no raise."""
+        proc = _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
+        _write_convergence(proc, {fips: range(1, 31) for fips in TEST_COUNTIES})
+        monkeypatch.setattr(_mod, "project_root", tmp_path)
+        cfg = {**pep_config, "project": {"base_year": 2025, "projection_horizon": 30}}
+        # Should not raise — guard is silent on a full-horizon table.
+        load_demographic_rates(cfg, allow_static_survival=True)
+
+    def test_single_short_county_raises(
+        self, monkeypatch, tmp_path, fertility_parquet, survival_parquet, pep_config
+    ):
+        """One short county among otherwise-complete counties still trips the guard."""
+        proc = _setup_processed_dir(tmp_path, fertility_parquet, survival_parquet)
+        offsets = {fips: range(1, 31) for fips in TEST_COUNTIES}
+        offsets[TEST_COUNTIES[1]] = range(1, 21)  # one county truncated
+        _write_convergence(proc, offsets)
+        monkeypatch.setattr(_mod, "project_root", tmp_path)
+        cfg = {**pep_config, "project": {"base_year": 2025, "projection_horizon": 30}}
+        with pytest.raises(RuntimeError, match="CONVERGENCE MIGRATION COVERAGE GAP"):
+            load_demographic_rates(cfg, allow_static_survival=True)
+
+
 def _write_county_parquet(county_dir: Path, fips: str, base: int, end: int, scenario: str) -> Path:
     """Write a minimal county projection parquet with the standard filename convention."""
     county_dir.mkdir(parents=True, exist_ok=True)
