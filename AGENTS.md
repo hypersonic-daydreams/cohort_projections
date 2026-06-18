@@ -175,6 +175,19 @@ Data processing scripts (`scripts/data/build_*.py`, `scripts/data/ingest_*.py`) 
 - Add an "Implementation Results" section with actual validation metrics
 - If implementation reveals factual errors in the ADR proposal, correct them with a clear annotation
 
+### Public-Facing Prose Voice
+
+Public-facing narrative documents — the public PDF report, plain-language explainers, FAQs, and
+narrative appendices — use a single house voice: the reserved, well-made register of a
+university-press trade book, written for a broad audience and holding interest through clear prose
+rather than marketing energy or dry technical recitation. Section titles carry the argument, the
+opening frames the idea, and technical detail goes in set-aside "Technical note" boxes so the main
+narrative stays readable. Voice changes connective prose only — never the numbers — and ADR-042
+terminology ("projection," never "forecast") and required caveats stay intact. This does **not**
+apply to `docs/methodology.md`, ADRs, SOPs, or code, which keep their formal/technical registers.
+See [SOP-005](./docs/governance/sops/SOP-005-public-facing-prose-voice.md) for the full standard;
+the reference exemplar is `docs/plans/2026-public-projection-release-handoff/how-these-projections-work.md`.
+
 ---
 
 ## 6. Data Conventions
@@ -328,6 +341,7 @@ uv sync               # Install dependencies
 | [SOP-002](./docs/governance/sops/SOP-002-data-processing-documentation.md) | Data processing script and data source documentation |
 | [SOP-003](./docs/governance/sops/SOP-003-method-benchmarking-versioning-promotion.md) | Method benchmarking, versioning, and promotion |
 | [SOP-004](./docs/governance/sops/SOP-004-experimental-methodology-branches.md) | Experimental methodology branch workflow |
+| [SOP-005](./docs/governance/sops/SOP-005-public-facing-prose-voice.md) | Public-facing prose voice and style (reserved trade-book register) |
 
 ### ADRs (Why Decisions)
 | ADR | Topic |

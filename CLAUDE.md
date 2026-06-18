@@ -117,6 +117,7 @@ git add . && git commit -m "..."
 - **ALWAYS** run tests before committing
 - **ALWAYS** run bisync before switching computers
 - **ALWAYS** include full metadata docstrings in data processing scripts ([SOP-002](./docs/governance/sops/SOP-002-data-processing-documentation.md))
+- **ALWAYS** write public-facing narrative prose (public PDF, explainers, FAQs) in the reserved trade-book voice ([SOP-005](./docs/governance/sops/SOP-005-public-facing-prose-voice.md)) — not for `methodology.md`/ADRs/code
 - **ALWAYS** update `DATA_SOURCE_NOTES.md` when adding files to `data/raw/`
 - **ALWAYS** update ADR status and add Implementation Results when work is complete
 - **ALWAYS** update `docs/methodology.md` when changing formulas, rates, data sources, or projection logic
@@ -132,6 +133,7 @@ git add . && git commit -m "..."
 | [AGENTS.md](./AGENTS.md) | Complete AI agent guidance |
 | [docs/guides/observatory-start-here.md](./docs/guides/observatory-start-here.md) | Observatory entry point and reading order |
 | [docs/governance/sops/](./docs/governance/sops/) | Standard Operating Procedures |
+| [SOP-005](./docs/governance/sops/SOP-005-public-facing-prose-voice.md) | Public-facing prose voice (reserved trade-book register) |
 | [docs/guides/](./docs/guides/) | Detailed how-to guides |
 | [docs/governance/adrs/](./docs/governance/adrs/) | Architecture decisions |
 | [DEVELOPMENT_TRACKER.md](./DEVELOPMENT_TRACKER.md) | Current project status |

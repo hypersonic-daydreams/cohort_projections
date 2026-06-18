@@ -10,6 +10,7 @@ This directory contains standard operating procedures for the cohort_projections
 | [SOP-002](./SOP-002-data-processing-documentation.md) | Data Processing Script & Data Source Documentation | Active | 2026-02-23 |
 | [SOP-003](./SOP-003-method-benchmarking-versioning-promotion.md) | Method Benchmarking, Versioning, and Promotion | Active | 2026-03-09 |
 | [SOP-004](./SOP-004-experimental-methodology-branches.md) | Experimental Methodology Branch Workflow | Active | 2026-03-04 |
+| [SOP-005](./SOP-005-public-facing-prose-voice.md) | Public-Facing Prose Voice and Style | Active | 2026-06-18 |
 
 ---
 
