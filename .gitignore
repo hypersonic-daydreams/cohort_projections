@@ -168,10 +168,7 @@ sdc_2024_replication/scripts/statistical_analysis/results/**/*.csv
 # Misc data files in project root
 *.xlsx
 
-# Local convenience outputs (not tracked)
-journal_article_pdfs/
-journal_article_output
-journal_article_versions
+# rclone bisync marker (not tracked)
 RCLONE_TEST
 data_archives/
 
