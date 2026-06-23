@@ -4,7 +4,7 @@
 |-----------|-------|
 | **Date** | 2026-02-18 |
 | **Investigator** | Claude Code (Opus 4.6) |
-| **Parent Review** | [Projection Output Sanity Check](../2026-02-18-projection-output-sanity-check.md) |
+| **Parent Review** | [Projection Output Sanity Check](../analysis/2026-02-18-projection-output-sanity-check.md) |
 | **Related Findings** | [Finding 4-5: Race-Specific Trends](finding-4-5-race-specific-trends.md) |
 | **Related ADR** | [ADR-041: Census+PUMS Hybrid Base Population](../../governance/adrs/041-census-pums-hybrid-base-population.md) |
 | **Status** | Design Complete -- Ready for Implementation |

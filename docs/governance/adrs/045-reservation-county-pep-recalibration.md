@@ -155,7 +155,7 @@ Implemented and in production since 2026-02-23 (commit `6668ec8`, the ADR 042-05
 
 ### Ex-Post Calibration Check (2026-02-23 Production Run)
 
-The [2026-02-23 projection output review](../../reviews/2026-02-23-projection-output-review.md) (Section 6, "Reservation County Calibration Check (ADR-045)") compared the realized projections under the implemented recalibration against this ADR's pre-fix projections and expected-impact estimates. The metric is the baseline-scenario 30-year projected population change (2025-2055); the same baseline values appear in the county tables of the [post-ADR-054 sanity check](../../reviews/2026-02-23-post-adr054-sanity-check.md):
+The [2026-02-23 projection output review](../../reviews/analysis/2026-02-23-projection-output-review.md) (Section 6, "Reservation County Calibration Check (ADR-045)") compared the realized projections under the implemented recalibration against this ADR's pre-fix projections and expected-impact estimates. The metric is the baseline-scenario 30-year projected population change (2025-2055); the same baseline values appear in the county tables of the [post-ADR-054 sanity check](../../reviews/analysis/2026-02-23-post-adr054-sanity-check.md):
 
 | County | Pre-fix projection | ADR-045 post-fix estimate | Realized (2026-02-23 run) |
 |--------|:-----------------:|:------------------------:|:-------------------------:|
@@ -169,7 +169,7 @@ All three counties came in substantially less negative than both the pre-fix pro
 
 1. **These are projection-vs-projection comparisons** — the implemented model's output against this ADR's design estimates — not a comparison against observed post-2025 population. No observation period has elapsed for the forward projections.
 2. **The figures are from the 2026-02-23 run** and predate ADR-055 Phase 2 (GQ-corrected rates), the ADR-061 hybrid configuration, and the ADR-065/066 baseline redefinition. Current-baseline values will differ; revalidation lands with the PUB-2026 Stage 4 sanity review (`docs/plans/2026-public-projection-release-handoff/finality-remediation-plan.md`).
-3. **Backtest caveat**: the [2026-03-04 projection accuracy analysis](../../reviews/2026-03-04-projection-accuracy-analysis.md) found reservation-county walk-forward errors highly volatile and regime-dependent (near-zero at short horizons; +18-24% over-projection at mid horizons from the 2015 origin). The recalibration improves the plausibility of the forward trajectory but does not make reservation counties well-predicted in backtests.
+3. **Backtest caveat**: the [2026-03-04 projection accuracy analysis](../../reviews/analysis/2026-03-04-projection-accuracy-analysis.md) found reservation-county walk-forward errors highly volatile and regime-dependent (near-zero at short horizons; +18-24% over-projection at mid horizons from the 2015 origin). The recalibration improves the plausibility of the forward trajectory but does not make reservation counties well-predicted in backtests.
 
 ## References
 

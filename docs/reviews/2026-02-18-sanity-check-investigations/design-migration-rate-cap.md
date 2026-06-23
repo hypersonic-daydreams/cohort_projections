@@ -4,7 +4,7 @@
 |-----------|-------|
 | **Date** | 2026-02-18 |
 | **Investigator** | Claude Code (Opus 4.6) |
-| **Parent Review** | [Projection Output Sanity Check](../2026-02-18-projection-output-sanity-check.md) |
+| **Parent Review** | [Projection Output Sanity Check](../analysis/2026-02-18-projection-output-sanity-check.md) |
 | **Related** | [Finding 2: Oil County Growth](finding-2-oil-county-growth.md), [Finding 3: Reservation Declines](finding-3-reservation-county-declines.md) |
 | **Status** | Analysis complete -- ready for implementation decision |
 

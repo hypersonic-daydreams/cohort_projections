@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | **Created** | 2026-06-17 12:06 CDT by Claude Code (Opus 4.8) |
-| **Companion memo** | [2026-06-17-pub-2026-release-readiness-status.md](../../reviews/2026-06-17-pub-2026-release-readiness-status.md) |
+| **Companion memo** | [2026-06-17-pub-2026-release-readiness-status.md](../../reviews/audit/2026-06-17-pub-2026-release-readiness-status.md) |
 | **Scope** | Final repo-side gate before marketing handoff. Complements the gate-by-gate [release-qa-checklist.md](./release-qa-checklist.md) (already executed and PASSED); this checklist tracks only what remains. |
 | **Locked run** | config sha `a6e0bfbc2d70be85`; 799,358 (2025) → 797,298 trough @2027 → **898,907 @2055**; 90+ @2055 = 8,172. |
 
@@ -28,7 +28,7 @@
 ## 2. Independent reconciliation pass — verify facts, not just green tests — ✅ COMPLETE 2026-06-17
 
 > These exist because the three ADR-068 bugs all passed the suite. Run them fresh.
-> Evidence: [2026-06-17 status memo — Verification addendum](../../reviews/2026-06-17-pub-2026-release-readiness-status.md).
+> Evidence: [2026-06-17 status memo — Verification addendum](../../reviews/audit/2026-06-17-pub-2026-release-readiness-status.md).
 
 - [x] `pytest` clean — **2,275 passed, 5 skipped, 0 failed** (2m22s) at tip `7f2f04b`.
 - [x] `config/projection_config.yaml` hashes to `a6e0bfbc2d70be85`; `reference_intl_migration` = 3350.33.

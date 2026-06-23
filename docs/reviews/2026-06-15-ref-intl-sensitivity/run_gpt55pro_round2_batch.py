@@ -77,7 +77,7 @@ FILES = [
     "docs/governance/adrs/066-vintage-2025-pep-base-population-refresh.md",
     "docs/governance/adrs/067-ward-grand-forks-divergence-investigation.md",
     # === the migration finding + the sensitivity that isolated it ===
-    "docs/reviews/2026-06-15-ref-intl-migration-sum-vs-average.md",
+    "docs/reviews/analysis/2026-06-15-ref-intl-migration-sum-vs-average.md",
     "docs/reviews/2026-06-15-ref-intl-sensitivity/README.md",
     "docs/reviews/2026-06-15-ref-intl-sensitivity/comparison_state_trajectory.csv",
     "docs/reviews/2026-06-15-ref-intl-sensitivity/comparison_county_2055.csv",
@@ -94,9 +94,9 @@ FILES = [
     f"{R2}/evidence_gq_2025_SAMPLE.csv",                # GQ age/sex allocation (2-county sample)
     f"{R2}/evidence_gq_historical_by_year.csv",         # GQ backward-constant construction by year
     # === validation evidence + run metadata ===
-    "docs/reviews/2026-06-13-locked-run-sanity-check.md",
-    "docs/reviews/2026-06-13-naive-method-value-add.md",
-    "docs/reviews/2026-06-13-divergent-counties-methods-and-framing.md",
+    "docs/reviews/analysis/2026-06-13-locked-run-sanity-check.md",
+    "docs/reviews/analysis/2026-06-13-naive-method-value-add.md",
+    "docs/reviews/analysis/2026-06-13-divergent-counties-methods-and-framing.md",
     "docs/methodology_comparison_sdc_2024.md",
     "docs/plans/2026-public-projection-release-handoff/final-run-metadata.md",
 ]
@@ -195,7 +195,7 @@ CRITICAL — three DIFFERENT number sets appear in this package; do not treat th
 
   BLANKET RULE FOR STALE NUMBERS: several included docs PREDATE ADR-068 and still show pre-fix totals as if
   current, WITHOUT a superseded banner — specifically 889,017 @2055 / 787,382 @2028 in
-  docs/methodology_comparison_sdc_2024.md and docs/reviews/2026-06-13-locked-run-sanity-check.md, plus the
+  docs/methodology_comparison_sdc_2024.md and docs/reviews/analysis/2026-06-13-locked-run-sanity-check.md, plus the
   even-earlier provisional 876,479 (ADR-067 F4, labeled "Reference (production baseline)" = the 2026-05-27
   pre-lock draft) and 882,146 (ADR-055, a Feb-2026 intermediate). Treat ANY state-2055 total other than 886,585,
   and ANY near-term trough other than 797,298 @2027, that you encounter in an included doc as HISTORICAL /

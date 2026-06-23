@@ -4,8 +4,8 @@
 |-----------|-------|
 | **Date** | 2026-02-18 |
 | **Investigator** | Claude Code (Opus 4.6) |
-| **Parent Review** | [Projection Output Sanity Check](../2026-02-18-projection-output-sanity-check.md) |
-| **Related** | [ADR-040](../../governance/adrs/040-extend-boom-dampening-2015-2020.md), [Bakken Dampening Review](../2026-02-17-bakken-migration-dampening-review.md) |
+| **Parent Review** | [Projection Output Sanity Check](../analysis/2026-02-18-projection-output-sanity-check.md) |
+| **Related** | [ADR-040](../../governance/adrs/040-extend-boom-dampening-2015-2020.md), [Bakken Dampening Review](../analysis/2026-02-17-bakken-migration-dampening-review.md) |
 | **Status** | Confirmed -- ADR-040 dampening insufficient; further action required |
 
 ---

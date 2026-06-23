@@ -208,5 +208,5 @@ Step 7:  Save output files (period-level + averaged)
 
 ## Related Reviews
 
-- **[College Fix Research Implications](../../reviews/2026-03-04-college-fix-research-implications.md)** — Census Bureau "College Fix" uses complete exclusion (not rate blending) and covers ages 25-29; suggests ADR-049 may be deprecated once an enrollment-based partition is implemented
-- **[Projection Accuracy Analysis](../../reviews/2026-03-04-projection-accuracy-analysis.md)** — identifies college-age smoothing + GQ correction double-dampening as a core accuracy problem for urban/college counties
+- **[College Fix Research Implications](../../reviews/analysis/2026-03-04-college-fix-research-implications.md)** — Census Bureau "College Fix" uses complete exclusion (not rate blending) and covers ages 25-29; suggests ADR-049 may be deprecated once an enrollment-based partition is implemented
+- **[Projection Accuracy Analysis](../../reviews/analysis/2026-03-04-projection-accuracy-analysis.md)** — identifies college-age smoothing + GQ correction double-dampening as a core accuracy problem for urban/college counties

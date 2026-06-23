@@ -174,7 +174,7 @@ Implemented as designed (commit `6668ec8`, 2026-02-23, the ADR 042-053 implement
 - `run_convergence_pipeline()` accepts a `variant` parameter; `_compute_high_scenario_rate_increment()` and `_lift_window_averages()` exist in `cohort_projections/data/process/convergence_interpolation.py`, and the `variant="high"` path lifts all three window averages (step 3b) before interpolation, as specified.
 - `config/projection_config.yaml` defines `high_growth` with `migration: "recent_average"` and `convergence_variant: "high"`, as specified.
 
-The [2026-02-23 projection output review](../../reviews/2026-02-23-projection-output-review.md) confirmed correct directionality after implementation: zero scenario-ordering violations across all 53 counties, with the high-growth state trajectory (+33.6% over 30 years, 1,067,814 at 2055) above baseline (+12.7%) at all time points.
+The [2026-02-23 projection output review](../../reviews/analysis/2026-02-23-projection-output-review.md) confirmed correct directionality after implementation: zero scenario-ordering violations across all 53 counties, with the high-growth state trajectory (+33.6% over 30 years, 1,067,814 at 2055) above baseline (+12.7%) at all time points.
 
 ### Interaction with the ADR-052 Ward Floor
 

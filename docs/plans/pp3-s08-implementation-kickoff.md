@@ -406,7 +406,7 @@ Execute the S05 backtest protocol to select the winning variant.
 **Description**: For any place flagged in the per-place detail table (exceeding its tier's 90th-percentile MAPE ceiling), write a brief narrative identifying the likely cause (oil-boom surge, annexation, institutional population change, etc.) per S05 Section 5.3. Document any structural-break exclusions per S05 Section 6.3.
 
 **Files to create**:
-- `docs/reviews/pp3-backtest-outlier-narrative.md`
+- `docs/reviews/analysis/pp3-backtest-outlier-narrative.md`
 
 **Dependencies**: IMP-09 (backtest results with flagged places).
 
@@ -664,7 +664,7 @@ Execute the S05 backtest protocol to select the winning variant.
 **Description**: Run the complete pipeline for all three scenarios on the full ND place universe. Validate all outputs. This is the final acceptance test before publication.
 
 **Files to create**:
-- `docs/reviews/pp3-end-to-end-validation.md` -- validation results document.
+- `docs/reviews/analysis/pp3-end-to-end-validation.md` -- validation results document.
 
 **Dependencies**: All IMP-01 through IMP-18.
 
@@ -864,12 +864,12 @@ Phase 6: Validation and Documentation (depends on all above)
 | Document | Path | Content |
 |----------|------|---------|
 | S01 Scope Envelope | `DEVELOPMENT_TRACKER.md` (PP-003 section) | Place universe, tiers, horizon |
-| S02 Data Readiness | `docs/reviews/2026-02-28-place-data-readiness-note.md` | PEP vintage files, coverage gaps |
-| S03 Mapping Strategy | `docs/reviews/2026-02-28-place-county-mapping-strategy-note.md` | Crosswalk spec, assignment rules |
-| S04 Modeling Spec | `docs/reviews/2026-02-28-pp3-s04-modeling-spec.md` | Logit-linear model, 2x2 matrix, balance-of-county |
-| S05 Backtesting Design | `docs/reviews/2026-02-28-pp3-s05-backtesting-design.md` | Windows, metrics, thresholds |
-| S06 Output Contract | `docs/reviews/2026-02-28-pp3-s06-output-contract.md` | Schemas, files, workbook structure |
-| S07 Approval Gate | `docs/reviews/2026-02-28-pp3-s07-approval-gate.md` | Go decision, all decisions summary |
+| S02 Data Readiness | `docs/reviews/audit/2026-02-28-place-data-readiness-note.md` | PEP vintage files, coverage gaps |
+| S03 Mapping Strategy | `docs/reviews/analysis/2026-02-28-place-county-mapping-strategy-note.md` | Crosswalk spec, assignment rules |
+| S04 Modeling Spec | `docs/reviews/analysis/2026-02-28-pp3-s04-modeling-spec.md` | Logit-linear model, 2x2 matrix, balance-of-county |
+| S05 Backtesting Design | `docs/reviews/analysis/2026-02-28-pp3-s05-backtesting-design.md` | Windows, metrics, thresholds |
+| S06 Output Contract | `docs/reviews/analysis/2026-02-28-pp3-s06-output-contract.md` | Schemas, files, workbook structure |
+| S07 Approval Gate | `docs/reviews/analysis/2026-02-28-pp3-s07-approval-gate.md` | Go decision, all decisions summary |
 | ADR-033 | `docs/governance/adrs/033-city-level-projection-methodology.md` | City-level projection methodology |
 
 ---

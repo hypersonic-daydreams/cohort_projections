@@ -101,7 +101,7 @@ enumerated in `docs/ARCHIVE_MANIFEST.md` under the rules in `ARCHIVE_STRATEGY.md
 | `docs/plans/` | Plans, backlogs, feature-idea docs; includes the PUB-2026 release-handoff subtree. | `docs/plans/README.md` (current/supporting/historical) | Consult the README before treating any plan as open work. |
 | `docs/guides/` | How-to guides (observatory, testing, compute runtime, etc.). | (self-evident) | |
 | `docs/methodology.md` and `methodology_*` | Canonical projection methodology and comparisons. | the file's own header | Update whenever formulas/rates/data sources change. |
-| `docs/reviews/` | Dated reviews, approval gates, AI-analysis packages. | `DEVELOPMENT_TRACKER.md` links | Large flat dir; being regrouped (hygiene Decision 6). |
+| `docs/reviews/` | Dated reviews, approval gates, AI-analysis packages. | `docs/reviews/README.md` index | Regrouped into `analysis/`, `benchmarking/`, `audit/` + topical subdirs (hygiene Decision 6). |
 | `docs/postmortems/` | Incident/bug postmortems. | (dated) | |
 | `docs/reference/` | Reference material and crosswalks. | (self-evident) | |
 | `docs/reports/`, `docs/research/`, `docs/analysis/` | Generated reports, research notes, analysis writeups. | (dated / per-file) | |

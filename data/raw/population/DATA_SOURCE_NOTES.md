@@ -464,5 +464,5 @@ mid-2026).
 - Ingestion script: `scripts/data/ingest_stcoreview.py`
 - Base population loader: `cohort_projections/data/load/base_population_loader.py`
 - Config: `config/projection_config.yaml` (base_population section)
-- Vintage 2025 analysis: `docs/reviews/2026-02-17-vintage-2025-census-data-analysis.md`
-- Sanity check review: `docs/reviews/2026-02-18-projection-output-sanity-check.md`
+- Vintage 2025 analysis: `docs/reviews/analysis/2026-02-17-vintage-2025-census-data-analysis.md`
+- Sanity check review: `docs/reviews/analysis/2026-02-18-projection-output-sanity-check.md`

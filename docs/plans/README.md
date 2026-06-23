@@ -22,8 +22,8 @@ canonical backlog.
 
 | Document | Role | Status |
 |----------|------|--------|
-| [`2026-03-04-projection-accuracy-analysis.md`](../reviews/2026-03-04-projection-accuracy-analysis.md) | Backtesting analysis with prioritized action items that feed CF-001 experiment ideas | supporting_current |
-| [`2026-03-04-college-fix-research-implications.md`](../reviews/2026-03-04-college-fix-research-implications.md) | Research synthesis behind ADR-061 and CF-001 | supporting_current |
+| [`2026-03-04-projection-accuracy-analysis.md`](../reviews/analysis/2026-03-04-projection-accuracy-analysis.md) | Backtesting analysis with prioritized action items that feed CF-001 experiment ideas | supporting_current |
+| [`2026-03-04-college-fix-research-implications.md`](../reviews/analysis/2026-03-04-college-fix-research-implications.md) | Research synthesis behind ADR-061 and CF-001 | supporting_current |
 | [`observatory-start-here.md`](../guides/observatory-start-here.md) | Current Projection Observatory entry point and reading order | supporting_current |
 | [`benchmarking-workflow.md`](../guides/benchmarking-workflow.md) | Current benchmark execution and review workflow | supporting_current |
 | [`observatory-search-loop.md`](../guides/observatory-search-loop.md) | Current bounded-queue operating guide for the Observatory | supporting_current |

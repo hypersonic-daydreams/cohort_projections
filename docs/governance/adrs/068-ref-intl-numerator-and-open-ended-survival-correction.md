@@ -4,7 +4,7 @@
 **Date:** 2026-06-15 (amended 2026-06-16)
 **Supersedes (numbers):** the 2026-06-13 locked run (`m2026r1` / `cfg-20260611-production-lock`)
 **Related:** ADR-050 (additive migration adjustment), ADR-065 (CBO-adjusted baseline), ADR-066 (Vintage 2025 base), ADR-067 (divergence investigation), ADR-002/ADR-053 (mortality)
-**Evidence:** [`docs/reviews/2026-06-15-ref-intl-migration-sum-vs-average.md`](../../reviews/2026-06-15-ref-intl-migration-sum-vs-average.md); [`docs/reviews/2026-06-15-ref-intl-sensitivity/`](../../reviews/2026-06-15-ref-intl-sensitivity/) (incl. the GPT-5.5 Pro xhigh review)
+**Evidence:** [`docs/reviews/analysis/2026-06-15-ref-intl-migration-sum-vs-average.md`](../../reviews/analysis/2026-06-15-ref-intl-migration-sum-vs-average.md); [`docs/reviews/2026-06-15-ref-intl-sensitivity/`](../../reviews/2026-06-15-ref-intl-sensitivity/) (incl. the GPT-5.5 Pro xhigh review)
 
 ## Context
 

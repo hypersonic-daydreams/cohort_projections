@@ -19,8 +19,8 @@ GO-WITH-FIXES — I believe the 898,907 full-horizon result is directionally and
 | State aggregation glob excludes `_components` | New glob `nd_county_*_projection_*_{scenario}.parquet` at `scripts/pipeline/02_run_projections.py:1141-1148` | **Likely fixed** |
 | State aggregation asserts one file per FIPS | Duplicate-FIPS detection at `02_run_projections.py:1155-1174` | **Partial** — no exactly-53 or horizon assertion |
 | County `_summary.csv` recomputed GQ-inclusive | `cohort_projections/geographic/multi_geography.py:185-203` recomputes summaries from post-GQ `projection_results` | **Looks correct** |
-| Final 898,907 public total | State 2055 row in `PUB-2026 Draft Public Dataset.csv` shows `898907.0052746864`; QA doc repeats 898,907 at `docs/reviews/2026-06-16-corrected-run-qa-verification.md:19-29` | **Verified from CSV** |
-| Final 90+ = 8,172 | QA/ADR docs assert it (`docs/reviews/2026-06-16-corrected-run-qa-verification.md:19-29`; ADR-068 amendment) | **Plausible but not directly verifiable from included public CSV** |
+| Final 898,907 public total | State 2055 row in `PUB-2026 Draft Public Dataset.csv` shows `898907.0052746864`; QA doc repeats 898,907 at `docs/reviews/audit/2026-06-16-corrected-run-qa-verification.md:19-29` | **Verified from CSV** |
+| Final 90+ = 8,172 | QA/ADR docs assert it (`docs/reviews/audit/2026-06-16-corrected-run-qa-verification.md:19-29`; ADR-068 amendment) | **Plausible but not directly verifiable from included public CSV** |
 
 ## Findings
 

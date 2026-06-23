@@ -4,7 +4,7 @@
 |-----------|-------|
 | **Date** | 2026-02-18 |
 | **Investigator** | Claude Code (Opus 4.6) |
-| **Parent Review** | [Projection Output Sanity Check](../2026-02-18-projection-output-sanity-check.md) |
+| **Parent Review** | [Projection Output Sanity Check](../analysis/2026-02-18-projection-output-sanity-check.md) |
 | **Status** | Confirmed -- projected declines are significantly steeper than historical trends; root cause identified as residual method amplification combined with absence of migration dampening mechanisms |
 
 ---

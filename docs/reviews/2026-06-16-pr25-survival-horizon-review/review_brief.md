@@ -56,7 +56,7 @@ a 2025–2045 horizon. Two integration tests had even hard-coded 2045 as their e
 - `tests/test_integration/test_census_method_validation.py`: two horizon assertions now derive from config /
   the actual table instead of hard-coding 2045.
 - `docs/governance/adrs/068-...md` (Amendment) and `docs/methodology.md` (§4.3, §4.6, §10.x) updated;
-  `docs/reviews/2026-06-16-corrected-run-qa-verification.md` records the QA.
+  `docs/reviews/audit/2026-06-16-corrected-run-qa-verification.md` records the QA.
 
 # Engine context you need
 

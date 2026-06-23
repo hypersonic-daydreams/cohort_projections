@@ -248,7 +248,7 @@ Attribution:
   `data/analysis/benchmark_history/`
 - Recovered build metadata: Drive trash `residual_migration_metadata.json..path1`
   (2026-05-27) / `..path2` (2026-02-26)
-- `docs/reviews/2026-06-10-pub-2026-finality-rigor-review.md` (blocking item W)
+- `docs/reviews/audit/2026-06-10-pub-2026-finality-rigor-review.md` (blocking item W)
 - `docs/plans/2026-public-projection-release-handoff/finality-remediation-plan.md`
   (Stage 4.2 decision gate)
 - ADR-040, ADR-045, ADR-049, ADR-052, ADR-055, ADR-061, ADR-065

@@ -257,8 +257,8 @@ rate_cap:
 ## References
 
 1. **Census Bureau "College Fix" research**: `docs/reviews/2026-03-04-college-town-estimates-research.pdf`
-2. **College Fix implications analysis**: `docs/reviews/2026-03-04-college-fix-research-implications.md`
-3. **Projection accuracy analysis**: `docs/reviews/2026-03-04-projection-accuracy-analysis.md`
+2. **College Fix implications analysis**: `docs/reviews/analysis/2026-03-04-college-fix-research-implications.md`
+3. **Projection accuracy analysis**: `docs/reviews/analysis/2026-03-04-projection-accuracy-analysis.md`
 4. **UMDI V2022/V2024 Population Projections Methodology** (cited in Census Bureau research)
 
 ## Disposition and Implementation Results (2026-06-11)

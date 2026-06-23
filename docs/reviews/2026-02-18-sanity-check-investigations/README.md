@@ -3,7 +3,7 @@
 | Attribute | Value |
 |-----------|-------|
 | **Date** | 2026-02-18 |
-| **Parent Review** | [Projection Output Sanity Check](../2026-02-18-projection-output-sanity-check.md) |
+| **Parent Review** | [Projection Output Sanity Check](../analysis/2026-02-18-projection-output-sanity-check.md) |
 | **Investigators** | Claude Code (Opus 4.6), directed by N. Haarstad |
 | **Scope** | Deep investigation of 7 findings from the 2026-02-18 projection output sanity check |
 | **Status** | All investigations complete; all P0-P2 fixes implemented 2026-02-18 |
@@ -12,7 +12,7 @@
 
 ## Synthesis of Findings
 
-Six parallel investigations examined the seven findings identified in the [parent sanity check](../2026-02-18-projection-output-sanity-check.md). The results fall into three tiers by severity and required action.
+Six parallel investigations examined the seven findings identified in the [parent sanity check](../analysis/2026-02-18-projection-output-sanity-check.md). The results fall into three tiers by severity and required action.
 
 ### Tier 1: Bugs Blocking Publication (Fix Before Release)
 

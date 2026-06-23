@@ -253,11 +253,11 @@ publication-priority work. That deferral state is now resolved:
 
 ### Evidence Artifacts
 
-- `docs/reviews/2026-02-28-pp3-imp09-backtest-results.md`
-- `docs/reviews/pp3-backtest-outlier-narrative.md`
-- `docs/reviews/pp3-end-to-end-validation.md`
-- `docs/reviews/2026-03-01-pp3-imp19-approval-gate.md`
-- `docs/reviews/2026-03-01-pp3-imp20-results.md`
+- `docs/reviews/benchmarking/2026-02-28-pp3-imp09-backtest-results.md`
+- `docs/reviews/analysis/pp3-backtest-outlier-narrative.md`
+- `docs/reviews/analysis/pp3-end-to-end-validation.md`
+- `docs/reviews/benchmarking/2026-03-01-pp3-imp19-approval-gate.md`
+- `docs/reviews/analysis/2026-03-01-pp3-imp20-results.md`
 
 ## References
 
