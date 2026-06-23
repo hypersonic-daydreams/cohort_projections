@@ -358,7 +358,7 @@ To align with CY2024 population (Jul 1 estimate):
 | **Alignment Notes** | Uses 5-year census periods (2000-2005, 2005-2010, etc.). Base year 2020. |
 
 **Files**:
-- `source_files/backup/Projections 2023.xlsx` and versions
+- `source_files/vault/Projections 2023.xlsx` and versions (renamed from `source_files/backup/`)
 - `sdc_county_projections_summary.csv` - Extracted county data
 
 ---

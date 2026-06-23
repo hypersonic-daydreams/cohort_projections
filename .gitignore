@@ -173,7 +173,7 @@ journal_article_pdfs/
 journal_article_output
 journal_article_versions
 RCLONE_TEST
-archived/
+data_archives/
 
 # Ad-hoc data directories (synced via rclone, not git)
 2025_popest_data/

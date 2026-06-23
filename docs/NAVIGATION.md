@@ -150,8 +150,8 @@ enumerated in `docs/ARCHIVE_MANIFEST.md` under the rules in `ARCHIVE_STRATEGY.md
 Immutable reference data inside `data/raw/` is **never** to be deleted and is
 **not** part of the archive taxonomy:
 
-- `data/raw/immigration/rpc_archives/`
-- `data/raw/nd_sdc_2024_projections/source_files/backup/`
+- `data/raw/immigration/rpc_vault/` (renamed from `rpc_archives/`)
+- `data/raw/nd_sdc_2024_projections/source_files/vault/` (renamed from `backup/`)
 
-Per `ARCHIVE_STRATEGY.md`, these are source vaults (rename target: `*_vault`).
+Per `ARCHIVE_STRATEGY.md`, these are source vaults — immutable reference data.
 An agent must never treat them as expendable archive content.

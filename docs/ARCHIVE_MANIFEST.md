@@ -98,5 +98,5 @@ and must **never** be deleted. They are outside the archive taxonomy:
 
 | Path | Nature |
 |------|--------|
-| `data/raw/immigration/rpc_archives/` | Source immigration reference data (vault). |
-| `data/raw/nd_sdc_2024_projections/source_files/backup/` | Source SDC-2024 projection files (vault). |
+| `data/raw/immigration/rpc_vault/` | Source immigration reference data (vault; renamed from `rpc_archives/`). |
+| `data/raw/nd_sdc_2024_projections/source_files/vault/` | Source SDC-2024 projection files (vault; renamed from `source_files/backup/`). |

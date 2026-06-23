@@ -85,13 +85,14 @@ Some directories under `data/raw/` hold **immutable source/reference data that
 must never be deleted**. These are explicitly **outside** the archive taxonomy
 so an agent never treats them as expendable:
 
-- `data/raw/immigration/rpc_archives/`
-- `data/raw/nd_sdc_2024_projections/source_files/backup/`
+- `data/raw/immigration/rpc_vault/` (renamed from `rpc_archives/`)
+- `data/raw/nd_sdc_2024_projections/source_files/vault/` (renamed from `backup/`)
 
 Convention for these vaults:
 
-- Rename to a `*_vault` suffix to signal immutability (e.g. `rpc_archives` →
-  `rpc_archives_vault`) — **verify no loader path globs the current name first.**
+- Use a `vault` name to signal immutability. Renamed 2026-06-23: `rpc_archives`
+  → `rpc_vault`, `source_files/backup` → `source_files/vault` (no loader globs
+  the old names; only `data/DATA_MANIFEST.md` referenced them).
 - Add a `README_SOURCES.md` recording: source URL, access date, and why the data
   is retained.
 - **Never delete.** They are reference data, not archive output.
