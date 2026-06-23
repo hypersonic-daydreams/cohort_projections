@@ -363,23 +363,19 @@ uv sync               # Install dependencies
 
 ## 11. Repository Intelligence (Day 2 Operations)
 
-> **Note:** PostgreSQL access is not required for routine development tasks (coding, testing, projections, benchmarking). The intelligence system below is optional background infrastructure for code inventory and execution tracking.
+> **Note:** PostgreSQL access is not required for routine development tasks (coding, testing, projections, benchmarking).
 
-This repository uses a PostgreSQL-backed intelligence system to track code status, documentation links, and execution history.
+The bespoke per-repo "Repository Intelligence System" (the `cohort_projections_meta` PostgreSQL DB plus the auto-generated `REPOSITORY_INVENTORY.md` / `docs/INDEX.md`) was **retired on 2026-06-23** — it had gone stale and three of its scanner scripts were missing. It is being replaced by the workspace ledger (`workspace_silver.ledger`); see [`docs/plans/ledger-inventory-refactor.md`](docs/plans/ledger-inventory-refactor.md).
 
 ### For AI Agents:
-1.  **Context**: Read [REPOSITORY_INVENTORY.md](REPOSITORY_INVENTORY.md) first to understand the codebase structure and identify active/deprecated files.
-2.  **Status Check**: Before modifying a file, check `code_inventory` in `cohort_projections_meta` DB or the inventory file to ensure it is not deprecated.
-3.  **Reproducibility**: When creating scripts that generate results for papers, wrap the logic in the `log_execution` context manager.
+
+1.  **Context**: Read [`docs/NAVIGATION.md`](docs/NAVIGATION.md) first for the repository map and entry-point hierarchy. Use [`DEVELOPMENT_TRACKER.md`](DEVELOPMENT_TRACKER.md) for current state and [`docs/ARCHIVE_MANIFEST.md`](docs/ARCHIVE_MANIFEST.md) for what is archived and why.
+2.  **Reproducibility**: When creating scripts that generate results for papers, wrap the logic in the `log_execution` context manager.
     ```python
     from cohort_projections.utils.reproducibility import log_execution
     with log_execution(__file__, parameters={...}):
         main()
     ```
-
-### Automation:
--   **Pre-commit Hook**: Automatically updates the database when you commit changes. You do not need to manually update the inventory.
--   **Documentation**: Run `python scripts/intelligence/generate_docs_index.py` to refresh `docs/INDEX.md`.
 
 ---
 

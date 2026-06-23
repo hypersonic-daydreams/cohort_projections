@@ -14,7 +14,8 @@ dependencies = [
 ]
 
 [project.scripts]
-update-code-inventory = "codebase_catalog.cli.update_code_inventory:main"
+# update-code-inventory retired 2026-06-23 (bespoke inventory system replaced by
+# the workspace ledger; see docs/plans/ledger-inventory-refactor.md).
 check-data-manifest = "codebase_catalog.cli.check_data_manifest:main"
 
 [tool.setuptools.packages.find]
