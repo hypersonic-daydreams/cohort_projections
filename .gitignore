@@ -90,6 +90,9 @@ data/output/**
 !data/exports/.gitkeep
 !data/output/.gitkeep
 
+# Track navigation READMEs even though their data dirs are gitignored
+!data/exports/README.md
+
 # Logs
 *.log
 logs/
@@ -112,6 +115,9 @@ data/projections/**/*.geojson
 # Backtesting outputs (synced via rclone, not git)
 data/backtesting/**
 !data/backtesting/.gitkeep
+
+# Machine-specific, regenerable inventory snapshot (workspace-ledger-sourced)
+docs/REPO_INVENTORY.generated.md
 
 # Local scratch work (not synced anywhere)
 scratch/**

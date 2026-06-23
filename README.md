@@ -2,6 +2,12 @@
 
 Cohort component population projections for North Dakota state, counties, and places (2025-2055).
 
+> **New here?** Read [`docs/NAVIGATION.md`](docs/NAVIGATION.md) for a map of the repository.
+> Entry-point hierarchy: this README (orientation) → [`CLAUDE.md`](CLAUDE.md) (Claude quick-ref) →
+> [`AGENTS.md`](AGENTS.md) (canonical agent instructions) → [`DEVELOPMENT_TRACKER.md`](DEVELOPMENT_TRACKER.md)
+> (canonical current state). Conventions: [`docs/naming-conventions.md`](docs/naming-conventions.md),
+> [`ARCHIVE_STRATEGY.md`](ARCHIVE_STRATEGY.md).
+
 ## Overview
 
 This project implements the standard demographic cohort component method to project population for:
