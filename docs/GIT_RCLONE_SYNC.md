@@ -1,3 +1,10 @@
+> ⚠️ **DISABLED / OBSOLETE — do not follow these instructions.**
+> rclone and rclone bisync were **permanently removed from this machine on 2026-07-06**
+> per IT security policy, and reinstall is blocked. This document is retained for
+> historical reference only. See the rclone removal log
+> (`~/rclone-removal-2026-07-06/` and the OneDrive Desktop `rclone-removal-2026-07-06.md`).
+
+---
 # Git and Rclone Bisync: Dual-Track Versioning
 
 This document defines the procedures for managing code (via Git/GitHub) and data (via rclone/Google Drive) in the `cohort_projections` project.

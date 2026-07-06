@@ -200,3 +200,9 @@ docs/**/*.pdf
 # GPT-5.5 Pro review: large assembled-package blobs (regenerable from the runners)
 docs/reviews/**/round2_batch_input.jsonl
 docs/reviews/**/pr25_review_input.txt
+# ----------------------------------------------------------------------------
+# NOTE (2026-07-06): rclone / rclone bisync were permanently removed from this
+# machine per IT security policy (reinstall blocked via apt pin). Any RCLONE_TEST
+# or rclone-filter ignore entries above are retained ONLY so stray leftover
+# markers stay untracked. See the rclone removal log.
+# ----------------------------------------------------------------------------
