@@ -44,7 +44,7 @@
 ## 3. Finalize
 
 - [ ] Update `DEVELOPMENT_TRACKER.md`: PUB-2026 repo-side work closed; F4-RESYNC outcome recorded.
-- [ ] `./scripts/bisync.sh` (data synced before handoff).
+- [ ] `./scripts/bisync.sh` (data synced before handoff). *Must run on the **primary/production machine first** — verified 2026-07-06 that Google Drive lacks the corrected-run outputs entirely (no `2025_2055` baseline or `baseline/state/` files; both sides still hold the December `2025_2045` vintage), so a pull from any other machine is a no-op until the primary pushes. See the 2026-07-06 draft-materials assessment, F4 update.*
 - [ ] Confirm the marketing-ready package (`marketing-ready/`) reflects the post-PR-#27 state.
 
 ---
