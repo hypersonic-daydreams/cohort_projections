@@ -14,8 +14,12 @@ never a "forecast," "prediction," "expected outcome," or "most likely" path.
 
 > ⚠️ **Hand-authored numbers: re-verify on every projection change.** Like the public PDF copy,
 > the figures here are written by hand and do **not** regenerate automatically. Whenever the locked
-> run changes, reconcile the callouts (state base, 2055 total, growth %, the 2027 low, and the
-> county figures) against `final-run-metadata.md` / the locked public CSV and `draft-public-pdf-copy.md`.
+> run changes, reconcile the callouts (state base, 2055 total, growth %, the 2027 low, the
+> declining-county count, and the county figures) against `final-run-metadata.md` / the locked
+> public CSV and `draft-public-pdf-copy.md`. This file is covered by the strict prose-sync check in
+> `scripts/exports/build_marketing_docx.py`. The 2018-vintage track-record figures (793,537 /
+> 779,094) are quoted from the 2024 edition's Note of Caution; re-verify against the original 2018
+> publication if it is located.
 
 ---
 
@@ -153,9 +157,9 @@ not a downturn the model uncovered on its own.
 ## What the statewide number conceals
 
 The statewide total describes no single county's experience. Under the baseline, growth is
-strikingly concentrated. Roughly three-quarters of all projected gains fall in just three counties:
-**Cass** (Fargo), **Williams** (Williston), and **Burleigh** (Bismarck). At the same time,
-**37 of the 53 counties are projected to decline.**
+strikingly concentrated. More than three-quarters of all projected gains fall in just three
+counties: **Cass** (Fargo), **Williams** (Williston), and **Burleigh** (Bismarck). At the same
+time, **36 of the 53 counties are projected to decline.**
 
 Because the method follows each county on its own terms, reflecting its particular age structure and
 its own history of migration, it can show why these paths diverge.
@@ -169,11 +173,12 @@ out of that county's own numbers, run through the same machinery as every other.
 
 ## How far should you trust it?
 
-No projection is a promise, but the record offers a fair sense of its reach. The State Data Center's
-previous effort, in 2018, came within about **0.7%** of the 2020 census count for the state. In our
-own back-testing, which launches the current model from past years and checks it against what actually
-happened, it tracks the statewide total to within roughly **1% over a single year** and a few
-percent over about a decade.
+No projection is a promise, but the record offers a fair sense of its reach. The last time the
+census checked this projection series was 2020: the Data Center's 2018-vintage projection put the
+state's population at **793,537**, and the census counted **779,094** — a difference of just under
+**two percent**, across a two-year horizon. In our own back-testing, which launches the current model
+from past years and checks it against what actually happened, it tracks the statewide total to
+within roughly **1% over a single year** and a few percent over about a decade.
 
 Two cautions deserve to travel alongside those figures, and they are not fine print:
 

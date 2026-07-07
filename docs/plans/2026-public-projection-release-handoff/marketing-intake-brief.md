@@ -1,5 +1,10 @@
 # Marketing Intake Brief
 
+> **HISTORICAL — meeting record.** This brief framed the 2026-05-27 intake
+> meeting, before CF-001 disposition (2026-06-11) and the ADR-068-corrected
+> final lock (2026-06-16). Numbers are now final; the current packet state is
+> described in `marketing-ready/README.md`.
+
 Meeting date: 2026-05-27
 
 Purpose: walk marketing through the revised baseline-only report structure,

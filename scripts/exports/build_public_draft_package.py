@@ -154,10 +154,22 @@ def _load_state(scenario: str) -> pd.DataFrame:
 
 
 def _load_counties(scenario: str) -> pd.DataFrame:
-    """Load all 53 county parquet files for a scenario; tag county_fips."""
+    """Load all 53 county parquet files for a scenario; tag county_fips.
+
+    The glob must end with the scenario name so the sibling ``*_components``
+    parquets stay out: they carry no ``age``/``population`` columns, and
+    concatenating them used to inject NaN ages (silently dropped by downstream
+    groupbys, and the reason county pyramid labels rendered as floats).
+    """
     county_dir = PROJECT_ROOT / "data" / "projections" / scenario / "county"
     parts = []
-    for pf in sorted(county_dir.glob("nd_county_*.parquet")):
+    files = sorted(county_dir.glob(f"nd_county_*_{scenario}.parquet"))
+    if len(files) != 53:
+        raise RuntimeError(
+            f"Expected 53 county projection parquets for '{scenario}', found {len(files)} "
+            f"in {county_dir}"
+        )
+    for pf in files:
         fips = pf.stem.split("_")[2]
         df = pd.read_parquet(pf)
         df["county_fips"] = fips
@@ -165,6 +177,35 @@ def _load_counties(scenario: str) -> pd.DataFrame:
     out = pd.concat(parts, ignore_index=True)
     out["scenario"] = scenario
     return out
+
+
+def _load_state_components_periods() -> pd.DataFrame:
+    """State components of change aggregated to five-year periods.
+
+    Components are household-basis (ADR-055): GQ populations are held constant,
+    so births/deaths/net migration describe the household population only.
+    Year N rows record the change from July 1 of N-1 to July 1 of N, so the
+    horizon spans 2026–2055 (six five-year periods).
+    """
+    path = (
+        PROJECT_ROOT
+        / "data"
+        / "projections"
+        / "baseline"
+        / "state"
+        / "nd_state_38_projection_2025_2055_baseline_components.parquet"
+    )
+    comp = pd.read_parquet(path)
+    comp = comp[comp["year"] > BASE_YEAR].copy()
+    period_start = BASE_YEAR + 1 + ((comp["year"] - (BASE_YEAR + 1)) // 5) * 5
+    comp["period"] = period_start.astype(str) + "–" + (period_start + 4).astype(str)
+    return (
+        comp.groupby("period", sort=True)[
+            ["births", "deaths", "natural_increase", "net_migration"]
+        ]
+        .sum()
+        .reset_index()
+    )
 
 
 def load_all() -> dict[str, dict[str, pd.DataFrame]]:
@@ -516,9 +557,9 @@ def _build_readme_sheet(wb: Workbook) -> None:
             "Population basis: totals include group-quarters (GQ) residents — "
             "dormitories, military barracks, nursing facilities — held constant at "
             "2025 levels. The model projects the household population and re-adds the "
-            "constant GQ each year (ADR-055). Consequently any components of change "
+            "constant GQ each year (ADR-055). Consequently the components of change "
             "(births, deaths, net migration) are HOUSEHOLD-BASIS and exclude GQ "
-            "turnover; this workbook publishes population totals only, not components.",
+            "turnover; the Chart - Components sheet publishes them with that label.",
             NORMAL_FONT,
         ),
         ("", NORMAL_FONT),
@@ -549,7 +590,7 @@ def _build_readme_sheet(wb: Workbook) -> None:
         (
             "Chart: … sheets — chart-ready cuts for the storyboard "
             "exhibits (statewide line, regional bars, county top/bottom, "
-            "age trend, pyramids).",
+            "age trend, components of change, pyramids).",
             NORMAL_FONT,
         ),
         (
@@ -943,6 +984,42 @@ def _build_chart_age_trend(wb: Workbook, tidy: pd.DataFrame) -> None:
     )
 
 
+def _build_chart_components(wb: Workbook) -> None:
+    ws = wb.create_sheet("Chart - Components")
+    row = _write_header_block(
+        ws,
+        "Components of Change — State, Five-Year Periods (chart-ready)",
+        scenario_line="Storyboard page 7: components-of-change exhibit",
+    )
+    comp = _load_state_components_periods().rename(
+        columns={
+            "period": "Period",
+            "births": "Births",
+            "deaths": "Deaths (household basis)",
+            "natural_increase": "Natural Increase",
+            "net_migration": "Net Migration",
+        }
+    )
+    row = _write_dataframe(
+        ws,
+        comp,
+        row,
+        numeric_cols={
+            "Births",
+            "Deaths (household basis)",
+            "Natural Increase",
+            "Net Migration",
+        },
+        column_widths={"Period": 14, "Deaths (household basis)": 24},
+    )
+    note = (
+        "Deaths and migration are household-basis: group-quarters populations are "
+        "held constant through the horizon (ADR-055), so components exclude GQ "
+        "turnover. Natural increase = births minus deaths."
+    )
+    ws.cell(row=row + 1, column=1, value=note).font = SUBTITLE_FONT
+
+
 def _build_chart_pyramid(
     wb: Workbook,
     state_df: pd.DataFrame,
@@ -957,7 +1034,10 @@ def _build_chart_pyramid(
         scenario_line="Storyboard page 10: pyramid chart data",
     )
     one = state_df[state_df["year"] == year].copy()
-    one["age_group_start"] = (one["age"] // 5) * 5
+    # Clip to 85 so the open-ended 90+ engine cohort folds into the 85+ bin —
+    # matching the State Age-Sex Detail sheet; without the clip the groupby
+    # keeps start=85 and start=90 as separate rows both labeled "85+".
+    one["age_group_start"] = ((one["age"] // 5) * 5).clip(upper=85).astype(int)
 
     def _label(start: int) -> str:
         if start >= 85:
@@ -1086,6 +1166,7 @@ def build_workbook(
     _build_chart_region_bars(wb, tidy)
     _build_chart_county_top_bottom(wb, tidy)
     _build_chart_age_trend(wb, tidy)
+    _build_chart_components(wb)
     _build_chart_pyramid(
         wb,
         bundle["baseline"]["state"],
@@ -1207,12 +1288,13 @@ def _draft_figure_style(ax, title: str, *, ylabel: str | None = None) -> None:
 
 
 def generate_key_charts(tidy: pd.DataFrame, output_dir: Path) -> None:
-    """Produce the 4 reference key-chart PNGs."""
+    """Produce the 5 reference key-chart PNGs."""
     import matplotlib
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import matplotlib.ticker as mticker
+    import numpy as np
 
     # 1. State baseline line
     fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
@@ -1325,7 +1407,47 @@ def generate_key_charts(tidy: pd.DataFrame, output_dir: Path) -> None:
     fig.savefig(output_dir / "chart_age_group_trend.png", bbox_inches="tight")
     plt.close(fig)
 
-    print(f"  key charts → {output_dir.relative_to(PROJECT_ROOT)} (4 images)")
+    # 5. Components of change (natural increase vs net migration by 5-year period)
+    fig, ax = plt.subplots(figsize=(10, 6), dpi=300)
+    comp = _load_state_components_periods()
+    x = np.arange(len(comp))
+    width = 0.38
+    ax.bar(
+        x - width / 2,
+        comp["natural_increase"],
+        width,
+        label="Natural increase (births − deaths)",
+        color="#1F3864",
+    )
+    ax.bar(
+        x + width / 2,
+        comp["net_migration"],
+        width,
+        label="Net migration",
+        color="#C62828",
+    )
+    ax.axhline(0, color="black", linewidth=0.7)
+    ax.set_xticks(x)
+    ax.set_xticklabels(comp["period"])
+    ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _p: f"{int(v):,}"))
+    ax.legend(loc="upper right", frameon=True)
+    _draft_figure_style(
+        ax,
+        "Baseline Components of Change by Five-Year Period, 2026–2055",
+        ylabel="Residents per five-year period",
+    )
+    fig.text(
+        0.01,
+        0.005,
+        "Household-basis components: group-quarters populations held constant (ADR-055).",
+        fontsize=7,
+        color="#595959",
+    )
+    fig.tight_layout()
+    fig.savefig(output_dir / "chart_components_change.png", bbox_inches="tight")
+    plt.close(fig)
+
+    print(f"  key charts → {output_dir.relative_to(PROJECT_ROOT)} (5 images)")
 
 
 # ---------------------------------------------------------------------------

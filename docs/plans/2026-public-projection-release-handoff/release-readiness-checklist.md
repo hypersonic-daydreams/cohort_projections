@@ -14,16 +14,26 @@
 
 ## 1. Hard gates — must close before handoff
 
-- [ ] **Merge PR #27** (`fix/adr-068-recurrence-guards-and-doc-resync`) to `master`. Carries
+- [x] **Merge PR #27** (`fix/adr-068-recurrence-guards-and-doc-resync`) to `master`. Carries
       the recurrence guards (migration-horizon + 90+ pin) and the doc re-sync.
-- [ ] **Resolve F4-RESYNC** — pick ONE and record it:
-  - [ ] **Re-run + re-sync:** re-run the CBO-migration lever against the ADR-068-corrected
+      *Done — merged 2026-06-16 (merge commit `63e9bf5`); box back-ticked 2026-07-07.*
+- [x] **Resolve F4-RESYNC** — pick ONE and record it:
+  - [ ] ~~**Re-run + re-sync:**~~ re-run the CBO-migration lever against the ADR-068-corrected
         baseline (see `docs/plans/f4-decomposition-reproducibility.md`) and replace the stale
         figures in all ~7 locations, including `methodology_comparison_sdc_2024.md` lines
         ~437–446, **OR**
-  - [ ] **Conscious defer:** record a decision that the caveated stale F4 figures
-        (CBO-mig ~−23,000 / fertility ~−13,000 / GQ f=0.75) are acceptable for public release,
-        given they are flagged with a pointer to the re-run procedure.
+  - [x] **Conscious defer:** recorded 2026-07-07 (decision log + tracker): the caveated stale
+        F4 figures (CBO-mig ~−23,000 / fertility ~−13,000 / GQ f=0.75) are acceptable for the
+        2026 release — they are internal decomposition figures, already flagged in
+        `methodology_comparison_sdc_2024.md` §4.2 with a pointer to the re-run procedure, and
+        the re-run path would clobber production `data/processed/`. Revisit next vintage.
+- [x] **PUB-2026-ERRATA (2026-07-06 assessment) fixed before send** — F1 declining-county
+      count 37→**36** everywhere; F2 track-record claim reworded and attributed (793,537 vs
+      779,094, ≈2%); F3 pyramid "90-94" / duplicate-"85+" label code fixed; F5 front-door docs
+      refreshed; prose-sync guard extended (county count, five county callouts, top-3 share,
+      2024-comparison values) and run `--strict`. Round-2 external re-review (F7): **deferred**,
+      recorded 2026-07-07 — rounds 3–4 (PRs #25–#27) already re-verified the corrected numbers
+      independently from source.
 
 ## 2. Independent reconciliation pass — verify facts, not just green tests — ✅ COMPLETE 2026-06-17
 
@@ -43,9 +53,21 @@
 
 ## 3. Finalize
 
-- [ ] Update `DEVELOPMENT_TRACKER.md`: PUB-2026 repo-side work closed; F4-RESYNC outcome recorded.
-- [ ] `./scripts/bisync.sh` (data synced before handoff). *Must run on the **primary/production machine first** — verified 2026-07-06 that Google Drive lacks the corrected-run outputs entirely (no `2025_2055` baseline or `baseline/state/` files; both sides still hold the December `2025_2045` vintage), so a pull from any other machine is a no-op until the primary pushes. See the 2026-07-06 draft-materials assessment, F4 update.*
-- [ ] Confirm the marketing-ready package (`marketing-ready/`) reflects the post-PR-#27 state.
+- [x] Update `DEVELOPMENT_TRACKER.md`: PUB-2026 repo-side work closed; F4-RESYNC outcome recorded.
+      *Done 2026-07-07.*
+- [ ] ~~`./scripts/bisync.sh` (data synced before handoff).~~ **REWRITTEN 2026-07-07 — bisync is
+      permanently disabled per IT security policy (commit `79ec8e5`, 2026-07-06; rclone removed,
+      reinstall blocked), and Google Drive holds only the stale December `2025_2045` vintage.**
+      This machine (the runbook's "primary") holds the only copy of the corrected outputs and the
+      QA'd packet, verified against the git-tracked locked CSV. Replacement step, owner-executed:
+      make a **manual IT-sanctioned backup** of `data/projections/baseline/**` and
+      `docs/plans/2026-public-projection-release-handoff/marketing-ready/**` before publication.
+      (Recovery fallback if this copy is lost: `docs/plans/primary-machine-data-loss-regeneration-runbook.md`
+      §4 — sandboxed stage-02 regen, byte-verified against the git-tracked locked CSV.)
+- [x] Confirm the marketing-ready package (`marketing-ready/`) reflects the post-PR-#27 state.
+      *Done 2026-07-07 — full package + docx regenerated (`build_public_draft_package.py`,
+      `build_marketing_docx.py --strict`) after the errata fixes; locked CSV verified unchanged;
+      superseded artifacts archived to `data_archives/marketing-ready-2026-06-16-pre-errata/`.*
 
 ---
 

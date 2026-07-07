@@ -1,5 +1,13 @@
 # PUB-2026 Finality Remediation Plan
 
+> **Note (ADR-068):** dated completion entries below cite run values as of their
+> completion dates. Entries from 2026-06-13 (e.g. "889,017 @2055") describe the
+> first locked run, which was **superseded** by the ADR-068-corrected full-horizon
+> rerun of 2026-06-15/16 (final: 898,907 @2055). The "~0.7%" track-record phrasing
+> recorded at Stage 5.1 was likewise replaced on 2026-07-07 (PUB-2026-ERRATA F2).
+> This plan is a closed historical record; current provenance lives in
+> `final-run-metadata.md`.
+
 **Date opened:** 2026-06-10
 **Source:** `docs/reviews/audit/2026-06-10-pub-2026-finality-rigor-review.md` (blocking items B1–B4, Ward disposition W, risk actions R1–R8, gaps G1–G7)
 **Goal:** Close every blocking and non-blocking finding in dependency order, ending with an executed release QA checklist and final public numbers.
