@@ -11,12 +11,21 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tests._sdc_paths import get_sdc_repo_root
+from cohort_projections.utils.sdc_paths import resolve_sdc_replication_root
 
-# Add the module path for imports
-MODULE_PATH = get_sdc_repo_root() / "scripts" / "statistical_analysis"
-if str(MODULE_PATH) not in sys.path:
-    sys.path.insert(0, str(MODULE_PATH))
+# The statistical suite runs against the optional external `sdc_2024_replication`
+# repo. When that sibling repo is absent, skip this whole directory cleanly via
+# `collect_ignore_glob`. Do NOT raise a module-level `pytest.skip` here: a conftest
+# is imported during xdist's initial conftest loading, where a Skipped exception
+# aborts the entire test run instead of skipping just this directory.
+try:
+    _SDC_ROOT = resolve_sdc_replication_root(must_exist=True)
+except FileNotFoundError:
+    collect_ignore_glob = ["*.py"]
+else:
+    MODULE_PATH = _SDC_ROOT / "scripts" / "statistical_analysis"
+    if str(MODULE_PATH) not in sys.path:
+        sys.path.insert(0, str(MODULE_PATH))
 
 
 @pytest.fixture
