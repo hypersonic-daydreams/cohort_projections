@@ -108,6 +108,53 @@ git add . && git commit -m "..."
 
 ---
 
+## Brand and visual identity — declared override, migration pending
+
+Workspace authority: `/home/nhaarstad/workspace/libs/nd_brand` governs brand
+(start at `processed/agent_reference.md`), **except as declared here**. See the brand bullet
+in `/home/nhaarstad/workspace/CLAUDE.md` > "Permanent Workspace References".
+
+- **Exception:** the interactive HTML report, the Panel observatory dashboard, and the
+  experiment dashboard render in an **SDC palette**, not the ND Commerce palette — Navy
+  `#1F3864`, Blue `#0563C1`, Teal `#00B0F0`, Red `#C00000`, with `SCENARIO_COLORS`,
+  `TIER_COLORS`, growth/decline and sex colors, and a registered Plotly template. Defined in
+  `scripts/exports/_report_theme.py`, imported by 12 modules; `cohort_projections/analysis/observatory/dashboard/theme.py`
+  re-exports it. Font stack is Aptos/Segoe UI/Helvetica Neue/Arial.
+- **Scope:** the HTML/Plotly report surfaces above. It does **not** extend to report prose,
+  citations, Word or PowerPoint deliverables, logo use, or the Commerce-facing marketing
+  handoff, all of which follow nd_brand.
+- **Reason:** this repo's output is published by the **North Dakota State Data Center**
+  (`README.md`: "Proprietary -- North Dakota State Data Center"), and the palette matches
+  SDC's own deck. Whether an SDC publication should carry SDC or ND Commerce identity is an
+  institutional question, not a styling one.
+- **Decided:** 2026-09-09 (N. Haarstad) — override stands for now, recording a choice
+  already in the artifacts.
+
+**Migration is needed and not yet done.** Two things have to happen, in this order:
+
+1. **Settle whose brand this publication carries** — SDC or ND Commerce. Until that is
+   answered, do not "fix" `_report_theme.py` toward nd_brand tokens; you would be making an
+   institutional decision by editing a constant. Ask Nigel.
+2. **If the answer is ND Commerce,** migrate `scripts/exports/_report_theme.py` to import
+   from nd_brand rather than hardcode, and expect real gaps: nd_brand has no sequential
+   ramp, no dark mode, and only seven CVD-distinguishable categorical colors. The
+   growth/decline pair here is red/green, which the workspace accessibility SOP forbids as a
+   default signed encoding and `demography/demography_scratchpad/scripts/visual_accessibility_preflight.py`
+   flags as an error — so that part needs fixing under **either** answer.
+
+Two smaller items in the same area:
+
+- `config/nd_brand.yaml` is an orphan: it carries the ND Commerce palette with the
+  pre-correction names and **no code loads it** (only `config/README.md` and
+  `docs/guides/configuration-reference.md` mention it). Delete it rather than migrate it.
+- `docs/archive/observatory_wireframe/vendor/nd-brand.css` is a frozen pre-correction copy
+  of nd_brand's Claude Design stylesheet. Leave it; it is an archived artifact.
+
+Hex is the identifier — never match a brand color by name across a repo boundary. Six
+friendly names in older workspace code now name a different swatch than the guidelines do.
+
+---
+
 ## Key Rules (Summary)
 
 - **NEVER** hard-code file paths (use config)
