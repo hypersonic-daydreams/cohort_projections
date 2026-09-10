@@ -1,14 +1,4 @@
-#!/bin/bash
-# Pre-commit hook to remind user about rclone bisync
-# Always passes, just prints information.
-
-echo "=================================================================="
-echo "REMINDER: Data Synchronization Protocol"
-echo "------------------------------------------------------------------"
-echo "1. Code is synced via Git."
-echo "2. Data is synced via Rclone. (See docs/GIT_RCLONE_SYNC.md)"
-echo "3. ALWAYS use: ./scripts/bisync.sh"
-echo "   (NEVER run raw rclone commands)"
-echo "=================================================================="
-
+#!/usr/bin/env bash
+# DISABLED — rclone permanently removed 2026-07-06 per IT security policy.
+# This was a pre-commit reminder about rclone-synced data; now a no-op.
 exit 0

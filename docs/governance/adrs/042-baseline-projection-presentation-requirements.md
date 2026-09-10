@@ -143,7 +143,7 @@ No configuration changes are needed. This ADR governs presentation and documenta
 ## References
 
 1. **Finding 6 Investigation Report**: [finding-6-baseline-1m-plausibility.md](../../reviews/2026-02-18-sanity-check-investigations/finding-6-baseline-1m-plausibility.md) — Detailed analysis of baseline growth trajectory plausibility
-2. **2026-02-18 Sanity Check**: [Projection Output Sanity Check](../../reviews/2026-02-18-projection-output-sanity-check.md) — Parent review that identified baseline framing as a concern
+2. **2026-02-18 Sanity Check**: [Projection Output Sanity Check](../../reviews/analysis/2026-02-18-projection-output-sanity-check.md) — Parent review that identified baseline framing as a concern
 3. **Census PEP Components (2023-2025)**: Source for the 91% international migration share statistic
 4. **Keyfitz, N. (1972)**: "On Future Population" — Foundational work on the distinction between projections and forecasts
 
@@ -160,5 +160,5 @@ No configuration changes are needed. This ADR governs presentation and documenta
 
 ## Related Reviews
 
-- [Projection Output Sanity Check](../../reviews/2026-02-18-projection-output-sanity-check.md): Parent review identifying the baseline framing concern
+- [Projection Output Sanity Check](../../reviews/analysis/2026-02-18-projection-output-sanity-check.md): Parent review identifying the baseline framing concern
 - [Finding 6: Baseline 1M Plausibility](../../reviews/2026-02-18-sanity-check-investigations/finding-6-baseline-1m-plausibility.md): Deep investigation of the baseline trajectory

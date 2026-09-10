@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Created** | 2026-07-06, from the live cross-machine verification in [`2026-07-06-pub-2026-draft-materials-assessment.md`](../reviews/2026-07-06-pub-2026-draft-materials-assessment.md) (F4 update) |
+| **Created** | 2026-07-06, from the live cross-machine verification in [`2026-07-06-pub-2026-draft-materials-assessment.md`](../reviews/audit/2026-07-06-pub-2026-draft-materials-assessment.md) (F4 update) |
 | **Situation** | The primary/production machine had a filesystem incident (owner-reported ~85% chance of file recovery). Its `data/` tree holds the only copies of the stage-02 projection outputs and the June benchmark evidence archives. Google Drive and the secondary (WSL) machine are mutually in sync but **do not** have those outputs. |
 | **Status** | **Contingency — execute Section 4 only if primary recovery fails.** Sections 2–3 (inventory) and 6–7 are valid reference regardless of outcome. |
 | **Locked run** | `m2026r1` / `cfg-20260611-production-lock`, ADR-068-amended full-horizon rerun 2026-06-16; config sha256(16) `a6e0bfbc2d70be85`; state 799,358 (2025) → 797,298 trough @2027 → 898,907 @2055; 90+ @2055 = 8,172. |

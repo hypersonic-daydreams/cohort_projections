@@ -4,6 +4,18 @@ Shared theme constants for the ND Population Projections interactive HTML report
 Defines color palettes, font stacks, Plotly layout templates, and formatting
 helpers used by all report section builders.
 
+DECLARED BRAND OVERRIDE, MIGRATION PENDING (2026-09-09). This is an SDC palette, not
+the ND Commerce palette. The workspace brand source of truth is
+/home/nhaarstad/workspace/libs/nd_brand, and this file is a recorded exception -- see the
+"Brand and visual identity" section of this repo's CLAUDE.md for the scope and reason.
+
+Do NOT retoken this file toward nd_brand on your own initiative. Which brand a State Data
+Center publication carries is an institutional question, not a styling one; ask Nigel
+first. One part does need fixing under either answer: GROWTH_COLOR/DECLINE_COLOR below are
+green/red, which the workspace accessibility SOP forbids as a default signed encoding and
+demography_scratchpad/scripts/visual_accessibility_preflight.py flags as an error. The
+accessible signed palette is decrease #d14627, neutral #f2f2f2, increase #0e406a.
+
 References:
     SDC brand guide (Navy #1F3864, Blue #0563C1, Teal #00B0F0)
     ADR-037/ADR-065: CBO-grounded scenario methodology (scenario naming)

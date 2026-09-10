@@ -52,14 +52,14 @@ FILES = [
     "docs/governance/adrs/066-vintage-2025-pep-base-population-refresh.md",
     "docs/governance/adrs/067-ward-grand-forks-divergence-investigation.md",
     # --- the open finding + the locked-config sensitivity run (central review target) ---
-    "docs/reviews/2026-06-15-ref-intl-migration-sum-vs-average.md",
+    "docs/reviews/analysis/2026-06-15-ref-intl-migration-sum-vs-average.md",
     "docs/reviews/2026-06-15-ref-intl-sensitivity/README.md",
     "docs/reviews/2026-06-15-ref-intl-sensitivity/comparison_state_trajectory.csv",
     "docs/reviews/2026-06-15-ref-intl-sensitivity/comparison_county_2055.csv",
     # --- validation evidence ---
-    "docs/reviews/2026-06-13-locked-run-sanity-check.md",
-    "docs/reviews/2026-06-13-naive-method-value-add.md",
-    "docs/reviews/2026-06-13-divergent-counties-methods-and-framing.md",
+    "docs/reviews/analysis/2026-06-13-locked-run-sanity-check.md",
+    "docs/reviews/analysis/2026-06-13-naive-method-value-add.md",
+    "docs/reviews/analysis/2026-06-13-divergent-counties-methods-and-framing.md",
     "docs/methodology_comparison_sdc_2024.md",
     "docs/plans/2026-public-projection-release-handoff/final-run-metadata.md",
 ]

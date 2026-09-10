@@ -112,12 +112,13 @@ The main projection pipeline. See [pipeline/README.md](./pipeline/README.md) for
 
 ## Intelligence Scripts (`intelligence/`)
 
-Scripts for documentation management and code-to-documentation linking.
+Repo-inventory tooling. The bespoke PostgreSQL-backed inventory system was retired
+2026-06-23 in favor of the workspace ledger (see
+[`docs/plans/ledger-inventory-refactor.md`](../../docs/plans/ledger-inventory-refactor.md)).
 
 | Script | Purpose | `--help` |
 |--------|---------|----------|
-| `intelligence/generate_docs_index.py` | Generate docs/INDEX.md from repository database | No |
-| `intelligence/link_documentation.py` | Link code inventory to documentation files | No |
+| `intelligence/generate_repo_inventory.py` | Generate a repo-scoped inventory from the workspace ledger (scaffold; no-ops if the ledger is unreachable) | No |
 
 ---
 

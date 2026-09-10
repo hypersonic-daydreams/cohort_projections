@@ -157,8 +157,8 @@ Implemented and in production since 2026-02-23 (commit `6668ec8`, the ADR 042-05
 
 ### Observed Effects
 
-- The [2026-03-04 projection accuracy analysis](../../reviews/2026-03-04-projection-accuracy-analysis.md) measured the rate caps as the 4th-largest forward-projection sensitivity of 8 parameters tested: a 20,726-person range on the 2050 state total (788,310 to 809,036), with the SDC-base-to-m2026 decomposition waterfall attributing +20,243 persons at 2050 to the rate caps.
-- The [2026-03-09 Bakken growth decomposition](../../reviews/2026-03-09-bakken-growth-decomposition-analysis.md) (Section 9d) documents the cap functioning as designed for the small-county noise case it targets: Billings County's 40-44 Male cell would project at +0.200/yr uncapped versus +0.08 capped.
+- The [2026-03-04 projection accuracy analysis](../../reviews/analysis/2026-03-04-projection-accuracy-analysis.md) measured the rate caps as the 4th-largest forward-projection sensitivity of 8 parameters tested: a 20,726-person range on the 2050 state total (788,310 to 809,036), with the SDC-base-to-m2026 decomposition waterfall attributing +20,243 persons at 2050 to the rate caps.
+- The [2026-03-09 Bakken growth decomposition](../../reviews/analysis/2026-03-09-bakken-growth-decomposition-analysis.md) (Section 9d) documents the cap functioning as designed for the small-county noise case it targets: Billings County's 40-44 Male cell would project at +0.200/yr uncapped versus +0.08 capped.
 
 ### Quantitative Ex-Post Calibration: Pending
 
@@ -169,7 +169,7 @@ The cap thresholds (0.08 general / 0.15 college) have not been benchmarked again
 1. **Design Document**: [design-migration-rate-cap.md](../../reviews/2026-02-18-sanity-check-investigations/design-migration-rate-cap.md) -- Full analysis of rate distribution, outlier identification, and cap option evaluation
 2. **Finding 2**: [Oil County Growth](../../reviews/2026-02-18-sanity-check-investigations/finding-2-oil-county-growth.md) -- Identifies extreme positive rates in oil-patch counties
 3. **Finding 3**: [Reservation Declines](../../reviews/2026-02-18-sanity-check-investigations/finding-3-reservation-county-declines.md) -- Identifies extreme negative rates in reservation counties
-4. **Sanity Check**: [Projection Output Sanity Check](../../reviews/2026-02-18-projection-output-sanity-check.md) -- Parent review
+4. **Sanity Check**: [Projection Output Sanity Check](../../reviews/analysis/2026-02-18-projection-output-sanity-check.md) -- Parent review
 
 ## Revision History
 

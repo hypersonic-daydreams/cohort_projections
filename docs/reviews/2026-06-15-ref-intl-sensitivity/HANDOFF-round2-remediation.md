@@ -15,7 +15,7 @@
 > table with a horizon-20 (2025–2045) version on every `pytest` run. With the survival table corrected
 > to the full 2025–2055 horizon (user-authorized verification rerun), the **final** numbers are
 > **898,907 @2055 (+12.45%)** / 90+ **8,172** (2025–2046 unchanged, incl. the 797,298@2027 trough).
-> See [`../2026-06-16-corrected-run-qa-verification.md`](../2026-06-16-corrected-run-qa-verification.md)
+> See [`../2026-06-16-corrected-run-qa-verification.md`](../audit/2026-06-16-corrected-run-qa-verification.md)
 > and [`ADR-068`](../../governance/adrs/068-ref-intl-numerator-and-open-ended-survival-correction.md)
 > (Amendment). The §A–§D items below were completed against the corrected run; numbers quoted in this
 > dated handoff (886,585 / 9,971) are retained as the historical record.
@@ -90,8 +90,8 @@ household-basis. (methodology §10 already discusses GQ; ensure the public *outp
 797,298 @2027 trough). Stale values to grep: `889,017`, `787,382`, `876,479`, `882,146`, old troughs.
 - **Fix (public-facing / current-status):** [`docs/methodology_comparison_sdc_2024.md`](../../methodology_comparison_sdc_2024.md),
   [`docs/plans/2026-public-projection-release-handoff/marketing-ready/`](../../plans/2026-public-projection-release-handoff/marketing-ready/),
-  any marketing-docx markdown source, [`2026-06-13-locked-run-sanity-check.md`](../2026-06-13-locked-run-sanity-check.md),
-  [`2026-06-13-release-qa-signoff.md`](../2026-06-13-release-qa-signoff.md).
+  any marketing-docx markdown source, [`2026-06-13-locked-run-sanity-check.md`](../analysis/2026-06-13-locked-run-sanity-check.md),
+  [`2026-06-13-release-qa-signoff.md`](../audit/2026-06-13-release-qa-signoff.md).
 - **Do NOT rewrite history:** dated ADRs (`055`, `067`) and dated review memos are historical records —
   leave their numbers, optionally add a one-line "superseded by ADR-068" banner. `final-run-metadata.md`
   already has its superseded banner.
@@ -144,7 +144,7 @@ Only after §A (and §B verification) are clear:
    marketing `.docx` (edit the markdown source + rerun `scripts/exports/build_marketing_docx.py` — never
    hand-edit `.docx`), and the pyramid explorer (`scripts/exports/build_pyramid_explorer.py`).
 2. **Re-run the 6 release-QA gates** against the corrected run (prior sign-off:
-   [`2026-06-13-release-qa-signoff.md`](../2026-06-13-release-qa-signoff.md) — was against the superseded run).
+   [`2026-06-13-release-qa-signoff.md`](../audit/2026-06-13-release-qa-signoff.md) — was against the superseded run).
 3. **Final QA assertions:** 53 unique county files; state = Σ counties (0.0); base = 799,358;
    2055 = 886,585.25; 90+ @2055 = 9,971; survival table spans 2025–2055; no stale numbers in public text.
 

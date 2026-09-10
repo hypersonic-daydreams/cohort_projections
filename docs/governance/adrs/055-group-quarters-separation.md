@@ -238,7 +238,7 @@ Note: Phase 2 produces more conservative projections than initially estimated be
 
 ## References
 
-1. **Ward & Grand Forks Institutional Population Review** (2026-02-23): [Review document](../../reviews/2026-02-23-ward-grand-forks-institutional-population-review.md) — identifies the root cause and institutional population dynamics
+1. **Ward & Grand Forks Institutional Population Review** (2026-02-23): [Review document](../../reviews/analysis/2026-02-23-ward-grand-forks-institutional-population-review.md) — identifies the root cause and institutional population dynamics
 2. **Census 2020 DHC PCO1**: Group quarters population by sex by age, county level
 3. **Census 2020 DHC PCO8**: College/university student housing by sex by age, county level
 4. **Census 2020 DHC PCO9**: Military quarters by sex by age, county level
@@ -414,5 +414,5 @@ Despite producing more conservative bottom-line numbers, Phase 2 achieves import
 
 ## Related Reviews
 
-- **[College Fix Research Implications](../../reviews/2026-03-04-college-fix-research-implications.md)** — Census Bureau "College Fix" methodology suggests enrollment-based partition may be more appropriate than GQ-based partition; challenges Phase 2's 100% GQ subtraction from historical denominators
-- **[Projection Accuracy Analysis](../../reviews/2026-03-04-projection-accuracy-analysis.md)** — identifies Phase 2 GQ correction as the 3rd-largest sensitivity factor (37,084-person impact on 2050 projection)
+- **[College Fix Research Implications](../../reviews/analysis/2026-03-04-college-fix-research-implications.md)** — Census Bureau "College Fix" methodology suggests enrollment-based partition may be more appropriate than GQ-based partition; challenges Phase 2's 100% GQ subtraction from historical denominators
+- **[Projection Accuracy Analysis](../../reviews/analysis/2026-03-04-projection-accuracy-analysis.md)** — identifies Phase 2 GQ correction as the 3rd-largest sensitivity factor (37,084-person impact on 2050 projection)

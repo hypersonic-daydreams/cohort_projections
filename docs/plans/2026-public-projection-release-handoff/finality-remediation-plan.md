@@ -1,7 +1,15 @@
 # PUB-2026 Finality Remediation Plan
 
+> **Note (ADR-068):** dated completion entries below cite run values as of their
+> completion dates. Entries from 2026-06-13 (e.g. "889,017 @2055") describe the
+> first locked run, which was **superseded** by the ADR-068-corrected full-horizon
+> rerun of 2026-06-15/16 (final: 898,907 @2055). The "~0.7%" track-record phrasing
+> recorded at Stage 5.1 was likewise replaced on 2026-07-07 (PUB-2026-ERRATA F2).
+> This plan is a closed historical record; current provenance lives in
+> `final-run-metadata.md`.
+
 **Date opened:** 2026-06-10
-**Source:** `docs/reviews/2026-06-10-pub-2026-finality-rigor-review.md` (blocking items B1–B4, Ward disposition W, risk actions R1–R8, gaps G1–G7)
+**Source:** `docs/reviews/audit/2026-06-10-pub-2026-finality-rigor-review.md` (blocking items B1–B4, Ward disposition W, risk actions R1–R8, gaps G1–G7)
 **Goal:** Close every blocking and non-blocking finding in dependency order, ending with an executed release QA checklist and final public numbers.
 
 Ordering principles: (1) nothing numbers-dependent before the config lock + rerun; (2) the config lock needs evidence, so compute starts first; (3) engine instrumentation precedes the final rerun so production runs once; (4) the QA checklist is amended before it is executed; (5) doc-only items with no dependencies run in parallel with Stage 1 compute.
@@ -26,12 +34,12 @@ Ordering principles: (1) nothing numbers-dependent before the config lock + reru
 
 - [x] **1.1 (R1, G2)** Sensitivity decomposition on the forward projection — **done 2026-06-11**. One-factor forward runs (ref/cbo_off/fert_off/d3_hold15/gq075) recorded in ADR-067 F4 and the ADR-065 defensibility memo. GQ 0.75 was feasible config-only (EXP-C ran). Reference run double-verified production reproducibility (exact match after the mortality-file fix).
 - [x] **1.2 (B1 input, R2, R3)** Benchmark the disposition candidates — **done 2026-06-11, but reshaped by ADR-067**. The original walk-forward bundles were found to run on adjustment-contaminated rate inputs (ADR-067 F1); the **authoritative evidence is the 2026-06-11 raw-base matrix** (college-fix / blend-70 / blend-100 / williams-out / gq-075 / production-lock vs the true champion). Williams-in/out and blend variants are segmented there.
-- [x] **1.3 (G1)** Naive-method value-add comparison promised by ADR-063 — **done 2026-06-13** on the corrected raw base (after the F1 fix), `docs/reviews/2026-06-13-naive-method-value-add.md`. Finding: the model wins decisively at state level from recent origins (0.03–1.40% APE vs 5–7% carry-forward) and on reservation counties, but simple persistence is competitive on small/stable county totals; the model's primary value is the structured (age/sex/race), internally consistent, state-accurate output naive methods cannot produce. Config-robust; does not change the disposition.
+- [x] **1.3 (G1)** Naive-method value-add comparison promised by ADR-063 — **done 2026-06-13** on the corrected raw base (after the F1 fix), `docs/reviews/analysis/2026-06-13-naive-method-value-add.md`. Finding: the model wins decisively at state level from recent origins (0.03–1.40% APE vs 5–7% carry-forward) and on reservation counties, but simple persistence is competitive on small/stable county totals; the model's primary value is the structured (age/sex/race), internally consistent, state-accurate output naive methods cannot produce. Config-robust; does not change the disposition.
 
 ## Stage 2 — Decision gate (Tier-3 / human verdict; ~half day after Stage 1 results)
 
 - [x] **2.1 (B1, R2, R3)** **USER DECISION — done 2026-06-11.** ADR-061 dispositioned: D1 accept, D2 accept (GQ 0.75), D3 reject for release, D4 accept minus Williams (ADR-067); EXP-B blend 0.7 rejected for production (state-accuracy cost). Decision record Approved; ADR-061 status Accepted; `m2026r1`/`cfg-20260611-production-lock` promoted to `county_champion`. `projection_config.yaml` matches the promoted profile (verified).
-- [x] **2.2 (R1, R4)** **Done 2026-06-12** — `docs/reviews/2026-06-12-adr-065-defensibility-memo.md`: accepted-conservatism rationale with quantified magnitudes; both CBO adjustments affirmed (Tier-3); GQ 0.75 already adopted; D3 rejected (premise was a harness artifact). EXP-C ran, so no f=1.0 blocker memo needed.
+- [x] **2.2 (R1, R4)** **Done 2026-06-12** — `docs/reviews/analysis/2026-06-12-adr-065-defensibility-memo.md`: accepted-conservatism rationale with quantified magnitudes; both CBO adjustments affirmed (Tier-3); GQ 0.75 already adopted; D3 rejected (premise was a harness artifact). EXP-C ran, so no f=1.0 blocker memo needed.
 
 ## Stage 3 — Produce the final run (~half day + run time)
 
@@ -42,15 +50,15 @@ Ordering principles: (1) nothing numbers-dependent before the config lock + reru
 
 ## Stage 4 — Validate the final run (~1 day)
 
-- [x] **4.1 (B3a, G3b)** **Done 2026-06-13** — `docs/reviews/2026-06-13-locked-run-sanity-check.md`. PASS: aggregation exact (state=county sum, 0.0000); components reconcile to population change exactly (GQ-constant); dip reconciled to CBO ramp; components vs PEP (deaths household-basis, GQ gap explained); state + large-county age/sex structure plausible; 53-county scan coherent (−36% to +76%, oil-county growth conservative-migration + young-age). One Stage-5 action: label deaths in any public components table.
-- [x] **4.2 (W)** **USER-SIGNED-OFF 2026-06-13** — accepted-divergence rationale via the corrective investigation ADR-067 + `docs/reviews/2026-06-13-divergent-counties-methods-and-framing.md`. Covers Williams (+52%, backtest-justified college-smoothing removal), Ward (−13%, observed 2020–2025 out-migration), Grand Forks (−4%, ≈52% the disclosed CBO assumption). Methods + analysis + public framing captured for Stage-5 copy. Does not rely on the inactive high_growth floor.
+- [x] **4.1 (B3a, G3b)** **Done 2026-06-13** — `docs/reviews/analysis/2026-06-13-locked-run-sanity-check.md`. PASS: aggregation exact (state=county sum, 0.0000); components reconcile to population change exactly (GQ-constant); dip reconciled to CBO ramp; components vs PEP (deaths household-basis, GQ gap explained); state + large-county age/sex structure plausible; 53-county scan coherent (−36% to +76%, oil-county growth conservative-migration + young-age). One Stage-5 action: label deaths in any public components table.
+- [x] **4.2 (W)** **USER-SIGNED-OFF 2026-06-13** — accepted-divergence rationale via the corrective investigation ADR-067 + `docs/reviews/analysis/2026-06-13-divergent-counties-methods-and-framing.md`. Covers Williams (+52%, backtest-justified college-smoothing removal), Ward (−13%, observed 2020–2025 out-migration), Grand Forks (−4%, ≈52% the disclosed CBO assumption). Methods + analysis + public framing captured for Stage-5 copy. Does not rely on the inactive high_growth floor.
 - [x] **4.3 (B2)** Refresh `docs/methodology_comparison_sdc_2024.md` against final numbers — **done 2026-06-13**: locked baseline numbers (889,017 @2055, +11.2%; gap ~70k@2045/~84k@2050), early-dip trajectory-shape change, baseline-only reframing (High/Restricted retired), honest validated-strengths/acknowledged-weaknesses section. methodology.md §10 Limitations magnitudes finalized (GQ +3.6k, CBO −23k/fertility −13k @2050, D3 rejected, Ward −13.1%/GF −4.4%/Williams +51.5%); ADR-061 status corrected to Accepted-as-modified, ADR-067 row added.
 
 ## Stage 5 — Public artifacts and QA execution (~1–2 days)
 
 - [x] **5.1 (B4, G5)** Rewrite public PDF copy — **done 2026-06-13** (`draft-public-pdf-copy.md`): baseline-only ADR-065 framing; four ADR-042 caveats with refreshed values at the first statewide exhibit; dip explanation; Williams/Ward/Grand Forks narratives from 4.2; "How accurate have past projections been?" track-record paragraph (SDC 2018-vs-Census-2020 ~0.7% + plain-language backtest ranges); Contact & Downloads section added.
 - [x] **5.2** Rebuild the public draft package from clean staging — **done 2026-06-13**: consolidated workbook (15 sheets incl. new State Age-Sex Detail + chart sheets), CSV = 1,922 rows, no stale-horizon files, run/method/config provenance embedded in the README sheet; charts/pyramids regenerated (stale watermark fixed); `marketing-ready/README.md` refreshed to locked-final.
-- [x] **5.3 (B3b)** Execute the full release QA checklist gate-by-gate — **done 2026-06-13** (`docs/reviews/2026-06-13-release-qa-signoff.md`): independent multi-agent audit + adversarial verification. Gates 1, 1b, 2, 3 (copy), 4 PASS; Gate 5/6 remediated where fixable (contact section, watermark, README, dual-labeling, tracker) with rendered-PDF/delivery items explicitly deferred to marketing layout. ADR-042 banned-language pass clean. **End state: numbers are final/locked; remaining work is marketing layout + publication.**
+- [x] **5.3 (B3b)** Execute the full release QA checklist gate-by-gate — **done 2026-06-13** (`docs/reviews/audit/2026-06-13-release-qa-signoff.md`): independent multi-agent audit + adversarial verification. Gates 1, 1b, 2, 3 (copy), 4 PASS; Gate 5/6 remediated where fixable (contact section, watermark, README, dual-labeling, tracker) with rendered-PDF/delivery items explicitly deferred to marketing layout. ADR-042 banned-language pass clean. **End state: numbers are final/locked; remaining work is marketing layout + publication.**
 
 ---
 

@@ -354,7 +354,7 @@ smoothing extension (ADR-061 D1), the Grand Forks backtest sentinel improved sha
 7.39 on the clean raw-base matrix). The remaining decline is **assumption-driven, not a county-rate
 artifact**: ADR-067 F4 attributes ~52% of it to the disclosed CBO international-migration assumption
 (Grand Forks' 2023-2025 growth was on international migration, exactly the component CBO reduces) and
-~41% to the long-run convergence stance. See `docs/reviews/2026-06-13-divergent-counties-methods-and-framing.md`.
+~41% to the long-run convergence stance. See `docs/reviews/analysis/2026-06-13-divergent-counties-methods-and-framing.md`.
 
 #### Ward County (Minot)
 
@@ -397,7 +397,7 @@ migration is oil-economic, not enrollment-driven). Removal improved Williams' ba
 baseline's gain at 2055. Crucially, the growth is **conservative on migration**: projected net
 in-migration settles near +388/yr, roughly half the recent observed +780/yr (2023-2025); the rest
 is natural increase from a very young age structure. Williams is consistent with peer oil counties
-McKenzie (+79%) and Billings (+50%). See `docs/reviews/2026-06-13-divergent-counties-methods-and-framing.md`.
+McKenzie (+79%) and Billings (+50%). See `docs/reviews/analysis/2026-06-13-divergent-counties-methods-and-framing.md`.
 
 ---
 
@@ -940,4 +940,4 @@ dialogue with the SDC:
 
 *Last updated: 2026-06-16 (ADR-068-corrected locked production run, config sha `a6e0bfbc2d70be85`; re-synced from the superseded 2026-06-13 pre-correction figures).*
 *Supersedes: March 2026 three-scenario comparison (pre-ADR-065/066). December 2025 IRS-migration version remains obsolete.*
-*Companion references: `docs/reviews/2026-06-13-locked-run-sanity-check.md`, `docs/reviews/2026-06-13-divergent-counties-methods-and-framing.md`, `docs/governance/adrs/067-ward-grand-forks-divergence-investigation.md`.*
+*Companion references: `docs/reviews/analysis/2026-06-13-locked-run-sanity-check.md`, `docs/reviews/analysis/2026-06-13-divergent-counties-methods-and-framing.md`, `docs/governance/adrs/067-ward-grand-forks-divergence-investigation.md`.*

@@ -205,7 +205,7 @@ All 53 counties have proportions summing to exactly 1.0 (within 1e-6 tolerance).
    - Layout: `https://www2.census.gov/programs-surveys/popest/technical-documentation/file-layouts/2020-2024/CC-EST2024-ALLDATA.pdf`
 2. **ADR-044**: Census Full-Count Race Distribution — established the data source; this ADR extends it to county level
 3. **ADR-007**: Race/Ethnicity Categorization — defines the 6-category scheme
-4. **Sanity Check**: `docs/reviews/2026-02-18-projection-output-sanity-check.md` — identified the uniform distribution as a HIGH priority finding
+4. **Sanity Check**: `docs/reviews/analysis/2026-02-18-projection-output-sanity-check.md` — identified the uniform distribution as a HIGH priority finding
 
 ## Revision History
 

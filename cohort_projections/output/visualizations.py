@@ -102,11 +102,14 @@ def plot_population_pyramid(
     if year_data.empty:
         raise ValueError(f"No data for year {year}")
 
-    # Create age groups
+    # Create age groups (int cast: county parquets carry float ages, which would
+    # otherwise render as "90.0-94.0" tick labels)
     if age_group_size > 1:
-        year_data["age_group"] = (year_data["age"] // age_group_size) * age_group_size
+        year_data["age_group"] = ((year_data["age"] // age_group_size) * age_group_size).astype(
+            int
+        )
     else:
-        year_data["age_group"] = year_data["age"]
+        year_data["age_group"] = year_data["age"].astype(int)
 
     # Set style
     if SEABORN_AVAILABLE and style.startswith("seaborn"):
@@ -214,11 +217,14 @@ def plot_population_pyramid(
 
         ax.legend(loc="upper right")
 
-    # Age group labels
+    # Age group labels. The engine's top single-year age (90) is an open-ended
+    # pool (ADR-068), so the highest group is "N+", never a closed bracket.
     if age_group_size > 1:
         age_labels = [f"{age}-{age + age_group_size - 1}" for age in age_groups]
     else:
         age_labels = [str(age) for age in age_groups]
+    if age_labels:
+        age_labels[-1] = f"{age_groups[-1]}+"
 
     ax.set_yticks(np.arange(len(age_groups)))
     ax.set_yticklabels(age_labels)

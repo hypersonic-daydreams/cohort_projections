@@ -42,3 +42,4 @@ To restore a file, copy it back to its original location and remove the archive 
 | PIPELINE_IMPLEMENTATION_SUMMARY.md | 2025-12-31 | Implementation complete | / |
 | PROJECT_STATUS.md | 2026-02-02 | Superseded by DEVELOPMENT_TRACKER.md | / |
 | REPOSITORY_HYGIENE_TRACKER.md | 2026-02-02 | Completed (all 11 task groups done) | / |
+| observatory_wireframe/ | 2026-06-23 | Legacy Observatory UI mockup; superseded by the live Panel dashboard (repo-hygiene Decision 4) | /observatory_wireframe |

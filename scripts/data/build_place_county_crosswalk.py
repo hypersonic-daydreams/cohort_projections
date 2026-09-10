@@ -10,7 +10,7 @@ Purpose
 -------
 Create the authoritative place->county mapping artifact required by PP-003
 Phase 1 city/place projections. The script applies deterministic assignment
-rules from `docs/reviews/2026-02-28-place-county-mapping-strategy-note.md`:
+rules from `docs/reviews/analysis/2026-02-28-place-county-mapping-strategy-note.md`:
 single-county places map directly; multi-county places map to the county with
 the largest area share and are flagged `multi_county_primary`.
 
@@ -228,8 +228,7 @@ def load_overlaps_from_relationship_file(
     county_col = _pick_column(rel, ["COUNTYFP", "COUNTY", "COUNTYFP20"])
     if not place_col or not county_col:
         raise ValueError(
-            "Relationship file must include place and county code columns "
-            "(e.g., PLACEFP/COUNTYFP)."
+            "Relationship file must include place and county code columns (e.g., PLACEFP/COUNTYFP)."
         )
 
     rel["state_fips"] = (
@@ -393,7 +392,9 @@ def build_place_county_crosswalk(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Build primary crosswalk and multi-county detail tables."""
     dissolved_place_overrides = dissolved_place_overrides or DISSOLVED_PLACE_OVERRIDES
-    _require_columns(active_places, ["state_fips", "place_fips", "place_name"], context="active_places")
+    _require_columns(
+        active_places, ["state_fips", "place_fips", "place_name"], context="active_places"
+    )
 
     primary, detail = _build_primary_and_detail_from_overlaps(overlaps)
     primary = primary.merge(active_places, on="place_fips", how="inner", validate="one_to_one")
@@ -502,7 +503,10 @@ def assign_confidence_tiers(
     thresholds = [lower_threshold, moderate_threshold, high_threshold]
 
     def _is_boundary(pop_value: float) -> bool:
-        return any(abs(pop_value - threshold) <= (threshold * tier_boundary_margin) for threshold in thresholds)
+        return any(
+            abs(pop_value - threshold) <= (threshold * tier_boundary_margin)
+            for threshold in thresholds
+        )
 
     tiers["confidence_tier"] = tiers["population_2024"].map(_tier)
     tiers["tier_boundary"] = tiers["population_2024"].map(_is_boundary)
@@ -549,7 +553,9 @@ def validate_crosswalk(
         )
 
     if crosswalk["place_fips"].duplicated().any():
-        duplicates = crosswalk[crosswalk["place_fips"].duplicated(keep=False)]["place_fips"].unique()
+        duplicates = crosswalk[crosswalk["place_fips"].duplicated(keep=False)][
+            "place_fips"
+        ].unique()
         raise ValueError(f"Crosswalk has duplicate place_fips values: {sorted(duplicates)[:10]}")
 
     if crosswalk["place_fips"].isna().any() or crosswalk["county_fips"].isna().any():

@@ -7,7 +7,7 @@ Status: draft checklist for final-number and marketing handoff.
 
 ## Gate 1: Method And Data Lock
 
-- [x] ADR-065 baseline assumptions are resolved and recorded. → [defensibility memo](../../reviews/2026-06-12-adr-065-defensibility-memo.md) (both CBO adjustments affirmed, 2026-06-12).
+- [x] ADR-065 baseline assumptions are resolved and recorded. → [defensibility memo](../../reviews/analysis/2026-06-12-adr-065-defensibility-memo.md) (both CBO adjustments affirmed, 2026-06-12).
 - [x] CF-001 decision is resolved and recorded. → ADR-061 Accepted-as-modified; decision record `../../reviews/benchmark_decisions/2026-03-09-m2026r1-vs-m2026.md` (Approved).
 - [x] If CF-001 is promoted, production projections are rerun after promotion. → locked rerun 2026-06-13.
 - [x] Input-coverage verification (ADR-067 F2): mortality file spans 2025-2055 (31 yrs) ✓; residual-migration metadata = 11 college counties + GQ 0.75 ✓; convergence rates present for all 53 counties ✓ (verified 2026-06-13). Guards against the 2026-06-01 silent bisync stale-replacement failure mode.
@@ -17,16 +17,16 @@ Status: draft checklist for final-number and marketing handoff.
 
 ## Gate 1b: Demographic Plausibility
 
-- [x] A dated sanity-check review of the final production run is completed and linked. → [2026-06-13-locked-run-sanity-check.md](../../reviews/2026-06-13-locked-run-sanity-check.md).
+- [x] A dated sanity-check review of the final production run is completed and linked. → [2026-06-13-locked-run-sanity-check.md](../../reviews/analysis/2026-06-13-locked-run-sanity-check.md).
 - [x] The 2025-2030 projected trajectory is reconciled against Census PEP Vintage 2025 observed components, including an explicit explanation of the shallow 2025-2027 dip (ADR-068 corrected run; was 2028 pre-correction) as the intended CBO front-loaded migration adjustment. → sanity check §2; cbo_off run shows no dip.
 - [x] Projected 2025-2030 components of change (births, deaths, net migration) are cross-checked against PEP observed components. → sanity check §3 (note: deaths are household-basis; ~2,000/yr GQ gap explained).
 - [x] State and large-county age structures and sex ratios at 2035/2045/2055 are reviewed for plausibility. → sanity check §4 (state + Cass/Burleigh/Grand Forks/Ward/Williams).
-- [x] The largest county-level divergences from the 2024 SDC series (Ward, Grand Forks) have a written disposition (corrective ADR or accepted-divergence rationale). → ADR-067 (corrective investigation) + [divergent-counties framing](../../reviews/2026-06-13-divergent-counties-methods-and-framing.md) (incl. Williams); user-signed-off 2026-06-13.
+- [x] The largest county-level divergences from the 2024 SDC series (Ward, Grand Forks) have a written disposition (corrective ADR or accepted-divergence rationale). → ADR-067 (corrective investigation) + [divergent-counties framing](../../reviews/analysis/2026-06-13-divergent-counties-methods-and-framing.md) (incl. Williams); user-signed-off 2026-06-13.
 - [x] No county exhibits implausible terminal dynamics (e.g., population collapse to near zero, runaway growth, or sex-ratio drift) without documented explanation. → sanity check §5 (53-county scan; oil-county growth is conservative-migration + young-age natural increase).
 
 ## Gate 2: Public Download QA
 
-All items verified and adversarially re-confirmed 2026-06-13 → [release QA sign-off](../../reviews/2026-06-13-release-qa-signoff.md).
+All items verified and adversarially re-confirmed 2026-06-13 → [release QA sign-off](../../reviews/audit/2026-06-13-release-qa-signoff.md).
 
 - [x] Public Excel workbook is generated from a clean staging directory. → rebuilt 2026-06-13 from locked outputs; 15 sheets.
 - [x] Public CSV is generated from a clean staging directory.
@@ -45,7 +45,7 @@ All items verified and adversarially re-confirmed 2026-06-13 → [release QA sig
 
 Verified against the PDF copy source `draft-public-pdf-copy.md`, re-verified against the **ADR-068
 corrected full-horizon run (2026-06-16)**. Final rendered-PDF layout is produced by marketing;
-re-verify these at layout. → [sign-off](../../reviews/2026-06-13-release-qa-signoff.md).
+re-verify these at layout. → [sign-off](../../reviews/audit/2026-06-13-release-qa-signoff.md).
 
 - [x] PDF includes state, region, and county coverage only. → copy covers state/region/county; "City and place projections are not included."
 - [x] Public copy uses Baseline (CBO-Adjusted) as the only public path.
@@ -58,7 +58,7 @@ re-verify these at layout. → [sign-off](../../reviews/2026-06-13-release-qa-si
 
 ## Gate 4: Language QA
 
-ADR-042 banned-language pass executed and adversarially re-confirmed 2026-06-13 → [sign-off](../../reviews/2026-06-13-release-qa-signoff.md).
+ADR-042 banned-language pass executed and adversarially re-confirmed 2026-06-13 → [sign-off](../../reviews/audit/2026-06-13-release-qa-signoff.md).
 
 - [x] Run an ADR-042 banned-language search against public-facing copy. → every hit is a required negation/caveat; only bare uses are in the non-rendering editorial header.
 - [x] Replace any disallowed point-estimate wording before handoff. → none found in the public-facing body.
@@ -69,7 +69,7 @@ ADR-042 banned-language pass executed and adversarially re-confirmed 2026-06-13 
 ## Gate 5: Accessibility And Design QA
 
 These concern the **rendered** PDF and final figures, which marketing produces. Deferred to
-marketing layout; re-verify at layout. → [sign-off, Open items](../../reviews/2026-06-13-release-qa-signoff.md).
+marketing layout; re-verify at layout. → [sign-off, Open items](../../reviews/audit/2026-06-13-release-qa-signoff.md).
 The chart-ready PNGs are reference cuts; the stale "refresh after final production rerun" chart
 watermark was corrected 2026-06-13, and a Contact & Downloads section (with PLACEHOLDERs) was added
 to the PDF copy.
@@ -84,7 +84,7 @@ to the PDF copy.
 ## Gate 6: Final Handoff
 
 Deliverables are build-complete and correct (2026-06-13); the delivery and publication actions
-remain. → [sign-off](../../reviews/2026-06-13-release-qa-signoff.md).
+remain. → [sign-off](../../reviews/audit/2026-06-13-release-qa-signoff.md).
 
 - [ ] Final public Excel workbook delivered to marketing. *(built & QA'd; delivery pending)*
 - [ ] Final public CSV delivered to marketing. *(built & QA'd; delivery pending)*

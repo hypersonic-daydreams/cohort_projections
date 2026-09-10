@@ -16,7 +16,7 @@ and until a corrective decision (ADR-068) is explicitly made.
 | **Purpose** | Measure the effect of correcting the CBO migration adjustment's `reference_intl_migration` numerator from the 3-year **sum** (10,051) to the true annual **average** (3,350.33). |
 | **Created** | 2026-06-15 |
 | **Created by** | Claude Code, at the request of N. Haarstad, following the finding below. |
-| **Finding it tests** | [`docs/reviews/2026-06-15-ref-intl-migration-sum-vs-average.md`](../../../docs/reviews/2026-06-15-ref-intl-migration-sum-vs-average.md) · GitHub PR #25 |
+| **Finding it tests** | [`docs/reviews/analysis/2026-06-15-ref-intl-migration-sum-vs-average.md`](../../../docs/reviews/analysis/2026-06-15-ref-intl-migration-sum-vs-average.md) · GitHub PR #25 |
 | **Base configuration** | The locked production config (`cfg-20260611-production-lock`, config sha256 `bf897444b5a4fec7`), copied verbatim. |
 | **The ONLY change** | `reference_intl_migration: 10051 → 3350.33` (and the projection `output_dir`, to isolate these outputs). Everything else — f-schedule, fertility, mortality, convergence, base population, college/Williams/GQ settings — is byte-identical to the locked run. |
 | **Entry point** | `scripts/pipeline/02_run_projections.py --counties --state --scenarios baseline` — the exact entry point used for the locked run. Reuses the locked on-disk rate files (the numerator change is applied in-engine at projection time, so stages 01a/01b/01c are not recomputed). |

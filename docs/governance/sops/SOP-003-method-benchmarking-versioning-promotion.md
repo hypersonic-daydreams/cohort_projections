@@ -747,7 +747,7 @@ This migration is the minimum needed before any future challenger promotion shou
 - [docs/governance/adrs/056-testing-strategy-maturation.md](../adrs/056-testing-strategy-maturation.md) - Testing expectations
 - [docs/governance/adrs/057-rolling-origin-backtests.md](../adrs/057-rolling-origin-backtests.md) - Rolling-origin benchmark precedent
 - [docs/governance/adrs/061-college-fix-model-revision.md](../adrs/061-college-fix-model-revision.md) - Current challenger-method context
-- [docs/reviews/2026-03-04-projection-accuracy-analysis.md](../../reviews/2026-03-04-projection-accuracy-analysis.md) - Current improvement priorities
+- [docs/reviews/analysis/2026-03-04-projection-accuracy-analysis.md](../../reviews/analysis/2026-03-04-projection-accuracy-analysis.md) - Current improvement priorities
 - [docs/guides/testing-workflow.md](../../guides/testing-workflow.md) - Test execution guidance
 
 ---

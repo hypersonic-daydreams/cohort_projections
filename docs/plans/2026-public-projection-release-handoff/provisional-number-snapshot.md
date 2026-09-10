@@ -1,5 +1,12 @@
 # Draft Numbers For Layout
 
+> **HISTORICAL — superseded 2026-06-16.** This pre-lock note is retained for the
+> record only. Current rounded layout numbers are generated from the locked CSV
+> into `marketing-ready/PUB-2026 Draft Numbers For Layout.docx` by
+> `scripts/exports/build_marketing_docx.py`; the locked headline set lives in
+> `marketing-ready/README.md` and `final-run-metadata.md`. Everything below
+> reflects the pre-CF-001 state of 2026-05-27.
+
 These March 2026 layout figures were built from the older three-scenario setup
 and are stale under ADR-065. Do not reuse them as final public copy.
 

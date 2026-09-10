@@ -187,4 +187,4 @@ The `intl_share` parameter is added to the existing `time_varying` migration dic
 
 ## Related Reviews
 
-- [Vintage 2025 Census Data Analysis](../../reviews/2026-02-17-vintage-2025-census-data-analysis.md): Analysis of V2025 PEP data that informed the `intl_share` computation
+- [Vintage 2025 Census Data Analysis](../../reviews/analysis/2026-02-17-vintage-2025-census-data-analysis.md): Analysis of V2025 PEP data that informed the `intl_share` computation

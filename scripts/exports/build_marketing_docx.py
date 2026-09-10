@@ -11,6 +11,7 @@ truth so they can never silently drift again:
 - Storyboard      -> ``pdf-content-outline.md``
 - 2024 SDC notes  -> ``2024-sdc-pdf-review.md``
 - Overview        -> ``marketing-ready/README.md``
+- Methods companion -> ``how-these-projections-work.md`` (public explainer)
 - Numbers table   -> the locked public CSV (``drafts/PUB-2026 Draft Public Dataset.csv``)
 
 All numeric callouts therefore come from the corrected full-horizon production run
@@ -19,11 +20,13 @@ amendment; config sha256(16) ``a6e0bfbc2d70be85``).
 
 IMPORTANT — not everything auto-refreshes. The **layout-numbers** doc and the workbook
 derive their figures from the CSV, so they update automatically. The **narrative prose**
-(``draft-public-pdf-copy.md``, and the README/storyboard) is HAND-AUTHORED: this script
-re-renders it verbatim and does *not* update its numbers. So whenever the locked run changes,
-the prose must be edited by hand. To catch a miss, ``main()`` runs ``_check_prose_sync()`` — it
-cross-checks the prose's headline figures (2055 total, trough year/value) against the locked CSV
-and prints a loud warning (or, with ``--strict``, exits non-zero) when they drift.
+(``draft-public-pdf-copy.md``, ``how-these-projections-work.md``, and the README/storyboard) is
+HAND-AUTHORED: this script re-renders it verbatim and does *not* update its numbers. So whenever
+the locked run changes, the prose must be edited by hand. To catch a miss, ``main()`` runs
+``_check_prose_sync()`` — it cross-checks the hand-authored figures (2055 total, trough
+year/value, the declining-county count, the five county callouts, the top-three gains share, and
+the 2024-comparison table values) against the locked CSV and prints a loud warning (or, with
+``--strict``, exits non-zero) when they drift.
 
 Usage:
     python scripts/exports/build_marketing_docx.py            # regenerate (warns on prose drift)
@@ -100,6 +103,17 @@ def _render_markdown(doc: Document, md_text: str, *, skip_first_h1: bool = True)
     bullet_pending = False
     while i < len(lines):
         line = lines[i].rstrip()
+        # horizontal rules render as section breaks (blank), not literal dashes
+        if line.strip() in ("---", "***", "___"):
+            bullet_pending = False
+            i += 1
+            continue
+        # blockquote banners/technical notes render as plain paragraphs
+        if line.lstrip().startswith(">"):
+            line = line.lstrip().lstrip(">").lstrip()
+            if not line:
+                i += 1
+                continue
         # pipe table block
         if line.startswith("|") and i + 1 < len(lines) and re.match(r"^\|[\s:|-]+\|?\s*$", lines[i + 1]):
             header = [c.strip() for c in line.strip("|").split("|")]
@@ -283,11 +297,23 @@ def build_all() -> list[Path]:
     doc.save(out)
     written.append(out)
 
-    # 6. Combined marketing handoff packet
+    # 6. Public methods companion (explainer)
+    doc = _new_doc(
+        "PUB-2026 How These Projections Work",
+        "Plain-language companion to the public report: how the cohort-component method "
+        "works, what the baseline assumes, and how far to trust it. Link it from the report "
+        "and the download page, or bind it in as a methods appendix.",
+    )
+    _render_markdown(doc, _read(HANDOFF_DIR / "how-these-projections-work.md"))
+    out = MARKETING_DIR / "PUB-2026 How These Projections Work.docx"
+    doc.save(out)
+    written.append(out)
+
+    # 7. Combined marketing handoff packet
     packet = _new_doc(
         "PUB-2026 Marketing Handoff Packet",
         "Combined packet: handoff overview, public PDF copy, report storyboard, "
-        "numbers for layout, and 2024 SDC reference notes.",
+        "numbers for layout, 2024 SDC reference notes, and the public methods companion.",
     )
     packet.add_heading("1. Handoff Overview", level=1)
     _render_markdown(packet, _read(MARKETING_DIR / "README.md"))
@@ -303,6 +329,9 @@ def build_all() -> list[Path]:
     packet.add_page_break()
     packet.add_heading("5. 2024 SDC Reference Notes", level=1)
     _render_markdown(packet, _read(HANDOFF_DIR / "2024-sdc-pdf-review.md"))
+    packet.add_page_break()
+    packet.add_heading("6. How These Projections Work (public companion)", level=1)
+    _render_markdown(packet, _read(HANDOFF_DIR / "how-these-projections-work.md"))
     out = MARKETING_DIR / "PUB-2026 Marketing Handoff Packet.docx"
     packet.save(out)
     written.append(out)
@@ -313,35 +342,105 @@ def build_all() -> list[Path]:
 def _check_prose_sync() -> list[str]:
     """Flag hand-authored public prose that has drifted from the locked CSV.
 
-    The narrative copy in ``draft-public-pdf-copy.md`` is written by hand and does NOT
-    regenerate from data (only the layout-numbers doc and the workbook do). This catches the
-    failure mode where the projection run changes but the prose callouts are not updated —
-    e.g. the ADR-068 corrections, where the data artifacts refreshed to 898,907 but the prose
-    kept the pre-correction 787k/889k story. Returns a list of issues (empty == in sync).
-    The rounding convention here matches ``_round_k`` (nearest thousand, comma-formatted),
-    which is the convention the prose uses, so the comparison is apples-to-apples.
+    The narrative copy in ``draft-public-pdf-copy.md`` and the public explainer
+    ``how-these-projections-work.md`` are written by hand and do NOT regenerate from data
+    (only the layout-numbers doc and the workbook do). This catches the failure mode where
+    the projection run changes but the prose callouts are not updated — e.g. the ADR-068
+    corrections, where the data artifacts refreshed to 898,907 but the prose kept the
+    pre-correction 787k/889k story, and the 2026-07-06 errata, where the declining-county
+    count stayed at the pre-amendment 37 after the locked CSV moved to 36. Returns a list of
+    issues (empty == in sync). The rounding convention here matches ``_round_k`` (nearest
+    thousand, comma-formatted), which is the convention the prose uses, so the comparison is
+    apples-to-apples.
+
+    Tokens checked per file:
+    - both: rounded 2055 state total, rounded trough population, trough year, and the
+      declining-county count ("N of [the] 53").
+    - PDF copy only: the five county callouts (rounded 2055 values for Cass, Williams,
+      Burleigh, Ward, Grand Forks), the exact 2030/2040/2050 values in the 2024-edition
+      comparison table, and the "three-quarters" top-3 gains phrasing (flagged if the
+      computed share leaves the 75-85% band where that phrase is accurate).
+
+    NOT machine-checked (re-verify by hand on every run change): median age (35 -> 40),
+    the "about 91% of 2023-2025 net migration is international" share (both need production
+    parquets, not the public CSV), and the 2018-vintage track-record figures
+    (793,537 / 779,094 — quoted from the 2024 edition's Note of Caution).
     """
     issues: list[str] = []
-    prose_path = HANDOFF_DIR / "draft-public-pdf-copy.md"
-    if not prose_path.exists() or not LOCKED_CSV.exists():
+    if not LOCKED_CSV.exists():
         return issues
-    prose = prose_path.read_text(encoding="utf-8")
-    st = (
-        pd.read_csv(LOCKED_CSV)
-        .query("geography_level == 'state'")
-        .sort_values("year")
-        .set_index("year")
-    )
+    df = pd.read_csv(LOCKED_CSV)
+    st = df.query("geography_level == 'state'").sort_values("year").set_index("year")
     total_2055 = _round_k(st.loc[2055, "total_population"])
     trough_year = int(st["total_population"].idxmin())
     trough_pop = _round_k(st.loc[trough_year, "total_population"])
-    for label, token in (
+
+    cty = df[df.geography_level == "county"]
+    cpiv = cty.pivot_table(index="geography_name", columns="year", values="total_population")
+    growth = cpiv[2055] - cpiv[2025]
+    declining = int((growth < 0).sum())
+    n_counties = len(cpiv)
+    top3_share = growth.nlargest(3).sum() / growth[growth > 0].sum() * 100
+    decline_re = re.compile(rf"\b{declining} of (?:the )?(?:North Dakota's )?{n_counties}\b")
+    # exec-summary spelled-out form ("Thirty-six of North Dakota's 53")
+    _units = [
+        "zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+        "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+        "seventeen", "eighteen", "nineteen",
+    ]
+    _tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"]
+    spelled = (
+        _units[declining]
+        if declining < 20
+        else _tens[declining // 10] + ("-" + _units[declining % 10] if declining % 10 else "")
+    )
+    spelled_re = re.compile(rf"\b{spelled} of\b", re.IGNORECASE)
+
+    checks: list[tuple[Path, list[tuple[str, str]]]] = []
+
+    pdf_tokens = [
         (f"2055 state total ({total_2055})", total_2055),
         (f"trough population ({trough_pop})", trough_pop),
         (f"trough year ({trough_year})", str(trough_year)),
-    ):
-        if token not in prose:
-            issues.append(f"draft-public-pdf-copy.md does not mention the current {label}")
+    ]
+    for county in ("Cass", "Williams", "Burleigh", "Ward", "Grand Forks"):
+        names = [n for n in cpiv.index if str(n).startswith(county)]
+        if names:
+            val = _round_k(cpiv.loc[names[0], 2055])
+            pdf_tokens.append((f"{county} 2055 callout ({val})", val))
+    for year in (2030, 2040, 2050):
+        exact = f"{st.loc[year, 'total_population']:,.0f}"
+        pdf_tokens.append((f"2024-edition comparison value for {year} ({exact})", exact))
+    checks.append((HANDOFF_DIR / "draft-public-pdf-copy.md", pdf_tokens))
+
+    checks.append(
+        (
+            HANDOFF_DIR / "how-these-projections-work.md",
+            [
+                (f"2055 state total ({total_2055})", total_2055),
+                (f"trough population ({trough_pop})", trough_pop),
+                (f"trough year ({trough_year})", str(trough_year)),
+            ],
+        )
+    )
+
+    for path, tokens in checks:
+        if not path.exists():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for label, token in tokens:
+            if token not in text:
+                issues.append(f"{path.name} does not mention the current {label}")
+        if not (decline_re.search(text) or spelled_re.search(text)):
+            issues.append(
+                f"{path.name} does not carry the current declining-county count "
+                f"({declining} of {n_counties})"
+            )
+        if "three-quarters" in text and not (75.0 <= top3_share < 85.0):
+            issues.append(
+                f"{path.name} says 'three-quarters' but the computed top-3 share of gains "
+                f"is {top3_share:.1f}% — rephrase or re-verify"
+            )
     return issues
 
 
@@ -359,8 +458,8 @@ def main() -> None:
             print(f"   - {issue}")
         print(
             "   The prose does NOT auto-update from data. Edit "
-            "docs/.../draft-public-pdf-copy.md\n   against the locked CSV "
-            "(final-run-metadata.md), then rerun this generator."
+            "docs/.../draft-public-pdf-copy.md and\n   how-these-projections-work.md "
+            "against the locked CSV (final-run-metadata.md), then rerun\n   this generator."
         )
         print("=" * 72)
         if "--strict" in sys.argv:

@@ -5,14 +5,14 @@
 > The finding has since been **resolved**: **ADR-068** (accepted) corrected the numerator in a
 > production rerun that also fixed the open-ended 90+ survival **and** a survival-horizon
 > truncation. The **final** baseline is **898,907 @2055 (+12.45%)**, 90+ pool **8,172** — see
-> [`../2026-06-16-corrected-run-qa-verification.md`](../2026-06-16-corrected-run-qa-verification.md)
+> [`../2026-06-16-corrected-run-qa-verification.md`](../audit/2026-06-16-corrected-run-qa-verification.md)
 > and the [ADR-068 amendment](../../governance/adrs/068-ref-intl-numerator-and-open-ended-survival-correction.md).
 > The sensitivity figures below (e.g. 904,692 @2055) and the `round2/evidence_survival_*` CSVs
 > (which stop at **2045**, pre-amendment) are **pre-correction artifacts of the investigation**,
 > kept only for provenance — do not cite them as current.
 
 **Durable, git-tracked evidence** for the finding in
-[`../2026-06-15-ref-intl-migration-sum-vs-average.md`](../2026-06-15-ref-intl-migration-sum-vs-average.md)
+[`../2026-06-15-ref-intl-migration-sum-vs-average.md`](../analysis/2026-06-15-ref-intl-migration-sum-vs-average.md)
 (GitHub PR #25). It measures what the locked North Dakota baseline does when the CBO migration
 adjustment's `reference_intl_migration` numerator is corrected from the 3-year **sum** (10,051) to
 the true annual **average** (3,350.33).

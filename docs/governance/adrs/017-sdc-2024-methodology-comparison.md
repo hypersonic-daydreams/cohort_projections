@@ -1,7 +1,7 @@
 # ADR-017: SDC 2024 Methodology Comparison and Scenario
 
 ## Status
-Superseded by [docs/methodology_comparison_sdc_2024.md](../../methodology_comparison_sdc_2024.md) (itself being refreshed per `docs/plans/2026-public-projection-release-handoff/finality-remediation-plan.md` Stage 4) and the [2026-06-10 PUB-2026 finality rigor review](../../reviews/2026-06-10-pub-2026-finality-rigor-review.md); this ADR's IRS-migration-baseline recommendation was abandoned in favor of Census PEP residual migration (ADR-035/ADR-036)
+Superseded by [docs/methodology_comparison_sdc_2024.md](../../methodology_comparison_sdc_2024.md) (itself being refreshed per `docs/plans/2026-public-projection-release-handoff/finality-remediation-plan.md` Stage 4) and the [2026-06-10 PUB-2026 finality rigor review](../../reviews/audit/2026-06-10-pub-2026-finality-rigor-review.md); this ADR's IRS-migration-baseline recommendation was abandoned in favor of Census PEP residual migration (ADR-035/ADR-036)
 
 ## Date
 2025-12-28

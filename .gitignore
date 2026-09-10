@@ -90,6 +90,9 @@ data/output/**
 !data/exports/.gitkeep
 !data/output/.gitkeep
 
+# Track navigation READMEs even though their data dirs are gitignored
+!data/exports/README.md
+
 # Logs
 *.log
 logs/
@@ -112,6 +115,9 @@ data/projections/**/*.geojson
 # Backtesting outputs (synced via rclone, not git)
 data/backtesting/**
 !data/backtesting/.gitkeep
+
+# Machine-specific, regenerable inventory snapshot (workspace-ledger-sourced)
+docs/REPO_INVENTORY.generated.md
 
 # Local scratch work (not synced anywhere)
 scratch/**
@@ -162,12 +168,9 @@ sdc_2024_replication/scripts/statistical_analysis/results/**/*.csv
 # Misc data files in project root
 *.xlsx
 
-# Local convenience outputs (not tracked)
-journal_article_pdfs/
-journal_article_output
-journal_article_versions
+# rclone bisync marker (not tracked)
 RCLONE_TEST
-archived/
+data_archives/
 
 # Ad-hoc data directories (synced via rclone, not git)
 2025_popest_data/
@@ -197,3 +200,9 @@ docs/**/*.pdf
 # GPT-5.5 Pro review: large assembled-package blobs (regenerable from the runners)
 docs/reviews/**/round2_batch_input.jsonl
 docs/reviews/**/pr25_review_input.txt
+# ----------------------------------------------------------------------------
+# NOTE (2026-07-06): rclone / rclone bisync were permanently removed from this
+# machine per IT security policy (reinstall blocked via apt pin). Any RCLONE_TEST
+# or rclone-filter ignore entries above are retained ONLY so stray leftover
+# markers stay untracked. See the rclone removal log.
+# ----------------------------------------------------------------------------

@@ -22,12 +22,14 @@ survival-horizon corrections). These are the **final, locked** public numbers; t
 | `drafts/chart_region_baseline_bars.png` | Regional baseline change bars |
 | `drafts/chart_county_top_bottom.png` | Top-6/bottom-6 county bars |
 | `drafts/chart_age_group_trend.png` | Age-group trend |
+| `drafts/chart_components_change.png` | Components of change: natural increase vs. net migration by five-year period (storyboard page 7) |
 | `PUB-2026 Reference - 2024 SDC PDF.pdf` | The 2024 State Data Center projection PDF — the visual and pacing starting point for the 2026 layout |
-| `PUB-2026 Marketing Handoff Packet.docx` | Combined narrative packet (overview, draft report copy, storyboard, 2024 PDF notes, draft numbers) |
+| `PUB-2026 Marketing Handoff Packet.docx` | Combined narrative packet (overview, draft report copy, storyboard, 2024 PDF notes, draft numbers, methods companion) |
 | `PUB-2026 Draft Public PDF Copy.docx` | Draft narrative copy for PDF layout |
 | `PUB-2026 PDF Report Storyboard.docx` | Page-by-page report flow and exhibit plan |
 | `PUB-2026 2024 SDC Reference Notes.docx` | Guidance on using the 2024 SDC PDF |
 | `PUB-2026 Draft Numbers For Layout.docx` | Rounded figures for chart and table planning |
+| `PUB-2026 How These Projections Work.docx` | Plain-language methods companion — link from the report and download page, or bind in as a methods appendix |
 
 ## Locked numbers (for quick reference)
 
@@ -60,6 +62,11 @@ survival-horizon corrections). These are the **final, locked** public numbers; t
   final accessible figures (non-color-dependent encodings, legible map labels,
   logical reading order) and replace the contact/download PLACEHOLDERs in the
   PDF copy before publication.
+- **Statewide line chart axis note:** the y-axis does not start at zero (it
+  spans roughly 795k–900k so the 2025–2055 rise is readable). At that span the
+  −0.26% dip to 2027 reads correctly as a shallow flattening, but keep the
+  dip annotation (or an explicit "−0.26%" label) in the final figure so the
+  early dip is not over-read as a decline (ADR-042 in spirit).
 - City and place projections are intentionally excluded from the public release.
   Geographies covered: 1 state, 8 economic planning regions (R1–R8), 53 counties.
 - The bundled 2024 SDC PDF is the visual reference for marketing — do not use it

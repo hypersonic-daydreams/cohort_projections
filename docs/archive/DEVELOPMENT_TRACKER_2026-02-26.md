@@ -339,7 +339,7 @@ Tasks for current phase. States: `[ ]` pending | `[x]` complete
   - Phase 2 (GQ-corrected migration rates) would have larger impact on declining counties
 
 **Documentation:**
-- Created review: `docs/reviews/2026-02-23-ward-grand-forks-institutional-population-review.md`
+- Created review: `docs/reviews/analysis/2026-02-23-ward-grand-forks-institutional-population-review.md`
 - Created ADR-055: `docs/governance/adrs/055-group-quarters-separation.md`
 - Updated DEVELOPMENT_TRACKER.md
 
@@ -350,7 +350,7 @@ Tasks for current phase. States: `[ ]` pending | `[x]` complete
 - `cohort_projections/data/load/__init__.py` (exports)
 - `cohort_projections/geographic/multi_geography.py` (GQ re-addition)
 - `config/projection_config.yaml` (GQ config)
-- `docs/reviews/2026-02-23-ward-grand-forks-institutional-population-review.md` (new)
+- `docs/reviews/analysis/2026-02-23-ward-grand-forks-institutional-population-review.md` (new)
 - `docs/governance/adrs/055-group-quarters-separation.md` (new, Accepted)
 
 **Status:** ADR-055 Phase 1 complete. Phase 2 (GQ-corrected migration rates) deferred as optional improvement.
@@ -435,13 +435,13 @@ Tasks for current phase. States: `[ ]` pending | `[x]` complete
 - 97 related tests passing
 
 **Documentation:**
-- Created comprehensive review: `docs/reviews/2026-02-23-projection-output-review.md`
+- Created comprehensive review: `docs/reviews/analysis/2026-02-23-projection-output-review.md`
 - Created ADR-054: `docs/governance/adrs/054-state-county-aggregation-reconciliation.md`
 - Updated ADR-051 (Rejected), ADR-052 (Accepted), ADR-036 (Accepted), ADR-033 (Deferred)
 - Updated DEVELOPMENT_TRACKER.md
 
 **Key Files Created/Modified:**
-- `docs/reviews/2026-02-23-projection-output-review.md` (new)
+- `docs/reviews/analysis/2026-02-23-projection-output-review.md` (new)
 - `docs/governance/adrs/054-state-county-aggregation-reconciliation.md` (new)
 - `docs/governance/adrs/051-*.md`, `052-*.md`, `036-*.md`, `033-*.md` (status updates)
 - `scripts/pipeline/03_export_results.py` (export summary fix)

@@ -78,10 +78,7 @@ repos:
         always_run: true
         stages: [pre-commit]
 
-      - id: update-code-inventory
-        name: update code inventory
-        entry: .venv/bin/update-code-inventory
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-commit]
+      # NOTE: the 'update-code-inventory' hook was removed 2026-06-23. The bespoke
+      # repository-inventory system (cohort_projections_meta DB + REPOSITORY_INVENTORY.md)
+      # is retired in favor of the workspace ledger; see docs/plans/ledger-inventory-refactor.md.
+      # The check-data-manifest hook above is a separate concern and is retained.

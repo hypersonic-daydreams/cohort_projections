@@ -278,7 +278,7 @@ scenarios:
       # CBO-adjusted baseline parameters (ADR-065, using ADR-050 formula).
       # Formula: reduction_rate = ref_intl * (1 - factor) / ref_pop
       #          adjusted_rate  = base_rate - reduction_rate
-      reference_intl_migration: 3350.33  # SENSITIVITY 2026-06-15: PEP 2023-2025 annual AVERAGE (10051/3); locked production uses 10051 = 3-yr SUM (see docs/reviews/2026-06-15-ref-intl-migration-sum-vs-average.md)
+      reference_intl_migration: 3350.33  # SENSITIVITY 2026-06-15: PEP 2023-2025 annual AVERAGE (10051/3); locked production uses 10051 = 3-yr SUM (see docs/reviews/analysis/2026-06-15-ref-intl-migration-sum-vs-average.md)
       reference_population: 799358     # State population at base year
     active: true
 
@@ -312,7 +312,7 @@ scenarios:
       # Formula: reduction_rate = ref_intl * (1 - factor) / ref_pop
       #          adjusted_rate  = base_rate - per_cell_reduction
       # This guarantees restricted <= baseline for all counties.
-      reference_intl_migration: 3350.33  # SENSITIVITY 2026-06-15: PEP 2023-2025 annual AVERAGE (10051/3); locked production uses 10051 = 3-yr SUM (see docs/reviews/2026-06-15-ref-intl-migration-sum-vs-average.md)
+      reference_intl_migration: 3350.33  # SENSITIVITY 2026-06-15: PEP 2023-2025 annual AVERAGE (10051/3); locked production uses 10051 = 3-yr SUM (see docs/reviews/analysis/2026-06-15-ref-intl-migration-sum-vs-average.md)
       reference_population: 799358     # State population at base year
     active: false
 

@@ -14,19 +14,22 @@ never a "forecast," "prediction," "expected outcome," or "most likely" path.
 
 > ⚠️ **Hand-authored numbers: re-verify on every projection change.** Like the public PDF copy,
 > the figures here are written by hand and do **not** regenerate automatically. Whenever the locked
-> run changes, reconcile the callouts (state base, 2055 total, growth %, the 2027 low, and the
-> county figures) against `final-run-metadata.md` / the locked public CSV and `draft-public-pdf-copy.md`.
+> run changes, reconcile the callouts (state base, 2055 total, growth %, the 2027 low, the
+> declining-county count, and the county figures) against `final-run-metadata.md` / the locked
+> public CSV and `draft-public-pdf-copy.md`. This file is covered by the strict prose-sync check in
+> `scripts/exports/build_marketing_docx.py`. The 2018-vintage track-record figures (793,537 /
+> 779,094) are quoted from the 2024 edition's Note of Caution; re-verify against the original 2018
+> publication if it is located.
 
 ---
 
 ## Counting a future that hasn't happened yet
 
-There is something faintly paradoxical about projecting a population. The people who will live in
-North Dakota in 2055 are, for the most part, not a mystery: a majority of them are already here, and
-many of the rest will be the children and grandchildren of people already here. The task is not to
-conjure a future from nothing. It is to take a careful, detailed account of the present and follow it
-forward, year by year, watching how it changes as people age, as some are born, as
-some die, and as others arrive or depart.
+The people who will live in North Dakota in 2055 are, for the most part, not a mystery. A majority of
+them are already here, and many of the rest will be the children and grandchildren of people already
+here. So projecting a population is less an act of prediction than of careful accounting: you take a
+detailed picture of who lives here now and follow it forward, year by year, watching it change as
+people age, as some are born and some die, and as others arrive or depart.
 
 That is the whole idea behind the method used in these projections, and it has a name:
 the **cohort-component method**. It is the standard approach used by the U.S. Census Bureau, by
@@ -97,15 +100,14 @@ a momentum that no trend line can read.
 > Age-specific fertility rates come from CDC/NCHS natality data, calibrated to North Dakota (a total
 > fertility rate of roughly 1.86 children per woman). Newborns are divided into male and female
 > using the observed biological sex ratio at birth. In the public baseline, fertility is reduced 5%
-> to match the CBO current-policy fertility outlook (see "One path, honestly labeled" below).
+> to match the CBO current-policy fertility outlook (see "What the baseline assumes" below).
 
 ### Migration: people arrive, and people leave
 
 Finally, the model accounts for movement: people settling in each county and people leaving it.
 What matters is the *net* of the two: arrivals minus departures. For North Dakota, this is at once
-the most important ingredient and the most uncertain, because so much of the state's recent change
-has come mainly from people on the move, much of it from abroad, while births and deaths explain
-less of the recent change.
+the most important ingredient and the most uncertain, because migration — much of it from abroad —
+drives most of the state's recent change, while births and deaths account for relatively little.
 
 > **Technical note: how migration is estimated.**
 > Migration is estimated by a **residual method**. For recent years we take the actual change in
@@ -127,7 +129,7 @@ populations actually change.
 
 ---
 
-## One path, honestly labeled
+## What the baseline assumes
 
 A projection is only as trustworthy as its assumptions, and across thirty years the assumptions that
 matter most concern migration and fertility. The public release follows a single path: the
@@ -155,9 +157,9 @@ not a downturn the model uncovered on its own.
 ## What the statewide number conceals
 
 The statewide total describes no single county's experience. Under the baseline, growth is
-strikingly concentrated. Roughly three-quarters of all projected gains fall in just three counties:
-**Cass** (Fargo), **Williams** (Williston), and **Burleigh** (Bismarck). At the same time,
-**37 of the 53 counties are projected to decline.**
+strikingly concentrated. More than three-quarters of all projected gains fall in just three
+counties: **Cass** (Fargo), **Williams** (Williston), and **Burleigh** (Bismarck). At the same
+time, **36 of the 53 counties are projected to decline.**
 
 Because the method follows each county on its own terms, reflecting its particular age structure and
 its own history of migration, it can show why these paths diverge.
@@ -171,11 +173,12 @@ out of that county's own numbers, run through the same machinery as every other.
 
 ## How far should you trust it?
 
-No projection is a promise, but the record offers a fair sense of its reach. The State Data Center's
-previous effort, in 2018, came within about **0.7%** of the 2020 census count for the state. In our
-own back-testing, which launches the current model from past years and checks it against what actually
-happened, it tracks the statewide total to within roughly **1% over a single year** and a few
-percent over about a decade.
+No projection is a promise, but the record offers a fair sense of its reach. The last time the
+census checked this projection series was 2020: the Data Center's 2018-vintage projection put the
+state's population at **793,537**, and the census counted **779,094** — a difference of just under
+**two percent**, across a two-year horizon. In our own back-testing, which launches the current model
+from past years and checks it against what actually happened, it tracks the statewide total to
+within roughly **1% over a single year** and a few percent over about a decade.
 
 Two cautions deserve to travel alongside those figures, and they are not fine print:
 
